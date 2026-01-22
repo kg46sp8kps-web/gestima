@@ -8,6 +8,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "depth"],
         "cutting": ["Vc", "f", "Ap"],
+        "db_operation": ("turning", "dokoncovani"),
     },
     "od_rough": {
         "name": "Vnější hrubování",
@@ -15,6 +16,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "to_diameter", "length"],
         "cutting": ["Vc", "f", "Ap"],
+        "db_operation": ("turning", "hrubovani"),
     },
     "od_finish": {
         "name": "Vnější dokončení",
@@ -22,6 +24,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "to_diameter", "length"],
         "cutting": ["Vc", "f", "Ap"],
+        "db_operation": ("turning", "dokoncovani"),
     },
     "id_rough": {
         "name": "Vnitřní hrubování",
@@ -29,6 +32,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "to_diameter", "length"],
         "cutting": ["Vc", "f", "Ap"],
+        "db_operation": ("turning", "hrubovani"),
     },
     "id_finish": {
         "name": "Vnitřní dokončení",
@@ -36,6 +40,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "to_diameter", "length"],
         "cutting": ["Vc", "f", "Ap"],
+        "db_operation": ("turning", "dokoncovani"),
     },
     "thread_od": {
         "name": "Vnější závit",
@@ -43,6 +48,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "length", "thread_pitch"],
         "cutting": ["Vc"],
+        "db_operation": ("threading", "zavitovani"),
     },
     "thread_id": {
         "name": "Vnitřní závit",
@@ -50,6 +56,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "length", "thread_pitch"],
         "cutting": ["Vc"],
+        "db_operation": ("threading", "zavitovani"),
     },
     "groove_od": {
         "name": "Vnější zápich",
@@ -57,6 +64,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "to_diameter", "width"],
         "cutting": ["Vc", "f"],
+        "db_operation": ("grooving", "zapichovani"),
     },
     "parting": {
         "name": "Upíchnutí",
@@ -64,6 +72,7 @@ FEATURE_FIELDS = {
         "category": "turning",
         "fields": ["from_diameter", "blade_width"],
         "cutting": ["Vc", "f"],
+        "db_operation": ("parting", "upichnuti"),
     },
     "chamfer": {
         "name": "Sražení hrany",
@@ -81,6 +90,7 @@ FEATURE_FIELDS = {
         "category": "drilling",
         "fields": ["to_diameter", "depth"],
         "cutting": ["Vc", "f"],
+        "db_operation": ("drilling", "navrtani"),
     },
     "drill": {
         "name": "Vrtání",
@@ -88,6 +98,7 @@ FEATURE_FIELDS = {
         "category": "drilling",
         "fields": ["to_diameter", "depth"],
         "cutting": ["Vc", "f"],
+        "db_operation": ("drilling", "vrtani"),
     },
     "drill_deep": {
         "name": "Hluboké vrtání",
@@ -95,6 +106,7 @@ FEATURE_FIELDS = {
         "category": "drilling",
         "fields": ["to_diameter", "depth"],
         "cutting": ["Vc", "f"],
+        "db_operation": ("drilling", "vrtani_hluboke"),
     },
     "tap": {
         "name": "Závitování",
@@ -102,6 +114,7 @@ FEATURE_FIELDS = {
         "category": "drilling",
         "fields": ["to_diameter", "depth", "thread_pitch"],
         "cutting": ["Vc"],
+        "db_operation": ("threading", "zavitovani"),
     },
     
     # === FRÉZOVÁNÍ ===
@@ -111,6 +124,7 @@ FEATURE_FIELDS = {
         "category": "milling",
         "fields": ["length", "pocket_width", "depth"],
         "cutting": ["Vc", "fz", "Ap"],
+        "db_operation": ("milling", "frezovani"),
     },
     "mill_pocket": {
         "name": "Kapsa",
@@ -118,6 +132,7 @@ FEATURE_FIELDS = {
         "category": "milling",
         "fields": ["pocket_length", "pocket_width", "depth", "corner_radius"],
         "cutting": ["Vc", "fz", "Ap"],
+        "db_operation": ("milling", "frezovani"),
     },
     "mill_slot": {
         "name": "Drážka",
@@ -125,6 +140,7 @@ FEATURE_FIELDS = {
         "category": "milling",
         "fields": ["length", "width", "depth"],
         "cutting": ["Vc", "fz", "Ap"],
+        "db_operation": ("milling", "frezovani"),
     },
     "mill_drill": {
         "name": "Vrtání",

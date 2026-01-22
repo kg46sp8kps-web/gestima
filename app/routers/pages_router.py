@@ -32,6 +32,11 @@ async def parts_list(request: Request, db: AsyncSession = Depends(get_db)):
     return templates.TemplateResponse("parts/list.html", {"request": request, "parts": parts})
 
 
+@router.get("/parts/new", response_class=HTMLResponse)
+async def part_new(request: Request):
+    return templates.TemplateResponse("parts/new.html", {"request": request})
+
+
 @router.get("/parts/{part_id}/edit", response_class=HTMLResponse)
 async def part_edit(part_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Part).where(Part.id == part_id))

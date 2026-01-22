@@ -9,12 +9,12 @@ router = APIRouter()
 
 @router.get("/machines")
 async def list_machines() -> List[Dict[str, Any]]:
-    return get_machines()
+    return await get_machines()
 
 
 @router.get("/materials")
 async def list_materials() -> List[Dict[str, Any]]:
-    return get_material_groups()
+    return await get_material_groups()
 
 
 @router.get("/feature-types")

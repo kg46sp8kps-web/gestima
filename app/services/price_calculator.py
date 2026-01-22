@@ -26,7 +26,7 @@ class BatchPrices:
     total_cost: float = 0
 
 
-def calculate_material_cost(
+async def calculate_material_cost(
     stock_diameter: float,
     stock_length: float,
     material_group: str,
@@ -37,7 +37,7 @@ def calculate_material_cost(
     if stock_diameter <= 0 or stock_length <= 0:
         return result
     
-    props = get_material_properties(material_group)
+    props = await get_material_properties(material_group)
     density = props["density"]
     price_per_kg = props["price_per_kg"]
     

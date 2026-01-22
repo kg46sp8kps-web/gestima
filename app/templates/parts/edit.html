@@ -1,37 +1,284 @@
 {% extends "base.html" %}
 
-{% block title %}GESTIMA - {{ part.part_number or 'Nový díl' }}{% endblock %}
+{% block title %}GESTIMA - {{ part.part_number }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <a href="/parts" class="text-gray-400 hover:text-white">
-                ← Zpět
-            </a>
-            <h1 class="text-2xl font-bold">
-                {{ part.part_number or 'Nový díl' }}
-            </h1>
+<div class="split-layout" x-data="partEdit({{ part.id }})">
+    
+    <!-- LEFT PANEL (280px) -->
+    <div class="left-panel">
+        
+        <!-- Základní údaje -->
+        <div class="ribbon">
+            <div class="ribbon-header" @click="showBasic = !showBasic">
+                <div class="ribbon-title">📋 Základní údaje</div>
+                <div class="ribbon-toggle" x-text="showBasic ? '▼' : '▶'">▼</div>
+            </div>
+            <div class="ribbon-body" x-show="showBasic" x-data="{ showBasic: true }">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.8rem;">
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Číslo výkresu</div>
+                        <div style="font-weight: 600;">{{ part.part_number }}</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Název</div>
+                        <div>{{ part.name or '-' }}</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Materiál</div>
+                        <div>{{ part.material_group }}</div>
+                        {% if part.material_name %}
+                        <div style="color: var(--text-secondary); font-size: 0.7rem;">{{ part.material_name }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Polotovar</div>
+                        <div>{{ part.stock_type.value }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">
-            💾 Uložit
-        </button>
+        
+        <!-- Cenový přehled -->
+        <div class="ribbon">
+            <div class="ribbon-header">
+                <div class="ribbon-title">📊 Cenový přehled</div>
+            </div>
+            <div class="ribbon-body">
+                <table class="price-table">
+                    <tbody>
+                        <template x-for="batch in batches" :key="batch.id">
+                            <tr>
+                                <td class="batch-qty" x-text="batch.quantity + ' ks'"></td>
+                                <td class="price-value" x-text="batch.unit_cost.toFixed(0) + ' Kč'"></td>
+                            </tr>
+                        </template>
+                        <tr x-show="batches.length === 0">
+                            <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.75rem;">
+                                Zatím žádné ceny
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Tlačítko zpět -->
+        <a href="/parts" class="btn-flat" style="text-decoration: none; text-align: center;">
+            ← Zpět na seznam
+        </a>
+        
     </div>
     
-    <div class="bg-gray-800 rounded-lg p-4">
-        <h2 class="text-lg font-semibold mb-4">Základní údaje</h2>
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">Číslo dílu</label>
-                <input type="text" value="{{ part.part_number }}" 
-                       class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">Název</label>
-                <input type="text" value="{{ part.name }}" 
-                       class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+        
+        <!-- Čas na kus (STICKY RIBBON) -->
+        <div class="right-panel-sticky">
+            <div class="ribbon">
+                <div class="ribbon-header" @click="showTime = !showTime">
+                    <div class="ribbon-title">⏱️ Čas na kus</div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-blue);" x-text="totalTime.toFixed(1) + ' min'">
+                            0.0 min
+                        </div>
+                        <div class="ribbon-toggle" x-text="showTime ? '▼' : '▶'">▼</div>
+                    </div>
+                </div>
+                <div class="ribbon-body" x-show="showTime">
+                    <div style="color: var(--text-muted); font-size: 0.75rem;">
+                        Detailní rozpad času (zatím neimplementováno)
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+        
+        <!-- Scrollovatelný obsah -->
+        <div class="right-panel-content">
+            
+            <!-- Operace (RIBBON) -->
+            <div class="ribbon">
+                <div class="ribbon-header" @click="showOperations = !showOperations">
+                    <div class="ribbon-title">
+                        🔧 OPERACE (<span x-text="operations.length">0</span>)
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button @click.stop="addOperation" class="btn-flat btn-add-op" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">
+                            + Přidat operaci
+                        </button>
+                        <div class="ribbon-toggle" x-text="showOperations ? '▼' : '▶'">▼</div>
+                    </div>
+                </div>
+                
+                <div class="ribbon-body" x-show="showOperations" style="padding: 0.5rem;">
+                    <!-- Seznam operací -->
+                    <template x-for="(op, index) in operations" :key="op.id">
+                <div class="operation-card" x-data="{ expanded: false }">
+                    <!-- Header (klikací) -->
+                    <div class="op-header" @click="expanded = !expanded" style="cursor: pointer;">
+                        <div class="op-seq" x-text="op.seq"></div>
+                        <div class="op-icon" x-text="op.icon"></div>
+                        <div class="op-name" x-text="op.name"></div>
+                        
+                        <div class="op-header-right">
+                            <!-- Mode buttons -->
+                            <div class="mode-buttons-inline" @click.stop>
+                                <button @click="changeMode(op.id, 'low')" 
+                                        :class="{ 'active': op.cutting_mode === 'low' }"
+                                        class="mode-btn-sm mode-low">LOW</button>
+                                <button @click="changeMode(op.id, 'mid')"
+                                        :class="{ 'active': op.cutting_mode === 'mid' }"
+                                        class="mode-btn-sm mode-mid">MID</button>
+                                <button @click="changeMode(op.id, 'high')"
+                                        :class="{ 'active': op.cutting_mode === 'high' }"
+                                        class="mode-btn-sm mode-high">HIGH</button>
+                            </div>
+                            
+                            <!-- Times -->
+                            <div class="op-time-display">
+                                tp: <strong x-text="op.operation_time_min.toFixed(1)"></strong> min
+                            </div>
+                            <div class="op-time-display">
+                                tj: <strong x-text="op.setup_time_min.toFixed(1)"></strong> min
+                            </div>
+                            
+                            <!-- Expand indicator -->
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;" x-text="expanded ? '▼' : '▶'">▶</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Features (rozbalovací) -->
+                    <div class="features-section" x-show="expanded" x-collapse>
+                        <div class="no-features">
+                            📝 Kroky operace (zatím neimplementováno)
+                        </div>
+                    </div>
+                </div>
+                    </template>
+                    
+                    <!-- Prázdný stav -->
+                    <div x-show="operations.length === 0" 
+                         style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">🔧 Zatím žádné operace</div>
+                        <div style="font-size: 0.75rem;">Klikni na "+ Přidat operaci" pro začátek</div>
+                    </div>
+                </div><!-- /ribbon-body -->
+            </div><!-- /ribbon operace -->
+            
+        </div><!-- /right-panel-content -->
+        
+    </div><!-- /right-panel -->
+    
+</div><!-- /split-layout -->
+
+<script>
+function partEdit(partId) {
+    return {
+        partId: partId,
+        operations: [],
+        batches: [],
+        totalTime: 0,
+        showBasic: true,
+        showTime: true,
+        showOperations: true,
+        
+        async init() {
+            console.log('Initializing part edit for ID:', this.partId);
+            await this.loadOperations();
+            await this.loadBatches();
+        },
+        
+        async loadOperations() {
+            try {
+                const response = await fetch(`/api/operations/part/${this.partId}`);
+                if (response.ok) {
+                    this.operations = await response.json();
+                    this.calculateTotalTime();
+                    console.log('Loaded operations:', this.operations);
+                }
+            } catch (error) {
+                console.error('Error loading operations:', error);
+            }
+        },
+        
+        async loadBatches() {
+            try {
+                const response = await fetch(`/api/batches/part/${this.partId}`);
+                if (response.ok) {
+                    this.batches = await response.json();
+                    console.log('Loaded batches:', this.batches);
+                }
+            } catch (error) {
+                console.error('Error loading batches:', error);
+            }
+        },
+        
+        calculateTotalTime() {
+            this.totalTime = this.operations.reduce((sum, op) => sum + op.operation_time_min, 0);
+        },
+        
+        async addOperation() {
+            const maxSeq = this.operations.reduce((max, op) => Math.max(max, op.seq), 0);
+            
+            console.log('Adding operation with seq:', maxSeq + 10);
+            
+            try {
+                const response = await fetch('/api/operations/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        part_id: this.partId,
+                        seq: maxSeq + 10,
+                        name: 'OP' + (maxSeq + 10) + ' - Soustružení',
+                        type: 'turning',
+                        icon: '🔄',
+                        cutting_mode: 'mid',
+                        setup_time_min: 30.0
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('API error:', error);
+                    window.showToast('❌ ' + (error.detail || 'Chyba při přidání operace'), 'error');
+                    return;
+                }
+                
+                const newOp = await response.json();
+                this.operations.push(newOp);
+                this.calculateTotalTime();
+                console.log('Operation added:', newOp);
+                window.showToast('✅ Operace přidána', 'success');
+                
+            } catch (error) {
+                console.error('Error adding operation:', error);
+                window.showToast('❌ Chyba při přidání operace', 'error');
+            }
+        },
+        
+        async changeMode(operationId, mode) {
+            try {
+                const response = await fetch(`/api/operations/${operationId}/change-mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cutting_mode: mode })
+                });
+                
+                if (response.ok) {
+                    const updatedOp = await response.json();
+                    const index = this.operations.findIndex(op => op.id === operationId);
+                    if (index !== -1) {
+                        this.operations[index] = updatedOp;
+                        this.calculateTotalTime();
+                    }
+                    window.showToast(`✅ Režim změněn na ${mode.toUpperCase()}`, 'success');
+                }
+            } catch (error) {
+                console.error('Error changing mode:', error);
+                window.showToast('❌ Chyba při změně režimu', 'error');
+            }
+        }
+    }
+}
+</script>
 {% endblock %}

@@ -210,6 +210,13 @@
 - Po opravě bugu aktualizovat `BUGY.md`
 - Po dokončení fáze aktualizovat tento `ROADMAP.md`
 
+### TODO - Admin konzole:
+- **Drilling koeficienty:** `_apply_drilling_coefficients()` v `cutting_conditions.py` - tabulka koeficientů pro různé průměry vrtáků
+  - Aktuálně hardcoded: `[(3mm, k_vc=0.60, k_f=0.25), (6mm, 0.70, 0.40), ..., (40mm+, 0.85, 1.25)]`
+  - **Účel:** Korekce Vc a f podle průměru vrtáku (malé vrtáky = nižší Vc)
+  - **Implementovat:** DB tabulka `drilling_coefficients` + admin UI pro editaci
+  - **Kdy:** Při implementaci administrace nástrojů a řezných podmínek
+
 ---
 
 ## ✅ CHECKLIST PRO KAŽDOU FÁZI

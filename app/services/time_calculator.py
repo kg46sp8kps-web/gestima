@@ -33,7 +33,7 @@ class FeatureCalculator:
             return 0
         return (length / (rpm * feed)) * 60
     
-    def calculate(
+    async def calculate(
         self,
         feature_type: str,
         material_group: str,
@@ -44,7 +44,7 @@ class FeatureCalculator:
         result = CalculationResult()
         locked = locked_values or {}
         
-        conditions = get_conditions(
+        conditions = await get_conditions(
             feature_type,
             material_group,
             cutting_mode,
@@ -166,7 +166,7 @@ class FeatureCalculator:
         return self._calc_thread_od(result, geo)
 
 
-def calculate_feature_time(
+async def calculate_feature_time(
     feature_type: str,
     material_group: str,
     cutting_mode: str,
@@ -175,4 +175,4 @@ def calculate_feature_time(
     max_rpm: int = 4000,
 ) -> CalculationResult:
     calc = FeatureCalculator(max_rpm=max_rpm)
-    return calc.calculate(feature_type, material_group, cutting_mode, geometry, locked_values)
+    return await calc.calculate(feature_type, material_group, cutting_mode, geometry, locked_values)

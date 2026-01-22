@@ -1,51 +1,55 @@
-/* GESTIMA - Styly */
+/* ============================================================================
+   GESTIMA - Main CSS
+   Importuje všechny moduly z Guesstimator designu
+   ============================================================================ */
 
+@import 'variables.css';
+@import 'base.css';
+@import 'layout.css';
+@import 'components.css';
+@import 'operations.css';
+
+/* === TRANSITIONS === */
 * {
     transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-input:focus, select:focus, textarea:focus, button:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px #3b82f6;
+/* === FORMS === */
+input, select, textarea {
+    padding: 0.4rem 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
 }
 
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+/* === HTMX === */
 .htmx-request {
     opacity: 0.5;
     pointer-events: none;
 }
 
-.htmx-request::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 24px;
-    height: 24px;
-    margin: -12px 0 0 -12px;
-    border: 3px solid #374151;
-    border-top-color: #3b82f6;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
+/* === SCROLLBAR === */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #1f2937;
+    background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #4b5563;
+    background: var(--border-light);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
+    background: var(--text-muted);
 }

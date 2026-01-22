@@ -28,6 +28,12 @@ async def get_part(part_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/", response_model=PartResponse)
 async def create_part(data: PartCreate, db: AsyncSession = Depends(get_db)):
+    # Kontrola duplicitního čísla dílu
+    result = await db.execute(select(Part).where(Part.part_number == data.part_number))
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Díl s číslem '{data.part_number}' již existuje")
+    
     part = Part(**data.model_dump())
     db.add(part)
     await db.commit()

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}GESTIMA - Nový díl{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="partForm()">
+    <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/parts" class="text-gray-400 hover:text-white">
+                ← Zpět
+            </a>
+            <h1 class="text-2xl font-bold">Nový díl</h1>
+        </div>
+    </div>
+    
+    <form @submit.prevent="savePart" class="space-y-6">
+        <!-- Základní údaje -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">📋 Číslo výkresu</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Číslo výkresu *</label>
+                    <input type="text" x-model="form.part_number" required
+                           placeholder="např. 15005518FMG"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Název dílu (volitelné)</label>
+                    <input type="text" x-model="form.name"
+                           placeholder="např. Hřídel rotační"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Materiál -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">🔩 Materiál</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Materiálová skupina *</label>
+                    <select x-model="form.material_group" required
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        <option value="konstrukcni_ocel">Konstrukční ocel</option>
+                        <option value="automatova_ocel">Automatová ocel</option>
+                        <option value="legovana_ocel">Legovaná ocel</option>
+                        <option value="nastrojova_ocel">Nástrojová ocel</option>
+                        <option value="nerez_feriticka">Nerez feritická</option>
+                        <option value="nerez_austeniticka">Nerez austenitická</option>
+                        <option value="hlinik">Hliník</option>
+                        <option value="mosaz_bronz">Mosaz / Bronz</option>
+                        <option value="med">Měď</option>
+                        <option value="plasty">Plasty</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Označení materiálu (volitelné)</label>
+                    <input type="text" x-model="form.material_name"
+                           placeholder="např. 11SMn30 nebo S235JRC+C"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Polotovar -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">📦 Polotovar & Materiál</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Typ součásti</label>
+                    <select x-model="form.stock_type"
+                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        <option value="tyc">🔵 Rotační (Tyč)</option>
+                        <option value="trubka">⭕ Trubka</option>
+                        <option value="prizez">📦 Přířez</option>
+                        <option value="odlitek">🏭 Odlitek</option>
+                        <option value="plech">📄 Plech</option>
+                    </select>
+                </div>
+                
+                <!-- Tyč / Trubka / Odlitek -->
+                <div x-show="['tyc', 'trubka', 'odlitek'].includes(form.stock_type)">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Ø [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_diameter"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Délka [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_length"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div x-show="form.stock_type === 'trubka'" class="mt-4">
+                        <label class="block text-sm text-gray-400 mb-1">Vnitřní průměr [mm]</label>
+                        <input type="number" step="0.1" x-model.number="form.stock_diameter_inner"
+                               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                
+                <!-- Přířez (d x š x v) -->
+                <div x-show="form.stock_type === 'prizez'">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Délka [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_length"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Šířka [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_width"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Výška [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_height"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Plech -->
+                <div x-show="form.stock_type === 'plech'">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Délka [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_length"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Šířka [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_width"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Tloušťka [mm]</label>
+                            <input type="number" step="0.1" x-model.number="form.stock_height"
+                                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <!-- Poznámky -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">📝 Poznámky</h2>
+            <textarea x-model="form.notes" rows="3"
+                      class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none"></textarea>
+        </div>
+        
+        <!-- Akce -->
+        <div class="flex justify-end gap-4">
+            <a href="/parts" class="px-6 py-2 border border-gray-600 rounded-lg hover:bg-gray-700">
+                Zrušit
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg">
+                💾 Vytvořit díl
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function partForm() {
+    return {
+        form: {
+            part_number: '',
+            name: '',
+            material_name: '',
+            material_group: 'konstrukcni_ocel',
+            stock_type: 'tyc',
+            stock_diameter: 0,
+            stock_diameter_inner: 0,
+            stock_length: 0,
+            stock_width: 0,
+            stock_height: 0,
+            notes: ''
+        },
+        
+        async savePart() {
+            try {
+                const response = await fetch('/api/parts/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(this.form)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Chyba při ukládání dílu');
+                }
+                
+                const data = await response.json();
+                
+                // Toast notifikace
+                window.showToast('✅ Díl byl vytvořen', 'success');
+                
+                // Přesměrování na editaci (kde se budou přidávat operace)
+                setTimeout(() => {
+                    window.location.href = `/parts/${data.id}/edit`;
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                window.showToast('❌ ' + error.message, 'error');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -20,12 +20,15 @@ Než napíšeš řádek kódu, projdi tyto kroky:
 1. **Memory Check:** Přečti `Docs/LESSONS.md` (neopakuj známé chyby).
 2. **Architecture Check:** Pokud měníš strukturu, podívej se do `Docs/ADR/`.
 3. **Context Check:** Podívej se na existující kód. Dodržuj styl (DRY).
+4. **verifikace:** Potvrdíme si kroky před tvorbou kodu
+
 
 ## 4. HLAVNÍ PRINCIPY
 - **API First:** Backend je mozek. Frontend je jen "hloupá televize", co zobrazuje data.
 - **Jeden zdroj pravdy:** Cena se počítá na jednom místě v Pythonu. Nikdy ji nepočítej v JS ani v HTML.
 - **StrReplace / Diff Only:** NIKDY nevypisuj celé soubory. Používej `SEARCH` a `REPLACE` bloky pro změny. Šetři tokeny.
-- **Testy:** Ke každé funkci, která počítá peníze nebo čas, napiš/uprav `pytest`.
+- **Testy:** Ke každé funkci, která počítá peníze nebo čas a nebo je kritická pro funkčnost, napiš/uprav `pytest`.
+- **Kód:** Žádné hardcoded hodnoty!! to je červená čára. Žádne walkaround, jdeš přímo k cíli nejkratší cestou i když je trnitá, čistá prace na které jde stavět. 
 
 ## 5. KDYŽ NĚCO NEFUNGUJE (DEBUGGING)
 1. **STOP:** Nezkoušej slepě to samé řešení znovu.

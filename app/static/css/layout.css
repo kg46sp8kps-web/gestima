@@ -1,0 +1,96 @@
+/* ============================================================================
+   GESTIMA - Layout
+   ============================================================================ */
+
+/* === SPLIT LAYOUT === */
+.split-layout {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    align-items: stretch;
+}
+
+/* === LEFT PANEL === */
+.left-panel {
+    width: 320px;
+    min-width: 320px;
+    background: transparent;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: sticky;
+    top: 60px;
+    height: fit-content;
+    max-height: calc(100vh - 60px - 1.5rem);
+    overflow-y: auto;
+}
+
+/* === RIGHT PANEL === */
+.right-panel {
+    flex: 1;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 60px);
+    overflow: hidden;
+}
+
+/* === RIGHT PANEL - STICKY TIME === */
+.right-panel-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg-primary);
+    padding-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* === RIGHT PANEL - SCROLLABLE CONTENT === */
+.right-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* === RIBBONS === */
+.ribbon {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ribbon-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.8rem;
+    min-height: 38px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.ribbon-header:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.ribbon-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ribbon-toggle {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+.ribbon-body {
+    padding: 0.6rem 0.8rem;
+    border-top: 1px solid var(--border-color);
+}

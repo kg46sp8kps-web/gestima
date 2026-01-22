@@ -65,12 +65,13 @@ async def delete_operation(operation_id: int, db: AsyncSession = Depends(get_db)
 
 
 @router.post("/{operation_id}/change-mode", response_model=OperationResponse)
-async def change_mode(operation_id: int, cutting_mode: str, db: AsyncSession = Depends(get_db)):
+async def change_mode(operation_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Operation).where(Operation.id == operation_id))
     operation = result.scalar_one_or_none()
     if not operation:
         raise HTTPException(status_code=404, detail="Operace nenalezena")
     
+    cutting_mode = data.get("cutting_mode")
     if cutting_mode not in ["low", "mid", "high"]:
         raise HTTPException(status_code=400, detail="Neplatný režim")
     

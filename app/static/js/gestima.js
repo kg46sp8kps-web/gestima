@@ -8,16 +8,40 @@ function showToast(message, type = 'info') {
     if (!container) return;
     
     const toast = document.createElement('div');
-    toast.className = `px-4 py-3 rounded-lg shadow-lg mb-2 ${
-        type === 'success' ? 'bg-green-600' : 
-        type === 'error' ? 'bg-red-600' : 
-        'bg-blue-600'
-    }`;
+    
+    // Barvy podle typu (50% opacity pro pozadí)
+    const bgColor = type === 'success' ? 'rgba(34, 197, 94, 0.5)' : 
+                    type === 'error' ? 'rgba(214, 40, 40, 0.5)' : 
+                    'rgba(59, 130, 246, 0.5)';
+    const borderColor = type === 'success' ? '#22c55e' : 
+                        type === 'error' ? '#d62828' : 
+                        '#3b82f6';
+    
+    toast.style.cssText = `
+        background: ${bgColor};
+        backdrop-filter: blur(8px);
+        border: 2px solid ${borderColor};
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: white;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: opacity 0.3s;
+        min-width: 250px;
+        max-width: 400px;
+    `;
+    
     toast.innerHTML = `
-        <div class="flex items-center gap-2">
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 opacity-70 hover:opacity-100">×</button>
-        </div>
+        <span style="flex: 1;">${message}</span>
+        <button onclick="this.parentElement.remove()" 
+                style="background: none; border: none; color: white; opacity: 0.8; cursor: pointer; font-size: 1.3rem; padding: 0; line-height: 1; font-weight: 300;">
+            ×
+        </button>
     `;
     
     container.appendChild(toast);

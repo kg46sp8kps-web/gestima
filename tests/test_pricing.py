@@ -7,9 +7,10 @@ from app.services.price_calculator import calculate_material_cost, calculate_mac
 
 @pytest.mark.business
 @pytest.mark.critical
-def test_material_cost_rod_steel():
+@pytest.mark.asyncio
+async def test_material_cost_rod_steel():
     """KRITICKÝ TEST: Materiálové náklady pro tyč ø50 × 100mm"""
-    result = calculate_material_cost(
+    result = await calculate_material_cost(
         stock_diameter=50.0,
         stock_length=100.0,
         material_group="konstrukcni_ocel",

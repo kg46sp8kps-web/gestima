@@ -16,7 +16,8 @@ build/
 *.db-wal
 *.db-shm
 
-# Temporary Excel files
+# Excel files (all archived, data now in DB)
+data/archive/
 ~$*.xlsx
 
 # OS (macOS)

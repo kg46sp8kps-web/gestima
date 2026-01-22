@@ -1,0 +1,55 @@
+/* ============================================================================
+   GESTIMA - Base Styles
+   ============================================================================ */
+
+/* === RESET === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+    min-width: 1200px;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: auto;
+}
+
+/* Logo watermark */
+body::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60vw;
+    height: 60vh;
+    background: url('/static/img/logo.png') no-repeat center center;
+    background-size: contain;
+    opacity: 0.079;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* === MAIN CONTENT === */
+.main-content {
+    width: 80%;
+    max-width: 2400px;
+    min-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    box-sizing: border-box;
+}
+
+/* === NAV LINKS HOVER === */
+nav a:hover {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+}
