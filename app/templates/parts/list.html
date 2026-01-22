@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}GESTIMA - Díly{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">Díly</h1>
+        <a href="/parts/new" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">
+            + Nový díl
+        </a>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-700">
+                <tr>
+                    <th class="text-left px-4 py-3">Číslo</th>
+                    <th class="text-left px-4 py-3">Název</th>
+                    <th class="text-left px-4 py-3">Materiál</th>
+                    <th class="text-left px-4 py-3">Stav</th>
+                    <th class="text-right px-4 py-3">Akce</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% include "parts/list_fragment.html" %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

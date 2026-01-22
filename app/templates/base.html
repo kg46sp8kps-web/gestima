@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GESTIMA{% endblock %}</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    
+    <link rel="stylesheet" href="/static/css/gestima.css">
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="dark bg-gray-900 text-gray-100 min-h-screen" hx-boost="true">
+    
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-xl font-bold text-blue-400">
+                        🏭 GESTIMA
+                    </a>
+                    <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        Dashboard
+                    </a>
+                    <a href="/parts" class="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+                        Díly
+                    </a>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-gray-400 text-sm">v1.0.0</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main id="main-content" class="max-w-7xl mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+    
+    <script src="/static/js/gestima.js"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

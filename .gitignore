@@ -1,0 +1,46 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Database (lokální data - nebackupovat)
+*.db
+*.db-wal
+*.db-shm
+
+# Temporary Excel files
+~$*.xlsx
+
+# OS (macOS)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Pytest
+.pytest_cache/
+
+# Logs
+*.log
+
+# Environment variables (pokud budou v budoucnu)
+.env
+.env.local

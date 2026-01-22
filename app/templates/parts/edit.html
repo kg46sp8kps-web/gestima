@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}GESTIMA - {{ part.part_number or 'Nový díl' }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/parts" class="text-gray-400 hover:text-white">
+                ← Zpět
+            </a>
+            <h1 class="text-2xl font-bold">
+                {{ part.part_number or 'Nový díl' }}
+            </h1>
+        </div>
+        <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">
+            💾 Uložit
+        </button>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4">
+        <h2 class="text-lg font-semibold mb-4">Základní údaje</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Číslo dílu</label>
+                <input type="text" value="{{ part.part_number }}" 
+                       class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Název</label>
+                <input type="text" value="{{ part.name }}" 
+                       class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

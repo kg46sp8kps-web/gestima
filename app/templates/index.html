@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}GESTIMA - Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">Dashboard</h1>
+        <a href="/parts/new" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">
+            + Nový díl
+        </a>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-gray-400 text-sm">Celkem dílů</div>
+            <div class="text-2xl font-bold">{{ parts|length }}</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-gray-400 text-sm">Rozpracovaných</div>
+            <div class="text-2xl font-bold text-yellow-400">0</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-gray-400 text-sm">Kalkulovaných</div>
+            <div class="text-2xl font-bold text-green-400">0</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4">
+            <div class="text-gray-400 text-sm">Nacenených</div>
+            <div class="text-2xl font-bold text-blue-400">0</div>
+        </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg">
+        <div class="p-4 border-b border-gray-700">
+            <h2 class="text-lg font-semibold">Poslední díly</h2>
+        </div>
+        <div class="divide-y divide-gray-700">
+            {% for part in parts %}
+            <a href="/parts/{{ part.id }}/edit" class="flex items-center justify-between p-4 hover:bg-gray-700 transition-colors">
+                <div>
+                    <div class="font-medium">{{ part.part_number or 'Bez čísla' }}</div>
+                    <div class="text-sm text-gray-400">{{ part.name or 'Bez názvu' }}</div>
+                </div>
+                <span class="text-sm text-gray-400">{{ part.material_name or '-' }}</span>
+            </a>
+            {% else %}
+            <div class="p-8 text-center text-gray-400">
+                Zatím žádné díly
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

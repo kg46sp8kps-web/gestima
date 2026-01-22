@@ -1,0 +1,27 @@
+{% for part in parts %}
+<tr class="hover:bg-gray-700">
+    <td class="px-4 py-3">
+        <a href="/parts/{{ part.id }}/edit" class="text-blue-400 hover:underline">
+            {{ part.part_number or '-' }}
+        </a>
+    </td>
+    <td class="px-4 py-3">{{ part.name or '-' }}</td>
+    <td class="px-4 py-3">{{ part.material_name or '-' }}</td>
+    <td class="px-4 py-3">
+        <span class="px-2 py-1 rounded text-xs bg-gray-700">
+            {{ part.status.value }}
+        </span>
+    </td>
+    <td class="px-4 py-3 text-right">
+        <a href="/parts/{{ part.id }}/edit" class="text-gray-400 hover:text-white">
+            Upravit →
+        </a>
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="5" class="px-4 py-8 text-center text-gray-400">
+        Žádné díly nenalezeny
+    </td>
+</tr>
+{% endfor %}
