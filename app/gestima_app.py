@@ -1,21 +1,36 @@
 """GESTIMA 1.0 - Hlavní FastAPI aplikace"""
 
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import init_db
-from app.routers import parts_router, operations_router, features_router, batches_router, data_router, pages_router
+from app.logging_config import setup_logging, get_logger
+from app.routers import (
+    auth_router,
+    parts_router,
+    operations_router,
+    features_router,
+    batches_router,
+    data_router,
+    pages_router
+)
+
+# Inicializace loggingu
+setup_logging(debug=settings.DEBUG)
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    print(f"🚀 GESTIMA {settings.VERSION} běží na http://localhost:8000")
+    logger.info(f"🚀 GESTIMA {settings.VERSION} běží na http://localhost:8000")
     yield
-    print("👋 GESTIMA ukončena")
+    logger.info("👋 GESTIMA ukončena")
 
 
 app = FastAPI(
@@ -29,9 +44,47 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 
+app.include_router(auth_router.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
 app.include_router(operations_router.router, prefix="/api/operations", tags=["Operations"])
 app.include_router(features_router.router, prefix="/api/features", tags=["Features"])
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(pages_router.router, tags=["Pages"])
+
+
+# ============================================================================
+# GLOBAL ERROR HANDLERS
+# ============================================================================
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Globální handler pro všechny neošetřené výjimky
+    Loguje chybu a vrací generickou odpověď (bez exposure detailů)
+    """
+    logger.error(
+        f"Unhandled exception: {exc}",
+        exc_info=True,
+        extra={
+            "path": request.url.path,
+            "method": request.method,
+            "client": request.client.host if request.client else None,
+        }
+    )
+
+    # V DEBUG módu vraťme detail, v produkci ne
+    if settings.DEBUG:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "error": str(exc),
+                "type": type(exc).__name__,
+            }
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
+        )

@@ -1,0 +1,224 @@
+# GESTIMA - Architecture Overview
+
+**Verze:** 1.0 (2026-01-23)
+**Účel:** Rychlá orientace v projektu (5 minut k pochopení)
+
+---
+
+## 🎯 Quick Start
+
+```
+FastAPI + SQLAlchemy 2.0 (async) + SQLite + Jinja2 + Alpine.js + HTMX
+Backend: Python 3.9+, Frontend: Server-rendered HTML
+```
+
+**Hierarchie entit:**
+```
+Part (Díl)
+  ├─ Operations (1:N) - technologické kroky
+  │    └─ Features (1:N) - konkrétní úkony s geometrií
+  └─ Batches (1:N) - cenové kalkulace pro dávky
+```
+
+---
+
+## 📁 Directory Map
+
+```
+gestima/
+├── app/
+│   ├── models/              # SQLAlchemy modely (Part, Operation, Feature, Batch)
+│   ├── routers/             # API endpoints (parts_router.py, operations_router.py...)
+│   ├── services/            # Business logika (price_calculator.py, time_calculator.py)
+│   ├── templates/           # Jinja2 HTML (index.html, edit.html)
+│   ├── static/              # CSS, JS (main.js, tailwind.css)
+│   ├── database.py          # DB setup + AuditMixin (soft delete)
+│   ├── logging_config.py    # Structured logging (JSON + console)
+│   └── gestima_app.py       # FastAPI app + global error handler
+├── data/                    # CSV data (materials, machines, cutting_conditions)
+├── tests/                   # pytest testy
+└── docs/                    # Dokumentace
+```
+
+**Kde co najdu:**
+
+| Hledám... | Soubor |
+|-----------|--------|
+| Výpočty cen | services/price_calculator.py |
+| Výpočty časů | services/time_calculator.py |
+| API díly | routers/parts_router.py |
+| API operace | routers/operations_router.py |
+| DB modely | models/*.py |
+| HTML šablony | templates/*.html |
+| Frontend logika | static/main.js (Alpine.js) |
+| Testy | tests/test_*.py |
+| Error handling | logging_config.py, gestima_app.py:44 |
+
+---
+
+## 🔄 Data Flow
+
+### Typický request cycle
+```
+1. User Action (browser)
+2. HTMX/Alpine.js → API call (fetch)
+3. Router (routers/*.py) → validates input
+4. Service (services/*.py) → business logic + calculations
+5. DB (SQLAlchemy async) → CRUD operations
+6. Response (JSON) → backend
+7. Frontend updates (Alpine.js) → re-render
+```
+
+### Příklad: "Změna cutting_mode"
+```
+User clicks "HIGH mode"
+  ↓
+POST /api/operations/{id}/change-mode {"cutting_mode": "high"}
+  ↓
+operations_router.py:change_mode()
+  ↓
+db.commit() [with error handling]
+  ↓
+Response: Updated operation JSON
+  ↓
+Alpine.js: Update UI + recalculate features
+```
+
+---
+
+## 🏗️ System Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     BROWSER (User)                      │
+│  Jinja2 Templates + Alpine.js + HTMX + TailwindCSS     │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTP (JSON/HTML)
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                  FastAPI (gestima_app.py)               │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Routers (API endpoints)                         │  │
+│  │  - parts_router.py    - operations_router.py     │  │
+│  │  - features_router.py - batches_router.py        │  │
+│  │  - data_router.py     - pages_router.py          │  │
+│  └──────────────────────────────────────────────────┘  │
+│                     ▼                                    │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Services (Business Logic)                       │  │
+│  │  - price_calculator.py                           │  │
+│  │  - time_calculator.py                            │  │
+│  └──────────────────────────────────────────────────┘  │
+│                     ▼                                    │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  SQLAlchemy 2.0 (async ORM)                      │  │
+│  │  Models: Part, Operation, Feature, Batch         │  │
+│  └──────────────────────────────────────────────────┘  │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│         SQLite + WAL mode (gestima.db)                  │
+│  Tables: parts, operations, features, batches,          │
+│          materials, machines, cutting_conditions        │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔑 Key Architectural Decisions
+
+| Rozhodnutí | Důvod | ADR |
+|------------|-------|-----|
+| **Soft delete** | Audit trail + data recovery | ADR-001 |
+| **Integer IDs** | Simplicity vs UUIDs | ADR-003 |
+| **Async SQLAlchemy** | Performance + modern Python | N/A |
+| **Server-side rendering** | SEO + simplicity | N/A |
+
+---
+
+## 🚀 Critical Paths (User Flows)
+
+### 1. Vytvoření dílu
+```
+GET / → index.html
+  ↓
+User: "Nový díl"
+  ↓
+POST /api/parts {"part_number": "...", "material_group": "..."}
+  ↓
+parts_router.create_part()
+  ↓
+DB: INSERT into parts
+  ↓
+Response: Created part JSON
+  ↓
+UI: Redirect to /edit/{part_id}
+```
+
+### 2. Přidání operace
+```
+/edit/{part_id}
+  ↓
+User: "Přidat operaci"
+  ↓
+POST /api/operations {"part_id": X, "operation_type": "turning"}
+  ↓
+operations_router.create_operation()
+  ↓
+DB: INSERT into operations
+  ↓
+Response: New operation JSON
+  ↓
+UI: Add operation card to DOM
+```
+
+### 3. Výpočet ceny
+```
+User změnil material/rozměry/quantities
+  ↓
+Frontend: Shromáždí všechna data
+  ↓
+POST /api/calculate (nebo GET s params)
+  ↓
+price_calculator.py:
+  - Material cost (volume * density * price)
+  - Machining cost (time * hourly_rate)
+  - Setup cost (setup_time * hourly_rate / quantity)
+  ↓
+Response: Calculated prices per batch
+  ↓
+UI: Update price ribbons
+```
+
+---
+
+## 📋 Production Checklist
+
+| Status | Requirement |
+|--------|-------------|
+| ✅ | Transaction error handling (14 míst) |
+| ✅ | Structured logging (logging_config.py) |
+| ✅ | Global error handler (gestima_app.py:44) |
+| ❌ | Authentication (P0 BLOCKER) |
+| ❌ | HTTPS (P0 BLOCKER) |
+| ❌ | CORS (P1) |
+| ❌ | Rate limiting (P1) |
+
+**Detaily:** [CLAUDE.md](../CLAUDE.md#production-requirements)
+
+---
+
+## 📚 Reference
+
+- **Kompletní spec:** [GESTIMA_1.0_SPEC.md](GESTIMA_1.0_SPEC.md) (997 řádků, datový model + API)
+- **Pravidla vývoje:** [CLAUDE.md](../CLAUDE.md) (workflow + patterns)
+- **ADR:** [docs/ADR/](ADR/) (architektonická rozhodnutí)
+- **UI dokumentace:** [UI_REFERENCE.md](UI_REFERENCE.md)
+- **Testing:** [TESTING.md](TESTING.md)
+
+---
+
+**Verze:** 1.0
+**Poslední update:** 2026-01-23
+**Autor:** Auto-generated

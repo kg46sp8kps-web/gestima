@@ -3,6 +3,12 @@
 from enum import Enum
 
 
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    VIEWER = "viewer"
+
+
 class StockType(str, Enum):
     ROD = "tyc"
     TUBE = "trubka"

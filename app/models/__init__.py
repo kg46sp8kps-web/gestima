@@ -1,6 +1,7 @@
 """GESTIMA - Modely"""
 
-from app.models.enums import StockType, PartStatus, CuttingMode, FeatureType
+from app.models.enums import StockType, PartStatus, CuttingMode, FeatureType, UserRole
+from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
 from app.models.feature import Feature, FeatureCreate, FeatureUpdate, FeatureResponse
@@ -10,7 +11,8 @@ from app.models.material import MaterialDB, MaterialCreate, MaterialResponse
 from app.models.cutting_condition import CuttingConditionDB, CuttingConditionCreate, CuttingConditionResponse
 
 __all__ = [
-    "StockType", "PartStatus", "CuttingMode", "FeatureType",
+    "StockType", "PartStatus", "CuttingMode", "FeatureType", "UserRole",
+    "User", "UserCreate", "UserUpdate", "UserResponse", "LoginRequest", "TokenResponse",
     "Part", "PartCreate", "PartUpdate", "PartResponse",
     "Operation", "OperationCreate", "OperationUpdate", "OperationResponse",
     "Feature", "FeatureCreate", "FeatureUpdate", "FeatureResponse",

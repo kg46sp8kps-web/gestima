@@ -6,9 +6,14 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
-    
+
     VERSION: str = "1.0.0"
     DEBUG: bool = True
+
+    # Security
+    SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION_VIA_ENV"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     BASE_DIR: Path = Path(__file__).parent.parent
     DATA_DIR: Path = BASE_DIR / "data"
