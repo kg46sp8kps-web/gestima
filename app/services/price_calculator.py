@@ -31,25 +31,56 @@ async def calculate_material_cost(
     stock_length: float,
     material_group: str,
     stock_diameter_inner: float = 0,
+    stock_type: str = "tyc",
+    stock_width: float = 0,
+    stock_height: float = 0,
 ) -> MaterialCost:
+    """
+    Výpočet ceny polotovaru podle typu:
+    - tyc: π × r² × délka
+    - trubka: π × (r_outer² - r_inner²) × délka
+    - prizez: délka × šířka × výška
+    - plech: délka × šířka × tloušťka
+    - odlitek: π × r² × délka (jako tyč)
+    """
     result = MaterialCost()
-    
-    if stock_diameter <= 0 or stock_length <= 0:
-        return result
     
     props = await get_material_properties(material_group)
     density = props["density"]
     price_per_kg = props["price_per_kg"]
     
-    r_outer = stock_diameter / 2
-    r_inner = stock_diameter_inner / 2 if stock_diameter_inner > 0 else 0
+    volume_mm3 = 0
     
-    volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
+    if stock_type in ["tyc", "odlitek"]:
+        # Plná tyč nebo odlitek
+        if stock_diameter <= 0 or stock_length <= 0:
+            return result
+        r = stock_diameter / 2
+        volume_mm3 = math.pi * r**2 * stock_length
+        
+    elif stock_type == "trubka":
+        # Trubka (dutá)
+        if stock_diameter <= 0 or stock_length <= 0:
+            return result
+        r_outer = stock_diameter / 2
+        r_inner = stock_diameter_inner / 2 if stock_diameter_inner > 0 else 0
+        volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
+        
+    elif stock_type in ["prizez", "plech"]:
+        # Přířez nebo plech (kvádr)
+        if stock_length <= 0 or stock_width <= 0 or stock_height <= 0:
+            return result
+        volume_mm3 = stock_length * stock_width * stock_height
+    
+    else:
+        return result
+    
+    # Převod na hmotnost a cenu
     volume_dm3 = volume_mm3 / 1_000_000
     weight_kg = volume_dm3 * density
     cost = weight_kg * price_per_kg
     
-    result.volume_mm3 = volume_mm3
+    result.volume_mm3 = round(volume_mm3, 0)
     result.weight_kg = round(weight_kg, 3)
     result.price_per_kg = price_per_kg
     result.cost = round(cost, 2)

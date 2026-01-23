@@ -192,6 +192,137 @@ document.querySelector(`#op-${opId} .mode`).textContent = newMode;
 **Řešení:** Vždy použít `StrReplace` tool pro částečné změny  
 **Opakováno:** Vícekrát před zavedením pravidla do `.cursorrules`
 
+### L-008: Žádné hardcoded hodnoty - vždy z API
+
+**Chyba:** Hardcoded seznam materiálů v HTML (14 `<option>` tagů)  
+**Důsledek:** 
+- Při přidání materiálu do DB musíš upravit HTML na 2+ místech
+- Porušení DRY principu
+- Porušení pravidla "žádné hardcoded hodnoty"
+
+**Správné řešení:**
+```javascript
+// ✅ SPRÁVNĚ - načíst z API
+materials: [],
+
+async init() {
+    const response = await fetch('/api/data/materials');
+    this.materials = await response.json();
+}
+```
+
+```html
+<!-- ✅ SPRÁVNĚ - dynamický dropdown -->
+<template x-for="mat in materials" :key="mat.code">
+    <option :value="mat.code" x-text="mat.name"></option>
+</template>
+```
+
+**Pravidlo:**
+> Pokud data existují v databázi, VŽDY je načti z API. NIKDY je nekopíruj do HTML/JS.
+
+**Opakováno:** 1x (dropdown materiálů)
+
+---
+
+### L-009: Alpine.js x-collapse ořezává obsah - nepoužívat pro dlouhý obsah
+
+**Chyba:** Použití `x-collapse` na sekci s dynamickým obsahem (cena polotovaru)  
+**Důsledek:** 
+- Obsah sekce je oříznutý (není vidět "CELKEM: 248 Kč")
+- `x-collapse` nastavuje `max-height` a `overflow: hidden` inline
+- Ribbon se nenatáhne na plnou výšku
+
+**Špatné řešení:**
+```html
+<!-- ❌ ŠPATNĚ - x-collapse ořezává obsah -->
+<div x-show="expanded" x-collapse class="section-body">
+    <!-- Dlouhý obsah... -->
+</div>
+```
+
+**Správné řešení:**
+```html
+<!-- ✅ SPRÁVNĚ - jen x-show bez animace -->
+<div x-show="expanded" class="section-body">
+    <!-- Dlouhý obsah plně viditelný -->
+</div>
+```
+
+**Další potřebné úpravy:**
+```css
+/* Zabránit zmenšování ribbonů */
+.ribbon {
+    flex-shrink: 0;  /* Ribbon si zachová plnou výšku */
+}
+
+/* Padding musí přepsat Alpine.js inline styly */
+.section-body {
+    padding: 0.75rem !important;
+}
+```
+
+**Pravidlo:**
+> `x-collapse` používej jen pro krátký obsah (max 3-4 řádky). Pro dlouhý/dynamický obsah použij `x-show` bez animace.
+
+**Opakováno:** 1x (sekce polotovar)
+
+---
+
+### L-010: Fixní layout (100vh) - body + flex-shrink: 0
+
+**Chyba:** Stránka scrolluje i když chci aby scrollovaly jen panely uvnitř  
+**Důsledek:** 
+- Navbar a footer se scrollují pryč
+- Špatný UX - uživatel nevidí navigaci
+- Panely nemají fixní výšku
+
+**Špatné řešení:**
+```css
+/* ❌ ŠPATNĚ - body má min-height, umožňuje scroll */
+body {
+    min-height: 100vh;
+    overflow-x: auto;
+}
+```
+
+**Správné řešení:**
+```css
+/* ✅ SPRÁVNĚ - fixní výška, zakázat scroll */
+body {
+    height: 100vh;        /* Fixní výška */
+    overflow: hidden;     /* Zakázat scroll stránky */
+    display: flex;
+    flex-direction: column;
+}
+
+nav, footer {
+    flex-shrink: 0;       /* Nezmenšovat */
+}
+
+.main-content {
+    flex: 1;              /* Zabere zbytek */
+    overflow: hidden;     /* Zakázat scroll */
+    display: flex;
+    flex-direction: column;
+}
+
+.split-layout {
+    height: 100%;
+    overflow: hidden;
+}
+
+.left-panel, .right-panel {
+    height: 100%;
+    overflow-y: auto;     /* Scroll uvnitř panelu */
+}
+```
+
+**Pravidlo:**
+> Pro fixní layout: `body { height: 100vh; overflow: hidden; }` + `flex-shrink: 0` pro navbar/footer + scroll v panelech.
+
+**Opakováno:** 1x (edit.html layout)
+
 ---
 
 ## 🟡 DŮLEŽITÁ POUČENÍ

@@ -28,7 +28,8 @@ Než napíšeš řádek kódu, projdi tyto kroky:
 - **Jeden zdroj pravdy:** Cena se počítá na jednom místě v Pythonu. Nikdy ji nepočítej v JS ani v HTML.
 - **StrReplace / Diff Only:** NIKDY nevypisuj celé soubory. Používej `SEARCH` a `REPLACE` bloky pro změny. Šetři tokeny.
 - **Testy:** Ke každé funkci, která počítá peníze nebo čas a nebo je kritická pro funkčnost, napiš/uprav `pytest`.
-- **Kód:** Žádné hardcoded hodnoty!! to je červená čára. Žádne walkaround, jdeš přímo k cíli nejkratší cestou i když je trnitá, čistá prace na které jde stavět. 
+- **Kód:** Žádné hardcoded hodnoty!! to je červená čára. Žádne walkaround, jdeš přímo k cíli nejkratší cestou i když je složitější, čistá prace na které jde stavět. 
+- **Lazy-loading:** kod připravuješ a generujes jako lazy loading a nebo minimálně s přípravou na lazy loading, pokud to má smysl.
 
 ## 5. KDYŽ NĚCO NEFUNGUJE (DEBUGGING)
 1. **STOP:** Nezkoušej slepě to samé řešení znovu.

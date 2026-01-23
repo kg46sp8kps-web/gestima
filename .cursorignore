@@ -1,0 +1,14 @@
+# Ignoruj závislosti a systémové složky
+node_modules/
+venv/
+.git/
+.idea/
+.vscode/
+
+# Ignoruj data a logy
+*.log
+*.sqlite
+*.db
+*.csv
+*.json  # Pokud to nejsou config soubory
+*.lock
