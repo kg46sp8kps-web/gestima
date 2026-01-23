@@ -14,7 +14,7 @@
                 <div class="ribbon-title">📋 Základní údaje</div>
                 <div class="ribbon-toggle" x-text="showBasic ? '▼' : '▶'">▼</div>
             </div>
-            <div class="ribbon-body" x-show="showBasic" x-data="{ showBasic: true }">
+            <div class="ribbon-body" x-show="showBasic">
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.8rem;">
                     <div>
                         <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Číslo výkresu</div>
@@ -24,27 +24,136 @@
                         <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Název</div>
                         <div>{{ part.name or '-' }}</div>
                     </div>
-                    <div>
-                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Materiál</div>
-                        <div>{{ part.material_group }}</div>
-                        {% if part.material_name %}
-                        <div style="color: var(--text-secondary); font-size: 0.7rem;">{{ part.material_name }}</div>
-                        {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Materiál & Polotovar -->
+        <div class="ribbon">
+            <div class="ribbon-header" @click="showMaterial = !showMaterial">
+                <div class="ribbon-title">🔩 Materiál & Polotovar</div>
+                <div class="ribbon-toggle" x-text="showMaterial ? '▼' : '▶'">▼</div>
+            </div>
+            <div class="ribbon-body ribbon-body-sections" x-show="showMaterial">
+                
+                <!-- SEKCE: Materiál -->
+                <div x-data="{ expanded: true }" style="margin-bottom: -1px;">
+                    <div @click="expanded = !expanded" class="section-header">
+                        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">MATERIÁL</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);" x-text="expanded ? '▼' : '▶'">▼</span>
                     </div>
-                    <div>
-                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Polotovar</div>
-                        <div>{{ part.stock_type.value }}</div>
+                    <div x-show="expanded" class="section-body" style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.75rem;">
+                        <div>
+                            <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Kategorie materiálu</label>
+                            <div x-show="!dataLoaded" style="padding: 0.4rem; color: var(--text-muted); font-size: 0.75rem;">
+                                Načítání...
+                            </div>
+                            <select x-show="dataLoaded" x-model="partData.material_group" @change="updatePart(); updateStockPrice();" @input="updateStockPrice()"
+                                    style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                                <option value="">-- Vyberte materiál --</option>
+                                <template x-for="mat in materials" :key="mat.code">
+                                    <option :value="mat.code" :selected="mat.code === partData.material_group" x-text="mat.name"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Označení materiálu</label>
+                            <input type="text" x-model="partData.material_name" @input="updatePart()"
+                                   placeholder="např. 1.4301, S235..."
+                                   style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                        </div>
+                        
+                        <!-- Rozměry polotovaru (editovatelné) -->
+                        <div>
+                            <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Typ polotovaru</label>
+                            <select x-model="partData.stock_type" @change="updatePart(); updateStockPrice();" @input="updateStockPrice()"
+                                    style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                                <option value="tyc">🔵 Tyč</option>
+                                <option value="trubka">⭕ Trubka</option>
+                                <option value="prizez">📦 Přířez</option>
+                                <option value="odlitek">🏭 Odlitek</option>
+                                <option value="plech">📄 Plech</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Rozměry podle typu -->
+                        <div x-show="['tyc', 'trubka', 'odlitek'].includes(partData.stock_type)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Ø [mm]</label>
+                                <input type="number" step="0.1" x-model.number="partData.stock_diameter" @input="updatePart(); updateStockPrice();"
+                                       style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
+                                <input type="number" step="0.1" x-model.number="partData.stock_length" @input="updatePart(); updateStockPrice();"
+                                       style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                        </div>
+                        
+                        <div x-show="partData.stock_type === 'trubka'">
+                            <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Vnitřní Ø [mm]</label>
+                            <input type="number" step="0.1" x-model.number="partData.stock_diameter_inner" @input="updatePart(); updateStockPrice();"
+                                   style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                        </div>
+                        
+                        <div x-show="['prizez', 'plech'].includes(partData.stock_type)" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">D [mm]</label>
+                                <input type="number" step="0.1" x-model.number="partData.stock_length" @input="updatePart(); updateStockPrice();"
+                                       style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Š [mm]</label>
+                                <input type="number" step="0.1" x-model.number="partData.stock_width" @input="updatePart(); updateStockPrice();"
+                                       style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">V [mm]</label>
+                                <input type="number" step="0.1" x-model.number="partData.stock_height" @input="updatePart(); updateStockPrice();"
+                                       style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- SEKCE: Polotovar (cena) -->
+                <div x-data="{ expanded: true }">
+                    <div @click="expanded = !expanded" class="section-header">
+                        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">POLOTOVAR</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);" x-text="expanded ? '▼' : '▶'">▼</span>
+                    </div>
+                    <div x-show="expanded" class="section-body">
+                        <div x-show="stockPrice.cost > 0" style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Hmotnost:</span>
+                                <span style="font-weight: 600;" x-text="stockPrice.weight_kg.toFixed(3) + ' kg'">0 kg</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Cena/kg:</span>
+                                <span style="font-weight: 600;" x-text="stockPrice.price_per_kg.toFixed(0) + ' Kč'">0 Kč</span>
+                            </div>
+                            <div style="border-top: 1px solid var(--border-color); margin: 0.25rem 0;"></div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted); font-weight: 600;">CELKEM:</span>
+                                <span style="font-weight: 700; font-size: 0.9rem; color: var(--accent-blue);" x-text="stockPrice.cost.toFixed(0) + ' Kč'">0 Kč</span>
+                            </div>
+                        </div>
+                        <div x-show="stockPrice.cost === 0" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.7rem;">
+                            Načítání...
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </div>
         
         <!-- Cenový přehled -->
         <div class="ribbon">
-            <div class="ribbon-header">
+            <div class="ribbon-header" @click="showPrices = !showPrices">
                 <div class="ribbon-title">📊 Cenový přehled</div>
+                <div class="ribbon-toggle" x-text="showPrices ? '▼' : '▶'">▼</div>
             </div>
-            <div class="ribbon-body">
+            <div class="ribbon-body" x-show="showPrices">
                 <table class="price-table">
                     <tbody>
                         <template x-for="batch in batches" :key="batch.id">
@@ -181,11 +290,84 @@ function partEdit(partId) {
         showBasic: true,
         showTime: true,
         showOperations: true,
+        showMaterial: true,
+        showPrices: true,
+        
+        dataLoaded: false,  // Flag pro načtení dat
+        
+        partData: {
+            material_group: '',
+            material_name: '',
+            stock_type: 'tyc',
+            stock_diameter: 0,
+            stock_diameter_inner: 0,
+            stock_length: 0,
+            stock_width: 0,
+            stock_height: 0
+        },
+        
+        materials: [],  // Načtené z API
+        
+        stockPrice: {
+            volume_mm3: 0,
+            weight_kg: 0,
+            price_per_kg: 0,
+            cost: 0
+        },
+        
+        updateTimeout: null,
+        priceTimeout: null,
         
         async init() {
             console.log('Initializing part edit for ID:', this.partId);
-            await this.loadOperations();
-            await this.loadBatches();
+            // DŮLEŽITÉ: Načíst data dílu A materiály PŘED zobrazením
+            await Promise.all([
+                this.loadPartData(),
+                this.loadMaterials()
+            ]);
+            // Nastavit flag že data jsou načtená
+            this.dataLoaded = true;
+            // Počkat na vykreslení DOM (x-for musí vykreslit options)
+            await this.$nextTick();
+            // Teď načíst zbytek
+            await Promise.all([
+                this.loadOperations(),
+                this.loadBatches(),
+                this.loadStockPrice()
+            ]);
+        },
+        
+        async loadMaterials() {
+            try {
+                const response = await fetch('/api/data/materials');
+                if (response.ok) {
+                    this.materials = await response.json();
+                    console.log('Materials loaded:', this.materials.length);
+                }
+            } catch (error) {
+                console.error('Error loading materials:', error);
+            }
+        },
+        
+        async loadPartData() {
+            try {
+                const response = await fetch(`/api/parts/${this.partId}`);
+                if (response.ok) {
+                    const part = await response.json();
+                    this.partData = {
+                        material_group: part.material_group,
+                        material_name: part.material_name || '',
+                        stock_type: part.stock_type,
+                        stock_diameter: part.stock_diameter,
+                        stock_diameter_inner: part.stock_diameter_inner,
+                        stock_length: part.stock_length,
+                        stock_width: part.stock_width,
+                        stock_height: part.stock_height
+                    };
+                }
+            } catch (error) {
+                console.error('Error loading part data:', error);
+            }
         },
         
         async loadOperations() {
@@ -277,6 +459,72 @@ function partEdit(partId) {
                 console.error('Error changing mode:', error);
                 window.showToast('❌ Chyba při změně režimu', 'error');
             }
+        },
+        
+        async loadStockPrice() {
+            try {
+                console.log('Loading stock price for:', this.partData);
+                
+                const params = new URLSearchParams({
+                    stock_type: this.partData.stock_type,
+                    material_group: this.partData.material_group,
+                    stock_diameter: this.partData.stock_diameter || 0,
+                    stock_length: this.partData.stock_length || 0,
+                    stock_diameter_inner: this.partData.stock_diameter_inner || 0,
+                    stock_width: this.partData.stock_width || 0,
+                    stock_height: this.partData.stock_height || 0,
+                });
+                
+                const url = `/api/data/stock-price?${params}`;
+                console.log('Fetching:', url);
+                
+                const priceResponse = await fetch(url);
+                
+                if (priceResponse.ok) {
+                    this.stockPrice = await priceResponse.json();
+                    console.log('Stock price loaded:', this.stockPrice);
+                } else {
+                    console.error('Failed to load stock price:', priceResponse.status);
+                }
+            } catch (error) {
+                console.error('Error loading stock price:', error);
+            }
+        },
+        
+        updatePart() {
+            // Debounce - čekej 500ms po posledním inputu
+            clearTimeout(this.updateTimeout);
+            this.updateTimeout = setTimeout(async () => {
+                await this.savePart();
+            }, 500);
+        },
+        
+        async savePart() {
+            try {
+                const response = await fetch(`/api/parts/${this.partId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.partData)
+                });
+                
+                if (response.ok) {
+                    console.log('Part updated');
+                } else {
+                    console.error('Failed to update part');
+                }
+            } catch (error) {
+                console.error('Error updating part:', error);
+            }
+        },
+        
+        updateStockPrice() {
+            console.log('updateStockPrice called');
+            // Debounce pro přepočet ceny (samostatný timeout!)
+            clearTimeout(this.priceTimeout);
+            this.priceTimeout = setTimeout(async () => {
+                console.log('Debounce timeout fired, calling loadStockPrice');
+                await this.loadStockPrice();
+            }, 300);
         }
     }
 }
