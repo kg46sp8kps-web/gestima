@@ -23,6 +23,9 @@ Každý ADR obsahuje:
 | 002 | Snapshot Pattern | Přijato | 2026-01-22 |
 | 003 | Integer ID vs UUID | Přijato | 2026-01-22 |
 | 004 | Implementation Notes | Implementováno | 2026-01-22 |
+| 005 | Authentication & Authorization | Přijato | 2026-01-23 |
+| 006 | Role Hierarchy | Přijato | 2026-01-23 |
+| 007 | HTTPS via Caddy | Přijato | 2026-01-23 |
 
 ## Kdy vytvořit nový ADR?
 

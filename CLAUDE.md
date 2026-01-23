@@ -135,7 +135,7 @@ async def update_part(
 | **Authentication** | ✅ HOTOVO | OAuth2 + JWT v HttpOnly Cookie (2026-01-23) |
 | **Authorization** | ✅ HOTOVO | RBAC: Admin/Operator/Viewer (2026-01-23) |
 | **Role Hierarchy** | ✅ HOTOVO | Admin >= Operator >= Viewer (2026-01-23, ADR-006) |
-| **HTTPS** | ⚠️ OPS | TLS certifikát / reverse proxy (viz ADR-005) |
+| **HTTPS** | ✅ DOCS | Caddy reverse proxy + SECURE_COOKIE (ADR-007) |
 | **DEBUG=False** | ✅ HOTOVO | .env.example vytvořen (2026-01-23) |
 
 ### P1 - KRITICKÉ
@@ -145,10 +145,10 @@ async def update_part(
 | **Global error handler** | ✅ HOTOVO | app/gestima_app.py (2026-01-23) |
 | **Structured logging** | ✅ HOTOVO | app/logging_config.py (2026-01-23) |
 | **Transaction error handling** | ✅ HOTOVO | 14 míst v routerech + db_helpers (2026-01-23) |
-| **Backup strategie** | ❌ CHYBÍ | Automatický SQLite backup script |
+| **Backup strategie** | ✅ HOTOVO | CLI: backup, backup-list, backup-restore (2026-01-23) |
 | **Audit trail vyplňování** | ✅ HOTOVO | Vyplněno ve všech routerech (2026-01-23) |
-| **CORS** | ❌ CHYBÍ | CORSMiddleware s whitelist |
-| **Rate limiting** | ❌ CHYBÍ | slowapi nebo podobné |
+| **CORS** | ✅ HOTOVO | CORSMiddleware s konfigurovatelným whitelist (2026-01-23) |
+| **Rate limiting** | ✅ HOTOVO | slowapi: 100/min API, 10/min auth (2026-01-24) |
 
 ### P2 - DŮLEŽITÉ
 
@@ -333,17 +333,17 @@ uvicorn app.gestima_app:app --reload
 - **P0: Authorization** - RBAC (Admin/Operator/Viewer) ✅
 - **P0: Role Hierarchy** - Admin >= Operator >= Viewer (ADR-006) ✅
 - **P0: DEBUG** - .env.example vytvořen ✅
+- **P0: HTTPS** - Caddy reverse proxy + SECURE_COOKIE (ADR-007) ✅
 - **P1: Structured logging** (app/logging_config.py) ✅
 - **P1: Global error handler** (app/gestima_app.py) ✅
 - **P1: Transaction error handling** (14 míst v routerech + db_helpers) ✅
 - **P1: Audit trail** - set_audit() helper (eliminace L-002 duplikace) ✅
-- **Testy:** 27/27 auth tests (včetně role hierarchy) ✅
+- **P1: CORS** - konfigurovatelný whitelist přes CORS_ORIGINS ✅
+- **P1: Backup strategie** - CLI: backup, backup-list, backup-restore ✅
+- **P1: Rate limiting** - slowapi: 100/min API, 10/min auth ✅
+- **Testy:** 46/46 tests (včetně backup + rate limiting) ✅
 
-**Co chybí (P0/P1):**
-- **P0:** HTTPS / TLS (ops task, viz ADR-005)
-- **P1:** Backup strategie
-- **P1:** CORS
-- **P1:** Rate limiting
+**P1 UZAVŘENO** ✅ - Všechny kritické požadavky splněny
 
 ---
 
@@ -364,6 +364,11 @@ python gestima.py run
 python gestima.py test
 # nebo: pytest -v -m critical
 
+# Backup
+python gestima.py backup          # Vytvoř zálohu
+python gestima.py backup-list     # Seznam záloh
+python gestima.py backup-restore <name>  # Obnov ze zálohy
+
 # API docs
 # http://localhost:8000/docs (Swagger)
 # http://localhost:8000/redoc (ReDoc)
@@ -380,8 +385,31 @@ python gestima.py test
 
 ---
 
-**Verze:** 2.2 (2026-01-23)
+**Verze:** 2.6 (2026-01-24)
 **Účel:** Kompletní pravidla pro efektivní AI vývoj
+
+**Changelog 2.6:**
+- ✅ P1: Rate limiting implementován (slowapi)
+- ✅ 100/min pro obecné API, 10/min pro auth endpointy
+- ✅ 9 testů pro rate limiting (tests/test_rate_limiting.py)
+- ✅ Konfigurace: RATE_LIMIT_ENABLED, RATE_LIMIT_DEFAULT, RATE_LIMIT_AUTH
+- 🎉 **P1 UZAVŘENO** - Všechny kritické požadavky splněny!
+
+**Changelog 2.5:**
+- ✅ P1: Backup strategie implementována (app/services/backup_service.py)
+- ✅ CLI příkazy: backup, backup-list, backup-restore
+- ✅ 10 testů pro backup (tests/test_backup.py)
+- ✅ Konfigurace: BACKUP_RETENTION_COUNT, BACKUP_COMPRESS
+
+**Changelog 2.4:**
+- ✅ P1: CORS implementován (CORSMiddleware s konfigurovatelným whitelist)
+- ✅ CORS_ORIGINS v config.py + .env.example
+
+**Changelog 2.3:**
+- ✅ P0-3: HTTPS dokumentováno (Caddy reverse proxy)
+- ✅ Přidán SECURE_COOKIE setting do config.py
+- ✅ auth_router.py používá settings.SECURE_COOKIE
+- ✅ Vytvořen ADR-007-https-caddy.md
 
 **Changelog 2.2:**
 - ✅ P0-2: Role Hierarchy implementováno (Admin >= Operator >= Viewer)

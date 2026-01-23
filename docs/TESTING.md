@@ -2,12 +2,25 @@
 
 ## 📋 Přehled testů
 
+### Testovací soubory
+
+| Soubor | Počet testů | Pokrytí |
+|--------|-------------|---------|
+| test_authentication.py | 27 | Auth + RBAC + role hierarchy |
+| test_backup.py | 10 | Backup/restore/list/cleanup |
+| test_rate_limiting.py | 9 | Rate limiter + config |
+| test_pricing.py | 9 | Cenová kalkulace polotovarů |
+| test_conditions.py | ? | Řezné podmínky |
+| test_error_handling.py | 6 | Transaction error handling |
+
 ### Kritické testy (označené `@pytest.mark.critical`)
 
 Tyto testy **MUSÍ** vždy procházet před nasazením. Pokrývají:
 - Výpočty cen (materiál, strojní čas)
 - Výpočty časů operací
 - Kalkulace dávek
+- Authentication & Authorization
+- Backup & Restore
 
 ---
 

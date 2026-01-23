@@ -1,7 +1,7 @@
 """GESTIMA - Authentication Router"""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -9,6 +9,7 @@ from app.dependencies import get_current_user
 from app.models import User, LoginRequest, TokenResponse, UserResponse
 from app.services.auth_service import authenticate_user, create_access_token
 from app.config import settings
+from app.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,9 @@ router = APIRouter()
 # ============================================================================
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def login(
+    request: Request,
     credentials: LoginRequest,
     response: Response,
     db: AsyncSession = Depends(get_db)
@@ -46,7 +49,7 @@ async def login(
         key="access_token",
         value=access_token,
         httponly=True,                          # XSS protection
-        secure=not settings.DEBUG,              # HTTPS only v produkci
+        secure=settings.SECURE_COOKIE,          # HTTPS only v produkci
         samesite="strict",                      # CSRF protection
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )

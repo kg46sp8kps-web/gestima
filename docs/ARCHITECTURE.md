@@ -1,6 +1,6 @@
 # GESTIMA - Architecture Overview
 
-**Verze:** 1.0 (2026-01-23)
+**Verze:** 1.1 (2026-01-24)
 **Účel:** Rychlá orientace v projektu (5 minut k pochopení)
 
 ---
@@ -34,6 +34,7 @@ gestima/
 │   ├── static/              # CSS, JS (main.js, tailwind.css)
 │   ├── database.py          # DB setup + AuditMixin (soft delete)
 │   ├── logging_config.py    # Structured logging (JSON + console)
+│   ├── rate_limiter.py      # Rate limiting (slowapi)
 │   └── gestima_app.py       # FastAPI app + global error handler
 ├── data/                    # CSV data (materials, machines, cutting_conditions)
 ├── tests/                   # pytest testy
@@ -46,13 +47,17 @@ gestima/
 |-----------|--------|
 | Výpočty cen | services/price_calculator.py |
 | Výpočty časů | services/time_calculator.py |
+| Backup/restore DB | services/backup_service.py |
 | API díly | routers/parts_router.py |
 | API operace | routers/operations_router.py |
+| API auth | routers/auth_router.py |
 | DB modely | models/*.py |
 | HTML šablony | templates/*.html |
 | Frontend logika | static/main.js (Alpine.js) |
 | Testy | tests/test_*.py |
-| Error handling | logging_config.py, gestima_app.py:44 |
+| Error handling | logging_config.py, gestima_app.py |
+| Rate limiting | rate_limiter.py |
+| Auth service | services/auth_service.py |
 
 ---
 
@@ -132,6 +137,9 @@ Alpine.js: Update UI + recalculate features
 |------------|-------|-----|
 | **Soft delete** | Audit trail + data recovery | ADR-001 |
 | **Integer IDs** | Simplicity vs UUIDs | ADR-003 |
+| **JWT + HttpOnly Cookie** | Security (XSS/CSRF protection) | ADR-005 |
+| **Role Hierarchy** | Admin >= Operator >= Viewer | ADR-006 |
+| **HTTPS via Caddy** | TLS termination + reverse proxy | ADR-007 |
 | **Async SQLAlchemy** | Performance + modern Python | N/A |
 | **Server-side rendering** | SEO + simplicity | N/A |
 
@@ -195,15 +203,25 @@ UI: Update price ribbons
 
 ## 📋 Production Checklist
 
+### P0 - BLOCKER (bez tohoto nelze nasadit)
+| Status | Requirement |
+|--------|-------------|
+| ✅ | Authentication (OAuth2 + JWT HttpOnly Cookie) |
+| ✅ | Authorization (RBAC: Admin/Operator/Viewer) |
+| ✅ | Role Hierarchy (Admin >= Operator >= Viewer) |
+| ✅ | HTTPS dokumentace (Caddy reverse proxy) |
+| ✅ | DEBUG=False (.env.example) |
+
+### P1 - KRITICKÉ (všechny splněny ✅)
 | Status | Requirement |
 |--------|-------------|
 | ✅ | Transaction error handling (14 míst) |
 | ✅ | Structured logging (logging_config.py) |
-| ✅ | Global error handler (gestima_app.py:44) |
-| ❌ | Authentication (P0 BLOCKER) |
-| ❌ | HTTPS (P0 BLOCKER) |
-| ❌ | CORS (P1) |
-| ❌ | Rate limiting (P1) |
+| ✅ | Global error handler (gestima_app.py) |
+| ✅ | Backup strategie (CLI: backup, backup-list, backup-restore) |
+| ✅ | Audit trail (set_audit helper) |
+| ✅ | CORS (konfigurovatelný whitelist) |
+| ✅ | Rate limiting (slowapi: 100/min API, 10/min auth) |
 
 **Detaily:** [CLAUDE.md](../CLAUDE.md#production-requirements)
 
@@ -219,6 +237,6 @@ UI: Update price ribbons
 
 ---
 
-**Verze:** 1.0
-**Poslední update:** 2026-01-23
+**Verze:** 1.1
+**Poslední update:** 2026-01-24
 **Autor:** Auto-generated

@@ -189,6 +189,97 @@ asyncio.run(_create_admin())
             sys.exit(1)
 
     @staticmethod
+    def backup():
+        """Vytvoř zálohu databáze"""
+        if not Gestima.check_venv():
+            sys.exit(1)
+
+        print("💾 GESTIMA - Backup Database")
+        print("")
+
+        os.chdir(PROJECT_DIR)
+        result = subprocess.run([
+            str(VENV_PYTHON), "-c",
+            """
+from app.services.backup_service import create_backup, list_backups
+
+backup_path = create_backup()
+print(f"✅ Backup created: {backup_path}")
+print("")
+print("Available backups:")
+for b in list_backups():
+    print(f"  {b['name']} ({b['size_mb']} MB) - {b['created_at']}")
+"""
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+    @staticmethod
+    def backup_list():
+        """Zobraz dostupné zálohy"""
+        if not Gestima.check_venv():
+            sys.exit(1)
+
+        print("💾 GESTIMA - Available Backups")
+        print("")
+
+        os.chdir(PROJECT_DIR)
+        subprocess.run([
+            str(VENV_PYTHON), "-c",
+            """
+from app.services.backup_service import list_backups
+
+backups = list_backups()
+if not backups:
+    print("No backups found.")
+else:
+    for b in backups:
+        print(f"  {b['name']} ({b['size_mb']} MB) - {b['created_at']}")
+"""
+        ])
+
+    @staticmethod
+    def backup_restore(backup_name: str):
+        """Obnov databázi ze zálohy"""
+        if not Gestima.check_venv():
+            sys.exit(1)
+
+        print("💾 GESTIMA - Restore Database")
+        print("")
+        print(f"⚠️  WARNING: This will OVERWRITE the current database!")
+        print(f"   Restoring from: {backup_name}")
+        print("")
+
+        confirm = input("Type 'yes' to confirm: ").strip().lower()
+        if confirm != "yes":
+            print("❌ Restore cancelled")
+            sys.exit(1)
+
+        os.chdir(PROJECT_DIR)
+        result = subprocess.run([
+            str(VENV_PYTHON), "-c",
+            f"""
+from pathlib import Path
+from app.config import settings
+from app.services.backup_service import restore_backup
+
+backup_path = settings.BASE_DIR / "backups" / "{backup_name}"
+if not backup_path.exists():
+    print(f"❌ Backup not found: {{backup_path}}")
+    exit(1)
+
+restore_backup(backup_path)
+print("✅ Database restored successfully!")
+print("")
+print("⚠️  Restart the application to apply changes.")
+"""
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+    @staticmethod
     def help():
         """Zobraz dostupné příkazy"""
         print("GESTIMA 1.0 - CLI Helper")
@@ -199,6 +290,9 @@ asyncio.run(_create_admin())
         print("  setup           Inicializuj venv a instaluj dependencies")
         print("  run             Spusť aplikaci (http://localhost:8000)")
         print("  create-admin    Vytvoř admin uživatele (first-time setup)")
+        print("  backup          Vytvoř zálohu databáze")
+        print("  backup-list     Zobraz dostupné zálohy")
+        print("  backup-restore  Obnov databázi ze zálohy")
         print("  test            Spusť všechny testy")
         print("  test-critical   Spusť pouze kritické testy")
         print("  shell           Interactive Python shell s venv")
@@ -208,6 +302,8 @@ asyncio.run(_create_admin())
         print("  python3 gestima.py setup")
         print("  python3 gestima.py create-admin")
         print("  python3 gestima.py run")
+        print("  python3 gestima.py backup")
+        print("  python3 gestima.py backup-restore gestima_backup_20260123_120000.db.gz")
         print("  python3 gestima.py test -k 'test_pricing'")
         print("")
 
@@ -226,6 +322,15 @@ def main():
         Gestima.run()
     elif command == "create-admin":
         Gestima.create_admin()
+    elif command == "backup":
+        Gestima.backup()
+    elif command == "backup-list":
+        Gestima.backup_list()
+    elif command == "backup-restore":
+        if not args:
+            print("❌ Usage: python3 gestima.py backup-restore <backup_name>")
+            sys.exit(1)
+        Gestima.backup_restore(args[0])
     elif command == "test":
         Gestima.test(*args)
     elif command == "test-critical":

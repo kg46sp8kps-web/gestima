@@ -5,11 +5,13 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import init_db
 from app.logging_config import setup_logging, get_logger
+from app.rate_limiter import setup_rate_limiting
 from app.routers import (
     auth_router,
     parts_router,
@@ -39,6 +41,24 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan,
 )
+
+# Rate limiting
+setup_rate_limiting(app)
+if settings.RATE_LIMIT_ENABLED:
+    logger.info(f"Rate limiting enabled: {settings.RATE_LIMIT_DEFAULT}")
+
+# CORS middleware - pouze pokud jsou definovány CORS_ORIGINS
+if settings.CORS_ORIGINS:
+    origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
+    if origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+            allow_headers=["*"],
+        )
+        logger.info(f"CORS enabled for origins: {origins}")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
