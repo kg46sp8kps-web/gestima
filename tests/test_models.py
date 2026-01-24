@@ -1,18 +1,21 @@
 """GESTIMA - Testy modelů"""
 
 import pytest
-from app.models.enums import StockType, PartStatus, FeatureType
+from app.models.enums import StockType, FeatureType
 from app.models.part import PartCreate
 
 
 @pytest.mark.system
 def test_part_create_minimal():
-    """Vytvoření dílu s minimálními daty"""
-    part = PartCreate()
-    
-    assert part.part_number == ""
-    assert part.material_group == "konstrukcni_ocel"
-    assert part.stock_type == StockType.ROD
+    """Vytvoření dílu s minimálními daty (ADR-011: Material Hierarchy)"""
+    part = PartCreate(
+        part_number="TEST-001",
+        material_item_id=1  # FK na MaterialItem (required)
+    )
+
+    assert part.part_number == "TEST-001"
+    assert part.material_item_id == 1
+    assert part.length == 0.0  # default
 
 
 @pytest.mark.system

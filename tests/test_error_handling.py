@@ -14,11 +14,27 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from fastapi import HTTPException
 
 from app.models.part import Part, PartCreate
+from app.models.material import MaterialGroup, MaterialItem
+from app.models.enums import StockShape
+from app.models import User, UserRole
 from app.routers.parts_router import create_part, update_part, delete_part
 
 
+# Fixture for mock user
+@pytest.fixture
+def mock_user():
+    """Mock authenticated user for router tests"""
+    return User(
+        id=1,
+        username="testuser",
+        email="test@example.com",
+        role=UserRole.OPERATOR,
+        hashed_password="fake_hash"
+    )
+
+
 @pytest.mark.asyncio
-async def test_create_part_integrity_error_rollback():
+async def test_create_part_integrity_error_rollback(mock_user):
     """Test: IntegrityError triggers rollback and returns 409"""
     # Arrange
     db_mock = AsyncMock()
@@ -27,11 +43,11 @@ async def test_create_part_integrity_error_rollback():
     db_mock.commit = AsyncMock(side_effect=IntegrityError("test", "test", "test"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="TEST-001", name="Test Part")
+    data = PartCreate(part_number="TEST-001", name="Test Part", material_item_id=1)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
-        await create_part(data, db_mock)
+        await create_part(data, db_mock, mock_user)
 
     assert exc_info.value.status_code == 409
     assert "Konflikt dat" in exc_info.value.detail
@@ -39,7 +55,7 @@ async def test_create_part_integrity_error_rollback():
 
 
 @pytest.mark.asyncio
-async def test_create_part_sqlalchemy_error_rollback():
+async def test_create_part_sqlalchemy_error_rollback(mock_user):
     """Test: SQLAlchemyError triggers rollback and returns 500"""
     # Arrange
     db_mock = AsyncMock()
@@ -48,11 +64,11 @@ async def test_create_part_sqlalchemy_error_rollback():
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Database error"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="TEST-002", name="Test Part 2")
+    data = PartCreate(part_number="TEST-002", name="Test Part 2", material_item_id=1)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
-        await create_part(data, db_mock)
+        await create_part(data, db_mock, mock_user)
 
     assert exc_info.value.status_code == 500
     assert "Chyba databáze" in exc_info.value.detail
@@ -60,32 +76,41 @@ async def test_create_part_sqlalchemy_error_rollback():
 
 
 @pytest.mark.asyncio
-async def test_update_part_rollback_on_error():
+async def test_update_part_rollback_on_error(mock_user):
     """Test: Update rollback when commit fails"""
     # Arrange
     db_mock = AsyncMock()
-    existing_part = Part(id=1, part_number="TEST-003", name="Original")
+    existing_part = Part(id=1, part_number="TEST-003", name="Original", material_item_id=1, version=0)
     db_mock.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=existing_part)))
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Commit failed"))
     db_mock.rollback = AsyncMock()
 
     from app.models.part import PartUpdate
-    data = PartUpdate(name="Updated Name")
+    data = PartUpdate(name="Updated Name", version=0)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
-        await update_part(1, data, db_mock)
+        await update_part(1, data, db_mock, mock_user)
 
     assert exc_info.value.status_code == 500
     db_mock.rollback.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_delete_part_integrity_error_with_children():
+async def test_delete_part_integrity_error_with_children(mock_user):
     """Test: Delete fails with 409 when part has dependent records"""
     # Arrange
+    # Create admin user for delete operation
+    admin_user = User(
+        id=1,
+        username="admin",
+        email="admin@example.com",
+        role=UserRole.ADMIN,
+        hashed_password="fake_hash"
+    )
+
     db_mock = AsyncMock()
-    existing_part = Part(id=1, part_number="TEST-004", name="Part with operations")
+    existing_part = Part(id=1, part_number="TEST-004", name="Part with operations", material_item_id=1)
     db_mock.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=existing_part)))
     db_mock.delete = AsyncMock()
     db_mock.commit = AsyncMock(side_effect=IntegrityError("Foreign key constraint", "test", "test"))
@@ -93,7 +118,7 @@ async def test_delete_part_integrity_error_with_children():
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
-        await delete_part(1, db_mock)
+        await delete_part(1, db_mock, admin_user)
 
     assert exc_info.value.status_code == 409
     assert "závislé záznamy" in exc_info.value.detail
@@ -101,7 +126,7 @@ async def test_delete_part_integrity_error_with_children():
 
 
 @pytest.mark.asyncio
-async def test_error_logging_on_integrity_error():
+async def test_error_logging_on_integrity_error(mock_user):
     """Test: Integrity errors are logged"""
     # Arrange
     db_mock = AsyncMock()
@@ -110,12 +135,12 @@ async def test_error_logging_on_integrity_error():
     db_mock.commit = AsyncMock(side_effect=IntegrityError("test", "test", "test"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="TEST-005", name="Test Part")
+    data = PartCreate(part_number="TEST-005", name="Test Part", material_item_id=1)
 
     # Act
     with patch('app.routers.parts_router.logger') as mock_logger:
         with pytest.raises(HTTPException):
-            await create_part(data, db_mock)
+            await create_part(data, db_mock, mock_user)
 
         # Assert: logger.error was called
         mock_logger.error.assert_called()
@@ -124,7 +149,7 @@ async def test_error_logging_on_integrity_error():
 
 
 @pytest.mark.asyncio
-async def test_success_logging_on_create():
+async def test_success_logging_on_create(mock_user):
     """Test: Successful operations are logged"""
     # Arrange
     db_mock = AsyncMock()
@@ -139,11 +164,11 @@ async def test_success_logging_on_create():
         obj.id = 1
     db_mock.refresh = mock_refresh
 
-    data = PartCreate(part_number="TEST-006", name="Test Part")
+    data = PartCreate(part_number="TEST-006", name="Test Part", material_item_id=1)
 
     # Act
     with patch('app.routers.parts_router.logger') as mock_logger:
-        result = await create_part(data, db_mock)
+        result = await create_part(data, db_mock, mock_user)
 
         # Assert: logger.info was called for success
         assert mock_logger.info.called
@@ -161,7 +186,7 @@ async def test_db_helpers_soft_delete_rollback():
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Commit failed"))
     db_mock.rollback = AsyncMock()
 
-    part = Part(id=1, part_number="TEST-007", name="Test")
+    part = Part(id=1, part_number="TEST-007", name="Test", material_item_id=1)
 
     # Act & Assert
     with pytest.raises(SQLAlchemyError):
@@ -180,7 +205,7 @@ async def test_db_helpers_restore_rollback():
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Commit failed"))
     db_mock.rollback = AsyncMock()
 
-    part = Part(id=1, part_number="TEST-008", name="Test")
+    part = Part(id=1, part_number="TEST-008", name="Test", material_item_id=1)
 
     # Act & Assert
     with pytest.raises(SQLAlchemyError):
@@ -191,7 +216,7 @@ async def test_db_helpers_restore_rollback():
 
 @pytest.mark.critical
 @pytest.mark.asyncio
-async def test_transaction_atomicity():
+async def test_transaction_atomicity(mock_user):
     """
     CRITICAL: Test that failed transactions don't leave partial changes
 
@@ -203,18 +228,18 @@ async def test_transaction_atomicity():
     db_mock = AsyncMock()
     db_mock.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
 
-    original_part = Part(id=1, part_number="ORIGINAL", name="Original Name")
+    original_part = Part(id=1, part_number="ORIGINAL", name="Original Name", material_item_id=1)
     db_mock.add = MagicMock()
 
     # Simulace: commit selže
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Transaction failed"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="NEW", name="New Name")
+    data = PartCreate(part_number="NEW", name="New Name", material_item_id=1)
 
     # Act
     with pytest.raises(HTTPException):
-        await create_part(data, db_mock)
+        await create_part(data, db_mock, mock_user)
 
     # Assert: rollback MUSÍ být volán
     db_mock.rollback.assert_called_once()

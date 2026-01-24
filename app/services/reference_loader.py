@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app.database import async_session
 from app.models.machine import MachineDB
-from app.models.material import MaterialDB
+from app.models import MaterialDB  # Backward compatibility alias → MaterialGroup
 from app.services.feature_definitions import FEATURE_FIELDS
 
 
@@ -71,13 +71,16 @@ async def get_material_groups() -> List[Dict[str, Any]]:
         materials = result.scalars().all()
         
         # Convert to dict
+        # NOTE: MaterialGroup doesn't have price_per_kg or color anymore (ADR-011)
+        # These are on MaterialItem now. For backward compatibility with deprecated
+        # calculate_material_cost(), we provide fallback values here.
         _materials_cache = [
             {
                 "code": m.code,
                 "name": m.name,
                 "density": m.density,
-                "price_per_kg": m.price_per_kg,
-                "color": m.color,
+                "price_per_kg": 30.0,  # Fallback - price is now on MaterialItem
+                "color": "#999999",     # Fallback - color removed in ADR-011
             }
             for m in materials
         ]

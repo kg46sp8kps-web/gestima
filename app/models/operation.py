@@ -77,15 +77,17 @@ class OperationUpdate(BaseModel):
     coop_price: Optional[float] = None
     coop_min_price: Optional[float] = None
     coop_days: Optional[int] = None
+    version: int  # Optimistic locking (ADR-008)
 
 
 class OperationResponse(OperationBase):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     part_id: int
     operation_time_min: float
     setup_time_locked: bool
     operation_time_locked: bool
+    version: int
     created_at: datetime
     updated_at: datetime

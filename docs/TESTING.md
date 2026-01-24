@@ -168,5 +168,46 @@ async def test_material_cost_new_type():
 
 ---
 
-**Poslední aktualizace:** 2026-01-23  
-**Pokrytí:** 9 testů pro cenovou kalkulaci polotovarů
+---
+
+## 🔐 Testy autentizace
+
+**Soubor:** `tests/test_authentication.py`
+
+### Pokryté scénáře:
+- Login s validními credentials
+- Login s neplatnými credentials
+- HttpOnly cookie nastavení
+- Logout (smazání cookie)
+- RBAC (Admin/Operator/Viewer)
+- Role hierarchy (Admin >= Operator >= Viewer)
+
+---
+
+## 💾 Testy backup
+
+**Soubor:** `tests/test_backup.py`
+
+### Pokryté scénáře:
+- `create_backup()` - vytvoření zálohy (komprimované/nekomprimované)
+- `restore_backup()` - obnovení ze zálohy
+- `list_backups()` - seznam dostupných záloh
+- `cleanup_old_backups()` - rotace starých záloh
+- Error handling (neexistující DB/záloha)
+
+---
+
+## 🚦 Testy rate limiting
+
+**Soubor:** `tests/test_rate_limiting.py`
+
+### Pokryté scénáře:
+- Modul se načte bez chyby
+- Konfigurace v settings
+- Identifikace klienta (IP vs user_id)
+- Integrační testy (normální request, rate limit headers)
+
+---
+
+**Poslední aktualizace:** 2026-01-24
+**Celkový počet testů:** ~60+ (auth, backup, rate limiting, pricing, conditions, error handling)

@@ -79,7 +79,13 @@ async def update_operation(
     if not operation:
         raise HTTPException(status_code=404, detail="Operace nenalezena")
 
-    for key, value in data.model_dump(exclude_unset=True).items():
+    # Optimistic locking check (ADR-008)
+    if operation.version != data.version:
+        logger.warning(f"Version conflict updating operation {operation_id}: expected {data.version}, got {operation.version}", extra={"operation_id": operation_id, "user": current_user.username})
+        raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
+
+    # Update fields (exclude version - it's auto-incremented by event listener)
+    for key, value in data.model_dump(exclude_unset=True, exclude={'version'}).items():
         setattr(operation, key, value)
 
     set_audit(operation, current_user.username, is_update=True)
@@ -87,7 +93,7 @@ async def update_operation(
     try:
         await db.commit()
         await db.refresh(operation)
-        logger.info(f"Updated operation: {operation.operation_type}", extra={"operation_id": operation.id, "user": current_user.username})
+        logger.info(f"Updated operation: {operation.type}", extra={"operation_id": operation.id, "user": current_user.username})
         return operation
     except IntegrityError as e:
         await db.rollback()
@@ -138,6 +144,14 @@ async def change_mode(
     operation = result.scalar_one_or_none()
     if not operation:
         raise HTTPException(status_code=404, detail="Operace nenalezena")
+
+    # Optimistic locking check (ADR-008)
+    version = data.get("version")
+    if version is None:
+        raise HTTPException(status_code=400, detail="Version je povinná")
+    if operation.version != version:
+        logger.warning(f"Version conflict changing mode for operation {operation_id}: expected {version}, got {operation.version}", extra={"operation_id": operation_id, "user": current_user.username})
+        raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
 
     cutting_mode = data.get("cutting_mode")
     if cutting_mode not in ["low", "mid", "high"]:

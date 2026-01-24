@@ -18,6 +18,7 @@ from app.routers import (
     operations_router,
     features_router,
     batches_router,
+    materials_router,
     data_router,
     pages_router
 )
@@ -69,6 +70,7 @@ app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
 app.include_router(operations_router.router, prefix="/api/operations", tags=["Operations"])
 app.include_router(features_router.router, prefix="/api/features", tags=["Features"])
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
+app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(pages_router.router, tags=["Pages"])
 

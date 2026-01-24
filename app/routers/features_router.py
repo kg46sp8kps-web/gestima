@@ -79,7 +79,13 @@ async def update_feature(
     if not feature:
         raise HTTPException(status_code=404, detail="Krok nenalezen")
 
-    for key, value in data.model_dump(exclude_unset=True).items():
+    # Optimistic locking check (ADR-008)
+    if feature.version != data.version:
+        logger.warning(f"Version conflict updating feature {feature_id}: expected {data.version}, got {feature.version}", extra={"feature_id": feature_id, "user": current_user.username})
+        raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
+
+    # Update fields (exclude version - it's auto-incremented by event listener)
+    for key, value in data.model_dump(exclude_unset=True, exclude={'version'}).items():
         setattr(feature, key, value)
 
     set_audit(feature, current_user.username, is_update=True)

@@ -124,6 +124,10 @@ async def update_part(
 **NIKDY:** `if user.role == UserRole.OPERATOR` (striktní porovnání)
 **VŽDY:** Použít `has_permission()` nebo `require_role()` s hierarchií (viz ADR-006)
 
+### 7. Latency
+
+- **Rychlost:** vždy navrhovat řešení s ohledem maximální odezvy v UI 100 ms
+
 ---
 
 ## PRODUCTION REQUIREMENTS
@@ -150,14 +154,154 @@ async def update_part(
 | **CORS** | ✅ HOTOVO | CORSMiddleware s konfigurovatelným whitelist (2026-01-23) |
 | **Rate limiting** | ✅ HOTOVO | slowapi: 100/min API, 10/min auth (2026-01-24) |
 
-### P2 - DŮLEŽITÉ
+### P2 - DŮLEŽITÉ (Implementační plán - viz níže)
 
 | Požadavek | Status | Co udělat |
 |-----------|--------|-----------|
+| **Optimistic locking** | ✅ HOTOVO | Version check v 4 routerech + 11 testů (ADR-008) - 2026-01-24 |
+| **Batch Snapshot (Freeze)** | ✅ HOTOVO | Minimal Snapshot - zmrazení cen v nabídkách (ADR-012) - 2026-01-24 |
+| **State Machine** | ❌ NEIMPLEMENTOVÁNO | Part.status není potřeba - freeze je na Batch level (ADR-012) |
 | **Business validace** | ⚠️ ČÁSTEČNĚ | Validace: quantity > 0, diameter > 0 |
-| **Optimistic locking** | ⚠️ ČÁSTEČNĚ | Check version při update |
 | **Health check endpoint** | ❌ CHYBÍ | GET /health |
 | **Graceful shutdown** | ❌ CHYBÍ | Signal handlers |
+
+---
+
+## IMPLEMENTAČNÍ PLÁN P2 (Prioritizace: Riziko → Architektura)
+
+**Kontext:** Auditní zpráva ([docs/audit.md](docs/audit.md)) identifikovala 3 kritické nálezy:
+1. Absence State Machine → nekontrolované změny dat
+2. Price Decay → ztráta historické pravdy o cenách
+3. Nedostatečný audit trail → nelze rekonstruovat změny
+
+**Prioritizace:** Podle reálného rizika (data loss, price integrity), ne architektonické "krásy".
+
+### Fáze 1: Optimistic Locking (B2) ⭐ NEJVYŠŠÍ PRIORITA
+
+**Riziko:** Dva operátoři editují stejný díl současně → jeden přepíše data druhého = **DATA LOSS**.
+
+**Implementace:**
+```python
+# Přidat version column do všech editovatelných entit
+class Part(Base, AuditMixin):
+    version = Column(Integer, default=1, nullable=False)
+
+# Check version při UPDATE (v routerech)
+result = await db.execute(
+    update(Part)
+    .where(Part.id == id, Part.version == data.version)
+    .values(**data.dict(), version=Part.version + 1)
+)
+if result.rowcount == 0:
+    raise HTTPException(409, "Data byla změněna jiným uživatelem")
+```
+
+**Soubory k úpravě:**
+- `app/models/part.py` (přidat version)
+- `app/models/operation.py` (přidat version)
+- `app/models/feature.py` (přidat version)
+- `app/models/batch.py` (přidat version)
+- `app/routers/parts_router.py` (version check v PUT)
+- `app/routers/operations_router.py` (version check v PUT)
+- `app/routers/features_router.py` (version check v PUT)
+- `app/routers/batches_router.py` (version check v PUT)
+- `tests/test_optimistic_locking.py` (nový soubor)
+- `docs/ADR/008-optimistic-locking.md` (nový soubor)
+
+**Kritéria úspěchu:**
+- ✅ Souběžný update vrací HTTP 409 "Conflict"
+- ✅ Frontend zobrazuje alert "Data změněna jiným uživatelem"
+- ✅ Testy: 2 concurrent updates = jeden selže s 409
+
+---
+
+### Fáze 2: State Machine (A1) - MINIMÁLNÍ IMPLEMENTACE
+
+**Riziko:** Part v produkci/fakturaci lze libovolně měnit → **NEKONZISTENCE, AUDIT PROBLÉM**.
+
+**Implementace (MINIMÁLNÍ - jen 2 stavy):**
+```python
+class PartStatus(str, Enum):
+    DRAFT = "draft"    # Lze editovat
+    LOCKED = "locked"  # Read-only (v produkci/fakturováno)
+
+# Validace v routerech
+if part.status == PartStatus.LOCKED:
+    raise HTTPException(403, "Díl je uzamčen pro editaci")
+
+# Nový endpoint pro lock
+@router.post("/api/parts/{id}/lock")
+async def lock_part(id: int, db: AsyncSession):
+    part.status = PartStatus.LOCKED
+    await db.commit()
+```
+
+**Soubory k úpravě:**
+- `app/models/enums.py` (přidat PartStatus enum)
+- `app/models/part.py` (přidat status column)
+- `app/routers/parts_router.py` (validace + POST /lock endpoint)
+- `app/static/main.js` (UI: disable controls pro LOCKED)
+- `app/templates/edit.html` (zobrazit status badge)
+- `tests/test_state_machine.py` (nový soubor)
+- `docs/ADR/009-state-machine.md` (nový soubor)
+
+**Kritéria úspěchu:**
+- ✅ LOCKED part nelze editovat (HTTP 403)
+- ✅ Endpoint POST /api/parts/{id}/lock funguje
+- ✅ UI zobrazuje status + disable edit controls pro LOCKED
+
+**Budoucí rozšíření (POZDĚJI):**
+- Více stavů: DRAFT → CALCULATED → OFFERED → ORDERED → LOCKED
+- Workflow transitions s validacemi
+
+---
+
+### Fáze 3: Snapshoty (A3) - STABILNÍ CENY
+
+**Riziko:** Změna ceny materiálu → nabídka z minulého měsíce ukazuje jinou cenu = **ZTRÁTA HISTORICKÉ PRAVDY**.
+
+**Implementace:**
+```python
+# models/part.py
+snapshot_data = Column(JSON, nullable=True)
+
+# routers/parts_router.py - při lock vytvořit snapshot
+@router.post("/api/parts/{id}/lock")
+async def lock_part(id: int, db: AsyncSession):
+    # Snapshot zachytí: ceny materiálů, strojů, všechny parametry
+    snapshot = await create_snapshot(part, db)  # service
+    part.snapshot_data = snapshot
+    part.status = PartStatus.LOCKED
+    await db.commit()
+```
+
+**Soubory k úpravě:**
+- `app/models/part.py` (přidat snapshot_data column)
+- `app/services/snapshot_service.py` (nový soubor - create_snapshot, compare_snapshot)
+- `app/routers/parts_router.py` (použít snapshot_service v /lock)
+- `tests/test_snapshots.py` (nový soubor)
+
+**Kritéria úspěchu:**
+- ✅ LOCKED part má snapshot_data (JSON s cenami, parametry)
+- ✅ Změna ceny materiálu neovlivní cenu v locked part
+- ✅ UI může zobrazit "snapshot vs aktuální" porovnání (future)
+
+**Závislost:** Potřebuje State Machine (snapshot se vytváří při přechodu do LOCKED).
+
+---
+
+### Pořadí implementace (STRIKTNÍ)
+
+| Krok | Komponenta | Závislosti | Přínos | ADR |
+|------|------------|------------|--------|-----|
+| **1** | Optimistic Locking | - | Ochrana před data loss (okamžitě) | ADR-008 |
+| **2** | State Machine (min) | - | Workflow + ochrana dat v produkci | ADR-009 |
+| **3** | Snapshoty | State Machine (trigger = lock) | Stabilní ceny v nabídkách | ADR-002 ✅ |
+
+**Proč toto pořadí:**
+- **B2 první:** Největší riziko (data loss při concurrent edit) → řešíme okamžitě
+- **A1 druhý:** Prerekvizita pro A3 (snapshot potřebuje event "lock part")
+- **A3 třetí:** Závisí na A1, řeší price decay
 
 ---
 
@@ -323,7 +467,7 @@ uvicorn app.gestima_app:app --reload
 
 ---
 
-## AKTUÁLNÍ STAV (2026-01-23)
+## AKTUÁLNÍ STAV (2026-01-24)
 
 **Co funguje:**
 - CRUD pro parts, operations, features, batches
@@ -341,9 +485,15 @@ uvicorn app.gestima_app:app --reload
 - **P1: CORS** - konfigurovatelný whitelist přes CORS_ORIGINS ✅
 - **P1: Backup strategie** - CLI: backup, backup-list, backup-restore ✅
 - **P1: Rate limiting** - slowapi: 100/min API, 10/min auth ✅
-- **Testy:** 46/46 tests (včetně backup + rate limiting) ✅
+- **P2: Optimistic locking** - Version check v parts/operations/features routers (ADR-008) ✅
+- **P2: Material Hierarchy** - Dvoustupňová hierarchie MaterialGroup + MaterialItem (ADR-011) ✅
+- **P2: Batch Snapshot** - Minimal Snapshot pro zmrazení cen v nabídkách (ADR-012) ✅
+- **Testy:** 98/98 tests (Snapshot + Material hierarchy + všechny stávající) ✅
 
 **P1 UZAVŘENO** ✅ - Všechny kritické požadavky splněny
+**P2 Fáze 1 HOTOVO** ✅ - Optimistic Locking implementován (2026-01-24)
+**P2 Fáze A HOTOVO** ✅ - Material Hierarchy implementována (2026-01-24)
+**P2 Fáze B HOTOVO** ✅ - Minimal Snapshot implementován (2026-01-24)
 
 ---
 
@@ -381,45 +531,23 @@ python gestima.py backup-restore <name>  # Obnov ze zálohy
 - **Architektura:** docs/ARCHITECTURE.md - Quick start (5 min)
 - **Detailní specifikace:** docs/GESTIMA_1.0_SPEC.md - Kompletní spec
 - **ADR:** docs/ADR/*.md - Architektonická rozhodnutí
+- **Changelog:** CHANGELOG.md - Historie všech změn
 - **API:** http://localhost:8000/docs - Swagger UI
+- **Audit:** docs/audit.md - Auditní zpráva
 
 ---
 
-**Verze:** 2.6 (2026-01-24)
+**Verze:** 2.10.0 (2026-01-24)
 **Účel:** Kompletní pravidla pro efektivní AI vývoj
 
-**Changelog 2.6:**
-- ✅ P1: Rate limiting implementován (slowapi)
-- ✅ 100/min pro obecné API, 10/min pro auth endpointy
-- ✅ 9 testů pro rate limiting (tests/test_rate_limiting.py)
-- ✅ Konfigurace: RATE_LIMIT_ENABLED, RATE_LIMIT_DEFAULT, RATE_LIMIT_AUTH
-- 🎉 **P1 UZAVŘENO** - Všechny kritické požadavky splněny!
+**Poslední změny:**
+- ✅ P2 Fáze B: Minimal Snapshot implementován (ADR-012)
+- ✅ Batch.is_frozen - zmrazení cen v nabídkách (immutable prices)
+- ✅ Endpoints: POST /freeze, POST /clone, soft delete pro frozen batches
+- ✅ snapshot_service.py - vytváření a načítání snapshotů
+- ✅ Part.status ODSTRANĚN - freeze je pouze na Batch level (rozhodnutí)
+- ✅ Testy: 8 nových testů pro freeze, clone, immutability, price stability
+- ✅ Všechny testy: 98 passed
+- 🎯 Další: Business validace, Health check endpoint
 
-**Changelog 2.5:**
-- ✅ P1: Backup strategie implementována (app/services/backup_service.py)
-- ✅ CLI příkazy: backup, backup-list, backup-restore
-- ✅ 10 testů pro backup (tests/test_backup.py)
-- ✅ Konfigurace: BACKUP_RETENTION_COUNT, BACKUP_COMPRESS
-
-**Changelog 2.4:**
-- ✅ P1: CORS implementován (CORSMiddleware s konfigurovatelným whitelist)
-- ✅ CORS_ORIGINS v config.py + .env.example
-
-**Changelog 2.3:**
-- ✅ P0-3: HTTPS dokumentováno (Caddy reverse proxy)
-- ✅ Přidán SECURE_COOKIE setting do config.py
-- ✅ auth_router.py používá settings.SECURE_COOKIE
-- ✅ Vytvořen ADR-007-https-caddy.md
-
-**Changelog 2.2:**
-- ✅ P0-2: Role Hierarchy implementováno (Admin >= Operator >= Viewer)
-- ✅ Přidáno pravidlo #7: Role Hierarchy (RBAC)
-- ✅ 9 nových testů pro role hierarchy (27/27 passed)
-- ✅ Vytvořen ADR-006-role-hierarchy.md
-
-**Changelog 2.1:**
-- ✅ Aktualizován status P1 requirements (error handling + logging HOTOVO)
-- ✅ Přidán workflow krok "Po implementaci - AUTOMATICKY!"
-- ✅ Rozšířen checklist o testy + dokumentaci
-- ✅ Aktualizován AKTUÁLNÍ STAV
-- ✅ Vytvořen docs/ARCHITECTURE.md (224 řádků, kompaktní přehled)
+📋 **Kompletní historie změn:** viz [CHANGELOG.md](CHANGELOG.md)

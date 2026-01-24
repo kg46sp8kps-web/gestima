@@ -1,9 +1,9 @@
 """GESTIMA - Batch model"""
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Column, Integer, Float, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Float, Boolean, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
@@ -26,11 +26,24 @@ class Batch(Base, AuditMixin):
     
     unit_cost = Column(Float, default=0.0)
     total_cost = Column(Float, default=0.0)
-    
+
+    # Freeze metadata (ADR-012: Minimal Snapshot)
+    is_frozen = Column(Boolean, default=False, nullable=False, index=True)
+    frozen_at = Column(DateTime, nullable=True)
+    frozen_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Snapshot (minimal - pouze ceny a metadata)
+    snapshot_data = Column(JSON, nullable=True)
+
+    # Redundantní sloupce pro reporty (hybrid approach)
+    unit_price_frozen = Column(Float, nullable=True, index=True)
+    total_price_frozen = Column(Float, nullable=True)
+
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version
-    
+
     part = relationship("Part", back_populates="batches")
+    frozen_by = relationship("User")
 
 
 class BatchBase(BaseModel):
@@ -44,7 +57,7 @@ class BatchCreate(BatchBase):
 
 class BatchResponse(BatchBase):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     part_id: int
     unit_time_min: float
@@ -54,5 +67,14 @@ class BatchResponse(BatchBase):
     coop_cost: float
     unit_cost: float
     total_cost: float
+    version: int
     created_at: datetime
     updated_at: datetime
+
+    # Freeze fields (ADR-012)
+    is_frozen: bool
+    frozen_at: Optional[datetime] = None
+    frozen_by_id: Optional[int] = None
+    snapshot_data: Optional[Dict[str, Any]] = None
+    unit_price_frozen: Optional[float] = None
+    total_price_frozen: Optional[float] = None

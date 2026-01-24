@@ -17,12 +17,16 @@ class StockType(str, Enum):
     SHEET = "plech"
 
 
-class PartStatus(str, Enum):
-    DRAFT = "draft"
-    CALCULATED = "calculated"
-    QUOTED = "quoted"
-    APPROVED = "approved"
-    COMPLETED = "completed"
+class StockShape(str, Enum):
+    """Tvary polotovarů (geometrické kategorie)"""
+    ROUND_BAR = "round_bar"       # Tyč kruhová
+    SQUARE_BAR = "square_bar"     # Tyč čtvercová
+    FLAT_BAR = "flat_bar"         # Tyč plochá
+    HEXAGONAL_BAR = "hexagonal_bar"  # Tyč šestihranná
+    PLATE = "plate"               # Plech
+    TUBE = "tube"                 # Trubka
+    CASTING = "casting"           # Odlitek
+    FORGING = "forging"           # Výkovek
 
 
 class CuttingMode(str, Enum):

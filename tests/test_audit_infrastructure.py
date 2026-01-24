@@ -8,26 +8,47 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 
 from app.database import Base
 from app.models.part import Part
+from app.models.material import MaterialGroup, MaterialItem
+from app.models.enums import StockShape
 from app.db_helpers import soft_delete, restore, is_deleted, get_active, get_all_active
 
 
 @pytest.fixture
 async def db_session():
-    """Create isolated test database for each test"""
+    """Create isolated test database for each test (with seeded materials)"""
     # Use in-memory database for tests
     test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
-    
+
     # Create tables with WAL mode
     async with test_engine.begin() as conn:
         await conn.execute(text("PRAGMA journal_mode=WAL"))
         await conn.execute(text("PRAGMA synchronous=NORMAL"))
         await conn.run_sync(Base.metadata.create_all)
-    
-    # Provide session
+
+    # Provide session with seeded materials
     async with test_session() as session:
+        # Seed MaterialGroup and MaterialItem (ADR-011)
+        group = MaterialGroup(code="11xxx", name="Ocel automatová", density=7.85, created_by="test")
+        session.add(group)
+        await session.flush()
+
+        item = MaterialItem(
+            code="11SMn30-D50",
+            name="11SMn30 ⌀50mm",
+            material_group_id=group.id,
+            shape=StockShape.ROUND_BAR,
+            diameter=50.0,
+            price_per_kg=45.50,
+            created_by="test"
+        )
+        session.add(item)
+        await session.commit()
+
+        session.test_material_item_id = item.id
+
         yield session
-    
+
     # Cleanup
     await test_engine.dispose()
 
@@ -47,7 +68,7 @@ async def test_audit_fields_auto_created(db_session: AsyncSession):
     part = Part(
         part_number="TEST001",
         name="Test Part",
-        material_name="11523"
+        material_item_id=db_session.test_material_item_id
     )
     db_session.add(part)
     await db_session.commit()
@@ -66,7 +87,7 @@ async def test_version_auto_increments_on_update(db_session: AsyncSession):
     part = Part(
         part_number="TEST002",
         name="Test Part 2",
-        material_name="42CrMo4"
+        material_item_id=db_session.test_material_item_id
     )
     db_session.add(part)
     await db_session.commit()
@@ -88,7 +109,7 @@ async def test_soft_delete_marks_as_deleted(db_session: AsyncSession):
     part = Part(
         part_number="TEST003",
         name="Test Part 3",
-        material_name="16MnCr5"
+        material_item_id=db_session.test_material_item_id
     )
     db_session.add(part)
     await db_session.commit()
@@ -110,8 +131,8 @@ async def test_soft_delete_marks_as_deleted(db_session: AsyncSession):
 async def test_get_active_excludes_deleted(db_session: AsyncSession):
     """Test that get_active() doesn't return soft-deleted records"""
     # Create two parts
-    part1 = Part(part_number="TEST004", name="Active Part", material_name="11523")
-    part2 = Part(part_number="TEST005", name="Deleted Part", material_name="11523")
+    part1 = Part(part_number="TEST004", name="Active Part", material_item_id=db_session.test_material_item_id)
+    part2 = Part(part_number="TEST005", name="Deleted Part", material_item_id=db_session.test_material_item_id)
     
     db_session.add_all([part1, part2])
     await db_session.commit()
@@ -133,7 +154,7 @@ async def test_get_active_excludes_deleted(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_restore_undeletes_record(db_session: AsyncSession):
     """Test that restore() brings back soft-deleted records"""
-    part = Part(part_number="TEST006", name="Test Part", material_name="11523")
+    part = Part(part_number="TEST006", name="Test Part", material_item_id=db_session.test_material_item_id)
     db_session.add(part)
     await db_session.commit()
     
@@ -156,9 +177,9 @@ async def test_restore_undeletes_record(db_session: AsyncSession):
 async def test_get_all_active_excludes_deleted(db_session: AsyncSession):
     """Test that get_all_active() returns only non-deleted records"""
     # Create 3 parts
-    part1 = Part(part_number="TEST007", name="Active 1", material_name="11523")
-    part2 = Part(part_number="TEST008", name="Active 2", material_name="11523")
-    part3 = Part(part_number="TEST009", name="Deleted", material_name="11523")
+    part1 = Part(part_number="TEST007", name="Active 1", material_item_id=db_session.test_material_item_id)
+    part2 = Part(part_number="TEST008", name="Active 2", material_item_id=db_session.test_material_item_id)
+    part3 = Part(part_number="TEST009", name="Deleted", material_item_id=db_session.test_material_item_id)
     
     db_session.add_all([part1, part2, part3])
     await db_session.commit()
@@ -177,7 +198,7 @@ async def test_get_all_active_excludes_deleted(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_concurrent_update_conflict_detection(db_session: AsyncSession):
     """Test optimistic locking detects concurrent updates"""
-    part = Part(part_number="TEST010", name="Concurrent Test", material_name="11523")
+    part = Part(part_number="TEST010", name="Concurrent Test", material_item_id=db_session.test_material_item_id)
     db_session.add(part)
     await db_session.commit()
     await db_session.refresh(part)

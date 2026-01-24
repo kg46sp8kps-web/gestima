@@ -278,11 +278,16 @@ async def test_login_sets_cookie():
         scalar_one_or_none=MagicMock(return_value=mock_user)
     ))
 
+    # Mock Request object (required by rate limiting decorator)
+    from starlette.requests import Request
+    request_mock = MagicMock(spec=Request)
+    request_mock.client = MagicMock(host="127.0.0.1")
+
     credentials = LoginRequest(username="testuser", password="password123")
     response = Response()
 
     # Act
-    result = await login(credentials, response, db_mock)
+    result = await login(request_mock, credentials, response, db_mock)
 
     # Assert
     assert result.status == "ok"

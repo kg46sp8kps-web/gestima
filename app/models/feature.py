@@ -98,16 +98,18 @@ class FeatureUpdate(BaseModel):
     blade_width: Optional[float] = None
     count: Optional[int] = None
     note: Optional[str] = None
+    version: int  # Optimistic locking (ADR-008)
 
 
 class FeatureResponse(FeatureBase):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     operation_id: int
     Vc_locked: bool
     f_locked: bool
     Ap_locked: bool
     predicted_time_sec: float
+    version: int
     created_at: datetime
     updated_at: datetime

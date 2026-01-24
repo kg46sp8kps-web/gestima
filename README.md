@@ -29,6 +29,7 @@ open http://localhost:8000
 | **Struktura DB** | [DB_ARCHITECTURE.md](DB_ARCHITECTURE.md) |
 | **Bugy k opravě** | [FUTURE_STEPS.md](FUTURE_STEPS.md) |
 | **Pravidla pro AI** | [CLAUDE.md](CLAUDE.md) ⭐ |
+| **Historie změn** | [CHANGELOG.md](CHANGELOG.md) 📋 |
 | **Všechny příkazy** | [COMMANDS.md](COMMANDS.md) |
 | **Chyby které se nesmí opakovat** | [docs/LESSONS.md](docs/LESSONS.md) |
 | **API dokumentace** | http://localhost:8000/docs |

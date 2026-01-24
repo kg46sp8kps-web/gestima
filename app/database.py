@@ -52,9 +52,14 @@ async def init_db():
         await conn.execute(text("PRAGMA journal_mode=WAL"))
         await conn.execute(text("PRAGMA synchronous=NORMAL"))
         await conn.execute(text("PRAGMA cache_size=-64000"))  # 64MB cache
-        
+
         # Create tables
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed material hierarchy (ADR-011)
+    from app.seed_materials import seed_materials
+    async with async_session() as session:
+        await seed_materials(session)
 
 
 async def get_db():
