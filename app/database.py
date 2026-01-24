@@ -65,3 +65,8 @@ async def init_db():
 async def get_db():
     async with async_session() as session:
         yield session
+
+
+async def close_db():
+    """Graceful shutdown - dispose database engine"""
+    await engine.dispose()

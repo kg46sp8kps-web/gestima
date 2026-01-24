@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, Float, Boolean, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import relationship
 
@@ -47,12 +47,12 @@ class Batch(Base, AuditMixin):
 
 
 class BatchBase(BaseModel):
-    quantity: int = 1
+    quantity: int = Field(1, gt=0, description="Množství kusů (musí být > 0)")
     is_default: bool = False
 
 
 class BatchCreate(BatchBase):
-    part_id: int
+    part_id: int = Field(..., gt=0, description="ID dílu")
 
 
 class BatchResponse(BatchBase):

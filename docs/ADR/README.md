@@ -20,12 +20,20 @@ Každý ADR obsahuje:
 | ID | Název | Status | Datum |
 |----|-------|--------|-------|
 | 001 | Soft Delete Pattern | Přijato | 2026-01-22 |
-| 002 | Snapshot Pattern | Přijato | 2026-01-22 |
 | 003 | Integer ID vs UUID | Přijato | 2026-01-22 |
 | 004 | Implementation Notes | Implementováno | 2026-01-22 |
 | 005 | Authentication & Authorization | Přijato | 2026-01-23 |
 | 006 | Role Hierarchy | Přijato | 2026-01-23 |
 | 007 | HTTPS via Caddy | Přijato | 2026-01-23 |
+| 008 | Optimistic Locking | Implementováno | 2026-01-24 |
+| 011 | Material Hierarchy | Implementováno | 2026-01-24 |
+| 012 | Minimal Snapshot | Implementováno | 2026-01-24 |
+
+## Archivované ADRs
+
+| ID | Název | Důvod archivace |
+|----|-------|-----------------|
+| 002 | Snapshot Pattern (původní návrh) | Nahrazeno ADR-012 (Minimal Snapshot) - implementována minimal verze místo full snapshot |
 
 ## Kdy vytvořit nový ADR?
 

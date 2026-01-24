@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -37,11 +37,11 @@ class Part(Base, AuditMixin):
 
 
 class PartBase(BaseModel):
-    part_number: str
-    name: str = ""
-    material_item_id: int  # FK → MaterialItem (ADR-011)
-    length: float = 0.0  # mm - délka obráběné části
-    notes: str = ""
+    part_number: str = Field(..., min_length=1, max_length=50, description="Číslo dílu (unikátní)")
+    name: str = Field("", max_length=200, description="Název dílu")
+    material_item_id: int = Field(..., gt=0, description="ID materiálové položky")
+    length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
+    notes: str = Field("", max_length=500, description="Poznámky")
 
 
 class PartCreate(PartBase):
@@ -49,11 +49,11 @@ class PartCreate(PartBase):
 
 
 class PartUpdate(BaseModel):
-    part_number: Optional[str] = None
-    name: Optional[str] = None
-    material_item_id: Optional[int] = None  # FK → MaterialItem
-    length: Optional[float] = None
-    notes: Optional[str] = None
+    part_number: Optional[str] = Field(None, min_length=1, max_length=50)
+    name: Optional[str] = Field(None, max_length=200)
+    material_item_id: Optional[int] = Field(None, gt=0)
+    length: Optional[float] = Field(None, ge=0)
+    notes: Optional[str] = Field(None, max_length=500)
     version: int  # Optimistic locking (ADR-008)
 
 

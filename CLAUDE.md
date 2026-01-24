@@ -124,9 +124,36 @@ async def update_part(
 **NIKDY:** `if user.role == UserRole.OPERATOR` (striktní porovnání)
 **VŽDY:** Použít `has_permission()` nebo `require_role()` s hierarchií (viz ADR-006)
 
-### 7. Latency
+### 8. Latency
 
 - **Rychlost:** vždy navrhovat řešení s ohledem maximální odezvy v UI 100 ms
+
+### 9. Business validace v Pydantic modelech (POVINNÉ)
+
+Každý Pydantic model MUSÍ mít Field validace. Při vytváření/úpravě modelu vždy přidat:
+
+```python
+# SPRÁVNĚ: Validace pomocí Field()
+class PartCreate(BaseModel):
+    part_number: str = Field(..., min_length=1, max_length=50)
+    quantity: int = Field(1, gt=0)           # gt=0: musí být > 0
+    length: float = Field(0.0, ge=0)         # ge=0: nesmí být záporná
+    price: float = Field(..., gt=0)          # povinné, > 0
+    name: Optional[str] = Field(None, max_length=200)
+```
+
+**Validační vzory:**
+| Typ hodnoty | Constraint | Příklad |
+|-------------|------------|---------|
+| ID (FK) | `gt=0` | `part_id: int = Field(..., gt=0)` |
+| Množství | `gt=0` | `quantity: int = Field(1, gt=0)` |
+| Rozměry | `ge=0` | `length: float = Field(0.0, ge=0)` |
+| Ceny | `gt=0` | `price: float = Field(..., gt=0)` |
+| Časy | `ge=0` | `time_min: float = Field(0.0, ge=0)` |
+| Pořadí | `ge=1` | `seq: int = Field(1, ge=1)` |
+| Texty | `max_length` | `name: str = Field("", max_length=200)` |
+
+**NIKDY:** Pydantic model bez Field validací pro číselné/textové hodnoty
 
 ---
 
@@ -161,9 +188,9 @@ async def update_part(
 | **Optimistic locking** | ✅ HOTOVO | Version check v 4 routerech + 11 testů (ADR-008) - 2026-01-24 |
 | **Batch Snapshot (Freeze)** | ✅ HOTOVO | Minimal Snapshot - zmrazení cen v nabídkách (ADR-012) - 2026-01-24 |
 | **State Machine** | ❌ NEIMPLEMENTOVÁNO | Part.status není potřeba - freeze je na Batch level (ADR-012) |
-| **Business validace** | ⚠️ ČÁSTEČNĚ | Validace: quantity > 0, diameter > 0 |
-| **Health check endpoint** | ❌ CHYBÍ | GET /health |
-| **Graceful shutdown** | ❌ CHYBÍ | Signal handlers |
+| **Business validace** | ✅ HOTOVO | Pydantic Field validace pro všechny modely (2026-01-24) |
+| **Health check endpoint** | ✅ HOTOVO | GET /health (2026-01-24) |
+| **Graceful shutdown** | ✅ HOTOVO | Lifespan cleanup + DB dispose (2026-01-24) |
 
 ---
 
@@ -362,6 +389,7 @@ logger.error(f"Failed: {e}", exc_info=True)
 | L-006 | Hardcoded data | Načítat z API |
 | L-007 | Chybějící audit | Vyplňovat created_by/updated_by |
 | L-008 | Žádné try/except | Transaction error handling |
+| L-009 | Pydantic bez validací | Vždy Field() s gt/ge/max_length |
 
 ---
 
@@ -461,6 +489,7 @@ uvicorn app.gestima_app:app --reload
 - [ ] Audit vyplněn (created_by/updated_by) - pokud máme auth
 - [ ] Žádné hardcoded hodnoty
 - [ ] Edit (ne Write) pro změny
+- [ ] **VALIDACE:** Pydantic modely mají Field() constrainty? (gt, ge, max_length)
 - [ ] **ADR:** Upozornil jsem na architektonické rozhodnutí? (pokud relevantní)
 - [ ] **TESTY:** Napsal jsem testy pro kritické změny? (automaticky!)
 - [ ] **DOCS:** Aktualizoval jsem dokumentaci? (automaticky!)
@@ -488,7 +517,10 @@ uvicorn app.gestima_app:app --reload
 - **P2: Optimistic locking** - Version check v parts/operations/features routers (ADR-008) ✅
 - **P2: Material Hierarchy** - Dvoustupňová hierarchie MaterialGroup + MaterialItem (ADR-011) ✅
 - **P2: Batch Snapshot** - Minimal Snapshot pro zmrazení cen v nabídkách (ADR-012) ✅
-- **Testy:** 98/98 tests (Snapshot + Material hierarchy + všechny stávající) ✅
+- **P2: Health check** - GET /health (db status, version) ✅
+- **P2: Graceful shutdown** - Lifespan cleanup, DB dispose, 503 during shutdown ✅
+- **P2: Business validace** - Pydantic Field validace pro Part, Batch, Feature, Operation ✅
+- **Testy:** 127/127 tests ✅
 
 **P1 UZAVŘENO** ✅ - Všechny kritické požadavky splněny
 **P2 Fáze 1 HOTOVO** ✅ - Optimistic Locking implementován (2026-01-24)
@@ -537,17 +569,19 @@ python gestima.py backup-restore <name>  # Obnov ze zálohy
 
 ---
 
-**Verze:** 2.10.0 (2026-01-24)
+**Verze dokumentu:** 2.11 (2026-01-24)
+**GESTIMA verze:** 1.0.0
 **Účel:** Kompletní pravidla pro efektivní AI vývoj
 
-**Poslední změny:**
-- ✅ P2 Fáze B: Minimal Snapshot implementován (ADR-012)
+**Poslední změny dokumentu:**
+- 2.11 (2026-01-24): Verzování - oprava inkonzistence app/doc verzí
+- 2.10 (2026-01-24): P2 Fáze B uzavřeno (Minimal Snapshot ADR-012)
 - ✅ Batch.is_frozen - zmrazení cen v nabídkách (immutable prices)
 - ✅ Endpoints: POST /freeze, POST /clone, soft delete pro frozen batches
 - ✅ snapshot_service.py - vytváření a načítání snapshotů
 - ✅ Part.status ODSTRANĚN - freeze je pouze na Batch level (rozhodnutí)
 - ✅ Testy: 8 nových testů pro freeze, clone, immutability, price stability
 - ✅ Všechny testy: 98 passed
-- 🎯 Další: Business validace, Health check endpoint
+- ✅ P2 UZAVŘENO - všechny požadavky splněny (2026-01-24)
 
 📋 **Kompletní historie změn:** viz [CHANGELOG.md](CHANGELOG.md)

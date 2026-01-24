@@ -1,4 +1,8 @@
-# GESTIMA 1.0 - CNC Cost Calculator
+# GESTIMA - CNC Cost Calculator
+
+**Verze:** 1.0.0
+**Datum:** 2026-01-24
+**Status:** Production Ready
 
 Webová aplikace pro výpočet nákladů a časů obrábění na CNC strojích.
 
@@ -20,18 +24,18 @@ open http://localhost:8000
 ./run.sh
 ```
 
-## 📋 Co je kde
+## 📋 Dokumentace
 
 | Co hledáš? | Kde to je? |
 |-----------|-----------|
-| **Jak spustit app** | [QUICK_START.md](QUICK_START.md) |
-| **Jak stavba funguje** | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| **Struktura DB** | [DB_ARCHITECTURE.md](DB_ARCHITECTURE.md) |
-| **Bugy k opravě** | [FUTURE_STEPS.md](FUTURE_STEPS.md) |
-| **Pravidla pro AI** | [CLAUDE.md](CLAUDE.md) ⭐ |
+| **Quick Start (5 min)** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| **AI pravidla + P0/P1/P2 status** | [CLAUDE.md](CLAUDE.md) ⭐ |
+| **Kompletní specifikace** | [docs/GESTIMA_1.0_SPEC.md](docs/GESTIMA_1.0_SPEC.md) |
 | **Historie změn** | [CHANGELOG.md](CHANGELOG.md) 📋 |
-| **Všechny příkazy** | [COMMANDS.md](COMMANDS.md) |
-| **Chyby které se nesmí opakovat** | [docs/LESSONS.md](docs/LESSONS.md) |
+| **Architektonická rozhodnutí** | [docs/ADR/](docs/ADR/) |
+| **Další kroky (P2 Fáze C)** | [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) |
+| **Testovací strategie** | [docs/TESTING.md](docs/TESTING.md) |
+| **Verzování** | [docs/VERSIONING.md](docs/VERSIONING.md) |
 | **API dokumentace** | http://localhost:8000/docs |
 
 ## 🎯 Pracovní postup
@@ -75,21 +79,21 @@ GESTIMA/
 │   └── static/
 │       ├── css/gestima.css
 │       └── js/gestima.js
-├── tests/                      # pytest (8+ souborů)
-├── data/archive/               # Reference data (Excel)
+├── tests/                      # pytest (98 testů)
 ├── docs/
-│   ├── LESSONS.md              # Anti-patterns
-│   ├── ROADMAP.md              # 5-phase plan
-│   ├── GESTIMA_1.0_SPEC.md    # Full spec
-│   └── ADR/                    # Architecture decisions
-├── ARCHITECTURE.md             # 📘 Architektura
-├── DB_ARCHITECTURE.md          # 📗 Databáze
-├── FUTURE_STEPS.md             # 📙 Bugy & úkoly
-├── CLAUDE.md                   # ⭐ Pravidla pro AI
-├── COMMANDS.md                 # 📔 Všechny příkazy
-├── QUICK_START.md              # 🚀 Brzy start
+│   ├── ARCHITECTURE.md         # Quick start (5 min)
+│   ├── GESTIMA_1.0_SPEC.md    # Kompletní specifikace
+│   ├── TESTING.md              # Testovací strategie
+│   ├── NEXT-STEPS.md           # Plánované úkoly
+│   ├── VERSIONING.md           # Verzovací politika
+│   ├── audit.md                # Auditní zpráva (original)
+│   ├── audit-p2b.md            # Post-implementation audit
+│   ├── ADR/                    # Architecture Decision Records
+│   └── archive/                # Zastaralé dokumenty
+├── CLAUDE.md                   # ⭐ AI pravidla + P0/P1/P2 status
+├── CHANGELOG.md                # 📋 Historie změn
+├── README.md                   # 📘 Tento soubor
 ├── gestima.py                  # CLI helper
-├── run.sh, test.sh, setup.sh   # Shell scripts
 ├── requirements.txt
 └── venv/                       # Virtual environment
 ```
@@ -128,25 +132,31 @@ python3 gestima.py test --pdb         # Debug mode
 ## 🔗 Dokumentace
 
 **Povinná četba PŘED implementací:**
-1. [CLAUDE.md](CLAUDE.md) - Pravidla
-2. [FUTURE_STEPS.md](FUTURE_STEPS.md) - Co dělat
-3. [docs/LESSONS.md](docs/LESSONS.md) - Neudělej chyby
+1. [CLAUDE.md](CLAUDE.md) - Pravidla + Production requirements
+2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Quick start (5 min)
+3. [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) - Plánované úkoly (P2 Fáze C)
 
-**Architektura:**
-1. [ARCHITECTURE.md](ARCHITECTURE.md) - Jak to funguje
-2. [DB_ARCHITECTURE.md](DB_ARCHITECTURE.md) - Struktura DB
+**Audit & Quality:**
+1. [docs/audit.md](docs/audit.md) - Původní auditní zpráva
+2. [docs/audit-p2b.md](docs/audit-p2b.md) - Post-implementation audit P2B
+3. [docs/VERSIONING.md](docs/VERSIONING.md) - Verzovací politika
 
-## 🔴 Aktuální bugy (TODO)
+## 📌 Aktuální stav (v1.0.0)
 
-**P1 - Kritické (Týden 1):**
-- BUG-002: Zobrazení strojního času
-- BUG-003: Přepočet MODE (LOW/MID/HIGH)
-- BUG-001: Cenový ribbon
+**Hotovo:**
+- ✅ P0 (Blocker): Auth, HTTPS, Debug mode
+- ✅ P1 (Kritické): Logging, Backups, CORS, Rate limiting
+- ✅ P2 Fáze A: Material Hierarchy
+- ✅ P2 Fáze B: Minimal Snapshot (Batch freeze)
+- ✅ Testy: 98/98 passed
 
-**P2 - Důležité (Týden 2):**
-- BUG-006, 007, 004, 005
+**Plánováno (P2 Fáze C):**
+- A1: Geometry Hash (frozen ghost fix) - HIGH
+- A2: Health Check Endpoint - HIGH
+- A3: Zero-Price Validace - MEDIUM
+- A4: UI Frozen Indikace - MEDIUM
 
-👉 Více: [FUTURE_STEPS.md](FUTURE_STEPS.md)
+👉 Detail: [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) a [docs/audit-p2b.md](docs/audit-p2b.md)
 
 ## ⚙️ Konfigurace
 
@@ -174,18 +184,18 @@ Viz: [LESSONS.md](docs/LESSONS.md)
 
 | Složka | Status |
 |--------|--------|
-| Backend (models) | ✅ Ready |
-| Business logika | ✅ Ready |
-| API (routers) | ✅ Ready |
-| Frontend (UI) | 🟡 In progress |
-| Tests | ✅ 14/14 critical |
+| Backend (models) | ✅ Production Ready |
+| Business logika | ✅ Production Ready |
+| API (routers) | ✅ Production Ready |
+| Authentication | ✅ Production Ready |
+| Tests | ✅ 98/98 passed |
 | Dokumentace | ✅ Complete |
 
-## 🚀 Next Steps
+## 🚀 Next Steps (P2 Fáze C)
 
-1. Opravit BUG-002 (časy operací)
-2. Opravit BUG-003 (MODE přepočet)
-3. Opravit BUG-001 (cenový ribbon)
-4. Nasadit na produkci
+1. **A1: Geometry Hash** (HIGH) - Detekce změn geometrie po freeze
+2. **A2: Health Check** (HIGH) - Monitoring endpoint pro produkci
+3. **A3: Zero-Price Validace** (MEDIUM) - Pre-freeze business validace
+4. **A4: UI Frozen Indikace** (MEDIUM) - Vizuální feedback pro frozen batches
 
-👉 Detail: [FUTURE_STEPS.md](FUTURE_STEPS.md)
+👉 Detail: [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) a [docs/audit-p2b.md](docs/audit-p2b.md)

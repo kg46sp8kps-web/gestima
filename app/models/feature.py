@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 
@@ -52,52 +52,52 @@ class Feature(Base, AuditMixin):
 
 
 class FeatureBase(BaseModel):
-    seq: int = 1
+    seq: int = Field(1, ge=1, description="Pořadí prvku v operaci")
     feature_type: FeatureType = FeatureType.FACE
-    from_diameter: Optional[float] = None
-    to_diameter: Optional[float] = None
-    length: Optional[float] = None
-    depth: Optional[float] = None
-    width: Optional[float] = None
-    pocket_length: Optional[float] = None
-    pocket_width: Optional[float] = None
-    corner_radius: Optional[float] = None
-    thread_pitch: Optional[float] = None
-    Vc: Optional[float] = None
-    f: Optional[float] = None
-    Ap: Optional[float] = None
-    fz: Optional[float] = None
-    blade_width: float = 3.0
-    count: int = 1
-    note: str = ""
+    from_diameter: Optional[float] = Field(None, ge=0, description="Výchozí průměr v mm")
+    to_diameter: Optional[float] = Field(None, ge=0, description="Cílový průměr v mm")
+    length: Optional[float] = Field(None, ge=0, description="Délka v mm")
+    depth: Optional[float] = Field(None, ge=0, description="Hloubka v mm")
+    width: Optional[float] = Field(None, ge=0, description="Šířka v mm")
+    pocket_length: Optional[float] = Field(None, ge=0, description="Délka kapsy v mm")
+    pocket_width: Optional[float] = Field(None, ge=0, description="Šířka kapsy v mm")
+    corner_radius: Optional[float] = Field(None, ge=0, description="Rádius rohu v mm")
+    thread_pitch: Optional[float] = Field(None, gt=0, description="Stoupání závitu v mm")
+    Vc: Optional[float] = Field(None, gt=0, description="Řezná rychlost m/min")
+    f: Optional[float] = Field(None, gt=0, description="Posuv mm/ot")
+    Ap: Optional[float] = Field(None, gt=0, description="Hloubka řezu mm")
+    fz: Optional[float] = Field(None, gt=0, description="Posuv na zub mm")
+    blade_width: float = Field(3.0, gt=0, description="Šířka břitu v mm")
+    count: int = Field(1, ge=1, description="Počet opakování")
+    note: str = Field("", max_length=200, description="Poznámka")
 
 
 class FeatureCreate(FeatureBase):
-    operation_id: int
+    operation_id: int = Field(..., gt=0, description="ID operace")
 
 
 class FeatureUpdate(BaseModel):
-    seq: Optional[int] = None
+    seq: Optional[int] = Field(None, ge=1)
     feature_type: Optional[FeatureType] = None
-    from_diameter: Optional[float] = None
-    to_diameter: Optional[float] = None
-    length: Optional[float] = None
-    depth: Optional[float] = None
-    width: Optional[float] = None
-    pocket_length: Optional[float] = None
-    pocket_width: Optional[float] = None
-    corner_radius: Optional[float] = None
-    thread_pitch: Optional[float] = None
-    Vc: Optional[float] = None
-    f: Optional[float] = None
-    Ap: Optional[float] = None
-    fz: Optional[float] = None
+    from_diameter: Optional[float] = Field(None, ge=0)
+    to_diameter: Optional[float] = Field(None, ge=0)
+    length: Optional[float] = Field(None, ge=0)
+    depth: Optional[float] = Field(None, ge=0)
+    width: Optional[float] = Field(None, ge=0)
+    pocket_length: Optional[float] = Field(None, ge=0)
+    pocket_width: Optional[float] = Field(None, ge=0)
+    corner_radius: Optional[float] = Field(None, ge=0)
+    thread_pitch: Optional[float] = Field(None, gt=0)
+    Vc: Optional[float] = Field(None, gt=0)
+    f: Optional[float] = Field(None, gt=0)
+    Ap: Optional[float] = Field(None, gt=0)
+    fz: Optional[float] = Field(None, gt=0)
     Vc_locked: Optional[bool] = None
     f_locked: Optional[bool] = None
     Ap_locked: Optional[bool] = None
-    blade_width: Optional[float] = None
-    count: Optional[int] = None
-    note: Optional[str] = None
+    blade_width: Optional[float] = Field(None, gt=0)
+    count: Optional[int] = Field(None, ge=1)
+    note: Optional[str] = Field(None, max_length=200)
     version: int  # Optimistic locking (ADR-008)
 
 

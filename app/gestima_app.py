@@ -12,6 +12,8 @@ from app.config import settings
 from app.database import init_db
 from app.logging_config import setup_logging, get_logger
 from app.rate_limiter import setup_rate_limiting
+from sqlalchemy import text
+
 from app.routers import (
     auth_router,
     parts_router,
@@ -22,6 +24,10 @@ from app.routers import (
     data_router,
     pages_router
 )
+from app.database import async_session, engine, close_db
+
+# Shutdown state for graceful shutdown
+_shutdown_in_progress = False
 
 # Inicializace loggingu
 setup_logging(debug=settings.DEBUG)
@@ -30,9 +36,22 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _shutdown_in_progress
+
+    # Startup
     await init_db()
     logger.info(f"🚀 GESTIMA {settings.VERSION} běží na http://localhost:8000")
+
     yield
+
+    # Shutdown
+    _shutdown_in_progress = True
+    logger.info("⏳ Graceful shutdown started...")
+
+    # Close database connections
+    await close_db()
+    logger.info("✅ Database connections closed")
+
     logger.info("👋 GESTIMA ukončena")
 
 
@@ -73,6 +92,49 @@ app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(pages_router.router, tags=["Pages"])
+
+
+# ============================================================================
+# HEALTH CHECK
+# ============================================================================
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """
+    Health check endpoint pro monitoring a load balancery.
+    Vrací stav aplikace a databáze.
+    Během shutdown vrací 503 (load balancer přestane posílat requesty).
+    """
+    # During shutdown, return 503 immediately
+    if _shutdown_in_progress:
+        return JSONResponse(
+            content={"status": "shutting_down", "version": settings.VERSION},
+            status_code=503
+        )
+
+    db_status = "healthy"
+    db_error = None
+
+    try:
+        async with async_session() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = "unhealthy"
+        db_error = str(e) if settings.DEBUG else "Database connection failed"
+
+    status = "healthy" if db_status == "healthy" else "unhealthy"
+    status_code = 200 if status == "healthy" else 503
+
+    response = {
+        "status": status,
+        "version": settings.VERSION,
+        "database": db_status,
+    }
+
+    if db_error:
+        response["database_error"] = db_error
+
+    return JSONResponse(content=response, status_code=status_code)
 
 
 # ============================================================================
