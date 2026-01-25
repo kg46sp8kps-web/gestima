@@ -104,4 +104,4 @@ Detailní implementační plány P2: [docs/archive/P2-PHASE-B-SUMMARY.md](archiv
 
 ---
 
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-01-25
