@@ -7,6 +7,48 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.1] - 2026-01-25 - Security Audit Fixes (P0)
+
+### Security
+
+**P0 Fixes (CRITICAL - Audit 2026-01-25):**
+
+- **SECRET_KEY validace** (CVSS 9.1 → Fixed)
+  - Pydantic validator - odmítne default hodnotu v produkci
+  - Minimální délka 32 znaků
+  - Při startu v produkci bez validního klíče → crash (bezpečnější než tiché selhání)
+
+- **DEBUG default False** (CVSS 7.5 → Fixed)
+  - Změněno z `DEBUG: bool = True` na `False`
+  - Vývojář musí explicitně zapnout v `.env`
+
+- **Security Headers Middleware** (CVSS 6.1 → Fixed)
+  - X-Frame-Options: DENY (clickjacking)
+  - X-Content-Type-Options: nosniff (MIME sniffing)
+  - X-XSS-Protection: 1; mode=block
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+### Fixed
+
+- **Soft delete bug** v `materials_router.py:245`
+  - Sync DB operace v async kontextu → `datetime.utcnow()`
+  - Konzistentní s `batches_router.py`
+
+### Changed
+
+- Verze synchronizována na 1.1.x across config.py, README.md
+
+### Added
+
+- `docs/audits/` - Auditní zprávy
+- `docs/audits/2026-01-25-full-audit.md` - Kompletní audit report
+- `app/routers/misc_router.py` - Weather/fact API (nyní v gitu)
+- `app/templates/auth/login.html` - Login stránka (nyní v gitu)
+- `.gitignore` - `*.db.backup-*` pattern
+
+---
+
 ## [1.1.0] - 2026-01-25 - Parts List with Filtering
 
 ### Added

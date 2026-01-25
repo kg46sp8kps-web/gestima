@@ -1,38 +1,65 @@
 # Status & Next Steps
 
-**Date:** 2026-01-25 | **GESTIMA:** 1.1.0
+**Date:** 2026-01-25 | **GESTIMA:** 1.1.1
 
 ---
 
-## Production Status
+## Security Audit Status (2026-01-25)
 
-### P0 - BLOCKER (vše hotovo)
+**Audit report:** [docs/audits/2026-01-25-full-audit.md](audits/2026-01-25-full-audit.md)
+
+### P0 - CRITICAL (6 issues) ✅ DONE
+| Issue | CVSS | Status |
+|-------|------|--------|
+| SECRET_KEY validace | 9.1 | ✅ Fixed |
+| DEBUG=True default | 7.5 | ✅ Fixed |
+| Soft delete sync bug | Runtime | ✅ Fixed |
+| Security headers chybí | 6.1 | ✅ Fixed |
+| Verze nesynchronizované | - | ✅ Fixed |
+| Untracked soubory | CI/CD | ✅ Fixed |
+
+### P1 - HIGH (11 issues) 🔄 IN PROGRESS
+| Issue | Status |
+|-------|--------|
+| Services bez error handling (7/9) | TODO |
+| Operation.machine_id chybí FK | TODO |
+| Pydantic Field validace (20+ fieldů) | TODO |
+| XSS riziko v toast.innerHTML | TODO |
+| Výpočty v JS (edit.html) | TODO |
+| response_model na 5 endpointech | TODO |
+| Auth na data_router endpointy | TODO |
+| Chybějící Update schémata | TODO |
+
+### P2 - MEDIUM (8 issues)
+| Issue | Status |
+|-------|--------|
+| @db_error_handler decorator | TODO |
+| Testy pro materials_router | TODO |
+| Cache invalidace | TODO |
+| ADR-013 (localStorage) | TODO |
+| ARCHITECTURE.md update | TODO |
+
+### P3 - LOW (9 issues)
+| Issue | Status |
+|-------|--------|
+| Smazat deprecated funkce | TODO |
+| Smazat dead code templates | TODO |
+| Rate limit na misc endpointy | TODO |
+
+---
+
+## Production Status (Pre-Audit)
+
+### Original P0-P2 (vše hotovo)
 | Req | Status |
 |-----|--------|
 | Authentication (OAuth2 + JWT HttpOnly) | DONE |
 | Authorization (RBAC) | DONE |
 | Role Hierarchy | DONE |
 | HTTPS (Caddy docs) | DONE |
-| DEBUG=False | DONE |
-
-### P1 - KRITICKÉ (vše hotovo)
-| Req | Status |
-|-----|--------|
-| Global error handler | DONE |
-| Structured logging | DONE |
-| Transaction error handling | DONE |
-| Backup strategie | DONE |
-| Audit trail | DONE |
-| CORS | DONE |
-| Rate limiting | DONE |
-
-### P2 - DŮLEŽITÉ (vše hotovo)
-| Req | Status |
-|-----|--------|
 | Optimistic locking (ADR-008) | DONE |
 | Material Hierarchy (ADR-011) | DONE |
 | Batch Snapshot/Freeze (ADR-012) | DONE |
-| Business validace (Pydantic) | DONE |
 | Health check | DONE |
 | Graceful shutdown | DONE |
 
