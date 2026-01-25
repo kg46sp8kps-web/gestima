@@ -187,14 +187,25 @@
                     const params = new URLSearchParams();
                     if (this.search) params.set('search', this.search);
 
+                    console.log('Loading parts from:', `/api/parts/search?${params}`);
                     const response = await fetch(`/api/parts/search?${params}`);
-                    const data = await response.json();
 
-                    this.parts = data.parts;
-                    this.totalParts = data.total;
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('Received data:', data);
+
+                    this.parts = data.parts || [];
+                    this.totalParts = data.total || 0;
+
+                    console.log(`Loaded ${this.parts.length} parts, total: ${this.totalParts}`);
                 } catch (error) {
                     console.error('Error loading parts:', error);
-                    window.showToast('❌ Chyba při načítání dílů', 'error');
+                    window.showToast?.('❌ Chyba při načítání dílů: ' + error.message, 'error');
+                    this.parts = [];
+                    this.totalParts = 0;
                 } finally {
                     this.loading = false;
                 }

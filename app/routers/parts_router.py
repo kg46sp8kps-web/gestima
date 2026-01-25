@@ -26,7 +26,7 @@ async def get_parts(
     return result.scalars().all()
 
 
-@router.get("/search", response_model=Dict[str, Any])
+@router.get("/search")
 async def search_parts(
     search: str = Query("", description="Hledat v ID, číslo výkresu, article number"),
     skip: int = Query(0, ge=0),
@@ -61,8 +61,11 @@ async def search_parts(
     result = await db.execute(query)
     parts = result.scalars().all()
 
+    # Convert to Pydantic models for proper JSON serialization
+    parts_response = [PartResponse.model_validate(part) for part in parts]
+
     return {
-        "parts": parts,
+        "parts": parts_response,
         "total": total,
         "skip": skip,
         "limit": limit
