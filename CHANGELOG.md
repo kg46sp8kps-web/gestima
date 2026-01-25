@@ -7,6 +7,60 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.0] - 2026-01-25 - Parts List with Filtering
+
+### Added
+
+**Parts List Page:**
+- Nová stránka `/parts` - Seznam dílů s pokročilým filtrováním
+- Multi-field search: ID, číslo výkresu, article number, název
+- Real-time HTMX filtrování (debounce 300ms)
+- Column visibility toggle (localStorage persistence)
+- Akce: Edit, Duplicate, Delete (admin-only)
+- Empty state handling
+- Pagination support (50 items/page)
+
+**Database:**
+- Přidán `article_number VARCHAR(50)` do tabulky `parts`
+- Index na `article_number` pro rychlé vyhledávání
+
+**API:**
+- `GET /api/parts/search` - Filtrování dílů s multi-field search
+- `POST /api/parts/{id}/duplicate` - Duplikace dílu (auto-generuje part_number-COPY-N)
+- Parametry: `search`, `skip`, `limit`
+- Response: `{parts, total, skip, limit}`
+
+**Models:**
+- `Part.article_number` - nový field (Optional[str])
+- `PartBase`, `PartUpdate` - aktualizovány pro article_number
+
+**Templates:**
+- `parts_list.html` - kompletní seznam dílů s Alpine.js state management
+- Column selector dropdown
+- Responsive table design
+
+**Tests:**
+- `test_parts_filtering.py` - 10 testů (all passing ✅)
+  - article_number CRUD
+  - Multi-field search (OR logic)
+  - Pagination
+  - Duplicate detection
+
+### Changed
+
+- `pages_router.py` - `/parts` route zjednodušen (data loading přes API)
+- `base.html` - menu už obsahuje odkaz "Díly"
+- Dashboard (`/`) zůstává pro budoucí statistiky
+
+### Technical Details
+
+- HTMX pro live filtering bez page reload
+- Alpine.js pro column visibility state
+- LocalStorage pro uložení preferencí sloupců
+- Debounced input (300ms) pro optimalizaci API calls
+
+---
+
 ## [1.0.0] - 2026-01-24 - First Production Release
 
 ### Summary

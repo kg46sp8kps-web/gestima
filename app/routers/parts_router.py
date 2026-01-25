@@ -1,9 +1,9 @@
 """GESTIMA - Parts API router"""
 
 import logging
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from typing import List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -24,6 +24,49 @@ async def get_parts(
 ):
     result = await db.execute(select(Part).order_by(Part.updated_at.desc()))
     return result.scalars().all()
+
+
+@router.get("/search", response_model=Dict[str, Any])
+async def search_parts(
+    search: str = Query("", description="Hledat v ID, číslo výkresu, article number"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Filtrování dílů s multi-field search"""
+    query = select(Part)
+
+    if search.strip():
+        search_term = f"%{search.strip()}%"
+        filters = [
+            Part.part_number.ilike(search_term),
+            Part.name.ilike(search_term),
+            Part.article_number.ilike(search_term)
+        ]
+
+        # Pokud je search digit, přidat ID search
+        if search.strip().isdigit():
+            filters.append(Part.id == int(search.strip()))
+
+        query = query.where(or_(*filters))
+
+    # Count total
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+
+    # Get paginated results
+    query = query.order_by(Part.updated_at.desc()).offset(skip).limit(limit)
+    result = await db.execute(query)
+    parts = result.scalars().all()
+
+    return {
+        "parts": parts,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 
 @router.get("/{part_id}", response_model=PartResponse)
@@ -106,6 +149,54 @@ async def update_part(
         await db.rollback()
         logger.error(f"Database error updating part {part_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci dílu")
+
+
+@router.post("/{part_id}/duplicate", response_model=PartResponse)
+async def duplicate_part(
+    part_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """Duplikovat díl s novým part_number (přidá suffix -COPY-N)"""
+    result = await db.execute(select(Part).where(Part.id == part_id))
+    original = result.scalar_one_or_none()
+    if not original:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    # Generate unique part_number
+    base_number = original.part_number
+    counter = 1
+    new_part_number = f"{base_number}-COPY-{counter}"
+
+    while True:
+        check = await db.execute(select(Part).where(Part.part_number == new_part_number))
+        if not check.scalar_one_or_none():
+            break
+        counter += 1
+        new_part_number = f"{base_number}-COPY-{counter}"
+
+    # Create duplicate
+    new_part = Part(
+        part_number=new_part_number,
+        article_number=original.article_number,
+        name=original.name,
+        material_item_id=original.material_item_id,
+        length=original.length,
+        notes=original.notes,
+        drawing_path=original.drawing_path
+    )
+    set_audit(new_part, current_user.username)
+    db.add(new_part)
+
+    try:
+        await db.commit()
+        await db.refresh(new_part)
+        logger.info(f"Duplicated part {part_id} → {new_part.id}", extra={"part_id": new_part.id, "user": current_user.username})
+        return new_part
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Error duplicating part {part_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při duplikaci dílu")
 
 
 @router.delete("/{part_id}")

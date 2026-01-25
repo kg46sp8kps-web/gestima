@@ -14,6 +14,7 @@ class Part(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     part_number = Column(String(50), unique=True, nullable=False, index=True)
+    article_number = Column(String(50), nullable=True, index=True)  # Dodavatelské číslo
     name = Column(String(200), nullable=True)
 
     # Material hierarchy (ADR-011: Two-Tier Model)
@@ -38,6 +39,7 @@ class Part(Base, AuditMixin):
 
 class PartBase(BaseModel):
     part_number: str = Field(..., min_length=1, max_length=50, description="Číslo dílu (unikátní)")
+    article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
     name: str = Field("", max_length=200, description="Název dílu")
     material_item_id: int = Field(..., gt=0, description="ID materiálové položky")
     length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
@@ -50,6 +52,7 @@ class PartCreate(PartBase):
 
 class PartUpdate(BaseModel):
     part_number: Optional[str] = Field(None, min_length=1, max_length=50)
+    article_number: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = Field(None, max_length=200)
     material_item_id: Optional[int] = Field(None, gt=0)
     length: Optional[float] = Field(None, ge=0)
