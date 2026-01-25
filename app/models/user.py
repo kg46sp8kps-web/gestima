@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, String, Boolean, Enum
 
 from app.database import Base, AuditMixin
@@ -14,7 +14,7 @@ class User(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
-    email = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(100), unique=True, nullable=True, index=True)  # Optional
     hashed_password = Column(String(200), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.OPERATOR, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -25,7 +25,7 @@ class User(Base, AuditMixin):
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
+    email: Optional[str] = Field(None, max_length=100)  # Optional
     role: UserRole = UserRole.OPERATOR
 
 
@@ -34,7 +34,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
+    email: Optional[str] = Field(None, max_length=100)
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=8, max_length=100)
@@ -50,8 +50,8 @@ class UserResponse(UserBase):
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=1, max_length=100)  # min_length=1 pro login (validace hesla je jinde)
 
 
 class TokenResponse(BaseModel):

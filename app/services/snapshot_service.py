@@ -1,12 +1,16 @@
 """GESTIMA - Snapshot service for batch freezing (ADR-012)"""
 
+import logging
 from datetime import datetime
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.batch import Batch
 from app.models.part import Part
+
+logger = logging.getLogger(__name__)
 
 
 async def create_batch_snapshot(
@@ -31,13 +35,17 @@ async def create_batch_snapshot(
         Dict[str, Any]: Snapshot data (JSON structure)
     """
     # Načíst part s material_item a group (pokud nejsou eager loaded)
-    if not hasattr(batch, 'part') or not batch.part:
-        from sqlalchemy import select
-        stmt = select(Batch).where(Batch.id == batch.id).options(
-            selectinload(Batch.part).selectinload(Part.material_item).selectinload('group')
-        )
-        result = await db.execute(stmt)
-        batch = result.scalar_one()
+    try:
+        if not hasattr(batch, 'part') or not batch.part:
+            from sqlalchemy import select
+            stmt = select(Batch).where(Batch.id == batch.id).options(
+                selectinload(Batch.part).selectinload(Part.material_item).selectinload('group')
+            )
+            result = await db.execute(stmt)
+            batch = result.scalar_one()
+    except SQLAlchemyError as e:
+        logger.error(f"Database error loading batch for snapshot: {e}", exc_info=True)
+        raise ValueError(f"Failed to load batch data for snapshot: {e}")
 
     part = batch.part
     material_item = part.material_item if hasattr(part, 'material_item') else None

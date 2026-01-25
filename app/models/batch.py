@@ -55,6 +55,13 @@ class BatchCreate(BatchBase):
     part_id: int = Field(..., gt=0, description="ID dílu")
 
 
+class BatchUpdate(BaseModel):
+    """Schema for updating batch"""
+    quantity: Optional[int] = Field(None, gt=0, description="Množství kusů")
+    is_default: Optional[bool] = None
+    version: int  # Optimistic locking (ADR-008)
+
+
 class BatchResponse(BatchBase):
     model_config = ConfigDict(from_attributes=True)
 

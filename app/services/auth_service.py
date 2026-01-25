@@ -8,6 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from fastapi import HTTPException, status
 
 from app.config import settings
@@ -161,34 +162,49 @@ async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User
     return result.scalar_one_or_none()
 
 
-async def create_user(db: AsyncSession, username: str, email: str, password: str, role: UserRole) -> User:
+async def create_user(
+    db: AsyncSession,
+    username: str,
+    password: str,
+    role: UserRole,
+    email: Optional[str] = None
+) -> User:
     """
     Vytvoří nového uživatele
 
     Args:
         db: Database session
         username: Username (unique)
-        email: Email (unique)
         password: Plain text password (bude hashováno)
         role: UserRole
+        email: Email (optional)
 
     Returns:
         Vytvořený User object
 
     Raises:
-        HTTPException(409): Pokud username nebo email již existuje
+        HTTPException(409): Pokud username již existuje
     """
-    # Check duplicates
+    # Check duplicate username
     existing = await db.execute(
-        select(User).where(
-            (User.username == username) | (User.email == email)
-        )
+        select(User).where(User.username == username)
     )
     if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Username or email already exists",
+            detail="Username already exists",
         )
+
+    # Check duplicate email (only if provided)
+    if email:
+        existing_email = await db.execute(
+            select(User).where(User.email == email)
+        )
+        if existing_email.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already exists",
+            )
 
     # Create user
     user = User(
@@ -200,9 +216,23 @@ async def create_user(db: AsyncSession, username: str, email: str, password: str
         created_by="system",  # CLI create-admin command
     )
 
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-
-    logger.info(f"User created: {username} (role: {role})")
-    return user
+    try:
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        logger.info(f"User created: {username} (role: {role})")
+        return user
+    except IntegrityError as e:
+        await db.rollback()
+        logger.error(f"IntegrityError creating user {username}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already exists (duplicate username or email)",
+        )
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error creating user {username}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error while creating user",
+        )

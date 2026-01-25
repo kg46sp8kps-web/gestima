@@ -3,7 +3,8 @@
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +12,36 @@ router = APIRouter()
 
 
 # ============================================================================
+# RESPONSE MODELS
+# ============================================================================
+
+class FactResponse(BaseModel):
+    """Response pro Wikipedia fact"""
+    title: str
+    text: str
+    url: str
+
+
+class WeatherPeriod(BaseModel):
+    """Počasí pro jedno období"""
+    temp: str
+    icon: str
+
+
+class WeatherResponse(BaseModel):
+    """Response pro počasí"""
+    location: str
+    morning: WeatherPeriod
+    afternoon: WeatherPeriod
+    evening: WeatherPeriod
+
+
+# ============================================================================
 # JOKE API
 # ============================================================================
 
-@router.get("/fact")
-async def get_fact() -> Dict[str, Any]:
+@router.get("/fact", response_model=FactResponse)
+async def get_fact() -> FactResponse:
     """
     Fetch random article from Czech Wikipedia.
     Returns truncated text (3-4 lines) + link to full article.
@@ -58,8 +84,8 @@ async def get_fact() -> Dict[str, Any]:
 # WEATHER API
 # ============================================================================
 
-@router.get("/weather")
-async def get_weather() -> Dict[str, Any]:
+@router.get("/weather", response_model=WeatherResponse)
+async def get_weather() -> WeatherResponse:
     """
     Fetch weather for Ústí nad Orlicí from Open-Meteo API.
     Returns morning (6:00), afternoon (12:00), evening (18:00) forecast.

@@ -20,7 +20,7 @@ class Operation(Base, AuditMixin):
     type = Column(String(50), default="turning")
     icon = Column(String(10), default="🔄")
     
-    machine_id = Column(Integer, nullable=True)
+    machine_id = Column(Integer, ForeignKey("machines.id", ondelete="SET NULL"), nullable=True)
     cutting_mode = Column(String(10), default="mid")
     
     setup_time_min = Column(Float, default=30.0)

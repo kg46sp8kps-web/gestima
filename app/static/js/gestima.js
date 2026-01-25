@@ -36,14 +36,19 @@ function showToast(message, type = 'info') {
         max-width: 400px;
     `;
     
-    toast.innerHTML = `
-        <span style="flex: 1;">${message}</span>
-        <button onclick="this.parentElement.remove()" 
-                style="background: none; border: none; color: white; opacity: 0.8; cursor: pointer; font-size: 1.3rem; padding: 0; line-height: 1; font-weight: 300;">
-            ×
-        </button>
-    `;
-    
+    // XSS-safe: použití textContent místo innerHTML
+    const messageSpan = document.createElement('span');
+    messageSpan.style.flex = '1';
+    messageSpan.textContent = message;  // BEZPEČNÉ - escapuje HTML
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.cssText = 'background: none; border: none; color: white; opacity: 0.8; cursor: pointer; font-size: 1.3rem; padding: 0; line-height: 1; font-weight: 300;';
+    closeBtn.onclick = () => toast.remove();
+
+    toast.appendChild(messageSpan);
+    toast.appendChild(closeBtn);
+
     container.appendChild(toast);
     
     setTimeout(() => {
