@@ -1,10 +1,10 @@
 """GESTIMA 1.0 - Hlavní FastAPI aplikace"""
 
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -12,6 +12,7 @@ from app.config import settings
 from app.database import init_db
 from app.logging_config import setup_logging, get_logger
 from app.rate_limiter import setup_rate_limiting
+from app.seed_data import seed_demo_parts
 from sqlalchemy import text
 
 from app.routers import (
@@ -22,7 +23,8 @@ from app.routers import (
     batches_router,
     materials_router,
     data_router,
-    pages_router
+    pages_router,
+    misc_router
 )
 from app.database import async_session, engine, close_db
 
@@ -41,6 +43,10 @@ async def lifespan(app: FastAPI):
     # Startup
     await init_db()
     logger.info(f"🚀 GESTIMA {settings.VERSION} běží na http://localhost:8000")
+
+    # Seed demo data
+    async with async_session() as db:
+        await seed_demo_parts(db)
 
     yield
 
@@ -91,6 +97,7 @@ app.include_router(features_router.router, prefix="/api/features", tags=["Featur
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
+app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
 app.include_router(pages_router.router, tags=["Pages"])
 
 
@@ -140,6 +147,29 @@ async def health_check():
 # ============================================================================
 # GLOBAL ERROR HANDLERS
 # ============================================================================
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Handler pro HTTPException - speciálně 401 (Unauthorized)
+    Pokud je HTML request a 401 → redirect na /login
+    """
+    if exc.status_code == 401:
+        # Kontrola zda je to HTML request (ne API)
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept or request.url.path.startswith("/parts"):
+            # Redirect na login s query parametrem pro původní URL
+            return RedirectResponse(
+                url=f"/login?redirect={request.url.path}",
+                status_code=302
+            )
+
+    # Pro všechny ostatní HTTP výjimky (nebo API requesty) vrátit JSON
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

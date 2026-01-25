@@ -127,12 +127,6 @@ class Gestima:
             print("❌ Username must be at least 3 characters")
             sys.exit(1)
 
-        # Input email
-        email = input("Email: ").strip()
-        if not email or "@" not in email:
-            print("❌ Invalid email")
-            sys.exit(1)
-
         # Input password (hidden)
         password = getpass.getpass("Password (min 8 chars): ")
         if len(password) < 8:
@@ -169,11 +163,10 @@ async def _create_admin():
             user = await create_user(
                 db=db,
                 username='{username}',
-                email='{email}',
                 password='{password}',
                 role=UserRole.ADMIN
             )
-            print(f"✅ Admin user created: {{user.username}} ({{user.email}})")
+            print(f"✅ Admin user created: {{user.username}}")
         except Exception as e:
             print(f"❌ Error: {{e}}")
             raise
@@ -209,6 +202,91 @@ print("")
 print("Available backups:")
 for b in list_backups():
     print(f"  {b['name']} ({b['size_mb']} MB) - {b['created_at']}")
+"""
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+    @staticmethod
+    def seed_demo():
+        """Vytvoř demo data (parts)"""
+        if not Gestima.check_venv():
+            sys.exit(1)
+
+        print("🌱 GESTIMA - Seed Demo Data")
+        print("")
+
+        os.chdir(PROJECT_DIR)
+        result = subprocess.run([
+            str(VENV_PYTHON), "-c",
+            """
+import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from app.config import settings
+from app.seed_data import seed_demo_parts
+
+async def _seed():
+    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as db:
+        await seed_demo_parts(db)
+        print("✅ Demo data created")
+
+asyncio.run(_seed())
+"""
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+    @staticmethod
+    def clean_demo():
+        """Smaž všechny demo data (parts s notes obsahující 'DEMO')"""
+        if not Gestima.check_venv():
+            sys.exit(1)
+
+        print("🧹 GESTIMA - Clean Demo Data")
+        print("")
+
+        os.chdir(PROJECT_DIR)
+        result = subprocess.run([
+            str(VENV_PYTHON), "-c",
+            """
+import asyncio
+from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from app.config import settings
+from app.models.part import Part
+
+async def _clean():
+    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as db:
+        result = await db.execute(
+            select(Part).where(Part.notes.like('%DEMO%'))
+        )
+        demo_parts = result.scalars().all()
+
+        if not demo_parts:
+            print("No demo data found.")
+            return
+
+        print(f"Found {len(demo_parts)} demo parts:")
+        for part in demo_parts:
+            print(f"  - {part.part_number} ({part.name})")
+
+        for part in demo_parts:
+            await db.delete(part)
+
+        await db.commit()
+        print(f"\\n✅ Deleted {len(demo_parts)} demo parts")
+
+asyncio.run(_clean())
 """
         ])
 
@@ -282,14 +360,16 @@ print("⚠️  Restart the application to apply changes.")
     @staticmethod
     def help():
         """Zobraz dostupné příkazy"""
-        print("GESTIMA 1.0 - CLI Helper")
+        print("GESTIMA 1.1 - CLI Helper")
         print("")
         print("Usage: python3 gestima.py [command]")
         print("")
         print("Commands:")
         print("  setup           Inicializuj venv a instaluj dependencies")
         print("  run             Spusť aplikaci (http://localhost:8000)")
-        print("  create-admin    Vytvoř admin uživatele (first-time setup)")
+        print("  create-admin    Vytvoř admin uživatele (username + password)")
+        print("  seed-demo       Vytvoř demo data (3 vzorové díly)")
+        print("  clean-demo      Smaž všechny demo data")
         print("  backup          Vytvoř zálohu databáze")
         print("  backup-list     Zobraz dostupné zálohy")
         print("  backup-restore  Obnov databázi ze zálohy")
@@ -302,6 +382,8 @@ print("⚠️  Restart the application to apply changes.")
         print("  python3 gestima.py setup")
         print("  python3 gestima.py create-admin")
         print("  python3 gestima.py run")
+        print("  python3 gestima.py seed-demo          # Vytvoří DEMO-001, DEMO-002, DEMO-003")
+        print("  python3 gestima.py clean-demo         # Smaže všechny DEMO díly")
         print("  python3 gestima.py backup")
         print("  python3 gestima.py backup-restore gestima_backup_20260123_120000.db.gz")
         print("  python3 gestima.py test -k 'test_pricing'")
@@ -322,6 +404,10 @@ def main():
         Gestima.run()
     elif command == "create-admin":
         Gestima.create_admin()
+    elif command == "seed-demo":
+        Gestima.seed_demo()
+    elif command == "clean-demo":
+        Gestima.clean_demo()
     elif command == "backup":
         Gestima.backup()
     elif command == "backup-list":
