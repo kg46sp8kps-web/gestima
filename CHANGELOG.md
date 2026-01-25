@@ -16,6 +16,7 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Multi-field search: ID, číslo výkresu, article number, název
 - Real-time HTMX filtrování (debounce 300ms)
 - Column visibility toggle (localStorage persistence)
+- **Reset button** - "Reset na výchozí" pro obnovení výchozího nastavení sloupců
 - Akce: Edit, Duplicate, Delete (admin-only)
 - Empty state handling
 - Pagination support (50 items/page)
@@ -56,8 +57,20 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - HTMX pro live filtering bez page reload
 - Alpine.js pro column visibility state
-- LocalStorage pro uložení preferencí sloupců
+- **localStorage persistence** - preferences uloženy v browseru (device-specific)
+  - Zero latency (0ms response)
+  - Reset button pro obnovení defaults
+  - Future: Export/Import config pro multi-device (v1.2+)
 - Debounced input (300ms) pro optimalizaci API calls
+
+### Design Decisions
+
+**Proč localStorage místo DB sync?**
+- ✅ Zero latency (žádné flashing UI)
+- ✅ Zero race conditions
+- ✅ Simple implementation (KISS)
+- ✅ Internal tool (většina users = 1 zařízení)
+- Future: Export/Import config pokud metrics ukážou potřebu multi-device sync
 
 ---
 
