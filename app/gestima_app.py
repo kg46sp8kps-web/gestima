@@ -28,6 +28,34 @@ from app.routers import (
 )
 from app.database import async_session, engine, close_db
 
+
+# ============================================================================
+# SECURITY HEADERS MIDDLEWARE (P0 - Audit fix)
+# ============================================================================
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware pro přidání bezpečnostních HTTP hlaviček.
+    Chrání proti: Clickjacking, MIME sniffing, XSS.
+    """
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        # Ochrana proti clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+        # Zakázat MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        # XSS ochrana (legacy, ale stále užitečné)
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # Kontrola referrer policy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Permissions policy (omezit features)
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        return response
+
 # Shutdown state for graceful shutdown
 _shutdown_in_progress = False
 
@@ -67,6 +95,9 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan,
 )
+
+# Security headers middleware (MUSÍ být před CORS)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Rate limiting
 setup_rate_limiting(app)

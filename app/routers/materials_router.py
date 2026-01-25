@@ -1,6 +1,7 @@
 """GESTIMA - Materials API router (ADR-011: Material Hierarchy)"""
 
 import logging
+from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -242,7 +243,7 @@ async def delete_material_item(
         raise HTTPException(status_code=404, detail="Polotovar nenalezen")
 
     # Soft delete (ADR-001)
-    item.deleted_at = db.execute("SELECT CURRENT_TIMESTAMP").scalar_one()
+    item.deleted_at = datetime.utcnow()
     item.deleted_by = current_user.username
 
     try:

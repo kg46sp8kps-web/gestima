@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESTIMA - Přihlášení</title>
+
+    <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/css/gestima.css">
+</head>
+<body style="min-height: 100vh; min-width: 0; background: var(--bg-primary); padding: 20px; display: flex; align-items: center; justify-content: center;">
+
+    <div x-data="loginForm()" class="login-container" style="width: 100%; max-width: 700px;">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 2rem; font-weight: 700; letter-spacing: 0.5px;">
+                <span style="color: var(--accent-red);">GESTI</span><span style="color: var(--text-primary);">MA</span>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="ribbon" style="margin-bottom: 1.5rem;">
+            <div class="ribbon-header" style="cursor: default;">
+                <div class="ribbon-title">Přihlášení</div>
+            </div>
+            <div class="ribbon-body" style="padding: 0;">
+                <!-- Split Layout -->
+                <div style="display: flex; min-height: 280px;">
+                    <!-- Left Panel: Wiki Fact + Weather -->
+                    <div style="width: 420px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                        <!-- Wiki Fact Section -->
+                        <div style="flex: 1; padding: 0.8rem; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                            <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem;">DENNÍ ČLÁNEK Z WIKIPEDIE</div>
+                            <div x-show="wiki.title">
+                                <div x-text="wiki.title" style="font-size: 0.8rem; color: var(--text-primary); font-weight: 600; margin-bottom: 0.4rem;"></div>
+                                <div x-text="wiki.text" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 0.5rem;"></div>
+                                <a :href="wiki.url" target="_blank" x-show="wiki.url" style="font-size: 0.7rem; color: var(--accent-red); text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem;">
+                                    Celý článek →
+                                </a>
+                            </div>
+                            <div x-show="!wiki.title" style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Načítání...</div>
+                        </div>
+
+                        <!-- Weather Section - Horizontal -->
+                        <div style="padding: 0.8rem;">
+                            <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.6rem;">POČASÍ - ÚSTÍ NAD ORLICÍ</div>
+                            <div style="display: flex; flex-direction: row; gap: 0.8rem; justify-content: space-around; align-items: flex-start;">
+                                <!-- Morning -->
+                                <div style="text-align: center; flex: 1 1 33%; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="color: var(--text-muted); font-size: 0.65rem; margin-bottom: 0.3rem;">Ráno</div>
+                                    <div x-text="weather.morning.icon" style="font-size: 2rem; margin: 0.2rem 0;">🌤️</div>
+                                    <div x-text="weather.morning.temp" style="color: var(--text-primary); font-weight: 600; font-size: 0.85rem;">?</div>
+                                </div>
+                                <!-- Afternoon -->
+                                <div style="text-align: center; flex: 1 1 33%; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="color: var(--text-muted); font-size: 0.65rem; margin-bottom: 0.3rem;">Poledne</div>
+                                    <div x-text="weather.afternoon.icon" style="font-size: 2rem; margin: 0.2rem 0;">🌤️</div>
+                                    <div x-text="weather.afternoon.temp" style="color: var(--text-primary); font-weight: 600; font-size: 0.85rem;">?</div>
+                                </div>
+                                <!-- Evening -->
+                                <div style="text-align: center; flex: 1 1 33%; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="color: var(--text-muted); font-size: 0.65rem; margin-bottom: 0.3rem;">Večer</div>
+                                    <div x-text="weather.evening.icon" style="font-size: 2rem; margin: 0.2rem 0;">🌤️</div>
+                                    <div x-text="weather.evening.temp" style="color: var(--text-primary); font-weight: 600; font-size: 0.85rem;">?</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Login Form -->
+                    <div style="flex: 1; padding: 1.5rem; display: flex; align-items: center;"><div style="width: 100%; max-width: 280px; margin: 0 auto;">
+                        <form @submit.prevent="login">
+                            <!-- Username -->
+                            <div style="margin-bottom: 1.2rem;">
+                                <input
+                                    type="text"
+                                    x-model="form.username"
+                                    required
+                                    autofocus
+                                    placeholder="Uživatelské jméno"
+                                    style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.8rem; padding: 0.5rem 0.6rem; width: 100%;"
+                                >
+                            </div>
+
+                            <!-- Password -->
+                            <div style="margin-bottom: 1.2rem;">
+                                <input
+                                    type="password"
+                                    x-model="form.password"
+                                    required
+                                    placeholder="Heslo"
+                                    style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.8rem; padding: 0.5rem 0.6rem; width: 100%;"
+                                >
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button
+                                type="submit"
+                                :disabled="loading"
+                                style="width: 100%; justify-content: center; background: var(--accent-red); color: white; padding: 0.65rem 1rem; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; border: none; border-radius: 5px; font-weight: 500; margin-top: 1.5rem;"
+                            >
+                                <span x-show="!loading">Přihlásit se</span>
+                                <span x-show="loading">Přihlašování...</span>
+                            </button>
+                        </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.65rem;">
+            <div style="margin-bottom: 0.5rem; font-style: italic; opacity: 0.8;">
+                Be lazy. It's way better than talking to people.
+            </div>
+            <div>
+                <span>KOVO RYBKA s.r.o.</span>
+                <span style="margin: 0 0.5rem;">•</span>
+                <span>© 2026</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" style="position: fixed; bottom: 35px; right: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end;"></div>
+
+    <script src="/static/js/gestima.js"></script>
+
+    <script>
+        function loginForm() {
+            return {
+                form: {
+                    username: '',
+                    password: ''
+                },
+                loading: false,
+                wiki: {
+                    title: null,
+                    text: '',
+                    url: ''
+                },
+                weather: {
+                    location: null,
+                    morning: { temp: '?', desc: '...', icon: '🌤️' },
+                    afternoon: { temp: '?', desc: '...', icon: '🌤️' },
+                    evening: { temp: '?', desc: '...', icon: '🌤️' }
+                },
+
+                async init() {
+                    // Fetch fact and weather on load
+                    await Promise.all([
+                        this.fetchFact(),
+                        this.fetchWeather()
+                    ]);
+                },
+
+                async fetchFact() {
+                    try {
+                        const response = await fetch('/api/misc/fact');
+                        const data = await response.json();
+                        this.wiki = {
+                            title: data.title,
+                            text: data.text,
+                            url: data.url
+                        };
+                    } catch (error) {
+                        console.error('Fact fetch error:', error);
+                        this.wiki = {
+                            title: '',
+                            text: 'Zajímavost se nepodařilo načíst.',
+                            url: ''
+                        };
+                    }
+                },
+
+                async fetchWeather() {
+                    try {
+                        const response = await fetch('/api/misc/weather');
+                        const data = await response.json();
+                        this.weather = data;
+                    } catch (error) {
+                        console.error('Weather fetch error:', error);
+                    }
+                },
+
+                async login() {
+                    this.loading = true;
+
+                    try {
+                        // Send JSON credentials
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                username: this.form.username,
+                                password: this.form.password
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || 'Neplatné přihlašovací údaje');
+                        }
+
+                        // Success - JWT is set in HttpOnly cookie
+                        window.showToast('✅ Přihlášení úspěšné', 'success');
+
+                        // Redirect to original page or dashboard
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || '/';
+
+                        setTimeout(() => {
+                            window.location.href = redirect;
+                        }, 500);
+
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        window.showToast('❌ ' + error.message, 'error');
+                        this.loading = false;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

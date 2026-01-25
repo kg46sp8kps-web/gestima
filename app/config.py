@@ -1,17 +1,34 @@
 """GESTIMA - Konfigurace"""
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from pathlib import Path
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
-    VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    VERSION: str = "1.1.0"
+    DEBUG: bool = False  # BEZPEČNOST: Default False pro produkci
 
     # Security
     SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION_VIA_ENV"
+
+    @field_validator('SECRET_KEY')
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        """Validace SECRET_KEY - nesmí být default hodnota v produkci."""
+        if v == "CHANGE_THIS_IN_PRODUCTION_VIA_ENV":
+            import os
+            # V produkci (bez DEBUG) je to KRITICKÁ chyba
+            if os.getenv("DEBUG", "false").lower() not in ("true", "1", "yes"):
+                raise ValueError(
+                    "SECRET_KEY není nastavena! Nastavte ji v .env souboru: "
+                    "SECRET_KEY=your-secure-random-key-at-least-32-chars"
+                )
+        if len(v) < 32:
+            raise ValueError("SECRET_KEY musí mít alespoň 32 znaků")
+        return v
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     SECURE_COOKIE: bool = False  # True pro HTTPS (produkce)

@@ -1,7 +1,7 @@
 # GESTIMA - CNC Cost Calculator
 
-**Verze:** 1.0.0
-**Datum:** 2026-01-24
+**Verze:** 1.1.0
+**Datum:** 2026-01-25
 **Status:** Production Ready
 
 Webová aplikace pro výpočet nákladů a časů obrábění na CNC strojích.
@@ -141,7 +141,7 @@ python3 gestima.py test --pdb         # Debug mode
 2. [docs/audit-p2b.md](docs/audit-p2b.md) - Post-implementation audit P2B
 3. [docs/VERSIONING.md](docs/VERSIONING.md) - Verzovací politika
 
-## 📌 Aktuální stav (v1.0.0)
+## 📌 Aktuální stav (v1.1.0)
 
 **Hotovo:**
 - ✅ P0 (Blocker): Auth, HTTPS, Debug mode

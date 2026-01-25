@@ -15,6 +15,7 @@ build/
 *.db
 *.db-wal
 *.db-shm
+*.db.backup-*
 
 # Excel files (all archived, data now in DB)
 data/archive/
