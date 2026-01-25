@@ -7,6 +7,42 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.2] - 2026-01-25 - Audit Fixes (P1)
+
+### Security
+
+- **XSS fix v toast.innerHTML** - použití `textContent` místo `innerHTML`
+- **Auth na data_router** - všechny endpointy nyní vyžadují přihlášení
+
+### Added
+
+**Pydantic Update schémata:**
+- `CuttingConditionUpdate` (s optimistic locking)
+- `MachineUpdate` (s optimistic locking)
+- `BatchUpdate` (s optimistic locking)
+
+**Response models:**
+- `data_router`: `MachineRefResponse`, `MaterialRefResponse`, `FeatureTypeResponse`
+- `misc_router`: `FactResponse`, `WeatherResponse`
+
+### Changed
+
+**Pydantic Field validace (20+ fieldů):**
+- `CuttingConditionBase`: `Field()` s `max_length`, `gt=0`
+- `MachineBase`: `Field()` s `max_length`, `gt=0`, `ge=0`
+- `LoginRequest`: `Field()` s `min/max_length`
+
+**Database:**
+- `Operation.machine_id` - přidán FK constraint (`ondelete="SET NULL"`)
+
+**Error handling v services:**
+- `auth_service`: try/except v `create_user()` s rollback
+- `cutting_conditions`: try/except v `get_conditions()`
+- `reference_loader`: try/except v `get_machines()`, `get_material_groups()`
+- `snapshot_service`: try/except v `create_batch_snapshot()`
+
+---
+
 ## [1.1.1] - 2026-01-25 - Security Audit Fixes (P0)
 
 ### Security

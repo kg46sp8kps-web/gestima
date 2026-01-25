@@ -1,6 +1,6 @@
 # Status & Next Steps
 
-**Date:** 2026-01-25 | **GESTIMA:** 1.1.1
+**Date:** 2026-01-25 | **GESTIMA:** 1.1.2
 
 ---
 
@@ -18,21 +18,22 @@
 | Verze nesynchronizované | - | ✅ Fixed |
 | Untracked soubory | CI/CD | ✅ Fixed |
 
-### P1 - HIGH (11 issues) 🔄 IN PROGRESS
+### P1 - HIGH (8 issues) ✅ DONE
 | Issue | Status |
 |-------|--------|
-| Services bez error handling (7/9) | TODO |
-| Operation.machine_id chybí FK | TODO |
-| Pydantic Field validace (20+ fieldů) | TODO |
-| XSS riziko v toast.innerHTML | TODO |
-| Výpočty v JS (edit.html) | TODO |
-| response_model na 5 endpointech | TODO |
-| Auth na data_router endpointy | TODO |
-| Chybějící Update schémata | TODO |
+| Services bez error handling | ✅ Fixed (auth, cutting, reference, snapshot) |
+| Operation.machine_id chybí FK | ✅ Fixed |
+| Pydantic Field validace (20+ fieldů) | ✅ Fixed |
+| XSS riziko v toast.innerHTML | ✅ Fixed |
+| Výpočty v JS (edit.html) | ⏸️ Deferred (P2) |
+| response_model na endpointech | ✅ Fixed |
+| Auth na data_router endpointy | ✅ Fixed |
+| Chybějící Update schémata | ✅ Fixed |
 
-### P2 - MEDIUM (8 issues)
+### P2 - MEDIUM (9 issues)
 | Issue | Status |
 |-------|--------|
+| Výpočty v JS → API (edit.html) | TODO |
 | @db_error_handler decorator | TODO |
 | Testy pro materials_router | TODO |
 | Cache invalidace | TODO |
