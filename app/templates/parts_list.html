@@ -54,6 +54,13 @@
                         <span x-text="col.label" style="color: var(--text-secondary);"></span>
                     </label>
                 </template>
+
+                <!-- Reset button -->
+                <div style="border-top: 1px solid var(--border-color); margin-top: 0.75rem; padding-top: 0.75rem;">
+                    <button @click="resetColumns(); open = false;" class="btn-flat" style="width: 100%; font-size: 0.75rem;">
+                        🔄 Reset na výchozí
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -168,7 +175,9 @@
             },
 
             async init() {
-                // Load saved column preferences
+                // Load saved column preferences from localStorage
+                // Note: localStorage is device-specific. For multi-device sync,
+                // future v1.2+ will add Export/Import config feature.
                 const saved = localStorage.getItem('parts_visible_columns');
                 if (saved) {
                     this.visibleColumns = JSON.parse(saved);
@@ -179,6 +188,21 @@
             toggleColumn(key) {
                 this.visibleColumns[key] = !this.visibleColumns[key];
                 localStorage.setItem('parts_visible_columns', JSON.stringify(this.visibleColumns));
+            },
+
+            resetColumns() {
+                // Default column visibility
+                this.visibleColumns = {
+                    id: true,
+                    part_number: true,
+                    article_number: true,
+                    name: true,
+                    material: true,
+                    length: false,
+                    updated_at: true
+                };
+                localStorage.setItem('parts_visible_columns', JSON.stringify(this.visibleColumns));
+                window.showToast?.('✅ Sloupce resetovány na výchozí', 'success');
             },
 
             async loadParts() {
