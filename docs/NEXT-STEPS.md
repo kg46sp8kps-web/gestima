@@ -47,17 +47,26 @@
 **Implementováno:**
 - Nová stránka `/parts` - Seznam dílů s pokročilým filtrováním
 - Multi-field search (ID, part_number, article_number, name)
-- Column visibility selector (localStorage persistence)
+- Column visibility selector (localStorage persistence + Reset button)
 - Actions: Edit, Duplicate, Delete (admin-only)
 - Real-time HTMX filtering (debounce 300ms)
 - API: `GET /api/parts/search`, `POST /api/parts/{id}/duplicate`
 - DB: Přidán `article_number` field do Part modelu
 - 10 nových testů (all passing)
+- Demo data seeding system (auto-creates 3 DEMO parts)
 
 **Tech:**
 - HTMX + Alpine.js
 - Multi-field ILIKE search (OR logic)
 - Pagination support (50/page)
+- localStorage persistence (device-specific, zero latency)
+
+**Design Decision: localStorage > DB sync**
+- Zero latency (0ms vs 150ms)
+- Zero race conditions
+- Simple implementation (KISS)
+- Reset button pro obnovení defaults
+- Future: Export/Import config (v1.2+) pokud metrics ukážou potřebu
 
 ---
 
@@ -95,6 +104,24 @@ if material_item.price_per_kg <= 0:
 - Backup folder integrity
 - Disk space warning
 - Recent backup check
+
+---
+
+### 4. Export/Import User Config (Future Enhancement)
+**Priority:** LOW | **Effort:** 2-3h | **Wait for metrics**
+
+**Kdy implementovat:**
+- Pokud >20% users používá multi-device
+- Pokud users žádají o config backup
+
+**Co implementovat:**
+- Export button → stáhne JSON config soubor
+- Import button → nahraje config ze souboru
+- Obsahuje: column visibility pro všechny seznamy
+- Reset all settings button
+
+**Alternativa:**
+- DB sync s proper conflict resolution (effort 8-12h)
 
 ---
 
