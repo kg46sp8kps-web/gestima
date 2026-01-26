@@ -7,6 +7,632 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [UNRELEASED] - Pre-Beta Diagnostic Session (2026-01-26)
+
+### Added
+
+**Seed Scripts:**
+- `scripts/seed_complete_part.py` - vytváří kompletní demo díl s operacemi a batches pro testování
+
+**Documentation:**
+- `docs/BETA-RELEASE-STATUS.md` - kompletní status report před beta release
+  - Executive summary (P0/P1/P2 status)
+  - 4 kritické problémy identifikované při manuálním testu
+  - Co funguje vs co ne
+  - Prioritní akční plán
+  - Otevřené otázky pro uživatele
+  - Reference na klíčové soubory
+
+### Identified Issues (při manuálním testu)
+
+**Issue #1: Operace bez strojů v UI**
+- Symptom: Dropdown ukazuje "- Vyberte stroj -" i když seed přiřadil machine_id
+- Priority: P0 - BLOCKER
+- Status: TBD debugging
+
+**Issue #2: Bar charty statické (P0-006)**
+- Symptom: Změna materiálu/času → bar charty se nemění
+- Root cause: JS výpočty místo Pythonu (edit.html:318-325)
+- Priority: P0 (audit issue)
+- Status: Identified, čeká na fix
+
+**Issue #3: Demo data místo production**
+- Current: NLX2000, CTX450, DMU50, Sprint32, Mazak510
+- Expected: NL, NZX, SMARTURN, MASTUR, MCV, H40, MILLTAP (3x)
+- Priority: HIGH
+- Status: Čeká na data od uživatele
+
+**Issue #4: Materiály flat price místo tiers**
+- Current: Jeden MaterialItem = jedna cena
+- Expected: Price tiers podle množství (1kg, 10kg, 100kg)
+- Priority: MEDIUM
+- Status: Vyžaduje redesign Material modelu (4-6h)
+
+### Status
+
+**Backend:** ✅ Ready pro P0 opravy
+- 10/12 P0 fixes done (2 odloženy - větší refaktoring)
+- 23/23 P1 fixes done
+- 166/167 testů passing
+
+**Frontend:** ⚠️ Částečně functional
+- Základní UI funguje (parts list, edit page, login)
+- Kalkulace má issues (bar charty, stroje)
+
+**Data:** ❌ Demo data
+- Potřeba production stroje + materiály
+
+---
+
+## [1.3.3] - 2026-01-26 - P2 Audit Fixes (Quick Wins + Medium)
+
+### Fixed
+
+**Production Cleanup (P2-002):**
+- **Console.log removal** - odstraněny všechny console.log z produkčního kódu
+  - gestima.js: 4 console.log/error statements
+  - parts/edit.html: 8 console.log statements
+  - Ponechány console.error pro debugging kritických chyb
+
+**Security (P2-003):**
+- **.env.example SECRET_KEY** - změněno z "15adi" na explicitní placeholder
+  - Nový placeholder jasně říká "CHANGE_ME_IN_PRODUCTION_minimum_32_chars"
+  - Přidán komentář o minimální délce 32 znaků
+
+**Code Quality (P2-008):**
+- **Extrakce konstant v time_calculator.py** - hardcoded hodnoty přesunuty do konstant
+  - `DEFAULT_MAX_RPM = 4000`
+  - `DEFAULT_VC = 150` (m/min)
+  - `DEFAULT_FEED = 0.2` (mm/rev)
+  - `DEFAULT_AP = 2.0` (mm)
+
+**Frontend Validation (P2-012):**
+- **min="0" na numeric inputs** - všechny rozměrové inputy mají validaci
+  - parts/edit.html: délka, průměr, šířka, výška, tloušťka stěny
+  - Operation times: operation_time_min, setup_time_min
+  - Zabraňuje záporným hodnotám na úrovni HTML
+
+**Already Done:**
+- P2-014: Dead code (parts/list.html, list_fragment.html) - již smazáno v předchozím commitu
+
+**Testy:** 166 passed, 1 skipped ✅
+
+---
+
+## [1.3.2] - 2026-01-26 - P1 Audit Fixes (Code Quality & API Standards)
+
+### Fixed
+
+**Code Quality (P1-003, P1-006):**
+- **localStorage try/catch** - gestima.js nyní gracefully handluje disabled storage (private mode)
+- **Typed API parameter** - `change_mode()` endpoint používá `ChangeModeRequest` Pydantic model místo raw dict
+  - Přidán `CuttingMode` enum pro validaci cutting_mode hodnot
+  - Pydantic validace pro version field
+
+**API Standards (P1-005, P1-009):**
+- **Response timestamps** - MachineResponse a CuttingConditionResponse nyní obsahují created_at, updated_at
+- **DELETE status codes** - všechny DELETE endpointy nyní vrací HTTP 204 No Content
+  - parts_router.py, operations_router.py, features_router.py
+  - batches_router.py, materials_router.py
+
+**Database (P1-012):**
+- **Index na frozen_by_id** - batch.frozen_by_id má nyní index pro rychlejší queries
+
+**Code Cleanup (P1-013+):**
+- **CuttingMode enum deduplikace** - odstraněn duplicitní enum z operation.py, používá se centrální z enums.py
+
+### Already Fixed (verified during audit)
+
+**Security (P1-001, P1-002, P1-010, P1-011):**
+- P1-001: Auth na `/api/data/*` - implementováno (Depends(get_current_user))
+- P1-002: XSS v toast - opraveno (textContent místo innerHTML)
+- P1-010: Rate limiting - implementováno (@limiter.limit na misc endpointech)
+- P1-011: Cache invalidace - clear_cache() v reference_loader.py
+
+**Code Quality (P1-004, P1-007, P1-008):**
+- P1-004: Error handling v services - všechny services mají try/except
+- P1-007: Pydantic Field validace - Machine, CuttingCondition mají Field()
+- P1-008: Response Models - misc endpointy mají FactResponse, WeatherResponse
+
+**Testy:** 166 passed, 1 skipped ✅
+
+---
+
+## [1.3.1] - 2026-01-26 - P0 Audit Fixes (Pre-Beta Critical)
+
+### Fixed
+
+**Data Integrity (P0-001, P0-003):**
+- **Soft delete filtry** - přidán `.where(*.deleted_at.is_(None))` do všech SELECT queries
+  - parts_router.py (get_parts, search_parts, get_part)
+  - operations_router.py (get_operations)
+  - features_router.py (get_features)
+  - batches_router.py (get_batches)
+  - materials_router.py (get_material_groups, get_material_items)
+- **nullable=False constraints** - machine.py (code, name, type), batch.py (quantity)
+
+**Runtime Errors (P0-002, P0-005, P0-010):**
+- **Division by Zero** - `calculate_coop_cost()` nyní kontroluje `quantity <= 0`
+- **scalar_one_or_none** - snapshot_service.py používá správnou metodu s null check
+- **TUBE geometry validation** - ValueError při nevalidní geometrii (wall_thickness >= radius)
+
+**Transaction Safety (P0-004, P0-011):**
+- **Atomický batch freeze** - snapshot + freeze metadata v jednom try/except bloku
+- **Race condition fix** - duplicate_part() má retry logiku s max 10 pokusů
+
+**Concurrency (P0-012):**
+- **Cache thread safety** - asyncio.Lock() v reference_loader.py pro get_machines/get_material_groups
+
+### Technical Details
+
+**Opravené soubory:**
+- `app/services/price_calculator.py` - division by zero, TUBE validation, logging
+- `app/services/snapshot_service.py` - scalar_one_or_none
+- `app/services/reference_loader.py` - asyncio.Lock
+- `app/models/machine.py` - nullable=False
+- `app/models/batch.py` - nullable=False
+- `app/routers/*.py` - soft delete filtry (6 souborů)
+
+**Zbývající P0 (vyžaduje větší refaktoring):**
+- P0-006: Frontend výpočty → Python (edit.html bar charts)
+- P0-009: Double rounding → Decimal pro finanční výpočty
+
+**Testy:** 166 passed, 1 skipped ✅
+
+---
+
+## [1.3.0] - 2026-01-26 - Edit Page UI Overhaul (Price Breakdown & Operations)
+
+### Added
+
+**Price Overview Visualization:**
+- **Sticky price panel** - cenový přehled přesunut do sticky pozice nahoře pravého panelu
+- **Bar charts** - proporční vizualizace rozkladu nákladů (materiál/výroba/seřízení/kooperace)
+- **Čas/ks column** - nový sloupec v tabulce dávek
+- **Detail modal** - modal s kompletním rozpadem všech dávek (📊 Detail button)
+- **Material/ks summary** - INFO ribbon v levém panelu zobrazuje materiál/ks
+- **Cooperation summary** - INFO ribbon zobrazuje celkové náklady na kooperace
+
+**Operation Inline Editing:**
+- **Stroj dropdown** - přímý výběr stroje v hlavičce operace
+- **tp/tj inputs** - inline editace operation_time_min a setup_time_min
+- **Auto-save** - změny se ukládají automaticky při úpravě
+- **Optimistic locking** - version field pro detekci konfliktů
+- **Mode selection** - LOW/MID/HIGH buttons přesunuty do detail sekce
+
+**Machine Management:**
+- `scripts/seed_machines.py` - seed script s 5 demo stroji
+- **Demo machines:**
+  - DMG MORI NLX2000 (lathe, 1200 Kč/h, sériová výroba)
+  - DMG CTX 450 (lathe, 1000 Kč/h, kusová výroba)
+  - DMG DMU 50 (mill, 5-axis, 1400 Kč/h)
+  - INDEX Sprint 32 (lathe, 1100 Kč/h, malé díly)
+  - Mazak VTC-510 (mill, 3-axis, 900 Kč/h)
+
+**API Integration:**
+- `GET /api/data/machines` - načítání seznamu strojů (již existoval, nyní použit)
+- `PUT /api/operations/{id}` - update operace s machine_id, tp, tj
+- Machines cache v reference_loader.py
+
+### Changed
+
+**Edit Page Layout (parts/edit.html):**
+- **Right panel sticky** - cenový přehled vždy viditelný při scrollování
+- **Table structure** - Dávka | Čas/ks | Cena/ks (s bar chart) | Celkem
+- **Bar chart proportions** - šířky based on % podílu jednotlivých nákladů
+- **Operation header** - kompletně přepracována na inline editing
+- **Detail section** - vyhrazena pro features (zatím placeholder "📝 Kroky operace")
+- **Mode buttons** - přesunuty z hlavičky do detail sekce pod "Režim řezání"
+
+**Operation Card Structure:**
+```
+Header (inline editable):
+├── Seq + Icon
+├── Stroj dropdown
+├── tp input (min)
+└── tj input (min)
+
+Detail (expandable):
+├── Režim řezání: LOW | MID | HIGH
+└── Kroky operace (placeholder)
+```
+
+**Computed Properties:**
+- `totalCoopCost` - suma cen kooperací ze všech operací
+- `coopOperations` - počet kooperačních operací
+
+### Removed
+
+- **Operation name** - odstraněno zobrazení názvu operace (redundantní)
+- **Kooperace checkbox** - kooperace je typ operace, ne vlastnost každé operace
+
+### Technical Details
+
+**Bar Chart Implementation:**
+```html
+<div style="display: flex; height: 8px;">
+  <div :style="`width: ${(batch.material_cost / batch.unit_cost * 100).toFixed(1)}%; background: var(--accent-green);`"></div>
+  <div :style="`width: ${(batch.machining_cost / batch.unit_cost * 100).toFixed(1)}%; background: var(--accent-blue);`"></div>
+  <div :style="`width: ${(batch.setup_cost / batch.unit_cost * 100).toFixed(1)}%; background: var(--accent-yellow);`"></div>
+  <div :style="`width: ${(batch.coop_cost / batch.unit_cost * 100).toFixed(1)}%; background: var(--accent-purple);`"></div>
+</div>
+```
+
+**Operation Update:**
+- Inline editing s @click.stop pro prevenci event bubbling
+- Debounced save (auto při změně)
+- Version check pro optimistic locking
+- Error handling s rollback
+
+**Color Scheme:**
+- Materiál: `--accent-green` (zelená)
+- Výroba: `--accent-blue` (modrá)
+- Seřízení: `--accent-yellow` (žlutá)
+- Kooperace: `--accent-purple` (fialová)
+
+### Database
+
+**Machines seed data:**
+- 5 strojů s kompletními parametry
+- Type: lathe (3x), mill (2x)
+- Hourly rates: 900-1400 Kč
+- Priority sorting (10-30)
+- Active by default
+
+### User Experience
+
+**Visual Improvements:**
+- Cenový přehled vždy viditelný (sticky)
+- Bar charty poskytují okamžitou vizuální orientaci v nákladech
+- Detail modal pro hloubkový pohled na všechny dávky
+- Inline editing - rychlejší workflow bez otevírání formulářů
+
+**Workflow Improvements:**
+- Stroj lze změnit jedním kliknutím v dropdownu
+- tp/tj lze upravit přímo v hlavičce
+- Změny se ukládají automaticky
+- LOW/MID/HIGH dostupné v detail sekci
+
+---
+
+## [1.2.0] - 2026-01-25 - New Edit Page (Hybrid Material Model)
+
+### Added
+
+**Part Model - Stock Geometry Fields:**
+- `stock_diameter` - průměr polotovaru (mm)
+- `stock_length` - délka polotovaru (mm)
+- `stock_width` - šířka polotovaru (mm)
+- `stock_height` - výška polotovaru (mm)
+- `stock_wall_thickness` - tloušťka stěny trubky (mm)
+
+**Hybrid Material Model:**
+- MaterialItem určuje materiál (cena/kg, hustota z group)
+- Part.stock_* pole umožňují custom rozměry pro konkrétní díl
+- Rozměry lze kopírovat z katalogu nebo zadat ručně
+
+**API Endpoints:**
+- `GET /api/parts/{id}/full` - Part s eager-loaded MaterialItem + Group
+- `GET /api/parts/{id}/stock-cost` - výpočet ceny polotovaru (Python, L-001 compliant)
+- `POST /api/parts/{id}/copy-material-geometry` - kopíruje rozměry z MaterialItem do Part
+
+**Services:**
+- `calculate_stock_cost_from_part()` - nová funkce pro výpočet z Part.stock_* polí
+
+**Frontend (edit.html) - kompletní přepis:**
+- **Searchable dropdown** pro výběr polotovaru (MaterialItem)
+- **Dynamické rozměry** podle shape (round_bar, tube, flat_bar, plate, ...)
+- **Cena polotovaru z backendu** - konec JS výpočtů (L-001 fix)
+- **Přidání batche** s tlačítkem
+- **Seznam operací** s change mode (LOW/MID/HIGH)
+- Split layout (left panel 320px + right panel)
+
+### Changed
+
+**Database Migration:**
+- Automatická migrace přidává stock_* sloupce do existující DB
+- `_migrate_parts_stock_columns()` v database.py
+
+**Part Model:**
+- `material_item_id` nyní nullable (pro legacy díly bez materiálu)
+- `PartBase`, `PartUpdate` rozšířeny o stock_* pole
+- `PartFullResponse` - Part s nested MaterialItem + Group
+- `StockCostResponse` - response pro /stock-cost endpoint
+
+**Duplicate Part:**
+- Kopíruje nově i stock_* pole
+
+### Technical Details
+
+**Architektura (Hybrid Model):**
+```
+MaterialItem (katalog)          Part (konkrétní díl)
+├── price_per_kg ─────────────► použ. pro výpočet ceny
+├── group.density ────────────► použ. pro výpočet váhy
+│
+└── shape (template) ─────────► stock_diameter, stock_length, ...
+                                (kopie při výběru, pak editovatelné)
+```
+
+**Volume Calculations (Python):**
+- ROUND_BAR: π × r² × L
+- SQUARE_BAR: a² × L
+- FLAT_BAR: w × h × L
+- HEXAGONAL_BAR: (3√3/2) × a² × L
+- PLATE: w × h × L
+- TUBE: π × (r_o² - r_i²) × L
+- CASTING/FORGING: π × r² × L (aproximace)
+
+**Tests:** 161/161 passed ✅
+
+---
+
+## [1.1.7] - 2026-01-25 - UI Frozen Batch & Extended Health Check
+
+### Added
+
+**UI Indikace Frozen Batch (edit.html):**
+- Badge "ZMRAZENO" na frozen batches v cenovém přehledu
+- Warning ikona (⚠️) s tooltip pokud snapshot obsahuje varování
+- Tlačítko "Klonovat" pro frozen batches - vytvoří nový nezmrazený batch
+- Clone funkce volá existující API `POST /api/batches/{id}/clone`
+
+**Extended Health Check (`/health` endpoint):**
+- Rozšířený health check o 3 nové kontroly
+- **Backup folder integrity** - existence a write permissions
+- **Disk space check** - free space s thresholdy (5% critical, 10% warning)
+- **Recent backup age** - kontrola zda poslední backup není starší než 48 hodin
+- Nový stav **"degraded"** - warnings ale ne kritické (status 200)
+- Backwards compatible - stále vrací `status` + `version`
+- Nová struktura: `checks` dict s detaily jednotlivých kontrol
+
+**Health check stavy:**
+- `healthy` - vše OK (200)
+- `degraded` - warnings, ale ne kritické (200)
+- `unhealthy` - kritické problémy (503)
+- `shutting_down` - graceful shutdown (503)
+
+### Changed
+
+**Frontend (edit.html):**
+- Cenový přehled tabulka rozšířena o 3. sloupec "Akce"
+- První sloupec zobrazuje quantity + frozen badge + warning ikona
+- Tooltip zobrazuje seznam warnings z snapshotu
+
+**Health Check Response Format:**
+```json
+{
+  "status": "degraded",
+  "version": "1.1.7",
+  "checks": {
+    "database": {"status": "healthy"},
+    "backup_folder": {"status": "healthy"},
+    "disk_space": {
+      "status": "warning",
+      "free_gb": 15.2,
+      "total_gb": 250.0,
+      "percent_free": 6.1
+    },
+    "recent_backup": {
+      "status": "healthy",
+      "latest_backup": "gestima.db.backup-20260125-183000.gz",
+      "age_hours": 2.5
+    }
+  }
+}
+```
+
+### Tests
+
+**Nové testy (5):**
+- `test_disk_space_check_exists` - disk space je v health response
+- `test_backup_folder_check_exists` - backup folder check existuje
+- `test_recent_backup_check_exists` - recent backup check existuje
+- `test_degraded_status_on_warnings` - degraded status vrací 200
+- `test_unhealthy_status_returns_503` - unhealthy vrací 503
+
+**Aktualizované testy (2):**
+- `test_health_response_structure` - kontroluje novou strukturu s `checks`
+- `test_health_reports_valid_status` - akceptuje všechny stavy (healthy/degraded/unhealthy)
+
+**Celkem:** 161 testů ✅ (předchozích 156 + 5 nových)
+
+### Technical Details
+
+**Backup Location:**
+- Backup folder: `{BASE_DIR}/backups/`
+- Pattern: `*.db.backup*`
+- TODO: Přidat `BACKUP_DIR` do config.py (zatím hardcoded)
+
+**Disk Space Thresholdy:**
+- < 5% free → `critical` status → unhealthy (503)
+- < 10% free → `warning` status → degraded (200)
+- >= 10% free → `healthy` status
+
+**Backup Age Threshold:**
+- > 48 hodin → `warning` status → degraded (200)
+
+---
+
+## [1.1.6] - 2026-01-25 - Snapshot Pre-Conditions Validation
+
+### Added
+
+**Snapshot Warnings System:**
+- Snapshot nyní sbírá varování o podezřelých hodnotách před zmrazením
+- Warnings neblokují freeze - umožňují edge cases (prototypy, zkušební díly)
+- Warnings ukládány do snapshot JSON pro pozdější audit
+- Logování warnings pro audit trail
+
+**Validované podmínky:**
+- Materiál s nulovou/zápornou cenou (`price_per_kg <= 0`)
+- Nulové náklady na materiál (`material_cost <= 0`)
+- Nulové náklady na obrábění (`machining_cost <= 0`)
+- Nulové celkové náklady (`total_cost <= 0`)
+- Chybějící materiál na dílu
+
+**Snapshot struktura rozšířena:**
+```json
+{
+  "frozen_at": "...",
+  "frozen_by": "...",
+  "costs": {...},
+  "metadata": {...},
+  "warnings": [
+    "Materiál 'Ocel 11300' má podezřelou cenu: 0.0 Kč/kg",
+    "Náklady na obrábění: 0.0 Kč"
+  ]
+}
+```
+
+### Changed
+
+**`app/services/snapshot_service.py`:**
+- `create_batch_snapshot()` sbírá warnings před vytvořením snapshotu
+- Loguje warnings s extra context (batch_id, part_id, user)
+- Warnings persisted v snapshot JSON
+
+### Tests
+
+**Nové testy (3):**
+- `test_freeze_with_zero_price_logs_warning` - materiál s nulovou cenou
+- `test_freeze_with_zero_costs_logs_warnings` - batch s nulovými náklady
+- `test_freeze_with_valid_data_no_warnings` - validní freeze bez varování
+
+**Celkem:** 156 testů ✅ (předchozích 153 + 3 nové)
+
+### Design Decision
+
+**Proč warnings místo blokování?**
+- ✅ Neblokuje uživatele v edge cases (prototypy zdarma, zkušební díly)
+- ✅ Audit trail - loguje podezřelé případy
+- ✅ Future: UI může zobrazit varování při freeze
+- ✅ Warnings persisted v snapshotu - viditelné i později
+- ✅ Pragmatické - nulová cena může být validní (vnitřní výroba, prototypy)
+
+**Alternativy zvážené:**
+- ❌ Striktní validace (blokovat vše) - příliš restriktivní
+- ❌ Jen logování (bez uložení) - ztráta informace po freeze
+
+---
+
+## [1.1.5] - 2026-01-25 - RSS Feeds Integration
+
+### Changed
+
+**Login Page - "Víte, že..." sekce:**
+- Změněn feed z Wikipedia random article na **rotující české RSS zdroje**
+- Nadpis změněn z "DENNÍ ČLÁNEK Z WIKIPEDIE" na "VÍTE, ŽE..."
+- Zobrazují se **2 články** místo jednoho
+- **Celý řádek je klikatelný** - lepší UX, úspora místa
+- Hover efekt při najetí myší
+
+**API - RSS Parser:**
+- Endpoint `/api/misc/fact` přepsán z Wikipedia API na RSS aggregátor
+- Rotace mezi 4 českými zdroji:
+  - OSEL.cz (legendární vědecký portál)
+  - VTM.cz (věda, technika, zajímavosti)
+  - iROZHLAS (věda a technologie)
+  - 21stoleti.cz (populární věda)
+- Každý reload = jiný zdroj + 2 náhodné články
+- HTML tags automaticky stripovány
+- Text zkrácen na ~150 znaků (2 články na 1 obrazovku)
+
+### Added
+
+**Dependencies:**
+- `feedparser==6.0.12` - RSS feed parsing
+- `sgmllib3k==1.0.0` - feedparser dependency
+
+**Features:**
+- Multi-source RSS aggregation (4 české vědecké zdroje)
+- Náhodný výběr zdroje při každém requestu
+- Výběr 2 náhodných článků z top 20 nejnovějších
+
+### Technical Details
+
+**Response format změněn:**
+```json
+// Před (1 článek):
+{"title": "...", "text": "...", "url": "..."}
+
+// Po (2 články):
+{"facts": [
+  {"title": "...", "text": "...", "url": "..."},
+  {"title": "...", "text": "...", "url": "..."}
+]}
+```
+
+**Frontend změny:**
+- Alpine.js state: `wiki` → `facts` (array)
+- Template: 2x `<template x-if>` bloky s clickable cards
+- Error handling: fallback pro oba články
+
+---
+
+## [1.1.4] - 2026-01-25 - P3 Sprint (Low Priority Cleanup)
+
+### Removed
+
+**Dead Code:**
+- `app/templates/parts/list.html` - starý nepotřebný seznam dílů
+- `app/templates/parts/list_fragment.html` - starý HTMX fragment
+- `MaterialDB` alias v `app/models/__init__.py` - backward compatibility odstraněna
+- Zastaralý TODO komentář v `database.py`
+
+### Added
+
+**Rate Limiting:**
+- `/api/misc/fact` - 10 requests/minute
+- `/api/misc/weather` - 10 requests/minute
+
+### Changed
+
+**Refactoring:**
+- `reference_loader.py` - používá `MaterialGroup` místo `MaterialDB` alias
+- `scripts/seed_materials.py` - opravený import (MaterialGroup)
+
+### Deferred
+
+- `calculate_material_cost()` - deprecated ale ponechána (live preview use case)
+
+---
+
+## [1.1.3] - 2026-01-25 - P2 Sprint
+
+### Added
+
+**DB Helpers:**
+- `safe_commit()` - helper pro konzistentní error handling v routerech
+  - Eliminuje opakující se try/except bloky (L-008)
+  - Auto-refresh entity, standardní HTTP responses (409, 500)
+
+**Tests:**
+- `test_materials.py` - 16 nových testů pro materials router
+  - MaterialGroup CRUD, validace, duplicity
+  - MaterialItem shapes, soft delete, FK constraints
+  - Celkem: 153 testů ✅
+
+**Documentation:**
+- ADR-013: localStorage for UI Preferences
+  - Zdůvodnění volby localStorage vs DB sync
+  - Trade-offs a future enhancement path
+
+### Changed
+
+- `ARCHITECTURE.md` → v1.2
+  - Aktualizovaná hierarchie entit (MaterialGroup/Item)
+  - Nové ADR odkazy (008, 011, 012, 013)
+  - DB helpers reference
+
+### Fixed
+
+**Cache Invalidation:**
+- `clear_cache()` voláno po CRUD operacích v materials_router
+- Dříve: cache se nikdy neinvalidovala při změně dat
+
+---
+
 ## [1.1.2] - 2026-01-25 - Audit Fixes (P1)
 
 ### Security

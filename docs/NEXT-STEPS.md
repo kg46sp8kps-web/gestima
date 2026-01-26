@@ -1,51 +1,67 @@
 # Status & Next Steps
 
-**Date:** 2026-01-25 | **GESTIMA:** 1.1.2
+**Date:** 2026-01-26 | **GESTIMA:** 1.3.3
+
+**⚠️ DŮLEŽITÉ:** Pro kompletní status před beta release viz [BETA-RELEASE-STATUS.md](BETA-RELEASE-STATUS.md)
 
 ---
 
-## Security Audit Status (2026-01-25)
+## Pre-Beta Audit Status (2026-01-26)
 
-**Audit report:** [docs/audits/2026-01-25-full-audit.md](audits/2026-01-25-full-audit.md)
+**Audit report:** [docs/audits/2026-01-26-pre-beta-audit.md](audits/2026-01-26-pre-beta-audit.md)
 
-### P0 - CRITICAL (6 issues) ✅ DONE
-| Issue | CVSS | Status |
-|-------|------|--------|
-| SECRET_KEY validace | 9.1 | ✅ Fixed |
-| DEBUG=True default | 7.5 | ✅ Fixed |
-| Soft delete sync bug | Runtime | ✅ Fixed |
-| Security headers chybí | 6.1 | ✅ Fixed |
-| Verze nesynchronizované | - | ✅ Fixed |
-| Untracked soubory | CI/CD | ✅ Fixed |
+### P0 - CRITICAL (12 issues) - 10/12 DONE ✅
+| # | Issue | Status |
+|---|-------|--------|
+| P0-001 | Soft Delete filtry v SELECT queries | ✅ Fixed (6 routers) |
+| P0-002 | Division by Zero v price_calculator | ✅ Fixed |
+| P0-003 | nullable=False v DB modelech | ✅ Fixed (machine, batch) |
+| P0-004 | Atomický batch freeze | ✅ Fixed |
+| P0-005 | scalar_one() bez null check | ✅ Fixed |
+| P0-006 | Výpočty v JS místo Pythonu | ⏸️ Deferred (větší refaktoring) |
+| P0-007 | Sync operace v async kontextu | ✅ Already fixed |
+| P0-008 | Chybí FK na operation.machine_id | ✅ Already fixed |
+| P0-009 | Double rounding v kalkulacích | ⏸️ Deferred (Decimal refaktoring) |
+| P0-010 | Negative Inner Radius v TUBE | ✅ Fixed |
+| P0-011 | Race condition v duplicate_part | ✅ Fixed (retry logika) |
+| P0-012 | Cache bez thread safety | ✅ Fixed (asyncio.Lock) |
 
-### P1 - HIGH (8 issues) ✅ DONE
-| Issue | Status |
-|-------|--------|
-| Services bez error handling | ✅ Fixed (auth, cutting, reference, snapshot) |
-| Operation.machine_id chybí FK | ✅ Fixed |
-| Pydantic Field validace (20+ fieldů) | ✅ Fixed |
-| XSS riziko v toast.innerHTML | ✅ Fixed |
-| Výpočty v JS (edit.html) | ⏸️ Deferred (P2) |
-| response_model na endpointech | ✅ Fixed |
-| Auth na data_router endpointy | ✅ Fixed |
-| Chybějící Update schémata | ✅ Fixed |
+### P1 - HIGH (23 issues) - ALL DONE ✅
+| # | Issue | Status |
+|---|-------|--------|
+| P1-001 | Auth na /api/data/* endpointy | ✅ Already implemented |
+| P1-002 | XSS v toast (innerHTML) | ✅ Already fixed (textContent) |
+| P1-003 | localStorage bez try/catch | ✅ Fixed |
+| P1-004 | Error handling v services | ✅ Already implemented |
+| P1-005 | Timestamps v Response schématech | ✅ Fixed (Machine, CuttingCondition) |
+| P1-006 | Untyped dict → Pydantic model | ✅ Fixed (ChangeModeRequest) |
+| P1-007 | Pydantic Field validace | ✅ Already implemented |
+| P1-008 | Response Models na misc endpointech | ✅ Already implemented |
+| P1-009 | status_code na DELETE | ✅ Fixed (5 routers) |
+| P1-010 | Rate Limiting na misc | ✅ Already implemented |
+| P1-011 | Cache invalidace | ✅ Already implemented (clear_cache) |
+| P1-012 | Index na frozen_by_id | ✅ Fixed |
+| P1-013+ | Hardcoded cutting_mode → Enum | ✅ Fixed (deduplikace) |
 
-### P2 - MEDIUM (9 issues)
-| Issue | Status |
-|-------|--------|
-| Výpočty v JS → API (edit.html) | TODO |
-| @db_error_handler decorator | TODO |
-| Testy pro materials_router | TODO |
-| Cache invalidace | TODO |
-| ADR-013 (localStorage) | TODO |
-| ARCHITECTURE.md update | TODO |
+### P2 - MEDIUM (21 issues) - 5/21 DONE ✅
+| # | Issue | Status |
+|---|-------|--------|
+| P2-002 | Console.log statements | ✅ Fixed (gestima.js, edit.html) |
+| P2-003 | .env.example SECRET_KEY | ✅ Fixed (placeholder + komentář) |
+| P2-008 | Hardcoded values v time_calculator | ✅ Fixed (konstanty) |
+| P2-012 | min="0" validation na numeric inputs | ✅ Fixed (všechny geometry a time inputs) |
+| P2-014 | Dead code (parts/list.html) | ✅ Already deleted |
 
-### P3 - LOW (9 issues)
-| Issue | Status |
-|-------|--------|
-| Smazat deprecated funkce | TODO |
-| Smazat dead code templates | TODO |
-| Rate limit na misc endpointy | TODO |
+### Remaining Work (Low Priority)
+| # | Issue | Effort | Priority |
+|---|-------|--------|----------|
+| P0-006 | Frontend výpočty → Python | 3h | Deferred |
+| P0-009 | Double rounding → Decimal | 2h | Deferred |
+| P2-001 | Alembic migrations | 4h | Backlog |
+| P2-004 | min-width responsive | 2h | Backlog |
+| P2-005 | pip-audit | 1h | Backlog |
+
+**Testy:** 166 passed, 1 skipped ✅
 
 ---
 
@@ -64,11 +80,66 @@
 | Health check | DONE |
 | Graceful shutdown | DONE |
 
-**Testy:** 137/137 passed ✅
+**Testy:** 166/167 passed ✅
 
 ---
 
 ## Recent Updates
+
+### ✅ Edit Page UI Overhaul (v1.3.0 - 2026-01-26)
+
+**Implementováno:**
+- **Sticky price panel** - cenový přehled vždy viditelný nahoře pravého panelu
+- **Bar charts** - vizualizace rozkladu nákladů (materiál/výroba/seřízení/kooperace)
+- **Detail modal** - kompletní rozpis všech dávek s tlačítkem "📊 Detail"
+- **Čas/ks column** - nový sloupec v cenové tabulce
+- **Material/ks summary** - INFO ribbon zobrazuje materiál/ks a kooperace
+- **Operation inline editing:**
+  - Stroj dropdown přímo v hlavičce operace
+  - tp/tj inline inputs s auto-save
+  - LOW/MID/HIGH přesunuty do detail sekce
+  - Features placeholder ("📝 Kroky operace - zatím neimplementováno")
+- **Machine seeding:**
+  - 5 demo strojů (3x lathe, 2x mill)
+  - DMG MORI NLX2000, CTX 450, DMU 50, INDEX Sprint 32, Mazak VTC-510
+  - `scripts/seed_machines.py` pro seed dat
+
+**Technické detaily:**
+- Bar charty s proporcionálními šířkami (% z celkových nákladů)
+- Alpine.js computed properties: `totalCoopCost`, `coopOperations`
+- Inline editing s @click.stop pattern
+- Optimistic locking na update operací
+- Color coding: zelená (materiál), modrá (výroba), žlutá (seřízení), fialová (kooperace)
+
+**UX vylepšení:**
+- Rychlejší workflow - editace bez otevírání formulářů
+- Vizuální orientace v nákladech pomocí bar chartů
+- Sticky pozice = přehled cen vždy na očích
+- Modal pro detailní analýzu všech dávek
+
+---
+
+### ✅ RSS Feeds Integration (v1.1.5 - 2026-01-25)
+
+**Implementováno:**
+- Login page feed změněn z Wikipedia na **4 české RSS zdroje**
+- Sekce "VÍTE, ŽE..." zobrazuje **2 články** s celým řádkem klikatelným
+- Rotace mezi OSEL.cz, VTM.cz, iROZHLAS, 21stoleti.cz
+- API `/api/misc/fact` přepsán na RSS parser s feedparser
+- Každý reload = jiný zdroj + náhodné články
+
+**Zdroje:**
+- **OSEL.cz** - legendární český vědecký portál (fyzika, vesmír, AI)
+- **VTM.cz** - věda, technika, motorismus, historie (2-4 články/den)
+- **iROZHLAS** - vědecká sekce Českého rozhlasu (1-3 články/den)
+- **21stoleti.cz** - "Věda která baví" (vesmír, archeologie, medicína)
+
+**UX vylepšení:**
+- Celý řádek klikatelný (úspora místa, lepší target area)
+- Hover efekt pro feedback
+- Fallback handling při chybě API
+
+---
 
 ### ✅ Parts List with Filtering (v1.1.0 - 2026-01-25)
 
@@ -98,44 +169,144 @@
 
 ---
 
-## Next Steps (prioritizované)
+## Recent Completed
 
-### 1. Business Validace - Snapshot Pre-Conditions
-**Priority:** HIGH | **Effort:** 1-2h
+### ✅ New Edit Page - Hybrid Material Model (v1.2.0 - 2026-01-25)
 
-Problém: Snapshot může zachytit nulovou cenu materiálu.
+**Implementováno:**
+- Part model rozšířen o `stock_*` pole (diameter, length, width, height, wall_thickness)
+- **Hybrid model:** MaterialItem = cena/kg + density, Part.stock_* = custom rozměry
+- **Nové API:**
+  - `GET /api/parts/{id}/full` - Part s MaterialItem + Group
+  - `GET /api/parts/{id}/stock-cost` - výpočet ceny polotovaru (Python)
+  - `POST /api/parts/{id}/copy-material-geometry` - kopírování z katalogu
+- **Nový edit.html:**
+  - Searchable dropdown pro MaterialItem
+  - Dynamické rozměry podle shape
+  - Cena polotovaru z backendu (konec JS výpočtů - L-001 fix)
+  - Přidání batche
+  - Seznam operací
 
-```python
-# snapshot_service.py - přidat validaci
-if material_item.price_per_kg <= 0:
-    raise ValueError("Nelze zmrazit: materiál má nulovou cenu")
+**Testy:** 161/161 passing ✅
+
+**Architektura:**
+```
+MaterialItem (katalog)          Part (konkrétní díl)
+├── price_per_kg ────────────► použ. pro výpočet ceny
+├── group.density ───────────► použ. pro výpočet váhy
+└── shape ───────────────────► stock_diameter, stock_length, ...
+                               (editovatelné uživatelem)
 ```
 
-**TODO:**
-- [ ] Validace v snapshot_service.py
-- [ ] 3 testy (zero price fails, valid succeeds)
+---
+
+### ✅ UI Frozen Batch & Extended Health Check (v1.1.7 - 2026-01-25)
+
+**Implementováno:**
+- UI badge "ZMRAZENO" pro frozen batches v cenovém přehledu
+- Warning ikona ⚠️ s tooltip pro batches s varováními
+- Clone button pro frozen batches (vytvoří nový nezmrazený)
+- Extended health check s 4 kontrolami:
+  - Database connectivity
+  - Backup folder integrity
+  - Disk space (thresholdy: 5% critical, 10% warning)
+  - Recent backup age (threshold: 48 hodin)
+- Nový stav "degraded" pro warnings (status 200)
+
+**Testy:**
+- 5 nových testů pro extended health check
+- Celkem: 161/161 passing ✅
+
+**Poznámky:**
+- Backup folder location zatím dočasná (`BASE_DIR/backups/`)
+- TODO: Přidat `BACKUP_DIR` do config.py
 
 ---
 
-### 2. UI Indikace Frozen Batch
+### ✅ Snapshot Pre-Conditions Validation (v1.1.6 - 2026-01-25)
+
+**Implementováno:**
+- Warnings system místo striktního blokování
+- Sbírání podezřelých hodnot (zero costs)
+- Logování pro audit trail
+- Warnings persisted v snapshot JSON
+- KISS přístup - kontrola jen finálních costs, ne intermediate hodnot
+
+**Testy:**
+- 3 nové testy
+- Celkem: 156/156 passing ✅
+
+---
+
+## Next Steps (prioritizované)
+
+### 1. Features Implementation (Kroky operací)
+**Priority:** HIGH | **Effort:** 4-6h
+
+**Aktuální stav:**
+- Detail sekce operací má placeholder "📝 Kroky operace (zatím neimplementováno)"
+- Backend model `Feature` existuje v `app/models/feature.py`
+- API endpoints pro features existují v `app/routers/parts_router.py`
+
+**Co implementovat:**
+- UI pro přidávání/editaci features v detail sekci
+- Feature types: turning, facing, boring, threading, milling, drilling, ...
+- Inline editing features (podobně jako operations)
+- Drag & drop pro reorder (optional)
+- Auto-kalkulace času podle feature typu a cutting conditions
+
+**Database:**
+- Tabulka `features` již existuje (part_id FK, operation_id FK)
+- Pole: type, name, count, dimensions, cutting_mode, time_min
+
+**Reference:**
+- `app/services/feature_types.py` - definice typů operací
+- `app/services/time_calculator.py` - výpočty časů
+- `app/services/reference_loader.py:get_feature_types()` - načtení typů
+
+---
+
+### 2. Kooperace Operation Type
 **Priority:** MEDIUM | **Effort:** 2-3h
 
-- Badge "ZMRAZENO" na frozen batches
-- Disabled inputs pro frozen
-- Clone button místo edit
+**Aktuální stav:**
+- Kooperace není checkbox na každé operaci
+- Kooperace je samostatný typ operace (is_coop=True)
+
+**Co implementovat:**
+- UI pro přidání kooperační operace
+- Typ: "Kooperace" (ikona 🤝)
+- Pole: coop_type, coop_price, coop_min_price, coop_days
+- Zobrazení v seznamu operací s odlišným stylem
+- Zahrnutí v cenových výpočtech (již funguje v totalCoopCost)
 
 ---
 
-### 3. Extended Health Check
-**Priority:** MEDIUM | **Effort:** 2h
+### 3. Manuální Test - Operation Editing
+**Priority:** HIGH | **Effort:** 15min
 
-- Backup folder integrity
-- Disk space warning
-- Recent backup check
+**Test checklist:**
+- [ ] Otevřít edit page
+- [ ] Ověřit zobrazení 5 strojů v dropdown
+- [ ] Změnit stroj → auto-save
+- [ ] Upravit tp hodnotu → auto-save
+- [ ] Upravit tj hodnotu → auto-save
+- [ ] Změnit LOW/MID/HIGH v detail sekci
+- [ ] Ověřit že bar charty správně zobrazují proporce
+- [ ] Otevřít modal "📊 Detail" → ověřit kompletní rozpis
 
 ---
 
-### 4. Export/Import User Config (Future Enhancement)
+### 4. Backup Configuration
+**Priority:** MEDIUM | **Effort:** 30min
+
+- Přidat `BACKUP_DIR` do config.py
+- Aktualizovat backup_service.py aby používal `settings.BACKUP_DIR`
+- Aktualizovat health check aby používal `settings.BACKUP_DIR`
+
+---
+
+### 5. Export/Import User Config (Future Enhancement)
 **Priority:** LOW | **Effort:** 2-3h | **Wait for metrics**
 
 **Kdy implementovat:**
@@ -159,4 +330,4 @@ Detailní implementační plány P2: [docs/archive/P2-PHASE-B-SUMMARY.md](archiv
 
 ---
 
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-01-26
