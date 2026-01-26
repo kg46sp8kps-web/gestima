@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% from "macros.html" import form_section, form_input_text, form_input_number, form_select, form_checkbox, form_textarea, btn_primary, btn_secondary %}
+
+{% block title %}{{ 'Editace stroje' if machine else 'Nový stroj' }} - GESTIMA{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/forms.css">
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 1.5rem; font-weight: 700;">
+            {{ '✏️ Editace stroje' if machine else '➕ Nový stroj' }}
+        </h1>
+        {% if machine %}
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            ID: {{ machine.id }} | Vytvořeno: {{ machine.created_at.strftime('%d.%m.%Y %H:%M') }}
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Form -->
+    <form method="POST" action="{{ '/machines/' + machine.id|string if machine else '/machines' }}">
+        <!-- Hidden fields -->
+        {% if machine %}
+        <input type="hidden" name="version" value="{{ machine.version }}">
+        {% endif %}
+
+        <!-- 1️⃣ Základní informace -->
+        {% call form_section('1️⃣ Základní informace') %}
+            <div class="form-grid-2col">
+                {{ form_input_text('code', 'Kód stroje', machine.code if machine else '', required=true, maxlength=50, help_text='Unikátní kód (např. NLX2000)') }}
+                {{ form_input_text('name', 'Název stroje', machine.name if machine else '', required=true, maxlength=200) }}
+            </div>
+            <div class="form-grid-2col">
+                {{ form_select('type', 'Typ stroje', [
+                    ('lathe', 'Soustruh (Lathe)'),
+                    ('mill', 'Frézka (Mill)'),
+                    ('saw', 'Pila (Saw)')
+                ], machine.type if machine else 'lathe', required=true) }}
+                {{ form_select('subtype', 'Podtyp', [
+                    ('', '-- Bez podtypu --'),
+                    ('horizontal', 'Horizontální'),
+                    ('vertical', 'Vertikální')
+                ], machine.subtype if machine else '') }}
+            </div>
+        {% endcall %}
+
+        <!-- 2️⃣ Rozměry a kapacity -->
+        {% call form_section('2️⃣ Rozměry a kapacity') %}
+            <div class="form-grid-3col">
+                {{ form_input_number('max_bar_dia', 'Max průměr tyče (mm)', machine.max_bar_dia if machine else '', min=0, help_text='Pro bar feeder') }}
+                {{ form_input_number('max_cut_diameter', 'Max řezný průměr (mm)', machine.max_cut_diameter if machine else '', min=0) }}
+                {{ form_input_number('max_workpiece_dia', 'Max průměr obrobku (mm)', machine.max_workpiece_dia if machine else '', min=0) }}
+            </div>
+            <div class="form-grid-3col">
+                {{ form_input_number('max_workpiece_length', 'Max délka obrobku (mm)', machine.max_workpiece_length if machine else '', min=0) }}
+                {{ form_input_number('min_workpiece_dia', 'Min průměr obrobku (mm)', machine.min_workpiece_dia if machine else '', min=0) }}
+                {{ form_input_number('bar_feed_max_length', 'Max délka tyče (mm)', machine.bar_feed_max_length if machine else '', min=0) }}
+            </div>
+        {% endcall %}
+
+        <!-- 3️⃣ Schopnosti -->
+        {% call form_section('3️⃣ Schopnosti a vybavení') %}
+            <div class="form-grid-4col">
+                {{ form_checkbox('has_bar_feeder', 'Bar feeder', machine.has_bar_feeder if machine else false) }}
+                {{ form_checkbox('has_milling', 'Frézování', machine.has_milling if machine else false) }}
+                {{ form_checkbox('has_sub_spindle', 'Protivřeteno', machine.has_sub_spindle if machine else false) }}
+                {{ form_input_number('axes', 'Počet os', machine.axes if machine else '', min=2, max=9, step='1') }}
+            </div>
+            <div class="form-grid-2col">
+                {{ form_input_number('max_milling_tools', 'Max frézovacích nástrojů', machine.max_milling_tools if machine else '', min=0, step='1') }}
+            </div>
+        {% endcall %}
+
+        <!-- 4️⃣ Hodinová sazba (rozpad) -->
+        {% call form_section('4️⃣ Hodinová sazba - Rozpad nákladů') %}
+            <div class="form-grid-2col">
+                {{ form_input_number('hourly_rate_amortization', 'Odpisy stroje (Kč/h)', machine.hourly_rate_amortization if machine else 400, min=0, required=true, help_text='Amortizace investice do stroje') }}
+                {{ form_input_number('hourly_rate_labor', 'Mzda operátora (Kč/h)', machine.hourly_rate_labor if machine else 300, min=0, required=true, help_text='Hodinová mzda obsluhy') }}
+            </div>
+            <div class="form-grid-2col">
+                {{ form_input_number('hourly_rate_tools', 'Nástroje (Kč/h)', machine.hourly_rate_tools if machine else 200, min=0, required=true, help_text='Spotřeba nástrojů (břity, frézy)') }}
+                {{ form_input_number('hourly_rate_overhead', 'Provozní režie (Kč/h)', machine.hourly_rate_overhead if machine else 300, min=0, required=true, help_text='Energie, maziva, chlazení') }}
+            </div>
+
+            <!-- Computed rates display -->
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-primary); border-radius: 6px; border: 1px solid var(--border-color);">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Sazba SETUP (bez nástrojů):</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--accent-blue);" id="rate-setup">— Kč/h</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Sazba OPERACE (s nástroji):</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--success);" id="rate-operation">— Kč/h</div>
+                    </div>
+                </div>
+            </div>
+        {% endcall %}
+
+        <!-- 5️⃣ Setup časy -->
+        {% call form_section('5️⃣ Setup parametry') %}
+            <div class="form-grid-2col">
+                {{ form_input_number('setup_base_min', 'Základní čas seřízení (min)', machine.setup_base_min if machine else 30, min=0, required=true) }}
+                {{ form_input_number('setup_per_tool_min', 'Čas na nástroj (min)', machine.setup_per_tool_min if machine else 3, min=0, required=true) }}
+            </div>
+        {% endcall %}
+
+        <!-- 6️⃣ Výroba -->
+        {% call form_section('6️⃣ Vhodnost pro výrobu') %}
+            <div class="form-grid-2col">
+                {{ form_checkbox('suitable_for_series', 'Vhodný pro sériovou výrobu', machine.suitable_for_series if machine else true) }}
+                {{ form_checkbox('suitable_for_single', 'Vhodný pro kusovou výrobu', machine.suitable_for_single if machine else true) }}
+            </div>
+        {% endcall %}
+
+        <!-- 7️⃣ Workflow -->
+        {% call form_section('7️⃣ Workflow a poznámky') %}
+            <div class="form-grid-2col">
+                {{ form_input_number('priority', 'Priorita', machine.priority if machine else 99, min=0, step='1', required=true, help_text='Nižší číslo = vyšší priorita') }}
+                {{ form_checkbox('active', 'Aktivní', machine.active if machine else true, help_text='Pouze aktivní stroje se zobrazují v selektorech') }}
+            </div>
+            <div class="form-field-full">
+                {{ form_textarea('notes', 'Poznámky', machine.notes if machine else '', rows=4, maxlength=1000) }}
+            </div>
+        {% endcall %}
+
+        <!-- Action buttons -->
+        <div class="btn-group btn-group-right" style="margin-top: 2rem;">
+            {{ btn_secondary('Zrušit', "window.location.href='/machines'", 'button') }}
+            {{ btn_primary('Uložit', '', 'submit') }}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live calculation of computed rates
+function updateComputedRates() {
+    const amortization = parseFloat(document.getElementById('hourly_rate_amortization').value) || 0;
+    const labor = parseFloat(document.getElementById('hourly_rate_labor').value) || 0;
+    const tools = parseFloat(document.getElementById('hourly_rate_tools').value) || 0;
+    const overhead = parseFloat(document.getElementById('hourly_rate_overhead').value) || 0;
+
+    const rateSetup = amortization + labor + overhead;
+    const rateOperation = amortization + labor + tools + overhead;
+
+    document.getElementById('rate-setup').textContent = rateSetup.toFixed(0) + ' Kč/h';
+    document.getElementById('rate-operation').textContent = rateOperation.toFixed(0) + ' Kč/h';
+}
+
+// Attach listeners
+['hourly_rate_amortization', 'hourly_rate_labor', 'hourly_rate_tools', 'hourly_rate_overhead'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+        input.addEventListener('input', updateComputedRates);
+    }
+});
+
+// Initial calculation
+updateComputedRates();
+</script>
+{% endblock %}

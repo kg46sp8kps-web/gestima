@@ -6,12 +6,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import joinedload
 
 from app.database import get_db
 from app.db_helpers import set_audit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
-from app.models.part import Part, PartCreate, PartUpdate, PartResponse
+from app.models.part import Part, PartCreate, PartUpdate, PartResponse, PartFullResponse, StockCostResponse
+from app.models.material import MaterialItem
+from app.services.price_calculator import (
+    calculate_stock_cost_from_part,
+    calculate_part_price,
+    calculate_series_pricing,
+    PriceBreakdown
+)
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -22,7 +31,11 @@ async def get_parts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Part).order_by(Part.updated_at.desc()))
+    result = await db.execute(
+        select(Part)
+        .where(Part.deleted_at.is_(None))
+        .order_by(Part.updated_at.desc())
+    )
     return result.scalars().all()
 
 
@@ -35,7 +48,7 @@ async def search_parts(
     current_user: User = Depends(get_current_user)
 ):
     """Filtrování dílů s multi-field search"""
-    query = select(Part)
+    query = select(Part).where(Part.deleted_at.is_(None))
 
     if search.strip():
         search_term = f"%{search.strip()}%"
@@ -78,7 +91,9 @@ async def get_part(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Part).where(Part.id == part_id))
+    result = await db.execute(
+        select(Part).where(Part.id == part_id, Part.deleted_at.is_(None))
+    )
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
@@ -166,43 +181,58 @@ async def duplicate_part(
     if not original:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    # Generate unique part_number
     base_number = original.part_number
-    counter = 1
-    new_part_number = f"{base_number}-COPY-{counter}"
+    max_retries = 10
 
-    while True:
-        check = await db.execute(select(Part).where(Part.part_number == new_part_number))
-        if not check.scalar_one_or_none():
-            break
-        counter += 1
+    # Retry loop - handles race condition via unique constraint
+    for attempt in range(max_retries):
+        # Find next available counter
+        counter = 1
         new_part_number = f"{base_number}-COPY-{counter}"
 
-    # Create duplicate
-    new_part = Part(
-        part_number=new_part_number,
-        article_number=original.article_number,
-        name=original.name,
-        material_item_id=original.material_item_id,
-        length=original.length,
-        notes=original.notes,
-        drawing_path=original.drawing_path
-    )
-    set_audit(new_part, current_user.username)
-    db.add(new_part)
+        while True:
+            check = await db.execute(select(Part).where(Part.part_number == new_part_number))
+            if not check.scalar_one_or_none():
+                break
+            counter += 1
+            new_part_number = f"{base_number}-COPY-{counter}"
 
-    try:
-        await db.commit()
-        await db.refresh(new_part)
-        logger.info(f"Duplicated part {part_id} → {new_part.id}", extra={"part_id": new_part.id, "user": current_user.username})
-        return new_part
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Error duplicating part {part_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při duplikaci dílu")
+        # Create duplicate
+        new_part = Part(
+            part_number=new_part_number,
+            article_number=original.article_number,
+            name=original.name,
+            material_item_id=original.material_item_id,
+            length=original.length,
+            notes=original.notes,
+            drawing_path=original.drawing_path,
+            stock_diameter=original.stock_diameter,
+            stock_length=original.stock_length,
+            stock_width=original.stock_width,
+            stock_height=original.stock_height,
+            stock_wall_thickness=original.stock_wall_thickness
+        )
+        set_audit(new_part, current_user.username)
+        db.add(new_part)
+
+        try:
+            await db.commit()
+            await db.refresh(new_part)
+            logger.info(f"Duplicated part {part_id} → {new_part.id}", extra={"part_id": new_part.id, "user": current_user.username})
+            return new_part
+        except IntegrityError:
+            await db.rollback()
+            logger.warning(f"Race condition in duplicate_part, attempt {attempt + 1}/{max_retries}")
+            if attempt == max_retries - 1:
+                raise HTTPException(status_code=409, detail="Nepodařilo se vygenerovat unikátní číslo dílu")
+            continue
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Error duplicating part {part_id}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Chyba databáze při duplikaci dílu")
 
 
-@router.delete("/{part_id}")
+@router.delete("/{part_id}", status_code=204)
 async def delete_part(
     part_id: int,
     db: AsyncSession = Depends(get_db),
@@ -228,3 +258,268 @@ async def delete_part(
         await db.rollback()
         logger.error(f"Database error deleting part {part_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při mazání dílu")
+
+
+@router.get("/{part_id}/full")
+async def get_part_full(
+    part_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Vrátí Part s eager-loaded MaterialItem + Group"""
+    result = await db.execute(
+        select(Part)
+        .options(joinedload(Part.material_item).joinedload(MaterialItem.group))
+        .where(Part.id == part_id)
+    )
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    # Manual serialization to include nested objects
+    return {
+        "id": part.id,
+        "part_number": part.part_number,
+        "article_number": part.article_number,
+        "name": part.name,
+        "material_item_id": part.material_item_id,
+        "length": part.length,
+        "notes": part.notes,
+        "stock_diameter": part.stock_diameter,
+        "stock_length": part.stock_length,
+        "stock_width": part.stock_width,
+        "stock_height": part.stock_height,
+        "stock_wall_thickness": part.stock_wall_thickness,
+        "version": part.version,
+        "created_at": part.created_at.isoformat(),
+        "updated_at": part.updated_at.isoformat(),
+        "material_item": {
+            "id": part.material_item.id,
+            "code": part.material_item.code,
+            "name": part.material_item.name,
+            "shape": part.material_item.shape.value if part.material_item.shape else None,
+            "diameter": part.material_item.diameter,
+            "width": part.material_item.width,
+            "thickness": part.material_item.thickness,
+            "wall_thickness": part.material_item.wall_thickness,
+            "price_per_kg": part.material_item.price_per_kg,
+            "supplier": part.material_item.supplier,
+            "material_group_id": part.material_item.material_group_id,
+            "group": {
+                "id": part.material_item.group.id,
+                "code": part.material_item.group.code,
+                "name": part.material_item.group.name,
+                "density": part.material_item.group.density,
+            }
+        } if part.material_item else None
+    }
+
+
+@router.get("/{part_id}/stock-cost", response_model=StockCostResponse)
+async def get_stock_cost(
+    part_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Výpočet ceny polotovaru (Python, ne JS) - L-001 compliant"""
+    result = await db.execute(
+        select(Part)
+        .options(
+            joinedload(Part.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category)
+        )
+        .where(Part.id == part_id)
+    )
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    if not part.material_item:
+        return StockCostResponse(volume_mm3=0, weight_kg=0, price_per_kg=0, cost=0, density=0)
+
+    cost = await calculate_stock_cost_from_part(part, quantity=1, db=db)
+    return cost
+
+
+@router.post("/{part_id}/copy-material-geometry")
+async def copy_material_geometry(
+    part_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """Zkopíruje rozměry z MaterialItem do Part.stock_*"""
+    result = await db.execute(
+        select(Part)
+        .options(joinedload(Part.material_item))
+        .where(Part.id == part_id)
+    )
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    if not part.material_item:
+        raise HTTPException(status_code=400, detail="Díl nemá přiřazený materiál")
+
+    mi = part.material_item
+    part.stock_diameter = mi.diameter
+    part.stock_width = mi.width
+    part.stock_height = mi.thickness
+    part.stock_wall_thickness = mi.wall_thickness
+    # stock_length se nekopíruje - uživatel musí zadat délku polotovaru
+
+    set_audit(part, current_user.username, is_update=True)
+
+    try:
+        await db.commit()
+        await db.refresh(part)
+        logger.info(f"Copied material geometry for part {part_id}", extra={"part_id": part_id, "user": current_user.username})
+        return {"message": "Geometrie zkopírována", "version": part.version}
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Error copying material geometry for part {part_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze")
+
+
+# ============================================================================
+# PRICING ENDPOINTS (ADR-016)
+# ============================================================================
+
+class PriceBreakdownResponse(BaseModel):
+    """Response model for price breakdown (ADR-016)"""
+    # Stroje
+    machine_amortization: float
+    machine_labor: float
+    machine_tools: float
+    machine_overhead: float
+    machine_total: float
+    machine_setup_time_min: float
+    machine_setup_cost: float
+    machine_operation_time_min: float
+    machine_operation_cost: float
+
+    # Režie + Marže
+    overhead_coefficient: float
+    work_with_overhead: float
+    overhead_markup: float
+    overhead_percent: float
+    margin_coefficient: float
+    work_with_margin: float
+    margin_markup: float
+    margin_percent: float
+
+    # Kooperace
+    coop_cost_raw: float
+    coop_coefficient: float
+    coop_cost: float
+
+    # Materiál
+    material_cost_raw: float
+    stock_coefficient: float
+    material_cost: float
+
+    # Celkem
+    total_cost: float
+    quantity: int
+    cost_per_piece: float
+
+    @classmethod
+    def from_breakdown(cls, breakdown: PriceBreakdown):
+        """Convert PriceBreakdown dataclass to Pydantic model"""
+        return cls(
+            machine_amortization=breakdown.machine_amortization,
+            machine_labor=breakdown.machine_labor,
+            machine_tools=breakdown.machine_tools,
+            machine_overhead=breakdown.machine_overhead,
+            machine_total=breakdown.machine_total,
+            machine_setup_time_min=breakdown.machine_setup_time_min,
+            machine_setup_cost=breakdown.machine_setup_cost,
+            machine_operation_time_min=breakdown.machine_operation_time_min,
+            machine_operation_cost=breakdown.machine_operation_cost,
+            overhead_coefficient=breakdown.overhead_coefficient,
+            work_with_overhead=breakdown.work_with_overhead,
+            overhead_markup=breakdown.overhead_markup,
+            overhead_percent=breakdown.overhead_percent,
+            margin_coefficient=breakdown.margin_coefficient,
+            work_with_margin=breakdown.work_with_margin,
+            margin_markup=breakdown.margin_markup,
+            margin_percent=breakdown.margin_percent,
+            coop_cost_raw=breakdown.coop_cost_raw,
+            coop_coefficient=breakdown.coop_coefficient,
+            coop_cost=breakdown.coop_cost,
+            material_cost_raw=breakdown.material_cost_raw,
+            stock_coefficient=breakdown.stock_coefficient,
+            material_cost=breakdown.material_cost,
+            total_cost=breakdown.total_cost,
+            quantity=breakdown.quantity,
+            cost_per_piece=breakdown.cost_per_piece
+        )
+
+
+@router.get("/{part_id}/pricing", response_model=PriceBreakdownResponse)
+async def get_part_pricing(
+    part_id: int,
+    quantity: int = Query(1, ge=1, description="Množství kusů"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Výpočet ceny dílu s rozpadem nákladů (ADR-016).
+
+    Vrací detailní rozpad:
+    - Stroje (rozpad na amortizaci, mzdy, nástroje, provoz)
+    - Režie (administrativní overhead)
+    - Marže (zisk)
+    - Kooperace (externí služby)
+    - Materiál (polotovar)
+    """
+    result = await db.execute(
+        select(Part)
+        .options(
+            joinedload(Part.operations),
+            joinedload(Part.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category)
+        )
+        .where(Part.id == part_id)
+    )
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    breakdown = await calculate_part_price(part, quantity, db)
+    return PriceBreakdownResponse.from_breakdown(breakdown)
+
+
+@router.get("/{part_id}/pricing/series", response_model=List[PriceBreakdownResponse])
+async def get_series_pricing(
+    part_id: int,
+    quantities: str = Query("1,10,50,100,500", description="CSV seznam množství"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Porovnání cen pro různé série (setup distribuce).
+
+    Vrací kalkulace pro zadaná množství - ukazuje jak se cena na kus
+    snižuje s růstem série díky rozložení setupu.
+    """
+    result = await db.execute(
+        select(Part)
+        .options(
+            joinedload(Part.operations),
+            joinedload(Part.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category)
+        )
+        .where(Part.id == part_id)
+    )
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    # Parse quantities CSV
+    try:
+        qty_list = [int(q.strip()) for q in quantities.split(',')]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Neplatný formát množství (použij CSV: 1,10,50)")
+
+    breakdowns = await calculate_series_pricing(part, qty_list, db)
+    return [PriceBreakdownResponse.from_breakdown(b) for b in breakdowns]

@@ -1,6 +1,10 @@
 """GESTIMA 1.0 - Hlavní FastAPI aplikace"""
 
 import logging
+import os
+import shutil
+from datetime import datetime, timedelta
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -22,6 +26,7 @@ from app.routers import (
     features_router,
     batches_router,
     materials_router,
+    machines_router,
     data_router,
     pages_router,
     misc_router
@@ -127,6 +132,7 @@ app.include_router(operations_router.router, prefix="/api/operations", tags=["Op
 app.include_router(features_router.router, prefix="/api/features", tags=["Features"])
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
+app.include_router(machines_router.router, prefix="/api/machines", tags=["Machines"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
 app.include_router(pages_router.router, tags=["Pages"])
@@ -139,9 +145,19 @@ app.include_router(pages_router.router, tags=["Pages"])
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
-    Health check endpoint pro monitoring a load balancery.
-    Vrací stav aplikace a databáze.
-    Během shutdown vrací 503 (load balancer přestane posílat requesty).
+    Extended health check endpoint pro monitoring a load balancery.
+
+    Kontroluje:
+    - Database connectivity
+    - Backup folder integrity
+    - Disk space
+    - Recent backup age
+
+    Stavy:
+    - healthy: Vše OK
+    - degraded: Warnings, ale ne kritické (status 200)
+    - unhealthy: Kritické problémy (status 503)
+    - shutting_down: Graceful shutdown (status 503)
     """
     # During shutdown, return 503 immediately
     if _shutdown_in_progress:
@@ -150,29 +166,126 @@ async def health_check():
             status_code=503
         )
 
-    db_status = "healthy"
-    db_error = None
+    checks = {}
 
+    # 1. Database check
     try:
         async with async_session() as session:
             await session.execute(text("SELECT 1"))
+        checks["database"] = {"status": "healthy"}
     except Exception as e:
-        db_status = "unhealthy"
-        db_error = str(e) if settings.DEBUG else "Database connection failed"
+        checks["database"] = {
+            "status": "unhealthy",
+            "error": str(e) if settings.DEBUG else "Database connection failed"
+        }
 
-    status = "healthy" if db_status == "healthy" else "unhealthy"
-    status_code = 200 if status == "healthy" else 503
+    # 2. Backup folder integrity check
+    backup_dir = settings.BASE_DIR / "backups"
+    try:
+        if not backup_dir.exists():
+            checks["backup_folder"] = {
+                "status": "warning",
+                "message": "Backup folder neexistuje"
+            }
+        elif not os.access(backup_dir, os.W_OK):
+            checks["backup_folder"] = {
+                "status": "unhealthy",
+                "message": "Backup folder není writeable"
+            }
+        else:
+            checks["backup_folder"] = {"status": "healthy"}
+    except Exception as e:
+        checks["backup_folder"] = {
+            "status": "error",
+            "error": str(e) if settings.DEBUG else "Backup folder check failed"
+        }
 
-    response = {
-        "status": status,
-        "version": settings.VERSION,
-        "database": db_status,
-    }
+    # 3. Disk space warning
+    try:
+        usage = shutil.disk_usage(settings.BASE_DIR)
+        free_gb = usage.free / (1024**3)
+        total_gb = usage.total / (1024**3)
+        percent_free = (usage.free / usage.total) * 100
 
-    if db_error:
-        response["database_error"] = db_error
+        if percent_free < 5:  # < 5% free
+            disk_status = "critical"
+        elif percent_free < 10:  # < 10% free
+            disk_status = "warning"
+        else:
+            disk_status = "healthy"
 
-    return JSONResponse(content=response, status_code=status_code)
+        checks["disk_space"] = {
+            "status": disk_status,
+            "free_gb": round(free_gb, 2),
+            "total_gb": round(total_gb, 2),
+            "percent_free": round(percent_free, 1)
+        }
+    except Exception as e:
+        checks["disk_space"] = {
+            "status": "error",
+            "error": str(e) if settings.DEBUG else "Disk space check failed"
+        }
+
+    # 4. Recent backup check
+    try:
+        if backup_dir.exists():
+            backups = sorted(
+                backup_dir.glob("*.db.backup*"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True
+            )
+            if not backups:
+                checks["recent_backup"] = {
+                    "status": "warning",
+                    "message": "Žádné backupy nenalezeny"
+                }
+            else:
+                latest = backups[0]
+                age_hours = (
+                    datetime.now() - datetime.fromtimestamp(latest.stat().st_mtime)
+                ).total_seconds() / 3600
+
+                if age_hours > 48:  # Starší než 2 dny
+                    backup_status = "warning"
+                else:
+                    backup_status = "healthy"
+
+                checks["recent_backup"] = {
+                    "status": backup_status,
+                    "latest_backup": latest.name,
+                    "age_hours": round(age_hours, 1)
+                }
+        else:
+            checks["recent_backup"] = {
+                "status": "warning",
+                "message": "Backup folder neexistuje"
+            }
+    except Exception as e:
+        checks["recent_backup"] = {
+            "status": "error",
+            "error": str(e) if settings.DEBUG else "Backup check failed"
+        }
+
+    # Určit celkový status
+    statuses = [check.get("status") for check in checks.values()]
+    if "unhealthy" in statuses or "critical" in statuses:
+        overall_status = "unhealthy"
+        status_code = 503
+    elif "warning" in statuses or "error" in statuses:
+        overall_status = "degraded"
+        status_code = 200  # Load balancer může pokračovat
+    else:
+        overall_status = "healthy"
+        status_code = 200
+
+    return JSONResponse(
+        content={
+            "status": overall_status,
+            "version": settings.VERSION,
+            "checks": checks
+        },
+        status_code=status_code
+    )
 
 
 # ============================================================================

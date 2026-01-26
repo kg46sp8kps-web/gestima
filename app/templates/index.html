@@ -2,53 +2,174 @@
 
 {% block title %}GESTIMA - Dashboard{% endblock %}
 
+{% block head %}
+<!-- Layout overrides jsou nyní v base.html -->
+{% endblock %}
+
 {% block content %}
-<div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold">Dashboard</h1>
-        <a href="/parts/new" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">
-            + Nový díl
+<div>
+    <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center;">Dashboard</h1>
+
+    <!-- Dlaždicová navigace - flexbox s wrap -->
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+
+        <!-- Funkční: Díly -->
+        <a href="/parts" class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--accent-blue);
+            border-radius: 12px; padding: 1.5rem; text-decoration: none;
+            transition: all 0.2s; min-height: 120px; width: 180px;
+        " onmouseover="this.style.background='var(--accent-blue)'; this.style.transform='translateY(-2px)';"
+           onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='none';">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</span>
+            <span style="color: var(--text-primary); font-weight: 600; font-size: 1rem;">Díly</span>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Seznam všech dílů</span>
         </a>
+
+        <!-- Funkční: Nový díl -->
+        <a href="/parts/new" class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--accent-green);
+            border-radius: 12px; padding: 1.5rem; text-decoration: none;
+            transition: all 0.2s; min-height: 120px; width: 180px;
+        " onmouseover="this.style.background='var(--accent-green)'; this.style.transform='translateY(-2px)';"
+           onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='none';">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">➕</span>
+            <span style="color: var(--text-primary); font-weight: 600; font-size: 1rem;">Nový díl</span>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Vytvořit nový</span>
+        </a>
+
+        <!-- Funkční: Rychlý skok s dynamickým filtrem -->
+        <div x-data="quickJump()" class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--accent-orange);
+            border-radius: 12px; padding: 1.5rem; min-height: 120px; width: 180px;
+        ">
+            <span style="font-size: 2rem; margin-bottom: 0.5rem;">🚀</span>
+            <span style="color: var(--text-primary); font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">Rychlý skok</span>
+            <input
+                type="text"
+                x-model="search"
+                @keydown.enter="jumpToPart()"
+                :disabled="loading"
+                placeholder="ID / číslo / article"
+                style="
+                    width: 140px; padding: 0.4rem 0.5rem; text-align: center;
+                    background: var(--bg-primary); border: 1px solid var(--border-color);
+                    border-radius: 6px; color: var(--text-primary); font-size: 0.85rem;
+                "
+            >
+            <span x-show="loading" style="color: var(--text-muted); font-size: 0.7rem; margin-top: 0.3rem;">Hledám...</span>
+        </div>
+
+        <!-- Nefunkční: Materiály -->
+        <div class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; min-height: 120px; width: 180px; opacity: 0.5;
+        ">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">🧱</span>
+            <span style="color: var(--text-secondary); font-weight: 600; font-size: 1rem;">Materiály</span>
+            <span style="color: var(--text-muted); font-size: 0.7rem; font-style: italic;">Připravujeme</span>
+        </div>
+
+        <!-- Nefunkční: Operace -->
+        <div class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; min-height: 120px; width: 180px; opacity: 0.5;
+        ">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚙️</span>
+            <span style="color: var(--text-secondary); font-weight: 600; font-size: 1rem;">Operace</span>
+            <span style="color: var(--text-muted); font-size: 0.7rem; font-style: italic;">Připravujeme</span>
+        </div>
+
+        <!-- Funkční: Stroje -->
+        <a href="/machines" class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--accent-orange);
+            border-radius: 12px; padding: 1.5rem; text-decoration: none;
+            transition: all 0.2s; min-height: 120px; width: 180px;
+        " onmouseover="this.style.background='var(--accent-orange)'; this.style.transform='translateY(-2px)';"
+           onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='none';">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔧</span>
+            <span style="color: var(--text-primary); font-weight: 600; font-size: 1rem;">Stroje</span>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Správa strojů</span>
+        </a>
+
+        <!-- Nefunkční: Reporty -->
+        <div class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; min-height: 120px; width: 180px; opacity: 0.5;
+        ">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">📊</span>
+            <span style="color: var(--text-secondary); font-weight: 600; font-size: 1rem;">Reporty</span>
+            <span style="color: var(--text-muted); font-size: 0.7rem; font-style: italic;">Připravujeme</span>
+        </div>
+
+        <!-- Nefunkční: Nastavení -->
+        <div class="dashboard-tile" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border: 2px solid var(--border-color);
+            border-radius: 12px; padding: 1.5rem; min-height: 120px; width: 180px; opacity: 0.5;
+        ">
+            <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚡</span>
+            <span style="color: var(--text-secondary); font-weight: 600; font-size: 1rem;">Nastavení</span>
+            <span style="color: var(--text-muted); font-size: 0.7rem; font-style: italic;">Připravujeme</span>
+        </div>
+
     </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-gray-800 rounded-lg p-4">
-            <div class="text-gray-400 text-sm">Celkem dílů</div>
-            <div class="text-2xl font-bold">{{ parts|length }}</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg p-4">
-            <div class="text-gray-400 text-sm">Rozpracovaných</div>
-            <div class="text-2xl font-bold text-yellow-400">0</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg p-4">
-            <div class="text-gray-400 text-sm">Kalkulovaných</div>
-            <div class="text-2xl font-bold text-green-400">0</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg p-4">
-            <div class="text-gray-400 text-sm">Nacenených</div>
-            <div class="text-2xl font-bold text-blue-400">0</div>
-        </div>
-    </div>
-    
-    <div class="bg-gray-800 rounded-lg">
-        <div class="p-4 border-b border-gray-700">
-            <h2 class="text-lg font-semibold">Poslední díly</h2>
-        </div>
-        <div class="divide-y divide-gray-700">
-            {% for part in parts %}
-            <a href="/parts/{{ part.id }}/edit" class="flex items-center justify-between p-4 hover:bg-gray-700 transition-colors">
-                <div>
-                    <div class="font-medium">{{ part.part_number or 'Bez čísla' }}</div>
-                    <div class="text-sm text-gray-400">{{ part.name or 'Bez názvu' }}</div>
-                </div>
-                <span class="text-sm text-gray-400">{{ part.material_name or '-' }}</span>
-            </a>
-            {% else %}
-            <div class="p-8 text-center text-gray-400">
-                Zatím žádné díly
+
+    <!-- Statistiky -->
+    <div style="margin-top: 2rem;">
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); text-align: center;">Statistiky</h2>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+            <div style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem 1.5rem; min-width: 120px;">
+                <div style="color: var(--text-muted); font-size: 0.75rem;">Celkem dílů</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">{{ parts|length }}</div>
             </div>
-            {% endfor %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function quickJump() {
+    return {
+        search: '',
+        loading: false,
+
+        async jumpToPart() {
+            const query = this.search.trim();
+            if (!query) return;
+
+            this.loading = true;
+
+            try {
+                const response = await fetch(`/api/parts/search?search=${encodeURIComponent(query)}&limit=1`);
+                if (!response.ok) throw new Error('API error');
+
+                const data = await response.json();
+
+                if (data.total === 0) {
+                    window.showToast('Díl nenalezen', 'error');
+                } else if (data.total === 1) {
+                    window.location.href = `/parts/${data.parts[0].id}/edit`;
+                } else {
+                    // Více výsledků - skočit na první
+                    window.showToast(`Nalezeno ${data.total} dílů, otevírám první`, 'info');
+                    window.location.href = `/parts/${data.parts[0].id}/edit`;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                window.showToast('Chyba při hledání', 'error');
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
+}
+</script>
 {% endblock %}
