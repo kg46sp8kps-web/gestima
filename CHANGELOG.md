@@ -7,6 +7,380 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [UNRELEASED] - Critical Pricing Fixes (2026-01-26)
+
+### Fixed
+
+**🚨 CRITICAL FIXES: Data Loss Prevention + Race Conditions**
+
+Audit report: [docs/audits/2026-01-26-pricing-data-loss-audit.md](docs/audits/2026-01-26-pricing-data-loss-audit.md)
+
+1. **CRITICAL-001: Race Condition in Batch Recalculation**
+   - **Problem:** `recalculateAllBatches()` sent N parallel POST requests → backend could read stale Part data before savePart() commit
+   - **Fix:** Changed from `Promise.all()` parallel to sequential `for...of` loop
+   - **Impact:** Prevents incorrect batch costs after material/stock changes
+   - **File:** `app/templates/parts/edit.html:859-888`
+
+2. **CRITICAL-002: Silent Failures in Error Handlers**
+   - **Problem:** 10+ fetch handlers had `catch (error) { console.error() }` without user feedback → data loss, user unaware of errors
+   - **Fix:** Added `window.showToast()` to ALL catch blocks + response.ok validation
+   - **Impact:** User now sees errors immediately, can retry failed operations
+   - **Files:** `app/templates/parts/edit.html` (8 functions updated)
+
+3. **CRITICAL-003: Redundant Percentage Calculations**
+   - **Problem:** Percentages calculated 2× (Python BatchPrices dataclass + Pydantic computed fields) → code duplication (L-002 anti-pattern)
+   - **Fix:** Removed percentages from `BatchPrices` dataclass, use ONLY Pydantic `BatchResponse` computed fields
+   - **Impact:** Single Source of Truth, reduces overhead, future-proof for VISION (frozen batches need computed percentages)
+   - **Files:** `app/services/price_calculator.py:24-46`, `tests/test_batch_percentages.py`
+
+4. **HIGH-005: Missing Response Validation**
+   - **Problem:** Fetch handlers didn't check `response.ok` → 500 errors left data empty, user saw "No data"
+   - **Fix:** Added `else { showToast, log error }` branches to all fetch handlers
+   - **Impact:** User sees specific error messages instead of empty lists
+   - **Files:** Same as CRITICAL-002
+
+5. **HIGH-006: Optimistic Locking UX Improvement**
+   - **Problem:** 409 conflict showed toast that disappeared after 3s → user didn't reload, got stuck in loop
+   - **Fix:** Changed toast to `confirm()` modal: "Reload page?" → Yes: reload, No: fetch latest version
+   - **Impact:** User can recover from conflicts without losing work
+   - **File:** `app/templates/parts/edit.html:822-833`
+
+**Tests:**
+- ✅ All `test_batch_percentages.py` updated and passing
+- ✅ BatchPrices dataclass simplified (removed __post_init__)
+- ✅ Pydantic computed fields remain unchanged (backward compatible)
+
+---
+
+## [1.4.0] - Material Norm Auto-Mapping (2026-01-26)
+
+### Added
+
+**FEATURE: MaterialNorm Conversion Table - Auto-assign MaterialGroup z normy**
+
+**Problém:**
+- Uživatel má 4000-5000 polotovarů s různými označeními (1.0503, C45, 12050, AISI 1045)
+- Každé označení = stejný materiál → stejná hustota, řezné podmínky
+- Manuální vyplnění `material_group_id` pro každou položku = neefektivní
+- Duplikace hustoty v datech (4000× stejná hodnota 7.85 kg/dm³)
+
+**Implementace:**
+
+1. **DB Model** (`app/models/material_norm.py`):
+   - `MaterialNorm` tabulka s 4 fixed columns: W.Nr, EN ISO, ČSN, AISI
+   - Každý řádek = převodní záznam (min. 1 sloupec vyplněn) → `material_group_id`
+   - Case-insensitive search napříč všemi 4 sloupci
+   - Audit fields + soft delete + optimistic locking
+
+2. **Service Functions** (`app/services/material_mapping.py`):
+   - `auto_assign_group(norm_code)` - hledá normu napříč všemi 4 sloupci
+   - `auto_assign_categories(norm_code, shape)` - přiřadí group + price category
+   - Case-insensitive lookup (1.0503 = 1.0503, c45 = C45)
+
+3. **Admin Console** (`app/routers/admin_router.py`, `app/templates/admin/material_norms.html`):
+   - `/admin/material-norms` - stránka se 2 tabs (Material Norms | System Config)
+   - Jednoduchá tabulka: W.Nr | EN ISO | ČSN | AISI | Kategorie | Hustota | Akce
+   - CRUD API: GET/POST/PUT/DELETE `/api/material-norms`
+   - Modal form pro create/edit s 4 input fieldy
+   - Search autocomplete (300ms debounce, cross-column search)
+   - Admin-only access (require_role([UserRole.ADMIN]))
+
+4. **Seed Data** (`scripts/seed_material_norms.py`):
+   - ~22 běžných převodních záznamů (W.Nr | EN ISO | ČSN | AISI format)
+   - Pokrytí: Ocel konstrukční/legovaná/automatová, Nerez 304/316L, Hliník 6060/7075, Mosaz, Plasty
+   - Auto-seed při startu aplikace
+
+5. **MaterialGroup Naming** (`app/seed_materials.py`):
+   - Přejmenování na user-friendly názvy:
+     - "Ocel konstrukční (automatová/S235/C45)"
+     - "Ocel legovaná (42CrMo4/16MnCr5)"
+     - "Nerez (304/316L)"
+     - "Hliník (6060/7075 dural)"
+     - "Mosaz (CuZn37/automatová)"
+     - "Plasty (PA6/POM)"
+
+**User Workflow:**
+```
+User vytváří MaterialItem:
+  Input: code = "D20 11109" (nebo "1.0036-HR005w05-T"), shape = "round_bar"
+
+  System auto-assign:
+    1. Extrahuje normu (např. "11109" nebo "1.0036")
+    2. Lookup MaterialNorm ("11109") v ČSN sloupci → MaterialGroup (Ocel konstrukční, 7.85 kg/dm³)
+    3. Lookup PriceCategory (Ocel + round_bar) → "OCEL-KRUHOVA"
+
+  Result: MaterialItem s auto-vyplněným group + category
+```
+
+**Files Changed:**
+- `app/models/material_norm.py` - NEW (MaterialNorm model + schemas)
+- `app/services/material_mapping.py` - NEW (auto-assign functions)
+- `app/routers/admin_router.py` - NEW (admin API + page)
+- `app/templates/admin/material_norms.html` - NEW (admin UI)
+- `app/templates/admin/material_norm_form.html` - NEW (create/edit modal)
+- `scripts/seed_material_norms.py` - NEW (seed script)
+- `app/seed_materials.py` - Updated (MaterialGroup names)
+- `docs/ADR/015-material-norm-mapping.md` - NEW (architecture decision)
+
+**Impact:**
+- ✅ Auto-přiřazení MaterialGroup při vytváření MaterialItem
+- ✅ Alias support (1.4301 = X5CrNi18-10 = AISI 304 → všechny vedou na stejný MaterialGroup)
+- ✅ Case-insensitive search (c45 = C45)
+- ✅ Editovatelné přes Admin UI (bez redeploy)
+- ✅ Performance: Index na všechny 4 sloupce → <1ms lookup
+
+**Budoucí rozšíření:**
+- Bulk import z Excelu (4000-5000 položek od uživatele)
+- Web scraping (steelnumber.com, matweb.com) pro auto-doplňování
+
+**Effort:** 6h implementation + debugging + tests + docs
+
+### Fixed
+
+**BUG FIX: Admin UI Edit Functionality**
+
+**Problém:**
+- Při úpravě existující normy se vytvořil nový záznam místo update
+- Edit form se nenahrával s existujícími daty
+
+**Root Cause:**
+- Alpine.js components (adminPanel + materialNormForm) v nested struktuře
+- `$refs.normForm.openEdit()` nefunguje - nelze přistupovat k metodám nested component přes $refs
+- Form component naslouchá `'edit-material-norm'` eventu, ale editNorm() ho nedispatchoval
+
+**Opravy:**
+- `app/templates/admin/material_norms.html:343-357` - editNorm() nyní dispatchuje CustomEvent
+- `app/templates/admin/material_norms.html:338-342` - openCreateNorm() dispatchuje CustomEvent
+- `app/templates/admin/material_norm_form.html:146-150` - přidán listener pro 'create-material-norm' event
+
+**Impact:**
+- ✅ Edit nyní správně updateuje existující záznam (PUT endpoint)
+- ✅ Form se pre-filluje s existujícími daty
+- ✅ Create funguje přes event dispatch (consistency)
+
+**Effort:** 30min debugging + fix
+
+**BUG FIX: Form Saving Stuck Issue**
+
+**Problém:**
+- Form se zasekl na "Ukládám..." spinner
+- Materiál se nevytvořil, zaseknuté i po refresh
+
+**Root Cause:**
+- Frontend posílal empty strings `""` místo `null` pro prázdné fieldy
+- Backend očekával `null` pro optional fields
+- Způsobilo validační/DB chybu
+
+**Opravy:**
+- `app/templates/admin/material_norm_form.html:188-211` - submitForm() konvertuje empty strings → null
+- Přidána frontend validace (min. 1 norm column vyplněn)
+- Vylepšen error handling s try/catch pro JSON parsing
+
+**Impact:**
+- ✅ Ukládání funguje správně pro všechny kombinace vyplněných/prázdných polí
+- ✅ Backend dostává správný formát dat
+
+**Effort:** 20min debugging + fix
+
+**BUG FIX: JSON Serialization Error**
+
+**Problém:**
+- Chyba při načítání admin stránky: "Object of type MaterialNorm is not JSON serializable"
+- Admin stránka nešla otevřít
+
+**Root Cause:**
+- Pokus o JSON serialization SQLAlchemy ORM objektů v Jinja2 template
+- `{{ norms | tojson }}` nefunguje s ORM objekty
+
+**Opravy:**
+- `app/routers/admin_router.py:50-68` - vytvoření `norms_json` jako list of plain dicts
+- Manuální konverze všech ORM fields (id, w_nr, en_iso, csn, aisi, material_group, note, version)
+- Konverze Decimal → float pro density field
+- Template používá `{{ norms_json | tojson }}`
+
+**Impact:**
+- ✅ Admin stránka se načítá správně
+- ✅ Alpine.js dostává validní JSON data
+
+**Effort:** 15min debugging + fix
+
+**IMPROVEMENT: Live Filtering**
+
+**Request:**
+- User požadoval "živě filtrovat jak píšu s debounced"
+- Původní implementace neměla funkční search
+
+**Implementace:**
+- `app/templates/admin/material_norms.html:313-334` - Alpine.js computed property `filteredNorms`
+- Client-side filtering (instant response, no API calls)
+- Search napříč všemi 4 sloupci (W.Nr, EN ISO, ČSN, AISI) + kategorie
+- Case-insensitive matching
+- Zobrazení počtu výsledků: "Nalezeno: 5 z 22"
+
+**Impact:**
+- ✅ Instant filtering bez debounce (client-side = dostatečně rychlé)
+- ✅ Search v reálném čase během psaní
+
+**Effort:** 15min implementation
+
+**FIX: Dashboard Link Inconsistency**
+
+**Problém:**
+- Dashboard link vedl na `/settings` (SystemConfig only)
+- Header link vedl na `/admin/material-norms` (full admin UI)
+- Matoucí pro uživatele
+
+**Opravy:**
+- `app/templates/index.html:113-123` - změna odkazu z `/settings` → `/admin/material-norms`
+- Změna názvu z "Nastavení" → "Admin"
+- Popisek z "Systémové koeficienty" → "Normy + nastavení"
+
+**Impact:**
+- ✅ Konzistentní navigace z dashboardu i headeru
+- ✅ Oba odkazy vedou na stejnou stránku s 2 tabs
+
+**Effort:** 5min fix
+
+**DATA: MaterialNorms Seed**
+
+**Status:**
+- ✅ Seed script spuštěn: `python3 scripts/seed_material_norms.py`
+- ✅ Vytvořeno: 9 nových záznamů, 14 přeskočeno (duplikáty)
+- ✅ Celkem v DB: 34 MaterialNorms (23 z seed scriptu + 11 již existujících)
+
+**Pokrytí:**
+- Ocel konstrukční (11SMnPb30, C45, C45E, S235JR)
+- Ocel legovaná (42CrMo4, 16MnCr5)
+- Nerez (304, 304L, 316, 316L)
+- Hliník (6060, 7075, EN AW variants)
+- Mosaz (CuZn37, CuZn39Pb3, CW508L, CW614N)
+- Plasty (PA6, POM, POM-C, POM-H)
+
+**Effort:** 5min seed execution
+
+---
+
+## [UNRELEASED] - Batch Cost Recalculation (2026-01-26)
+
+### Added
+
+**FEATURE: Automatický přepočet batch nákladů (P0-CRITICAL)**
+
+**Problém:**
+- Batches se vytvářely s default hodnotami (0 Kč)
+- Ceny se nepřepočítávaly po změně materiálu/operací
+- Kalkulačka byla nepoužitelná bez správných cen
+
+**Implementace:**
+
+1. **Nový service** (`app/services/batch_service.py`):
+   - `recalculate_batch_costs()` - přepočítá všechny náklady batche
+   - Integruje material cost (z Part stock + MaterialItem price tiers)
+   - Integruje machining cost (z Operations: tp, tj, machine hourly rates)
+   - Setup cost distribuován přes quantity
+   - Coop cost s min price logic
+
+2. **Backend Auto-recalculate** (`app/routers/batches_router.py`):
+   - `POST /batches/` - auto-calculate při vytvoření
+   - `POST /batches/{id}/recalculate` - on-demand přepočet
+   - Zamrznuté batches nelze přepočítat (409 Conflict)
+
+3. **Frontend Auto-recalculate** (`app/templates/parts/edit.html`):
+   - `recalculateAllBatches()` - helper funkce
+   - Trigger po: změně materiálu, změně operace (tp/tj/machine), přidání operace
+   - Debounced update (400ms) pro stock fields
+
+4. **Testy** (`tests/test_batch_recalculation.py`):
+   - 3 testy (basic, no material, with coop) - 100% pass
+   - Ověřuje material cost calculation (volume × density × price tier)
+   - Ověřuje machining/setup cost distribution
+   - Ověřuje coop min price logic
+
+**Files Changed:**
+- `app/services/batch_service.py` - NEW (recalculation logic)
+- `app/routers/batches_router.py` - Updated (auto-calc + recalc endpoint)
+- `app/templates/parts/edit.html` - Updated (frontend auto-trigger)
+- `tests/test_batch_recalculation.py` - NEW (3 tests)
+
+**Impact:**
+- ✅ Batches mají správné ceny okamžitě po vytvoření
+- ✅ Ceny se auto-aktualizují při změnách materiálu/operací
+- ✅ Kompletní kalkulace: material + machining + setup + coop
+- ✅ Integruje dynamic price tiers (ADR-014)
+- ✅ Bar charts nyní zobrazují reálné hodnoty (ne 0%)
+
+**Effort:** 3h implementation + debugging + tests
+
+---
+
+## [UNRELEASED] - Static Bar Charts Fix (2026-01-26)
+
+### Fixed
+
+**ISSUE #P0-006: Bar charty zobrazující rozpad cen byly statické (CRITICAL AUDIT)**
+
+**Root Cause:**
+- Bar charty v `parts/edit.html` počítaly percentages v JavaScriptu místo v Pythonu
+- Porušení CLAUDE.md Rule #1: "Výpočty POUZE Python"
+- JavaScript výpočty: `${(batch.material_cost / batch.unit_cost * 100).toFixed(1)}%`
+
+**Opravy:**
+- `app/services/price_calculator.py:24-47` - Přidány `material_percent`, `machining_percent`, `setup_percent`, `coop_percent` do `BatchPrices` dataclass s `__post_init__` výpočtem
+- `app/services/price_calculator.py:461-469` - Výpočet percentages v `calculate_batch_prices()` funkci
+- `app/models/batch.py:4` - Import `computed_field` pro Pydantic
+- `app/models/batch.py:88-119` - Přidány `@computed_field` properties pro percentages v `BatchResponse` schema
+- `app/templates/parts/edit.html:318-325` - Nahrazeny JS výpočty za backend hodnoty (`batch.material_percent`)
+- `tests/test_batch_percentages.py` - Nový test soubor (5 testů, 100% pass)
+
+**Impact:**
+- ✅ Bar charty nyní zobrazují správné percentages z backendu
+- ✅ CLAUDE.md Rule #1 compliance (výpočty v Pythonu)
+- ✅ Konzistence mezi frontend/backend
+- ✅ Testovatelné a maintainable řešení
+
+**Tests:**
+```
+tests/test_batch_percentages.py::test_batch_prices_percentages_basic PASSED
+tests/test_batch_percentages.py::test_batch_prices_percentages_zero_cost PASSED
+tests/test_batch_percentages.py::test_calculate_batch_prices_with_percentages PASSED
+tests/test_batch_percentages.py::test_batch_response_computed_percentages PASSED
+tests/test_batch_percentages.py::test_batch_response_percentages_zero_cost PASSED
+```
+
+**Effort:** 1h implementation + tests
+
+---
+
+## [UNRELEASED] - Machine Selection Persistence Fix (2026-01-26)
+
+### Fixed
+
+**ISSUE #1: Machine dropdown nepersistoval výběr po navigaci (P0-BLOCKER)**
+
+**Root Causes (5 issues):**
+1. **500 error `/api/parts/{id}/full`**: Přístup k neexistujícímu `material_item.price_per_kg` (field odstraněn v ADR-014)
+2. **500 error `/api/parts/{id}/stock-cost`**: SQLAlchemy MissingGreenlet - lazy-loading `price_category.tiers` v async context
+3. **Pydantic import error**: Import `MaterialGroupResponse` uvnitř class definition (server crash)
+4. **Missing eager-load**: `price_category.tiers` nebyl eager-loaded v `/stock-cost` endpoint
+5. **Dropdown binding**: Alpine.js x-model nedokázal synchronizovat selected state
+
+**Opravy:**
+- `app/routers/parts_router.py:305` - Odstraněn deprecated `price_per_kg`, přidán `price_category_id` (ADR-014 compliance)
+- `app/routers/parts_router.py:272,332` - Přidán `selectinload(MaterialPriceCategory.tiers)` pro eager-loading
+- `app/services/price_calculator.py:60-68` - Try/except `MissingGreenlet` fallback (SQLAlchemy async best practice)
+- `app/models/material_norm.py:5-6,96` - `TYPE_CHECKING` forward reference (Pydantic recommended pattern)
+- `app/templates/parts/edit.html:427` - Explicitní `:selected="machine.id === op.machine_id"` binding
+
+**Impact:**
+- ✅ Machine selection nyní persistuje správně po navigaci
+- ✅ Žádné 500 errors na `/api/parts/{id}/full` a `/stock-cost`
+- ✅ Server se spouští bez Pydantic chyb
+- ✅ Clean professional fixes (žádné workarounds)
+
+**Effort:** 3h debugging (10+ pokusů o patche odmítnuto) + 5 clean root cause fixes
+
+---
+
 ## [UNRELEASED] - Vision Documentation (2026-01-26)
 
 ### Added (Vision & Long-term Planning)

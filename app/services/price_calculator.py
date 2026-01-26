@@ -31,6 +31,10 @@ class BatchPrices:
     unit_cost: float = 0
     total_cost: float = 0
 
+    # Percentages removed (CRITICAL-003 fix)
+    # Use Pydantic computed fields in BatchResponse instead
+    # (Single Source of Truth - L-002)
+
 
 async def get_price_per_kg_for_weight(
     price_category,
@@ -54,8 +58,14 @@ async def get_price_per_kg_for_weight(
         Tiers: [0-15: 49.4], [15-100: 34.5], [100+: 26.3]
         weight=5 → 49.4, weight=25 → 34.5, weight=150 → 26.3
     """
-    # Načíst tiers pokud nejsou eager loaded
-    if not hasattr(price_category, 'tiers') or not price_category.tiers:
+    # Načíst tiers pokud nejsou eager loaded (safe check to avoid lazy-load in async)
+    from sqlalchemy.exc import MissingGreenlet
+
+    try:
+        # Try to access tiers - if not loaded, will raise MissingGreenlet in async context
+        tiers = price_category.tiers if price_category else None
+    except (MissingGreenlet, AttributeError):
+        # Tiers not loaded, fetch them explicitly
         from app.models.material import MaterialPriceCategory
         from sqlalchemy import select
 
@@ -65,16 +75,17 @@ async def get_price_per_kg_for_weight(
 
         result = await db.execute(stmt)
         price_category = result.scalar_one_or_none()
+        tiers = price_category.tiers if price_category else None
 
-        if not price_category or not price_category.tiers:
-            logger.error(
-                f"No tiers found for price category {price_category.id if price_category else 'unknown'}"
-            )
-            return 0
+    if not price_category or not tiers:
+        logger.error(
+            f"No tiers found for price category {price_category.id if price_category else 'unknown'}"
+        )
+        return 0
 
     # Filtrovat tiers: min_weight <= total_weight
     valid_tiers = [
-        tier for tier in price_category.tiers
+        tier for tier in tiers
         if tier.min_weight <= total_weight_kg
     ]
 
@@ -414,19 +425,28 @@ def calculate_batch_prices(
             total_coop += coop
         else:
             machine_id = op.get("machine_id")
+
+            # Pokud není stroj vybraný, cena = 0 (BEZ fallback!)
+            if not machine_id:
+                continue
+
             machine = machines.get(machine_id, {})
-            hourly_rate = machine.get("hourly_rate", 1000)
-            
+            hourly_rate = machine.get("hourly_rate", 0)  # Default 0 pokud machine nenalezen
+
+            if hourly_rate == 0:
+                # Machine existuje ale nemá hourly_rate? Skip.
+                continue
+
             machining = calculate_machining_cost(
-                op.get("operation_time_min", 0),
+                op.get("operation_time_min") or 0,  # None-safe
                 hourly_rate,
             )
             setup = calculate_setup_cost(
-                op.get("setup_time_min", 0),
+                op.get("setup_time_min") or 0,  # None-safe
                 hourly_rate,
                 quantity,
             )
-            
+
             total_machining += machining
             total_setup += setup
     
@@ -441,8 +461,12 @@ def calculate_batch_prices(
         result.coop_cost,
         2
     )
-    
+
     result.total_cost = round(result.unit_cost * quantity, 2)
+
+    # Percentages calculation removed (CRITICAL-003 fix)
+    # Computed by Pydantic BatchResponse.material_percent etc. computed fields
+    # This ensures Single Source of Truth (L-002)
 
     return result
 
