@@ -7,6 +7,121 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [UNRELEASED] - Machines CRUD & Pricing Calculator (2026-01-26)
+
+### Added (ADR-016: Coefficient-based Pricing Model)
+
+**Breaking Change:** Machine.hourly_rate → 4-component breakdown
+
+**New Database Models:**
+- `SystemConfig` - Globální konfigurační položky (koeficienty pro pricing)
+- Machine hourly rate breakdown:
+  - `hourly_rate_amortization` - Odpisy stroje (depreciation)
+  - `hourly_rate_labor` - Mzda operátora (operator wage)
+  - `hourly_rate_tools` - Nástroje (tooling costs)
+  - `hourly_rate_overhead` - Provozní režie (operational overhead)
+  - Computed: `hourly_rate_setup` (bez nástrojů), `hourly_rate_operation` (s nástroji)
+
+**Machines CRUD:**
+- Full REST API: `GET/POST/PUT/DELETE /api/machines`
+- Search endpoint: `GET /api/machines/search?search={query}`
+- UI pages: `/machines`, `/machines/new`, `/machines/{id}/edit`
+- 7-section form s živým výpočtem Setup/Operace sazeb
+- Optimistic locking, audit trail, soft delete
+
+**Pricing Calculator:**
+- `GET /api/parts/{id}/pricing?quantity={n}` - Detailní rozpad ceny
+- `GET /api/parts/{id}/pricing/series?quantities={1,10,50}` - Porovnání sérií
+- UI page: `/parts/{id}/pricing` - Vizualizace nákladů
+- Coefficient-based model:
+  - Work = (machines + overhead_coef) × margin_coef
+  - Material = raw_cost × stock_coefficient
+  - Cooperation = raw_cost × coop_coefficient
+  - Total = Work + Material + Cooperation
+
+**Reusable Components (ADR-015):**
+- `app/templates/macros.html` - Jinja2 form macros (input, select, checkbox, textarea, buttons)
+- `app/static/css/forms.css` - Form styling (grid layouts, inputs, cards)
+- `app/static/js/crud_components.js` - Alpine.js factories (entityList, pricingWidget)
+
+**Seed Scripts:**
+- `scripts/seed_config.py` - SystemConfig with 4 pricing coefficients
+- `scripts/seed_machines.py` - 5 machines (NLX2000, CTX450, DMU50, SPRINT32, MAZAK510)
+- `scripts/run_migration.py` - Database migration runner
+
+**Database Migration:**
+- Auto-migration for machines table (4-component hourly rate)
+- Backward-compatible (old hourly_rate column preserved)
+
+**Documentation:**
+- Dashboard updated with functional "Stroje" tile
+
+### Changed
+- `price_calculator.py` - Complete rewrite with coefficient-based model
+- `index.html` - Machines tile added to dashboard
+
+---
+
+## [UNRELEASED] - Material Price Tiers Implementation (2026-01-26)
+
+### Added (ADR-014: Dynamic Price Tiers)
+
+**Breaking Change:** MaterialItem.price_per_kg → MaterialPriceCategory with dynamic tiers
+
+**New Database Models:**
+- `MaterialPriceCategory` - Cenová kategorie (13 kategorií podle PDF ceníku)
+- `MaterialPriceTier` - Konfigurovatelné cenové pásmo (min_weight, max_weight, price_per_kg)
+- ~40 price tiers vytvořeno podle PDF ceníku
+
+**Features:**
+- Dynamický výběr ceny podle celkové váhy batch (quantity × weight_kg)
+- Pravidlo: Největší min_weight ≤ total_weight (nejbližší nižší tier)
+- Příklad: Batch 10 ks (5 kg) → 49.4 Kč/kg, Batch 100 ks (25 kg) → 34.5 Kč/kg, Batch 300 ks (150 kg) → 26.3 Kč/kg
+- Frozen batches imunní vůči změnám cen (snapshot price_per_kg)
+
+**API Endpoints:**
+- `GET /api/materials/price-categories` - Seznam kategorií
+- `GET /api/materials/price-categories/{id}` - Detail s tiers
+- `POST /api/materials/price-categories` - Vytvoření (admin)
+- `PUT /api/materials/price-categories/{id}` - Update (admin)
+- `GET /api/materials/price-tiers` - Seznam tiers (filtrovatelné)
+- `POST /api/materials/price-tiers` - Vytvoření (admin)
+- `PUT /api/materials/price-tiers/{id}` - Update (admin)
+- `DELETE /api/materials/price-tiers/{id}` - Soft delete (admin)
+
+**Seed Scripts:**
+- `scripts/seed_price_categories.py` - Seed 13 kategorií + ~40 tiers podle PDF
+- Updated `app/seed_materials.py` - Mapování MaterialItems → PriceCategories
+- Updated `scripts/seed_complete_part.py` - Výpočet cen s tiers
+
+**Tests:**
+- `tests/test_material_price_tiers.py` - 7 unit + integration testů
+- Pokrytí: tier selection (small/medium/large), boundary cases, batch pricing, flat price, edge cases
+
+**Documentation:**
+- `docs/ADR/014-material-price-tiers.md` - Architektonické rozhodnutí
+- Updated `CLAUDE.md` - Poznámka o ADR-014
+
+### Changed
+
+**Breaking Changes:**
+- `MaterialItem`: Removed `price_per_kg` field, added `price_category_id` FK
+- `calculate_stock_cost_from_part()`: Now async, requires `quantity` and `db` parameters
+- `app/seed_materials.py`: MaterialItems mapovány na price categories
+- `app/services/snapshot_service.py`: Výpočet price_per_kg pro snapshot
+
+**Updated:**
+- `app/services/price_calculator.py`: New `get_price_per_kg_for_weight()` function
+- `app/routers/parts_router.py`: Eager load price_category
+- `app/routers/batches_router.py`: Eager load price_category for freeze
+- `tests/conftest.py`: Test fixtures s price categories + tiers
+
+### Fixed
+
+- Issue #4 (z BETA-RELEASE-STATUS): Materiály flat price → RESOLVED with dynamic tiers
+
+---
+
 ## [UNRELEASED] - Pre-Beta Diagnostic Session (2026-01-26)
 
 ### Added
@@ -42,11 +157,11 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Priority: HIGH
 - Status: Čeká na data od uživatele
 
-**Issue #4: Materiály flat price místo tiers**
-- Current: Jeden MaterialItem = jedna cena
-- Expected: Price tiers podle množství (1kg, 10kg, 100kg)
+**Issue #4: Materiály flat price místo tiers** ✅ RESOLVED
+- ~~Current: Jeden MaterialItem = jedna cena~~
+- ~~Expected: Price tiers podle množství (1kg, 10kg, 100kg)~~
 - Priority: MEDIUM
-- Status: Vyžaduje redesign Material modelu (4-6h)
+- Status: ✅ **IMPLEMENTED** (ADR-014) - Dynamic price tiers podle quantity
 
 ### Status
 

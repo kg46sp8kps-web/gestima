@@ -1,8 +1,78 @@
 # Status & Next Steps
 
-**Date:** 2026-01-26 | **GESTIMA:** 1.3.3
+**Date:** 2026-01-26 | **GESTIMA:** 1.4.0
 
 **⚠️ DŮLEŽITÉ:** Pro kompletní status před beta release viz [BETA-RELEASE-STATUS.md](BETA-RELEASE-STATUS.md)
+
+---
+
+## ✅ NOVĚ IMPLEMENTOVÁNO (2026-01-26)
+
+### Machines CRUD & Pricing Calculator - DONE ✅
+
+**Breaking Change:** Machine hourly_rate → 4-component breakdown
+
+**Co bylo implementováno:**
+- ✅ DB: SystemConfig model + Machine hourly rate breakdown (4 komponenty)
+- ✅ Computed properties: hourly_rate_setup (bez nástrojů) vs hourly_rate_operation (s nástroji)
+- ✅ Machines REST API: GET/POST/PUT/DELETE /api/machines + search endpoint
+- ✅ Machines UI: /machines (list), /machines/new, /machines/{id}/edit
+- ✅ 7-section machine form s živým výpočtem Setup/Operace sazeb
+- ✅ Pricing API: GET /api/parts/{id}/pricing + /pricing/series
+- ✅ Pricing UI: /parts/{id}/pricing s detailním rozpadem nákladů
+- ✅ Coefficient-based pricing model (overhead × margin + material × coef + coop × coef)
+- ✅ Reusable components: macros.html, forms.css, crud_components.js (ADR-015)
+- ✅ Database migration pro machines table (auto-migrace při init_db)
+- ✅ Seed scripts: seed_config.py (4 koeficienty), seed_machines.py (5 strojů)
+- ✅ Dashboard tile "Stroje" funkční
+
+**Effort:** ~10 hodin (DB + API + UI + pricing + components + docs)
+
+**SystemConfig koeficienty:**
+- `overhead_coefficient = 1.20` (+20% režie na stroje)
+- `margin_coefficient = 1.25` (+25% marže na práci)
+- `stock_coefficient = 1.15` (+15% skladový na materiál)
+- `coop_coefficient = 1.10` (+10% kooperační)
+
+**5 demo strojů:**
+- NLX2000 (1000/1200 Kč/h) - Hlavní sériový soustruh
+- SPRINT32 (900/1100 Kč/h) - Rychlý soustruh pro malé díly
+- DMU50 (1150/1400 Kč/h) - 5-osá frézka
+- CTX450 (850/1000 Kč/h) - Univerzální soustruh
+- MAZAK510 (750/900 Kč/h) - 3-osá frézka
+
+**Impact:**
+- Stroje mají transparentní rozpad nákladů (odpisy/mzda/nástroje/režie)
+- Pricing je plně trackovatelný (každá složka ceny viditelná)
+- Reusable komponenty urychlí implementaci Materials/CuttingConditions CRUD
+
+**TODO:**
+- [ ] SystemConfig CRUD UI (admin interface pro editaci koeficientů)
+- [ ] Testy pro pricing calculator
+- [ ] ADR-015 (Reusable CRUD Components)
+- [ ] ADR-016 (Coefficient-based Pricing Model)
+
+---
+
+### ADR-014: Material Price Tiers - DONE ✅
+
+**Breaking Change:** Dynamické ceny materiálů podle množství
+
+**Co bylo implementováno:**
+- ✅ DB schema: `MaterialPriceCategory` (13 kategorií) + `MaterialPriceTier` (~40 tiers)
+- ✅ Dynamic price selection: `get_price_per_kg_for_weight(category, total_weight, db)`
+- ✅ Pravidlo: Největší min_weight ≤ total_weight (nejbližší nižší tier)
+- ✅ API CRUD endpoints pro categories + tiers (admin only)
+- ✅ Seed scripts: `seed_price_categories.py` + updated `seed_materials.py`
+- ✅ 7 unit/integration testů (všechny passed)
+- ✅ Dokumentace: ADR-014, CHANGELOG, BETA-RELEASE-STATUS
+
+**Effort:** ~9 hodin (DB + API + tests + seeds + docs)
+
+**Impact:**
+- ISSUE #4 (z BETA-RELEASE-STATUS.md) ✅ RESOLVED
+- Frozen batches imunní vůči změnám cen (snapshot)
+- Množstevní slevy automatické podle batch quantity
 
 ---
 
@@ -65,9 +135,9 @@
 
 ---
 
-## Production Status (Pre-Audit)
+## Production Status (Post-Audit + Material Tiers)
 
-### Original P0-P2 (vše hotovo)
+### Core Features (vše hotovo)
 | Req | Status |
 |-----|--------|
 | Authentication (OAuth2 + JWT HttpOnly) | DONE |
@@ -77,6 +147,7 @@
 | Optimistic locking (ADR-008) | DONE |
 | Material Hierarchy (ADR-011) | DONE |
 | Batch Snapshot/Freeze (ADR-012) | DONE |
+| **Material Price Tiers (ADR-014)** | **✅ DONE (2026-01-26)** |
 | Health check | DONE |
 | Graceful shutdown | DONE |
 
