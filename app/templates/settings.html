@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% from "macros.html" import form_section, form_input_number, btn_primary, btn_secondary %}
+
+{% block title %}Nastavení systému - GESTIMA{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/forms.css">
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 1.5rem; font-weight: 700;">⚙️ Nastavení systému</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            Globální cenové koeficienty pro kalkulace
+        </p>
+    </div>
+
+    <!-- Alpine.js component -->
+    <div x-data="settingsForm()">
+        <!-- Success/Error messages -->
+        <div x-show="successMessage"
+             class="alert alert-success"
+             x-text="successMessage"
+             style="margin-bottom: 1.5rem;"></div>
+        <div x-show="errorMessage"
+             class="alert alert-error"
+             x-text="errorMessage"
+             style="margin-bottom: 1.5rem;"></div>
+
+        <!-- Form -->
+        <form @submit.prevent="saveSettings">
+            <!-- Pricing Coefficients Section -->
+            {% call form_section('💰 Cenové koeficienty') %}
+                <div style="margin-bottom: 1.5rem;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                        Koeficienty jsou násobitele (1.20 = +20%, 1.25 = +25%, atd.)
+                    </p>
+                </div>
+
+                <!-- Coefficients grid -->
+                <div class="form-grid-2col">
+                    {% for config in configs %}
+                    <div class="form-field">
+                        <label for="{{ config.key }}">
+                            {{ config.description }}
+                            <span style="color: var(--error);">*</span>
+                        </label>
+                        <input
+                            type="number"
+                            id="{{ config.key }}"
+                            name="{{ config.key }}"
+                            x-model="values['{{ config.key }}']"
+                            value="{{ config.value_float }}"
+                            step="0.01"
+                            min="1.0"
+                            max="5.0"
+                            required
+                            class="form-input"
+                        >
+                        <input type="hidden" name="version_{{ config.key }}" value="{{ config.version }}">
+                        <small class="help-text">
+                            Aktuálně: {{ config.value_float }}
+                            {% if config.updated_by %}
+                            | Upravil: {{ config.updated_by }} ({{ config.updated_at.strftime('%d.%m.%Y %H:%M') }})
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Info box -->
+                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-primary); border-radius: 6px; border-left: 4px solid var(--accent-blue);">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">ℹ️ Jak koeficienty fungují:</div>
+                    <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                        <li><strong>Overhead (režie):</strong> Násobí náklady strojů (administrativní režie)</li>
+                        <li><strong>Margin (marže):</strong> Násobí práci (stroje + režie) pro zisk</li>
+                        <li><strong>Stock (skladový):</strong> Násobí cenu materiálu (ztráty, řezivo)</li>
+                        <li><strong>Coop (kooperační):</strong> Násobí cenu kooperace (handling, komunikace)</li>
+                    </ul>
+                </div>
+            {% endcall %}
+
+            <!-- Action buttons -->
+            <div class="btn-group btn-group-right" style="margin-top: 2rem;">
+                {{ btn_secondary('Zrušit', "window.location.href='/'", 'button') }}
+                <button type="submit"
+                        class="btn btn-primary"
+                        :disabled="saving"
+                        x-text="saving ? 'Ukládám...' : 'Uložit změny'">
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function settingsForm() {
+    return {
+        saving: false,
+        successMessage: '',
+        errorMessage: '',
+        values: {
+            {% for config in configs %}
+            '{{ config.key }}': {{ config.value_float }},
+            {% endfor %}
+        },
+        versions: {
+            {% for config in configs %}
+            '{{ config.key }}': {{ config.version }},
+            {% endfor %}
+        },
+
+        async saveSettings() {
+            this.saving = true;
+            this.successMessage = '';
+            this.errorMessage = '';
+
+            const configs = [
+                {% for config in configs %}
+                { key: '{{ config.key }}', value: this.values['{{ config.key }}'], version: this.versions['{{ config.key }}'] },
+                {% endfor %}
+            ];
+
+            let allSuccess = true;
+            let errorCount = 0;
+
+            for (const config of configs) {
+                try {
+                    const response = await fetch(`/api/config/${config.key}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            value_float: parseFloat(config.value),
+                            version: config.version
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'Chyba při ukládání');
+                    }
+
+                    const updated = await response.json();
+                    this.versions[config.key] = updated.version;
+
+                } catch (error) {
+                    console.error(`Error updating ${config.key}:`, error);
+                    this.errorMessage = `Chyba při ukládání ${config.key}: ${error.message}`;
+                    allSuccess = false;
+                    errorCount++;
+                    break;
+                }
+            }
+
+            this.saving = false;
+
+            if (allSuccess) {
+                this.successMessage = '✅ Nastavení úspěšně uloženo';
+                window.showToast && window.showToast('Nastavení uloženo', 'success');
+
+                // Reload page after 1 second to show updated timestamps
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                window.showToast && window.showToast(this.errorMessage, 'error');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

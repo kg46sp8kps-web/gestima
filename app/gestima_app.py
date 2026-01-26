@@ -27,6 +27,7 @@ from app.routers import (
     batches_router,
     materials_router,
     machines_router,
+    config_router,
     data_router,
     pages_router,
     misc_router
@@ -133,6 +134,7 @@ app.include_router(features_router.router, prefix="/api/features", tags=["Featur
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 app.include_router(machines_router.router, prefix="/api/machines", tags=["Machines"])
+app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
 app.include_router(pages_router.router, tags=["Pages"])

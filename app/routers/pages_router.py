@@ -10,8 +10,10 @@ from typing import Optional
 from app.database import get_db
 from app.models.part import Part
 from app.models.machine import MachineDB, MachineCreate, MachineUpdate
+from app.models.config import SystemConfig
 from app.models import User
-from app.dependencies import get_current_user
+from app.models.enums import UserRole
+from app.dependencies import get_current_user, require_role
 from app.db_helpers import set_audit
 
 router = APIRouter()
@@ -315,3 +317,24 @@ async def machine_update_post(
     except Exception as e:
         await db.rollback()
         return HTMLResponse(content=f"<h1>Chyba při aktualizaci stroje</h1><p>{str(e)}</p>", status_code=500)
+
+
+# ============================================================================
+# SETTINGS / ADMIN PAGES
+# ============================================================================
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """System settings page (admin only)"""
+    result = await db.execute(select(SystemConfig).order_by(SystemConfig.key))
+    configs = result.scalars().all()
+
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "configs": configs,
+        "user": current_user
+    })
