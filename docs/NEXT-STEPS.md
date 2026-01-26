@@ -46,8 +46,28 @@
 - Pricing je plně trackovatelný (každá složka ceny viditelná)
 - Reusable komponenty urychlí implementaci Materials/CuttingConditions CRUD
 
+---
+
+### Admin Console for SystemConfig - DONE ✅
+
+**Co bylo implementováno:**
+- ✅ API: config_router.py (GET /, GET /{key}, PUT /{key}) - admin only
+- ✅ UI: /settings admin page s Alpine.js formulářem
+- ✅ Dashboard: Fialová "Nastavení" dlaždice (admin only)
+- ✅ Optimistic locking pro konkurenční změny
+- ✅ Real-time validace + success/error messaging
+- ✅ 9 comprehensive tests (API + UI + auth) - všechny procházejí
+- ✅ Fixtures: test_db_session, admin/operator tokens
+
+**Effort:** ~2 hodiny (API + UI + testy + fixtures)
+
+**Impact:**
+- Admin může editovat pricing koeficienty bez změny kódu
+- Audit trail (kdo + kdy upravil)
+- Konkurentní změny jsou bezpečně ošetřené
+- Comprehensive test coverage pro admin funkce
+
 **TODO:**
-- [ ] SystemConfig CRUD UI (admin interface pro editaci koeficientů)
 - [ ] Testy pro pricing calculator
 - [ ] ADR-015 (Reusable CRUD Components)
 - [ ] ADR-016 (Coefficient-based Pricing Model)

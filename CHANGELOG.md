@@ -7,6 +7,80 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [UNRELEASED] - Vision Documentation (2026-01-26)
+
+### Added (Vision & Long-term Planning)
+
+**Documentation:**
+- `docs/VISION.md` - Long-term roadmap (1 year, 5 modules: Quotes, Orders, PLM, MES, Tech DB)
+- `docs/ADR/VIS-001-soft-delete-for-future-modules.md` - Arch decision: Soft delete policy for future modules
+- `CLAUDE.md` - New section "VISION AWARENESS (Roy's Radar)" - Proactive conflict detection
+
+**Roadmap (AI-accelerated estimates):**
+- v2.0 (Q1 2026, ~3 weeks): Quotes & Orders
+- v3.0 (Q2 2026, ~4 weeks): PLM & Drawings (version control)
+- v4.0 (Q3 2026, ~6 weeks): MES & Work Orders (shop floor tracking)
+- v5.0 (Q4 2026, ~4 weeks): Technology Database (materials, cutting conditions, tools)
+
+**Architectural Principles:**
+- VIS-001: Soft delete everywhere (Orders/WorkOrders need stable FK references)
+- VIS-002: Immutable snapshots (freeze data when locking references)
+- VIS-003: Version tracking everywhere (optimistic locking)
+- VIS-004: API versioning for breaking changes
+- VIS-007: Monolithic app (NOT microservices, in-house <100 users)
+
+**Migration Strategy:**
+- v1.x-v3.x: SQLite (current)
+- v4.x: PostgreSQL evaluation (if >10 concurrent users)
+- v5.x+: Read replicas (if >50 users or heavy analytics)
+
+---
+
+## [UNRELEASED] - Admin Console for SystemConfig (2026-01-26)
+
+### Added
+
+**Admin Interface:**
+- `/settings` - Admin page pro editaci systémových koeficientů
+- Dashboard tile "Nastavení" (fialová, admin-only, ⚙️ icon)
+- Alpine.js form s real-time validací (1.0-5.0 rozsah)
+- Success/error messaging + auto-reload po úspěšném uložení
+- Info box s vysvětlením jak koeficienty fungují
+- Historie změn (kdo + kdy upravil) pod každým polem
+
+**API:**
+- `GET /api/config/` - List all SystemConfig (admin only)
+- `GET /api/config/{key}` - Get specific config (admin only)
+- `PUT /api/config/{key}` - Update config with optimistic locking (admin only)
+- `app/routers/config_router.py` - REST API router pro SystemConfig
+
+**Testing:**
+- `tests/test_config_admin.py` - 9 comprehensive tests (all passing)
+- Tests: API endpoints, auth (admin/operator), optimistic locking, UI pages
+- `tests/conftest.py` - Enhanced fixtures:
+  - `test_db_session` - DB with users + SystemConfig seed
+  - `client` - AsyncClient s ASGITransport
+  - `admin_token` / `operator_token` - Auth fixtures
+  - `admin_headers` / `operator_headers` - Cookie headers
+
+**Security:**
+- Admin-only access via `require_role([UserRole.ADMIN])`
+- Optimistic locking proti konkurentním změnám (version checking)
+- Validace rozsahu hodnot (1.0-5.0) client + server side
+
+**User Experience:**
+- Real-time validace před odesláním
+- Jasné error zprávy při konfliktu verzí ("modified by another user")
+- Auto-reload po úspěšné změně pro refresh timestamps
+- Zobrazení aktuální hodnoty + audit trail
+
+### Fixed
+- `require_role()` nyní správně přijímá `[UserRole.ADMIN]` místo stringu `"admin"`
+- Cookie authentication v test client (ASGITransport)
+- Trailing slash redirects v API testech (307 → 200)
+
+---
+
 ## [UNRELEASED] - Machines CRUD & Pricing Calculator (2026-01-26)
 
 ### Added (ADR-016: Coefficient-based Pricing Model)
