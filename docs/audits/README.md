@@ -29,6 +29,7 @@ Priklady:
 
 | Datum | Typ | Verze | Skore | Poznamka |
 |-------|-----|-------|-------|----------|
+| 2026-01-26 | pre-beta-audit | v1.2.0 | 65/100 | Hloubkovy audit pred beta release |
 | 2026-01-25 | full-audit | v1.1.0 | 73/100 | Prvni kompletni audit |
 
 ## Struktura audit reportu
@@ -62,4 +63,4 @@ Po kazdem auditu:
 
 ---
 
-*Posledni aktualizace: 2026-01-25*
+*Posledni aktualizace: 2026-01-26*

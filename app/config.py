@@ -8,7 +8,7 @@ from pathlib import Path
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
-    VERSION: str = "1.1.0"
+    VERSION: str = "1.2.0"
     DEBUG: bool = False  # BEZPEČNOST: Default False pro produkci
 
     # Security

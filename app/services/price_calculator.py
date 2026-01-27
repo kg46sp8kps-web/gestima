@@ -114,15 +114,17 @@ async def calculate_stock_cost_from_part(
 ) -> MaterialCost:
     """
     Výpočet ceny polotovaru z Part.stock_* polí (ADR-014: Dynamic Price Tiers).
+    Migration 2026-01-26: Podporuje Part.price_category + Part.stock_shape.
 
     Používá:
     - Part.stock_* pro geometrii (editovatelné uživatelem)
-    - MaterialItem.shape pro typ polotovaru
-    - MaterialItem.price_category → price tier podle quantity (ADR-014)
-    - MaterialGroup.density pro hustotu
+    - Part.stock_shape pro typ polotovaru (NOVÉ)
+    - Part.price_category → price tier podle quantity (NOVÉ)
+    - Part.price_category.material_group.density pro hustotu (NOVÉ)
+    - Fallback: Part.material_item.* (staré)
 
     Args:
-        part: Part instance (s eager-loaded material_item.group + material_item.price_category)
+        part: Part instance (s eager-loaded price_category.material_group nebo material_item.group)
         quantity: Množství kusů (pro výběr správného price tier)
         db: AsyncSession (pro lazy loading pokud potřeba)
 
@@ -131,17 +133,33 @@ async def calculate_stock_cost_from_part(
     """
     result = MaterialCost()
 
-    item = part.material_item
-    if not item:
-        return result
+    # Migration 2026-01-26: Priorita Part.price_category, fallback Part.material_item
+    price_category = None
+    material_group = None
+    stock_shape = part.stock_shape
 
-    group = item.group
-    if not group:
-        return result
+    if part.price_category:
+        # Nové: Part → PriceCategory → MaterialGroup
+        price_category = part.price_category
+        material_group = price_category.material_group if price_category else None
+    elif part.material_item:
+        # Fallback: Part → MaterialItem → PriceCategory → MaterialGroup
+        item = part.material_item
+        price_category = item.price_category
+        material_group = item.group
+        if not stock_shape:
+            stock_shape = item.shape  # Použij item.shape pokud Part nemá stock_shape
 
-    price_category = item.price_category
     if not price_category:
-        logger.error(f"MaterialItem {item.id} has no price_category")
+        logger.error(f"Part {part.id} has no price_category (neither direct nor via material_item)")
+        return result
+
+    if not material_group:
+        logger.error(f"PriceCategory {price_category.id} has no material_group")
+        return result
+
+    if not stock_shape:
+        logger.error(f"Part {part.id} has no stock_shape")
         return result
 
     if db is None:
@@ -155,38 +173,38 @@ async def calculate_stock_cost_from_part(
     stock_height = part.stock_height or 0
     stock_wall_thickness = part.stock_wall_thickness or 0
 
-    # Výpočet objemu podle tvaru polotovaru
+    # Výpočet objemu podle tvaru polotovaru (Migration 2026-01-26: stock_shape místo item.shape)
     volume_mm3 = 0
 
-    if item.shape == StockShape.ROUND_BAR:
+    if stock_shape == StockShape.ROUND_BAR:
         # Tyč kruhová: π × r² × délka
         if stock_diameter > 0 and stock_length > 0:
             r = stock_diameter / 2
             volume_mm3 = math.pi * r**2 * stock_length
 
-    elif item.shape == StockShape.SQUARE_BAR:
+    elif stock_shape == StockShape.SQUARE_BAR:
         # Tyč čtvercová: a² × délka
         if stock_width > 0 and stock_length > 0:
             volume_mm3 = stock_width**2 * stock_length
 
-    elif item.shape == StockShape.FLAT_BAR:
+    elif stock_shape == StockShape.FLAT_BAR:
         # Tyč plochá: šířka × výška × délka
         if stock_width > 0 and stock_height > 0 and stock_length > 0:
             volume_mm3 = stock_width * stock_height * stock_length
 
-    elif item.shape == StockShape.HEXAGONAL_BAR:
+    elif stock_shape == StockShape.HEXAGONAL_BAR:
         # Tyč šestihranná: (3√3/2) × a² × délka
         if stock_diameter > 0 and stock_length > 0:
             a = stock_diameter / 2
             area = (3 * math.sqrt(3) / 2) * a**2
             volume_mm3 = area * stock_length
 
-    elif item.shape == StockShape.PLATE:
+    elif stock_shape == StockShape.PLATE:
         # Plech: šířka × výška × délka
         if stock_width > 0 and stock_height > 0 and stock_length > 0:
             volume_mm3 = stock_width * stock_height * stock_length
 
-    elif item.shape == StockShape.TUBE:
+    elif stock_shape == StockShape.TUBE:
         # Trubka: π × (r_outer² - r_inner²) × délka
         if stock_diameter > 0 and stock_wall_thickness > 0 and stock_length > 0:
             r_outer = stock_diameter / 2
@@ -198,15 +216,15 @@ async def calculate_stock_cost_from_part(
                 raise ValueError("Tloušťka stěny nemůže být větší nebo rovna poloměru")
             volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
 
-    elif item.shape in [StockShape.CASTING, StockShape.FORGING]:
+    elif stock_shape in [StockShape.CASTING, StockShape.FORGING]:
         # Odlitek/výkovek: aproximace jako kruhová tyč
         if stock_diameter > 0 and stock_length > 0:
             r = stock_diameter / 2
             volume_mm3 = math.pi * r**2 * stock_length
 
-    # Převod na hmotnost
+    # Převod na hmotnost (Migration 2026-01-26: material_group.density místo group.density)
     volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
-    weight_kg = volume_dm3 * group.density
+    weight_kg = volume_dm3 * material_group.density
 
     # ADR-014: Dynamický výběr ceny podle quantity
     total_weight = weight_kg * quantity
@@ -218,7 +236,7 @@ async def calculate_stock_cost_from_part(
     result.volume_mm3 = round(volume_mm3, 0)
     result.weight_kg = round(weight_kg, 3)
     result.price_per_kg = price_per_kg  # Pro snapshot (ADR-012)
-    result.density = group.density
+    result.density = material_group.density
     result.cost = round(cost, 2)
 
     return result
@@ -258,45 +276,48 @@ async def calculate_material_cost_from_part(part, db: AsyncSession) -> MaterialC
     if not item or not group:
         return result
 
-    # Výpočet objemu podle tvaru polotovaru
+    # Migration 2026-01-26: DEPRECATED funkce - používá item.shape (staré)
+    stock_shape = item.shape
+
+    # Výpočet objemu podle tvaru polotovaru (Migration 2026-01-26: stock_shape místo item.shape)
     volume_mm3 = 0
 
-    if item.shape == StockShape.ROUND_BAR:
+    if stock_shape == StockShape.ROUND_BAR:
         # Tyč kruhová: π × r² × délka
         if item.diameter and part.length > 0:
             r = item.diameter / 2
             volume_mm3 = math.pi * r**2 * part.length
 
-    elif item.shape == StockShape.SQUARE_BAR:
+    elif stock_shape == StockShape.SQUARE_BAR:
         # Tyč čtvercová: a² × délka
         if item.width and part.length > 0:
             volume_mm3 = item.width**2 * part.length
 
-    elif item.shape == StockShape.FLAT_BAR:
+    elif stock_shape == StockShape.FLAT_BAR:
         # Tyč plochá: šířka × tloušťka × délka
         if item.width and item.thickness and part.length > 0:
             volume_mm3 = item.width * item.thickness * part.length
 
-    elif item.shape == StockShape.HEXAGONAL_BAR:
+    elif stock_shape == StockShape.HEXAGONAL_BAR:
         # Tyč šestihranná: (3√3/2) × a² × délka
         if item.diameter and part.length > 0:  # diameter = rozměr přes plochy
             a = item.diameter / 2
             area = (3 * math.sqrt(3) / 2) * a**2
             volume_mm3 = area * part.length
 
-    elif item.shape == StockShape.PLATE:
+    elif stock_shape == StockShape.PLATE:
         # Plech: šířka × tloušťka × délka
         if item.width and item.thickness and part.length > 0:
             volume_mm3 = item.width * item.thickness * part.length
 
-    elif item.shape == StockShape.TUBE:
+    elif stock_shape == StockShape.TUBE:
         # Trubka: π × (r_outer² - r_inner²) × délka
         if item.diameter and item.wall_thickness and part.length > 0:
             r_outer = item.diameter / 2
             r_inner = r_outer - item.wall_thickness
             volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * part.length
 
-    elif item.shape in [StockShape.CASTING, StockShape.FORGING]:
+    elif stock_shape in [StockShape.CASTING, StockShape.FORGING]:
         # Odlitek/výkovek: aproximace jako kruhová tyč
         if item.diameter and part.length > 0:
             r = item.diameter / 2
@@ -621,6 +642,18 @@ async def calculate_part_price(
         loaded = await db.execute(stmt)
         part = loaded.scalar_one()
 
+    # Pre-load all machines in ONE query (N+1 fix)
+    from sqlalchemy import select
+    from app.models.machine import MachineDB
+
+    machine_ids = {op.machine_id for op in part.operations if op.machine_id and not op.is_coop}
+    machines_dict = {}
+    if machine_ids:
+        machines_result = await db.execute(
+            select(MachineDB).where(MachineDB.id.in_(machine_ids))
+        )
+        machines_dict = {m.id: m for m in machines_result.scalars().all()}
+
     for op in part.operations:
         if op.is_coop:
             # Kooperace - zpracujeme později
@@ -631,14 +664,8 @@ async def calculate_part_price(
             logger.warning(f"Operation {op.id} has no machine_id, skipping")
             continue
 
-        # Načíst stroj
-        from sqlalchemy import select
-        from app.models.machine import MachineDB
-
-        machine_result = await db.execute(
-            select(MachineDB).where(MachineDB.id == op.machine_id)
-        )
-        machine = machine_result.scalar_one_or_none()
+        # Použít pre-loaded stroj z dictionary (N+1 fix)
+        machine = machines_dict.get(op.machine_id)
         if not machine:
             logger.warning(f"Machine {op.machine_id} not found, skipping operation {op.id}")
             continue

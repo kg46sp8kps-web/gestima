@@ -3,7 +3,7 @@
 {% block title %}GESTIMA - Seznam dílů{% endblock %}
 
 {% block content %}
-<div x-data="partsListState()" style="padding: 1.5rem; max-width: 2400px; margin: 0 auto;">
+<div x-data="partsListState()" data-is-admin="{{ 'true' if user.role.value == 'admin' else 'false' }}" style="padding: 1.5rem; min-width: 960px; margin: 0 auto;">
 
     <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -122,14 +122,14 @@
                             <td x-show="visibleColumns.updated_at" style="padding: 0.6rem 0.75rem; font-size: 0.75rem; color: var(--text-muted);" x-text="formatDate(part.updated_at)"></td>
                             <td style="padding: 0.6rem 0.75rem; text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <button @click="editPart(part.id)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" title="Upravit">
+                                    <button @click="editPart(part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" title="Upravit">
                                         ✏️
                                     </button>
-                                    <button @click="duplicatePart(part.id)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" title="Duplikovat">
+                                    <button @click="duplicatePart(part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" title="Duplikovat">
                                         📋
                                     </button>
                                     <template x-if="isAdmin">
-                                        <button @click="deletePart(part.id, part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: var(--accent-red);" title="Smazat">
+                                        <button @click="deletePart(part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: var(--accent-red);" title="Smazat">
                                             🗑️
                                         </button>
                                     </template>
@@ -142,160 +142,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    function partsListState() {
-        return {
-            parts: [],
-            search: '',
-            loading: false,
-            totalParts: 0,
-            isAdmin: {{ 'true' if user.role.value == 'admin' else 'false' }},
-
-            // Column visibility
-            availableColumns: [
-                { key: 'id', label: 'ID' },
-                { key: 'part_number', label: 'Číslo výkresu' },
-                { key: 'article_number', label: 'Article' },
-                { key: 'name', label: 'Název' },
-                { key: 'material', label: 'Materiál' },
-                { key: 'length', label: 'Délka' },
-                { key: 'updated_at', label: 'Aktualizováno' }
-            ],
-            visibleColumns: {
-                id: true,
-                part_number: true,
-                article_number: true,
-                name: true,
-                material: true,
-                length: false,
-                updated_at: true
-            },
-
-            async init() {
-                // Load saved column preferences from localStorage
-                // Note: localStorage is device-specific. For multi-device sync,
-                // future v1.2+ will add Export/Import config feature.
-                const saved = localStorage.getItem('parts_visible_columns');
-                if (saved) {
-                    this.visibleColumns = JSON.parse(saved);
-                }
-                await this.loadParts();
-            },
-
-            toggleColumn(key) {
-                this.visibleColumns[key] = !this.visibleColumns[key];
-                localStorage.setItem('parts_visible_columns', JSON.stringify(this.visibleColumns));
-            },
-
-            resetColumns() {
-                // Default column visibility
-                this.visibleColumns = {
-                    id: true,
-                    part_number: true,
-                    article_number: true,
-                    name: true,
-                    material: true,
-                    length: false,
-                    updated_at: true
-                };
-                localStorage.setItem('parts_visible_columns', JSON.stringify(this.visibleColumns));
-                window.showToast?.('✅ Sloupce resetovány na výchozí', 'success');
-            },
-
-            async loadParts() {
-                this.loading = true;
-                try {
-                    const params = new URLSearchParams();
-                    if (this.search) params.set('search', this.search);
-
-                    console.log('Loading parts from:', `/api/parts/search?${params}`);
-                    const response = await fetch(`/api/parts/search?${params}`);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                    const data = await response.json();
-                    console.log('Received data:', data);
-
-                    this.parts = data.parts || [];
-                    this.totalParts = data.total || 0;
-
-                    console.log(`Loaded ${this.parts.length} parts, total: ${this.totalParts}`);
-                } catch (error) {
-                    console.error('Error loading parts:', error);
-                    window.showToast?.('❌ Chyba při načítání dílů: ' + error.message, 'error');
-                    this.parts = [];
-                    this.totalParts = 0;
-                } finally {
-                    this.loading = false;
-                }
-            },
-
-            formatDate(dateStr) {
-                const date = new Date(dateStr);
-                return date.toLocaleDateString('cs-CZ', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            },
-
-            createPart() {
-                window.location.href = '/parts/new';
-            },
-
-            editPart(id) {
-                window.location.href = `/parts/${id}/edit`;
-            },
-
-            async duplicatePart(id) {
-                if (!confirm('Duplikovat tento díl?')) return;
-
-                try {
-                    const response = await fetch(`/api/parts/${id}/duplicate`, {
-                        method: 'POST'
-                    });
-
-                    if (response.ok) {
-                        window.showToast('✅ Díl duplikován', 'success');
-                        await this.loadParts();
-                    } else {
-                        const error = await response.json();
-                        window.showToast(`❌ ${error.detail}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Error duplicating part:', error);
-                    window.showToast('❌ Chyba při duplikaci', 'error');
-                }
-            },
-
-            async deletePart(id, partNumber) {
-                if (!confirm(`Opravdu smazat díl "${partNumber}"?\n\nTato akce je nevratná!`)) return;
-
-                try {
-                    const response = await fetch(`/api/parts/${id}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (response.ok) {
-                        window.showToast('✅ Díl smazán', 'success');
-                        await this.loadParts();
-                    } else {
-                        const error = await response.json();
-                        window.showToast(`❌ ${error.detail}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Error deleting part:', error);
-                    window.showToast('❌ Chyba při mazání', 'error');
-                }
-            }
-        }
-    }
-</script>
 {% endblock %}

@@ -2,11 +2,12 @@
 
 import logging
 from datetime import datetime
-from typing import TypeVar, Type, Optional
+from typing import TypeVar, Type, Optional, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Query
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from fastapi import HTTPException
 
 from app.database import Base, AuditMixin
 
@@ -113,3 +114,62 @@ async def get_all_active(db: AsyncSession, model: Type[T]) -> list:
         select(model).filter(model.deleted_at == None)
     )
     return result.scalars().all()
+
+
+# ============================================================================
+# TRANSACTION HELPERS (P2 Audit - reduce boilerplate)
+# ============================================================================
+
+async def safe_commit(
+    db: AsyncSession,
+    entity: Any = None,
+    action: str = "database operation",
+    integrity_error_msg: str = "Konflikt dat (duplicitní záznam nebo neplatné reference)",
+    refresh: bool = True
+) -> Any:
+    """
+    Commit with standard error handling.
+
+    Eliminates repetitive try/except blocks in routers (L-008 compliance).
+
+    Args:
+        db: Database session
+        entity: Entity to refresh after commit (optional)
+        action: Description for error messages and logging
+        integrity_error_msg: Custom message for IntegrityError (409)
+        refresh: Whether to refresh entity after commit (default True)
+
+    Returns:
+        Refreshed entity if provided, otherwise None
+
+    Raises:
+        HTTPException 409: On IntegrityError (duplicate, FK violation)
+        HTTPException 500: On other database errors
+
+    Usage:
+        # CREATE
+        db.add(part)
+        return await safe_commit(db, part, "vytváření dílu")
+
+        # UPDATE
+        part.name = new_name
+        return await safe_commit(db, part, "aktualizace dílu")
+
+        # DELETE (no entity to refresh)
+        await db.delete(part)
+        await safe_commit(db, action="mazání dílu")
+        return {"message": "Smazáno"}
+    """
+    try:
+        await db.commit()
+        if entity and refresh:
+            await db.refresh(entity)
+        return entity
+    except IntegrityError as e:
+        await db.rollback()
+        logger.error(f"Integrity error during {action}: {e}")
+        raise HTTPException(status_code=409, detail=integrity_error_msg)
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error during {action}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Chyba databáze při {action}")

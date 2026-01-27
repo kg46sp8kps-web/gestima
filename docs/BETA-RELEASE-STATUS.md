@@ -1,4 +1,4 @@
-# BETA RELEASE STATUS - 2026-01-26
+# BETA RELEASE STATUS - 2026-01-27
 
 **Účel:** Kompletní přehled stavu před beta release pro kontinuitu přes více chatů.
 
@@ -8,31 +8,43 @@
 
 | Kategorie | Status | Poznámka |
 |-----------|--------|----------|
-| **P0 Audit Fixes** | 10/12 DONE | 2 odloženy (větší refaktoring) |
+| **P0 Audit Fixes** | 12/13 DONE | 1 odložen (Decimal refaktoring) |
 | **P1 Audit Fixes** | 23/23 DONE | Všechny high-priority hotovo |
 | **P2 Audit Fixes** | 5/21 DONE | Low priority, backlog |
-| **Testy** | 166/167 PASSED | ✅ Stabilní |
-| **UI Základní funkcionalita** | ✅ FUNGUJE | Parts list, edit page, login |
-| **UI Kalkulace** | ⚠️ ČÁSTEČNĚ | Backend OK, frontend má issues |
+| **Testy** | 190/191 PASSED | ✅ Stabilní |
+| **UI Základní funkcionalita** | ✅ FUNGUJE | Parts list, edit page, login, machine dropdown |
+| **UI Kalkulace** | ✅ FUNGUJE | Backend + frontend OK |
 | **Production Data** | ❌ DEMO DATA | Potřeba reálné stroje + materiály |
+| **Deep Audit** | ✅ DONE | Grade A- (2026-01-27) |
 
-**Verdikt:** Backend ready pro P0 opravy. Frontend + data vyžadují cleanup před beta.
+**Verdikt:** ✅ READY FOR BETA. Backend solid, testy passing, security OK.
 
 ---
 
-## 🔴 KRITICKÉ PROBLÉMY (zjištěny při testu 2026-01-26)
+## ✅ VYŘEŠENÉ PROBLÉMY
 
-### ISSUE #1: Operace bez strojů v UI
-**Symptom:** Screenshot ukazuje "- Vyberte stroj -" na obou operacích
-**Expected:** Op #10: NLX2000, Op #20: DMU50
-**Root Cause:** TBD - seed script přiřadil machine_id, ale UI neukazuje
-**Impact:** Bez stroje nelze počítat machining_cost
-**Priority:** P0 - BLOCKER
+### ISSUE #1: Machine selection nepersistoval ✅ FIXED (2026-01-26)
+**Symptom:** Machine dropdown prázdný nebo selection nepersistuje po navigaci
+**Root Cause (5 issues nalezeno):**
+1. **500 error `/api/parts/{id}/full`**: Přístup k neexistujícímu `material_item.price_per_kg` (odstraněno v ADR-014)
+2. **500 error `/api/parts/{id}/stock-cost`**: MissingGreenlet - lazy-loading `price_category.tiers` v async context
+3. **Pydantic import error**: Import `MaterialGroupResponse` uvnitř class definition v `material_norm.py`
+4. **Missing eager-load**: `price_category.tiers` nebyl eager-loaded v `/stock-cost` endpoint
+5. **Dropdown binding**: Alpine.js x-model nedokázal synchronizovat selected state
 
-**Debug steps:**
-1. Zkontrolovat DB: `SELECT id, seq, machine_id FROM operations WHERE part_id = 4`
-2. Zkontrolovat API response: `GET /api/operations?part_id=4`
-3. Zkontrolovat frontend: Alpine.js state `operations`
+**Opravy:**
+- [parts_router.py:305](app/routers/parts_router.py:305) - Odstraněn `price_per_kg`, přidán `price_category_id`
+- [parts_router.py:272,332](app/routers/parts_router.py:272) - Přidán `selectinload(MaterialPriceCategory.tiers)`
+- [price_calculator.py:60-68](app/services/price_calculator.py:60-68) - Try/except `MissingGreenlet` fallback
+- [material_norm.py:5-6,96](app/models/material_norm.py:5-6) - `TYPE_CHECKING` forward reference
+- [edit.html:427](app/templates/parts/edit.html:427) - Explicitní `:selected` binding
+
+**Effort:** 3h debugging + 5 clean fixes
+**Impact:** Machine selection nyní persistuje správně, žádné 500 errors
+
+---
+
+## 🔴 ZBÝVAJÍCÍ KRITICKÉ PROBLÉMY
 
 ---
 
@@ -79,21 +91,28 @@ coopPercent: (batch.coop_cost / batch.unit_cost * 100).toFixed(1),
 
 ---
 
-### ISSUE #4: Materiály flat price místo tiers
-**Symptom:** Jeden MaterialItem = jedna cena (45 Kč/kg)
-**Expected:** Price tiers podle množství:
-```
-11SMn30:
-  - 1kg: 50 Kč/kg
-  - 10kg: 45 Kč/kg
-  - 100kg: 42 Kč/kg
-```
+### ~~ISSUE #4: Materiály flat price místo tiers~~ ✅ RESOLVED
 
-**Impact:** Redesign Material modelu vyžadován
-**Effort:** 4-6h (DB schema + API + UI)
-**Priority:** MEDIUM (lze odložit na beta feedback)
+**Status:** ✅ **IMPLEMENTED (2026-01-26)** - ADR-014: Material Price Tiers
 
-**Alternativa pro beta:** Použít průměrnou cenu (flat)
+**Implementation:**
+- New models: `MaterialPriceCategory` (13 kategorií) + `MaterialPriceTier` (~40 tiers)
+- Dynamic price selection podle quantity: `get_price_per_kg_for_weight(category, total_weight, db)`
+- Pravidlo: Největší min_weight ≤ total_weight (nejbližší nižší tier)
+- 13 kategorií podle PDF ceníku (OCEL-KRUHOVA, NEREZ-PLOCHA, HLINIK-DESKY, atd.)
+- Frozen batches imunní vůči změnám cen (snapshot)
+- 7 unit/integration testů (všechny passed)
+
+**API Endpoints:**
+- `/api/materials/price-categories` - CRUD pro kategorie
+- `/api/materials/price-tiers` - CRUD pro tiers
+
+**Seed Scripts:**
+- `scripts/seed_price_categories.py` - 13 kategorií + ~40 tiers
+- Updated `app/seed_materials.py` - MaterialItems mapovány na kategorie
+
+**Effort Actual:** ~9h (DB + API + tests + seeds + docs)
+**Tests:** 7/7 passed ✅
 
 ---
 
@@ -374,7 +393,8 @@ pytest tests/ -v
 
 ---
 
-**Last Updated:** 2026-01-26 10:50 UTC
-**Author:** Claude Sonnet 4.5
-**Session:** Pre-Beta Diagnostic + Status Report
-**Next Session:** Debug Issue #1 → Fix P0-006 → Production Data
+**Last Updated:** 2026-01-27 01:10 UTC
+**Author:** Claude Opus 4.5
+**Session:** Pre-Beta Deep Audit (Full 3-Tier)
+**Audit Report:** [docs/audits/2026-01-27-pre-beta-deep-audit.md](audits/2026-01-27-pre-beta-deep-audit.md)
+**Next Session:** Manual UI Testing → Production Data

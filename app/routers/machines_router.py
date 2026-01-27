@@ -117,6 +117,11 @@ async def create_machine(
     try:
         await db.commit()
         await db.refresh(machine)
+
+        # Clear cache after successful create
+        from app.services.reference_loader import clear_cache
+        clear_cache()
+
         logger.info(f"Created machine: {machine.code}", extra={"machine_id": machine.id, "user": current_user.username})
         return MachineResponse.from_orm(machine)
     except IntegrityError as e:
@@ -159,6 +164,11 @@ async def update_machine(
     try:
         await db.commit()
         await db.refresh(machine)
+
+        # Clear cache after successful update
+        from app.services.reference_loader import clear_cache
+        clear_cache()
+
         logger.info(f"Updated machine: {machine.code}", extra={"machine_id": machine.id, "user": current_user.username})
         return MachineResponse.from_orm(machine)
     except IntegrityError as e:
@@ -188,6 +198,11 @@ async def delete_machine(
 
     try:
         await db.commit()
+
+        # Clear cache after successful delete
+        from app.services.reference_loader import clear_cache
+        clear_cache()
+
         logger.info(f"Deleted machine: {machine_code}", extra={"machine_id": machine_id, "user": current_user.username})
         return {"message": "Stroj smazán"}
     except IntegrityError as e:

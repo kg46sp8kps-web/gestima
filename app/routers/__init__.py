@@ -8,5 +8,7 @@ from app.routers import (
     data_router,
     pages_router,
     misc_router,
-    machines_router
+    machines_router,
+    config_router,
+    admin_router
 )

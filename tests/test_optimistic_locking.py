@@ -14,7 +14,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.models.part import Part, PartUpdate
-from app.models.operation import Operation, OperationUpdate
+from app.models.operation import Operation, OperationUpdate, ChangeModeRequest, CuttingMode
 from app.models.feature import Feature, FeatureUpdate
 from app.models.material import MaterialGroup, MaterialItem
 from app.models.enums import StockShape, FeatureType
@@ -211,11 +211,11 @@ async def test_operation_change_mode_version_check(db_session, sample_operation,
     sample_operation.version += 1
     await db_session.commit()
 
-    # Try to change mode with old version
-    data = {
-        "cutting_mode": "low",
-        "version": initial_version  # Outdated
-    }
+    # Try to change mode with old version (using Pydantic model)
+    data = ChangeModeRequest(
+        cutting_mode=CuttingMode.LOW,
+        version=initial_version  # Outdated
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         await change_mode(sample_operation.id, data, db_session, mock_user)
@@ -224,18 +224,15 @@ async def test_operation_change_mode_version_check(db_session, sample_operation,
 
 
 @pytest.mark.asyncio
-async def test_operation_change_mode_missing_version_raises_400(db_session, sample_operation, mock_user):
-    """Test: Change mode without version raises HTTP 400"""
-    data = {
-        "cutting_mode": "low"
-        # version missing
-    }
+async def test_operation_change_mode_missing_version_raises_validation_error(db_session, sample_operation, mock_user):
+    """Test: Change mode without version raises Pydantic ValidationError"""
+    from pydantic import ValidationError
 
-    with pytest.raises(HTTPException) as exc_info:
-        await change_mode(sample_operation.id, data, db_session, mock_user)
+    # Missing version field triggers Pydantic validation
+    with pytest.raises(ValidationError) as exc_info:
+        ChangeModeRequest(cutting_mode=CuttingMode.LOW)  # version missing
 
-    assert exc_info.value.status_code == 400
-    assert "version" in exc_info.value.detail.lower()
+    assert "version" in str(exc_info.value).lower()
 
 
 # ============================================================================

@@ -7,15 +7,28 @@
     
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
-    
+
     <link rel="stylesheet" href="/static/css/gestima.css">
-    
+
+    <!-- Skrýt šipky u number inputů -->
+    <style>
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+
     {% block head %}{% endblock %}
+    {% block head_scripts %}{% endblock %}
 </head>
-<body hx-boost="true">
+<body>
     
     <nav x-data="navbarState()" style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 0.5rem 2rem; z-index: 100;">
-        <div style="width: 80%; max-width: 2400px; min-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+        <div style="width: 95%; min-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
             <!-- Left: Logo + Nav -->
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
@@ -37,6 +50,11 @@
                 <a href="/parts" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
                     Díly
                 </a>
+                {% if user and user.role.value == 'admin' %}
+                <a href="/admin/material-norms" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
+                    ⚙️ Admin
+                </a>
+                {% endif %}
             </div>
 
             <!-- Right: User Info + Logout -->
@@ -60,7 +78,7 @@
     
     <!-- Footer -->
     <footer style="background: var(--bg-secondary); border-top: 1px solid var(--border-color); padding: 0.25rem 2rem;">
-        <div style="width: 80%; max-width: 2400px; min-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; box-sizing: border-box;">
+        <div style="width: 95%; min-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; box-sizing: border-box;">
             <!-- Left: Company -->
             <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.7rem; justify-self: start;">
                 <img src="/static/img/logo.png" alt="KOVO RYBKA" style="height: 16px; width: auto; opacity: 0.75;">

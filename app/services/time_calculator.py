@@ -6,6 +6,12 @@ from dataclasses import dataclass
 
 from app.services.cutting_conditions import get_conditions
 
+# Default values when cutting conditions are not found
+DEFAULT_MAX_RPM = 4000
+DEFAULT_VC = 150  # m/min - conservative cutting speed
+DEFAULT_FEED = 0.2  # mm/rev
+DEFAULT_AP = 2.0  # mm - depth of cut
+
 
 @dataclass
 class CalculationResult:
@@ -19,7 +25,7 @@ class CalculationResult:
 
 
 class FeatureCalculator:
-    def __init__(self, max_rpm: int = 4000):
+    def __init__(self, max_rpm: int = DEFAULT_MAX_RPM):
         self.max_rpm = max_rpm
     
     def calc_rpm(self, Vc: float, diameter: float) -> float:
@@ -51,9 +57,9 @@ class FeatureCalculator:
             diameter=geometry.get("to_diameter"),
         )
         
-        Vc = locked.get("Vc") or conditions.get("Vc") or 150
-        f = locked.get("f") or conditions.get("f") or 0.2
-        Ap = locked.get("Ap") or conditions.get("Ap") or 2.0
+        Vc = locked.get("Vc") or conditions.get("Vc") or DEFAULT_VC
+        f = locked.get("f") or conditions.get("f") or DEFAULT_FEED
+        Ap = locked.get("Ap") or conditions.get("Ap") or DEFAULT_AP
         
         result.Vc = Vc
         result.f = f
@@ -172,7 +178,7 @@ async def calculate_feature_time(
     cutting_mode: str,
     geometry: Dict[str, Any],
     locked_values: Optional[Dict[str, float]] = None,
-    max_rpm: int = 4000,
+    max_rpm: int = DEFAULT_MAX_RPM,
 ) -> CalculationResult:
     calc = FeatureCalculator(max_rpm=max_rpm)
     return await calc.calculate(feature_type, material_group, cutting_mode, geometry, locked_values)

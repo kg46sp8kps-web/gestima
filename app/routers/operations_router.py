@@ -11,7 +11,7 @@ from app.database import get_db
 from app.db_helpers import set_audit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
-from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
+from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse, ChangeModeRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,7 +24,9 @@ async def get_operations(
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
-        select(Operation).where(Operation.part_id == part_id).order_by(Operation.seq)
+        select(Operation)
+        .where(Operation.part_id == part_id, Operation.deleted_at.is_(None))
+        .order_by(Operation.seq)
     )
     return result.scalars().all()
 
@@ -55,7 +57,7 @@ async def create_operation(
     try:
         await db.commit()
         await db.refresh(operation)
-        logger.info(f"Created operation: {operation.operation_type}", extra={"operation_id": operation.id, "part_id": operation.part_id, "user": current_user.username})
+        logger.info(f"Created operation: {operation.type}", extra={"operation_id": operation.id, "part_id": operation.part_id, "user": current_user.username})
         return operation
     except IntegrityError as e:
         await db.rollback()
@@ -105,7 +107,7 @@ async def update_operation(
         raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci operace")
 
 
-@router.delete("/{operation_id}")
+@router.delete("/{operation_id}", status_code=204)
 async def delete_operation(
     operation_id: int,
     db: AsyncSession = Depends(get_db),
@@ -116,7 +118,7 @@ async def delete_operation(
     if not operation:
         raise HTTPException(status_code=404, detail="Operace nenalezena")
 
-    operation_type = operation.operation_type
+    operation_type = operation.type
     await db.delete(operation)
 
     try:
@@ -136,7 +138,7 @@ async def delete_operation(
 @router.post("/{operation_id}/change-mode", response_model=OperationResponse)
 async def change_mode(
     operation_id: int,
-    data: dict,
+    data: ChangeModeRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
@@ -146,24 +148,17 @@ async def change_mode(
         raise HTTPException(status_code=404, detail="Operace nenalezena")
 
     # Optimistic locking check (ADR-008)
-    version = data.get("version")
-    if version is None:
-        raise HTTPException(status_code=400, detail="Version je povinná")
-    if operation.version != version:
-        logger.warning(f"Version conflict changing mode for operation {operation_id}: expected {version}, got {operation.version}", extra={"operation_id": operation_id, "user": current_user.username})
+    if operation.version != data.version:
+        logger.warning(f"Version conflict changing mode for operation {operation_id}: expected {data.version}, got {operation.version}", extra={"operation_id": operation_id, "user": current_user.username})
         raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
 
-    cutting_mode = data.get("cutting_mode")
-    if cutting_mode not in ["low", "mid", "high"]:
-        raise HTTPException(status_code=400, detail="Neplatný režim")
-
-    operation.cutting_mode = cutting_mode
+    operation.cutting_mode = data.cutting_mode.value
     set_audit(operation, current_user.username, is_update=True)
 
     try:
         await db.commit()
         await db.refresh(operation)
-        logger.info(f"Changed cutting mode to {cutting_mode}", extra={"operation_id": operation_id, "user": current_user.username})
+        logger.info(f"Changed cutting mode to {data.cutting_mode.value}", extra={"operation_id": operation_id, "user": current_user.username})
         return operation
     except SQLAlchemyError as e:
         await db.rollback()

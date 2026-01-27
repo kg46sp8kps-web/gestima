@@ -16,14 +16,19 @@ from app.models.material import (
     MaterialItemCreate,
     MaterialItemUpdate,
     MaterialItemResponse,
-    MaterialItemWithGroupResponse
+    MaterialItemWithGroupResponse,
+    MaterialPriceCategory,
+    MaterialPriceTier
+)
+from app.models.material_norm import (
+    MaterialNorm,
+    MaterialNormCreate,
+    MaterialNormUpdate,
+    MaterialNormResponse,
+    MaterialNormWithGroupResponse
 )
 from app.models.cutting_condition import CuttingConditionDB, CuttingConditionCreate, CuttingConditionResponse
-
-# Backward compatibility aliases (DEPRECATED)
-MaterialDB = MaterialGroup
-MaterialCreate = MaterialGroupCreate
-MaterialResponse = MaterialGroupResponse
+from app.models.config import SystemConfig, SystemConfigCreate, SystemConfigUpdate, SystemConfigResponse
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole",
@@ -35,7 +40,8 @@ __all__ = [
     "MachineDB", "MachineCreate", "MachineResponse",
     "MaterialGroup", "MaterialGroupCreate", "MaterialGroupUpdate", "MaterialGroupResponse",
     "MaterialItem", "MaterialItemCreate", "MaterialItemUpdate", "MaterialItemResponse", "MaterialItemWithGroupResponse",
+    "MaterialPriceCategory", "MaterialPriceTier",
+    "MaterialNorm", "MaterialNormCreate", "MaterialNormUpdate", "MaterialNormResponse", "MaterialNormWithGroupResponse",
     "CuttingConditionDB", "CuttingConditionCreate", "CuttingConditionResponse",
-    # Backward compatibility (DEPRECATED)
-    "MaterialDB", "MaterialCreate", "MaterialResponse",
+    "SystemConfig", "SystemConfigCreate", "SystemConfigUpdate", "SystemConfigResponse",
 ]

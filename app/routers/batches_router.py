@@ -17,6 +17,7 @@ from app.models.batch import Batch, BatchCreate, BatchResponse
 from app.models.part import Part
 from app.models.material import MaterialItem
 from app.services.snapshot_service import create_batch_snapshot
+from app.services.batch_service import recalculate_batch_costs
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,18 +30,20 @@ async def get_batches(
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
-        select(Batch).where(Batch.part_id == part_id).order_by(Batch.quantity)
+        select(Batch)
+        .where(Batch.part_id == part_id, Batch.deleted_at.is_(None))
+        .order_by(Batch.quantity)
     )
     return result.scalars().all()
 
 
-@router.get("/{batch_id}", response_model=BatchResponse)
+@router.get("/{batch_number}", response_model=BatchResponse)
 async def get_batch(
-    batch_id: int,
+    batch_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Batch).where(Batch.id == batch_id))
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
     batch = result.scalar_one_or_none()
     if not batch:
         raise HTTPException(status_code=404, detail="Dávka nenalezena")
@@ -53,15 +56,45 @@ async def create_batch(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    batch = Batch(**data.model_dump())
+    from app.services.number_generator import NumberGenerator, NumberGenerationError
+
+    # Auto-generate batch_number if not provided
+    if not data.batch_number:
+        try:
+            batch_number = await NumberGenerator.generate_batch_number(db)
+        except NumberGenerationError as e:
+            logger.error(f"Failed to generate batch number: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo šarže. Zkuste to znovu.")
+    else:
+        batch_number = data.batch_number
+        # Kontrola duplicity (pokud zadáno ručně)
+        result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
+        existing = result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Šarže s číslem '{batch_number}' již existuje")
+
+    # Create batch with generated/provided number
+    batch_data = data.model_dump(exclude={'batch_number'})
+    batch = Batch(batch_number=batch_number, **batch_data)
     set_audit(batch, current_user.username)
     db.add(batch)
 
     try:
+        # Auto-calculate costs před commitem
+        await recalculate_batch_costs(batch, db)
+
         await db.commit()
         await db.refresh(batch)
-        logger.info(f"Created batch: quantity={batch.quantity}", extra={"batch_id": batch.id, "part_id": batch.part_id, "user": current_user.username})
+        logger.info(
+            f"Created batch: quantity={batch.quantity}, unit_cost={batch.unit_cost} Kč",
+            extra={"batch_id": batch.id, "part_id": batch.part_id, "user": current_user.username}
+        )
         return batch
+    except ValueError as e:
+        # Chyba z recalculate (Part not found, missing material, atd.)
+        await db.rollback()
+        logger.error(f"Validation error creating batch: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
     except IntegrityError as e:
         await db.rollback()
         logger.error(f"Integrity error creating batch: {e}", exc_info=True)
@@ -70,15 +103,20 @@ async def create_batch(
         await db.rollback()
         logger.error(f"Database error creating batch: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při vytváření dávky")
+    except Exception as e:
+        # Catch-all pro neočekávané chyby
+        await db.rollback()
+        logger.error(f"Unexpected error creating batch: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při vytváření dávky: {str(e)}")
 
 
-@router.delete("/{batch_id}")
+@router.delete("/{batch_number}", status_code=204)
 async def delete_batch(
-    batch_id: int,
+    batch_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
-    result = await db.execute(select(Batch).where(Batch.id == batch_id))
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
     batch = result.scalar_one_or_none()
     if not batch:
         raise HTTPException(status_code=404, detail="Dávka nenalezena")
@@ -89,11 +127,11 @@ async def delete_batch(
         batch.deleted_by = current_user.username
         try:
             await db.commit()
-            logger.info(f"Soft deleted frozen batch: quantity={batch.quantity}", extra={"batch_id": batch_id, "user": current_user.username})
+            logger.info(f"Soft deleted frozen batch: quantity={batch.quantity}", extra={"batch_number": batch_number, "user": current_user.username})
             return {"message": "Zmrazená dávka smazána (soft delete)"}
         except SQLAlchemyError as e:
             await db.rollback()
-            logger.error(f"Database error soft deleting batch {batch_id}: {e}", exc_info=True)
+            logger.error(f"Database error soft deleting batch {batch_number}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail="Chyba databáze při mazání dávky")
 
     quantity = batch.quantity
@@ -101,17 +139,17 @@ async def delete_batch(
 
     try:
         await db.commit()
-        logger.info(f"Deleted batch: quantity={quantity}", extra={"batch_id": batch_id, "user": current_user.username})
+        logger.info(f"Deleted batch: quantity={quantity}", extra={"batch_number": batch_number, "user": current_user.username})
         return {"message": "Dávka smazána"}
     except SQLAlchemyError as e:
         await db.rollback()
-        logger.error(f"Database error deleting batch {batch_id}: {e}", exc_info=True)
+        logger.error(f"Database error deleting batch {batch_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při mazání dávky")
 
 
-@router.post("/{batch_id}/freeze", response_model=BatchResponse)
+@router.post("/{batch_number}/freeze", response_model=BatchResponse)
 async def freeze_batch(
-    batch_id: int,
+    batch_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
@@ -121,9 +159,10 @@ async def freeze_batch(
     Vytvoří snapshot s aktuálními cenami a zmrazí batch (is_frozen=True).
     Zmrazený batch nelze editovat.
     """
-    # Načíst batch s part + material_item + group (eager loading)
-    stmt = select(Batch).where(Batch.id == batch_id).options(
-        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.group)
+    # Načíst batch s part + material_item + group + price_category (eager loading)
+    stmt = select(Batch).where(Batch.batch_number == batch_number).options(
+        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.group),
+        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.price_category)
     )
     result = await db.execute(stmt)
     batch = result.scalar_one_or_none()
@@ -134,31 +173,36 @@ async def freeze_batch(
     if batch.is_frozen:
         raise HTTPException(status_code=409, detail="Dávka je již zmrazena")
 
-    # Vytvořit snapshot
-    snapshot = await create_batch_snapshot(batch, current_user.username, db)
-
-    # Nastavit freeze metadata
-    batch.is_frozen = True
-    batch.frozen_at = datetime.utcnow()
-    batch.frozen_by_id = current_user.id
-    batch.snapshot_data = snapshot
-    batch.unit_price_frozen = batch.unit_cost  # Redundantní pro reporty
-    batch.total_price_frozen = batch.total_cost
-
+    # Atomická operace: snapshot + freeze metadata + commit
     try:
+        # Vytvořit snapshot
+        snapshot = await create_batch_snapshot(batch, current_user.username, db)
+
+        # Nastavit freeze metadata
+        batch.is_frozen = True
+        batch.frozen_at = datetime.utcnow()
+        batch.frozen_by_id = current_user.id
+        batch.snapshot_data = snapshot
+        batch.unit_price_frozen = batch.unit_cost  # Redundantní pro reporty
+        batch.total_price_frozen = batch.total_cost
+
         await db.commit()
         await db.refresh(batch)
-        logger.info(f"Frozen batch: quantity={batch.quantity}", extra={"batch_id": batch_id, "user": current_user.username})
+        logger.info(f"Frozen batch: quantity={batch.quantity}", extra={"batch_number": batch_number, "user": current_user.username})
         return batch
     except SQLAlchemyError as e:
         await db.rollback()
-        logger.error(f"Database error freezing batch {batch_id}: {e}", exc_info=True)
+        logger.error(f"Database error freezing batch {batch_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při zmrazování dávky")
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Freeze batch {batch_number} failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Zmrazení dávky selhalo")
 
 
-@router.post("/{batch_id}/clone", response_model=BatchResponse)
+@router.post("/{batch_number}/clone", response_model=BatchResponse)
 async def clone_batch(
-    batch_id: int,
+    batch_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
@@ -168,14 +212,24 @@ async def clone_batch(
     Užitečné když uživatel chce upravit zmrazenou nabídku - naklonuje ji
     a pracuje s novou verzí (která má LIVE ceny).
     """
-    result = await db.execute(select(Batch).where(Batch.id == batch_id))
+    from app.services.number_generator import NumberGenerator, NumberGenerationError
+
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
     original = result.scalar_one_or_none()
 
     if not original:
         raise HTTPException(status_code=404, detail="Dávka nenalezena")
 
+    # Generate new batch_number for clone
+    try:
+        batch_number = await NumberGenerator.generate_batch_number(db)
+    except NumberGenerationError as e:
+        logger.error(f"Failed to generate batch number for clone: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo šarže pro klon.")
+
     # Vytvořit nový batch (bez freeze dat)
     new_batch = Batch(
+        batch_number=batch_number,
         part_id=original.part_id,
         quantity=original.quantity,
         is_default=False,  # Klony nejsou default
@@ -197,11 +251,66 @@ async def clone_batch(
         await db.commit()
         await db.refresh(new_batch)
         logger.info(
-            f"Cloned batch {batch_id} -> {new_batch.id}: quantity={new_batch.quantity}",
-            extra={"original_id": batch_id, "new_id": new_batch.id, "user": current_user.username}
+            f"Cloned batch {batch_number} -> {new_batch.batch_number}: quantity={new_batch.quantity}",
+            extra={"original_number": batch_number, "new_number": new_batch.batch_number, "user": current_user.username}
         )
         return new_batch
     except SQLAlchemyError as e:
         await db.rollback()
-        logger.error(f"Database error cloning batch {batch_id}: {e}", exc_info=True)
+        logger.error(f"Database error cloning batch {batch_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při klonování dávky")
+
+
+@router.post("/{batch_number}/recalculate", response_model=BatchResponse)
+async def recalculate_batch(
+    batch_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """
+    Přepočítá náklady batche podle aktuálních hodnot Part + Operations + Machines.
+
+    Použití:
+    - Po změně materiálu Part
+    - Po změně/přidání/smazání Operation
+    - Po změně machine hourly rates
+    - Po změně tp/tj hodnot
+
+    Zamrznutý batch nelze přepočítat (409 Conflict).
+    """
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
+    batch = result.scalar_one_or_none()
+
+    if not batch:
+        raise HTTPException(status_code=404, detail="Dávka nenalezena")
+
+    if batch.is_frozen:
+        raise HTTPException(
+            status_code=409,
+            detail="Zamrznutý batch nelze přepočítat (použij Clone)"
+        )
+
+    try:
+        # Přepočítat náklady
+        await recalculate_batch_costs(batch, db)
+        await db.commit()
+        await db.refresh(batch)
+        logger.info(
+            f"Recalculated batch {batch_number}: unit_cost={batch.unit_cost} Kč",
+            extra={"batch_number": batch_number, "user": current_user.username}
+        )
+        return batch
+    except ValueError as e:
+        # Chyba z recalculate (Part not found, missing material, atd.)
+        await db.rollback()
+        logger.error(f"Validation error recalculating batch {batch_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error recalculating batch {batch_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při přepočítání dávky")
+    except Exception as e:
+        # Catch-all pro neočekávané chyby
+        await db.rollback()
+        logger.error(f"Unexpected error recalculating batch {batch_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při přepočítání dávky: {str(e)}")

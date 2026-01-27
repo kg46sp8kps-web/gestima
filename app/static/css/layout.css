@@ -55,11 +55,13 @@
 
 /* === RIBBONS === */
 .ribbon {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: #1a1a1a;
+    border: 1px solid #2a2a2a;
     border-radius: 8px;
     overflow: hidden;
-    flex-shrink: 0;  /* Zabránit zmenšování ribbonu */
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
 }
 
 .ribbon-header {
@@ -69,7 +71,7 @@
     padding: 0.8rem;
     min-height: 38px;
     cursor: pointer;
-    transition: background 0.1s;
+    background: transparent;
 }
 
 .ribbon-header:hover {
@@ -88,12 +90,12 @@
 .ribbon-toggle {
     font-size: 0.6rem;
     color: var(--text-muted);
-    transition: transform 0.2s;
 }
 
 .ribbon-body {
     padding: 0.8rem;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid #2a2a2a;
+    background: transparent;
 }
 
 /* Ribbon body s vnořenými sekcemi - bez paddingu */

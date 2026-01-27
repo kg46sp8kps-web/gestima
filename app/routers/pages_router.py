@@ -67,15 +67,15 @@ async def part_new(
     })
 
 
-@router.get("/parts/{part_id}/edit", response_class=HTMLResponse)
+@router.get("/parts/{part_number}/edit", response_class=HTMLResponse)
 async def part_edit(
-    part_id: int,
+    part_number: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Edit part (protected)"""
-    result = await db.execute(select(Part).where(Part.id == part_id))
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
     part = result.scalar_one_or_none()
 
     if not part:
@@ -88,15 +88,15 @@ async def part_edit(
     })
 
 
-@router.get("/parts/{part_id}/pricing", response_class=HTMLResponse)
+@router.get("/parts/{part_number}/pricing", response_class=HTMLResponse)
 async def part_pricing(
-    part_id: int,
+    part_number: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Part pricing breakdown page (protected)"""
-    result = await db.execute(select(Part).where(Part.id == part_id))
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
     part = result.scalar_one_or_none()
 
     if not part:

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Material Norms - GESTIMA{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem;">⚙️ Material Norms</h1>
+
+    <!-- Simple table without Alpine.js -->
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <thead style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+            <tr>
+                <th style="text-align: left; padding: 0.75rem 1rem;">W.Nr</th>
+                <th style="text-align: left; padding: 0.75rem 1rem;">EN ISO</th>
+                <th style="text-align: left; padding: 0.75rem 1rem;">ČSN</th>
+                <th style="text-align: left; padding: 0.75rem 1rem;">AISI</th>
+                <th style="text-align: left; padding: 0.75rem 1rem;">Kategorie</th>
+                <th style="text-align: left; padding: 0.75rem 1rem;">Hustota</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for norm in norms %}
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.75rem 1rem;">{{ norm.w_nr or '-' }}</td>
+                <td style="padding: 0.75rem 1rem;">{{ norm.en_iso or '-' }}</td>
+                <td style="padding: 0.75rem 1rem;">{{ norm.csn or '-' }}</td>
+                <td style="padding: 0.75rem 1rem;">{{ norm.aisi or '-' }}</td>
+                <td style="padding: 0.75rem 1rem; font-weight: 500;">{{ norm.material_group.name }}</td>
+                <td style="padding: 0.75rem 1rem; color: var(--text-secondary);">{{ norm.material_group.density }} kg/dm³</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p style="margin-top: 2rem; color: var(--text-secondary); font-size: 0.9rem;">
+        Celkem: <strong>{{ norms|length }}</strong> material norms
+    </p>
+</div>
+{% endblock %}

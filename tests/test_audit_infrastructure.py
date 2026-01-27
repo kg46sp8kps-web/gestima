@@ -15,7 +15,9 @@ from app.db_helpers import soft_delete, restore, is_deleted, get_active, get_all
 
 @pytest.fixture
 async def db_session():
-    """Create isolated test database for each test (with seeded materials)"""
+    """Create isolated test database for each test (with seeded materials, ADR-014)"""
+    from app.models.material import MaterialPriceCategory, MaterialPriceTier
+
     # Use in-memory database for tests
     test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
@@ -28,18 +30,38 @@ async def db_session():
 
     # Provide session with seeded materials
     async with test_session() as session:
-        # Seed MaterialGroup and MaterialItem (ADR-011)
+        # Seed MaterialGroup (ADR-011)
         group = MaterialGroup(code="11xxx", name="Ocel automatová", density=7.85, created_by="test")
         session.add(group)
         await session.flush()
 
+        # Seed MaterialPriceCategory + Tiers (ADR-014)
+        price_category = MaterialPriceCategory(
+            code="TEST-OCEL",
+            name="Test ocel - kruhová tyč",
+            created_by="test"
+        )
+        session.add(price_category)
+        await session.flush()
+
+        tier = MaterialPriceTier(
+            price_category_id=price_category.id,
+            min_weight=0,
+            max_weight=None,
+            price_per_kg=45.50,
+            created_by="test"
+        )
+        session.add(tier)
+        await session.flush()
+
+        # Seed MaterialItem (ADR-014: uses price_category_id)
         item = MaterialItem(
             code="11SMn30-D50",
             name="11SMn30 ⌀50mm",
             material_group_id=group.id,
+            price_category_id=price_category.id,
             shape=StockShape.ROUND_BAR,
             diameter=50.0,
-            price_per_kg=45.50,
             created_by="test"
         )
         session.add(item)

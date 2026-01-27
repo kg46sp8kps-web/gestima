@@ -1,39 +1,76 @@
 # GESTIMA - CNC Cost Calculator
 
-**Verze:** 1.1.0
-**Datum:** 2026-01-25
+**Verze:** 1.5.0
+**Datum:** 2026-01-27
 **Status:** Production Ready
 
 Webová aplikace pro výpočet nákladů a časů obrábění na CNC strojích.
 
 ## 🚀 Quick Start
 
+### Dev Environment (laptop/desktop)
+
 ```bash
-# 1. Setup (1x)
+# 1. Clone repository
+git clone git@github.com:your-org/gestima.git
+cd gestima
+
+# 2. Setup venv + dependencies
 python3 gestima.py setup
 
-# 2. Run
+# 3. Seed demo data (reset DB + demo parts + demo admin)
+python3 gestima.py seed-demo
+
+# 4. Run
 python3 gestima.py run
 
-# 3. Open
+# 5. Open browser
 open http://localhost:8000
+
+# Login: demo / demo123
 ```
 
-**Or:**
+### Production Deployment (Windows firma-PC)
+
+**⚡ Quick Setup (30 min):** [PRODUCTION-SETUP.md](PRODUCTION-SETUP.md) 📘
+
 ```bash
-./run.sh
+# 1. Install Python + Git
+# 2. Clone repo
+git clone git@github.com:your-org/gestima.git
+cd C:\Gestima
+
+# 3. Setup
+python gestima.py setup
+
+# 4. Firewall
+cd scripts\windows
+.\setup_firewall.ps1
+
+# 5. Seed + Create users
+python -m app.seed_materials
+python scripts\seed_machines.py
+python gestima.py create-admin
+
+# 6. Autostart + Backup (Task Scheduler)
+# See: PRODUCTION-SETUP.md steps 13-14
 ```
+
+**Guides:**
+- **[PRODUCTION-SETUP.md](PRODUCTION-SETUP.md)** - Windows production checklist (30 min) ⚡
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete guide (Git from zero, dev/prod workflows, troubleshooting) 📚
 
 ## 📋 Dokumentace
 
 | Co hledáš? | Kde to je? |
 |-----------|-----------|
+| **Deployment Guide (Dev/Prod setup)** | [DEPLOYMENT.md](DEPLOYMENT.md) 🚀 |
 | **Quick Start (5 min)** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | **AI pravidla + P0/P1/P2 status** | [CLAUDE.md](CLAUDE.md) ⭐ |
 | **Kompletní specifikace** | [docs/GESTIMA_1.0_SPEC.md](docs/GESTIMA_1.0_SPEC.md) |
 | **Historie změn** | [CHANGELOG.md](CHANGELOG.md) 📋 |
 | **Architektonická rozhodnutí** | [docs/ADR/](docs/ADR/) |
-| **Další kroky (P2 Fáze C)** | [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) |
+| **Další kroky** | [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) |
 | **Testovací strategie** | [docs/TESTING.md](docs/TESTING.md) |
 | **Verzování** | [docs/VERSIONING.md](docs/VERSIONING.md) |
 | **API dokumentace** | http://localhost:8000/docs |

@@ -2,9 +2,13 @@
 
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, Optional
+import feedparser
+import random
+from fastapi import APIRouter, HTTPException, Request
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
+
+from app.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -12,14 +16,30 @@ router = APIRouter()
 
 
 # ============================================================================
+# RSS FEED SOURCES
+# ============================================================================
+
+RSS_SOURCES = [
+    "https://www.osel.cz/rss/rss.php",
+    "https://vtm.zive.cz/rss.ashx",
+    "https://www.irozhlas.cz/rss/irozhlas/section/veda-technologie",
+    "http://21stoleti.cz/feed/rss/"
+]
+
+
+# ============================================================================
 # RESPONSE MODELS
 # ============================================================================
 
-class FactResponse(BaseModel):
-    """Response pro Wikipedia fact"""
+class FactItem(BaseModel):
+    """Single fact item"""
     title: str
     text: str
     url: str
+
+class FactResponse(BaseModel):
+    """Response pro facts - contains 2 articles"""
+    facts: List[FactItem]
 
 
 class WeatherPeriod(BaseModel):
@@ -41,43 +61,84 @@ class WeatherResponse(BaseModel):
 # ============================================================================
 
 @router.get("/fact", response_model=FactResponse)
-async def get_fact() -> FactResponse:
+@limiter.limit("10/minute")
+async def get_fact(request: Request) -> FactResponse:
     """
-    Fetch random article from Czech Wikipedia.
+    Fetch 2 random articles from Czech RSS feeds.
+    Rotates between OSEL.cz, VTM.cz, iROZHLAS, and 21stoleti.cz.
     Returns truncated text (3-4 lines) + link to full article.
     """
+    facts = []
+
     try:
-        headers = {"User-Agent": "GESTIMA/1.0 (Educational App; Czech Republic)"}
+        # Randomly select a source
+        source_url = random.choice(RSS_SOURCES)
+
+        # Fetch RSS feed
         async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
-            response = await client.get(
-                "https://cs.wikipedia.org/api/rest_v1/page/random/summary",
-                headers=headers
-            )
+            response = await client.get(source_url)
             response.raise_for_status()
-            data = response.json()
+            feed_content = response.text
 
-            # Extract title, extract, and URL
-            title = data.get("title", "")
-            extract = data.get("extract", "Zajímavost se nepodařilo načíst.")
-            url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
+        # Parse RSS feed
+        feed = feedparser.parse(feed_content)
 
-            # Truncate extract to ~200 chars (3-4 lines)
-            max_length = 200
-            if len(extract) > max_length:
-                extract = extract[:max_length].rsplit(' ', 1)[0] + "..."
+        if not feed.entries:
+            raise ValueError("No entries in feed")
 
-            return {
+        # Get 2 random articles from the feed
+        available_entries = feed.entries[:20]  # Use first 20 entries (most recent)
+        selected_entries = random.sample(available_entries, min(2, len(available_entries)))
+
+        for entry in selected_entries:
+            title = entry.get("title", "Bez názvu")
+
+            # Get description/summary
+            text = entry.get("description", entry.get("summary", ""))
+
+            # Strip HTML tags if present
+            import re
+            text = re.sub(r'<[^>]+>', '', text)
+
+            # Truncate to ~150 chars (fit 2 articles)
+            max_length = 150
+            if len(text) > max_length:
+                text = text[:max_length].rsplit(' ', 1)[0] + "..."
+
+            url = entry.get("link", "")
+
+            facts.append({
                 "title": title,
-                "text": extract,
+                "text": text,
                 "url": url
-            }
+            })
+
+        # If we got less than 2, pad with fallback
+        while len(facts) < 2:
+            facts.append({
+                "title": "",
+                "text": "Zajímavost se nepodařilo načíst.",
+                "url": ""
+            })
+
+        return {"facts": facts}
 
     except httpx.TimeoutException:
-        logger.warning("Wiki API timeout")
-        return {"title": "", "text": "Zajímavost se načítá příliš dlouho...", "url": ""}
+        logger.warning("RSS feed timeout")
+        return {
+            "facts": [
+                {"title": "", "text": "Zajímavost se načítá příliš dlouho...", "url": ""},
+                {"title": "", "text": "Zajímavost se načítá příliš dlouho...", "url": ""}
+            ]
+        }
     except Exception as e:
-        logger.error(f"Wiki API error: {e}", exc_info=True)
-        return {"title": "", "text": "Zajímavost se nepodařilo načíst.", "url": ""}
+        logger.error(f"RSS feed error: {e}", exc_info=True)
+        return {
+            "facts": [
+                {"title": "", "text": "Zajímavost se nepodařilo načíst.", "url": ""},
+                {"title": "", "text": "Zajímavost se nepodařilo načíst.", "url": ""}
+            ]
+        }
 
 
 # ============================================================================
@@ -85,7 +146,8 @@ async def get_fact() -> FactResponse:
 # ============================================================================
 
 @router.get("/weather", response_model=WeatherResponse)
-async def get_weather() -> WeatherResponse:
+@limiter.limit("10/minute")
+async def get_weather(request: Request) -> WeatherResponse:
     """
     Fetch weather for Ústí nad Orlicí from Open-Meteo API.
     Returns morning (6:00), afternoon (12:00), evening (18:00) forecast.

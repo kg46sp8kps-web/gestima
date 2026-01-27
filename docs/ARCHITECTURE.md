@@ -1,6 +1,6 @@
 # GESTIMA - Architecture Overview
 
-**Verze:** 1.1 (2026-01-24)
+**Verze:** 1.2 (2026-01-25)
 **Účel:** Rychlá orientace v projektu (5 minut k pochopení)
 
 ---
@@ -14,10 +14,14 @@ Backend: Python 3.9+, Frontend: Server-rendered HTML
 
 **Hierarchie entit:**
 ```
+MaterialGroup (Kategorie materiálů)
+  └─ MaterialItem (1:N) - konkrétní polotovary s cenami
+
 Part (Díl)
   ├─ Operations (1:N) - technologické kroky
   │    └─ Features (1:N) - konkrétní úkony s geometrií
-  └─ Batches (1:N) - cenové kalkulace pro dávky
+  ├─ Batches (1:N) - cenové kalkulace pro dávky
+  └─ MaterialItem (N:1) - vazba na polotovar
 ```
 
 ---
@@ -48,10 +52,13 @@ gestima/
 | Výpočty cen | services/price_calculator.py |
 | Výpočty časů | services/time_calculator.py |
 | Backup/restore DB | services/backup_service.py |
+| Snapshots (freeze) | services/snapshot_service.py |
 | API díly | routers/parts_router.py |
 | API operace | routers/operations_router.py |
+| API materiály | routers/materials_router.py |
 | API auth | routers/auth_router.py |
 | DB modely | models/*.py |
+| DB helpers | db_helpers.py (soft_delete, safe_commit, set_audit) |
 | HTML šablony | templates/*.html |
 | Frontend logika | static/main.js (Alpine.js) |
 | Testy | tests/test_*.py |
@@ -140,6 +147,10 @@ Alpine.js: Update UI + recalculate features
 | **JWT + HttpOnly Cookie** | Security (XSS/CSRF protection) | ADR-005 |
 | **Role Hierarchy** | Admin >= Operator >= Viewer | ADR-006 |
 | **HTTPS via Caddy** | TLS termination + reverse proxy | ADR-007 |
+| **Optimistic Locking** | Conflict detection via version | ADR-008 |
+| **Material Hierarchy** | Two-tier: Group → Item | ADR-011 |
+| **Minimal Snapshot** | Freeze batch prices | ADR-012 |
+| **localStorage for UI** | Zero latency, KISS | ADR-013 |
 | **Async SQLAlchemy** | Performance + modern Python | N/A |
 | **Server-side rendering** | SEO + simplicity | N/A |
 
@@ -237,6 +248,6 @@ UI: Update price ribbons
 
 ---
 
-**Verze:** 1.1
-**Poslední update:** 2026-01-24
+**Verze:** 1.2
+**Poslední update:** 2026-01-25
 **Autor:** Auto-generated

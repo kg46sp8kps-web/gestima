@@ -210,14 +210,69 @@ for b in list_backups():
 
     @staticmethod
     def seed_demo():
-        """Vytvoř demo data (parts)"""
+        """Resetuj databázi a vytvoř kompletní demo environment"""
         if not Gestima.check_venv():
             sys.exit(1)
 
-        print("🌱 GESTIMA - Seed Demo Data")
+        print("🌱 GESTIMA - Seed Demo Environment")
+        print("")
+        print("⚠️  WARNING: This will RESET the database!")
         print("")
 
+        confirm = input("Type 'yes' to confirm: ").strip().lower()
+        if confirm != "yes":
+            print("❌ Seed cancelled")
+            sys.exit(1)
+
+        print("")
+        print("✓ Initializing database schema...")
+
         os.chdir(PROJECT_DIR)
+
+        # Init DB schema
+        result = subprocess.run([
+            str(VENV_PYTHON), "-c",
+            """
+import asyncio
+from app.database import init_db
+
+asyncio.run(init_db())
+print("✅ Database schema initialized")
+"""
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+        # Seed materials
+        print("✓ Seeding materials...")
+        result = subprocess.run([
+            str(VENV_PYTHON), "-m", "app.seed_materials"
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+        # Seed machines
+        print("✓ Seeding machines...")
+        result = subprocess.run([
+            str(VENV_PYTHON), "scripts/seed_machines.py"
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+        # Seed demo parts
+        print("✓ Seeding demo parts...")
+        result = subprocess.run([
+            str(VENV_PYTHON), "scripts/seed_complete_part.py"
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
+        # Create demo admin user
+        print("✓ Creating demo admin user...")
         result = subprocess.run([
             str(VENV_PYTHON), "-c",
             """
@@ -225,19 +280,41 @@ import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
-from app.seed_data import seed_demo_parts
+from app.services.auth_service import create_user
+from app.models import UserRole
 
-async def _seed():
+async def _create_demo_admin():
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as db:
-        await seed_demo_parts(db)
-        print("✅ Demo data created")
+        try:
+            user = await create_user(
+                db=db,
+                username='demo',
+                password='demo123',
+                role=UserRole.ADMIN
+            )
+            print(f"✅ Demo admin created: {user.username} / demo123")
+        except Exception as e:
+            if "UNIQUE constraint" in str(e):
+                print("✅ Demo admin already exists")
+            else:
+                raise
 
-asyncio.run(_seed())
+asyncio.run(_create_demo_admin())
 """
         ])
+
+        print("")
+        print("✅ Demo environment ready!")
+        print("")
+        print("Login credentials:")
+        print("  Username: demo")
+        print("  Password: demo123")
+        print("")
+        print("Run: python gestima.py run")
+        print("")
 
         if result.returncode != 0:
             sys.exit(1)
@@ -318,7 +395,7 @@ else:
         ])
 
     @staticmethod
-    def backup_restore(backup_name: str):
+    def restore(backup_name: str):
         """Obnov databázi ze zálohy"""
         if not Gestima.check_venv():
             sys.exit(1)
@@ -342,9 +419,13 @@ from pathlib import Path
 from app.config import settings
 from app.services.backup_service import restore_backup
 
-backup_path = settings.BASE_DIR / "backups" / "{backup_name}"
+backup_path = Path("{backup_name}")
 if not backup_path.exists():
-    print(f"❌ Backup not found: {{backup_path}}")
+    # Try in backups/ folder
+    backup_path = settings.BASE_DIR / "backups" / "{backup_name}"
+
+if not backup_path.exists():
+    print(f"❌ Backup not found: {backup_name}")
     exit(1)
 
 restore_backup(backup_path)
@@ -358,35 +439,104 @@ print("⚠️  Restart the application to apply changes.")
             sys.exit(1)
 
     @staticmethod
+    def deploy():
+        """Deploy workflow helper (git pull + restart instructions)"""
+        if not Gestima.check_venv():
+            sys.exit(1)
+
+        print("🚀 GESTIMA - Deploy Workflow")
+        print("")
+        print("This will pull latest code from Git and guide you through restart.")
+        print("")
+
+        # Check if in Git repo
+        if not (PROJECT_DIR / ".git").exists():
+            print("❌ Not a Git repository!")
+            print("   Initialize Git first: git init && git remote add origin <url>")
+            sys.exit(1)
+
+        # Git pull
+        print("✓ Pulling latest code from Git...")
+        result = subprocess.run(["git", "pull", "origin", "main"], cwd=PROJECT_DIR)
+
+        if result.returncode != 0:
+            print("")
+            print("❌ Git pull failed!")
+            print("   Fix conflicts and try again.")
+            sys.exit(1)
+
+        print("")
+        print("✅ Code updated successfully!")
+        print("")
+        print("Next steps:")
+        print("")
+        print("  1. Restart the application:")
+        print("     - Windows Task Scheduler: schtasks /run /tn \"GESTIMA\"")
+        print("     - Manual: Ctrl+C in console → python gestima.py run")
+        print("")
+        print("  2. Verify health check:")
+        print("     curl http://localhost:8000/health")
+        print("")
+        print("  3. Test in browser:")
+        print("     http://localhost:8000")
+        print("")
+
+    @staticmethod
     def help():
         """Zobraz dostupné příkazy"""
-        print("GESTIMA 1.1 - CLI Helper")
+        print("GESTIMA 1.5 - CLI Helper")
         print("")
         print("Usage: python3 gestima.py [command]")
         print("")
         print("Commands:")
         print("  setup           Inicializuj venv a instaluj dependencies")
         print("  run             Spusť aplikaci (http://localhost:8000)")
+        print("")
+        print("Dev/Prod Workflow:")
+        print("  seed-demo       Reset DB + seed kompletní demo environment")
+        print("  deploy          Pull latest code + restart instructions")
+        print("  restore <file>  Restore databázi ze zálohy")
+        print("")
+        print("User Management:")
         print("  create-admin    Vytvoř admin uživatele (username + password)")
-        print("  seed-demo       Vytvoř demo data (3 vzorové díly)")
-        print("  clean-demo      Smaž všechny demo data")
+        print("")
+        print("Data Management:")
+        print("  clean-demo      Smaž všechny demo data (parts)")
         print("  backup          Vytvoř zálohu databáze")
         print("  backup-list     Zobraz dostupné zálohy")
-        print("  backup-restore  Obnov databázi ze zálohy")
+        print("")
+        print("Testing:")
         print("  test            Spusť všechny testy")
         print("  test-critical   Spusť pouze kritické testy")
+        print("")
+        print("Other:")
         print("  shell           Interactive Python shell s venv")
         print("  help            Zobraz tuto zprávu")
         print("")
         print("Examples:")
+        print("")
+        print("  # First-time setup")
         print("  python3 gestima.py setup")
-        print("  python3 gestima.py create-admin")
+        print("  python3 gestima.py seed-demo          # Reset DB + demo data + demo admin")
         print("  python3 gestima.py run")
-        print("  python3 gestima.py seed-demo          # Vytvoří DEMO-001, DEMO-002, DEMO-003")
-        print("  python3 gestima.py clean-demo         # Smaže všechny DEMO díly")
+        print("")
+        print("  # Development workflow")
+        print("  python3 gestima.py test               # Run tests")
+        print("  git commit && git push")
+        print("")
+        print("  # Production deployment")
+        print("  python3 gestima.py deploy             # Git pull + restart guide")
+        print("")
+        print("  # Testing with production data")
+        print("  python3 gestima.py restore backup.db.gz")
+        print("  python3 gestima.py run")
+        print("  python3 gestima.py seed-demo          # Reset back to demo")
+        print("")
+        print("  # Backup management")
         print("  python3 gestima.py backup")
-        print("  python3 gestima.py backup-restore gestima_backup_20260123_120000.db.gz")
-        print("  python3 gestima.py test -k 'test_pricing'")
+        print("  python3 gestima.py backup-list")
+        print("")
+        print("See DEPLOYMENT.md for complete deployment guide.")
         print("")
 
 def main():
@@ -412,11 +562,20 @@ def main():
         Gestima.backup()
     elif command == "backup-list":
         Gestima.backup_list()
-    elif command == "backup-restore":
+    elif command == "restore":
         if not args:
-            print("❌ Usage: python3 gestima.py backup-restore <backup_name>")
+            print("❌ Usage: python3 gestima.py restore <backup_file>")
+            print("   Example: python3 gestima.py restore gestima_backup_20260127.db.gz")
             sys.exit(1)
-        Gestima.backup_restore(args[0])
+        Gestima.restore(args[0])
+    elif command == "backup-restore":
+        # Legacy alias for 'restore'
+        if not args:
+            print("❌ Usage: python3 gestima.py restore <backup_file>")
+            sys.exit(1)
+        Gestima.restore(args[0])
+    elif command == "deploy":
+        Gestima.deploy()
     elif command == "test":
         Gestima.test(*args)
     elif command == "test-critical":

@@ -30,7 +30,8 @@ from app.routers import (
     config_router,
     data_router,
     pages_router,
-    misc_router
+    misc_router,
+    admin_router
 )
 from app.database import async_session, engine, close_db
 
@@ -137,6 +138,7 @@ app.include_router(machines_router.router, prefix="/api/machines", tags=["Machin
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
+app.include_router(admin_router.router, prefix="/admin", tags=["Admin"])
 app.include_router(pages_router.router, tags=["Pages"])
 
 

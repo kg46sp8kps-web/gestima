@@ -274,10 +274,10 @@ function partForm() {
                 
                 // Toast notifikace
                 window.showToast('✅ Díl byl vytvořen', 'success');
-                
+
                 // Přesměrování na editaci (kde se budou přidávat operace)
                 setTimeout(() => {
-                    window.location.href = `/parts/${data.id}/edit`;
+                    window.location.href = `/parts/${data.part_number}/edit`;
                 }, 500);
                 
             } catch (error) {

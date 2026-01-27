@@ -19,13 +19,20 @@ async def seed():
 
     async with async_session() as db:
         # 1. Načti materiál
-        material = (await db.execute(select(MaterialItem).where(MaterialItem.deleted_at.is_(None)).limit(1))).scalar_one_or_none()
+        from sqlalchemy.orm import selectinload as si
+        material = (await db.execute(
+            select(MaterialItem)
+            .options(si(MaterialItem.group), si(MaterialItem.price_category))
+            .where(MaterialItem.deleted_at.is_(None))
+            .limit(1)
+        )).scalar_one_or_none()
         if not material:
-            print("❌ Chybí materiály. Spusť: ./venv/bin/python scripts/seed_materials.py")
+            print("❌ Chybí materiály. Spusť: python -m scripts.seed_materials")
             return
 
-        material_group = (await db.execute(select(MaterialGroup).where(MaterialGroup.id == material.material_group_id))).scalar_one()
-        print(f"✅ Materiál: {material.code} ({material.price_per_kg} Kč/kg, {material_group.density} kg/dm³)")
+        material_group = material.group
+        price_category = material.price_category
+        print(f"✅ Materiál: {material.code} (kategorie: {price_category.code}, hustota: {material_group.density} kg/dm³)")
 
         # 2. Načti stroje
         machines = (await db.execute(select(MachineDB).where(MachineDB.deleted_at.is_(None), MachineDB.active == True))).scalars().all()
@@ -35,9 +42,9 @@ async def seed():
 
         lathe = next((m for m in machines if m.type == 'lathe'), machines[0])
         mill = next((m for m in machines if m.type == 'mill'), None)
-        print(f"✅ Soustruh: {lathe.code} ({lathe.hourly_rate} Kč/h)")
+        print(f"✅ Soustruh: {lathe.code} ({lathe.hourly_rate_operation} Kč/h)")
         if mill:
-            print(f"✅ Frézka: {mill.code} ({mill.hourly_rate} Kč/h)")
+            print(f"✅ Frézka: {mill.code} ({mill.hourly_rate_operation} Kč/h)")
 
         # 3. Vytvoř díl
         part = Part(
@@ -85,27 +92,29 @@ async def seed():
             select(Part)
             .where(Part.id == part.id)
             .options(
-                selectinload(Part.material_item).selectinload(MaterialItem.group)
+                selectinload(Part.material_item).selectinload(MaterialItem.group),
+                selectinload(Part.material_item).selectinload(MaterialItem.price_category)
             )
         )).scalar_one()
 
-        # 6. Vypočti material cost
-        stock_cost_result = calculate_stock_cost_from_part(part_with_relations)
-        material_cost = stock_cost_result.cost
-
-        # 7. Připrav data pro batch výpočty
+        # 6. Připrav data pro batch výpočty
         operations_list = [
             {"machine_id": lathe.id, "operation_time_min": 8.5, "setup_time_min": 15.0, "is_coop": False}
         ]
-        machines_dict = {lathe.id: {"hourly_rate": lathe.hourly_rate}}
+        machines_dict = {lathe.id: {"hourly_rate": lathe.hourly_rate_operation}}
 
         if mill:
             operations_list.append({"machine_id": mill.id, "operation_time_min": 5.0, "setup_time_min": 10.0, "is_coop": False})
-            machines_dict[mill.id] = {"hourly_rate": mill.hourly_rate}
+            machines_dict[mill.id] = {"hourly_rate": mill.hourly_rate_operation}
 
-        # 8. Batche
-        print(f"\n📦 Batche (materiál: {material_cost:.2f} Kč/ks):")
+        # 7. Batche (ADR-014: material cost depends on quantity → compute for each batch)
+        print(f"\n📦 Batche:")
         for quantity, is_default in [(1, True), (10, False), (100, False)]:
+            # Vypočti material cost pro tento batch (price tier depends on quantity)
+            stock_cost_result = await calculate_stock_cost_from_part(part_with_relations, quantity, db)
+            material_cost = stock_cost_result.cost
+            price_per_kg = stock_cost_result.price_per_kg
+
             prices = calculate_batch_prices(quantity, material_cost, operations_list, machines_dict)
             # Vypočti total time (tp + tj/qty) pro všechny operace
             total_time = sum(op["operation_time_min"] + (op["setup_time_min"] / quantity) for op in operations_list)
@@ -122,7 +131,8 @@ async def seed():
                 is_frozen=False, created_by="seed", updated_by="seed"
             )
             db.add(batch)
-            print(f"   ✅ {quantity:3d} ks: {batch.unit_cost:7.2f} Kč/ks (mat: {batch.material_cost:.2f}, výr: {batch.machining_cost:.2f}, set: {batch.setup_cost:.2f})")
+            total_weight_kg = stock_cost_result.weight_kg * quantity
+            print(f"   ✅ {quantity:3d} ks: {batch.unit_cost:7.2f} Kč/ks (mat: {batch.material_cost:.2f} @ {price_per_kg:.1f} Kč/kg, váha: {total_weight_kg:.1f}kg)")
 
         await db.commit()
 

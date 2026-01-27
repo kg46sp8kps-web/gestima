@@ -1,5 +1,6 @@
 """GESTIMA - CuttingCondition model"""
 
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, String, Float
@@ -66,3 +67,5 @@ class CuttingConditionResponse(CuttingConditionBase):
     """Schema for returning cutting condition"""
     id: int
     version: int
+    created_at: datetime
+    updated_at: datetime

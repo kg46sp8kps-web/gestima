@@ -24,7 +24,9 @@ async def get_features(
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
-        select(Feature).where(Feature.operation_id == operation_id).order_by(Feature.seq)
+        select(Feature)
+        .where(Feature.operation_id == operation_id, Feature.deleted_at.is_(None))
+        .order_by(Feature.seq)
     )
     return result.scalars().all()
 
@@ -101,7 +103,7 @@ async def update_feature(
         raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci kroku")
 
 
-@router.delete("/{feature_id}")
+@router.delete("/{feature_id}", status_code=204)
 async def delete_feature(
     feature_id: int,
     db: AsyncSession = Depends(get_db),

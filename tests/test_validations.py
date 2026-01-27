@@ -162,7 +162,7 @@ class TestOperationValidations:
 
 
 class TestMaterialValidations:
-    """Testy validací pro Material modely (již existující)"""
+    """Testy validací pro Material modely (ADR-014: price_per_kg removed, price_category_id required)"""
 
     def test_material_group_density_positive(self):
         """density musí být > 0"""
@@ -171,8 +171,8 @@ class TestMaterialValidations:
             MaterialGroupCreate(code="TEST", name="Test", density=0)
         assert "density" in str(exc_info.value)
 
-    def test_material_item_price_positive(self):
-        """price_per_kg musí být > 0"""
+    def test_material_item_price_category_required(self):
+        """price_category_id je povinný (ADR-014)"""
         from app.models.material import MaterialItemCreate
         from app.models.enums import StockShape
         with pytest.raises(ValidationError) as exc_info:
@@ -180,7 +180,21 @@ class TestMaterialValidations:
                 code="TEST",
                 name="Test",
                 shape=StockShape.ROUND_BAR,
-                price_per_kg=0,
                 material_group_id=1
+                # price_category_id missing - should fail
             )
-        assert "price_per_kg" in str(exc_info.value)
+        assert "price_category_id" in str(exc_info.value)
+
+    def test_material_item_valid_data(self):
+        """Validní MaterialItem data projdou (ADR-014)"""
+        from app.models.material import MaterialItemCreate
+        from app.models.enums import StockShape
+        item = MaterialItemCreate(
+            code="TEST",
+            name="Test Material",
+            shape=StockShape.ROUND_BAR,
+            material_group_id=1,
+            price_category_id=1
+        )
+        assert item.code == "TEST"
+        assert item.price_category_id == 1

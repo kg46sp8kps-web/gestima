@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.database import async_session
-from app.models.material import MaterialDB
+from app.models.material import MaterialGroup
 
 
 # Materiály podle tabulky od Ladislava
@@ -144,7 +144,7 @@ async def seed_materials():
     async with async_session() as session:
         # Zkontrolovat jestli už nejsou materiály v DB
         from sqlalchemy import select
-        result = await session.execute(select(MaterialDB))
+        result = await session.execute(select(MaterialGroup))
         existing = result.scalars().all()
         
         if existing:
@@ -163,7 +163,7 @@ async def seed_materials():
         
         # Přidat nové materiály
         for mat_data in MATERIALS:
-            material = MaterialDB(**mat_data)
+            material = MaterialGroup(**mat_data)
             session.add(material)
         
         await session.commit()

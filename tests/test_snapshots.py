@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.models.batch import Batch
 from app.models.part import Part
-from app.models.material import MaterialGroup, MaterialItem
+from app.models.material import MaterialGroup, MaterialItem, MaterialPriceCategory, MaterialPriceTier
 from app.models import User, UserRole
 from app.routers.batches_router import freeze_batch, clone_batch, delete_batch
 
@@ -43,7 +43,7 @@ def mock_admin():
 
 @pytest_asyncio.fixture
 async def sample_materials(db_session):
-    """Create sample material group and item"""
+    """Create sample material group and item (ADR-014: uses price_category_id)"""
     group = MaterialGroup(
         code="11000",
         name="Ocel",
@@ -54,13 +54,33 @@ async def sample_materials(db_session):
     await db_session.commit()
     await db_session.refresh(group)
 
+    # Create price category + tier (ADR-014)
+    price_category = MaterialPriceCategory(
+        code="SNAPSHOT-TEST",
+        name="Snapshot test category",
+        created_by="test"
+    )
+    db_session.add(price_category)
+    await db_session.commit()
+    await db_session.refresh(price_category)
+
+    tier = MaterialPriceTier(
+        price_category_id=price_category.id,
+        min_weight=0,
+        max_weight=None,
+        price_per_kg=80.0,
+        created_by="test"
+    )
+    db_session.add(tier)
+    await db_session.commit()
+
     item = MaterialItem(
         code="11300",
         name="Ocel konstrukční",
         material_group_id=group.id,
+        price_category_id=price_category.id,
         shape="round_bar",
         diameter=50.0,
-        price_per_kg=80.0,
         created_by="test"
     )
     db_session.add(item)
@@ -264,3 +284,82 @@ async def test_price_stability_after_freeze(db_session, sample_batch, sample_mat
     assert frozen.snapshot_data["metadata"]["material_price_per_kg"] == 80.0  # Stará cena
     assert frozen.snapshot_data["costs"]["unit_cost"] == 480.0  # Stará cena
     assert frozen.unit_price_frozen == 480.0  # Redundantní sloupec nezměněn
+
+
+# ============================================================================
+# WARNING VALIDATION TESTS
+# ============================================================================
+
+@pytest.mark.asyncio
+@pytest.mark.critical
+async def test_freeze_with_zero_price_logs_warning(db_session, sample_batch, sample_materials, mock_user):
+    """Test zmrazení batche s nulovou cenou materiálu - očekáváme warning v snapshotu"""
+    _, material_item = sample_materials
+
+    # Nastavit cenu materiálu na 0 (což povede k material_cost = 0)
+    material_item.price_per_kg = 0.0
+    sample_batch.material_cost = 0.0  # Výsledek výpočtu s nulovou cenou
+    await db_session.commit()
+
+    # Zmrazit batch
+    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+
+    # Zkontrolovat, že snapshot obsahuje warnings
+    assert frozen.snapshot_data is not None
+    assert "warnings" in frozen.snapshot_data
+    warnings = frozen.snapshot_data["warnings"]
+    assert len(warnings) > 0
+
+    # Zkontrolovat konkrétní warning o nákladech na materiál
+    material_warning = [w for w in warnings if "Náklady na materiál" in w]
+    assert len(material_warning) == 1
+    assert "0.0 Kč" in material_warning[0]
+
+    # Freeze by měl proběhnout i s warningem (neblokovat)
+    assert frozen.is_frozen is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.critical
+async def test_freeze_with_zero_costs_logs_warnings(db_session, sample_batch, mock_user):
+    """Test zmrazení batche s nulovými náklady - očekáváme warnings v snapshotu"""
+    # Nastavit náklady na 0
+    sample_batch.material_cost = 0.0
+    sample_batch.machining_cost = 0.0
+    sample_batch.total_cost = 0.0
+    await db_session.commit()
+
+    # Zmrazit batch
+    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+
+    # Zkontrolovat, že snapshot obsahuje warnings
+    assert frozen.snapshot_data is not None
+    assert "warnings" in frozen.snapshot_data
+    warnings = frozen.snapshot_data["warnings"]
+    assert len(warnings) >= 3  # Minimálně 3 warnings (material, machining, total)
+
+    # Zkontrolovat konkrétní warnings
+    assert any("Náklady na materiál: 0.0 Kč" in w for w in warnings)
+    assert any("Náklady na obrábění: 0.0 Kč" in w for w in warnings)
+    assert any("Celkové náklady: 0.0 Kč" in w for w in warnings)
+
+    # Freeze by měl proběhnout i s warningy (neblokovat)
+    assert frozen.is_frozen is True
+
+
+@pytest.mark.asyncio
+async def test_freeze_with_valid_data_no_warnings(db_session, sample_batch, mock_user):
+    """Test zmrazení batche s validními daty - očekáváme prázdný seznam warnings"""
+    # sample_batch má validní data (cena 80.0, material_cost 250.0, atd.)
+
+    # Zmrazit batch
+    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+
+    # Zkontrolovat, že snapshot neobsahuje warnings
+    assert frozen.snapshot_data is not None
+    assert "warnings" in frozen.snapshot_data
+    warnings = frozen.snapshot_data["warnings"]
+    assert len(warnings) == 0  # Žádné warnings
+
+    # Freeze by měl proběhnout normálně
+    assert frozen.is_frozen is True

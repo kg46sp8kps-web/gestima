@@ -6,14 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import get_db
 from app.db_helpers import set_audit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse, PartFullResponse, StockCostResponse
-from app.models.material import MaterialItem
+from app.models.material import MaterialItem, MaterialPriceCategory
 from app.services.price_calculator import (
     calculate_stock_cost_from_part,
     calculate_part_price,
@@ -85,14 +85,14 @@ async def search_parts(
     }
 
 
-@router.get("/{part_id}", response_model=PartResponse)
+@router.get("/{part_number}", response_model=PartResponse)
 async def get_part(
-    part_id: int,
+    part_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
-        select(Part).where(Part.id == part_id, Part.deleted_at.is_(None))
+        select(Part).where(Part.part_number == part_number, Part.deleted_at.is_(None))
     )
     part = result.scalar_one_or_none()
     if not part:
@@ -106,13 +106,26 @@ async def create_part(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    # Kontrola duplicitního čísla dílu
-    result = await db.execute(select(Part).where(Part.part_number == data.part_number))
-    existing = result.scalar_one_or_none()
-    if existing:
-        raise HTTPException(status_code=400, detail=f"Díl s číslem '{data.part_number}' již existuje")
+    from app.services.number_generator import NumberGenerator, NumberGenerationError
 
-    part = Part(**data.model_dump())
+    # Auto-generate part_number if not provided
+    if not data.part_number:
+        try:
+            part_number = await NumberGenerator.generate_part_number(db)
+        except NumberGenerationError as e:
+            logger.error(f"Failed to generate part number: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo dílu. Zkuste to znovu.")
+    else:
+        part_number = data.part_number
+        # Kontrola duplicitního čísla dílu (pokud zadáno ručně)
+        result = await db.execute(select(Part).where(Part.part_number == part_number))
+        existing = result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Díl s číslem '{part_number}' již existuje")
+
+    # Create part with generated/provided number
+    part_data = data.model_dump(exclude={'part_number'})
+    part = Part(part_number=part_number, **part_data)
     set_audit(part, current_user.username)  # Audit trail helper (db_helpers.py)
     db.add(part)
 
@@ -131,21 +144,21 @@ async def create_part(
         raise HTTPException(status_code=500, detail="Chyba databáze při vytváření dílu")
 
 
-@router.put("/{part_id}", response_model=PartResponse)
+@router.put("/{part_number}", response_model=PartResponse)
 async def update_part(
-    part_id: int,
+    part_number: str,
     data: PartUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    result = await db.execute(select(Part).where(Part.id == part_id))
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
     # Optimistic locking check (ADR-008)
     if part.version != data.version:
-        logger.warning(f"Version conflict updating part {part_id}: expected {data.version}, got {part.version}", extra={"part_id": part_id, "user": current_user.username})
+        logger.warning(f"Version conflict updating part {part_number}: expected {data.version}, got {part.version}", extra={"part_number": part_number, "user": current_user.username})
         raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
 
     # Update fields (exclude version - it's auto-incremented by event listener)
@@ -157,26 +170,26 @@ async def update_part(
     try:
         await db.commit()
         await db.refresh(part)
-        logger.info(f"Updated part: {part.part_number}", extra={"part_id": part.id, "user": current_user.username})
+        logger.info(f"Updated part: {part.part_number}", extra={"part_number": part_number, "user": current_user.username})
         return part
     except IntegrityError as e:
         await db.rollback()
-        logger.error(f"Integrity error updating part {part_id}: {e}", exc_info=True)
+        logger.error(f"Integrity error updating part {part_number}: {e}", exc_info=True)
         raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní záznam nebo neplatné reference)")
     except SQLAlchemyError as e:
         await db.rollback()
-        logger.error(f"Database error updating part {part_id}: {e}", exc_info=True)
+        logger.error(f"Database error updating part {part_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci dílu")
 
 
-@router.post("/{part_id}/duplicate", response_model=PartResponse)
+@router.post("/{part_number}/duplicate", response_model=PartResponse)
 async def duplicate_part(
-    part_id: int,
+    part_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
     """Duplikovat díl s novým part_number (přidá suffix -COPY-N)"""
-    result = await db.execute(select(Part).where(Part.id == part_id))
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
     original = result.scalar_one_or_none()
     if not original:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
@@ -218,7 +231,7 @@ async def duplicate_part(
         try:
             await db.commit()
             await db.refresh(new_part)
-            logger.info(f"Duplicated part {part_id} → {new_part.id}", extra={"part_id": new_part.id, "user": current_user.username})
+            logger.info(f"Duplicated part {part_number} → {new_part.part_number}", extra={"part_number": new_part.part_number, "user": current_user.username})
             return new_part
         except IntegrityError:
             await db.rollback()
@@ -228,63 +241,68 @@ async def duplicate_part(
             continue
         except SQLAlchemyError as e:
             await db.rollback()
-            logger.error(f"Error duplicating part {part_id}: {e}", exc_info=True)
+            logger.error(f"Error duplicating part {part_number}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail="Chyba databáze při duplikaci dílu")
 
 
-@router.delete("/{part_id}", status_code=204)
+@router.delete("/{part_number}", status_code=204)
 async def delete_part(
-    part_id: int,
+    part_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
-    result = await db.execute(select(Part).where(Part.id == part_id))
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    part_number = part.part_number
     await db.delete(part)
 
     try:
         await db.commit()
-        logger.info(f"Deleted part: {part_number}", extra={"part_id": part_id, "user": current_user.username})
+        logger.info(f"Deleted part: {part_number}", extra={"part_number": part_number, "user": current_user.username})
         return {"message": "Díl smazán"}
     except IntegrityError as e:
         await db.rollback()
-        logger.error(f"Integrity error deleting part {part_id}: {e}", exc_info=True)
+        logger.error(f"Integrity error deleting part {part_number}: {e}", exc_info=True)
         raise HTTPException(status_code=409, detail="Nelze smazat díl - existují závislé záznamy (operace, dávky)")
     except SQLAlchemyError as e:
         await db.rollback()
-        logger.error(f"Database error deleting part {part_id}: {e}", exc_info=True)
+        logger.error(f"Database error deleting part {part_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při mazání dílu")
 
 
-@router.get("/{part_id}/full")
+@router.get("/{part_number}/full")
 async def get_part_full(
-    part_id: int,
+    part_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Vrátí Part s eager-loaded MaterialItem + Group"""
+    """Vrátí Part s eager-loaded MaterialPriceCategory + MaterialGroup (Migration 2026-01-26)"""
     result = await db.execute(
         select(Part)
-        .options(joinedload(Part.material_item).joinedload(MaterialItem.group))
-        .where(Part.id == part_id)
+        .options(
+            joinedload(Part.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category),
+            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group)
+        )
+        .where(Part.part_number == part_number)
     )
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    # Manual serialization to include nested objects
+    # Manual serialization to include nested objects (Migration 2026-01-26: + price_category + stock_shape)
     return {
         "id": part.id,
         "part_number": part.part_number,
         "article_number": part.article_number,
         "name": part.name,
         "material_item_id": part.material_item_id,
+        "price_category_id": part.price_category_id,
         "length": part.length,
         "notes": part.notes,
+        "stock_shape": part.stock_shape.value if part.stock_shape else None,
         "stock_diameter": part.stock_diameter,
         "stock_length": part.stock_length,
         "stock_width": part.stock_width,
@@ -302,48 +320,67 @@ async def get_part_full(
             "width": part.material_item.width,
             "thickness": part.material_item.thickness,
             "wall_thickness": part.material_item.wall_thickness,
-            "price_per_kg": part.material_item.price_per_kg,
             "supplier": part.material_item.supplier,
             "material_group_id": part.material_item.material_group_id,
+            "price_category_id": part.material_item.price_category_id,
             "group": {
                 "id": part.material_item.group.id,
                 "code": part.material_item.group.code,
                 "name": part.material_item.group.name,
                 "density": part.material_item.group.density,
             }
-        } if part.material_item else None
+        } if part.material_item else None,
+        "price_category": {
+            "id": part.price_category.id,
+            "code": part.price_category.code,
+            "name": part.price_category.name,
+            "material_group_id": part.price_category.material_group_id,
+            "material_group": {
+                "id": part.price_category.material_group.id,
+                "code": part.price_category.material_group.code,
+                "name": part.price_category.material_group.name,
+                "density": part.price_category.material_group.density,
+            } if part.price_category.material_group else None
+        } if part.price_category else None
     }
 
 
-@router.get("/{part_id}/stock-cost", response_model=StockCostResponse)
+@router.get("/{part_number}/stock-cost", response_model=StockCostResponse)
 async def get_stock_cost(
-    part_id: int,
+    part_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Výpočet ceny polotovaru (Python, ne JS) - L-001 compliant"""
+    """Výpočet ceny polotovaru (Python, ne JS) - L-001 compliant
+    Migration 2026-01-26: Podporuje Part.price_category (+ fallback na Part.material_item)
+    """
     result = await db.execute(
         select(Part)
         .options(
+            # Nové: Part.price_category.material_group + tiers
+            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.price_category).selectinload(MaterialPriceCategory.tiers),
+            # Fallback: Part.material_item.price_category + group + tiers
             joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category)
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category).selectinload(MaterialPriceCategory.tiers)
         )
-        .where(Part.id == part_id)
+        .where(Part.part_number == part_number)
     )
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    if not part.material_item:
+    # Migration 2026-01-26: Part může mít price_category místo material_item
+    if not part.price_category and not part.material_item:
         return StockCostResponse(volume_mm3=0, weight_kg=0, price_per_kg=0, cost=0, density=0)
 
     cost = await calculate_stock_cost_from_part(part, quantity=1, db=db)
     return cost
 
 
-@router.post("/{part_id}/copy-material-geometry")
+@router.post("/{part_number}/copy-material-geometry")
 async def copy_material_geometry(
-    part_id: int,
+    part_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
@@ -351,7 +388,7 @@ async def copy_material_geometry(
     result = await db.execute(
         select(Part)
         .options(joinedload(Part.material_item))
-        .where(Part.id == part_id)
+        .where(Part.part_number == part_number)
     )
     part = result.scalar_one_or_none()
     if not part:
@@ -372,11 +409,11 @@ async def copy_material_geometry(
     try:
         await db.commit()
         await db.refresh(part)
-        logger.info(f"Copied material geometry for part {part_id}", extra={"part_id": part_id, "user": current_user.username})
+        logger.info(f"Copied material geometry for part {part_number}", extra={"part_number": part_number, "user": current_user.username})
         return {"message": "Geometrie zkopírována", "version": part.version}
     except SQLAlchemyError as e:
         await db.rollback()
-        logger.error(f"Error copying material geometry for part {part_id}: {e}", exc_info=True)
+        logger.error(f"Error copying material geometry for part {part_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze")
 
 
@@ -455,9 +492,9 @@ class PriceBreakdownResponse(BaseModel):
         )
 
 
-@router.get("/{part_id}/pricing", response_model=PriceBreakdownResponse)
+@router.get("/{part_number}/pricing", response_model=PriceBreakdownResponse)
 async def get_part_pricing(
-    part_id: int,
+    part_number: str,
     quantity: int = Query(1, ge=1, description="Množství kusů"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -479,7 +516,7 @@ async def get_part_pricing(
             joinedload(Part.material_item).joinedload(MaterialItem.group),
             joinedload(Part.material_item).joinedload(MaterialItem.price_category)
         )
-        .where(Part.id == part_id)
+        .where(Part.part_number == part_number)
     )
     part = result.scalar_one_or_none()
     if not part:
@@ -489,9 +526,9 @@ async def get_part_pricing(
     return PriceBreakdownResponse.from_breakdown(breakdown)
 
 
-@router.get("/{part_id}/pricing/series", response_model=List[PriceBreakdownResponse])
+@router.get("/{part_number}/pricing/series", response_model=List[PriceBreakdownResponse])
 async def get_series_pricing(
-    part_id: int,
+    part_number: str,
     quantities: str = Query("1,10,50,100,500", description="CSV seznam množství"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -509,7 +546,7 @@ async def get_series_pricing(
             joinedload(Part.material_item).joinedload(MaterialItem.group),
             joinedload(Part.material_item).joinedload(MaterialItem.price_category)
         )
-        .where(Part.id == part_id)
+        .where(Part.part_number == part_number)
     )
     part = result.scalar_one_or_none()
     if not part:

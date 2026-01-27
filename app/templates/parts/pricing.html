@@ -79,7 +79,7 @@
 {% endblock %}
 
 {% block content %}
-<div x-data="pricingPage({{ part.id }})" style="max-width: 1400px; margin: 0 auto;">
+<div x-data="pricingPage({{ part.id }}, '{{ part.part_number }}')" style="max-width: 1400px; margin: 0 auto;">
     <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <div>
@@ -90,7 +90,7 @@
                 Díl: <strong>{{ part.part_number }}</strong> | {{ part.name or 'Bez názvu' }}
             </p>
         </div>
-        <a href="/parts/{{ part.id }}/edit" class="btn btn-secondary">
+        <a href="/parts/{{ part.part_number }}/edit" class="btn btn-secondary">
             ← Zpět na díl
         </a>
     </div>
@@ -250,9 +250,10 @@
 
 {% block scripts %}
 <script>
-function pricingPage(partId) {
+function pricingPage(partId, partNumber) {
     return {
         partId,
+        partNumber,
         loading: false,
         quantity: 1,
         pricing: null,
@@ -268,7 +269,7 @@ function pricingPage(partId) {
         async loadPricing() {
             this.loading = true;
             try {
-                const response = await fetch(`/api/parts/${this.partId}/pricing?quantity=${this.quantity}`);
+                const response = await fetch(`/api/parts/${this.partNumber}/pricing?quantity=${this.quantity}`);
                 if (!response.ok) throw new Error('API error');
                 this.pricing = await response.json();
             } catch (error) {
@@ -281,7 +282,7 @@ function pricingPage(partId) {
 
         async loadSeries() {
             try {
-                const response = await fetch(`/api/parts/${this.partId}/pricing/series?quantities=1,10,50,100,500`);
+                const response = await fetch(`/api/parts/${this.partNumber}/pricing/series?quantities=1,10,50,100,500`);
                 if (!response.ok) throw new Error('API error');
                 this.series = await response.json();
             } catch (error) {

@@ -13,8 +13,11 @@
     <div x-data="loginForm()" class="login-container" style="width: 100%; max-width: 700px;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 2rem;">
-            <div style="font-size: 2rem; font-weight: 700; letter-spacing: 0.5px;">
-                <span style="color: var(--accent-red);">GESTI</span><span style="color: var(--text-primary);">MA</span>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                <img src="/static/img/logo.png" alt="KOVO RYBKA" style="height: 48px; width: auto;">
+                <div style="font-size: 2rem; font-weight: 700; letter-spacing: 0.5px;">
+                    <span style="color: var(--accent-red);">GESTI</span><span style="color: var(--text-primary);">MA</span>
+                </div>
             </div>
         </div>
 
@@ -28,17 +31,31 @@
                 <div style="display: flex; min-height: 280px;">
                     <!-- Left Panel: Wiki Fact + Weather -->
                     <div style="width: 420px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column;">
-                        <!-- Wiki Fact Section -->
+                        <!-- Facts Section -->
                         <div style="flex: 1; padding: 0.8rem; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column;">
-                            <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem;">DENNÍ ČLÁNEK Z WIKIPEDIE</div>
-                            <div x-show="wiki.title">
-                                <div x-text="wiki.title" style="font-size: 0.8rem; color: var(--text-primary); font-weight: 600; margin-bottom: 0.4rem;"></div>
-                                <div x-text="wiki.text" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 0.5rem;"></div>
-                                <a :href="wiki.url" target="_blank" x-show="wiki.url" style="font-size: 0.7rem; color: var(--accent-red); text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem;">
-                                    Celý článek →
+                            <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem;">BRAIN FOOD</div>
+
+                            <!-- Fact 1 -->
+                            <template x-if="facts[0]?.title">
+                                <a :href="facts[0].url" target="_blank" style="text-decoration: none; display: block; padding: 0.4rem; margin: -0.4rem -0.4rem 0.5rem -0.4rem; border-radius: 4px; transition: background 0.15s;"
+                                   @mouseenter="$el.style.background = 'var(--bg-primary)'"
+                                   @mouseleave="$el.style.background = 'transparent'">
+                                    <div x-text="facts[0].title" style="font-size: 0.75rem; color: var(--text-primary); font-weight: 600; margin-bottom: 0.3rem;"></div>
+                                    <div x-text="facts[0].text" style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3;"></div>
                                 </a>
-                            </div>
-                            <div x-show="!wiki.title" style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Načítání...</div>
+                            </template>
+
+                            <!-- Fact 2 -->
+                            <template x-if="facts[1]?.title">
+                                <a :href="facts[1].url" target="_blank" style="text-decoration: none; display: block; padding: 0.4rem; margin: -0.4rem; border-radius: 4px; transition: background 0.15s;"
+                                   @mouseenter="$el.style.background = 'var(--bg-primary)'"
+                                   @mouseleave="$el.style.background = 'transparent'">
+                                    <div x-text="facts[1].title" style="font-size: 0.75rem; color: var(--text-primary); font-weight: 600; margin-bottom: 0.3rem;"></div>
+                                    <div x-text="facts[1].text" style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3;"></div>
+                                </a>
+                            </template>
+
+                            <div x-show="!facts[0]?.title" style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Načítání...</div>
                         </div>
 
                         <!-- Weather Section - Horizontal -->
@@ -135,11 +152,7 @@
                     password: ''
                 },
                 loading: false,
-                wiki: {
-                    title: null,
-                    text: '',
-                    url: ''
-                },
+                facts: [],
                 weather: {
                     location: null,
                     morning: { temp: '?', desc: '...', icon: '🌤️' },
@@ -159,18 +172,13 @@
                     try {
                         const response = await fetch('/api/misc/fact');
                         const data = await response.json();
-                        this.wiki = {
-                            title: data.title,
-                            text: data.text,
-                            url: data.url
-                        };
+                        this.facts = data.facts || [];
                     } catch (error) {
                         console.error('Fact fetch error:', error);
-                        this.wiki = {
-                            title: '',
-                            text: 'Zajímavost se nepodařilo načíst.',
-                            url: ''
-                        };
+                        this.facts = [
+                            { title: '', text: 'Zajímavost se nepodařilo načíst.', url: '' },
+                            { title: '', text: 'Zajímavost se nepodařilo načíst.', url: '' }
+                        ];
                     }
                 },
 
