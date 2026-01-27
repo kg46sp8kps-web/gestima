@@ -523,7 +523,8 @@ async def get_part_pricing(
         )
         .where(Part.part_number == part_number)
     )
-    part = result.scalar_one_or_none()
+    # unique() required when using joinedload with collections (tiers)
+    part = result.unique().scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
@@ -565,7 +566,8 @@ async def get_series_pricing(
         )
         .where(Part.part_number == part_number)
     )
-    part = result.scalar_one_or_none()
+    # unique() required when using joinedload with collections (tiers)
+    part = result.unique().scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
