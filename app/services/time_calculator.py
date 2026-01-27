@@ -57,9 +57,16 @@ class FeatureCalculator:
             diameter=geometry.get("to_diameter"),
         )
         
-        Vc = locked.get("Vc") or conditions.get("Vc") or DEFAULT_VC
-        f = locked.get("f") or conditions.get("f") or DEFAULT_FEED
-        Ap = locked.get("Ap") or conditions.get("Ap") or DEFAULT_AP
+        # AUDIT-FIX: Use 'is not None' instead of 'or' to preserve 0 as valid value
+        Vc = locked.get("Vc") if locked.get("Vc") is not None else (
+            conditions.get("Vc") if conditions.get("Vc") is not None else DEFAULT_VC
+        )
+        f = locked.get("f") if locked.get("f") is not None else (
+            conditions.get("f") if conditions.get("f") is not None else DEFAULT_FEED
+        )
+        Ap = locked.get("Ap") if locked.get("Ap") is not None else (
+            conditions.get("Ap") if conditions.get("Ap") is not None else DEFAULT_AP
+        )
         
         result.Vc = Vc
         result.f = f
@@ -75,8 +82,16 @@ class FeatureCalculator:
         return result
     
     def _calc_generic(self, result: CalculationResult, geo: Dict) -> CalculationResult:
-        diameter = geo.get("from_diameter") or geo.get("to_diameter") or 50
-        length = geo.get("length") or 50
+        # AUDIT-FIX: Use explicit None check to preserve 0 as valid value
+        diameter = geo.get("from_diameter")
+        if diameter is None:
+            diameter = geo.get("to_diameter")
+        if diameter is None:
+            diameter = 50  # Default fallback
+
+        length = geo.get("length")
+        if length is None:
+            length = 50  # Default fallback
         
         result.rpm = int(self.calc_rpm(result.Vc, diameter))
         result.num_passes = 1
@@ -85,9 +100,10 @@ class FeatureCalculator:
         return result
     
     def _calc_od_rough(self, result: CalculationResult, geo: Dict) -> CalculationResult:
-        from_d = geo.get("from_diameter") or 50
-        to_d = geo.get("to_diameter") or 45
-        length = geo.get("length") or 50
+        # AUDIT-FIX: Use explicit None check to preserve 0 as valid value
+        from_d = geo.get("from_diameter") if geo.get("from_diameter") is not None else 50
+        to_d = geo.get("to_diameter") if geo.get("to_diameter") is not None else 45
+        length = geo.get("length") if geo.get("length") is not None else 50
         
         allowance = (from_d - to_d) / 2
         result.num_passes = max(1, math.ceil(allowance / result.Ap)) if result.Ap else 1

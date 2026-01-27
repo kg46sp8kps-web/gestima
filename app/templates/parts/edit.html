@@ -17,13 +17,13 @@
             <div class="ribbon-body" x-show="showBasic">
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.8rem;">
                     <div>
-                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Číslo výkresu</label>
-                        <div style="font-weight: 600;">{{ part.part_number }}</div>
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">ID dílu (auto)</label>
+                        <div style="font-weight: 600; font-family: monospace; color: var(--text-secondary);">{{ part.part_number }}</div>
                     </div>
                     <div>
-                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Článkové číslo</label>
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Číslo výkresu</label>
                         <input type="text" x-model="partData.article_number" @input="debouncedSave()"
-                               placeholder="Dodavatelské číslo"
+                               placeholder="např. DWG-12345, V-2024-001..."
                                style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                     </div>
                     <div>
@@ -70,91 +70,93 @@
                         </div>
 
                         <!-- Parse result -->
-                        <div x-show="parseResult && parseResult.confidence > 0" style="margin-top: 0.5rem; background: white; border-radius: 4px; padding: 0.5rem; font-size: 0.7rem;">
-                            <!-- Status badge -->
-                            <div style="margin-bottom: 0.5rem;">
-                                <span x-show="parseResult.confidence >= 0.7" style="background: #48bb78; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">✅ ROZPOZNÁNO</span>
-                                <span x-show="parseResult.confidence >= 0.4 && parseResult.confidence < 0.7" style="background: #ed8936; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">⚠️ ČÁSTEČNĚ</span>
-                                <span x-show="parseResult.confidence < 0.4" style="background: #f56565; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">❌ NÍZKÁ SHODA</span>
-                                <span style="float: right; color: #718096; font-size: 0.65rem;">
-                                    Spolehlivost: <span x-text="Math.round(parseResult.confidence * 100) + '%'"></span>
-                                </span>
-                            </div>
+                        <template x-if="parseResult && parseResult.confidence > 0">
+                            <div style="margin-top: 0.5rem; background: white; border-radius: 4px; padding: 0.5rem; font-size: 0.7rem;">
+                                <!-- Status badge -->
+                                <div style="margin-bottom: 0.5rem;">
+                                    <span x-show="parseResult.confidence >= 0.7" style="background: #48bb78; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">✅ ROZPOZNÁNO</span>
+                                    <span x-show="parseResult.confidence >= 0.4 && parseResult.confidence < 0.7" style="background: #ed8936; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">⚠️ ČÁSTEČNĚ</span>
+                                    <span x-show="parseResult.confidence < 0.4" style="background: #f56565; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">❌ NÍZKÁ SHODA</span>
+                                    <span style="float: right; color: #718096; font-size: 0.65rem;">
+                                        Spolehlivost: <span x-text="Math.round(parseResult.confidence * 100) + '%'"></span>
+                                    </span>
+                                </div>
 
-                            <!-- Recognized values -->
-                            <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.5rem; color: #2d3748;">
-                                <template x-if="parseResult.shape">
-                                    <template>
-                                        <strong>Tvar:</strong>
-                                        <span x-text="formatShape(parseResult.shape)"></span>
+                                <!-- Recognized values -->
+                                <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.5rem; color: #2d3748;">
+                                    <template x-if="parseResult.shape">
+                                        <template>
+                                            <strong>Tvar:</strong>
+                                            <span x-text="formatShape(parseResult.shape)"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.diameter">
-                                    <template>
-                                        <strong>Průměr:</strong>
-                                        <span x-text="parseResult.diameter + ' mm'"></span>
+                                    <template x-if="parseResult.diameter">
+                                        <template>
+                                            <strong>Průměr:</strong>
+                                            <span x-text="parseResult.diameter + ' mm'"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.width">
-                                    <template>
-                                        <strong>Šířka:</strong>
-                                        <span x-text="parseResult.width + ' mm'"></span>
+                                    <template x-if="parseResult.width">
+                                        <template>
+                                            <strong>Šířka:</strong>
+                                            <span x-text="parseResult.width + ' mm'"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.height && parseResult.height !== parseResult.width">
-                                    <template>
-                                        <strong>Výška:</strong>
-                                        <span x-text="parseResult.height + ' mm'"></span>
+                                    <template x-if="parseResult.height && parseResult.height !== parseResult.width">
+                                        <template>
+                                            <strong>Výška:</strong>
+                                            <span x-text="parseResult.height + ' mm'"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.thickness">
-                                    <template>
-                                        <strong>Tloušťka:</strong>
-                                        <span x-text="parseResult.thickness + ' mm'"></span>
+                                    <template x-if="parseResult.thickness">
+                                        <template>
+                                            <strong>Tloušťka:</strong>
+                                            <span x-text="parseResult.thickness + ' mm'"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.wall_thickness">
-                                    <template>
-                                        <strong>Tl. stěny:</strong>
-                                        <span x-text="parseResult.wall_thickness + ' mm'"></span>
+                                    <template x-if="parseResult.wall_thickness">
+                                        <template>
+                                            <strong>Tl. stěny:</strong>
+                                            <span x-text="parseResult.wall_thickness + ' mm'"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.length">
-                                    <template>
-                                        <strong>Délka:</strong>
-                                        <span x-text="parseResult.length + ' mm'"></span>
+                                    <template x-if="parseResult.length">
+                                        <template>
+                                            <strong>Délka:</strong>
+                                            <span x-text="parseResult.length + ' mm'"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.suggested_material_group_name">
-                                    <template>
-                                        <strong>Materiál:</strong>
-                                        <span x-text="parseResult.suggested_material_group_name"></span>
+                                    <template x-if="parseResult.suggested_material_group_name">
+                                        <template>
+                                            <strong>Materiál:</strong>
+                                            <span x-text="parseResult.suggested_material_group_name"></span>
+                                        </template>
                                     </template>
-                                </template>
-                                <template x-if="parseResult.suggested_price_category_name">
-                                    <template>
-                                        <strong>Kategorie:</strong>
-                                        <span x-text="parseResult.suggested_price_category_name"></span>
+                                    <template x-if="parseResult.suggested_price_category_name">
+                                        <template>
+                                            <strong>Kategorie:</strong>
+                                            <span x-text="parseResult.suggested_price_category_name"></span>
+                                        </template>
                                     </template>
-                                </template>
-                            </div>
+                                </div>
 
-                            <!-- Action buttons -->
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                <button
-                                    @click="applyParsedMaterial()"
-                                    :disabled="parseResult.confidence < 0.4"
-                                    style="flex: 1; background: #667eea; color: white; border: none; border-radius: 4px; padding: 0.4rem; font-size: 0.7rem; font-weight: 600; cursor: pointer; opacity: 1;"
-                                    :style="parseResult.confidence < 0.4 ? 'opacity: 0.5; cursor: not-allowed;' : ''">
-                                    Použít
-                                </button>
-                                <button
-                                    @click="clearParseResult()"
-                                    style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 4px; padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 600; cursor: pointer;">
-                                    Zrušit
-                                </button>
+                                <!-- Action buttons -->
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <button
+                                        @click="applyParsedMaterial()"
+                                        :disabled="parseResult.confidence < 0.4"
+                                        style="flex: 1; background: #667eea; color: white; border: none; border-radius: 4px; padding: 0.4rem; font-size: 0.7rem; font-weight: 600; cursor: pointer; opacity: 1;"
+                                        :style="parseResult.confidence < 0.4 ? 'opacity: 0.5; cursor: not-allowed;' : ''">
+                                        Použít
+                                    </button>
+                                    <button
+                                        @click="clearParseResult()"
+                                        style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 4px; padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 600; cursor: pointer;">
+                                        Zrušit
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        </template>
 
                         <div style="color: rgba(255,255,255,0.8); font-size: 0.65rem; margin-top: 0.5rem; font-style: italic;">
                             💡 Tip: Zadejte tvar (D20, 20x30, t2), normu (C45, 1.4301) a délku (100mm)
@@ -1100,7 +1102,6 @@ function partEdit(partId, partNumber) {
 
                 if (response.ok) {
                     this.parseResult = await response.json();
-                    console.log('Parse result:', this.parseResult);
                 } else {
                     console.error('Parse failed:', response.status);
                     this.parseResult = null;
@@ -1386,7 +1387,7 @@ function partEdit(partId, partNumber) {
                 await this.loadBatches();
 
                 if (failCount === 0) {
-                    console.log(`All ${batchCount} batches recalculated successfully`);
+                    window.showToast(`Přepočteno ${batchCount} dávek`, 'success');
                 } else {
                     window.showToast(`Přepočítáno ${successCount}/${batchCount} dávek (${failCount} selhalo)`, 'warning');
                 }
@@ -1460,8 +1461,6 @@ function partEdit(partId, partNumber) {
 
         async updateOperation(op, requestSequence) {
             try {
-                console.log('updateOperation called:', { id: op.id, machine_id: op.machine_id, version: op.version, sequence: requestSequence });
-
                 // Normalize null/empty/NaN values to defaults
                 // IMPORTANT: Preserve 0 values! Replace null/undefined/NaN with defaults
                 // When user deletes input content, x-model.number converts "" to NaN
@@ -1493,13 +1492,11 @@ function partEdit(partId, partNumber) {
 
                 if (response.ok) {
                     const updated = await response.json();
-                    console.log('updateOperation success:', updated, 'sequence:', requestSequence, 'current:', this.operationUpdateSequence);
 
                     // RACE CONDITION FIX: Ignore stale responses
                     // If a newer update has been triggered (sequence increased), ignore this response
                     if (requestSequence < this.operationUpdateSequence) {
-                        console.log('Ignoring stale response (sequence', requestSequence, '< current', this.operationUpdateSequence, ')');
-                        return;
+                        return;  // Stale response - ignore
                     }
 
                     // CRITICAL: Create new array to trigger Alpine reactivity

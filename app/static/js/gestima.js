@@ -91,9 +91,9 @@ function partsListState() {
         totalParts: 0,
         isAdmin: false,
         availableColumns: [
-            { key: 'id', label: 'ID' },
-            { key: 'part_number', label: 'Číslo výkresu' },
-            { key: 'article_number', label: 'Article' },
+            { key: 'id', label: 'ID (DB)' },
+            { key: 'part_number', label: 'ID dílu' },
+            { key: 'article_number', label: 'Číslo výkresu' },
             { key: 'name', label: 'Název' },
             { key: 'material', label: 'Materiál' },
             { key: 'length', label: 'Délka' },

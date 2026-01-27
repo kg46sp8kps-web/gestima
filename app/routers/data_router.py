@@ -1,10 +1,10 @@
 """GESTIMA - Reference data API router"""
 
+import math
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel, Field
-from app.services.reference_loader import get_machines, get_material_groups, get_feature_types
-from app.services.price_calculator import calculate_material_cost
+from app.services.reference_loader import get_machines, get_material_groups, get_feature_types, get_material_properties
 from app.dependencies import get_current_user
 from app.models import User
 
@@ -98,24 +98,45 @@ async def calculate_stock_price(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Live výpočet ceny polotovaru.
-    
+    Live výpočet ceny polotovaru (pro preview při vytváření dílu).
+
+    AUDIT-2026-01-27: Refactored to use inline calculation instead of deprecated function.
+    This is a simplified estimate - actual pricing uses Part.price_category with dynamic tiers.
+
     Příklad:
     GET /api/data/stock-price?stock_type=tyc&material_group=nerez_austeniticka&stock_diameter=50&stock_length=100
     """
-    result = await calculate_material_cost(
-        stock_diameter=stock_diameter,
-        stock_length=stock_length,
-        material_group=material_group,
-        stock_diameter_inner=stock_diameter_inner,
-        stock_type=stock_type,
-        stock_width=stock_width,
-        stock_height=stock_height,
-    )
-    
+    # Get material properties (density, fallback price)
+    props = await get_material_properties(material_group)
+    density = props["density"]
+    price_per_kg = props["price_per_kg"]
+
+    # Calculate volume based on stock type
+    volume_mm3 = 0.0
+
+    if stock_type in ["tyc", "odlitek"]:
+        if stock_diameter > 0 and stock_length > 0:
+            r = stock_diameter / 2
+            volume_mm3 = math.pi * r**2 * stock_length
+
+    elif stock_type == "trubka":
+        if stock_diameter > 0 and stock_length > 0:
+            r_outer = stock_diameter / 2
+            r_inner = stock_diameter_inner / 2 if stock_diameter_inner > 0 else 0
+            volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
+
+    elif stock_type in ["prizez", "plech"]:
+        if stock_length > 0 and stock_width > 0 and stock_height > 0:
+            volume_mm3 = stock_length * stock_width * stock_height
+
+    # Calculate weight and cost
+    volume_dm3 = volume_mm3 / 1_000_000
+    weight_kg = volume_dm3 * density
+    cost = weight_kg * price_per_kg
+
     return StockPriceResponse(
-        volume_mm3=result.volume_mm3,
-        weight_kg=result.weight_kg,
-        price_per_kg=result.price_per_kg,
-        cost=result.cost,
+        volume_mm3=round(volume_mm3, 0),
+        weight_kg=round(weight_kg, 3),
+        price_per_kg=price_per_kg,
+        cost=round(cost, 2),
     )

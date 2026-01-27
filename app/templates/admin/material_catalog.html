@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Kategorie materiálů - GESTIMA{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/forms.css">
+<style>
+[x-cloak] { display: none !important; }
+/* Tabs styling */
+.admin-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.admin-tab {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    top: 2px;
+}
+
+.admin-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+}
+
+.admin-tab.active {
+    color: var(--accent-red);
+    border-bottom-color: var(--accent-red);
+    font-weight: 600;
+}
+
+/* Table styling */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.admin-table thead {
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.admin-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table tbody tr:hover {
+    background: var(--bg-primary);
+}
+
+/* Modal styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 1.5rem; font-weight: 700;">📦 Kategorie materiálů</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            Správa materiálových skupin a cenových kategorií před importem katalogu
+        </p>
+    </div>
+
+    <!-- Alpine.js component -->
+    <script>
+        // Pass data via JavaScript variable to avoid inline JSON issues
+        window.MATERIAL_GROUPS_DATA = {{ groups_json | tojson | safe }};
+        window.MATERIAL_PRICE_CATEGORIES_DATA = {{ categories_json | tojson | safe }};
+    </script>
+    <div x-data="materialCatalogAdmin(window.MATERIAL_GROUPS_DATA, window.MATERIAL_PRICE_CATEGORIES_DATA)">
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <button
+                class="admin-tab"
+                :class="{ 'active': activeTab === 'groups' }"
+                @click="activeTab = 'groups'">
+                🏷️ Material Groups (<span x-text="allGroups.length"></span>)
+            </button>
+            <button
+                class="admin-tab"
+                :class="{ 'active': activeTab === 'categories' }"
+                @click="activeTab = 'categories'">
+                💰 Price Categories (<span x-text="allCategories.length"></span>)
+            </button>
+        </div>
+
+        <!-- Tab: Material Groups -->
+        <div x-show="activeTab === 'groups'" x-cloak>
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">🏷️ Material Groups</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                        Kategorie materiálů pro výpočty (hustota, řezné podmínky).
+                    </p>
+                </div>
+                <button @click="openCreateGroup()" class="btn btn-primary">
+                    ➕ Přidat skupinu
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div style="margin-bottom: 1.5rem;">
+                <input
+                    type="text"
+                    placeholder="🔍 Hledat skupinu (kód, název)..."
+                    x-model="searchGroupQuery"
+                    class="form-input"
+                    style="max-width: 400px;">
+            </div>
+
+            <!-- Table -->
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Kód</th>
+                        <th>Název</th>
+                        <th>Hustota (kg/dm³)</th>
+                        <th style="text-align: right;">Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="group in filteredGroups" :key="group.id">
+                        <tr>
+                            <td style="font-weight: 600; font-family: monospace;" x-text="group.code"></td>
+                            <td x-text="group.name"></td>
+                            <td style="color: var(--text-secondary);" x-text="group.density"></td>
+                            <td style="text-align: right;">
+                                <button class="btn-flat"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                        @click="editGroup(group)">
+                                    Upravit
+                                </button>
+                                <button class="btn-flat"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--error);"
+                                        @click="deleteGroup(group)">
+                                    Smazat
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredGroups.length === 0">
+                        <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <span x-show="searchGroupQuery.length > 0">Žádné výsledky pro "<span x-text="searchGroupQuery"></span>"</span>
+                            <span x-show="searchGroupQuery.length === 0">Žádné skupiny v databázi</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Info box -->
+            <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-primary); border-radius: 6px; border-left: 4px solid var(--accent-blue);">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">ℹ️ O Material Groups:</div>
+                <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                    <li>Kategorie pro technické výpočty (hustota, řezné podmínky)</li>
+                    <li>Příklady: "Ocel konstrukční" (7.85 kg/dm³), "Hliník 6060" (2.70 kg/dm³)</li>
+                    <li>Hustota se použije pro výpočet váhy dílů a polotovarů</li>
+                    <li>Před importem katalogu zkontroluj že máš všechny potřebné skupiny</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab: Material Price Categories -->
+        <div x-show="activeTab === 'categories'" x-cloak>
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">💰 Material Price Categories</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                        Cenové kategorie pro skupiny polotovarů (tvar + materiál).
+                    </p>
+                </div>
+                <button @click="openCreateCategory()" class="btn btn-primary">
+                    ➕ Přidat kategorii
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div style="margin-bottom: 1.5rem;">
+                <input
+                    type="text"
+                    placeholder="🔍 Hledat kategorii (kód, název)..."
+                    x-model="searchCategoryQuery"
+                    class="form-input"
+                    style="max-width: 400px;">
+            </div>
+
+            <!-- Table -->
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Kód</th>
+                        <th>Název</th>
+                        <th>Material Group</th>
+                        <th style="text-align: right;">Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="category in filteredCategories" :key="category.id">
+                        <tr>
+                            <td style="font-weight: 600; font-family: monospace;" x-text="category.code"></td>
+                            <td x-text="category.name"></td>
+                            <td style="color: var(--text-secondary);">
+                                <span x-show="category.material_group" x-text="category.material_group?.name"></span>
+                                <span x-show="!category.material_group" style="font-style: italic;">-</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn-flat"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                        @click="editCategory(category)">
+                                    Upravit
+                                </button>
+                                <button class="btn-flat"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--error);"
+                                        @click="deleteCategory(category)">
+                                    Smazat
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredCategories.length === 0">
+                        <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <span x-show="searchCategoryQuery.length > 0">Žádné výsledky pro "<span x-text="searchCategoryQuery"></span>"</span>
+                            <span x-show="searchCategoryQuery.length === 0">Žádné kategorie v databázi</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Info box -->
+            <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-primary); border-radius: 6px; border-left: 4px solid var(--accent-blue);">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">ℹ️ O Price Categories:</div>
+                <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                    <li>Cenové kategorie kombinují tvar + materiál</li>
+                    <li>Příklady: "OCEL-KONS-KRUHOVA" (ocel konstrukční - kruhová tyč), "HLINIK-DESKA" (hliník - deska)</li>
+                    <li>Všechny polotovary ve stejné kategorii sdílí price tiers (0-15kg, 15-100kg, ...)</li>
+                    <li>Před importem katalogu zkontroluj že máš všechny potřebné kategorie</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Modal for MaterialGroup Create/Edit -->
+        <div x-show="showGroupModal" x-cloak @keydown.escape.window="showGroupModal = false">
+            <div class="modal-overlay" @click.self="showGroupModal = false">
+                <div class="modal-content">
+                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem;">
+                        <span x-show="!editingGroup">➕ Přidat Material Group</span>
+                        <span x-show="editingGroup">✏️ Upravit Material Group</span>
+                    </h3>
+
+                    <form @submit.prevent="saveGroup()">
+                        <div class="form-field">
+                            <label for="group-code">
+                                Kód skupiny <span style="color: var(--error);">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="group-code"
+                                x-model="groupForm.code"
+                                placeholder="např. 11xxx, S235"
+                                required
+                                maxlength="20"
+                                class="form-input">
+                            <small class="help-text">Unikátní kód pro identifikaci (např. 11xxx pro automaty)</small>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="group-name">
+                                Název skupiny <span style="color: var(--error);">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="group-name"
+                                x-model="groupForm.name"
+                                placeholder="např. Ocel automatová"
+                                required
+                                maxlength="100"
+                                class="form-input">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="group-density">
+                                Hustota (kg/dm³) <span style="color: var(--error);">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                id="group-density"
+                                x-model.number="groupForm.density"
+                                placeholder="např. 7.85"
+                                required
+                                step="0.01"
+                                min="0.01"
+                                class="form-input">
+                            <small class="help-text">Hustota materiálu pro výpočet váhy (ocel ~7.85, hliník ~2.70)</small>
+                        </div>
+
+                        <div class="btn-group btn-group-right" style="margin-top: 2rem;">
+                            <button type="button" class="btn btn-secondary" @click="showGroupModal = false">
+                                Zrušit
+                            </button>
+                            <button type="submit"
+                                    class="btn btn-primary"
+                                    :disabled="saving"
+                                    x-text="saving ? 'Ukládám...' : (editingGroup ? 'Uložit změny' : 'Vytvořit')">
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for MaterialPriceCategory Create/Edit -->
+        <div x-show="showCategoryModal" x-cloak @keydown.escape.window="showCategoryModal = false">
+            <div class="modal-overlay" @click.self="showCategoryModal = false">
+                <div class="modal-content">
+                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem;">
+                        <span x-show="!editingCategory">➕ Přidat Price Category</span>
+                        <span x-show="editingCategory">✏️ Upravit Price Category</span>
+                    </h3>
+
+                    <form @submit.prevent="saveCategory()">
+                        <div class="form-field">
+                            <label for="category-code">
+                                Kód kategorie <span style="color: var(--error);">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="category-code"
+                                x-model="categoryForm.code"
+                                placeholder="např. OCEL-KONS-KRUHOVA"
+                                required
+                                maxlength="50"
+                                class="form-input">
+                            <small class="help-text">Unikátní kód (formát: MATERIAL-SHAPE)</small>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="category-name">
+                                Název kategorie <span style="color: var(--error);">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="category-name"
+                                x-model="categoryForm.name"
+                                placeholder="např. OCEL konstrukční - kruhová tyč"
+                                required
+                                maxlength="200"
+                                class="form-input">
+                        </div>
+
+                        <div class="btn-group btn-group-right" style="margin-top: 2rem;">
+                            <button type="button" class="btn btn-secondary" @click="showCategoryModal = false">
+                                Zrušit
+                            </button>
+                            <button type="submit"
+                                    class="btn btn-primary"
+                                    :disabled="saving"
+                                    x-text="saving ? 'Ukládám...' : (editingCategory ? 'Uložit změny' : 'Vytvořit')">
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function materialCatalogAdmin(initialGroups, initialCategories) {
+    return {
+        // Tab state
+        activeTab: 'groups',
+
+        // Data
+        allGroups: initialGroups || [],
+        allCategories: initialCategories || [],
+
+        // Search
+        searchGroupQuery: '',
+        searchCategoryQuery: '',
+
+        // Modals
+        showGroupModal: false,
+        showCategoryModal: false,
+        editingGroup: null,
+        editingCategory: null,
+        saving: false,
+
+        // Forms
+        groupForm: {
+            code: '',
+            name: '',
+            density: null,
+            version: 1
+        },
+        categoryForm: {
+            code: '',
+            name: '',
+            version: 1
+        },
+
+        // Computed: filteredGroups
+        get filteredGroups() {
+            if (!this.searchGroupQuery || this.searchGroupQuery.trim().length === 0) {
+                return this.allGroups;
+            }
+
+            const query = this.searchGroupQuery.trim().toLowerCase();
+
+            return this.allGroups.filter(group => {
+                const code = (group.code || '').toLowerCase();
+                const name = (group.name || '').toLowerCase();
+                return code.includes(query) || name.includes(query);
+            });
+        },
+
+        // Computed: filteredCategories
+        get filteredCategories() {
+            if (!this.searchCategoryQuery || this.searchCategoryQuery.trim().length === 0) {
+                return this.allCategories;
+            }
+
+            const query = this.searchCategoryQuery.trim().toLowerCase();
+
+            return this.allCategories.filter(category => {
+                const code = (category.code || '').toLowerCase();
+                const name = (category.name || '').toLowerCase();
+                return code.includes(query) || name.includes(query);
+            });
+        },
+
+        // === MaterialGroup Actions ===
+
+        openCreateGroup() {
+            this.editingGroup = null;
+            this.groupForm = {
+                code: '',
+                name: '',
+                density: null,
+                version: 1
+            };
+            this.showGroupModal = true;
+        },
+
+        editGroup(group) {
+            this.editingGroup = group;
+            this.groupForm = {
+                code: group.code,
+                name: group.name,
+                density: group.density,
+                version: group.version
+            };
+            this.showGroupModal = true;
+        },
+
+        async saveGroup() {
+            this.saving = true;
+
+            try {
+                const url = this.editingGroup
+                    ? `/admin/api/material-groups/${this.editingGroup.id}`
+                    : '/admin/api/material-groups';
+
+                const method = this.editingGroup ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(this.groupForm)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Chyba při ukládání');
+                }
+
+                const savedGroup = await response.json();
+
+                // Update local data
+                if (this.editingGroup) {
+                    const index = this.allGroups.findIndex(g => g.id === savedGroup.id);
+                    if (index !== -1) {
+                        this.allGroups[index] = savedGroup;
+                    }
+                    window.showToast && window.showToast('Skupina aktualizována', 'success');
+                } else {
+                    this.allGroups.push(savedGroup);
+                    window.showToast && window.showToast('Skupina vytvořena', 'success');
+                }
+
+                this.showGroupModal = false;
+            } catch (error) {
+                console.error('Error saving group:', error);
+                window.showToast && window.showToast(error.message, 'error');
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        async deleteGroup(group) {
+            if (!confirm(`Opravdu smazat skupinu "${group.code}"?\n\nTato akce je nevratná.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/api/material-groups/${group.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Chyba při mazání');
+                }
+
+                // Remove from local data
+                this.allGroups = this.allGroups.filter(g => g.id !== group.id);
+                window.showToast && window.showToast('Skupina smazána', 'success');
+            } catch (error) {
+                console.error('Error deleting group:', error);
+                window.showToast && window.showToast(error.message, 'error');
+            }
+        },
+
+        // === MaterialPriceCategory Actions ===
+
+        openCreateCategory() {
+            this.editingCategory = null;
+            this.categoryForm = {
+                code: '',
+                name: '',
+                version: 1
+            };
+            this.showCategoryModal = true;
+        },
+
+        editCategory(category) {
+            this.editingCategory = category;
+            this.categoryForm = {
+                code: category.code,
+                name: category.name,
+                version: category.version
+            };
+            this.showCategoryModal = true;
+        },
+
+        async saveCategory() {
+            this.saving = true;
+
+            try {
+                const url = this.editingCategory
+                    ? `/admin/api/material-price-categories/${this.editingCategory.id}`
+                    : '/admin/api/material-price-categories';
+
+                const method = this.editingCategory ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(this.categoryForm)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Chyba při ukládání');
+                }
+
+                const savedCategory = await response.json();
+
+                // Update local data
+                if (this.editingCategory) {
+                    const index = this.allCategories.findIndex(c => c.id === savedCategory.id);
+                    if (index !== -1) {
+                        // Preserve material_group if it exists
+                        savedCategory.material_group = this.allCategories[index].material_group;
+                        this.allCategories[index] = savedCategory;
+                    }
+                    window.showToast && window.showToast('Kategorie aktualizována', 'success');
+                } else {
+                    this.allCategories.push(savedCategory);
+                    window.showToast && window.showToast('Kategorie vytvořena', 'success');
+                }
+
+                this.showCategoryModal = false;
+            } catch (error) {
+                console.error('Error saving category:', error);
+                window.showToast && window.showToast(error.message, 'error');
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        async deleteCategory(category) {
+            if (!confirm(`Opravdu smazat kategorii "${category.code}"?\n\nTato akce je nevratná.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/api/material-price-categories/${category.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Chyba při mazání');
+                }
+
+                // Remove from local data
+                this.allCategories = this.allCategories.filter(c => c.id !== category.id);
+                window.showToast && window.showToast('Kategorie smazána', 'success');
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                window.showToast && window.showToast(error.message, 'error');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

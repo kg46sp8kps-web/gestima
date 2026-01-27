@@ -128,6 +128,13 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 
+# Favicon route (zabrání 404 chybám)
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Vrátí logo.png jako favicon"""
+    from fastapi.responses import FileResponse
+    return FileResponse("app/static/img/logo.png")
+
 app.include_router(auth_router.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
 app.include_router(operations_router.router, prefix="/api/operations", tags=["Operations"])

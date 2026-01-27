@@ -24,8 +24,9 @@ class Part(Base, AuditMixin):
     # Material hierarchy (ADR-011: Two-Tier Model)
     # Migration 2026-01-26: Part nyní odkazuje na MaterialPriceCategory (pro cenu podle množství)
     # MaterialItem zůstává pro budoucnost (specifické polotovary s normou + rozměrem)
-    material_item_id = Column(Integer, ForeignKey("material_items.id"), nullable=True)  # Future: norma + rozměr
-    price_category_id = Column(Integer, ForeignKey("material_price_categories.id"), nullable=True)  # Cenová kategorie
+    # AUDIT-FIX: Added ondelete="SET NULL" to prevent orphan FK references
+    material_item_id = Column(Integer, ForeignKey("material_items.id", ondelete="SET NULL"), nullable=True)  # Future: norma + rozměr
+    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="SET NULL"), nullable=True)  # Cenová kategorie
 
     # Geometrie polotovaru (editovatelné, inicializováno z MaterialItem)
     stock_shape = Column(Enum(StockShape), nullable=True)  # Migration 2026-01-26: Typ polotovaru

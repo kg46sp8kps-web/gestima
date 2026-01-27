@@ -7,6 +7,207 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased] - Code Audit & Cleanup (2026-01-27)
+
+### Code Audit (2026-01-27 - Roy's Audit)
+
+**PROVEDENO:** Komplexní audit codebase zaměřený na kvalitu kódu, bezpečnost a výkon.
+
+**KRITICKÉ OPRAVY:**
+1. ✅ **Falsy defaults fix** (`time_calculator.py`)
+   - Změněno `or` na `is not None` pro zachování 0 jako validní hodnoty
+   - Opraveno na 3 místech (Vc, f, Ap a geometry)
+
+2. ✅ **FK cascade rules** (`part.py`)
+   - Přidáno `ondelete="SET NULL"` na `material_item_id` a `price_category_id`
+   - Prevence orphan FK references při mazání materiálů
+
+3. ✅ **Number generator safety** (`number_generator.py`)
+   - Přidán `max_iterations` limit pro prevenci infinite loop
+   - Opraveno na 3 místech (parts, materials, batches)
+
+**DEAD CODE REMOVAL (~18,350 řádků):**
+- ✅ `calculate_material_cost_from_part()` - deprecated, nahrazeno `calculate_stock_cost_from_part()`
+- ✅ `calculate_material_cost()` - legacy s hardcoded daty
+- ✅ `scripts/_obsolete_v2_2026-01-27/` - celá složka smazána
+- ✅ Nepoužívané JS komponenty: `searchComponent`, `pricingWidget`, `formValidation`, `confirmDialog`
+- ✅ Console.log debug statements v templates
+
+**REFAKTORING:**
+- ✅ `/api/data/stock-price` endpoint přepsán bez deprecated funkce
+
+**DOKUMENTACE:**
+- ✅ `docs/AUDIT-2026-01-27.md` - kompletní auditní zpráva
+
+**KNOWN ISSUES (zdokumentováno):**
+- 19× `except Exception` patterns (doporučeno nahradit specifickými exceptions)
+- `safe_commit()` helper existuje ale není používán (57× copy-paste)
+
+---
+
+## [1.4.1] - Admin UI for Material Catalog (2026-01-27)
+
+### Fixed - CRITICAL: Material Parser & Seed Data Cleanup (2026-01-27 22:30)
+
+**ROOT CAUSE:** Conflicting data models (V1, V2, V3) causing broken Foreign Keys in MaterialNorms.
+
+**SYMPTOMS:**
+- Material Parser max confidence 80% (never 100%)
+- MaterialNorms pointing to nonexistent MaterialGroup IDs (14+)
+- Category dropdown empty after material selection
+
+**CLEANUP PERFORMED:**
+1. ✅ Archived obsolete seed scripts (V1, V2) → `scripts/_obsolete_v2_2026-01-27/`
+   - `scripts/seed_materials.py` (V1: "automatova_ocel", "nerez_kruhova")
+   - `app/seed_materials.py` (V2: "11xxx", "C45", "X5CrNi18-10")
+   - `scripts/seed_material_norms.py` (V2: wrong MaterialGroup codes)
+
+2. ✅ Standardized on **Model V3** (coarse-grained categories)
+   - MaterialGroups: `OCEL-KONS`, `OCEL-AUTO`, `NEREZ`, `HLINIK`, etc. (12 groups)
+   - MaterialNorms: Mapping W.Nr./EN ISO/ČSN/AISI → MaterialGroup ID (66 norms)
+
+3. ✅ Fixed `gestima.py` setup command
+   - Now calls: `seed_material_catalog.py` → `seed_material_norms_complete.py`
+   - Removed broken reference to `app.seed_materials`
+
+4. ✅ Re-seeded MaterialNorms with correct Foreign Keys
+   - All 66 MaterialNorms now point to valid MaterialGroup IDs (1-12)
+   - Parser lookups working: C45 → Group ID 1 (OCEL-KONS) ✓
+
+**VERIFIED:**
+- ✅ Material Parser: "D20 C45 100mm" → **100% confidence**
+- ✅ Material Parser: "D30 1.4301 200" → **95% confidence**
+- ✅ Material Parser: "20x20 1.0503" → **85% confidence** (SQUARE_BAR PriceCategory found)
+- ✅ MaterialGroup FK integrity restored
+- ✅ Price Category lookup working
+
+**PREVENTION:**
+- Only 2 seed scripts remain (V3):
+  - `scripts/seed_material_catalog.py` (creates MaterialGroups + PriceCategories)
+  - `scripts/seed_material_norms_complete.py` (creates MaterialNorms → MaterialGroup mapping)
+
+### Fixed - Material Parser: SQUARE_BAR PriceCategory Lookup (2026-01-27 23:00)
+
+**PROBLEM:** Input "20x20 1.0503" returned 80% confidence (PriceCategory not found).
+
+**ROOT CAUSE:** Parser keywords mismatch with database codes:
+- **Parser searched:** `"ČTYŘHRAN"`, `"CTYRHRANNA"` (čtyřhranná - adjective)
+- **Database has:** `"OCEL-KONS-CTVEREC"` (čtvercová - noun)
+
+**FIX:** [app/services/material_parser.py:448](app/services/material_parser.py#L448)
+```python
+# Added keywords for SQUARE_BAR:
+StockShape.SQUARE_BAR: [
+    "CTYRHRANNA", "ČTYŘHRAN",       # Original
+    "CTVEREC", "ČTVEREC", "ČTVERCOVÁ"  # Added (database uses this)
+]
+```
+
+**RESULT:** "20x20 1.0503" → **85% confidence** ✅ (PriceCategory: OCEL-KONS-CTVEREC found)
+
+### Added
+
+- **Admin UI: 4-Tab Material Management** (`/admin/material-norms`)
+  - **Tab 1: Material Norms** - Správa W.Nr. materiálových norem (EN ISO, ČSN, AISI)
+  - **Tab 2: Material Groups (12)** - Zobrazení materiálových skupin (code, name, density)
+  - **Tab 3: Cenové Kategorie (37)** - Zobrazení price categories s vnořenými price tiers tabulkami
+    - Každá kategorie zobrazuje 3 hmotnostní pásma (0-15kg, 15-100kg, 100+kg)
+    - Ceny viditelné přímo v UI (Kč/kg)
+  - **Tab 4: Systémové nastavení** - Koeficienty pro kalkulace
+  - Search/filter na každém tabu
+
+- **Material Catalog Seed Script** (`scripts/reset_and_seed_catalog.py`)
+  - Automatický seed databáze s kompletní strukturou
+  - **12 MaterialGroups** (OCEL-KONS, OCEL-AUTO, OCEL-NAST, OCEL-LEG, NEREZ, MED, MOSAZ, BRONZ, HLINIK, LITINA-GG, LITINA-TV, PLAST)
+  - **37 MaterialPriceCategories** (kombinace materiál + tvar)
+  - **97 MaterialPriceTiers** (~3 tiers na kategorii)
+  - **108 MaterialNorms** (W.Nr. s kompletními normami)
+  - Ceny převzaty z existující tabulky nebo odhadnuty podle materiálové rodiny
+  - Spuštění: `python3 scripts/reset_and_seed_catalog.py`
+
+### Fixed
+
+- **Admin Router** - AttributeError fix pro None material_group
+  - Přidána kontrola `if norm.material_group else None` v JSON serializaci
+  - Eager loading s `selectinload()` pro MaterialPriceCategory.tiers
+  - Prevents 500 Internal Server Error při zobrazení admin page
+
+### Changed
+
+- **Dashboard** - Sloučen "Admin" a "Katalog" tile do jednoho "Admin" tile
+  - Popis: "Normy, ceny, nastavení"
+  - URL: `/admin/material-norms` (4 taby v jednom UI)
+
+### Documentation
+
+- `temp/README-MATERIAL-IMPORT.md` - Quick reference pro material catalog import
+- `temp/PRICE-STRUCTURE.md` - Přehled cenové struktury (materiálové skupiny + tiers)
+
+---
+
+## [Unreleased] - Material Catalog Import Preparation (2026-01-27)
+
+### Added
+
+- **Material Catalog Parser** (`scripts/analyze_material_codes.py`)
+  - Parsování Excel katalogu `materialy_export_import.xlsx` (4181 řádků)
+  - **3322 položek zparsováno (79.5% pokrytí)**
+  - Podporované formáty:
+    - Ocel: tyče (KR, HR, OK), trubky (TR), bloky (HR-BLOK), přířezy, tyče s délkou
+    - Hliník: 3D bloky (DE-3D), 2D pásy (DE-2D)
+    - Litina: tyče (GG250, GGG40)
+    - Plasty: tyče, desky, pásy, bloky (PA6, POM-C, PE, PEEK, PC, MAPA)
+  - 18 MaterialGroups kategorií + 40 PriceCategories kombinací
+  - Output: `temp/material_codes_preview.csv` (ready pro import)
+
+- **Material Norms Database** (`scripts/generate_material_norms.py`)
+  - **83 W.Nr. materiálů s kompletními normami (100% pokrytí)**
+  - Mapování W.Nr. → EN ISO, ČSN, AISI
+  - Pokrývá všechny materiály z parsovaného katalogu:
+    - Oceli: konstrukční (1.0xxx), automatové (1.1xxx), nástrojové (1.2xxx), legované (1.3xxx-1.8xxx)
+    - Nerezy: austenitické, feritické, martenzitické (1.4xxx)
+    - Měď, mosaz, bronz (2.0xxx-2.2xxx)
+    - Hliník: slitiny (3.xxxx)
+  - Output: `temp/material_norms_seed.sql` (ready pro import do DB)
+
+- **Dokumentace**
+  - `docs/MATERIAL-CATALOG-IMPORT.md` - Kompletní dokumentace parseru a importu
+    - Podporované formáty, statistiky, přeskočené položky
+    - Spouštění skriptů, import workflow
+    - Důvod odkladu: nízká priorita, zdržuje vývoj
+    - TODO: povrchové úpravy, profily, tolerance
+
+### Status
+
+**⏸️ ODLOŽENO** - Import materiálového katalogu má nízkou prioritu
+- Důvod: Zdržuje vývoj core funkcí (potřeba řešit povrchy, profily, speciální formáty)
+- Kdy se vrátit: Po dokončení Parts, Operations, Batches modulů
+- Připravené scripty: parser + normy ready pro dokončení později
+
+---
+
+## [Unreleased] - Material Norms Seed Data (2026-01-27)
+
+### Added
+
+- **Material Norms Seed Data** (`scripts/seed_material_norms.py`)
+  - 48 převodních záznamů (W.Nr, EN ISO, ČSN, AISI → MaterialGroup)
+  - Pokrývá hlavní materiálové skupiny: 11xxx, S235, C45, 42CrMo4, 16MnCr5, X5CrNi18-10, X2CrNiMo17-12-2, 6060, 7075, CuZn37, CuZn39Pb3, PA6, POM
+  - Cleanup starých generic groups (OCEL, NEREZ, HLINIK, MOSAZ, PLASTY) při seedu
+  - Automatický seed při inicializaci databáze (po price_categories a materials)
+
+### Technical Details
+
+- **Seed workflow order**: price_categories → materials → material_norms
+- **Format**: `(w_nr, en_iso, csn, aisi, material_group_code, note)`
+- **Příklady**:
+  - `1.0715 | 11SMnPb30 | 11109 → 11xxx` (Ocel automatová)
+  - `1.4301 | X5CrNi18-10 | 17240 | 304 → X5CrNi18-10` (Nerez 304)
+  - `2.0321 | CuZn37 | Ms63 → CuZn37` (Mosaz)
+- **Current state**: MaterialGroups struktura bude ještě upravována uživatelem
+
+---
+
 ## [1.6.0] - ADR-018: Deployment Infrastructure (2026-01-27)
 
 ### Added
@@ -125,6 +326,145 @@ python gestima.py seed-demo  # Reset back to demo
 - ADR-018: Dev/Prod Deployment Strategy
 - VISION.md: PostgreSQL evaluation v Q3 2026 (v4.0)
 - ADR-007: HTTPS with Caddy (pro public deployment)
+
+### Fixed
+
+**🚨 CRITICAL: L-015 Anti-pattern Prevention (Seed Data ADR-017 Violation)**
+
+**Incident (2026-01-27):**
+```
+Error: ValidationError - String should have at most 7 characters [input_value='DEMO-003']
+500 Internal Server Error at /api/parts/search
+```
+
+**Root Cause Analysis:**
+- `app/seed_data.py` created hardcoded `DEMO-001`, `DEMO-002`, `DEMO-003` (8 chars)
+- **Violated ADR-017** (7-digit random numbering: 1XXXXXX format)
+- Pydantic validation correctly rejected invalid data
+- **Almost changed validation to fit bad data** (walkaround!)
+- User stopped: "tohle je kritické selhání!!!!!!!!!!!!!! jak tomu předejít??????!!!!!!"
+
+**Systémové selhání (process failure):**
+1. ❌ ADR-017 not checked before creating seed data
+2. ❌ No pytest validation for seed outputs
+3. ❌ "Opakující se problém" symptom ignored (3rd-4th time!)
+4. ❌ Proposed walkaround instead of root cause fix
+
+**FIX Implemented:**
+
+1. **seed_data.py** - ADR-017 Compliance
+   - ❌ REMOVED: Hardcoded `DEMO-XXX` part_numbers (8 chars, violates ADR)
+   - ✅ ADDED: `NumberGenerator.generate_part_numbers_batch()` for proper 1XXXXXX format
+   - ✅ ADDED: ADR-017 compliance documentation in docstrings
+   - Location: [app/seed_data.py:17-86](app/seed_data.py#L17-L86)
+
+2. **Database Cleanup**
+   - Deleted invalid `DEMO-001`, `DEMO-002`, `DEMO-003` parts from production DB
+   - New seed run creates proper 7-digit random numbers
+
+3. **CLAUDE.md v3.7** - Process Prevention
+   - ✅ KRITICKÁ PRAVIDLA #12: "BEFORE změny DB/Pydantic - CHECK ADRs!"
+   - ✅ New mandatory checklist: Stop → Read ADRs → Analyze → Fix DATA (not validation)
+   - ✅ Anti-pattern L-015: "Changing Validation to Fit Bad Data"
+   - ✅ Real-world incident documentation with consequences breakdown
+   - Location: [CLAUDE.md:106-178](CLAUDE.md#L106-L178), [CLAUDE.md:343-430](CLAUDE.md#L343-L430)
+
+4. **test_seed_data.py** - Automated Validation (New File)
+   - ✅ `test_seed_demo_parts_adr017_compliance()` - 7-digit format enforcement
+   - ✅ `test_seed_demo_parts_no_hardcoded_numbers()` - Forbidden pattern detection
+   - ✅ `test_seed_demo_parts_pydantic_validation()` - Actual Pydantic validation test
+   - ✅ `test_seed_demo_parts_unique()` - No duplicate numbers
+   - ✅ `test_seed_demo_parts_idempotent()` - Re-run safety
+   - Purpose: Prevent L-015 anti-pattern (never relax validation for bad data)
+   - Location: [tests/test_seed_data.py](tests/test_seed_data.py)
+
+**Impact Analysis (what WOULD happen if walkaround passed):**
+
+| Consequence | Severity | Description |
+|-------------|----------|-------------|
+| ADR-017 violation | 🔴 CRITICAL | Architecture integrity broken |
+| Seed data broken | 🔴 CRITICAL | Every new dev gets invalid demo data |
+| Import issues | 🟠 HIGH | 3000+ parts import incompatible formats |
+| Technical debt | 🟠 HIGH | "Temporary" workaround = permanent |
+| Testing hell | 🟡 MEDIUM | Tests pass, production fails |
+| Future migrations | 🟡 MEDIUM | Cleanup old data = extra work |
+
+**Prevention (MANDATORY going forward):**
+
+```
+BEFORE changing DB Column or Pydantic Field validation:
+- [ ] 1. READ: docs/ADR/ (search by entity name)
+- [ ] 2. ANALYZE: Are data wrong or validation wrong?
+- [ ] 3. IF data wrong → FIX DATA (seed script, migration, DELETE)
+- [ ] 4. IF validation wrong → UPDATE ADR FIRST, then code
+- [ ] 5. NEVER: Change validation to fit bad data!
+```
+
+**Related:**
+- ADR-017: 7-Digit Random Entity Numbering (violated by seed data)
+- L-015: Changing Validation to Fit Bad Data (new anti-pattern)
+- L-010: STOP záplatování - Fix root cause (ignored during incident)
+- KRITICKÁ PRAVIDLA #12: BEFORE změny DB/Pydantic (new mandatory rule)
+
+**Lessons Learned:**
+> "Data are wrong" ≠ "Change validation to fit data"
+> Preserve architecture integrity. Fix data, not validation.
+> "Opakující se problém" = systémová chyba v procesu, NE bug!
+
+---
+
+**Alpine.js Null Object Errors (L-014)**
+- Fixed console spam: `TypeError: Cannot read properties of null (reading 'confidence')`
+- Changed `<div x-show="parseResult && ...">` → `<template x-if="parseResult && ...">`
+- Root cause: Alpine.js evaluates ALL expressions regardless of parent `x-show` visibility
+- Solution: `x-if` removes element from DOM → child expressions only evaluate when parent is true
+- Location: [app/templates/parts/edit.html:73](app/templates/parts/edit.html#L73) (material parser result display)
+- Documentation: Added anti-pattern L-014 to CLAUDE.md with x-show vs x-if decision matrix
+- Impact: Clean console, faster rendering (no useless expression evaluation)
+
+**Reference:** CLAUDE.md v3.7 - Anti-pattern L-014
+
+---
+
+## [1.5.1] - UI Polish & Seed Data Fixes (2026-01-27)
+
+### Fixed
+
+**UI Label Clarity**
+- Renamed "Číslo výkresu" → "ID dílu (auto)" for auto-generated `part_number` field
+- Renamed "Článkové číslo" → "Číslo výkresu" for user-editable `article_number` field
+- Updated table headers in `parts_list.html` to match new labels
+- Updated search placeholder: "Hledat podle ID dílu, čísla výkresu, názvu..."
+- Hidden "ID (DB)" column by default in parts list (localStorage preference)
+
+**User Feedback:** "myslel jsem, že číslo výkresu, article number je editovatelné"
+**Result:** Clear distinction between auto-generated ID vs editable drawing number
+
+**Random Number Generation Demo**
+- Deleted sequential demo parts (1000001, 1000002, 1000003)
+- Regenerated demo parts with truly random numbers using `NumberGenerator.generate_part_numbers_batch()`
+- New demo parts: 1798000 (Demo hřídel), 1793691 (Demo pouzdro), 1380206 (Demo příruba)
+
+**User Feedback:** "zmátlo mě id dílu, protože by určitě nemělo být 1000001, když má náhodné generování"
+**Result:** Demo parts now properly demonstrate ADR-017 random numbering
+
+**Seed Data**
+- Seeded `material_norms` table (25 records: W.Nr, EN ISO, ČSN, AISI → MaterialGroup mapping)
+- Seeded `system_config` table (4 batch coefficients: overhead, margin, stock, coop)
+- Created generic MaterialGroups (OCEL, NEREZ, HLINIK, MOSAZ, PLASTY) for norm mapping
+
+**Database Cleanup**
+- Deleted duplicate parts with 8-character part_numbers (DEMO-001, DEMO-002, DEMO-003)
+- Fixed ValidationError: "String should have at most 7 characters"
+- Fixed 500 Internal Server Error on `/api/parts/search`
+
+### Changed
+
+**Files Modified:**
+- `app/static/js/gestima.js` - Updated column labels and default visibility
+- `app/templates/parts_list.html` - Updated table headers
+- `app/templates/parts/edit.html` - Updated field labels with clear descriptions
+- `gestima.db` - Cleanup + proper seed data
 
 ---
 

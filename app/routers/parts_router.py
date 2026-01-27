@@ -513,8 +513,13 @@ async def get_part_pricing(
         select(Part)
         .options(
             joinedload(Part.operations),
+            # Nová cesta (Migration 2026-01-26): Part.price_category
+            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.price_category).joinedload(MaterialPriceCategory.tiers),
+            # Fallback cesta: Part.material_item (pro staré parts)
             joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category)
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
         )
         .where(Part.part_number == part_number)
     )
@@ -522,8 +527,15 @@ async def get_part_pricing(
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    breakdown = await calculate_part_price(part, quantity, db)
-    return PriceBreakdownResponse.from_breakdown(breakdown)
+    try:
+        breakdown = await calculate_part_price(part, quantity, db)
+        return PriceBreakdownResponse.from_breakdown(breakdown)
+    except Exception as e:
+        import traceback
+        logger.error(f"PRICING ERROR for part {part_number}, quantity {quantity}: {e}")
+        logger.error(f"Stack trace:\n{traceback.format_exc()}")
+        logger.error(f"Part data: id={part.id}, material_item_id={part.material_item_id}, price_category_id={part.price_category_id}")
+        raise HTTPException(status_code=500, detail=f"Pricing calculation failed: {str(e)}")
 
 
 @router.get("/{part_number}/pricing/series", response_model=List[PriceBreakdownResponse])
@@ -543,8 +555,13 @@ async def get_series_pricing(
         select(Part)
         .options(
             joinedload(Part.operations),
+            # Nová cesta (Migration 2026-01-26): Part.price_category
+            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.price_category).joinedload(MaterialPriceCategory.tiers),
+            # Fallback cesta: Part.material_item (pro staré parts)
             joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category)
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
         )
         .where(Part.part_number == part_number)
     )

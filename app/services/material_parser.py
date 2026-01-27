@@ -371,10 +371,14 @@ class MaterialParserService:
 
         Returns:
             MaterialGroup nebo None
+
+        Strategy:
+            1. Try exact match first (fastest, most specific)
+            2. If not found, try prefix match (e.g. "S235" → "S235JR", "S235J2")
         """
         norm_upper = norm.upper()
 
-        # Query MaterialNorm (hledá ve všech 4 sloupcích)
+        # 1. Try exact match first (hledá ve všech 4 sloupcích)
         result = await self.db.execute(
             select(MaterialNorm)
             .where(
@@ -390,6 +394,25 @@ class MaterialParserService:
         )
 
         material_norm = result.scalar_one_or_none()
+
+        # 2. If not found, try prefix match (for cases like S235 → S235JR)
+        if not material_norm:
+            result = await self.db.execute(
+                select(MaterialNorm)
+                .where(
+                    or_(
+                        MaterialNorm.w_nr.like(f'{norm_upper}%'),
+                        MaterialNorm.en_iso.like(f'{norm_upper}%'),
+                        MaterialNorm.csn.like(f'{norm_upper}%'),
+                        MaterialNorm.aisi.like(f'{norm_upper}%')
+                    ),
+                    MaterialNorm.deleted_at.is_(None)
+                )
+                .limit(1)
+            )
+
+            material_norm = result.scalar_one_or_none()
+
         if not material_norm:
             return None
 
@@ -414,7 +437,7 @@ class MaterialParserService:
 
         Mapping keywords:
         - ROUND_BAR → "KRUHOVA" nebo "KULATINA"
-        - SQUARE_BAR → "CTYRHRANNA" nebo "ČTYŘHRAN"
+        - SQUARE_BAR → "CTYRHRANNA", "ČTYŘHRAN", "CTVEREC", "ČTVEREC", "ČTVERCOVÁ"
         - FLAT_BAR → "PLOCHÁ" nebo "PLOCHA"
         - HEXAGONAL_BAR → "SESTIHRAN" nebo "ŠESTIHRAN"
         - PLATE → "PLECH"
@@ -422,7 +445,7 @@ class MaterialParserService:
         """
         shape_keywords = {
             StockShape.ROUND_BAR: ["KRUHOVA", "KULATINA"],
-            StockShape.SQUARE_BAR: ["CTYRHRANNA", "ČTYŘHRAN"],
+            StockShape.SQUARE_BAR: ["CTYRHRANNA", "ČTYŘHRAN", "CTVEREC", "ČTVEREC", "ČTVERCOVÁ"],
             StockShape.FLAT_BAR: ["PLOCHÁ", "PLOCHA"],
             StockShape.HEXAGONAL_BAR: ["SESTIHRAN", "ŠESTIHRAN"],
             StockShape.PLATE: ["PLECH"],
@@ -464,6 +487,12 @@ class MaterialParserService:
         Najde existující MaterialItem podle group + shape + rozměry.
 
         Exact match - všechny rozměry se musí shodovat.
+
+        Note: MaterialItem model NEMÁ atribut 'height'.
+        Pro flat_bar/square_bar:
+          - Parser používá: width, height
+          - MaterialItem má: width, thickness
+          - Mapping: height → thickness (pro FLAT_BAR)
         """
         conditions = [
             MaterialItem.material_group_id == material_group_id,
@@ -474,12 +503,18 @@ class MaterialParserService:
         # Přidat rozměrové podmínky (pouze nenulové hodnoty)
         if diameter is not None:
             conditions.append(MaterialItem.diameter == diameter)
+
         if width is not None:
             conditions.append(MaterialItem.width == width)
-        if height is not None:
-            conditions.append(MaterialItem.height == height)
-        if thickness is not None:
+
+        # FLAT_BAR: height (z parseru) → thickness (v MaterialItem)
+        # SQUARE_BAR: height se ignoruje (width == height)
+        if shape == StockShape.FLAT_BAR and height is not None:
+            conditions.append(MaterialItem.thickness == height)
+        elif thickness is not None:
+            # PLATE: thickness je tloušťka plechu
             conditions.append(MaterialItem.thickness == thickness)
+
         if wall_thickness is not None:
             conditions.append(MaterialItem.wall_thickness == wall_thickness)
 

@@ -31,34 +31,50 @@ EXCEL_PATH = Path(__file__).parent.parent / "data" / "materialy_export_import.xl
 PARSED_CSV = Path(__file__).parent.parent / "temp" / "material_codes_preview.csv"
 
 
-# ========== MATERIAL GROUP MAPPING (User-corrected) ==========
+# ========== MATERIAL GROUP MAPPING (User-corrected 2026-01-27) ==========
 MATERIAL_GROUPS = {
     # Oceli (1.0xxx - 1.3xxx)
-    "1.0": {"code": "10xxx", "name": "Ocel uhlíková konstrukční", "density": 7.85},
+    "1.0": {"code": "10xxx", "name": "Ocel konstrukční", "density": 7.85},  # Změna: odstraněno "uhlíková"
     "1.1": {"code": "11xxx", "name": "Ocel automatová", "density": 7.85},
     "1.2": {"code": "12xxx", "name": "Ocel nástrojová", "density": 7.85},
     "1.3": {"code": "13xxx", "name": "Ocel nízkolegovaná", "density": 7.85},
 
     # Nerez (1.4xxx)
-    "1.4": {"code": "14xxx", "name": "Nerez (austenitická/feritická)", "density": 7.90},
+    "1.4": {"code": "14xxx", "name": "Nerez", "density": 7.90},
 
-    # Měď, bronz, mosaz (2.xxxx) - USER CORRECTION
+    # Měď, bronz, mosaz (2.xxxx)
     "2.0": {"code": "20xxx", "name": "Měď a slitiny mědi", "density": 8.90},
     "2.1": {"code": "21xxx", "name": "Mosaz", "density": 8.40},
     "2.2": {"code": "22xxx", "name": "Bronz", "density": 8.80},
 
-    # Hliník (3.xxxx) - USER CORRECTION
-    "3.0": {"code": "30xxx", "name": "Hliník čistý", "density": 2.70},
-    "3.1": {"code": "31xxx", "name": "Hliník Al-Cu", "density": 2.80},
-    "3.2": {"code": "32xxx", "name": "Hliník Al-Mn", "density": 2.70},
-    "3.3": {"code": "33xxx", "name": "Hliník Al-Mg-Si (6xxx)", "density": 2.70},
-    "3.4": {"code": "34xxx", "name": "Hliník Al-Zn", "density": 2.80},
+    # Hliník (3.xxxx) - SLOUČENO pod jednu kategorii
+    "3.0": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
+    "3.1": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
+    "3.2": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
+    "3.3": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
+    "3.4": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
 
-    # Plasty
-    "PA6": {"code": "PA6", "name": "Polyamid 6 (PA6)", "density": 1.14},
-    "PA66": {"code": "PA66", "name": "Polyamid 66 (PA66)", "density": 1.14},
-    "POM": {"code": "POM", "name": "Polyoxymethylen (POM)", "density": 1.41},
-    "ABS": {"code": "ABS", "name": "Acrylonitrile butadiene styrene (ABS)", "density": 1.05},
+    # Litina (cast iron)
+    "GG250": {"code": "LITINA-GG", "name": "Litina šedá", "density": 7.20},
+    "GGG40": {"code": "LITINA-TV", "name": "Litina tvárná", "density": 7.10},
+    "GG": {"code": "LITINA-GG", "name": "Litina šedá", "density": 7.20},  # Fallback for GG200, GG300, etc.
+    "GGG": {"code": "LITINA-TV", "name": "Litina tvárná", "density": 7.10},  # Fallback for GGG50, etc.
+
+    # Plasty - SLOUČENO pod jednu kategorii
+    "PA6": {"code": "PLAST", "name": "Plasty", "density": 1.14},
+    "PA6G": {"code": "PLAST", "name": "Plasty", "density": 1.14},
+    "PA66": {"code": "PLAST", "name": "Plasty", "density": 1.14},
+    "POM": {"code": "PLAST", "name": "Plasty", "density": 1.42},
+    "POM-C": {"code": "PLAST", "name": "Plasty", "density": 1.42},
+    "PE300": {"code": "PLAST", "name": "Plasty", "density": 0.95},
+    "PE500": {"code": "PLAST", "name": "Plasty", "density": 0.95},
+    "PE1000": {"code": "PLAST", "name": "Plasty", "density": 0.95},
+    "PC": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PEEK": {"code": "PLAST", "name": "Plasty", "density": 1.32},
+    "PEEK1000": {"code": "PLAST", "name": "Plasty", "density": 1.32},
+    "PEEK-GF30": {"code": "PLAST", "name": "Plasty", "density": 1.50},
+    "MAPA": {"code": "PLAST", "name": "Plasty", "density": 1.14},
+    "ABS": {"code": "PLAST", "name": "Plasty", "density": 1.05},
 }
 
 
@@ -67,14 +83,28 @@ def identify_material_group(material_code: str) -> Optional[Dict]:
     Identifikuj MaterialGroup podle kódu materiálu.
 
     Args:
-        material_code: např. "1.4404", "3.3547", "PA6"
+        material_code: např. "1.4404", "3.3547", "PA6", "GG250", "GGG40"
 
     Returns:
         dict s code, name, density nebo None
     """
-    # Plasty
-    if material_code.upper() in ["PA6", "PA66", "POM", "ABS"]:
-        return MATERIAL_GROUPS[material_code.upper()]
+    material_upper = material_code.upper()
+
+    # Cast iron (litina) - exact match first
+    if material_upper in ["GG250", "GGG40"]:
+        return MATERIAL_GROUPS[material_upper]
+
+    # Cast iron (litina) - prefix match for other grades (GG200, GG300, GGG50, etc.)
+    if material_upper.startswith("GGG"):
+        return MATERIAL_GROUPS["GGG"]
+    if material_upper.startswith("GG"):
+        return MATERIAL_GROUPS["GG"]
+
+    # Plasty - exact match
+    plastic_list = ["PA6", "PA6G", "PA66", "POM", "POM-C", "PE300", "PE500", "PE1000",
+                    "PC", "PEEK", "PEEK1000", "PEEK-GF30", "MAPA", "ABS"]
+    if material_upper in plastic_list:
+        return MATERIAL_GROUPS[material_upper]
 
     # Kovové materiály (formát X.YYYY)
     if '.' in material_code:
@@ -103,9 +133,9 @@ def get_price_category_code(material_group_code: str, shape: str) -> Tuple[str, 
     Returns:
         (code, name) tuple
     """
-    # Material family name
+    # Material family name (user correction 2026-01-27: OCEL → OCEL-KONS)
     family_map = {
-        "10xxx": "OCEL",
+        "10xxx": "OCEL-KONS",  # Změna: přejmenováno z "OCEL"
         "11xxx": "OCEL-AUTO",
         "12xxx": "OCEL-NAST",
         "13xxx": "OCEL-NIZKO",
@@ -113,15 +143,10 @@ def get_price_category_code(material_group_code: str, shape: str) -> Tuple[str, 
         "20xxx": "MED",
         "21xxx": "MOSAZ",
         "22xxx": "BRONZ",
-        "30xxx": "HLINIK",
-        "31xxx": "HLINIK",
-        "32xxx": "HLINIK",
-        "33xxx": "HLINIK",
-        "34xxx": "HLINIK",
-        "PA6": "PLAST-PA6",
-        "PA66": "PLAST-PA66",
-        "POM": "PLAST-POM",
-        "ABS": "PLAST-ABS",
+        "3xxxx": "HLINIK",  # Sloučené hliníky
+        "LITINA-GG": "LITINA-GG",  # Litina šedá
+        "LITINA-TV": "LITINA-TV",  # Litina tvárná
+        "PLAST": "PLAST",   # Sloučené plasty
     }
 
     # Shape suffix
@@ -141,7 +166,7 @@ def get_price_category_code(material_group_code: str, shape: str) -> Tuple[str, 
 
     # Name construction
     family_names = {
-        "OCEL": "Ocel konstrukční",
+        "OCEL-KONS": "Ocel konstrukční",  # Změna: přejmenováno z "OCEL"
         "OCEL-AUTO": "Ocel automatová",
         "OCEL-NAST": "Ocel nástrojová",
         "OCEL-NIZKO": "Ocel nízkolegovaná",
@@ -150,10 +175,9 @@ def get_price_category_code(material_group_code: str, shape: str) -> Tuple[str, 
         "MOSAZ": "Mosaz",
         "BRONZ": "Bronz",
         "HLINIK": "Hliník",
-        "PLAST-PA6": "Plast PA6",
-        "PLAST-PA66": "Plast PA66",
-        "PLAST-POM": "Plast POM",
-        "PLAST-ABS": "Plast ABS",
+        "LITINA-GG": "Litina šedá",
+        "LITINA-TV": "Litina tvárná",
+        "PLAST": "Plasty",
     }
 
     family_name_full = family_names.get(family, family)

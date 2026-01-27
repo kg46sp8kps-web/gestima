@@ -103,6 +103,53 @@ app/
 | 9 | Pydantic Field validace | `gt=0`, `ge=0`, `max_length` |
 | 10 | Over-engneering | KISS principle|
 | 11 | Reusable building block | je-li to možné, nedělej něco dvakrát|
+| 12 | **PŘED změnou DB/Pydantic** | **CHECK ADRs! Data špatně ≠ změň validaci** |
+
+---
+
+### 🚨 BEFORE Změny DB Schema / Pydantic Validation (MANDATORY!)
+
+**STOP! Před jakoukoliv změnou DB Column nebo Pydantic Field validace MUSÍŠ:**
+
+```
+- [ ] 1. READ: docs/ADR/ - hledej relevantní ADRs (search by entity name)
+- [ ] 2. ANALYZE: Jsou data ŠPATNĚ nebo je validace ŠPATNĚ?
+- [ ] 3. IF data špatně → FIX DATA (seed script, migration, manual DELETE)
+- [ ] 4. IF validace špatně → UPDATE ADR FIRST, pak kód + tests
+- [ ] 5. NEVER: Změň validaci aby odpovídala špatným datům!
+```
+
+**Příklad (tento incident):**
+
+```python
+# ❌ ŠPATNĚ (walkaround):
+# Error: "String should have at most 7 characters [input_value='DEMO-003']"
+# Roy: "Změňme String(7) → String(50) a max_length=7 → 50"
+
+# ✅ SPRÁVNĚ (fix root cause):
+# Roy: "Počkat! DEMO-003 porušuje ADR-017! Seed data jsou špatně!"
+# 1. READ: docs/ADR/017-7digit-random-numbering.md
+# 2. ZJISTIL: Format MUSÍ být 1XXXXXX (7 digits), DEMO-003 = invalid!
+# 3. FIX: Oprav seed_data.py + smaž DEMO-XXX z DB
+# 4. TEST: pytest seed data format validation
+```
+
+**Red Flags (když MUSÍŠ použít tento checklist):**
+
+- 🚨 **Validation error v produkci** - `pydantic.ValidationError`, `IntegrityError`
+- 🚨 **"Opakující se problém"** - už to řešíme po X-té! (systémový problém!)
+- 🚨 **Relax constraint** - měníš `max_length`, `min_length`, odstraňuješ `gt=0`
+- 🚨 **"Demo data nefungují"** - seed script vytváří invalid data
+- 🚨 **SQLite passes, Pydantic fails** - SQLite ignoruje VARCHAR length!
+
+**Proč je to KRITICKÉ:**
+
+- Porušení ADR = rozbitá architektura
+- Seed data invalid = každý nový dev má broken environment
+- Walkaround validation = technical debt stack
+- Opakování = systémová chyba v procesu (NE jednorázový bug)
+
+---
 
 ### Pydantic vzory
 ```python
@@ -192,6 +239,105 @@ async def get_fact() -> Dict[str, Any]:
 | L-011 | CSS conflicts | Inline override global CSS |
 | L-012 | HTMX boost + Alpine | NEPOUŽÍVAT hx-boost s Alpine.js |
 | L-013 | Debounced race + NaN | Sequence tracking + isNaN() |
+| L-014 | Alpine x-show null errors | Použít x-if místo x-show |
+| L-015 | **Změna validace → fit data** | **READ ADRs! Fix DATA, ne validaci** |
+
+### L-015: Changing Validation to Fit Bad Data (CRITICAL!)
+
+**Problém:**
+Validace failuje → místo opravy dat se změní validace → porušení architektury.
+
+**Symptomy:**
+- `ValidationError: String should have at most 7 characters [input_value='DEMO-003']`
+- "Změňme max_length=7 → 50 aby to prošlo"
+- "Seed data nefungují, relax validation"
+- SQLite passes but Pydantic fails
+- "Opakující se problém" (už po X-té!)
+
+**Real-world incident (2026-01-27):**
+
+```python
+# ❌ ŠPATNĚ (téměř se stalo!):
+# Error: ValidationError part_number 'DEMO-003' (8 chars) > max_length=7
+# Plánovaný fix: String(7) → String(50), max_length=7 → 50
+
+# ✅ SPRÁVNĚ (po zastavení uživatelem):
+# 1. READ: docs/ADR/017-7digit-random-numbering.md
+# 2. ZJIŠTĚNO: Format MUSÍ být 1XXXXXX (7 digits random)
+# 3. ROOT CAUSE: seed_data.py vytváří DEMO-XXX (porušuje ADR-017!)
+# 4. FIX: Opravit seed script + smazat špatná data
+# 5. PREVENCE: pytest validace seed outputs, ADR checklist
+```
+
+**Důsledky walkaroundu (kdyby prošel):**
+
+| Dopad | Popis |
+|-------|-------|
+| ❌ Porušení ADR-017 | 7-digit numbering system ignorován |
+| ❌ Broken architecture | Validace ≠ ADR ≠ dokumentace |
+| ❌ Seed data broken | Každý nový dev má invalid demo data |
+| ❌ Import problémy | 3000+ parts import by selhal (různé formáty) |
+| ❌ Technical debt | "Dočasný" workaround = permanent |
+| ❌ Future migrations | Cleanup old data = extra práce |
+| ❌ Testing hell | Tests pass but prod fails |
+
+**Root Cause Analysis:**
+
+```
+Proč se to stalo?
+├─ Seed script vytvořil DEMO-XXX (8 znaků)
+├─ Žádné ADR check před změnou validace
+├─ Žádná pytest validace seed outputs
+├─ "Opakující se problém" ignorován (symptom systémové chyby)
+└─ Rychlý fix místo analýzy (záplatování)
+```
+
+**Correct Workflow:**
+
+```
+IF ValidationError:
+    1. STOP! Nenavrh změnu validace!
+    2. READ: docs/ADR/ (search by entity/field name)
+    3. ANALYZE: Co je SPRÁVNĚ podle ADR?
+    4. IDENTIFY: Jsou data wrong nebo validace wrong?
+    5a. IF data wrong:
+        → FIX: Seed script, migration, manual DELETE
+        → TEST: pytest pro seed outputs
+        → DOCUMENT: Anti-pattern pokud opakující se
+    5b. IF validace wrong:
+        → UPDATE ADR: Document reason for change
+        → FIX: Code + Pydantic + tests
+        → REVIEW: Je to breaking change?
+```
+
+**Prevention Checklist:**
+
+```
+- [ ] BEFORE změna DB/Pydantic: READ ADRs (mandatory!)
+- [ ] Pytest validace pro seed data outputs
+- [ ] Pre-commit hook: test seed script
+- [ ] Documentation: ADR → code → tests sync
+- [ ] Code review: Flag validation changes (high risk!)
+```
+
+**Red Flags (when to use this checklist):**
+
+- 🚨 Changing `max_length`, `min_length`, removing `gt=0`
+- 🚨 "Validation too strict" feedback
+- 🚨 Seed/demo data fail validation
+- 🚨 "Opakující se problém" (systémová chyba!)
+- 🚨 SQLite passes but Pydantic fails (VARCHAR length!)
+
+**Related:**
+- ADR-017: 7-Digit Random Entity Numbering
+- L-010: STOP záplatování - Fix root cause
+- KRITICKÁ PRAVIDLA #12: BEFORE změny DB/Pydantic
+
+**Lesson Learned:**
+> "Data are wrong" ≠ "Change validation to fit data"
+> Fix data, preserve architecture integrity.
+
+---
 
 ### L-012: HTMX Boost + Alpine.js = NEPOUŽÍVAT
 
@@ -411,6 +557,72 @@ With sequence tracking:
 
 **Real-world příklad:**
 [app/templates/parts/edit.html:851-1090](app/templates/parts/edit.html#L851-L1090)
+
+---
+
+### L-014: Alpine.js x-show with Null Object Properties
+
+**Problém:**
+Alpine.js evaluuje **všechny expressions** na stránce, i když parent element má `x-show="false"`. Pokud child element přistupuje k properties null objektu, vznikají chyby `Cannot read properties of null`.
+
+**Symptomy:**
+- Konzole plná `TypeError: Cannot read properties of null (reading 'confidence')`
+- Chyby se objevují i když parent má `x-show="object && object.property > 0"`
+- 10-20 stejných chyb při každém načtení stránky
+
+**❌ ŠPATNĚ (x-show nezabrání evaluaci child expressions):**
+```html
+<!-- Parent má null check, ale nestačí! -->
+<div x-show="parseResult && parseResult.confidence > 0">
+    <!-- ❌ Alpine evaluuje tohle i když parent je hidden -->
+    <span x-show="parseResult.confidence >= 0.7">✅ OK</span>
+    <span x-text="parseResult.confidence"></span>
+    <button :disabled="parseResult.confidence < 0.4">Použít</button>
+</div>
+```
+
+**✅ SPRÁVNĚ (x-if odstraní element z DOM):**
+```html
+<!-- x-if NERENDUJE element když je false -->
+<template x-if="parseResult && parseResult.confidence > 0">
+    <div>
+        <!-- ✓ Tyto expressions se evaluují JEN když parseResult existuje -->
+        <span x-show="parseResult.confidence >= 0.7">✅ OK</span>
+        <span x-text="parseResult.confidence"></span>
+        <button :disabled="parseResult.confidence < 0.4">Použít</button>
+    </div>
+</template>
+```
+
+**Kdy použít:**
+- Dynamický obsah který závisí na async data (API response)
+- Komponenty s počáteční hodnotou `null`/`undefined`
+- Conditional rendering objektů s properties
+
+**Kdy NENÍ třeba:**
+- Simple boolean flags (`x-show="isOpen"`)
+- Primitive hodnoty (strings, numbers)
+- Data která jsou inicializována při mount
+
+**Rozdíl x-show vs x-if:**
+
+| | `x-show` | `x-if` |
+|---|----------|--------|
+| Renderování | Element vždy v DOM (hidden CSS) | Element není v DOM |
+| Expressions | Evaluují se vždy | Evaluují se jen když true |
+| Performance | Faster toggle (CSS only) | Re-render při změně |
+| Null-safe | ❌ NE (child expressions se evaluují) | ✅ ANO |
+
+**Rule of thumb:**
+```
+IF (používáš object.property V child elements):
+    → Použij x-if na parent
+ELSE:
+    → x-show je OK
+```
+
+**Real-world fix:**
+[app/templates/parts/edit.html:73](app/templates/parts/edit.html#L73) (změna `x-show` → `x-if`)
 
 ---
 
@@ -788,5 +1000,5 @@ IF (60+ minut debugging AND stále nefunguje):
 
 ---
 
-**Verze:** 3.6 (2026-01-26)
+**Verze:** 3.7 (2026-01-27)
 **GESTIMA:** 1.4.0

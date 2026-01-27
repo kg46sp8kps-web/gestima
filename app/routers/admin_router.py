@@ -31,13 +31,17 @@ async def admin_material_norms_page(
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     """
-    Admin page: Material Norms (conversion table).
+    Admin page: Material Norms + Material Groups + Price Categories + System Config.
 
-    UI zobrazuje: W.Nr | EN ISO | ČSN | AISI | MaterialGroup | Actions
-
-    Format: 1 řádek = 1 conversion entry (4 sloupce norem → 1 kategorie)
+    UI zobrazuje 4 taby:
+    - Tab 1: Material Norms (W.Nr | EN ISO | ČSN | AISI → MaterialGroup)
+    - Tab 2: Material Groups (code, name, density)
+    - Tab 3: Price Categories (code, name, material_group, tiers)
+    - Tab 4: System Config (koeficienty)
     """
-    # Načíst všechny normy + MaterialGroup
+    from app.models.material import MaterialPriceCategory, MaterialPriceTier
+
+    # Tab 1: Material Norms
     result = await db.execute(
         select(MaterialNorm)
         .options(selectinload(MaterialNorm.material_group))
@@ -46,7 +50,6 @@ async def admin_material_norms_page(
     )
     norms_orm = result.scalars().all()
 
-    # Convert to dict for JSON serialization in template
     norms_json = [
         {
             "id": norm.id,
@@ -60,14 +63,72 @@ async def admin_material_norms_page(
                 "code": norm.material_group.code,
                 "name": norm.material_group.name,
                 "density": float(norm.material_group.density)
-            },
+            } if norm.material_group else None,
             "note": norm.note,
             "version": norm.version
         }
         for norm in norms_orm
     ]
 
-    # Načíst SystemConfig pro druhý tab (System Settings)
+    # Tab 2: Material Groups
+    result_groups = await db.execute(
+        select(MaterialGroup)
+        .where(MaterialGroup.deleted_at.is_(None))
+        .order_by(MaterialGroup.code)
+    )
+    groups_orm = result_groups.scalars().all()
+
+    groups_json = [
+        {
+            "id": g.id,
+            "code": g.code,
+            "name": g.name,
+            "density": float(g.density),
+            "version": g.version
+        }
+        for g in groups_orm
+    ]
+
+    # Tab 3: Price Categories with Tiers
+    result_categories = await db.execute(
+        select(MaterialPriceCategory)
+        .options(
+            selectinload(MaterialPriceCategory.material_group),
+            selectinload(MaterialPriceCategory.tiers)
+        )
+        .where(MaterialPriceCategory.deleted_at.is_(None))
+        .order_by(MaterialPriceCategory.code)
+    )
+    categories_orm = result_categories.scalars().all()
+
+    categories_json = [
+        {
+            "id": c.id,
+            "code": c.code,
+            "name": c.name,
+            "material_group_id": c.material_group_id,
+            "material_group": {
+                "id": c.material_group.id,
+                "code": c.material_group.code,
+                "name": c.material_group.name,
+                "density": float(c.material_group.density)
+            } if c.material_group else None,
+            "tiers": [
+                {
+                    "id": t.id,
+                    "min_weight": float(t.min_weight),
+                    "max_weight": float(t.max_weight) if t.max_weight else None,
+                    "price_per_kg": float(t.price_per_kg),
+                    "version": t.version
+                }
+                for t in sorted(c.tiers, key=lambda x: x.min_weight)
+            ],
+            "version": c.version
+        }
+        for c in categories_orm
+    ]
+
+    # Tab 4: System Config
     result_config = await db.execute(
         select(SystemConfig).order_by(SystemConfig.key)
     )
@@ -77,6 +138,8 @@ async def admin_material_norms_page(
         "request": request,
         "norms": norms_orm,
         "norms_json": norms_json,
+        "groups_json": groups_json,
+        "categories_json": categories_json,
         "configs": configs,
         "current_user": current_user
     })
@@ -268,6 +331,332 @@ async def api_delete_material_norm(
     try:
         await db.commit()
         return {"message": f"MaterialNorm '{norm.code}' smazána"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# ========== MATERIAL CATALOG (Groups + Price Categories) ==========
+
+@router.get("/material-catalog", response_class=HTMLResponse)
+async def admin_material_catalog_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    Admin page: Material Catalog (MaterialGroups + MaterialPriceCategories).
+
+    UI zobrazuje: 2 taby pro správu kategorií před importem katalogu.
+    """
+    from app.models.material import MaterialPriceCategory
+
+    # Load MaterialGroups
+    result_groups = await db.execute(
+        select(MaterialGroup)
+        .where(MaterialGroup.deleted_at.is_(None))
+        .order_by(MaterialGroup.code)
+    )
+    groups_orm = result_groups.scalars().all()
+
+    # Convert to dict for JSON serialization
+    groups_json = [
+        {
+            "id": g.id,
+            "code": g.code,
+            "name": g.name,
+            "density": float(g.density),
+            "version": g.version
+        }
+        for g in groups_orm
+    ]
+
+    # Load MaterialPriceCategories with MaterialGroup
+    result_categories = await db.execute(
+        select(MaterialPriceCategory)
+        .options(selectinload(MaterialPriceCategory.material_group))
+        .where(MaterialPriceCategory.deleted_at.is_(None))
+        .order_by(MaterialPriceCategory.code)
+    )
+    categories_orm = result_categories.scalars().all()
+
+    # Convert to dict for JSON serialization
+    categories_json = [
+        {
+            "id": c.id,
+            "code": c.code,
+            "name": c.name,
+            "material_group_id": c.material_group_id,
+            "material_group": {
+                "id": c.material_group.id,
+                "code": c.material_group.code,
+                "name": c.material_group.name,
+                "density": float(c.material_group.density)
+            } if c.material_group else None,
+            "version": c.version
+        }
+        for c in categories_orm
+    ]
+
+    return templates.TemplateResponse("admin/material_catalog.html", {
+        "request": request,
+        "groups_json": groups_json,
+        "categories_json": categories_json,
+        "current_user": current_user
+    })
+
+
+# ========== MaterialGroup CRUD ==========
+
+@router.post("/api/material-groups")
+async def api_create_material_group(
+    data: "MaterialGroupCreate",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+) -> "MaterialGroupResponse":
+    """
+    API: Create new MaterialGroup.
+    """
+    from app.models.material import MaterialGroupCreate, MaterialGroupResponse
+
+    # Check code uniqueness
+    result = await db.execute(
+        select(MaterialGroup).where(MaterialGroup.code == data.code.upper())
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"MaterialGroup s kódem '{data.code}' již existuje")
+
+    # Create MaterialGroup
+    group = MaterialGroup(
+        code=data.code.upper(),
+        name=data.name,
+        density=data.density
+    )
+    set_audit(group, current_user.username, is_update=False)
+
+    try:
+        db.add(group)
+        await db.commit()
+        await db.refresh(group)
+        return MaterialGroupResponse.model_validate(group)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.put("/api/material-groups/{group_id}")
+async def api_update_material_group(
+    group_id: int,
+    data: "MaterialGroupUpdate",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+) -> "MaterialGroupResponse":
+    """
+    API: Update MaterialGroup (optimistic locking).
+    """
+    from app.models.material import MaterialGroupUpdate, MaterialGroupResponse
+
+    result = await db.execute(
+        select(MaterialGroup).where(MaterialGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
+
+    if not group:
+        raise HTTPException(status_code=404, detail=f"MaterialGroup ID {group_id} nenalezena")
+
+    # Optimistic locking
+    if group.version != data.version:
+        raise HTTPException(
+            status_code=409,
+            detail="Skupina byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu."
+        )
+
+    # Update fields
+    if data.code is not None:
+        # Check code uniqueness
+        result = await db.execute(
+            select(MaterialGroup).where(
+                MaterialGroup.code == data.code.upper(),
+                MaterialGroup.id != group_id
+            )
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Kód '{data.code}' je již použit")
+        group.code = data.code.upper()
+
+    if data.name is not None:
+        group.name = data.name
+
+    if data.density is not None:
+        group.density = data.density
+
+    set_audit(group, current_user.username, is_update=True)
+
+    try:
+        await db.commit()
+        await db.refresh(group)
+        return MaterialGroupResponse.model_validate(group)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.delete("/api/material-groups/{group_id}")
+async def api_delete_material_group(
+    group_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    API: Soft delete MaterialGroup.
+
+    Note: Soft delete (set deleted_at, deleted_by) instead of hard delete.
+    """
+    result = await db.execute(
+        select(MaterialGroup).where(MaterialGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
+
+    if not group:
+        raise HTTPException(status_code=404, detail=f"MaterialGroup ID {group_id} nenalezena")
+
+    # Soft delete
+    from datetime import datetime
+    group.deleted_at = datetime.utcnow()
+    group.deleted_by = current_user.username
+
+    try:
+        await db.commit()
+        return {"message": f"MaterialGroup '{group.code}' smazána"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# ========== MaterialPriceCategory CRUD ==========
+
+@router.post("/api/material-price-categories")
+async def api_create_material_price_category(
+    data: "MaterialPriceCategoryCreate",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+) -> "MaterialPriceCategoryResponse":
+    """
+    API: Create new MaterialPriceCategory.
+    """
+    from app.models.material import MaterialPriceCategoryCreate, MaterialPriceCategoryResponse, MaterialPriceCategory
+
+    # Check code uniqueness
+    result = await db.execute(
+        select(MaterialPriceCategory).where(MaterialPriceCategory.code == data.code.upper())
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"MaterialPriceCategory s kódem '{data.code}' již existuje")
+
+    # Create MaterialPriceCategory
+    category = MaterialPriceCategory(
+        code=data.code.upper(),
+        name=data.name
+    )
+    set_audit(category, current_user.username, is_update=False)
+
+    try:
+        db.add(category)
+        await db.commit()
+        await db.refresh(category)
+        return MaterialPriceCategoryResponse.model_validate(category)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.put("/api/material-price-categories/{category_id}")
+async def api_update_material_price_category(
+    category_id: int,
+    data: "MaterialPriceCategoryUpdate",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+) -> "MaterialPriceCategoryResponse":
+    """
+    API: Update MaterialPriceCategory (optimistic locking).
+    """
+    from app.models.material import MaterialPriceCategoryUpdate, MaterialPriceCategoryResponse, MaterialPriceCategory
+
+    result = await db.execute(
+        select(MaterialPriceCategory).where(MaterialPriceCategory.id == category_id)
+    )
+    category = result.scalar_one_or_none()
+
+    if not category:
+        raise HTTPException(status_code=404, detail=f"MaterialPriceCategory ID {category_id} nenalezena")
+
+    # Optimistic locking
+    if category.version != data.version:
+        raise HTTPException(
+            status_code=409,
+            detail="Kategorie byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu."
+        )
+
+    # Update fields
+    if data.code is not None:
+        # Check code uniqueness
+        result = await db.execute(
+            select(MaterialPriceCategory).where(
+                MaterialPriceCategory.code == data.code.upper(),
+                MaterialPriceCategory.id != category_id
+            )
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Kód '{data.code}' je již použit")
+        category.code = data.code.upper()
+
+    if data.name is not None:
+        category.name = data.name
+
+    set_audit(category, current_user.username, is_update=True)
+
+    try:
+        await db.commit()
+        await db.refresh(category)
+        return MaterialPriceCategoryResponse.model_validate(category)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.delete("/api/material-price-categories/{category_id}")
+async def api_delete_material_price_category(
+    category_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    API: Soft delete MaterialPriceCategory.
+
+    Note: Soft delete (set deleted_at, deleted_by) instead of hard delete.
+    """
+    from app.models.material import MaterialPriceCategory
+
+    result = await db.execute(
+        select(MaterialPriceCategory).where(MaterialPriceCategory.id == category_id)
+    )
+    category = result.scalar_one_or_none()
+
+    if not category:
+        raise HTTPException(status_code=404, detail=f"MaterialPriceCategory ID {category_id} nenalezena")
+
+    # Soft delete
+    from datetime import datetime
+    category.deleted_at = datetime.utcnow()
+    category.deleted_by = current_user.username
+
+    try:
+        await db.commit()
+        return {"message": f"MaterialPriceCategory '{category.code}' smazána"}
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

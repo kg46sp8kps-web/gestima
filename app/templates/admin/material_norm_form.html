@@ -225,8 +225,6 @@ function materialNormForm() {
 
                 const method = this.mode === 'create' ? 'POST' : 'PUT';
 
-                console.log('Submitting:', method, url, cleanData);
-
                 const response = await fetch(url, {
                     method: method,
                     headers: {
@@ -247,7 +245,6 @@ function materialNormForm() {
                 }
 
                 // Success
-                console.log('Norm saved successfully');
                 window.showToast && window.showToast('✅ Norma uložena', 'success');
                 this.$dispatch('close-modal');
                 setTimeout(() => window.location.reload(), 500);

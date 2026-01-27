@@ -21,7 +21,7 @@
                 type="text"
                 x-model="search"
                 @input.debounce.300ms="loadParts()"
-                placeholder="Hledat podle ID, číslo výkresu, article number, název..."
+                placeholder="Hledat podle ID dílu, čísla výkresu, názvu..."
                 style="width: 100%; padding-right: 2rem;"
             >
             <button
@@ -79,9 +79,9 @@
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
-                        <th x-show="visibleColumns.id" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">ID</th>
-                        <th x-show="visibleColumns.part_number" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Číslo výkresu</th>
-                        <th x-show="visibleColumns.article_number" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Article</th>
+                        <th x-show="visibleColumns.id" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">ID (DB)</th>
+                        <th x-show="visibleColumns.part_number" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">ID dílu</th>
+                        <th x-show="visibleColumns.article_number" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Číslo výkresu</th>
                         <th x-show="visibleColumns.name" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Název</th>
                         <th x-show="visibleColumns.material" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Materiál</th>
                         <th x-show="visibleColumns.length" style="padding: 0.6rem 0.75rem; text-align: right; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Délka (mm)</th>

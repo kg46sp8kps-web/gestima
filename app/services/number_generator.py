@@ -115,13 +115,23 @@ class NumberGenerator:
             buffer_size = int(count * multiplier)
 
             # Generate random candidates
+            # AUDIT-FIX: Added iteration limit to prevent infinite loop at high DB utilization
             candidates = set()
-            while len(candidates) < buffer_size:
+            max_iterations = buffer_size * 10  # Safety limit
+            iterations = 0
+            while len(candidates) < buffer_size and iterations < max_iterations:
                 number = str(random.randint(
                     NumberGenerator.PART_MIN,
                     NumberGenerator.PART_MAX
                 ))
                 candidates.add(number)
+                iterations += 1
+
+            if iterations >= max_iterations:
+                logger.warning(
+                    f"Hit iteration limit ({max_iterations}) generating part numbers. "
+                    f"Generated {len(candidates)}/{buffer_size} candidates."
+                )
 
             # Single DB query to check all candidates
             result = await db.execute(
@@ -178,13 +188,17 @@ class NumberGenerator:
             )
             buffer_size = int(count * multiplier)
 
+            # AUDIT-FIX: Added iteration limit to prevent infinite loop
             candidates = set()
-            while len(candidates) < buffer_size:
+            max_iterations = buffer_size * 10
+            iterations = 0
+            while len(candidates) < buffer_size and iterations < max_iterations:
                 number = str(random.randint(
                     NumberGenerator.MATERIAL_MIN,
                     NumberGenerator.MATERIAL_MAX
                 ))
                 candidates.add(number)
+                iterations += 1
 
             result = await db.execute(
                 select(MaterialItem.material_number).where(
@@ -235,13 +249,17 @@ class NumberGenerator:
             )
             buffer_size = int(count * multiplier)
 
+            # AUDIT-FIX: Added iteration limit to prevent infinite loop
             candidates = set()
-            while len(candidates) < buffer_size:
+            max_iterations = buffer_size * 10
+            iterations = 0
+            while len(candidates) < buffer_size and iterations < max_iterations:
                 number = str(random.randint(
                     NumberGenerator.BATCH_MIN,
                     NumberGenerator.BATCH_MAX
                 ))
                 candidates.add(number)
+                iterations += 1
 
             result = await db.execute(
                 select(Batch.batch_number).where(

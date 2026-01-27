@@ -1,8 +1,115 @@
 # Status & Next Steps
 
-**Date:** 2026-01-27 | **GESTIMA:** 1.4.1
+**Date:** 2026-01-27 | **GESTIMA:** 1.5.0
 
 **⚠️ DŮLEŽITÉ:** Pro kompletní status před beta release viz [BETA-RELEASE-STATUS.md](BETA-RELEASE-STATUS.md)
+
+---
+
+## ✅ CODE AUDIT DOKONČEN (2026-01-27)
+
+### Komplexní Code Audit - DONE ✅
+
+**Status:** ✅ HOTOVO - Viz [AUDIT-2026-01-27.md](AUDIT-2026-01-27.md)
+
+**Kritické opravy:**
+- ✅ Falsy defaults fix v `time_calculator.py` (0 jako validní hodnota)
+- ✅ FK cascade rules v `part.py` (ondelete="SET NULL")
+- ✅ Number generator infinite loop prevention
+
+**Dead code removal:** ~18,350 řádků
+- Deprecated funkce v price_calculator.py
+- Obsolete scripts folder
+- Nepoužívané JS komponenty
+- Console.log debug statements
+
+**Known issues (backlog):**
+- 19× bare `except Exception` → nahradit specifickými exceptions
+- 57× copy-paste error handling → refaktorovat na `safe_commit()`
+
+**Hodnocení:** 7.5/10 → **8.5/10** (po opravách)
+
+---
+
+## ✅ NOVĚ IMPLEMENTOVÁNO (2026-01-27)
+
+### Admin UI: 4-Tab Material Management - DONE ✅
+
+**Status:** ✅ HOTOVO - Admin UI s kompletním přehledem materiálů a cen
+
+**Co bylo implementováno:**
+- ✅ **4-tab admin interface** (`/admin/material-norms`)
+  - **Tab 1: Material Norms** - Správa W.Nr. materiálových norem (EN ISO, ČSN, AISI)
+  - **Tab 2: Material Groups (12)** - Zobrazení materiálových skupin (code, name, density)
+  - **Tab 3: Ceny (37)** - Cenové kategorie s vnořenými price tiers tabulkami
+    - Každá kategorie zobrazuje 3 hmotnostní pásma (0-15kg, 15-100kg, 100+kg)
+    - Ceny zobrazené přímo v UI (Kč/kg)
+  - **Tab 4: Nastavení** - Systémové koeficienty
+  - Search/filter na každém tabu
+- ✅ **Material Catalog Seed Script** (`scripts/reset_and_seed_catalog.py`)
+  - Automatický seed databáze s kompletní strukturou
+  - 12 MaterialGroups + 37 MaterialPriceCategories + 97 MaterialPriceTiers + 108 MaterialNorms
+  - Ceny převzaty z existující tabulky nebo odhadnuty podle materiálové rodiny
+  - Spuštění: `python3 scripts/reset_and_seed_catalog.py`
+- ✅ **Bug fix:** AttributeError při None material_group v admin router
+  - Eager loading s `selectinload()` pro related entities
+  - Správná kontrola `if entity else None` v JSON serializaci
+
+**Effort:** ~3 hodiny (4-tab UI + seed script + debugging)
+
+**Impact:**
+- Admin má kompletní přehled všech materiálů, norem, cen a koeficientů v jednom UI
+- Seed script umožňuje rychlý reset a inicializaci databáze
+- Price tiers viditelné přímo v UI (nemusí se složitě zjišťovat z DB)
+
+**Dokumentace:**
+- [CHANGELOG.md](../CHANGELOG.md) - nová sekce "Admin UI for Material Catalog"
+- [temp/README-MATERIAL-IMPORT.md](../temp/README-MATERIAL-IMPORT.md) - aktualizováno URL + popis 4-tab UI
+- [temp/PRICE-STRUCTURE.md](../temp/PRICE-STRUCTURE.md) - přehled cenové struktury
+
+---
+
+### Material Catalog Import - PREPARED (⏸️ Odloženo)
+
+**Status:** ⏸️ ODLOŽENO - Nízká priorita, zdržuje vývoj core funkcí
+
+**Co bylo připraveno:**
+- ✅ Parser materiálových kódů: `scripts/analyze_material_codes.py`
+  - **3322 položek zparsováno z 4181 (79.5% pokrytí)**
+  - Podporované formáty: ocel (tyče, trubky, bloky), hliník (bloky, pásy), litina, plasty
+  - Output: `temp/material_codes_preview.csv` (ready pro import)
+- ✅ Material Norms Database: `scripts/generate_material_norms.py`
+  - **83 W.Nr. materiálů s kompletními normami (100% pokrytí)**
+  - Mapování W.Nr. → EN ISO, ČSN, AISI
+  - Output: `temp/material_norms_seed.sql` (ready pro import do DB)
+- ✅ Dokumentace: `docs/MATERIAL-CATALOG-IMPORT.md`
+  - Kompletní dokumentace parseru, import workflow, statistiky
+  - Důvod odkladu, TODO pro budoucnost
+
+**Effort:** ~4 hodiny (parser + normy + dokumentace)
+
+**Důvod odkladu:**
+- Potřeba řešit povrchové úpravy (EP, Zn, Vs, Kl) → vyžaduje novou tabulku
+- Profily (L, U, UPE) → vyžaduje custom geometrii nebo nový StockShape
+- Tyče s tolerancemi (h6, f7) → vyžaduje tolerance pole v DB
+- Zdržuje vývoj core funkcí (Parts, Operations, Batches)
+
+**Kdy se vrátit:**
+- Po dokončení core modulů (Parts, Operations, Batches stabilní)
+- Až budeme potřebovat kompletní materiálový katalog pro produkci
+- Když budeme řešit integraci s dodavateli
+
+**Připravené soubory:**
+- `scripts/analyze_material_codes.py` - ready
+- `scripts/generate_material_norms.py` - ready
+- `scripts/import_material_catalog.py` - TODO: implement `execute_import()`
+- `temp/material_codes_preview.csv` - 3322 záznamů ready
+- `temp/material_norms_seed.sql` - 83 materiálů ready
+
+**Impact:**
+- Parser a normy jsou připravené pro dokončení později
+- Dokumentace zajišťuje že se k tomu můžeme vrátit bez ztráty kontextu
+- Core vývoj může pokračovat bez zdržení
 
 ---
 
@@ -370,8 +477,58 @@ MaterialItem (katalog)          Part (konkrétní díl)
 
 ## Next Steps (prioritizované)
 
-### 1. Features Implementation (Kroky operací)
-**Priority:** HIGH | **Effort:** 4-6h
+### 1. Material Catalog Import + Smart Lookup (ADR-019)
+**Priority:** HIGH | **Effort:** ~12h | **Status:** 📋 NAVRŽENO
+**Reference:** [ADR-019](ADR/019-material-catalog-smart-lookup.md)
+
+**Quick Summary:**
+- Import Excel katalogu (2405 MaterialItems) s 7-digit material_number (2XXXXXX)
+- Smart Upward Lookup: zadám Ø21mm → najde nejbližší větší Ø25mm (tolerance UP only!)
+- Part.material_item_id integration (OBA fieldy: material_item_id + price_category_id)
+- Catalog weight_per_meter priority (přesnější než calculated weight)
+- Připravenost pro Orders v2.0 snapshot
+
+**PREP (před implementací):**
+```bash
+# 1. Seed MaterialNorms (MANDATORY!)
+python scripts/seed_material_norms.py
+
+# 2. Preview import (DRY-RUN)
+python scripts/import_material_catalog.py
+
+# 3. Execute import
+python scripts/import_material_catalog.py --execute
+```
+
+**Implementation Tasks:**
+- [ ] PREP: Seed MaterialNorms (~48 záznamů)
+- [ ] Import: Execute import (2405 MaterialItems)
+- [ ] Backend: MaterialSearchService.find_nearest_upward_match()
+- [ ] Backend: /api/materials/parse rozšíření (smart lookup)
+- [ ] Backend: price_calculator.py weight_per_meter priority
+- [ ] Frontend: Material match card UI (parts/edit.html)
+- [ ] Frontend: applyMaterialItem() Alpine.js function
+- [ ] Tests: Upward tolerance, multi-dim, catalog weight priority
+- [ ] Docs: CHANGELOG update
+
+**User Workflow:**
+```
+User zadá: "1.4404 Ø21"
+→ Parse: material_code=1.4404, shape=ROUND_BAR, diameter=21
+→ Smart Lookup: najde "1.4404 Ø25mm" (diff=4mm)
+→ UI: "📦 Nalezena skladová položka o 4mm větší" [Použít]
+→ Apply: uloží material_item_id + price_category_id + auto-fill geometry
+→ Pricing: použije weight_per_meter z katalogu (pokud je v DB)
+```
+
+**Vision Impact:**
+- 🟡 Příprava pro v2.0 Orders (MaterialItem snapshot)
+- 🟡 Early start v5.0 Tech DB (MaterialItem CRUD)
+
+---
+
+### 2. Features Implementation (Kroky operací)
+**Priority:** MEDIUM | **Effort:** 4-6h
 
 **Aktuální stav:**
 - Detail sekce operací má placeholder "📝 Kroky operace (zatím neimplementováno)"
@@ -460,4 +617,4 @@ Detailní implementační plány P2: [docs/archive/P2-PHASE-B-SUMMARY.md](archiv
 
 ---
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-01-27

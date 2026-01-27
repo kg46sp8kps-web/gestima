@@ -244,12 +244,18 @@ print("✅ Database schema initialized")
         if result.returncode != 0:
             sys.exit(1)
 
-        # Seed materials
-        print("✓ Seeding materials...")
+        # Seed materials (V3: catalog + norms)
+        print("✓ Seeding material catalog (groups + price categories)...")
         result = subprocess.run([
-            str(VENV_PYTHON), "-m", "app.seed_materials"
+            str(VENV_PYTHON), "scripts/seed_material_catalog.py"
         ])
+        if result.returncode != 0:
+            sys.exit(1)
 
+        print("✓ Seeding material norms (conversion table)...")
+        result = subprocess.run([
+            str(VENV_PYTHON), "scripts/seed_material_norms_complete.py"
+        ])
         if result.returncode != 0:
             sys.exit(1)
 

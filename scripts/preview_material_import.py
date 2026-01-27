@@ -15,7 +15,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
-from typing import Dict, Optional, Tuple
+import random
+from typing import Dict, Optional, Tuple, Set
 from collections import defaultdict
 
 
@@ -28,6 +29,36 @@ from import_material_catalog import (
     PARSED_CSV,
     EXCEL_PATH
 )
+
+
+# ========== MOCK NUMBER GENERATOR (pro preview) ==========
+class MockNumberGenerator:
+    """Mock generator pro preview - generuje fake 2XXXXXX čísla bez DB"""
+
+    MATERIAL_MIN = 2000000
+    MATERIAL_MAX = 2999999
+
+    def __init__(self):
+        self.used_numbers: Set[str] = set()
+
+    def generate_material_numbers_batch(self, count: int) -> list[str]:
+        """Generate batch of unique 7-digit material numbers for preview"""
+        numbers = []
+        attempts = 0
+        max_attempts = count * 10  # Safety limit
+
+        while len(numbers) < count and attempts < max_attempts:
+            # Generate random 7-digit number in range 2000000-2999999
+            num = random.randint(self.MATERIAL_MIN, self.MATERIAL_MAX)
+            num_str = str(num)
+
+            if num_str not in self.used_numbers:
+                self.used_numbers.add(num_str)
+                numbers.append(num_str)
+
+            attempts += 1
+
+        return numbers
 
 
 def show_detailed_preview():
@@ -131,8 +162,15 @@ def show_detailed_preview():
     print(f"\n📦 Vytvoří se {len(df_parsed)} MaterialItem záznamů")
     print(f"\n⚠️  ZDROJ DAT:")
     print(f"  ✅ Z Excelu: code (Pol.), parsované rozměry")
+    print(f"  ✅ Auto-generováno: material_number (7-digit 2XXXXXX)")
     print(f"  ❌ CHYBÍ: weight_per_meter, standard_length, norms, supplier_code, supplier")
     print(f"  → Tyto pole zůstanou NULL (doplníme později ručně nebo z jiného zdroje)")
+
+    # Generate mock material_numbers for preview
+    print(f"\n🔢 Generuji vzorová material_number (2XXXXXX)...")
+    mock_generator = MockNumberGenerator()
+    sample_numbers = mock_generator.generate_material_numbers_batch(10)
+    print(f"   ✅ Vygenerováno 10 vzorových čísel: {sample_numbers[0]}, {sample_numbers[1]}, {sample_numbers[2]}, ...")
 
     print(f"\n📋 UKÁZKA 10 VZOROVÝCH ZÁZNAMŮ:\n")
 
@@ -184,9 +222,11 @@ def show_detailed_preview():
             continue
 
         row = sample_df.iloc[0]
+        material_number = sample_numbers[idx - 1] if idx <= len(sample_numbers) else "2XXXXXX"
 
         print(f"\n--- VZOREK #{idx}: {description} ---")
         print(f"  raw_code (Excel):     {row['raw_code']}")
+        print(f"  material_number:      {material_number} (auto-generated)")  # NEW
 
         # Identify group and category
         material_code = row['material']
@@ -223,10 +263,13 @@ def show_detailed_preview():
             }
             shape_name = shape_names.get(corrected_shape, corrected_shape)
 
-            item_name = f"{material_code} {dimension_str} - {shape_name} {group_info['name'].lower()}"
+            # Lowercase group name for better readability
+            group_name_lower = group_info['name'].lower()
+            item_name = f"{material_code} {dimension_str} - {shape_name} {group_name_lower}"
 
             print(f"\n  DATABÁZOVÝ ZÁZNAM MaterialItem:")
             print(f"    id:                   [auto-increment]")
+            print(f"    material_number:      {material_number}  (7-digit, user-facing, v URL)")
             print(f"    code:                 {row['raw_code']}")
             print(f"    name:                 {item_name}")
             print(f"    shape:                {corrected_shape}")
@@ -255,7 +298,8 @@ def show_detailed_preview():
   2. PriceCategory:          {len(price_categories_to_create):4d} záznamů
   3. MaterialItem:           {len(df_parsed):4d} záznamů
 
-  ✅ NAPLNĚNÁ POLE (z Excelu):
+  ✅ NAPLNĚNÁ POLE (z Excelu + auto-generováno):
+     - material_number (2XXXXXX) - AUTO-GENEROVÁNO (NumberGenerator)
      - code, rozměry (diameter/width/thickness/wall_thickness), shape
 
   ❌ PRÁZDNÁ POLE (doplníme později):
@@ -265,11 +309,11 @@ def show_detailed_preview():
      - supplier_code
      - supplier
 
-  💡 POZNÁMKA:
-     Prázdná pole můžeš později doplnit:
-     - Ručně přes admin rozhraní
-     - Importem z TheSteel.com katalogu (pokud získáš data)
-     - SQL UPDATE scriptem
+  💡 POZNÁMKY:
+     - material_number: 7-digit čísla (2XXXXXX) pro user-facing URL
+     - Import vygeneruje {len(df_parsed)} unikátních čísel (~3s pro 2405 položek)
+     - Prázdná pole můžeš později doplnit ručně nebo importem z jiného zdroje
+     - URL bude: /api/materials/items/2456789 (ne /api/materials/items/1)
 """)
 
     print("=" * 100)

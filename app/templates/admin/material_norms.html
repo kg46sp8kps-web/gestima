@@ -109,8 +109,10 @@
     <script>
         // Pass data via JavaScript variable to avoid inline JSON issues
         window.MATERIAL_NORMS_DATA = {{ norms_json | tojson | safe }};
+        window.MATERIAL_GROUPS_DATA = {{ groups_json | tojson | safe }};
+        window.MATERIAL_CATEGORIES_DATA = {{ categories_json | tojson | safe }};
     </script>
-    <div x-data="adminPanel(window.MATERIAL_NORMS_DATA)" x-on:close-modal.window="showModal = false">
+    <div x-data="adminPanel(window.MATERIAL_NORMS_DATA, window.MATERIAL_GROUPS_DATA, window.MATERIAL_CATEGORIES_DATA)" x-on:close-modal.window="showModal = false">
         <!-- Tabs -->
         <div class="admin-tabs">
             <button
@@ -121,9 +123,21 @@
             </button>
             <button
                 class="admin-tab"
+                :class="{ 'active': activeTab === 'groups' }"
+                @click="activeTab = 'groups'">
+                🏷️ Groups (<span x-text="allGroups.length"></span>)
+            </button>
+            <button
+                class="admin-tab"
+                :class="{ 'active': activeTab === 'categories' }"
+                @click="activeTab = 'categories'">
+                💰 Ceny (<span x-text="allCategories.length"></span>)
+            </button>
+            <button
+                class="admin-tab"
                 :class="{ 'active': activeTab === 'config' }"
                 @click="activeTab = 'config'">
-                ⚙️ Systémové nastavení
+                ⚙️ Nastavení
             </button>
         </div>
 
@@ -207,6 +221,128 @@
                     <li>Systém extrahuje normu a najde ji v tabulce napříč všemi 4 sloupci</li>
                     <li>Automaticky přiřadí MaterialGroup (hustota) + MaterialPriceCategory (cena)</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- Tab: Material Groups -->
+        <div x-show="activeTab === 'groups'" x-cloak>
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">🏷️ Material Groups</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                        Kategorie materiálů pro výpočty (hustota, řezné podmínky).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div style="margin-bottom: 1.5rem;">
+                <input
+                    type="text"
+                    placeholder="🔍 Hledat skupinu..."
+                    x-model="searchGroupQuery"
+                    class="form-input"
+                    style="max-width: 400px;">
+            </div>
+
+            <!-- Table -->
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Kód</th>
+                        <th>Název</th>
+                        <th>Hustota (kg/dm³)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="group in filteredGroups" :key="group.id">
+                        <tr>
+                            <td style="font-weight: 600; font-family: monospace;" x-text="group.code"></td>
+                            <td x-text="group.name"></td>
+                            <td style="color: var(--text-secondary);" x-text="group.density"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredGroups.length === 0">
+                        <td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            Žádné skupiny
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tab: Price Categories -->
+        <div x-show="activeTab === 'categories'" x-cloak>
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">💰 Cenové Kategorie</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                        Cenové kategorie s price tiers (hmotnostní pásma).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div style="margin-bottom: 1.5rem;">
+                <input
+                    type="text"
+                    placeholder="🔍 Hledat kategorii..."
+                    x-model="searchCategoryQuery"
+                    class="form-input"
+                    style="max-width: 400px;">
+            </div>
+
+            <!-- Categories List -->
+            <template x-for="category in filteredCategories" :key="category.id">
+                <div style="margin-bottom: 2rem; padding: 1rem; background: var(--bg-primary); border-radius: 6px; border-left: 4px solid var(--accent-blue);">
+                    <!-- Category Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem;">
+                                <span x-text="category.code" style="font-family: monospace; color: var(--accent-blue);"></span>
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">
+                                <span x-text="category.name"></span>
+                                <span x-show="category.material_group">
+                                    → <span x-text="category.material_group.name" style="color: var(--text-muted);"></span>
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Price Tiers Table -->
+                    <table class="admin-table" style="font-size: 0.8rem;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 0.5rem;">Od (kg)</th>
+                                <th style="padding: 0.5rem;">Do (kg)</th>
+                                <th style="padding: 0.5rem;">Cena (Kč/kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="tier in category.tiers" :key="tier.id">
+                                <tr>
+                                    <td style="padding: 0.5rem;" x-text="tier.min_weight"></td>
+                                    <td style="padding: 0.5rem;">
+                                        <span x-show="tier.max_weight !== null" x-text="tier.max_weight"></span>
+                                        <span x-show="tier.max_weight === null" style="color: var(--text-muted);">∞</span>
+                                    </td>
+                                    <td style="padding: 0.5rem; font-weight: 600; color: var(--accent-green);" x-text="tier.price_per_kg"></td>
+                                </tr>
+                            </template>
+                            <tr x-show="category.tiers.length === 0">
+                                <td colspan="3" style="text-align: center; padding: 1rem; color: var(--text-muted);">
+                                    Žádné price tiers
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+
+            <!-- No results -->
+            <div x-show="filteredCategories.length === 0" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                Žádné kategorie
             </div>
         </div>
 
@@ -313,7 +449,7 @@
 
 {% block scripts %}
 <script>
-function adminPanel(allNorms) {
+function adminPanel(allNorms, allGroups, allCategories) {
     return {
         // Tab state
         activeTab: 'norms',
@@ -322,6 +458,14 @@ function adminPanel(allNorms) {
         allNorms: allNorms || [],
         searchQuery: '',
         showModal: false,
+
+        // Material Groups tab
+        allGroups: allGroups || [],
+        searchGroupQuery: '',
+
+        // Price Categories tab
+        allCategories: allCategories || [],
+        searchCategoryQuery: '',
 
         // Computed: filteredNorms based on searchQuery
         get filteredNorms() {
@@ -344,6 +488,36 @@ function adminPanel(allNorms) {
                        csn.includes(query) ||
                        aisi.includes(query) ||
                        category.includes(query);
+            });
+        },
+
+        // Computed: filteredGroups
+        get filteredGroups() {
+            if (!this.searchGroupQuery || this.searchGroupQuery.trim().length === 0) {
+                return this.allGroups;
+            }
+
+            const query = this.searchGroupQuery.trim().toLowerCase();
+
+            return this.allGroups.filter(group => {
+                const code = (group.code || '').toLowerCase();
+                const name = (group.name || '').toLowerCase();
+                return code.includes(query) || name.includes(query);
+            });
+        },
+
+        // Computed: filteredCategories
+        get filteredCategories() {
+            if (!this.searchCategoryQuery || this.searchCategoryQuery.trim().length === 0) {
+                return this.allCategories;
+            }
+
+            const query = this.searchCategoryQuery.trim().toLowerCase();
+
+            return this.allCategories.filter(category => {
+                const code = (category.code || '').toLowerCase();
+                const name = (category.name || '').toLowerCase();
+                return code.includes(query) || name.includes(query);
             });
         },
 
