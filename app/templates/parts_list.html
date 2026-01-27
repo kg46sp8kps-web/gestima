@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}GESTIMA - Seznam dílů{% endblock %}
+
+{% block content %}
+<div x-data="partsListState()" data-is-admin="{{ 'true' if user.role.value == 'admin' else 'false' }}" style="padding: 1.5rem; min-width: 960px; margin: 0 auto;">
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Seznam dílů</h1>
+        <button @click="createPart" class="btn-flat btn-save">
+            + Nový díl
+        </button>
+    </div>
+
+    <!-- Filter & Column Selector -->
+    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+        <!-- Search Input -->
+        <div style="flex: 1; position: relative;">
+            <input
+                type="text"
+                x-model="search"
+                @input.debounce.300ms="loadParts()"
+                placeholder="Hledat podle ID, číslo výkresu, article number, název..."
+                style="width: 100%; padding-right: 2rem;"
+            >
+            <button
+                x-show="search.length > 0"
+                @click="search = ''; loadParts()"
+                style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; line-height: 1;"
+                title="Vymazat filtr"
+            >×</button>
+        </div>
+
+        <!-- Column Selector -->
+        <div x-data="{ open: false }" style="position: relative;">
+            <button @click="open = !open" class="btn-flat" style="white-space: nowrap;">
+                ⚙️ Sloupce
+            </button>
+            <div
+                x-show="open"
+                @click.away="open = false"
+                style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 5px; padding: 0.75rem; min-width: 200px; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+            >
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">Zobrazit sloupce:</div>
+                <template x-for="col in availableColumns" :key="col.key">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; cursor: pointer; font-size: 0.8rem;">
+                        <input
+                            type="checkbox"
+                            :checked="visibleColumns[col.key]"
+                            @change="toggleColumn(col.key)"
+                            style="width: auto; margin: 0;"
+                        >
+                        <span x-text="col.label" style="color: var(--text-secondary);"></span>
+                    </label>
+                </template>
+
+                <!-- Reset button -->
+                <div style="border-top: 1px solid var(--border-color); margin-top: 0.75rem; padding-top: 0.75rem;">
+                    <button @click="resetColumns(); open = false;" class="btn-flat" style="width: 100%; font-size: 0.75rem;">
+                        🔄 Reset na výchozí
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Count -->
+    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        <span x-text="totalParts"></span> dílů celkem
+        <template x-if="search.length > 0">
+            <span> (filtrováno)</span>
+        </template>
+    </div>
+
+    <!-- Parts Table -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 5px; overflow: hidden;">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                        <th x-show="visibleColumns.id" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">ID</th>
+                        <th x-show="visibleColumns.part_number" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Číslo výkresu</th>
+                        <th x-show="visibleColumns.article_number" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Article</th>
+                        <th x-show="visibleColumns.name" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Název</th>
+                        <th x-show="visibleColumns.material" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Materiál</th>
+                        <th x-show="visibleColumns.length" style="padding: 0.6rem 0.75rem; text-align: right; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Délka (mm)</th>
+                        <th x-show="visibleColumns.updated_at" style="padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Aktualizováno</th>
+                        <th style="padding: 0.6rem 0.75rem; text-align: right; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-if="loading">
+                        <tr>
+                            <td colspan="8" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                                Načítání...
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-if="!loading && parts.length === 0">
+                        <tr>
+                            <td colspan="8" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                                <template x-if="search.length > 0">
+                                    <span>Žádné díly nenalezeny pro "<span x-text="search"></span>"</span>
+                                </template>
+                                <template x-if="search.length === 0">
+                                    <span>Zatím žádné díly. Vytvořte první díl pomocí tlačítka "+ Nový díl".</span>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-for="part in parts" :key="part.id">
+                        <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.1s;" @mouseenter="$el.style.background = 'var(--bg-card-hover)'" @mouseleave="$el.style.background = 'transparent'">
+                            <td x-show="visibleColumns.id" style="padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary);" x-text="part.id"></td>
+                            <td x-show="visibleColumns.part_number" style="padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--text-primary); font-weight: 500;" x-text="part.part_number"></td>
+                            <td x-show="visibleColumns.article_number" style="padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary);" x-text="part.article_number || '-'"></td>
+                            <td x-show="visibleColumns.name" style="padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary);" x-text="part.name || '-'"></td>
+                            <td x-show="visibleColumns.material" style="padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                <span x-text="part.material_item_id"></span>
+                            </td>
+                            <td x-show="visibleColumns.length" style="padding: 0.6rem 0.75rem; font-size: 0.8rem; color: var(--text-secondary); text-align: right;" x-text="part.length.toFixed(1)"></td>
+                            <td x-show="visibleColumns.updated_at" style="padding: 0.6rem 0.75rem; font-size: 0.75rem; color: var(--text-muted);" x-text="formatDate(part.updated_at)"></td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button @click="editPart(part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" title="Upravit">
+                                        ✏️
+                                    </button>
+                                    <button @click="duplicatePart(part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" title="Duplikovat">
+                                        📋
+                                    </button>
+                                    <template x-if="isAdmin">
+                                        <button @click="deletePart(part.part_number)" class="btn-flat" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: var(--accent-red);" title="Smazat">
+                                            🗑️
+                                        </button>
+                                    </template>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

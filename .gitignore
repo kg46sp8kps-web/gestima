@@ -15,6 +15,19 @@ build/
 *.db
 *.db-wal
 *.db-shm
+*.db.backup*
+gestima.db.backup_*
+
+# Backups (gzipped DB backups)
+backups/
+*.gz
+
+# Temporary files
+temp/
+tmp/
+
+# Data folder (CSV imports, analysis scripts output)
+data/
 
 # Excel files (all archived, data now in DB)
 data/archive/

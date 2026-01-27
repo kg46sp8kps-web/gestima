@@ -5,51 +5,76 @@
 /* === RESET === */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+    min-width: 1000px;
+    overflow-x: auto;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.5;
-    min-height: 100vh;
-    min-width: 1200px;
+    height: 100vh;
+    min-width: 1000px;
     font-size: 13px;
     display: flex;
     flex-direction: column;
     position: relative;
-    overflow-x: auto;
-}
-
-/* Logo watermark */
-body::after {
-    content: '';
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60vw;
-    height: 60vh;
-    background: url('/static/img/logo.png') no-repeat center center;
-    background-size: contain;
-    opacity: 0.079;
-    pointer-events: none;
-    z-index: 0;
+    overflow-x: auto;  /* Horizontal scroll při malém okně */
+    overflow-y: hidden; /* Vertikální scroll řeší komponenty */
 }
 
 /* === MAIN CONTENT === */
 .main-content {
-    width: 80%;
-    max-width: 2400px;
-    min-width: 1200px;
+    width: 95%;
+    min-width: 1000px;
     margin: 0 auto;
     padding: 1rem 2rem;
     position: relative;
     z-index: 1;
     flex: 1;
     box-sizing: border-box;
+    overflow-y: auto;  /* Vertikální scroll v main contentu */
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* === NAV === */
+nav {
+    flex-shrink: 0;  /* Navbar se nezmenší */
+}
+
+/* === FOOTER === */
+footer {
+    flex-shrink: 0;  /* Footer se nezmenší */
 }
 
 /* === NAV LINKS HOVER === */
 nav a:hover {
     background: var(--bg-card) !important;
     color: var(--text-primary) !important;
+}
+
+/* === INPUT FOCUS - no white background === */
+input:focus,
+input:active,
+textarea:focus,
+textarea:active,
+select:focus,
+select:active {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    outline: none;
+}
+
+/* Chrome/Safari autofill fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s;
 }

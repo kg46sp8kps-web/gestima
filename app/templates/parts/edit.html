@@ -3,101 +3,652 @@
 {% block title %}GESTIMA - {{ part.part_number }}{% endblock %}
 
 {% block content %}
-<div class="split-layout" x-data="partEdit({{ part.id }})">
-    
-    <!-- LEFT PANEL (280px) -->
+<div class="split-layout" x-data="partEdit({{ part.id }}, '{{ part.part_number }}')">
+
+    <!-- LEFT PANEL (320px) -->
     <div class="left-panel">
-        
+
         <!-- Základní údaje -->
         <div class="ribbon">
             <div class="ribbon-header" @click="showBasic = !showBasic">
                 <div class="ribbon-title">📋 Základní údaje</div>
                 <div class="ribbon-toggle" x-text="showBasic ? '▼' : '▶'">▼</div>
             </div>
-            <div class="ribbon-body" x-show="showBasic" x-data="{ showBasic: true }">
+            <div class="ribbon-body" x-show="showBasic">
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.8rem;">
                     <div>
-                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Číslo výkresu</div>
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Číslo výkresu</label>
                         <div style="font-weight: 600;">{{ part.part_number }}</div>
                     </div>
                     <div>
-                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Název</div>
-                        <div>{{ part.name or '-' }}</div>
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Článkové číslo</label>
+                        <input type="text" x-model="partData.article_number" @input="debouncedSave()"
+                               placeholder="Dodavatelské číslo"
+                               style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                     </div>
                     <div>
-                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Materiál</div>
-                        <div>{{ part.material_group }}</div>
-                        {% if part.material_name %}
-                        <div style="color: var(--text-secondary); font-size: 0.7rem;">{{ part.material_name }}</div>
-                        {% endif %}
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Název</label>
+                        <input type="text" x-model="partData.name" @input="debouncedSave()"
+                               placeholder="Název dílu"
+                               style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                     </div>
                     <div>
-                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem;">Polotovar</div>
-                        <div>{{ part.stock_type.value }}</div>
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka obráběné části [mm]</label>
+                        <input type="number" step="0.1" min="0" x-model.number="partData.length" @input="debouncedSave()"
+                               style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Cenový přehled -->
+
+        <!-- Materiál -->
         <div class="ribbon">
-            <div class="ribbon-header">
-                <div class="ribbon-title">📊 Cenový přehled</div>
+            <div class="ribbon-header" @click="showMaterial = !showMaterial">
+                <div class="ribbon-title">🔩 Materiál</div>
+                <div class="ribbon-toggle" x-text="showMaterial ? '▼' : '▶'">▼</div>
             </div>
-            <div class="ribbon-body">
-                <table class="price-table">
-                    <tbody>
-                        <template x-for="batch in batches" :key="batch.id">
-                            <tr>
-                                <td class="batch-qty" x-text="batch.quantity + ' ks'"></td>
-                                <td class="price-value" x-text="batch.unit_cost.toFixed(0) + ' Kč'"></td>
-                            </tr>
-                        </template>
-                        <tr x-show="batches.length === 0">
-                            <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.75rem;">
-                                Zatím žádné ceny
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="ribbon-body" x-show="showMaterial">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.75rem;">
+
+                    <!-- QUICK INPUT: Material Parser -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0.75rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                        <div style="color: white; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem;">
+                            🔍 Rychlé zadání materiálu
+                            <span style="font-weight: 400; font-size: 0.65rem; opacity: 0.9;">(např. D20 C45 100mm)</span>
+                        </div>
+                        <div style="position: relative;">
+                            <input
+                                type="text"
+                                x-model="quickMaterialInput"
+                                @input="debouncedParseMaterial()"
+                                @keydown.enter="applyParsedMaterial()"
+                                placeholder="D20 C45 100mm, 20x30 S235 500, t2 1.4301..."
+                                style="width: 100%; background: rgba(255,255,255,0.95); border: 2px solid rgba(255,255,255,0.3); border-radius: 4px; padding: 0.5rem; font-size: 0.75rem; color: #2d3748; font-weight: 500;">
+                            <div x-show="parsingMaterial" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); color: #667eea; font-size: 0.7rem;">
+                                ⏳
+                            </div>
+                        </div>
+
+                        <!-- Parse result -->
+                        <div x-show="parseResult && parseResult.confidence > 0" style="margin-top: 0.5rem; background: white; border-radius: 4px; padding: 0.5rem; font-size: 0.7rem;">
+                            <!-- Status badge -->
+                            <div style="margin-bottom: 0.5rem;">
+                                <span x-show="parseResult.confidence >= 0.7" style="background: #48bb78; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">✅ ROZPOZNÁNO</span>
+                                <span x-show="parseResult.confidence >= 0.4 && parseResult.confidence < 0.7" style="background: #ed8936; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">⚠️ ČÁSTEČNĚ</span>
+                                <span x-show="parseResult.confidence < 0.4" style="background: #f56565; color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 600; font-size: 0.65rem;">❌ NÍZKÁ SHODA</span>
+                                <span style="float: right; color: #718096; font-size: 0.65rem;">
+                                    Spolehlivost: <span x-text="Math.round(parseResult.confidence * 100) + '%'"></span>
+                                </span>
+                            </div>
+
+                            <!-- Recognized values -->
+                            <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.5rem; color: #2d3748;">
+                                <template x-if="parseResult.shape">
+                                    <template>
+                                        <strong>Tvar:</strong>
+                                        <span x-text="formatShape(parseResult.shape)"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.diameter">
+                                    <template>
+                                        <strong>Průměr:</strong>
+                                        <span x-text="parseResult.diameter + ' mm'"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.width">
+                                    <template>
+                                        <strong>Šířka:</strong>
+                                        <span x-text="parseResult.width + ' mm'"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.height && parseResult.height !== parseResult.width">
+                                    <template>
+                                        <strong>Výška:</strong>
+                                        <span x-text="parseResult.height + ' mm'"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.thickness">
+                                    <template>
+                                        <strong>Tloušťka:</strong>
+                                        <span x-text="parseResult.thickness + ' mm'"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.wall_thickness">
+                                    <template>
+                                        <strong>Tl. stěny:</strong>
+                                        <span x-text="parseResult.wall_thickness + ' mm'"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.length">
+                                    <template>
+                                        <strong>Délka:</strong>
+                                        <span x-text="parseResult.length + ' mm'"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.suggested_material_group_name">
+                                    <template>
+                                        <strong>Materiál:</strong>
+                                        <span x-text="parseResult.suggested_material_group_name"></span>
+                                    </template>
+                                </template>
+                                <template x-if="parseResult.suggested_price_category_name">
+                                    <template>
+                                        <strong>Kategorie:</strong>
+                                        <span x-text="parseResult.suggested_price_category_name"></span>
+                                    </template>
+                                </template>
+                            </div>
+
+                            <!-- Action buttons -->
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <button
+                                    @click="applyParsedMaterial()"
+                                    :disabled="parseResult.confidence < 0.4"
+                                    style="flex: 1; background: #667eea; color: white; border: none; border-radius: 4px; padding: 0.4rem; font-size: 0.7rem; font-weight: 600; cursor: pointer; opacity: 1;"
+                                    :style="parseResult.confidence < 0.4 ? 'opacity: 0.5; cursor: not-allowed;' : ''">
+                                    Použít
+                                </button>
+                                <button
+                                    @click="clearParseResult()"
+                                    style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 4px; padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 600; cursor: pointer;">
+                                    Zrušit
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.65rem; margin-top: 0.5rem; font-style: italic;">
+                            💡 Tip: Zadejte tvar (D20, 20x30, t2), normu (C45, 1.4301) a délku (100mm)
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; color: var(--text-muted); font-size: 0.65rem; padding: 0.25rem 0;">
+                        ─── NEBO manuálně ───
+                    </div>
+
+                    <!-- 1. Typ polotovaru (PRVNÍ krok) -->
+                    <div>
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">1. Typ polotovaru</label>
+                        <select x-model="partData.stock_shape"
+                                @change="debouncedSaveAndLoadStock()"
+                                style="width: 100%; padding: 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.75rem;">
+                            <option value="">- Vyberte typ -</option>
+                            <option value="round_bar">Tyč kruhová</option>
+                            <option value="flat_bar">Tyč plochá</option>
+                            <option value="square_bar">Tyč čtvercová</option>
+                            <option value="hexagonal_bar">Tyč šestihranná</option>
+                            <option value="plate">Plech / Deska</option>
+                            <option value="tube">Trubka</option>
+                            <option value="casting">Odlitek</option>
+                            <option value="forging">Výkovek</option>
+                        </select>
+                    </div>
+
+                    <!-- 2. Kategorie materiálu (FILTROVANÁ podle typu) -->
+                    <div x-show="partData.stock_shape">
+                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">2. Kategorie materiálu</label>
+                        <select x-model.number="partData.price_category_id"
+                                @change="selectMaterialCategory()"
+                                style="width: 100%; padding: 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.75rem;">
+                            <option value="">- Vyberte kategorii -</option>
+                            <template x-for="item in filteredCategories" :key="item.id">
+                                <option :value="item.id" :selected="item.id === partData.price_category_id" x-text="item.name + ' (' + (item.material_group?.name || '-') + ')'"></option>
+                            </template>
+                        </select>
+                        <div x-show="filteredCategories.length === 0" style="color: var(--text-muted); font-size: 0.65rem; margin-top: 0.25rem;">
+                            Žádné kategorie pro tento typ polotovaru
+                        </div>
+                    </div>
+
+                    <!-- Selected Material Info -->
+                    <div x-show="selectedMaterial" style="background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px;">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;" x-text="selectedMaterial?.name || '-'"></div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem;">
+                            <span x-text="selectedMaterial?.material_group?.name || '-'"></span> |
+                            Hustota: <span x-text="(selectedMaterial?.material_group?.density || 0).toFixed(2)"></span> kg/dm³ |
+                            <span style="font-style: italic;">Cena podle množství</span>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
-        
+
+        <!-- Polotovar (rozměry) -->
+        <div class="ribbon">
+            <div class="ribbon-header" @click="showStock = !showStock">
+                <div class="ribbon-title">📐 Rozměry polotovaru</div>
+                <div class="ribbon-toggle" x-text="showStock ? '▼' : '▶'">▼</div>
+            </div>
+            <div class="ribbon-body" x-show="showStock">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
+
+                    <!-- ROUND_BAR, HEXAGONAL_BAR, CASTING, FORGING -->
+                    <template x-if="['round_bar', 'hexagonal_bar', 'casting', 'forging'].includes(selectedShape)">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Ø [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_diameter" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- TUBE -->
+                    <template x-if="selectedShape === 'tube'">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                <div>
+                                    <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Ø vnější [mm]</label>
+                                    <input type="number" step="0.1" min="0" x-model.number="partData.stock_diameter" @input="debouncedSaveAndLoadStock()"
+                                           style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                                </div>
+                                <div>
+                                    <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Tloušťka stěny [mm]</label>
+                                    <input type="number" step="0.1" min="0" x-model.number="partData.stock_wall_thickness" @input="debouncedSaveAndLoadStock()"
+                                           style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                                </div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- SQUARE_BAR -->
+                    <template x-if="selectedShape === 'square_bar'">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Strana [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_width" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- FLAT_BAR, PLATE -->
+                    <template x-if="['flat_bar', 'plate'].includes(selectedShape)">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Šířka [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_width" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Výška [mm]</label>
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_height" @input="debouncedSaveAndLoadStock()"
+                                       style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- No material selected -->
+                    <div x-show="!selectedShape" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.7rem;">
+                        Vyberte polotovar
+                    </div>
+
+                    <!-- Copy from catalog button -->
+                    <button x-show="selectedMaterial" @click="copyGeometryFromCatalog()"
+                            class="btn-flat" style="font-size: 0.7rem; padding: 0.4rem 0.6rem; margin-top: 0.5rem;">
+                        📋 Načíst rozměry z katalogu
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Náklady -->
+        <div class="ribbon">
+            <div class="ribbon-header" @click="showPrice = !showPrice">
+                <div class="ribbon-title">💰 Náklady</div>
+                <div class="ribbon-toggle" x-text="showPrice ? '▼' : '▶'">▼</div>
+            </div>
+            <div class="ribbon-body" x-show="showPrice">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
+
+                    <!-- Materiál/ks (konstantní) -->
+                    <div style="background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-muted); font-weight: 600;">Materiál/ks:</span>
+                            <span style="font-weight: 700; font-size: 0.9rem; color: var(--accent-green);" x-text="stockCost.cost.toFixed(0) + ' Kč'"></span>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 0.25rem;">
+                            <span x-text="stockCost.weight_kg.toFixed(3) + ' kg'"></span> ×
+                            <span x-text="stockCost.price_per_kg.toFixed(0) + ' Kč/kg'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Kooperace celková -->
+                    <div style="background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-muted); font-weight: 600;">Kooperace:</span>
+                            <span style="font-weight: 700; font-size: 0.9rem; color: var(--accent-purple);" x-text="totalCoopCost.toFixed(0) + ' Kč'"></span>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 0.25rem;" x-show="coopOperations > 0">
+                            <span x-text="coopOperations"></span> kooperačních operací
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 0.25rem;" x-show="coopOperations === 0">
+                            Žádné kooperace
+                        </div>
+                    </div>
+
+                    <!-- Detail polotovaru (collapsible) -->
+                    <div x-data="{ showDetail: false }" style="margin-top: 0.5rem;">
+                        <button @click="showDetail = !showDetail"
+                                style="width: 100%; background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; color: var(--text-secondary); font-size: 0.7rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Detail polotovaru</span>
+                            <span x-text="showDetail ? '▼' : '▶'"></span>
+                        </button>
+                        <div x-show="showDetail" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                <span style="color: var(--text-muted);">Objem:</span>
+                                <span x-text="(stockCost.volume_mm3 / 1000).toFixed(1) + ' cm³'"></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                <span style="color: var(--text-muted);">Hmotnost:</span>
+                                <span x-text="stockCost.weight_kg.toFixed(3) + ' kg'"></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Hustota:</span>
+                                <span x-text="(selectedMaterial?.group?.density || 0).toFixed(2) + ' kg/dm³'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tlačítko zpět -->
-        <a href="/parts" class="btn-flat" style="text-decoration: none; text-align: center;">
+        <a href="/parts" hx-boost="false" class="btn-flat" style="text-decoration: none; text-align: center; margin-top: 1rem;">
             ← Zpět na seznam
         </a>
-        
+
     </div>
-    
+
     <!-- RIGHT PANEL -->
     <div class="right-panel">
-        
-        <!-- Čas na kus (STICKY RIBBON) -->
+
+        <!-- Cenový přehled (STICKY RIBBON) -->
         <div class="right-panel-sticky">
             <div class="ribbon">
+                <div class="ribbon-header" @click="showBatches = !showBatches">
+                    <div class="ribbon-title">💰 Cenový přehled</div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button @click.stop="showPriceDetail = true"
+                                class="btn-flat"
+                                style="font-size: 0.7rem; padding: 0.3rem 0.6rem;"
+                                title="Zobrazit detail všech cen">
+                            📊 Detail
+                        </button>
+                        <div class="ribbon-toggle" x-text="showBatches ? '▼' : '▶'">▼</div>
+                    </div>
+                </div>
+                <div class="ribbon-body" x-show="showBatches">
+                    <table style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <th style="padding: 0.4rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
+                                <th style="padding: 0.4rem; text-align: left; color: var(--text-muted); font-weight: 600;">Cena/ks</th>
+                                <th style="padding: 0.4rem; text-align: right; color: var(--text-muted); font-weight: 600;">Celkem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="batch in batches" :key="batch.id">
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.4rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                                            <span x-text="batch.quantity + ' ks'"></span>
+                                            <span x-show="batch.is_frozen"
+                                                  style="background: var(--accent-green); color: white; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.6rem; font-weight: 600; white-space: nowrap;">
+                                                ZMRAZENO
+                                            </span>
+                                            <span x-show="batch.is_frozen && batch.snapshot_data?.warnings?.length > 0"
+                                                  :title="'Varování:\n' + (batch.snapshot_data?.warnings || []).join('\n')"
+                                                  style="cursor: help; font-size: 0.9rem;">
+                                                ⚠️
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.4rem;">
+                                        <!-- Bar chart with breakdown (FIXED WIDTH - ADR-016) -->
+                                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                            <div style="font-weight: 600; color: var(--text-primary);"
+                                                 x-text="batch.unit_cost.toFixed(0) + ' Kč'"></div>
+                                            <div style="display: flex; width: 200px; height: 8px; border-radius: 3px; overflow: hidden; background: var(--bg-secondary);">
+                                                <div :style="`width: ${batch.material_percent}%; background: var(--accent-green);`"
+                                                     :title="'Materiál: ' + batch.material_cost.toFixed(0) + ' Kč (' + batch.material_percent + '%)'"></div>
+                                                <div :style="`width: ${batch.coop_percent}%; background: var(--accent-purple);`"
+                                                     :title="'Kooperace: ' + batch.coop_cost.toFixed(0) + ' Kč (' + batch.coop_percent + '%)'"></div>
+                                                <div :style="`width: ${batch.setup_percent}%; background: var(--accent-yellow);`"
+                                                     :title="'Seřízení: ' + batch.setup_cost.toFixed(0) + ' Kč (' + batch.setup_percent + '%)'"></div>
+                                                <div :style="`width: ${batch.machining_percent}%; background: var(--accent-blue);`"
+                                                     :title="'Výroba: ' + batch.machining_cost.toFixed(0) + ' Kč (' + batch.machining_percent + '%)'"></div>
+                                                <div :style="`width: ${batch.overhead_percent}%; background: #ED8936;`"
+                                                     :title="'Režie: ' + batch.overhead_cost.toFixed(0) + ' Kč (' + batch.overhead_percent + '%)'"></div>
+                                                <div :style="`width: ${batch.margin_percent}%; background: #E53E3E;`"
+                                                     :title="'Marže: ' + batch.margin_cost.toFixed(0) + ' Kč (' + batch.margin_percent + '%)'"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.4rem; text-align: right; font-weight: 600; color: var(--accent-blue);"
+                                        x-text="batch.total_cost.toFixed(0) + ' Kč'"></td>
+                                </tr>
+                            </template>
+                            <tr x-show="batches.length === 0">
+                                <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.75rem;">
+                                    Zatím žádné ceny
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Legenda (ADR-016: +overhead +margin) -->
+                    <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; font-size: 0.65rem; color: var(--text-muted); justify-content: center; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <div style="width: 12px; height: 8px; background: var(--accent-green); border-radius: 2px;"></div>
+                            <span>materiál</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <div style="width: 12px; height: 8px; background: var(--accent-purple); border-radius: 2px;"></div>
+                            <span>kooperace</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <div style="width: 12px; height: 8px; background: var(--accent-yellow); border-radius: 2px;"></div>
+                            <span>seřízení</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <div style="width: 12px; height: 8px; background: var(--accent-blue); border-radius: 2px;"></div>
+                            <span>výroba</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <div style="width: 12px; height: 8px; background: #ED8936; border-radius: 2px;"></div>
+                            <span>režie</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <div style="width: 12px; height: 8px; background: #E53E3E; border-radius: 2px;"></div>
+                            <span>marže</span>
+                        </div>
+                    </div>
+
+                    <!-- Přidat batch -->
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" x-model.number="newBatchQty" placeholder="Množství" min="1"
+                               style="width: 80px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
+                        <button @click="addBatch()" class="btn-flat btn-add-op" style="font-size: 0.7rem; padding: 0.4rem 0.6rem;">
+                            + Přidat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollovatelný obsah -->
+        <div class="right-panel-content">
+
+            <!-- Čas na kus (detailní rozklad podle kategorií) -->
+            <div class="ribbon" style="margin-bottom: 1rem;">
                 <div class="ribbon-header" @click="showTime = !showTime">
                     <div class="ribbon-title">⏱️ Čas na kus</div>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-blue);" x-text="totalTime.toFixed(1) + ' min'">
-                            0.0 min
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-blue);" x-text="totalTimeWithSetup.toFixed(1) + ' min celkem'">
+                            0.0 min celkem
                         </div>
                         <div class="ribbon-toggle" x-text="showTime ? '▼' : '▶'">▼</div>
                     </div>
                 </div>
                 <div class="ribbon-body" x-show="showTime">
-                    <div style="color: var(--text-muted); font-size: 0.75rem;">
-                        Detailní rozpad času (zatím neimplementováno)
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Rozklad podle kategorií operací -->
+                        <template x-for="category in timeBreakdown" :key="category.type">
+                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                <!-- Label -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                                    <span style="font-weight: 600;" x-text="category.label"></span>
+                                    <span style="color: var(--text-muted);">
+                                        <span x-text="category.total_time.toFixed(1) + ' min'"></span>
+                                        <span style="font-size: 0.7rem;">
+                                            (seřízení <span x-text="category.setup_time.toFixed(1)"></span> + výroba <span x-text="category.operation_time.toFixed(1)"></span>)
+                                        </span>
+                                    </span>
+                                </div>
+                                <!-- Bar -->
+                                <div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--bg-secondary);">
+                                    <div :style="`width: ${(category.setup_time / totalTimeWithSetup * 100).toFixed(1)}%; background: var(--accent-yellow);`"
+                                         :title="'Seřízení: ' + category.setup_time.toFixed(1) + ' min'"></div>
+                                    <div :style="`width: ${(category.operation_time / totalTimeWithSetup * 100).toFixed(1)}%; background: var(--accent-blue);`"
+                                         :title="'Výroba: ' + category.operation_time.toFixed(1) + ' min'"></div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Legenda -->
+                        <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.65rem; color: var(--text-muted); justify-content: center;">
+                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                <div style="width: 12px; height: 6px; background: var(--accent-yellow); border-radius: 2px;"></div>
+                                <span>seřízení</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                <div style="width: 12px; height: 6px; background: var(--accent-blue); border-radius: 2px;"></div>
+                                <span>výroba</span>
+                            </div>
+                        </div>
+
+                        <!-- Empty state -->
+                        <div x-show="timeBreakdown.length === 0" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.75rem;">
+                            Žádné operace
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Scrollovatelný obsah -->
-        <div class="right-panel-content">
-            
+
+            <!-- Debug - Výpočet ceny (RIBBON) -->
+            <div class="ribbon" style="margin-bottom: 1rem;">
+                <div class="ribbon-header" @click="showPriceDebug = !showPriceDebug">
+                    <div class="ribbon-title">🔍 Debug - Výpočet ceny</div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button @click.stop="loadPriceBreakdowns()"
+                                class="btn-flat"
+                                style="font-size: 0.7rem; padding: 0.3rem 0.6rem;"
+                                :disabled="loadingBreakdowns">
+                            <span x-show="!loadingBreakdowns">📊 Načíst breakdown</span>
+                            <span x-show="loadingBreakdowns">⏳ Načítám...</span>
+                        </button>
+                        <div class="ribbon-toggle" x-text="showPriceDebug ? '▼' : '▶'">▶</div>
+                    </div>
+                </div>
+
+                <div class="ribbon-body" x-show="showPriceDebug" style="padding: 0.75rem;">
+                    <!-- Breakdowns pro každý batch -->
+                    <template x-for="breakdown in priceBreakdowns" :key="breakdown.quantity">
+                        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 6px; border-left: 4px solid var(--accent-blue);">
+                            <!-- Header -->
+                            <div style="font-weight: 600; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Dávka: <span x-text="breakdown.quantity"></span> ks</span>
+                                <span style="color: var(--accent-blue); font-size: 1.1rem;" x-text="breakdown.cost_per_piece.toFixed(0) + ' Kč/ks'"></span>
+                            </div>
+
+                            <!-- Breakdown items -->
+                            <div style="font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                                <!-- STROJE -->
+                                <div>
+                                    <strong style="color: var(--text-primary);">STROJE (setup + operace):</strong>
+                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
+                                        Setup: <span x-text="breakdown.machine_setup_time_min.toFixed(1)"></span> min × sazba = <span x-text="(breakdown.machine_setup_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
+                                        Operace: <span x-text="breakdown.machine_operation_time_min.toFixed(1)"></span> min × sazba = <span x-text="(breakdown.machine_operation_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
+                                        <strong>Celkem stroje: <span x-text="(breakdown.machine_total / breakdown.quantity).toFixed(0)"></span> Kč/ks</strong>
+                                    </div>
+                                </div>
+
+                                <!-- REŽIE -->
+                                <div>
+                                    <strong style="color: var(--text-primary);">REŽIE (overhead_coefficient = <span x-text="breakdown.overhead_coefficient.toFixed(2)"></span>):</strong>
+                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
+                                        <span x-text="(breakdown.machine_total / breakdown.quantity).toFixed(0)"></span> Kč × <span x-text="breakdown.overhead_coefficient.toFixed(2)"></span> = <span x-text="(breakdown.work_with_overhead / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
+                                        <strong>Přirážka režie: +<span x-text="(breakdown.overhead_markup / breakdown.quantity).toFixed(0)"></span> Kč/ks (+<span x-text="breakdown.overhead_percent.toFixed(0)"></span>%)</strong>
+                                    </div>
+                                </div>
+
+                                <!-- MARŽE -->
+                                <div>
+                                    <strong style="color: var(--text-primary);">MARŽE (margin_coefficient = <span x-text="breakdown.margin_coefficient.toFixed(2)"></span>):</strong>
+                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
+                                        <span x-text="(breakdown.work_with_overhead / breakdown.quantity).toFixed(0)"></span> Kč × <span x-text="breakdown.margin_coefficient.toFixed(2)"></span> = <span x-text="(breakdown.work_with_margin / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
+                                        <strong>Přirážka marže: +<span x-text="(breakdown.margin_markup / breakdown.quantity).toFixed(0)"></span> Kč/ks (+<span x-text="breakdown.margin_percent.toFixed(0)"></span>%)</strong>
+                                    </div>
+                                </div>
+
+                                <!-- KOOPERACE -->
+                                <div x-show="breakdown.coop_cost > 0">
+                                    <strong style="color: var(--text-primary);">KOOPERACE (coop_coefficient = <span x-text="breakdown.coop_coefficient.toFixed(2)"></span>):</strong>
+                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
+                                        <span x-text="breakdown.coop_cost_raw.toFixed(0)"></span> Kč × <span x-text="breakdown.coop_coefficient.toFixed(2)"></span> = <strong><span x-text="(breakdown.coop_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks</strong>
+                                    </div>
+                                </div>
+
+                                <!-- MATERIÁL -->
+                                <div>
+                                    <strong style="color: var(--text-primary);">MATERIÁL (stock_coefficient = <span x-text="breakdown.stock_coefficient.toFixed(2)"></span>):</strong>
+                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
+                                        <span x-text="breakdown.material_cost_raw.toFixed(0)"></span> Kč × <span x-text="breakdown.stock_coefficient.toFixed(2)"></span> = <strong><span x-text="(breakdown.material_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks</strong>
+                                    </div>
+                                </div>
+
+                                <!-- CELKEM -->
+                                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid var(--border-color);">
+                                    <strong style="color: var(--accent-blue); font-size: 0.9rem;">
+                                        CELKEM: <span x-text="breakdown.cost_per_piece.toFixed(0)"></span> Kč/ks
+                                        (za <span x-text="breakdown.quantity"></span> ks = <span x-text="breakdown.total_cost.toFixed(0)"></span> Kč)
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Empty state -->
+                    <div x-show="priceBreakdowns.length === 0" style="text-align: center; color: var(--text-muted); padding: 2rem; font-size: 0.85rem;">
+                        Klikni na "📊 Načíst breakdown" pro zobrazení detailního výpočtu cen
+                    </div>
+                </div>
+            </div>
+
             <!-- Operace (RIBBON) -->
-            <div class="ribbon">
+            <div class="ribbon" style="margin-bottom: 1rem;">
                 <div class="ribbon-header" @click="showOperations = !showOperations">
                     <div class="ribbon-title">
                         🔧 OPERACE (<span x-text="operations.length">0</span>)
@@ -109,119 +660,745 @@
                         <div class="ribbon-toggle" x-text="showOperations ? '▼' : '▶'">▼</div>
                     </div>
                 </div>
-                
+
                 <div class="ribbon-body" x-show="showOperations" style="padding: 0.5rem;">
                     <!-- Seznam operací -->
                     <template x-for="(op, index) in operations" :key="op.id">
-                <div class="operation-card" x-data="{ expanded: false }">
-                    <!-- Header (klikací) -->
-                    <div class="op-header" @click="expanded = !expanded" style="cursor: pointer;">
-                        <div class="op-seq" x-text="op.seq"></div>
-                        <div class="op-icon" x-text="op.icon"></div>
-                        <div class="op-name" x-text="op.name"></div>
-                        
-                        <div class="op-header-right">
-                            <!-- Mode buttons -->
-                            <div class="mode-buttons-inline" @click.stop>
-                                <button @click="changeMode(op.id, 'low')" 
-                                        :class="{ 'active': op.cutting_mode === 'low' }"
-                                        class="mode-btn-sm mode-low">LOW</button>
-                                <button @click="changeMode(op.id, 'mid')"
-                                        :class="{ 'active': op.cutting_mode === 'mid' }"
-                                        class="mode-btn-sm mode-mid">MID</button>
-                                <button @click="changeMode(op.id, 'high')"
-                                        :class="{ 'active': op.cutting_mode === 'high' }"
-                                        class="mode-btn-sm mode-high">HIGH</button>
+                        <div class="operation-card" x-data="{ expanded: false }">
+                            <!-- Header (editovatelný inline) -->
+                            <div class="op-header" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <!-- Seq + Icon -->
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div class="op-seq" x-text="op.seq"></div>
+                                    <div class="op-icon" x-text="op.icon"></div>
+                                </div>
+
+                                <!-- Stroj (editovatelný dropdown) -->
+                                <div @click.stop style="flex: 1; min-width: 180px;">
+                                    <select x-model.number="op.machine_id"
+                                            @change="debouncedUpdateOperation(op)"
+                                            style="width: 100%; padding: 0.35rem 0.5rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.75rem; font-weight: 500;">
+                                        <option value="">- Vyberte stroj -</option>
+                                        <template x-for="machine in machines" :key="machine.id">
+                                            <option :value="machine.id" :selected="machine.id === op.machine_id" x-text="machine.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <!-- tp (editovatelný inline) -->
+                                <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
+                                    <span style="color: var(--text-muted); font-size: 0.7rem;">tp:</span>
+                                    <input type="number" step="0.1" min="0" x-model.number="op.operation_time_min"
+                                           @input="debouncedUpdateOperation(op)"
+                                           style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
+                                    <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
+                                </div>
+
+                                <!-- tj (editovatelný inline) -->
+                                <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
+                                    <span style="color: var(--text-muted); font-size: 0.7rem;">tj:</span>
+                                    <input type="number" step="0.1" min="0" x-model.number="op.setup_time_min"
+                                           @input="debouncedUpdateOperation(op)"
+                                           style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
+                                    <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
+                                </div>
+
+                                <!-- Expand indicator (pro features) -->
+                                <div @click="expanded = !expanded" style="font-size: 0.7rem; color: var(--text-muted); cursor: pointer; padding: 0.25rem;" x-text="expanded ? '▼' : '▶'">▶</div>
                             </div>
-                            
-                            <!-- Times -->
-                            <div class="op-time-display">
-                                tp: <strong x-text="op.operation_time_min.toFixed(1)"></strong> min
+
+                            <!-- Features (rozbalovací) -->
+                            <div class="features-section" x-show="expanded" x-collapse>
+                                <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 4px;">
+                                    <!-- Mode buttons -->
+                                    <div style="margin-bottom: 0.75rem;">
+                                        <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.5rem;">Režim řezání</label>
+                                        <div class="mode-buttons-inline">
+                                            <button @click="changeMode(op, 'low')"
+                                                    :class="{ 'active': op.cutting_mode === 'low' }"
+                                                    class="mode-btn-sm mode-low">LOW</button>
+                                            <button @click="changeMode(op, 'mid')"
+                                                    :class="{ 'active': op.cutting_mode === 'mid' }"
+                                                    class="mode-btn-sm mode-mid">MID</button>
+                                            <button @click="changeMode(op, 'high')"
+                                                    :class="{ 'active': op.cutting_mode === 'high' }"
+                                                    class="mode-btn-sm mode-high">HIGH</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Features placeholder -->
+                                    <div class="no-features">
+                                        📝 Kroky operace (zatím neimplementováno)
+                                    </div>
+                                </div>
                             </div>
-                            <div class="op-time-display">
-                                tj: <strong x-text="op.setup_time_min.toFixed(1)"></strong> min
-                            </div>
-                            
-                            <!-- Expand indicator -->
-                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;" x-text="expanded ? '▼' : '▶'">▶</div>
                         </div>
-                    </div>
-                    
-                    <!-- Features (rozbalovací) -->
-                    <div class="features-section" x-show="expanded" x-collapse>
-                        <div class="no-features">
-                            📝 Kroky operace (zatím neimplementováno)
-                        </div>
-                    </div>
-                </div>
                     </template>
-                    
+
                     <!-- Prázdný stav -->
-                    <div x-show="operations.length === 0" 
+                    <div x-show="operations.length === 0"
                          style="padding: 2rem; text-align: center; color: var(--text-muted);">
                         <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">🔧 Zatím žádné operace</div>
                         <div style="font-size: 0.75rem;">Klikni na "+ Přidat operaci" pro začátek</div>
                     </div>
-                </div><!-- /ribbon-body -->
-            </div><!-- /ribbon operace -->
-            
-        </div><!-- /right-panel-content -->
-        
-    </div><!-- /right-panel -->
-    
-</div><!-- /split-layout -->
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Modal - Detail cen všech dávek -->
+    <div x-show="showPriceDetail"
+         @click.self="showPriceDetail = false"
+         style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 2rem;"
+         x-transition>
+        <div @click.stop
+             style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; max-width: 90vw; max-height: 90vh; overflow: auto; box-shadow: var(--shadow-md);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">📊 Detail cen všech dávek</h2>
+                <button @click="showPriceDetail = false"
+                        style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1;"
+                        title="Zavřít">×</button>
+            </div>
+
+            <table style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 0.5rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Materiál</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Výroba</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Seřízení</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Koop</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">CELKEM</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="batch in batches" :key="batch.id">
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <span x-text="batch.quantity + ' ks'"></span>
+                                    <span x-show="batch.is_frozen"
+                                          style="background: var(--accent-green); color: white; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.6rem; font-weight: 600;">
+                                        ZMRAZENO
+                                    </span>
+                                </div>
+                            </td>
+                            <td style="padding: 0.5rem; text-align: right;">
+                                <span x-text="batch.material_cost.toFixed(0) + ' Kč'"></span>
+                                <span x-show="batch.material_price_per_kg"
+                                      style="color: var(--text-muted); font-size: 0.7rem;"
+                                      x-text="' (' + (batch.material_price_per_kg || 0).toFixed(0) + ' Kč/kg)'"></span>
+                            </td>
+                            <td style="padding: 0.5rem; text-align: right;"
+                                x-text="batch.machining_cost.toFixed(0) + ' Kč'"></td>
+                            <td style="padding: 0.5rem; text-align: right;"
+                                x-text="batch.setup_cost.toFixed(0) + ' Kč'"></td>
+                            <td style="padding: 0.5rem; text-align: right;"
+                                x-text="batch.coop_cost.toFixed(0) + ' Kč'"></td>
+                            <td style="padding: 0.5rem; text-align: right; font-weight: 700; color: var(--accent-blue);"
+                                x-text="batch.unit_cost.toFixed(0) + ' Kč'"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
 
 <script>
-function partEdit(partId) {
+function partEdit(partId, partNumber) {
     return {
         partId: partId,
+        partNumber: partNumber,
+
+        // UI state
+        showBasic: true,
+        showMaterial: true,
+        showStock: true,
+        showPrice: true,
+        showBatches: true,
+        showTime: true,
+        showOperations: true,
+        showPriceDetail: false,
+        showPriceDebug: false,  // Debug ribbon (ADR-016)
+
+        // Price breakdown debug (ADR-016)
+        priceBreakdowns: [],
+        loadingBreakdowns: false,
+
+        // Part data
+        partData: {
+            article_number: '',
+            name: '',
+            material_item_id: null,
+            price_category_id: null,
+            length: 0,
+            notes: '',
+            stock_shape: null,
+            stock_diameter: null,
+            stock_length: null,
+            stock_width: null,
+            stock_height: null,
+            stock_wall_thickness: null,
+            version: 0
+        },
+
+        // Material selection
+        materialItems: [],
+        selectedMaterial: null,
+
+        // Material parser (quick input)
+        quickMaterialInput: '',
+        parseResult: null,
+        parsingMaterial: false,
+        parseTimeout: null,
+
+        // Machines
+        machines: [],
+
+        // Computed
+        get selectedShape() {
+            // Migration 2026-01-26: Part.stock_shape místo selectedMaterial.shape
+            return this.partData.stock_shape || null;
+        },
+
+        get filteredCategories() {
+            // Filtrovat kategorie podle stock_shape
+            if (!this.partData.stock_shape) {
+                return this.materialItems; // Pokud není shape, zobraz vše
+            }
+
+            // Mapping: shape → category suffix
+            const shapeToSuffix = {
+                'round_bar': ['KRUHOVA', 'BRONZ'],  // OCEL-KRUHOVA, MOSAZ-BRONZ
+                'flat_bar': ['PLOCHA'],              // OCEL-PLOCHA, NEREZ-PLOCHA
+                'plate': ['DESKY'],                  // OCEL-DESKY, HLINIK-DESKY
+                'tube': ['TRUBKA'],                  // OCEL-TRUBKA
+                'square_bar': ['KRUHOVA'],           // Aproximace jako kruhová
+                'hexagonal_bar': ['KRUHOVA'],        // Aproximace jako kruhová
+                'casting': ['KRUHOVA'],              // Aproximace jako kruhová
+                'forging': ['KRUHOVA']               // Aproximace jako kruhová
+            };
+
+            const suffixes = shapeToSuffix[this.partData.stock_shape] || [];
+            if (suffixes.length === 0) {
+                return this.materialItems; // Fallback
+            }
+
+            // Filtrovat podle code suffix
+            return this.materialItems.filter(item =>
+                suffixes.some(suffix => item.code.includes(suffix))
+            );
+        },
+
+        get totalCoopCost() {
+            return this.operations
+                .filter(op => op.is_coop)
+                .reduce((sum, op) => sum + (op.coop_price || 0), 0);
+        },
+
+        get coopOperations() {
+            return this.operations.filter(op => op.is_coop).length;
+        },
+
+        get totalTimeWithSetup() {
+            // Celkový čas = seřízení + výroba (všechny operace, bez coop)
+            return this.operations
+                .filter(op => !op.is_coop)
+                .reduce((sum, op) => sum + (op.setup_time_min || 0) + (op.operation_time_min || 0), 0);
+        },
+
+        get timeBreakdown() {
+            // Seskupit operace podle typu a spočítat časy
+            const breakdown = {};
+            const typeLabels = {
+                'turning': '🔄 Soustružení',
+                'milling': '🔨 Frézování',
+                'drilling': '🔩 Vrtání',
+                'grinding': '⚙️ Broušení',
+                'other': '🔧 Ostatní'
+            };
+
+            // Filtrovat jen non-coop operations
+            const machiningOps = this.operations.filter(op => !op.is_coop);
+
+            machiningOps.forEach(op => {
+                const type = op.type || 'other';
+                if (!breakdown[type]) {
+                    breakdown[type] = {
+                        label: typeLabels[type] || '🔧 ' + type,
+                        setup_time: 0,
+                        operation_time: 0,
+                        total_time: 0
+                    };
+                }
+                breakdown[type].setup_time += op.setup_time_min || 0;
+                breakdown[type].operation_time += op.operation_time_min || 0;
+                breakdown[type].total_time += (op.setup_time_min || 0) + (op.operation_time_min || 0);
+            });
+
+            // Převést na array a seřadit podle času (descending)
+            return Object.entries(breakdown)
+                .map(([type, data]) => ({ type, ...data }))
+                .sort((a, b) => b.total_time - a.total_time);
+        },
+
+        // Stock cost (from backend)
+        stockCost: {
+            volume_mm3: 0,
+            weight_kg: 0,
+            price_per_kg: 0,
+            cost: 0,
+            density: 0
+        },
+
+        // Operations & Batches
         operations: [],
         batches: [],
         totalTime: 0,
-        showBasic: true,
-        showTime: true,
-        showOperations: true,
-        
+        newBatchQty: 1,
+
+        // Debounce timers
+        saveTimeout: null,
+        stockCostTimeout: null,
+        operationUpdateTimeout: null,
+        operationUpdateSequence: 0, // Track update order to ignore stale API responses
+
         async init() {
-            console.log('Initializing part edit for ID:', this.partId);
-            await this.loadOperations();
-            await this.loadBatches();
+            // 1. Load reference data
+            await Promise.all([
+                this.loadMaterialItems(),
+                this.loadMachines()
+            ]);
+
+            // 2. Load part with material item
+            await this.loadPart();
+
+            // 3. Load stock cost, operations, batches
+            await Promise.all([
+                this.loadStockCost(),
+                this.loadOperations(),
+                this.loadBatches()
+            ]);
         },
-        
+
+        async loadMaterialItems() {
+            try {
+                const response = await fetch('/api/materials/price-categories');
+                if (response.ok) {
+                    this.materialItems = await response.json();
+                    this.filteredMaterials = this.materialItems;
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load price categories:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst kategorie materiálů', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading price categories:', error);
+                window.showToast('Chyba při načítání kategorií materiálů', 'error');
+            }
+        },
+
+        async loadMachines() {
+            try {
+                const response = await fetch('/api/data/machines');
+                if (response.ok) {
+                    this.machines = await response.json();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load machines:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst stroje', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading machines:', error);
+                window.showToast('Chyba při načítání strojů', 'error');
+            }
+        },
+
+        async loadPart() {
+            try {
+                const response = await fetch(`/api/parts/${this.partNumber}/full`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.partData = {
+                        article_number: data.article_number || '',
+                        name: data.name || '',
+                        material_item_id: data.material_item_id,
+                        price_category_id: data.price_category_id,
+                        length: data.length || 0,
+                        notes: data.notes || '',
+                        stock_shape: data.stock_shape,
+                        stock_diameter: data.stock_diameter,
+                        stock_length: data.stock_length,
+                        stock_width: data.stock_width,
+                        stock_height: data.stock_height,
+                        stock_wall_thickness: data.stock_wall_thickness,
+                        version: data.version
+                    };
+
+                    // Set selected material (Migration 2026-01-26: price_category místo material_item)
+                    if (data.price_category) {
+                        this.selectedMaterial = data.price_category;
+                        this.materialSearch = data.price_category.name;
+                    } else if (data.material_item) {
+                        // Fallback pro starší parts s material_item
+                        this.selectedMaterial = data.material_item;
+                        this.materialSearch = data.material_item.name;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load part:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst díl', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading part:', error);
+                window.showToast('Kritická chyba při načítání dílu', 'error');
+            }
+        },
+
+        async selectMaterialCategory() {
+            // Najít vybranou kategorii
+            const categoryId = this.partData.price_category_id;
+            if (categoryId) {
+                this.selectedMaterial = this.materialItems.find(item => item.id === categoryId);
+            } else {
+                this.selectedMaterial = null;
+            }
+
+            // Save immediately
+            await this.savePart();
+            await this.loadStockCost();
+            await this.recalculateAllBatches(); // Přepočítat ceny po změně materiálu
+        },
+
+        // ========== MATERIAL PARSER METHODS ==========
+
+        debouncedParseMaterial() {
+            clearTimeout(this.parseTimeout);
+            this.parsingMaterial = true;
+
+            this.parseTimeout = setTimeout(async () => {
+                await this.parseMaterialDescription();
+                this.parsingMaterial = false;
+            }, 500);
+        },
+
+        async parseMaterialDescription() {
+            if (!this.quickMaterialInput || this.quickMaterialInput.trim().length < 2) {
+                this.parseResult = null;
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({ description: this.quickMaterialInput.trim() });
+                const response = await fetch(`/api/materials/parse?${params}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    this.parseResult = await response.json();
+                    console.log('Parse result:', this.parseResult);
+                } else {
+                    console.error('Parse failed:', response.status);
+                    this.parseResult = null;
+                    window.showToast('Chyba při rozpoznávání materiálu', 'error');
+                }
+            } catch (error) {
+                console.error('Error parsing material:', error);
+                this.parseResult = null;
+                window.showToast('Chyba při rozpoznávání materiálu', 'error');
+            }
+        },
+
+        async applyParsedMaterial() {
+            if (!this.parseResult || this.parseResult.confidence < 0.4) {
+                window.showToast('Nízká spolehlivost rozpoznání - zadejte materiál ručně', 'warning');
+                return;
+            }
+
+            try {
+                // 1. Apply shape
+                if (this.parseResult.shape) {
+                    this.partData.stock_shape = this.parseResult.shape;
+                }
+
+                // 2. Apply dimensions
+                if (this.parseResult.diameter) {
+                    this.partData.stock_diameter = this.parseResult.diameter;
+                }
+                if (this.parseResult.width) {
+                    this.partData.stock_width = this.parseResult.width;
+                }
+                if (this.parseResult.height) {
+                    this.partData.stock_height = this.parseResult.height;
+                }
+                if (this.parseResult.thickness) {
+                    // For plate
+                    this.partData.stock_height = this.parseResult.thickness;
+                }
+                if (this.parseResult.wall_thickness) {
+                    this.partData.stock_wall_thickness = this.parseResult.wall_thickness;
+                }
+                if (this.parseResult.length) {
+                    this.partData.stock_length = this.parseResult.length;
+                }
+
+                // 3. Apply price category
+                if (this.parseResult.suggested_price_category_id) {
+                    this.partData.price_category_id = this.parseResult.suggested_price_category_id;
+                    this.selectedMaterial = this.materialItems.find(
+                        item => item.id === this.parseResult.suggested_price_category_id
+                    );
+                }
+
+                // 4. Save & reload
+                await this.savePart();
+                await this.loadStockCost();
+                await this.recalculateAllBatches();
+
+                // 5. Clear quick input
+                this.clearParseResult();
+
+                window.showToast('Materiál nastaven podle rozpoznání', 'success');
+
+            } catch (error) {
+                console.error('Error applying parsed material:', error);
+                window.showToast('Chyba při aplikaci materiálu', 'error');
+            }
+        },
+
+        clearParseResult() {
+            this.quickMaterialInput = '';
+            this.parseResult = null;
+        },
+
+        formatShape(shape) {
+            const labels = {
+                'round_bar': 'Kulatina (D)',
+                'square_bar': 'Čtyřhran (□)',
+                'flat_bar': 'Profil',
+                'hexagonal_bar': 'Šestihran (⬡)',
+                'plate': 'Plech',
+                'tube': 'Trubka',
+                'casting': 'Odlitek',
+                'forging': 'Výkovek'
+            };
+            return labels[shape] || shape || '-';
+        },
+
+        shapeLabel(shape) {
+            const labels = {
+                'round_bar': 'Tyč kruhová',
+                'square_bar': 'Tyč čtvercová',
+                'flat_bar': 'Tyč plochá',
+                'hexagonal_bar': 'Tyč šestihranná',
+                'plate': 'Plech',
+                'tube': 'Trubka',
+                'casting': 'Odlitek',
+                'forging': 'Výkovek'
+            };
+            return labels[shape] || shape || '-';
+        },
+
+        getMachineName(machineId) {
+            if (!machineId) return '-';
+            const machine = this.machines.find(m => m.id === machineId);
+            return machine ? machine.name : 'Neznámý stroj';
+        },
+
+        getMachineRate(machineId) {
+            if (!machineId) return 0;
+            const machine = this.machines.find(m => m.id === machineId);
+            return machine ? machine.hourly_rate : 0;
+        },
+
+        async copyGeometryFromCatalog() {
+            try {
+                const response = await fetch(`/api/parts/${this.partNumber}/copy-material-geometry`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    // Reload part to get updated geometry
+                    await this.loadPart();
+                    await this.loadStockCost();
+                    window.showToast('Rozměry načteny z katalogu', 'success');
+                } else {
+                    const error = await response.json();
+                    window.showToast(error.detail || 'Chyba', 'error');
+                }
+            } catch (error) {
+                console.error('Error copying geometry:', error);
+                window.showToast('Chyba při kopírování rozměrů', 'error');
+            }
+        },
+
+        async loadStockCost() {
+            try {
+                const response = await fetch(`/api/parts/${this.partNumber}/stock-cost`);
+                if (response.ok) {
+                    this.stockCost = await response.json();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load stock cost:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst cenu polotovaru', 'error');
+                    // Keep previous stockCost to avoid showing 0
+                }
+            } catch (error) {
+                console.error('Error loading stock cost:', error);
+                window.showToast('Chyba při výpočtu ceny polotovaru', 'error');
+            }
+        },
+
+        // Combined debounced save + stock cost load (fixes race condition)
+        debouncedSaveAndLoadStock() {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = setTimeout(async () => {
+                await this.savePart();
+                await this.loadStockCost();
+                await this.recalculateAllBatches(); // Přepočítat ceny po změně stock fields
+            }, 400);
+        },
+
+        debouncedSave() {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = setTimeout(() => {
+                this.savePart();
+            }, 500);
+        },
+
+        debouncedUpdateOperation(op) {
+            clearTimeout(this.operationUpdateTimeout);
+            // Increment sequence to track this update
+            this.operationUpdateSequence++;
+            const currentSequence = this.operationUpdateSequence;
+
+            this.operationUpdateTimeout = setTimeout(async () => {
+                await this.updateOperation(op, currentSequence);
+            }, 400);
+        },
+
+        async savePart() {
+            try {
+                const response = await fetch(`/api/parts/${this.partNumber}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...this.partData,
+                        version: this.partData.version
+                    })
+                });
+
+                if (response.ok) {
+                    const updated = await response.json();
+                    this.partData.version = updated.version;
+                } else if (response.status === 409) {
+                    // Version conflict - offer reload (HIGH-006 fix)
+                    if (confirm('Data byla změněna jiným uživatelem. Obnovit stránku? (Neuložené změny budou ztraceny)')) {
+                        window.location.reload();
+                    } else {
+                        await this.loadPart();
+                        window.showToast('Načtena aktuální verze. Zkuste změnu znovu.', 'warning');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to save part:', response.status, errorText);
+                    window.showToast('Nepodařilo se uložit díl', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving part:', error);
+                window.showToast('Kritická chyba při ukládání dílu', 'error');
+            }
+        },
+
         async loadOperations() {
             try {
                 const response = await fetch(`/api/operations/part/${this.partId}`);
                 if (response.ok) {
                     this.operations = await response.json();
                     this.calculateTotalTime();
-                    console.log('Loaded operations:', this.operations);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load operations:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst operace', 'error');
                 }
             } catch (error) {
                 console.error('Error loading operations:', error);
+                window.showToast('Chyba při načítání operací', 'error');
             }
         },
-        
+
         async loadBatches() {
             try {
                 const response = await fetch(`/api/batches/part/${this.partId}`);
                 if (response.ok) {
                     this.batches = await response.json();
-                    console.log('Loaded batches:', this.batches);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load batches:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst cenové přehledy', 'error');
                 }
             } catch (error) {
                 console.error('Error loading batches:', error);
+                window.showToast('Chyba při načítání cenových přehledů', 'error');
             }
         },
-        
+
         calculateTotalTime() {
             this.totalTime = this.operations.reduce((sum, op) => sum + op.operation_time_min, 0);
         },
-        
+
+        async recalculateAllBatches() {
+            /**
+             * Přepočítá všechny batches po změně operací nebo materiálu.
+             * SEQUENTIAL to avoid race conditions (CRITICAL-001 fix).
+             */
+            if (!this.batches || this.batches.length === 0) {
+                return; // Žádné batches k přepočítání
+            }
+
+            const batchCount = this.batches.length;
+
+            try {
+                // Sequential recalculation to avoid race conditions
+                let successCount = 0;
+                let failCount = 0;
+
+                for (const batch of this.batches) {
+                    const response = await fetch(`/api/batches/${batch.batch_number}/recalculate`, {
+                        method: 'POST'
+                    });
+
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        const errorText = await response.text();
+                        console.warn(`Batch ${batch.batch_number} recalculation failed:`, response.status, errorText);
+                    }
+                }
+
+                // Reload batches to show updated prices
+                await this.loadBatches();
+
+                if (failCount === 0) {
+                    console.log(`All ${batchCount} batches recalculated successfully`);
+                } else {
+                    window.showToast(`Přepočítáno ${successCount}/${batchCount} dávek (${failCount} selhalo)`, 'warning');
+                }
+            } catch (error) {
+                console.error('Error recalculating batches:', error);
+                window.showToast('Chyba při přepočtu cenových přehledů', 'error');
+            }
+        },
+
         async addOperation() {
             const maxSeq = this.operations.reduce((max, op) => Math.max(max, op.seq), 0);
-            
-            console.log('Adding operation with seq:', maxSeq + 10);
-            
+
             try {
                 const response = await fetch('/api/operations/', {
                     method: 'POST',
@@ -236,46 +1413,205 @@ function partEdit(partId) {
                         setup_time_min: 30.0
                     })
                 });
-                
-                if (!response.ok) {
+
+                if (response.ok) {
+                    const newOp = await response.json();
+                    this.operations.push(newOp);
+                    this.calculateTotalTime();
+                    await this.recalculateAllBatches(); // Přepočítat ceny po přidání operace
+                    window.showToast('Operace přidána', 'success');
+                } else {
                     const error = await response.json();
-                    console.error('API error:', error);
-                    window.showToast('❌ ' + (error.detail || 'Chyba při přidání operace'), 'error');
-                    return;
+                    window.showToast(error.detail || 'Chyba při přidání operace', 'error');
                 }
-                
-                const newOp = await response.json();
-                this.operations.push(newOp);
-                this.calculateTotalTime();
-                console.log('Operation added:', newOp);
-                window.showToast('✅ Operace přidána', 'success');
-                
             } catch (error) {
                 console.error('Error adding operation:', error);
-                window.showToast('❌ Chyba při přidání operace', 'error');
+                window.showToast('Chyba při přidání operace', 'error');
             }
         },
-        
-        async changeMode(operationId, mode) {
+
+        async changeMode(op, mode) {
             try {
-                const response = await fetch(`/api/operations/${operationId}/change-mode`, {
+                const response = await fetch(`/api/operations/${op.id}/change-mode`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cutting_mode: mode })
+                    body: JSON.stringify({
+                        cutting_mode: mode,
+                        version: op.version
+                    })
                 });
-                
+
                 if (response.ok) {
-                    const updatedOp = await response.json();
-                    const index = this.operations.findIndex(op => op.id === operationId);
+                    const updated = await response.json();
+                    const index = this.operations.findIndex(o => o.id === op.id);
                     if (index !== -1) {
-                        this.operations[index] = updatedOp;
+                        this.operations[index] = updated;
                         this.calculateTotalTime();
                     }
-                    window.showToast(`✅ Režim změněn na ${mode.toUpperCase()}`, 'success');
+                    window.showToast(`Režim změněn na ${mode.toUpperCase()}`, 'success');
+                } else if (response.status === 409) {
+                    window.showToast('Verze konfliktu - obnovte stránku', 'error');
                 }
             } catch (error) {
                 console.error('Error changing mode:', error);
-                window.showToast('❌ Chyba při změně režimu', 'error');
+                window.showToast('Chyba při změně režimu', 'error');
+            }
+        },
+
+        async updateOperation(op, requestSequence) {
+            try {
+                console.log('updateOperation called:', { id: op.id, machine_id: op.machine_id, version: op.version, sequence: requestSequence });
+
+                // Normalize null/empty/NaN values to defaults
+                // IMPORTANT: Preserve 0 values! Replace null/undefined/NaN with defaults
+                // When user deletes input content, x-model.number converts "" to NaN
+                const normalizeValue = (value, defaultValue) => {
+                    // Keep 0 as valid! Only replace null/undefined/NaN/empty
+                    if (value === 0) return 0;
+                    if (value === null || value === undefined || isNaN(value) || value === '') {
+                        return defaultValue;
+                    }
+                    return value;
+                };
+
+                const payload = {
+                    machine_id: op.machine_id,
+                    operation_time_min: normalizeValue(op.operation_time_min, 0.0),
+                    setup_time_min: normalizeValue(op.setup_time_min, 0.0),  // Empty field = 0, not 30!
+                    is_coop: op.is_coop,
+                    coop_type: op.coop_type,
+                    coop_price: normalizeValue(op.coop_price, 0.0),
+                    coop_days: op.coop_days ?? 0,
+                    version: op.version
+                };
+
+                const response = await fetch(`/api/operations/${op.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const updated = await response.json();
+                    console.log('updateOperation success:', updated, 'sequence:', requestSequence, 'current:', this.operationUpdateSequence);
+
+                    // RACE CONDITION FIX: Ignore stale responses
+                    // If a newer update has been triggered (sequence increased), ignore this response
+                    if (requestSequence < this.operationUpdateSequence) {
+                        console.log('Ignoring stale response (sequence', requestSequence, '< current', this.operationUpdateSequence, ')');
+                        return;
+                    }
+
+                    // CRITICAL: Create new array to trigger Alpine reactivity
+                    this.operations = this.operations.map(o =>
+                        o.id === updated.id ? updated : o
+                    );
+
+                    this.calculateTotalTime();
+                    await this.recalculateAllBatches(); // Přepočítat ceny po změně operace
+                    window.showToast('Operace aktualizována', 'success');
+                } else if (response.status === 409) {
+                    window.showToast('Verze konfliktu - obnovte stránku', 'error');
+                    await this.loadOperations();
+                } else {
+                    const error = await response.json();
+                    window.showToast(error.detail || 'Chyba při aktualizaci operace', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating operation:', error);
+                window.showToast('Chyba při aktualizaci operace', 'error');
+            }
+        },
+
+        async addBatch() {
+            if (!this.newBatchQty || this.newBatchQty < 1) {
+                window.showToast('Zadejte platné množství', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/batches/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        part_id: this.partId,
+                        quantity: this.newBatchQty
+                    })
+                });
+
+                if (response.ok) {
+                    const newBatch = await response.json();
+                    this.batches.push(newBatch);
+                    this.newBatchQty = 1;
+                    window.showToast('Batch přidán', 'success');
+                } else {
+                    const error = await response.json();
+                    window.showToast(error.detail || 'Chyba při přidání batche', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding batch:', error);
+                window.showToast('Chyba při přidání batche', 'error');
+            }
+        },
+
+        async cloneBatch(batchNumber) {
+            if (!confirm('Vytvořit kopii tohoto batche? Nový batch nebude zmrazený.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/batches/${batchNumber}/clone`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const clonedBatch = await response.json();
+                    await this.loadBatches();
+                    window.showToast(`Batch naklonován (${clonedBatch.quantity} ks)`, 'success');
+                } else {
+                    const error = await response.json();
+                    window.showToast(error.detail || 'Chyba při klonování', 'error');
+                }
+            } catch (error) {
+                console.error('Error cloning batch:', error);
+                window.showToast('Chyba při klonování batche', 'error');
+            }
+        },
+
+        async loadPriceBreakdowns() {
+            /**
+             * Načte price breakdown pro všechny batches (ADR-016 debug).
+             * Paralelní requesty pro rychlost.
+             */
+            if (this.batches.length === 0) {
+                window.showToast('Nejprve přidej batch', 'warning');
+                return;
+            }
+
+            this.loadingBreakdowns = true;
+            this.priceBreakdowns = [];
+
+            try {
+                // Paralelní requesty pro všechny batches
+                const promises = this.batches.map(batch =>
+                    fetch(`/api/parts/${this.partNumber}/pricing?quantity=${batch.quantity}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                );
+
+                const results = await Promise.all(promises);
+                this.priceBreakdowns = results;
+
+                window.showToast('Breakdown načten pro všechny batches', 'success');
+            } catch (error) {
+                console.error('Error loading price breakdowns:', error);
+                window.showToast('Chyba při načítání breakdown', 'error');
+            } finally {
+                this.loadingBreakdowns = false;
             }
         }
     }

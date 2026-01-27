@@ -1,0 +1,266 @@
+<!-- MaterialNorm Create/Edit Modal Fragment -->
+<div x-data="materialNormForm()" @keydown.escape="$dispatch('close-modal')">
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;" @click.self="$dispatch('close-modal')">
+        <div style="background: var(--bg-primary); border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.3rem; font-weight: 600; margin: 0;">
+                    <template x-if="mode === 'create'">
+                        <span>➕ Přidat Material Norm</span>
+                    </template>
+                    <template x-if="mode === 'edit'">
+                        <span>✏️ Upravit Material Norm</span>
+                    </template>
+                </h2>
+                <button @click="$dispatch('close-modal')" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; padding: 0; line-height: 1;">
+                    ×
+                </button>
+            </div>
+
+            <!-- Error message -->
+            <div x-show="errorMessage" class="alert alert-error" x-text="errorMessage" style="margin-bottom: 1rem;"></div>
+
+            <!-- Form -->
+            <form @submit.prevent="submitForm">
+                <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;">
+                    <small style="color: var(--text-secondary); font-size: 0.8rem;">
+                        💡 Každý řádek = převodní záznam. Vyplň 4 sloupce norem (min. 1 povinný) a vyber kategorii.
+                    </small>
+                </div>
+
+                <!-- W.Nr -->
+                <div class="form-field" style="margin-bottom: 1rem;">
+                    <label for="norm-w-nr">W.Nr (Werkstoffnummer)</label>
+                    <input
+                        type="text"
+                        id="norm-w-nr"
+                        x-model="formData.w_nr"
+                        placeholder="Např. 1.4301, 1.0503, 1.0715"
+                        class="form-input"
+                        style="text-transform: uppercase;">
+                    <small class="help-text">Německé materiálové číslo (volitelné)</small>
+                </div>
+
+                <!-- EN ISO -->
+                <div class="form-field" style="margin-bottom: 1rem;">
+                    <label for="norm-en-iso">EN ISO</label>
+                    <input
+                        type="text"
+                        id="norm-en-iso"
+                        x-model="formData.en_iso"
+                        placeholder="Např. C45, X5CrNi18-10, 11SMnPb30"
+                        class="form-input"
+                        style="text-transform: uppercase;">
+                    <small class="help-text">Evropské označení podle EN (volitelné)</small>
+                </div>
+
+                <!-- ČSN -->
+                <div class="form-field" style="margin-bottom: 1rem;">
+                    <label for="norm-csn">ČSN</label>
+                    <input
+                        type="text"
+                        id="norm-csn"
+                        x-model="formData.csn"
+                        placeholder="Např. 12050, 11109, 17240"
+                        class="form-input"
+                        style="text-transform: uppercase;">
+                    <small class="help-text">České označení podle ČSN (volitelné)</small>
+                </div>
+
+                <!-- AISI -->
+                <div class="form-field" style="margin-bottom: 1rem;">
+                    <label for="norm-aisi">AISI</label>
+                    <input
+                        type="text"
+                        id="norm-aisi"
+                        x-model="formData.aisi"
+                        placeholder="Např. 304, 1045, 4140"
+                        class="form-input"
+                        style="text-transform: uppercase;">
+                    <small class="help-text">Americké označení podle AISI (volitelné)</small>
+                </div>
+
+                <!-- Material Group -->
+                <div class="form-field" style="margin-bottom: 1rem;">
+                    <label for="norm-group">
+                        Kategorie materiálu <span style="color: var(--error);">*</span>
+                    </label>
+                    <select id="norm-group" x-model="formData.material_group_id" required class="form-input">
+                        <option value="">-- Vyber kategorii --</option>
+                        <template x-for="group in materialGroups" :key="group.id">
+                            <option :value="group.id" x-text="`${group.name} (${group.density} kg/dm³)`"></option>
+                        </template>
+                    </select>
+                    <small class="help-text">Kategorie určuje hustotu a cenovou skupinu</small>
+                </div>
+
+                <!-- Note -->
+                <div class="form-field" style="margin-bottom: 1.5rem;">
+                    <label for="norm-note">Poznámka</label>
+                    <textarea
+                        id="norm-note"
+                        x-model="formData.note"
+                        rows="2"
+                        placeholder="Např. Obchodní název, poznámka k materiálu"
+                        class="form-input"></textarea>
+                    <small class="help-text">Volitelná poznámka</small>
+                </div>
+
+                <!-- Buttons -->
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" @click="$dispatch('close-modal')" class="btn btn-secondary">
+                        Zrušit
+                    </button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
+                        <span x-show="!saving">Uložit</span>
+                        <span x-show="saving">Ukládám...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Script moved to parent template (material_norms.html) -->
+
+<!--
+<script>
+function materialNormForm() {
+    return {
+        mode: 'create',  // 'create' or 'edit'
+        normId: null,
+        saving: false,
+        errorMessage: '',
+        formData: {
+            w_nr: '',
+            en_iso: '',
+            csn: '',
+            aisi: '',
+            material_group_id: '',
+            note: '',
+            version: 1
+        },
+        materialGroups: [],
+
+        async init() {
+            // Load material groups
+            await this.loadMaterialGroups();
+
+            // Listen for create event
+            window.addEventListener('create-material-norm', () => {
+                this.openCreate();
+            });
+
+            // Listen for edit event
+            window.addEventListener('edit-material-norm', (event) => {
+                this.openEdit(event.detail);
+            });
+        },
+
+        async loadMaterialGroups() {
+            try {
+                const response = await fetch('/admin/api/material-groups');
+                if (response.ok) {
+                    this.materialGroups = await response.json();
+                }
+            } catch (error) {
+                console.error('Error loading material groups:', error);
+            }
+        },
+
+        openCreate() {
+            this.mode = 'create';
+            this.normId = null;
+            this.formData = {
+                w_nr: '',
+                en_iso: '',
+                csn: '',
+                aisi: '',
+                material_group_id: '',
+                note: '',
+                version: 1
+            };
+            this.errorMessage = '';
+        },
+
+        openEdit(norm) {
+            this.mode = 'edit';
+            this.normId = norm.id;
+            this.formData = {
+                w_nr: norm.w_nr || '',
+                en_iso: norm.en_iso || '',
+                csn: norm.csn || '',
+                aisi: norm.aisi || '',
+                material_group_id: norm.material_group_id,
+                note: norm.note || '',
+                version: norm.version
+            };
+            this.errorMessage = '';
+        },
+
+        async submitForm() {
+            this.saving = true;
+            this.errorMessage = '';
+
+            try {
+                // Clean formData - convert empty strings to null
+                const cleanData = {
+                    w_nr: this.formData.w_nr.trim() || null,
+                    en_iso: this.formData.en_iso.trim() || null,
+                    csn: this.formData.csn.trim() || null,
+                    aisi: this.formData.aisi.trim() || null,
+                    material_group_id: parseInt(this.formData.material_group_id),
+                    note: this.formData.note?.trim() || null,
+                    version: this.formData.version
+                };
+
+                // Validate: At least one norm column must be filled
+                if (!cleanData.w_nr && !cleanData.en_iso && !cleanData.csn && !cleanData.aisi) {
+                    throw new Error('Musíš vyplnit aspoň jednu normu (W.Nr, EN ISO, ČSN, nebo AISI)');
+                }
+
+                const url = this.mode === 'create'
+                    ? '/admin/api/material-norms'
+                    : `/admin/api/material-norms/${this.normId}`;
+
+                const method = this.mode === 'create' ? 'POST' : 'PUT';
+
+                console.log('Submitting:', method, url, cleanData);
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(cleanData)
+                });
+
+                if (!response.ok) {
+                    let errorMsg = 'Chyba při ukládání';
+                    try {
+                        const error = await response.json();
+                        errorMsg = error.detail || errorMsg;
+                    } catch (e) {
+                        errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                // Success
+                console.log('Norm saved successfully');
+                window.showToast && window.showToast('✅ Norma uložena', 'success');
+                this.$dispatch('close-modal');
+                setTimeout(() => window.location.reload(), 500);
+
+            } catch (error) {
+                console.error('Error saving norm:', error);
+                this.errorMessage = error.message;
+                window.showToast && window.showToast(error.message, 'error');
+            } finally {
+                this.saving = false;
+            }
+        }
+    };
+}
+</script>
+-->

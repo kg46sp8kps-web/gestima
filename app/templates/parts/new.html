@@ -39,24 +39,21 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm text-gray-400 mb-1">Materiálová skupina *</label>
-                    <select x-model="form.material_group" required
+                    <div x-show="materials.length === 0" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-400 text-sm">
+                        Načítání materiálů...
+                    </div>
+                    <select x-show="materials.length > 0" x-model="form.material_group" @change="updateStockPrice" required
                             class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
-                        <option value="konstrukcni_ocel">Konstrukční ocel</option>
-                        <option value="automatova_ocel">Automatová ocel</option>
-                        <option value="legovana_ocel">Legovaná ocel</option>
-                        <option value="nastrojova_ocel">Nástrojová ocel</option>
-                        <option value="nerez_feriticka">Nerez feritická</option>
-                        <option value="nerez_austeniticka">Nerez austenitická</option>
-                        <option value="hlinik">Hliník</option>
-                        <option value="mosaz_bronz">Mosaz / Bronz</option>
-                        <option value="med">Měď</option>
-                        <option value="plasty">Plasty</option>
+                        <option value="">-- Vyberte materiál --</option>
+                        <template x-for="mat in materials" :key="mat.code">
+                            <option :value="mat.code" x-text="mat.name"></option>
+                        </template>
                     </select>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-400 mb-1">Označení materiálu (volitelné)</label>
                     <input type="text" x-model="form.material_name"
-                           placeholder="např. 11SMn30 nebo S235JRC+C"
+                           placeholder="např. 1.4301 nebo S235JRC+C"
                            class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                 </div>
             </div>
@@ -64,13 +61,13 @@
         
         <!-- Polotovar -->
         <div class="bg-gray-800 rounded-lg p-6">
-            <h2 class="text-lg font-semibold mb-4">📦 Polotovar & Materiál</h2>
+            <h2 class="text-lg font-semibold mb-4">📦 Polotovar</h2>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">Typ součásti</label>
-                    <select x-model="form.stock_type"
+                    <label class="block text-sm text-gray-400 mb-2">Typ polotovaru</label>
+                    <select x-model="form.stock_type" @change="updateStockPrice"
                             class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
-                        <option value="tyc">🔵 Rotační (Tyč)</option>
+                        <option value="tyc">🔵 Tyč (plná)</option>
                         <option value="trubka">⭕ Trubka</option>
                         <option value="prizez">📦 Přířez</option>
                         <option value="odlitek">🏭 Odlitek</option>
@@ -83,18 +80,18 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Ø [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_diameter"
+                            <input type="number" step="0.1" x-model.number="form.stock_diameter" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Délka [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_length"
+                            <input type="number" step="0.1" x-model.number="form.stock_length" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                     </div>
                     <div x-show="form.stock_type === 'trubka'" class="mt-4">
                         <label class="block text-sm text-gray-400 mb-1">Vnitřní průměr [mm]</label>
-                        <input type="number" step="0.1" x-model.number="form.stock_diameter_inner"
+                        <input type="number" step="0.1" x-model.number="form.stock_diameter_inner" @input="updateStockPrice"
                                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                     </div>
                 </div>
@@ -104,17 +101,17 @@
                     <div class="grid grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Délka [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_length"
+                            <input type="number" step="0.1" x-model.number="form.stock_length" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Šířka [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_width"
+                            <input type="number" step="0.1" x-model.number="form.stock_width" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Výška [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_height"
+                            <input type="number" step="0.1" x-model.number="form.stock_height" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                     </div>
@@ -125,18 +122,37 @@
                     <div class="grid grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Délka [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_length"
+                            <input type="number" step="0.1" x-model.number="form.stock_length" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Šířka [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_width"
+                            <input type="number" step="0.1" x-model.number="form.stock_width" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-400 mb-1">Tloušťka [mm]</label>
-                            <input type="number" step="0.1" x-model.number="form.stock_height"
+                            <input type="number" step="0.1" x-model.number="form.stock_height" @input="updateStockPrice"
                                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- LIVE CENA POLOTOVARU -->
+                <div x-show="stockPrice.cost > 0" class="mt-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
+                    <div class="text-sm font-semibold text-gray-300 mb-2">💰 Cena polotovaru</div>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <div class="text-gray-400 text-xs mb-1">Hmotnost</div>
+                            <div class="font-mono text-white" x-text="stockPrice.weight_kg.toFixed(3) + ' kg'">0 kg</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 text-xs mb-1">Cena/kg</div>
+                            <div class="font-mono text-white" x-text="stockPrice.price_per_kg.toFixed(0) + ' Kč'">0 Kč</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 text-xs mb-1">Celkem</div>
+                            <div class="font-mono text-lg font-bold text-blue-400" x-text="stockPrice.cost.toFixed(0) + ' Kč'">0 Kč</div>
                         </div>
                     </div>
                 </div>
@@ -170,7 +186,7 @@ function partForm() {
             part_number: '',
             name: '',
             material_name: '',
-            material_group: 'konstrukcni_ocel',
+            material_group: '',
             stock_type: 'tyc',
             stock_diameter: 0,
             stock_diameter_inner: 0,
@@ -178,6 +194,66 @@ function partForm() {
             stock_width: 0,
             stock_height: 0,
             notes: ''
+        },
+        
+        materials: [],  // Načtené z API
+        
+        stockPrice: {
+            volume_mm3: 0,
+            weight_kg: 0,
+            price_per_kg: 0,
+            cost: 0
+        },
+        
+        updateTimeout: null,
+        
+        async init() {
+            await this.loadMaterials();
+        },
+        
+        async loadMaterials() {
+            try {
+                const response = await fetch('/api/data/materials');
+                if (response.ok) {
+                    this.materials = await response.json();
+                }
+            } catch (error) {
+                console.error('Error loading materials:', error);
+            }
+        },
+        
+        async updateStockPrice() {
+            // Debounce - čekej 300ms po posledním inputu
+            clearTimeout(this.updateTimeout);
+            this.updateTimeout = setTimeout(async () => {
+                await this.fetchStockPrice();
+            }, 300);
+        },
+        
+        async fetchStockPrice() {
+            try {
+                const params = new URLSearchParams({
+                    stock_type: this.form.stock_type,
+                    material_group: this.form.material_group,
+                    stock_diameter: this.form.stock_diameter || 0,
+                    stock_length: this.form.stock_length || 0,
+                    stock_diameter_inner: this.form.stock_diameter_inner || 0,
+                    stock_width: this.form.stock_width || 0,
+                    stock_height: this.form.stock_height || 0,
+                });
+                
+                const response = await fetch(`/api/data/stock-price?${params}`);
+                
+                if (response.ok) {
+                    this.stockPrice = await response.json();
+                } else {
+                    // Reset při chybě
+                    this.stockPrice = { volume_mm3: 0, weight_kg: 0, price_per_kg: 0, cost: 0 };
+                }
+            } catch (error) {
+                console.error('Error calculating stock price:', error);
+                this.stockPrice = { volume_mm3: 0, weight_kg: 0, price_per_kg: 0, cost: 0 };
+            }
         },
         
         async savePart() {
@@ -198,10 +274,10 @@ function partForm() {
                 
                 // Toast notifikace
                 window.showToast('✅ Díl byl vytvořen', 'success');
-                
+
                 // Přesměrování na editaci (kde se budou přidávat operace)
                 setTimeout(() => {
-                    window.location.href = `/parts/${data.id}/edit`;
+                    window.location.href = `/parts/${data.part_number}/edit`;
                 }, 500);
                 
             } catch (error) {

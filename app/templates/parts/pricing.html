@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Cenová kalkulace - {{ part.part_number }} - GESTIMA{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/forms.css">
+<style>
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.pricing-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.pricing-card-header {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.pricing-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pricing-row:last-child {
+    border-bottom: none;
+}
+
+.pricing-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.pricing-value {
+    font-weight: 600;
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.pricing-total {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-green) 100%);
+    border-radius: 8px;
+    text-align: center;
+    color: white;
+}
+
+.series-table {
+    width: 100%;
+    margin-top: 2rem;
+}
+
+.series-table th {
+    text-align: right;
+    padding: 0.75rem;
+}
+
+.series-table td {
+    text-align: right;
+    font-family: monospace;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="pricingPage({{ part.id }}, '{{ part.part_number }}')" style="max-width: 1400px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+                💰 Cenová kalkulace
+            </h1>
+            <p style="color: var(--text-muted);">
+                Díl: <strong>{{ part.part_number }}</strong> | {{ part.name or 'Bez názvu' }}
+            </p>
+        </div>
+        <a href="/parts/{{ part.part_number }}/edit" class="btn btn-secondary">
+            ← Zpět na díl
+        </a>
+    </div>
+
+    <!-- Quantity selector -->
+    <div style="margin-bottom: 2rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+            Množství kusů:
+        </label>
+        <input
+            type="number"
+            x-model.number="quantity"
+            @change="loadPricing()"
+            min="1"
+            step="1"
+            class="form-input"
+            style="max-width: 200px;"
+        >
+    </div>
+
+    <!-- Loading state -->
+    <div x-show="loading" style="text-align: center; padding: 4rem;">
+        <div class="spinner spinner-large" style="margin: 0 auto;"></div>
+        <p style="margin-top: 1rem; color: var(--text-muted);">Výpočet ceny...</p>
+    </div>
+
+    <!-- Pricing breakdown -->
+    <div x-show="!loading && pricing" class="pricing-grid">
+        <!-- Stroje -->
+        <div class="pricing-card" style="border-color: var(--accent-blue);">
+            <div class="pricing-card-header">🔧 Náklady strojů</div>
+            <div class="pricing-row">
+                <span class="pricing-label">Amortizace:</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.machine_amortization)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Mzdy:</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.machine_labor)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Nástroje:</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.machine_tools)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Provozní režie:</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.machine_overhead)"></span>
+            </div>
+            <div class="pricing-row" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid var(--border-color);">
+                <span class="pricing-label"><strong>Celkem stroje:</strong></span>
+                <span class="pricing-value" style="color: var(--accent-blue); font-size: 1.1rem;" x-text="formatPrice(pricing.machine_total)"></span>
+            </div>
+            <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                <div>Setup: <span x-text="pricing.machine_setup_time_min.toFixed(1) + ' min (' + formatPrice(pricing.machine_setup_cost) + ')'"></span></div>
+                <div>Operace: <span x-text="pricing.machine_operation_time_min.toFixed(1) + ' min (' + formatPrice(pricing.machine_operation_cost) + ')'"></span></div>
+            </div>
+        </div>
+
+        <!-- Režie + Marže -->
+        <div class="pricing-card" style="border-color: var(--accent-green);">
+            <div class="pricing-card-header">📊 Režie & Marže</div>
+            <div class="pricing-row">
+                <span class="pricing-label">Stroje:</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.machine_total)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Režie (<span x-text="pricing.overhead_percent.toFixed(0) + '%'"></span>):</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.overhead_markup)"></span>
+            </div>
+            <div class="pricing-row" style="border-top: 2px solid var(--border-color); padding-top: 0.5rem;">
+                <span class="pricing-label">Mezisoučet:</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.work_with_overhead)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Marže (<span x-text="pricing.margin_percent.toFixed(0) + '%'"></span>):</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.margin_markup)"></span>
+            </div>
+            <div class="pricing-row" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid var(--border-color);">
+                <span class="pricing-label"><strong>Práce s marží:</strong></span>
+                <span class="pricing-value" style="color: var(--accent-green); font-size: 1.1rem;" x-text="formatPrice(pricing.work_with_margin)"></span>
+            </div>
+        </div>
+
+        <!-- Kooperace + Materiál -->
+        <div class="pricing-card" style="border-color: var(--accent-orange);">
+            <div class="pricing-card-header">🔩 Ostatní náklady</div>
+            <div class="pricing-row">
+                <span class="pricing-label">Kooperace (raw):</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.coop_cost_raw * pricing.quantity)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Koef. (<span x-text="((pricing.coop_coefficient - 1) * 100).toFixed(0) + '%'"></span>):</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.coop_cost - pricing.coop_cost_raw * pricing.quantity)"></span>
+            </div>
+            <div class="pricing-row" style="border-top: 2px solid var(--border-color); padding-top: 0.5rem;">
+                <span class="pricing-label"><strong>Kooperace:</strong></span>
+                <span class="pricing-value" x-text="formatPrice(pricing.coop_cost)"></span>
+            </div>
+            <div class="pricing-row" style="margin-top: 1rem;">
+                <span class="pricing-label">Materiál (raw):</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.material_cost_raw * pricing.quantity)"></span>
+            </div>
+            <div class="pricing-row">
+                <span class="pricing-label">Koef. (<span x-text="((pricing.stock_coefficient - 1) * 100).toFixed(0) + '%'"></span>):</span>
+                <span class="pricing-value" x-text="formatPrice(pricing.material_cost - pricing.material_cost_raw * pricing.quantity)"></span>
+            </div>
+            <div class="pricing-row" style="border-top: 2px solid var(--border-color); padding-top: 0.5rem;">
+                <span class="pricing-label"><strong>Materiál:</strong></span>
+                <span class="pricing-value" style="color: var(--accent-orange); font-size: 1.1rem;" x-text="formatPrice(pricing.material_cost)"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total -->
+    <div x-show="!loading && pricing" class="pricing-total">
+        <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">CELKOVÁ CENA</div>
+        <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;" x-text="formatPrice(pricing.total_cost)"></div>
+        <div style="font-size: 1.2rem; opacity: 0.9;">
+            <span x-text="formatPrice(pricing.cost_per_piece)"></span> / kus
+            <span style="margin: 0 1rem;">•</span>
+            <span x-text="pricing.quantity"></span> ks
+        </div>
+    </div>
+
+    <!-- Series comparison -->
+    <div x-show="!loading && series.length > 0" style="margin-top: 3rem;">
+        <h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">
+            📈 Porovnání sérií
+        </h2>
+        <div style="overflow-x: auto;">
+            <table class="table series-table">
+                <thead>
+                    <tr>
+                        <th>Množství</th>
+                        <th>Celkem</th>
+                        <th>Na kus</th>
+                        <th>Úspora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(s, index) in series" :key="s.quantity">
+                        <tr>
+                            <td><strong x-text="s.quantity + ' ks'"></strong></td>
+                            <td x-text="formatPrice(s.total_cost)"></td>
+                            <td x-text="formatPrice(s.cost_per_piece)"></td>
+                            <td>
+                                <span x-show="index > 0" style="color: var(--success);" x-text="'-' + ((1 - s.cost_per_piece / series[0].cost_per_piece) * 100).toFixed(1) + '%'"></span>
+                                <span x-show="index === 0">-</span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function pricingPage(partId, partNumber) {
+    return {
+        partId,
+        partNumber,
+        loading: false,
+        quantity: 1,
+        pricing: null,
+        series: [],
+
+        async init() {
+            await Promise.all([
+                this.loadPricing(),
+                this.loadSeries()
+            ]);
+        },
+
+        async loadPricing() {
+            this.loading = true;
+            try {
+                const response = await fetch(`/api/parts/${this.partNumber}/pricing?quantity=${this.quantity}`);
+                if (!response.ok) throw new Error('API error');
+                this.pricing = await response.json();
+            } catch (error) {
+                console.error('Pricing error:', error);
+                window.showToast && window.showToast('Chyba při výpočtu ceny', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadSeries() {
+            try {
+                const response = await fetch(`/api/parts/${this.partNumber}/pricing/series?quantities=1,10,50,100,500`);
+                if (!response.ok) throw new Error('API error');
+                this.series = await response.json();
+            } catch (error) {
+                console.error('Series error:', error);
+            }
+        },
+
+        formatPrice(value) {
+            if (!value) return '0 Kč';
+            return new Intl.NumberFormat('cs-CZ', {
+                style: 'currency',
+                currency: 'CZK',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+    };
+}
+</script>
+{% endblock %}

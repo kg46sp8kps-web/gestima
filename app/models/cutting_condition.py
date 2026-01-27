@@ -1,7 +1,8 @@
 """GESTIMA - CuttingCondition model"""
 
+from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, String, Float
 
 from app.database import Base, AuditMixin
@@ -31,16 +32,16 @@ class CuttingConditionDB(Base, AuditMixin):
 class CuttingConditionBase(BaseModel):
     """Pydantic schema for CuttingCondition"""
     model_config = ConfigDict(from_attributes=True)
-    
-    material_group: str
-    material_name: Optional[str] = None
-    operation_type: str
-    operation: str
-    mode: str
-    Vc: float
-    f: float
-    Ap: float
-    notes: Optional[str] = None
+
+    material_group: str = Field(..., max_length=50, description="Kód skupiny materiálu")
+    material_name: Optional[str] = Field(None, max_length=200)
+    operation_type: str = Field(..., max_length=50, description="Typ operace (turning, milling, drilling)")
+    operation: str = Field(..., max_length=50, description="Operace (hrubovani, dokoncovani)")
+    mode: str = Field(..., max_length=10, description="Režim (low, mid, high)")
+    Vc: float = Field(..., gt=0, description="Řezná rychlost (m/min)")
+    f: float = Field(..., gt=0, description="Posuv (mm/ot nebo mm/zub)")
+    Ap: float = Field(..., gt=0, description="Hloubka řezu (mm)")
+    notes: Optional[str] = Field(None, max_length=1000)
 
 
 class CuttingConditionCreate(CuttingConditionBase):
@@ -48,6 +49,23 @@ class CuttingConditionCreate(CuttingConditionBase):
     pass
 
 
+class CuttingConditionUpdate(BaseModel):
+    """Schema for updating cutting condition"""
+    material_group: Optional[str] = Field(None, max_length=50)
+    material_name: Optional[str] = Field(None, max_length=200)
+    operation_type: Optional[str] = Field(None, max_length=50)
+    operation: Optional[str] = Field(None, max_length=50)
+    mode: Optional[str] = Field(None, max_length=10)
+    Vc: Optional[float] = Field(None, gt=0)
+    f: Optional[float] = Field(None, gt=0)
+    Ap: Optional[float] = Field(None, gt=0)
+    notes: Optional[str] = Field(None, max_length=1000)
+    version: int  # Optimistic locking (ADR-008)
+
+
 class CuttingConditionResponse(CuttingConditionBase):
     """Schema for returning cutting condition"""
     id: int
+    version: int
+    created_at: datetime
+    updated_at: datetime

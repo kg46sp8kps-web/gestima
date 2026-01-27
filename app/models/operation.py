@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
@@ -20,7 +20,7 @@ class Operation(Base, AuditMixin):
     type = Column(String(50), default="turning")
     icon = Column(String(10), default="🔄")
     
-    machine_id = Column(Integer, nullable=True)
+    machine_id = Column(Integer, ForeignKey("machines.id", ondelete="SET NULL"), nullable=True)
     cutting_mode = Column(String(10), default="mid")
     
     setup_time_min = Column(Float, default=30.0)
@@ -43,49 +43,74 @@ class Operation(Base, AuditMixin):
 
 
 class OperationBase(BaseModel):
-    seq: int = 10
-    name: str = ""
-    type: str = "turning"
-    icon: str = "🔄"
-    machine_id: Optional[int] = None
-    cutting_mode: str = "mid"
-    setup_time_min: float = 30.0
+    seq: int = Field(10, ge=1, description="Pořadí operace")
+    name: str = Field("", max_length=200, description="Název operace")
+    type: str = Field("turning", max_length=50, description="Typ operace")
+    icon: str = Field("🔄", max_length=10, description="Ikona operace")
+    machine_id: Optional[int] = Field(None, gt=0, description="ID stroje")
+    cutting_mode: str = Field("mid", max_length=10, description="Režim obrábění")
+    setup_time_min: float = Field(30.0, ge=0, description="Čas seřízení v minutách")
+    operation_time_min: float = Field(0.0, ge=0, description="Čas operace v minutách")
     is_coop: bool = False
-    coop_type: Optional[str] = None
-    coop_price: float = 0.0
-    coop_min_price: float = 0.0
-    coop_days: int = 0
+    coop_type: Optional[str] = Field(None, max_length=50, description="Typ kooperace")
+    coop_price: float = Field(0.0, ge=0, description="Cena kooperace za kus")
+    coop_min_price: float = Field(0.0, ge=0, description="Minimální cena kooperace")
+    coop_days: int = Field(0, ge=0, description="Doba kooperace ve dnech")
 
 
 class OperationCreate(OperationBase):
-    part_id: int
+    part_id: int = Field(..., gt=0, description="ID dílu")
 
 
 class OperationUpdate(BaseModel):
-    seq: Optional[int] = None
-    name: Optional[str] = None
-    type: Optional[str] = None
-    icon: Optional[str] = None
-    machine_id: Optional[int] = None
-    cutting_mode: Optional[str] = None
-    setup_time_min: Optional[float] = None
-    operation_time_min: Optional[float] = None
+    seq: Optional[int] = Field(None, ge=1)
+    name: Optional[str] = Field(None, max_length=200)
+    type: Optional[str] = Field(None, max_length=50)
+    icon: Optional[str] = Field(None, max_length=10)
+    machine_id: Optional[int] = Field(None, gt=0)
+    cutting_mode: Optional[str] = Field(None, max_length=10)
+    setup_time_min: Optional[float] = Field(None, ge=0)
+    operation_time_min: Optional[float] = Field(None, ge=0)
     setup_time_locked: Optional[bool] = None
     operation_time_locked: Optional[bool] = None
     is_coop: Optional[bool] = None
-    coop_type: Optional[str] = None
-    coop_price: Optional[float] = None
-    coop_min_price: Optional[float] = None
-    coop_days: Optional[int] = None
+    coop_type: Optional[str] = Field(None, max_length=50)
+    coop_price: Optional[float] = Field(None, ge=0)
+    coop_min_price: Optional[float] = Field(None, ge=0)
+    coop_days: Optional[int] = Field(None, ge=0)
+    version: int  # Optimistic locking (ADR-008)
 
 
 class OperationResponse(OperationBase):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     part_id: int
-    operation_time_min: float
     setup_time_locked: bool
     operation_time_locked: bool
+    version: int
     created_at: datetime
     updated_at: datetime
+
+    @field_validator('setup_time_min', 'operation_time_min', 'coop_price', 'coop_min_price', mode='before')
+    @classmethod
+    def convert_none_to_default(cls, v, info):
+        """Nahraď None hodnoty defaultními hodnotami (pro DB kompatibilitu)"""
+        if v is None:
+            defaults = {
+                'setup_time_min': 30.0,
+                'operation_time_min': 0.0,
+                'coop_price': 0.0,
+                'coop_min_price': 0.0
+            }
+            return defaults.get(info.field_name, 0.0)
+        return v
+
+
+from app.models.enums import CuttingMode
+
+
+class ChangeModeRequest(BaseModel):
+    """Request pro změnu režimu obrábění"""
+    cutting_mode: CuttingMode = Field(..., description="Režim obrábění")
+    version: int = Field(..., ge=0, description="Verze pro optimistic locking")

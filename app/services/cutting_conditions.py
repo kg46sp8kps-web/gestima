@@ -1,11 +1,15 @@
 """GESTIMA - Řezné podmínky"""
 
+import logging
 from typing import Dict, Any, Optional, List
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import async_session
 from app.models.cutting_condition import CuttingConditionDB
 from app.services.feature_definitions import FEATURE_FIELDS
+
+logger = logging.getLogger(__name__)
 
 
 async def get_conditions(
@@ -26,30 +30,34 @@ async def get_conditions(
     operation_type, operation = feature_def["db_operation"]
     
     # Query DB
-    async with async_session() as session:
-        query = select(CuttingConditionDB).where(
-            CuttingConditionDB.material_group == material_group,
-            CuttingConditionDB.operation_type == operation_type,
-            CuttingConditionDB.operation == operation,
-            CuttingConditionDB.mode == mode,
-            CuttingConditionDB.deleted_at.is_(None)
-        )
-        
-        db_result = await session.execute(query)
-        condition = db_result.scalar_one_or_none()
-        
-        if not condition:
+    try:
+        async with async_session() as session:
+            query = select(CuttingConditionDB).where(
+                CuttingConditionDB.material_group == material_group,
+                CuttingConditionDB.operation_type == operation_type,
+                CuttingConditionDB.operation == operation,
+                CuttingConditionDB.mode == mode,
+                CuttingConditionDB.deleted_at.is_(None)
+            )
+
+            db_result = await session.execute(query)
+            condition = db_result.scalar_one_or_none()
+
+            if not condition:
+                return result
+
+            result["Vc"] = condition.Vc
+            result["f"] = condition.f
+            result["Ap"] = condition.Ap if condition.Ap else None
+
+            # Drilling-specific adjustments
+            if operation_type == "drilling" and diameter:
+                result = _apply_drilling_coefficients(result, diameter)
+
             return result
-        
-        result["Vc"] = condition.Vc
-        result["f"] = condition.f
-        result["Ap"] = condition.Ap if condition.Ap else None
-        
-        # Drilling-specific adjustments
-        if operation_type == "drilling" and diameter:
-            result = _apply_drilling_coefficients(result, diameter)
-        
-        return result
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in get_conditions: {e}", exc_info=True)
+        return result  # Return empty result on error
 
 
 def _apply_drilling_coefficients(conditions: Dict, diameter: float) -> Dict:
