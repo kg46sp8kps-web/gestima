@@ -46,59 +46,138 @@ def receive_before_update(mapper, connection, target):
 
 
 async def init_db():
-    """Initialize database with WAL mode"""
+    """
+    Initialize database with WAL mode and migrations.
+
+    Strategy (C-5, C-6 audit fix):
+    - CRITICAL failures (WAL, create_all) → FAIL FAST
+    - Optional migrations → WARN and CONTINUE (idempotent)
+    - Seed data → WARN and CONTINUE (non-critical)
+
+    Migration strategy:
+    - If Alembic available → use `alembic upgrade head`
+    - Else → use legacy ad-hoc migrations (backwards compat)
+    """
+    from app.logging_config import get_logger
+    logger = get_logger(__name__)
+
     # CRITICAL: Import all models BEFORE create_all() to register them with Base.metadata
     from app import models  # noqa: F401 - imports register models with Base
 
-    async with engine.begin() as conn:
-        # Enable WAL mode for concurrent access
-        await conn.execute(text("PRAGMA journal_mode=WAL"))
-        await conn.execute(text("PRAGMA synchronous=NORMAL"))
-        await conn.execute(text("PRAGMA cache_size=-64000"))  # 64MB cache
+    try:
+        async with engine.begin() as conn:
+            # === CRITICAL: WAL mode (FAIL FAST if fails) ===
+            try:
+                await conn.execute(text("PRAGMA journal_mode=WAL"))
+                await conn.execute(text("PRAGMA synchronous=NORMAL"))
+                await conn.execute(text("PRAGMA cache_size=-64000"))  # 64MB cache
+                logger.info("✅ WAL mode enabled")
+            except Exception as e:
+                logger.critical(f"❌ CRITICAL: WAL mode failed: {e}")
+                raise  # FAIL FAST - WAL mode is critical for concurrency
 
-        # Create tables
-        await conn.run_sync(Base.metadata.create_all)
+            # === CRITICAL: Create tables (FAIL FAST if fails) ===
+            try:
+                await conn.run_sync(Base.metadata.create_all)
+                logger.info("✅ Database tables created/verified")
+            except Exception as e:
+                logger.critical(f"❌ CRITICAL: create_all() failed: {e}")
+                raise  # FAIL FAST - can't run without tables
 
-        # Migration: Add stock_* columns to parts table if not exist
-        await _migrate_parts_stock_columns(conn)
+            # === MIGRATIONS: Alembic vs Legacy ===
+            # Check if Alembic version table exists
+            result = await conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'")
+            )
+            uses_alembic = result.fetchone() is not None
 
-        # Migration: Update machines hourly rate structure (ADR-016)
-        await _migrate_machines_hourly_rate(conn)
+            if uses_alembic:
+                # Use Alembic for migrations
+                logger.info("🔄 Using Alembic migrations")
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ["alembic", "upgrade", "head"],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    logger.info("✅ Alembic migrations applied")
+                except Exception as e:
+                    logger.warning(f"⚠️ Alembic migration failed (non-critical): {e}")
+            else:
+                # Fallback to legacy ad-hoc migrations (backwards compat)
+                logger.info("🔄 Using legacy ad-hoc migrations (backwards compat)")
+                await _safe_migrate("parts stock columns", _migrate_parts_stock_columns, conn, logger)
+                await _safe_migrate("machines hourly rate", _migrate_machines_hourly_rate, conn, logger)
+                await _safe_migrate("material_items price_category", _migrate_material_items_price_category, conn, logger)
+                await _safe_migrate("material_norms table", _migrate_material_norms_table, conn, logger)
+                await _safe_migrate("entity numbers", _migrate_entity_numbers, conn, logger)
+                await _safe_migrate("deleted_at indexes", _migrate_deleted_at_indexes, conn, logger)
 
-        # Migration: Add price_category_id to material_items (ADR-014)
-        await _migrate_material_items_price_category(conn)
+    except Exception as e:
+        logger.critical(f"❌ Database initialization FAILED: {e}", exc_info=True)
+        raise  # FAIL FAST - app must not start with broken DB
 
-        # Migration: Create material_norms table (ADR-015)
-        await _migrate_material_norms_table(conn)
-
-        # Migration: Add 7-digit random number fields (ADR-017)
-        await _migrate_entity_numbers(conn)
-
-        # Migration: Add indexes on deleted_at columns (C-3 audit fix)
-        await _migrate_deleted_at_indexes(conn)
-
-    # Seed data (order matters: price_categories → materials → material_norms)
+    # === SEED DATA (NON-CRITICAL) ===
     async with async_session() as session:
         from app.models import MaterialPriceCategory, MaterialGroup, MaterialNorm
         from sqlalchemy import select
 
-        # 1. Seed price categories first (required by materials)
-        result = await session.execute(select(MaterialPriceCategory).where(MaterialPriceCategory.deleted_at.is_(None)))
-        if not result.scalars().first():
-            from scripts.seed_price_categories import seed_price_categories
-            await seed_price_categories(session)
+        await _safe_seed("price categories", _seed_price_categories_wrapper, session, logger)
+        await _safe_seed("material groups", _seed_material_groups_wrapper, session, logger)
+        await _safe_seed("material norms", _seed_material_norms_wrapper, session, logger)
 
-        # 2. Then seed materials (depends on price categories)
-        result = await session.execute(select(MaterialGroup).where(MaterialGroup.deleted_at.is_(None)))
-        if not result.scalars().first():
-            from app.seed_materials import seed_materials
-            await seed_materials(session)
 
-        # 3. Finally seed material norms (depends on materials)
-        result = await session.execute(select(MaterialNorm).where(MaterialNorm.deleted_at.is_(None)))
-        if not result.scalars().first():
-            from scripts.seed_material_norms import seed_material_norms
-            await seed_material_norms(session)
+async def _safe_migrate(name: str, migration_func, conn, logger):
+    """Wrapper for safe migrations with structured logging (C-5)"""
+    try:
+        await migration_func(conn)
+        logger.info(f"✅ Migration '{name}' successful")
+    except Exception as e:
+        logger.warning(f"⚠️ Migration '{name}' failed (non-critical): {e}")
+        # CONTINUE - migrations are idempotent, skip if already applied
+
+
+async def _safe_seed(name: str, seed_func, session, logger):
+    """Wrapper for safe seeding with structured logging (C-6)"""
+    try:
+        await seed_func(session)
+        logger.info(f"✅ Seed '{name}' successful")
+    except Exception as e:
+        logger.warning(f"⚠️ Seed '{name}' failed (non-critical): {e}")
+        # CONTINUE - seed data is not critical for app startup
+
+
+# === SEED WRAPPERS ===
+async def _seed_price_categories_wrapper(session):
+    """Wrapper to check & seed price categories"""
+    from app.models import MaterialPriceCategory
+    from sqlalchemy import select
+    result = await session.execute(select(MaterialPriceCategory).where(MaterialPriceCategory.deleted_at.is_(None)))
+    if not result.scalars().first():
+        from scripts.seed_price_categories import seed_price_categories
+        await seed_price_categories(session)
+
+
+async def _seed_material_groups_wrapper(session):
+    """Wrapper to check & seed material groups"""
+    from app.models import MaterialGroup
+    from sqlalchemy import select
+    result = await session.execute(select(MaterialGroup).where(MaterialGroup.deleted_at.is_(None)))
+    if not result.scalars().first():
+        from app.seed_materials import seed_materials
+        await seed_materials(session)
+
+
+async def _seed_material_norms_wrapper(session):
+    """Wrapper to check & seed material norms"""
+    from app.models import MaterialNorm
+    from sqlalchemy import select
+    result = await session.execute(select(MaterialNorm).where(MaterialNorm.deleted_at.is_(None)))
+    if not result.scalars().first():
+        from scripts.seed_material_norms import seed_material_norms
+        await seed_material_norms(session)
 
 
 async def _migrate_parts_stock_columns(conn):

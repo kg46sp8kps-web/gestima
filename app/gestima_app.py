@@ -46,21 +46,51 @@ from starlette.responses import Response
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
-    Middleware pro přidání bezpečnostních HTTP hlaviček.
-    Chrání proti: Clickjacking, MIME sniffing, XSS.
+    Middleware pro přidání bezpečnostních HTTP hlaviček (H-3, H-4 audit fix).
+    Chrání proti: Clickjacking, MIME sniffing, XSS, SSL strip attacks.
     """
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
+
         # Ochrana proti clickjacking
         response.headers["X-Frame-Options"] = "DENY"
+
         # Zakázat MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
+
         # XSS ochrana (legacy, ale stále užitečné)
         response.headers["X-XSS-Protection"] = "1; mode=block"
+
         # Kontrola referrer policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
         # Permissions policy (omezit features)
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+        # === H-3: Content Security Policy ===
+        # Pragmatic approach: unsafe-inline pro Alpine.js + HTMX
+        # Note: CSP nonces (stricter) plánované v v2.0 (ADR-XXX)
+        csp_policy = "; ".join([
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",  # Alpine.js needs inline
+            "style-src 'self' 'unsafe-inline'",   # Inline styles
+            "img-src 'self' data:",               # Allow data: URIs for inline images
+            "font-src 'self'",
+            "connect-src 'self'",                 # HTMX AJAX
+            "frame-ancestors 'none'",             # Redundant with X-Frame-Options
+            "base-uri 'self'",
+            "form-action 'self'",
+        ])
+        response.headers["Content-Security-Policy"] = csp_policy
+
+        # === H-4: HSTS (HTTPS Strict Transport Security) ===
+        # CRITICAL: Only set HSTS on HTTPS connections!
+        # Setting HSTS on HTTP causes browser errors.
+        # In production (Caddy HTTPS), this enforces HTTPS-only access.
+        if request.url.scheme == "https":
+            # max-age=1 year, includeSubDomains, preload-ready
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
         return response
 
 # Shutdown state for graceful shutdown

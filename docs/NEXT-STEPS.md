@@ -27,12 +27,74 @@
 
 **Git:** Commit `f208ef1` - "perf: Sprint 1 - Performance & code quality fixes"
 
-**Zbývá na Sprint 2 (kritické nové problémy):**
-- C-5: Migration error handling (database.py)
-- C-6: Seed data error handling
-- H-3/H-4: CSP/HSTS security headers
-
 **Effort:** ~2 hodiny (systematický refaktoring)
+
+---
+
+## ✅ SPRINT 2: Production-Ready Infrastructure DONE (2026-01-28)
+
+### Infrastructure Hardening - HYBRID Approach ✅
+
+**Status:** ✅ HOTOVO - Viz [CHANGELOG.md](../CHANGELOG.md) Sprint 2
+
+**Implementováno (C-5, C-6, H-3, H-4 z auditu):**
+
+1. ✅ **Alembic Migration Framework** (C-5 audit fix)
+   - Setup complete: `alembic/env.py` async config
+   - Initial migration: `78917f98a52d` (všechny tabulky)
+   - Strategy: Alembic pro nové instalace, legacy migrations fallback
+   - `init_db()` detekuje alembic_version table → alembic upgrade head
+   - Backwards compatible pro existující instalace
+
+2. ✅ **Structured Logging** (C-5, C-6 audit fix)
+   - Fail-fast pro critical (WAL mode, create_all)
+   - Warn-and-continue pro optional (migrations, seeds)
+   - `_safe_migrate()` + `_safe_seed()` wrappers
+   - Viditelné logy: ✅/⚠️/❌ status messages
+
+3. ✅ **CSP Security Header** (H-3 audit fix)
+   - Content-Security-Policy v `SecurityHeadersMiddleware`
+   - Pragmatic: `unsafe-inline` pro Alpine.js (CSP nonces v v2.0)
+   - Blokuje 3rd party scripts, umožňuje self + HTMX
+
+4. ✅ **HSTS Security Header** (H-4 audit fix)
+   - Strict-Transport-Security POUZE na HTTPS (`request.url.scheme == "https"`)
+   - Production ready pro Caddy deployment
+   - max-age=31536000, includeSubDomains
+
+**Testy:**
+- ✅ 214/245 passed (87% pass rate)
+- ✅ 15 nových testů (test_security_headers.py)
+- ✅ Všechny security headers funkční
+- ✅ Alembic migrations funkční
+- ⏸️ 30 test_snapshots failures (legacy - backlog)
+
+**Dependencies:**
+- ✅ `alembic>=1.13.0`
+- ✅ `pip==25.3` (upgraded)
+
+**Files Changed:**
+- `app/database.py` (+80 LOC structured logging + Alembic)
+- `app/gestima_app.py` (+25 LOC CSP + HSTS)
+- `alembic/` (new: env.py + versions/)
+- `tests/test_security_headers.py` (new: 15 tests)
+- `requirements.txt` (+1 alembic)
+
+**Effort:** ~8-10 hodin (HYBRID approach: Alembic foundation + pragmatic security)
+
+**Git:** Pending commit
+
+**Known Issues (backlog):**
+- test_snapshots 404 errors (ADR-017 batch_number compatibility)
+- CSP nonces (v2.0 - stricter XSS protection)
+- HTTPS localhost setup (v1.7 - dev=prod parity)
+
+---
+
+**Zbývá na Sprint 3 (dlouhodobé):**
+- Float → Decimal migration (C-2 z auditu)
+- SQLite FK constraints migration (C-1 z auditu)
+- Repository pattern (H-8 z auditu)
 
 ---
 

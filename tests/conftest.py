@@ -60,6 +60,7 @@ async def db_session():
         await session.flush()
 
         item = MaterialItem(
+            material_number="2000001",  # ADR-017: 7-digit material number (2XXXXXX range)
             code="11SMn30-D50",
             name="11SMn30 ⌀50 mm - tyč kruhová",
             material_group_id=group.id,

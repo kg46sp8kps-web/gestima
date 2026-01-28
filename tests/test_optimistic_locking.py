@@ -45,7 +45,7 @@ async def sample_part(db_session):
     """Create a sample part for testing"""
     # Use materials already seeded by conftest's db_session fixture
     part = Part(
-        part_number="TEST-001",
+        part_number="1000001",
         name="Test Part",
         material_item_id=db_session.test_material_item.id,
         created_by="testuser",
@@ -108,7 +108,7 @@ async def test_part_update_success_increments_version(db_session, sample_part, m
         version=initial_version
     )
 
-    updated_part = await update_part(sample_part.id, update_data, db_session, mock_user)
+    updated_part = await update_part(sample_part.part_number, update_data, db_session, mock_user)
 
     assert updated_part.name == "Updated Name"
     assert updated_part.version == initial_version + 1
@@ -129,7 +129,7 @@ async def test_part_update_version_conflict_raises_409(db_session, sample_part, 
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await update_part(sample_part.id, update_data, db_session, mock_user)
+        await update_part(sample_part.part_number, update_data, db_session, mock_user)
 
     assert exc_info.value.status_code == 409
     assert "změněna jiným uživatelem" in exc_info.value.detail.lower()
@@ -145,7 +145,7 @@ async def test_part_concurrent_updates_one_fails(db_session, sample_part, mock_u
         name="Update 1",
         version=initial_version
     )
-    updated_1 = await update_part(sample_part.id, update_data_1, db_session, mock_user)
+    updated_1 = await update_part(sample_part.part_number, update_data_1, db_session, mock_user)
     assert updated_1.version == initial_version + 1
 
     # Second update with old version (fails)
@@ -155,7 +155,7 @@ async def test_part_concurrent_updates_one_fails(db_session, sample_part, mock_u
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await update_part(sample_part.id, update_data_2, db_session, mock_user)
+        await update_part(sample_part.part_number, update_data_2, db_session, mock_user)
 
     assert exc_info.value.status_code == 409
 

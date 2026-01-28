@@ -72,6 +72,7 @@ def test_batch_response_computed_percentages():
     batch_data = {
         "id": 1,
         "part_id": 1,
+        "batch_number": "3000100",  # ADR-017: 7-digit batch number
         "quantity": 10,
         "is_default": False,
         "unit_time_min": 15.0,
@@ -79,6 +80,8 @@ def test_batch_response_computed_percentages():
         "machining_cost": 150.0,
         "setup_cost": 50.0,
         "coop_cost": 0.0,
+        "overhead_cost": 0.0,
+        "margin_cost": 0.0,
         "unit_cost": 300.0,
         "total_cost": 3000.0,
         "version": 1,
@@ -111,6 +114,7 @@ def test_batch_response_percentages_zero_cost():
     batch_data = {
         "id": 1,
         "part_id": 1,
+        "batch_number": "3000101",  # ADR-017: 7-digit batch number
         "quantity": 1,
         "is_default": False,
         "unit_time_min": 0.0,
@@ -118,6 +122,8 @@ def test_batch_response_percentages_zero_cost():
         "machining_cost": 0.0,
         "setup_cost": 0.0,
         "coop_cost": 0.0,
+        "overhead_cost": 0.0,
+        "margin_cost": 0.0,
         "unit_cost": 0.0,
         "total_cost": 0.0,
         "version": 1,

@@ -23,7 +23,7 @@ class TestMaterialParser:
         assert result.material_norm == "1.4301"
         assert result.material_category == "nerez"
         assert result.length == 100.0
-        assert result.confidence >= 0.8  # Shape + material + length
+        assert result.confidence == pytest.approx(0.8, abs=0.01)  # Shape + material + length (float precision)
 
     @pytest.mark.asyncio
     async def test_circle_alternate_notation(self, db_session):
@@ -253,7 +253,7 @@ class TestMaterialParser:
         assert r4.length == 100.0
 
     @pytest.mark.asyncio
-    async def test_db_lookup_material_group(self, db_session, seed_materials):
+    async def test_db_lookup_material_group(self, db_session):
         """Test DB lookup pro MaterialGroup (pokud existuje)"""
         # Seed data creates MaterialGroup with code "C45"
         # and MaterialNorm with en_iso="C45" → MaterialGroup
@@ -282,7 +282,7 @@ class TestMaterialParser:
 
         # Tvar + materiál + délka: 0.8
         r3 = await parser.parse("D20 C45 100")
-        assert r3.confidence >= 0.8
+        assert r3.confidence == pytest.approx(0.8, abs=0.01)  # Float precision
 
         # Full match s DB lookup: 0.9+
         # (pokud C45 existuje v DB)

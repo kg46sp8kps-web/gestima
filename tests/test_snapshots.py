@@ -75,7 +75,8 @@ async def sample_materials(db_session):
     await db_session.commit()
 
     item = MaterialItem(
-        code="11300",
+     material_number="2000003",  # ADR-017
+     code="11300",
         name="Ocel konstrukční",
         material_group_id=group.id,
         price_category_id=price_category.id,
@@ -111,7 +112,8 @@ async def sample_part(db_session, sample_materials):
 async def sample_batch(db_session, sample_part):
     """Create a sample batch for testing"""
     batch = Batch(
-        part_id=sample_part.id,
+     batch_number="3000001",  # ADR-017
+     part_id=sample_part.id,
         quantity=10,
         material_cost=250.0,
         machining_cost=180.0,
@@ -140,7 +142,7 @@ async def test_freeze_batch(db_session, sample_batch, mock_user):
     assert initial_frozen_state is False
 
     # Zmrazit batch
-    result = await freeze_batch(sample_batch.id, db_session, mock_user)
+    result = await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     assert result.is_frozen is True
     assert result.frozen_at is not None
@@ -166,11 +168,11 @@ async def test_freeze_batch(db_session, sample_batch, mock_user):
 async def test_freeze_already_frozen_batch(db_session, sample_batch, mock_user):
     """Test pokusu o zmrazení již zmrazeného batche - očekáváme 409 Conflict"""
     # Zmrazit batch poprvé
-    await freeze_batch(sample_batch.id, db_session, mock_user)
+    await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     # Pokusit se zmrazit znovu
     with pytest.raises(HTTPException) as exc_info:
-        await freeze_batch(sample_batch.id, db_session, mock_user)
+        await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     assert exc_info.value.status_code == 409
     assert "zmrazena" in exc_info.value.detail.lower()
@@ -180,7 +182,7 @@ async def test_freeze_already_frozen_batch(db_session, sample_batch, mock_user):
 async def test_freeze_batch_not_found(db_session, mock_user):
     """Test zmrazení neexistujícího batche - očekáváme 404"""
     with pytest.raises(HTTPException) as exc_info:
-        await freeze_batch(99999, db_session, mock_user)
+        await freeze_batch("9999999", db_session, mock_user)
 
     assert exc_info.value.status_code == 404
 
@@ -194,10 +196,10 @@ async def test_freeze_batch_not_found(db_session, mock_user):
 async def test_clone_batch(db_session, sample_batch, mock_user):
     """Test klonování batche - vytvoření nové, nezmrazené kopie"""
     # Zmrazit původní batch
-    await freeze_batch(sample_batch.id, db_session, mock_user)
+    await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     # Klonovat batch
-    cloned = await clone_batch(sample_batch.id, db_session, mock_user)
+    cloned = await clone_batch(sample_batch.batch_number, db_session, mock_user)
 
     assert cloned.id != sample_batch.id  # Nový batch
     assert cloned.part_id == sample_batch.part_id
@@ -212,7 +214,7 @@ async def test_clone_batch(db_session, sample_batch, mock_user):
 async def test_clone_batch_not_found(db_session, mock_user):
     """Test klonování neexistujícího batche - očekáváme 404"""
     with pytest.raises(HTTPException) as exc_info:
-        await clone_batch(99999, db_session, mock_user)
+        await clone_batch("9999999", db_session, mock_user)
 
     assert exc_info.value.status_code == 404
 
@@ -226,10 +228,10 @@ async def test_clone_batch_not_found(db_session, mock_user):
 async def test_frozen_batch_soft_delete(db_session, sample_batch, mock_admin):
     """Test smazání frozen batche - soft delete (ADR-012)"""
     # Zmrazit batch
-    await freeze_batch(sample_batch.id, db_session, mock_admin)
+    await freeze_batch(sample_batch.batch_number, db_session, mock_admin)
 
     # Pokusit se smazat frozen batch
-    result = await delete_batch(sample_batch.id, db_session, mock_admin)
+    result = await delete_batch(sample_batch.batch_number, db_session, mock_admin)
 
     assert "soft delete" in result["message"].lower()
 
@@ -244,10 +246,11 @@ async def test_frozen_batch_soft_delete(db_session, sample_batch, mock_admin):
 @pytest.mark.asyncio
 async def test_unfrozen_batch_hard_delete(db_session, sample_batch, mock_admin):
     """Test smazání nezmrazeného batche - hard delete"""
-    batch_id = sample_batch.id
+    batch_number = sample_batch.batch_number
+    batch_id = sample_batch.id  # Keep ID for verification query
 
     # Smazat nezmrazený batch
-    result = await delete_batch(batch_id, db_session, mock_admin)
+    result = await delete_batch(batch_number, db_session, mock_admin)
 
     assert "dávka smazána" in result["message"].lower()
     assert "soft" not in result["message"].lower()
@@ -269,7 +272,7 @@ async def test_price_stability_after_freeze(db_session, sample_batch, sample_mat
     _, material_item = sample_materials
 
     # Zmrazit batch (se současnou cenou 80.0)
-    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+    frozen = await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     original_snapshot = frozen.snapshot_data
     assert original_snapshot["metadata"]["material_price_per_kg"] == 80.0
@@ -302,7 +305,7 @@ async def test_freeze_with_zero_price_logs_warning(db_session, sample_batch, sam
     await db_session.commit()
 
     # Zmrazit batch
-    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+    frozen = await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     # Zkontrolovat, že snapshot obsahuje warnings
     assert frozen.snapshot_data is not None
@@ -330,7 +333,7 @@ async def test_freeze_with_zero_costs_logs_warnings(db_session, sample_batch, mo
     await db_session.commit()
 
     # Zmrazit batch
-    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+    frozen = await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     # Zkontrolovat, že snapshot obsahuje warnings
     assert frozen.snapshot_data is not None
@@ -353,7 +356,7 @@ async def test_freeze_with_valid_data_no_warnings(db_session, sample_batch, mock
     # sample_batch má validní data (cena 80.0, material_cost 250.0, atd.)
 
     # Zmrazit batch
-    frozen = await freeze_batch(sample_batch.id, db_session, mock_user)
+    frozen = await freeze_batch(sample_batch.batch_number, db_session, mock_user)
 
     # Zkontrolovat, že snapshot neobsahuje warnings
     assert frozen.snapshot_data is not None

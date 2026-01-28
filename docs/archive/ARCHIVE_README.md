@@ -6,6 +6,16 @@ Tento adresář obsahuje zastaralé nebo nahrazené dokumenty.
 
 Místo mazání dokumentů je přesouváme do archivu, aby byla zachována historie a kontext projektu.
 
+## Archivované dokumenty (2026-01-28)
+
+| Dokument | Důvod archivace |
+|----------|-----------------|
+| **MATERIAL-NORMS-GUIDE.md** | Konsolidováno do docs/MATERIAL-GUIDE.md |
+| **MATERIAL-CATALOG-IMPORT.md** | Konsolidováno do docs/MATERIAL-GUIDE.md |
+| **MATERIAL-CATALOG-QUICKREF.md** | Konsolidováno do docs/MATERIAL-GUIDE.md |
+
+---
+
 ## Archivované dokumenty (2026-01-24)
 
 | Dokument | Důvod archivace |

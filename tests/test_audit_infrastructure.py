@@ -56,7 +56,8 @@ async def db_session():
 
         # Seed MaterialItem (ADR-014: uses price_category_id)
         item = MaterialItem(
-            code="11SMn30-D50",
+     material_number="2000002",  # ADR-017
+     code="11SMn30-D50",
             name="11SMn30 ⌀50mm",
             material_group_id=group.id,
             price_category_id=price_category.id,

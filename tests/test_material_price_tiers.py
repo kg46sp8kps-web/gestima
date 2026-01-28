@@ -153,7 +153,8 @@ async def test_batch_pricing_with_tiers(db_session):
     await db_session.flush()
 
     item = MaterialItem(
-        code="TEST-D20",
+     material_number="2000005",  # ADR-017
+     code="TEST-D20",
         name="Test Ø20mm",
         shape=StockShape.ROUND_BAR,
         diameter=20,

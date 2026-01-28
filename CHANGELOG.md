@@ -7,9 +7,60 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] - Performance & Code Quality Sprint (2026-01-28)
+## [Unreleased] - Performance & Infrastructure Sprint (2026-01-28)
 
-### Performance & Refactoring Sprint 1 (2026-01-28 - Bug Fix from Deep Audit)
+### Sprint 2: Production-Ready Infrastructure (2026-01-28 - Alembic + Security)
+
+**HLAVNÍ ZMĚNY:**
+
+1. ✅ **Alembic Migration Framework** (C-5 audit fix)
+   - Setup Alembic pro versionovaná DB migrations
+   - Initial migration schema (všechny tabulky + indexes)
+   - Backwards compatible s legacy ad-hoc migrations
+   - `alembic upgrade head` pro nové instalace
+   - `alembic stamp head` pro existující DB
+
+2. ✅ **Structured Logging pro Migrations/Seeds** (C-5, C-6 audit fix)
+   - `init_db()` s fail-fast strategií pro critical (WAL, create_all)
+   - Warn-and-continue pro optional (migrations, seeds)
+   - `_safe_migrate()` + `_safe_seed()` wrappers
+   - Viditelné logy: ✅ successful, ⚠️ warnings, ❌ critical failures
+
+3. ✅ **Content Security Policy** (H-3 audit fix)
+   - CSP header v `SecurityHeadersMiddleware`
+   - Pragmatic approach: `unsafe-inline` pro Alpine.js + HTMX
+   - Blokuje: 3rd party scripts, eval(), external resources
+   - Umožňuje: self origin, inline scripts/styles, HTMX AJAX
+   - Note: CSP nonces (stricter) plánované v v2.0
+
+4. ✅ **HSTS Security Header** (H-4 audit fix)
+   - Strict-Transport-Security POUZE na HTTPS connections
+   - Conditional: `if request.url.scheme == "https"`
+   - Production ready (Caddy HTTPS deployment)
+   - max-age=1 rok, includeSubDomains, preload-ready
+
+**TESTY:**
+- ✅ 214 passed (87% pass rate)
+- ✅ 15 nových testů pro security headers + Alembic
+- ⏸️ 30 test_snapshots failures (legacy compatibility - backlog)
+
+**DEPENDENCIES:**
+- ✅ Added: `alembic>=1.13.0` (migration framework)
+- ✅ Upgraded: `pip==25.3` (from 21.2.4)
+
+**FILES CHANGED:**
+- `app/database.py` - Alembic support + structured logging
+- `app/gestima_app.py` - CSP + HSTS headers
+- `alembic/env.py` - Async SQLAlchemy config
+- `alembic/versions/78917f98a52d_*.py` - Initial migration
+- `tests/test_security_headers.py` - 15 nových testů
+- `tests/conftest.py` - ADR-017 compatible fixtures
+
+**VERZE:** 1.6.0 (infrastructure improvements)
+
+---
+
+### Sprint 1: Performance & Refactoring (2026-01-28 - Bug Fix from Deep Audit)
 
 **OPRAVENÉ PROBLÉMY Z AUDITU:**
 

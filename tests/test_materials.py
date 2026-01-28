@@ -127,7 +127,8 @@ async def test_material_item_seed_exists(db_session):
 async def test_create_material_item(db_session):
     """Test: Create new MaterialItem (ADR-014: uses price_category_id instead of price_per_kg)"""
     item = MaterialItem(
-        code="11SMn30-D100",
+     material_number="2000006",  # ADR-017
+     code="11SMn30-D100",
         name="11SMn30 ⌀100 mm - tyč kruhová",
         material_group_id=db_session.test_material_group.id,
         price_category_id=db_session.test_price_category.id,
@@ -150,7 +151,8 @@ async def test_material_item_duplicate_code_fails(db_session):
     """Test: Duplicate MaterialItem code raises IntegrityError"""
     # Create first item
     item1 = MaterialItem(
-        code="UNIQUE-ITEM-001",
+     material_number="2000007",  # ADR-017
+     code="UNIQUE-ITEM-001",
         name="First",
         material_group_id=db_session.test_material_group.id,
         price_category_id=db_session.test_price_category.id,
@@ -162,7 +164,8 @@ async def test_material_item_duplicate_code_fails(db_session):
 
     # Try to create duplicate
     item2 = MaterialItem(
-        code="UNIQUE-ITEM-001",  # Same code
+     material_number="2000008",  # ADR-017
+     code="UNIQUE-ITEM-001",  # Same code
         name="Second",
         material_group_id=db_session.test_material_group.id,
         price_category_id=db_session.test_price_category.id,
@@ -188,7 +191,8 @@ async def test_material_item_shapes(db_session):
 
     for i, (shape, dims) in enumerate(shapes_data):
         item = MaterialItem(
-            code=f"SHAPE-TEST-{i}",
+     material_number=f"{2000009 + i}",  # ADR-017
+     code=f"SHAPE-TEST-{i}",
             name=f"Shape test {shape.value}",
             material_group_id=db_session.test_material_group.id,
             price_category_id=db_session.test_price_category.id,
@@ -216,7 +220,8 @@ async def test_material_item_soft_delete(db_session):
 
     # Create item
     item = MaterialItem(
-        code="TO-DELETE",
+     material_number="2000010",  # ADR-017
+     code="TO-DELETE",
         name="Delete me",
         material_group_id=db_session.test_material_group.id,
         price_category_id=db_session.test_price_category.id,
@@ -286,7 +291,8 @@ async def test_material_item_group_relationship(db_session):
 async def test_material_item_has_price_category(db_session):
     """Test: MaterialItem has valid price_category_id (ADR-014: replaces price_per_kg)"""
     item = MaterialItem(
-        code="PRICED-STOCK",
+     material_number="2000011",  # ADR-017
+     code="PRICED-STOCK",
         name="Priced stock",
         material_group_id=db_session.test_material_group.id,
         price_category_id=db_session.test_price_category.id,
@@ -316,7 +322,8 @@ async def test_material_group_cascade_items(db_session):
     # Add items to group
     for i in range(3):
         item = MaterialItem(
-            code=f"CASCADE-ITEM-{i}",
+     material_number=f"{2000012 + i}",  # ADR-017
+     code=f"CASCADE-ITEM-{i}",
             name=f"Cascade Item {i}",
             material_group_id=group.id,
             price_category_id=db_session.test_price_category.id,
