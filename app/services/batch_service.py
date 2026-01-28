@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.batch import Batch
 from app.models.part import Part
 from app.models.operation import Operation
-from app.models.machine import MachineDB
+# Machine model removed - replaced by WorkCenter (ADR-021)
 from app.models.material import MaterialItem, MaterialGroup, MaterialPriceCategory
 from app.services.price_calculator import (
     calculate_stock_cost_from_part,

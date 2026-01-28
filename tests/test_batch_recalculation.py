@@ -11,7 +11,8 @@ from sqlalchemy import select
 from app.models.batch import Batch
 from app.models.part import Part
 from app.models.operation import Operation
-from app.models.machine import MachineDB
+from app.models.work_center import WorkCenter
+from app.models.enums import WorkCenterType
 from app.models.material import MaterialGroup, MaterialItem, MaterialPriceCategory, MaterialPriceTier
 from app.models.enums import StockShape
 from app.services.batch_service import recalculate_batch_costs
@@ -64,7 +65,7 @@ async def test_recalculate_batch_costs_basic(db_session):
 
     # 2. Setup Part (tyč Ø30 × 100mm)
     part = Part(
-        part_number="1000050",  # ADR-017: 7-digit number
+        part_number="10000050",  # ADR-017: 8-digit number
         name="Test díl",
         material_item_id=material_item.id,
         length=100.0,  # mm
@@ -75,20 +76,20 @@ async def test_recalculate_batch_costs_basic(db_session):
     db_session.add(part)
     await db_session.flush()
 
-    # 3. Setup Machine
+    # 3. Setup WorkCenter
     # hourly_rate_operation = amortization + labor + tools + overhead = 1200
     # hourly_rate_setup = amortization + labor + overhead (BEZ tools) = 1000
-    machine = MachineDB(
-        code="INDEX-32",
+    work_center = WorkCenter(
+        work_center_number="80000001",
         name="INDEX Sprint 32",
-        type="lathe",
+        work_center_type=WorkCenterType.CNC_LATHE,
         hourly_rate_amortization=300.0,
         hourly_rate_labor=600.0,
         hourly_rate_tools=200.0,
         hourly_rate_overhead=100.0,
         created_by="test"
     )
-    db_session.add(machine)
+    db_session.add(work_center)
     await db_session.flush()
 
     # 4. Setup Operation (soustružení 10 min tp, 30 min tj)
@@ -97,7 +98,7 @@ async def test_recalculate_batch_costs_basic(db_session):
         seq=10,
         name="OP10 - Soustružení",
         type="turning",
-        machine_id=machine.id,
+        work_center_id=work_center.id,
         operation_time_min=10.0,  # tp
         setup_time_min=30.0,  # tj
         is_coop=False,

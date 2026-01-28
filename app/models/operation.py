@@ -20,7 +20,7 @@ class Operation(Base, AuditMixin):
     type = Column(String(50), default="turning")
     icon = Column(String(10), default="🔄")
     
-    machine_id = Column(Integer, ForeignKey("machines.id", ondelete="SET NULL"), nullable=True)
+    work_center_id = Column(Integer, ForeignKey("work_centers.id", ondelete="SET NULL"), nullable=True)
     cutting_mode = Column(String(10), default="mid")
     
     setup_time_min = Column(Float, default=30.0)
@@ -47,7 +47,7 @@ class OperationBase(BaseModel):
     name: str = Field("", max_length=200, description="Název operace")
     type: str = Field("turning", max_length=50, description="Typ operace")
     icon: str = Field("🔄", max_length=10, description="Ikona operace")
-    machine_id: Optional[int] = Field(None, gt=0, description="ID stroje")
+    work_center_id: Optional[int] = Field(None, gt=0, description="ID pracoviště")
     cutting_mode: str = Field("mid", max_length=10, description="Režim obrábění")
     setup_time_min: float = Field(30.0, ge=0, description="Čas seřízení v minutách")
     operation_time_min: float = Field(0.0, ge=0, description="Čas operace v minutách")
@@ -67,7 +67,7 @@ class OperationUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
     type: Optional[str] = Field(None, max_length=50)
     icon: Optional[str] = Field(None, max_length=10)
-    machine_id: Optional[int] = Field(None, gt=0)
+    work_center_id: Optional[int] = Field(None, gt=0)
     cutting_mode: Optional[str] = Field(None, max_length=10)
     setup_time_min: Optional[float] = Field(None, ge=0)
     operation_time_min: Optional[float] = Field(None, ge=0)

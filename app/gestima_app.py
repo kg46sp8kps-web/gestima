@@ -26,7 +26,7 @@ from app.routers import (
     features_router,
     batches_router,
     materials_router,
-    machines_router,
+    work_centers_router,
     config_router,
     data_router,
     pages_router,
@@ -68,11 +68,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
 
         # === H-3: Content Security Policy ===
-        # Pragmatic approach: unsafe-inline pro Alpine.js + HTMX
-        # Note: CSP nonces (stricter) plánované v v2.0 (ADR-XXX)
+        # Pragmatic approach: unsafe-inline + unsafe-eval pro Alpine.js + HTMX
+        # Note: Alpine.js REQUIRES 'unsafe-eval' for reactivity (new AsyncFunction)
+        # CSP nonces (stricter) plánované v v2.0 (ADR-XXX)
         csp_policy = "; ".join([
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",  # Alpine.js needs inline
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Alpine.js eval + HTMX inline
             "style-src 'self' 'unsafe-inline'",   # Inline styles
             "img-src 'self' data:",               # Allow data: URIs for inline images
             "font-src 'self'",
@@ -171,7 +172,8 @@ app.include_router(operations_router.router, prefix="/api/operations", tags=["Op
 app.include_router(features_router.router, prefix="/api/features", tags=["Features"])
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
-app.include_router(machines_router.router, prefix="/api/machines", tags=["Machines"])
+# Machines router removed - replaced by WorkCenters (ADR-021)
+app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])

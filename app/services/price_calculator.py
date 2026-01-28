@@ -485,17 +485,17 @@ async def calculate_part_price(
         loaded = await db.execute(stmt)
         part = loaded.scalar_one()
 
-    # Pre-load all machines in ONE query (N+1 fix)
+    # Pre-load all work centers in ONE query (N+1 fix)
     from sqlalchemy import select
-    from app.models.machine import MachineDB
+    from app.models.work_center import WorkCenter
 
-    machine_ids = {op.machine_id for op in part.operations if op.machine_id and not op.is_coop}
-    machines_dict = {}
-    if machine_ids:
-        machines_result = await db.execute(
-            select(MachineDB).where(MachineDB.id.in_(machine_ids))
+    work_center_ids = {op.work_center_id for op in part.operations if op.work_center_id and not op.is_coop}
+    work_centers_dict = {}
+    if work_center_ids:
+        work_centers_result = await db.execute(
+            select(WorkCenter).where(WorkCenter.id.in_(work_center_ids))
         )
-        machines_dict = {m.id: m for m in machines_result.scalars().all()}
+        work_centers_dict = {wc.id: wc for wc in work_centers_result.scalars().all()}
 
     for op in part.operations:
         if op.is_coop:
@@ -503,25 +503,25 @@ async def calculate_part_price(
             result.coop_cost_raw += op.coop_price
             continue
 
-        if not op.machine_id:
-            logger.warning(f"Operation {op.id} has no machine_id, skipping")
+        if not op.work_center_id:
+            logger.warning(f"Operation {op.id} has no work_center_id, skipping")
             continue
 
-        # Použít pre-loaded stroj z dictionary (N+1 fix)
-        machine = machines_dict.get(op.machine_id)
-        if not machine:
-            logger.warning(f"Machine {op.machine_id} not found, skipping operation {op.id}")
+        # Použít pre-loaded pracoviště z dictionary (N+1 fix)
+        work_center = work_centers_dict.get(op.work_center_id)
+        if not work_center:
+            logger.warning(f"WorkCenter {op.work_center_id} not found, skipping operation {op.id}")
             continue
 
         # Setup (BEZ nástrojů) - jednou pro celý batch
         setup_hours = op.setup_time_min / 60
-        op_setup_cost = setup_hours * machine.hourly_rate_setup
+        op_setup_cost = setup_hours * work_center.hourly_rate_setup
         setup_cost += op_setup_cost
         total_setup_time += op.setup_time_min
 
         # Operace (S nástroji) - × quantity
         op_hours = op.operation_time_min / 60
-        op_operation_cost = op_hours * machine.hourly_rate_operation * quantity
+        op_operation_cost = op_hours * work_center.hourly_rate_operation * quantity
         operation_cost += op_operation_cost
         total_operation_time += op.operation_time_min
 
@@ -529,10 +529,10 @@ async def calculate_part_price(
 
         # Rozpad do komponent
         total_hours = setup_hours + (op_hours * quantity)
-        machine_breakdown['amortization'] += total_hours * machine.hourly_rate_amortization
-        machine_breakdown['labor'] += total_hours * machine.hourly_rate_labor
-        machine_breakdown['tools'] += (op_hours * quantity) * machine.hourly_rate_tools  # POUZE operace!
-        machine_breakdown['overhead'] += total_hours * machine.hourly_rate_overhead
+        machine_breakdown['amortization'] += total_hours * work_center.hourly_rate_amortization
+        machine_breakdown['labor'] += total_hours * work_center.hourly_rate_labor
+        machine_breakdown['tools'] += (op_hours * quantity) * work_center.hourly_rate_tools  # POUZE operace!
+        machine_breakdown['overhead'] += total_hours * work_center.hourly_rate_overhead
 
     result.machine_total = machine_cost
     result.machine_setup_time_min = total_setup_time

@@ -4,7 +4,7 @@ import math
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel, Field
-from app.services.reference_loader import get_machines, get_material_groups, get_feature_types, get_material_properties
+from app.services.reference_loader import get_work_centers, get_material_groups, get_feature_types, get_material_properties
 from app.dependencies import get_current_user
 from app.models import User
 
@@ -15,20 +15,20 @@ router = APIRouter()
 # RESPONSE MODELS
 # ============================================================================
 
-class MachineRefResponse(BaseModel):
-    """Reference data pro stroj (zjednodušené pro dropdown)"""
+class WorkCenterRefResponse(BaseModel):
+    """Reference data pro pracoviště (zjednodušené pro dropdown)"""
     id: int
-    code: str
+    work_center_number: str
     name: str
-    type: str
+    work_center_type: Optional[str] = None
     subtype: Optional[str] = None
-    hourly_rate: float = Field(..., gt=0)
-    max_bar_dia: Optional[float] = Field(None, ge=0)
+    hourly_rate: float = Field(0, ge=0)
+    max_bar_diameter: Optional[float] = Field(None, ge=0)
     has_bar_feeder: bool = False
     has_milling: bool = False
     has_sub_spindle: bool = False
-    setup_base_min: float = Field(..., ge=0)
-    setup_per_tool_min: float = Field(..., ge=0)
+    setup_base_min: float = Field(30.0, ge=0)
+    setup_per_tool_min: float = Field(3.0, ge=0)
 
 
 class MaterialRefResponse(BaseModel):
@@ -54,12 +54,12 @@ class FeatureTypeResponse(BaseModel):
 # ENDPOINTS (chráněné autentizací)
 # ============================================================================
 
-@router.get("/machines", response_model=List[MachineRefResponse])
-async def list_machines(
+@router.get("/work-centers", response_model=List[WorkCenterRefResponse])
+async def list_work_centers(
     current_user: User = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
-    """Seznam strojů (vyžaduje přihlášení)"""
-    return await get_machines()
+    """Seznam pracovišť (vyžaduje přihlášení)"""
+    return await get_work_centers()
 
 
 @router.get("/materials", response_model=List[MaterialRefResponse])

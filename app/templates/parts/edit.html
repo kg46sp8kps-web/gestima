@@ -2,6 +2,46 @@
 
 {% block title %}GESTIMA - {{ part.part_number }}{% endblock %}
 
+{% block head %}
+<style>
+    /* Input focus highlight */
+    input[type="number"]:focus {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: var(--accent-blue) !important;
+        outline: none;
+    }
+    /* Fast CSS tooltip */
+    .fast-tip {
+        position: relative;
+        cursor: help;
+    }
+    .fast-tip::after {
+        content: attr(data-tip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 0.3rem 0.5rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.6rem;
+        font-weight: normal;
+        color: var(--text-primary);
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s, visibility 0.15s;
+        z-index: 100;
+        pointer-events: none;
+    }
+    .fast-tip:hover::after {
+        opacity: 1;
+        visibility: visible;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="split-layout" x-data="partEdit({{ part.id }}, '{{ part.part_number }}')">
 
@@ -34,7 +74,7 @@
                     </div>
                     <div>
                         <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka obráběné části [mm]</label>
-                        <input type="number" step="0.1" min="0" x-model.number="partData.length" @input="debouncedSave()"
+                        <input type="number" step="0.1" min="0" x-model.number="partData.length" @input="debouncedSave()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                     </div>
                 </div>
@@ -229,12 +269,12 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Ø [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_diameter" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_diameter" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                         </div>
@@ -257,7 +297,7 @@
                             </div>
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                         </div>
@@ -268,12 +308,12 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Strana [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_width" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_width" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                         </div>
@@ -284,17 +324,17 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Délka [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_length" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Šířka [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_width" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_width" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                             <div>
                                 <label style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-bottom: 0.25rem;">Výška [mm]</label>
-                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_height" @input="debouncedSaveAndLoadStock()"
+                                <input type="number" step="0.1" min="0" x-model.number="partData.stock_height" @input="debouncedSaveAndLoadStock()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                        style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
                             </div>
                         </div>
@@ -403,70 +443,83 @@
                 </div>
                 <div class="ribbon-body" x-show="showBatches">
                     <!-- Tabulka cen - kompaktní -->
-                    <table style="width: 100%; font-size: 0.7rem; border-collapse: collapse;">
+                    <table style="width: 100%; font-size: 0.65rem; border-collapse: collapse;">
                         <thead>
                             <tr style="border-bottom: 1px solid var(--border-color);">
-                                <th style="padding: 0.3rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
-                                <th style="padding: 0.3rem; text-align: left; color: var(--text-muted); font-weight: 600;">Rozpis (najeď myší)</th>
-                                <th style="padding: 0.3rem; text-align: right; color: var(--text-muted); font-weight: 600;">Cena/ks</th>
-                                <th style="padding: 0.3rem 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600; border-left: 2px solid var(--border-color); background: var(--bg-secondary);">Celkem</th>
-                                <th style="padding: 0.3rem; text-align: center; color: var(--text-muted); font-weight: 600; width: 35px;"></th>
+                                <th style="padding: 0.2rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
+                                <th style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted); font-weight: 600;">Mat</th>
+                                <th style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted); font-weight: 600;">Koop</th>
+                                <th style="padding: 0.2rem 0.5rem; text-align: center; color: var(--text-muted); font-weight: 600;">Rozložení</th>
+                                <th style="padding: 0.2rem; text-align: right; color: var(--text-muted); font-weight: 600;">Práce</th>
+                                <th style="padding: 0.2rem; text-align: right; color: var(--text-muted); font-weight: 600;">Σ Nákl</th>
+                                <th style="padding: 0.2rem; text-align: right; color: var(--text-muted); font-weight: 600;">Režie</th>
+                                <th style="padding: 0.2rem; text-align: right; color: var(--text-muted); font-weight: 600;">Marže</th>
+                                <th style="padding: 0.2rem; text-align: right; color: var(--text-muted); font-weight: 600;">Cena/ks</th>
+                                <th style="padding: 0.2rem; width: 24px;"></th>
                             </tr>
                         </thead>
                         <tbody>
                             <template x-for="batch in batches" :key="batch.id">
                                 <tr style="border-bottom: 1px solid var(--border-color);">
                                     <!-- Dávka -->
-                                    <td style="padding: 0.3rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
+                                    <td style="padding: 0.2rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.2rem; flex-wrap: wrap;">
                                             <span style="font-weight: 600;" x-text="batch.quantity + ' ks'"></span>
                                             <span x-show="batch.is_frozen"
-                                                  style="background: var(--accent-green); color: white; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.6rem; font-weight: 600; white-space: nowrap;">
-                                                FREEZE
+                                                  style="background: var(--accent-green); color: white; padding: 0.1rem 0.2rem; border-radius: 2px; font-size: 0.55rem; font-weight: 600;">
+                                                FRZ
                                             </span>
-                                            <span x-show="batch.is_frozen && batch.snapshot_data?.warnings?.length > 0"
-                                                  :title="'Varování:\n' + (batch.snapshot_data?.warnings || []).join('\n')"
-                                                  style="cursor: help; font-size: 0.85rem;">⚠️</span>
                                         </div>
                                     </td>
-                                    <!-- Bar s detaily v tooltip -->
-                                    <td style="padding: 0.3rem;">
-                                        <div style="position: relative; height: 14px; border-radius: 3px; overflow: hidden; background: var(--bg-tertiary); cursor: help;"
-                                             :title="'Materiál: ' + batch.material_cost.toFixed(0) + ' Kč (' + batch.material_percent + '%)\n' +
-                                                     'Kooperace: ' + batch.coop_cost.toFixed(0) + ' Kč (' + batch.coop_percent + '%)\n' +
-                                                     'Seřízení: ' + batch.setup_cost.toFixed(0) + ' Kč (' + batch.setup_percent + '%)\n' +
-                                                     'Výroba: ' + batch.machining_cost.toFixed(0) + ' Kč (' + batch.machining_percent + '%)\n' +
-                                                     'Režie: ' + batch.overhead_cost.toFixed(0) + ' Kč (' + batch.overhead_percent + '%)\n' +
-                                                     'Marže: ' + batch.margin_cost.toFixed(0) + ' Kč (' + batch.margin_percent + '%)'">
+                                    <!-- Materiál -->
+                                    <td class="fast-tip" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--accent-green); font-weight: 600;"
+                                        :data-tip="(batch.material_price_per_kg || 0).toFixed(0) + ' Kč/kg'"
+                                        x-text="batch.material_cost.toFixed(0)"></td>
+                                    <!-- Kooperace -->
+                                    <td style="padding: 0.2rem 0.4rem; text-align: right; color: var(--accent-purple); font-weight: 600;"
+                                        x-text="batch.coop_cost.toFixed(0)"></td>
+                                    <!-- Bar nákladů (mat, koop, tp, tj) = 100% -->
+                                    <td style="padding: 0.2rem 0.5rem;">
+                                        <div style="position: relative; height: 12px; border-radius: 2px; overflow: hidden; background: var(--bg-tertiary); cursor: help; min-width: 70px;"
+                                             :title="'Materiál: ' + batch.material_cost.toFixed(0) + ' Kč\nKooperace: ' + batch.coop_cost.toFixed(0) + ' Kč\ntp (seřízení): ' + batch.setup_cost.toFixed(0) + ' Kč\ntj (výroba): ' + batch.machining_cost.toFixed(0) + ' Kč'">
                                             <div style="display: flex; height: 100%;">
-                                                <div :style="`width: ${batch.material_percent}%; background: var(--accent-green);`"></div>
-                                                <div :style="`width: ${batch.coop_percent}%; background: var(--accent-purple);`"></div>
-                                                <div :style="`width: ${batch.setup_percent}%; background: var(--accent-yellow);`"></div>
-                                                <div :style="`width: ${batch.machining_percent}%; background: var(--accent-blue);`"></div>
-                                                <div :style="`width: ${batch.overhead_percent}%; background: #ED8936;`"></div>
-                                                <div :style="`width: ${batch.margin_percent}%; background: #E53E3E;`"></div>
+                                                <div :style="'width: ' + ((batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) > 0 ? (batch.material_cost / (batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) * 100) : 0) + '%; background: var(--accent-green);'"></div>
+                                                <div :style="'width: ' + ((batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) > 0 ? (batch.coop_cost / (batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) * 100) : 0) + '%; background: var(--accent-purple);'"></div>
+                                                <div :style="'width: ' + ((batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) > 0 ? (batch.setup_cost / (batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) * 100) : 0) + '%; background: var(--accent-yellow);'"></div>
+                                                <div :style="'width: ' + ((batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) > 0 ? (batch.machining_cost / (batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost) * 100) : 0) + '%; background: var(--accent-blue);'"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <!-- Cena/ks -->
-                                    <td style="padding: 0.3rem; text-align: right; font-weight: 600; color: var(--text-primary);"
-                                        x-text="batch.unit_cost.toFixed(0) + ' Kč'"></td>
-                                    <!-- Celkem - oddělená -->
-                                    <td style="padding: 0.3rem 0.5rem; text-align: right; font-weight: 700; font-size: 0.8rem; color: var(--accent-blue); border-left: 2px solid var(--border-color); background: var(--bg-secondary);"
-                                        x-text="batch.total_cost.toFixed(0) + ' Kč'"></td>
+                                    <!-- Práce (tp + tj) -->
+                                    <td style="padding: 0.2rem; text-align: right; color: var(--accent-blue); font-weight: 600;"
+                                        :title="'tp (seřízení): ' + batch.setup_cost.toFixed(0) + ' Kč\ntj (výroba): ' + batch.machining_cost.toFixed(0) + ' Kč'"
+                                        x-text="(batch.setup_cost + batch.machining_cost).toFixed(0)"></td>
+                                    <!-- Σ Náklady -->
+                                    <td style="padding: 0.2rem; text-align: right; font-weight: 700; color: var(--text-primary);"
+                                        x-text="(batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost).toFixed(0)"></td>
+                                    <!-- Režie -->
+                                    <td style="padding: 0.2rem; text-align: right; color: #ED8936; font-weight: 600;"
+                                        x-text="batch.overhead_cost.toFixed(0)"></td>
+                                    <!-- Marže -->
+                                    <td style="padding: 0.2rem; text-align: right; color: #E53E3E; font-weight: 600;"
+                                        x-text="batch.margin_cost.toFixed(0)"></td>
+                                    <!-- Cena/ks s hover pro celkovou cenu -->
+                                    <td class="fast-tip" style="padding: 0.2rem; text-align: right; font-weight: 700; color: var(--text-primary);"
+                                        :data-tip="'Σ ' + batch.total_cost.toFixed(0) + ' Kč'"
+                                        x-text="batch.unit_cost.toFixed(0)"></td>
                                     <!-- Akce -->
-                                    <td style="padding: 0.3rem; text-align: center;">
+                                    <td style="padding: 0.2rem; text-align: center;">
                                         <button x-show="!batch.is_frozen"
                                                 @click="deleteBatch(batch)"
-                                                style="padding: 0.2rem 0.3rem; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.7rem; opacity: 0.6; transition: all 0.2s; border-radius: 3px;"
-                                                @mouseenter="$el.style.opacity = '1'; $el.style.background = 'rgba(229,62,62,0.1)'; $el.style.color = '#E53E3E'"
-                                                @mouseleave="$el.style.opacity = '0.6'; $el.style.background = 'none'; $el.style.color = 'var(--text-muted)'"
-                                                title="Smazat">🗑️</button>
+                                                style="padding: 0.15rem; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.65rem; opacity: 0.5; transition: all 0.2s;"
+                                                @mouseenter="$el.style.opacity = '1'; $el.style.color = '#E53E3E'"
+                                                @mouseleave="$el.style.opacity = '0.5'; $el.style.color = 'var(--text-muted)'"
+                                                title="Smazat">✕</button>
                                     </td>
                                 </tr>
                             </template>
                             <tr x-show="batches.length === 0">
-                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 0.8rem; font-size: 0.7rem;">
+                                <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 0.8rem; font-size: 0.65rem;">
                                     Zatím žádné ceny
                                 </td>
                             </tr>
@@ -474,18 +527,17 @@
                     </table>
 
                     <!-- Legenda - kompaktní -->
-                    <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem; font-size: 0.6rem; color: var(--text-muted); justify-content: center; flex-wrap: wrap; padding: 0.4rem; background: var(--bg-secondary); border-radius: 3px;">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.6rem; color: var(--text-muted); justify-content: center; flex-wrap: wrap; padding: 0.4rem; background: var(--bg-secondary); border-radius: 3px;">
                         <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-green); border-radius: 1px;"></span>mat</span>
                         <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-purple); border-radius: 1px;"></span>koop</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-yellow); border-radius: 1px;"></span>seř</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-blue); border-radius: 1px;"></span>výr</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: #ED8936; border-radius: 1px;"></span>rež</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: #E53E3E; border-radius: 1px;"></span>mar</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-yellow); border-radius: 1px;"></span>tp</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-blue); border-radius: 1px;"></span>tj</span>
                     </div>
 
                     <!-- Přidat batch -->
                     <div style="margin-top: 0.5rem; display: flex; gap: 0.4rem; align-items: center;">
                         <input type="number" x-model.number="newBatchQty" placeholder="ks" min="1"
+                               @keydown.enter="addBatch()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                style="width: 60px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; padding: 0.3rem; font-size: 0.7rem; color: var(--text-primary); text-align: center;">
                         <button @click="addBatch()" class="btn-flat btn-add-op" style="font-size: 0.65rem; padding: 0.3rem 0.5rem;">
                             + Přidat
@@ -504,11 +556,8 @@
                     <div class="ribbon-title">⏱️ Čas na kus</div>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div style="display: flex; gap: 0.5rem; font-size: 0.8rem; font-weight: 600;">
-                            <span style="color: var(--accent-yellow);" x-text="'tj ' + totalSetupTime.toFixed(1)"></span>
-                            <span style="color: var(--text-muted);">+</span>
-                            <span style="color: var(--accent-blue);" x-text="'tp ' + totalOperationTime.toFixed(1)"></span>
-                            <span style="color: var(--text-muted);">=</span>
-                            <span style="color: var(--text-primary); font-weight: 700;" x-text="totalTimeWithSetup.toFixed(1) + ' min'"></span>
+                            <span style="color: var(--accent-yellow);" x-text="'tp ' + totalSetupTime.toFixed(1)"></span>
+                            <span style="color: var(--accent-blue);" x-text="'tj ' + totalOperationTime.toFixed(1)"></span>
                         </div>
                         <div class="ribbon-toggle" x-text="showTime ? '▼' : '▶'">▼</div>
                     </div>
@@ -522,18 +571,17 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
                                     <span style="font-weight: 600;" x-text="category.label"></span>
                                     <span style="color: var(--text-muted);">
-                                        <span x-text="category.total_time.toFixed(1) + ' min'"></span>
                                         <span style="font-size: 0.7rem;">
-                                            (seřízení <span x-text="category.setup_time.toFixed(1)"></span> + výroba <span x-text="category.operation_time.toFixed(1)"></span>)
+                                            tp <span x-text="category.setup_time.toFixed(1)"></span> + tj <span x-text="category.operation_time.toFixed(1)"></span>
                                         </span>
                                     </span>
                                 </div>
                                 <!-- Bar -->
                                 <div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--bg-secondary);">
                                     <div :style="`width: ${(category.setup_time / totalTimeWithSetup * 100).toFixed(1)}%; background: var(--accent-yellow);`"
-                                         :title="'Seřízení: ' + category.setup_time.toFixed(1) + ' min'"></div>
+                                         :title="'tp: ' + category.setup_time.toFixed(1) + ' min'"></div>
                                     <div :style="`width: ${(category.operation_time / totalTimeWithSetup * 100).toFixed(1)}%; background: var(--accent-blue);`"
-                                         :title="'Výroba: ' + category.operation_time.toFixed(1) + ' min'"></div>
+                                         :title="'tj: ' + category.operation_time.toFixed(1) + ' min'"></div>
                                 </div>
                             </div>
                         </template>
@@ -542,11 +590,11 @@
                         <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.65rem; color: var(--text-muted); justify-content: center;">
                             <div style="display: flex; align-items: center; gap: 0.25rem;">
                                 <div style="width: 12px; height: 6px; background: var(--accent-yellow); border-radius: 2px;"></div>
-                                <span>seřízení</span>
+                                <span>tp (seřízení)</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.25rem;">
                                 <div style="width: 12px; height: 6px; background: var(--accent-blue); border-radius: 2px;"></div>
-                                <span>výroba</span>
+                                <span>tj (výroba)</span>
                             </div>
                         </div>
 
@@ -676,32 +724,32 @@
                                     <div class="op-icon" x-text="op.icon"></div>
                                 </div>
 
-                                <!-- Stroj (editovatelný dropdown) -->
+                                <!-- Pracoviště (editovatelný dropdown) -->
                                 <div @click.stop style="flex: 1; min-width: 180px;">
-                                    <select x-model.number="op.machine_id"
-                                            @change="debouncedUpdateOperation(op)"
+                                    <select x-model.number="op.work_center_id"
+                                            @change="updateOperationFromWorkCenter(op); debouncedUpdateOperation(op)"
                                             style="width: 100%; padding: 0.35rem 0.5rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.75rem; font-weight: 500;">
-                                        <option value="">- Vyberte stroj -</option>
-                                        <template x-for="machine in machines" :key="machine.id">
-                                            <option :value="machine.id" :selected="machine.id === op.machine_id" x-text="machine.name"></option>
+                                        <option value="">- Vyberte pracoviště -</option>
+                                        <template x-for="workCenter in workCenters" :key="workCenter.id">
+                                            <option :value="workCenter.id" :selected="workCenter.id === op.work_center_id" x-text="workCenter.name"></option>
                                         </template>
                                     </select>
                                 </div>
 
-                                <!-- tj - seřizovací čas (editovatelný inline) -->
+                                <!-- tp - seřizovací čas (editovatelný inline) -->
                                 <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
-                                    <span style="color: var(--accent-yellow); font-size: 0.7rem; font-weight: 600;">tj:</span>
+                                    <span style="color: var(--accent-yellow); font-size: 0.7rem; font-weight: 600;">tp:</span>
                                     <input type="number" step="0.1" min="0" x-model.number="op.setup_time_min"
-                                           @input="debouncedUpdateOperation(op)"
+                                           @input="debouncedUpdateOperation(op)" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                            style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
                                     <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
                                 </div>
 
-                                <!-- tp - výrobní čas (editovatelný inline) -->
+                                <!-- tj - výrobní čas (editovatelný inline) -->
                                 <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
-                                    <span style="color: var(--accent-blue); font-size: 0.7rem; font-weight: 600;">tp:</span>
+                                    <span style="color: var(--accent-blue); font-size: 0.7rem; font-weight: 600;">tj:</span>
                                     <input type="number" step="0.1" min="0" x-model.number="op.operation_time_min"
-                                           @input="debouncedUpdateOperation(op)"
+                                           @input="debouncedUpdateOperation(op)" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                            style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
                                     <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
                                 </div>
@@ -779,8 +827,8 @@
                     <tr style="border-bottom: 2px solid var(--border-color);">
                         <th style="padding: 0.5rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
                         <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Materiál</th>
-                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Výroba</th>
-                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Seřízení</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;" title="Výrobní čas">tp</th>
+                        <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;" title="Seřizovací čas">tj</th>
                         <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">Koop</th>
                         <th style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600;">CELKEM</th>
                     </tr>
@@ -868,8 +916,8 @@ function partEdit(partId, partNumber) {
         parsingMaterial: false,
         parseTimeout: null,
 
-        // Machines
-        machines: [],
+        // Work Centers
+        workCenters: [],
 
         // Computed
         get selectedShape() {
@@ -883,27 +931,35 @@ function partEdit(partId, partNumber) {
                 return this.materialItems; // Pokud není shape, zobraz vše
             }
 
-            // Mapping: shape → category suffix
+            // Mapping: shape → category code suffix (pro správný výběr cenové kategorie!)
             const shapeToSuffix = {
-                'round_bar': ['KRUHOVA', 'BRONZ'],  // OCEL-KRUHOVA, MOSAZ-BRONZ
-                'flat_bar': ['PLOCHA'],              // OCEL-PLOCHA, NEREZ-PLOCHA
-                'plate': ['DESKY'],                  // OCEL-DESKY, HLINIK-DESKY
-                'tube': ['TRUBKA'],                  // OCEL-TRUBKA
-                'square_bar': ['KRUHOVA'],           // Aproximace jako kruhová
-                'hexagonal_bar': ['KRUHOVA'],        // Aproximace jako kruhová
-                'casting': ['KRUHOVA'],              // Aproximace jako kruhová
-                'forging': ['KRUHOVA']               // Aproximace jako kruhová
+                'round_bar': ['KRUHOVA', 'BRONZ'],       // OCEL-KRUHOVA, MOSAZ-BRONZ
+                'square_bar': ['CTVEREC'],                // OCEL-KONS-CTVEREC, NEREZ-CTVEREC, HLINIK-CTVEREC
+                'hexagonal_bar': ['KRUHOVA', 'SESTIH'],  // OCEL-KRUHOVA (obsahuje šestihran v názvu)
+                'flat_bar': ['PLOCHA'],                   // OCEL-PLOCHA, NEREZ-PLOCHA, HLINIK-PLOCHA
+                'plate': ['DESKY'],                       // OCEL-DESKY, HLINIK-DESKY, PLASTY-DESKY
+                'tube': ['TRUBKA'],                       // OCEL-TRUBKA
+                'casting': [],                            // Žádný filtr (zobraz vše)
+                'forging': []                             // Žádný filtr (zobraz vše)
             };
 
-            const suffixes = shapeToSuffix[this.partData.stock_shape] || [];
-            if (suffixes.length === 0) {
-                return this.materialItems; // Fallback
+            const suffixes = shapeToSuffix[this.partData.stock_shape];
+            if (!suffixes || suffixes.length === 0) {
+                return this.materialItems; // Fallback: žádný filtr definován
             }
 
             // Filtrovat podle code suffix
-            return this.materialItems.filter(item =>
+            const filtered = this.materialItems.filter(item =>
                 suffixes.some(suffix => item.code.includes(suffix))
             );
+
+            // FALLBACK: Pokud filter nic nenašel, zobraz všechny kategorie
+            if (filtered.length === 0) {
+                console.warn(`⚠️ No categories found for shape ${this.partData.stock_shape} with suffixes ${suffixes.join(', ')} - showing all`);
+                return this.materialItems;
+            }
+
+            return filtered;
         },
 
         get totalCoopCost() {
@@ -983,19 +1039,34 @@ function partEdit(partId, partNumber) {
         operations: [],
         batches: [],
         totalTime: 0,
-        newBatchQty: 1,
+        newBatchQty: null,
 
         // Debounce timers
         saveTimeout: null,
         stockCostTimeout: null,
         operationUpdateTimeout: null,
         operationUpdateSequence: 0, // Track update order to ignore stale API responses
+        hasPendingChanges: false, // Track unsaved changes for beforeunload warning
+        pendingOperationSnapshot: null, // Store snapshot for sync flush on unload
 
         async init() {
+            // Prevent data loss on quick navigation (L-017 + beforeunload)
+            window.addEventListener('beforeunload', (e) => {
+                if (this.hasPendingChanges || this.operationUpdateTimeout) {
+                    // Browser native warning
+                    e.preventDefault();
+                    e.returnValue = ''; // Chrome requires this
+
+                    // Best effort: Try to flush pending updates synchronously
+                    if (this.pendingOperationSnapshot) {
+                        this.flushPendingOperationSync();
+                    }
+                }
+            });
             // 1. Load reference data
             await Promise.all([
                 this.loadMaterialItems(),
-                this.loadMachines()
+                this.loadWorkCenters()
             ]);
 
             // 2. Load part with material item
@@ -1007,6 +1078,11 @@ function partEdit(partId, partNumber) {
                 this.loadOperations(),
                 this.loadBatches()
             ]);
+        },
+
+        // Helper: Sort batches by quantity (ascending)
+        sortBatches() {
+            this.batches.sort((a, b) => a.quantity - b.quantity);
         },
 
         async loadMaterialItems() {
@@ -1026,19 +1102,19 @@ function partEdit(partId, partNumber) {
             }
         },
 
-        async loadMachines() {
+        async loadWorkCenters() {
             try {
-                const response = await fetch('/api/data/machines');
+                const response = await fetch('/api/data/work-centers');
                 if (response.ok) {
-                    this.machines = await response.json();
+                    this.workCenters = await response.json();
                 } else {
                     const errorText = await response.text();
-                    console.error('Failed to load machines:', response.status, errorText);
-                    window.showToast('Nepodařilo se načíst stroje', 'error');
+                    console.error('Failed to load work centers:', response.status, errorText);
+                    window.showToast('Nepodařilo se načíst pracoviště', 'error');
                 }
             } catch (error) {
-                console.error('Error loading machines:', error);
-                window.showToast('Chyba při načítání strojů', 'error');
+                console.error('Error loading work centers:', error);
+                window.showToast('Chyba při načítání pracovišť', 'error');
             }
         },
 
@@ -1124,6 +1200,7 @@ function partEdit(partId, partNumber) {
 
                 if (response.ok) {
                     this.parseResult = await response.json();
+                    console.log('🔍 Parser result:', this.parseResult);
                 } else {
                     console.error('Parse failed:', response.status);
                     this.parseResult = null;
@@ -1137,55 +1214,117 @@ function partEdit(partId, partNumber) {
         },
 
         async applyParsedMaterial() {
+            // RACE CONDITION FIX: Cancel pending parse and trigger immediate parse
+            if (this.parseTimeout) {
+                clearTimeout(this.parseTimeout);
+                this.parseTimeout = null;
+            }
+
+            // If input exists but no parseResult, or parse is in progress, wait for fresh parse
+            if (this.quickMaterialInput && this.quickMaterialInput.trim().length >= 2) {
+                if (!this.parseResult || this.parsingMaterial) {
+                    console.log('⏳ Triggering immediate parse before apply...');
+                    await this.parseMaterialDescription();
+                }
+            }
+
             if (!this.parseResult || this.parseResult.confidence < 0.4) {
                 window.showToast('Nízká spolehlivost rozpoznání - zadejte materiál ručně', 'warning');
                 return;
             }
 
+            // SNAPSHOT: Create a copy of parseResult to avoid race conditions with reactive proxy
+            const parsed = JSON.parse(JSON.stringify(this.parseResult));
+            console.log('📝 Applying parsed material (snapshot):', parsed);
+
             try {
                 // 1. Apply shape
-                if (this.parseResult.shape) {
-                    this.partData.stock_shape = this.parseResult.shape;
+                if (parsed.shape) {
+                    this.partData.stock_shape = parsed.shape;
                 }
 
                 // 2. Apply dimensions
-                if (this.parseResult.diameter) {
-                    this.partData.stock_diameter = this.parseResult.diameter;
+                if (parsed.diameter) {
+                    this.partData.stock_diameter = parsed.diameter;
                 }
-                if (this.parseResult.width) {
-                    this.partData.stock_width = this.parseResult.width;
+                if (parsed.width) {
+                    this.partData.stock_width = parsed.width;
                 }
-                if (this.parseResult.height) {
-                    this.partData.stock_height = this.parseResult.height;
+                if (parsed.height) {
+                    this.partData.stock_height = parsed.height;
                 }
-                if (this.parseResult.thickness) {
+                if (parsed.thickness) {
                     // For plate
-                    this.partData.stock_height = this.parseResult.thickness;
+                    this.partData.stock_height = parsed.thickness;
                 }
-                if (this.parseResult.wall_thickness) {
-                    this.partData.stock_wall_thickness = this.parseResult.wall_thickness;
-                }
-                if (this.parseResult.length) {
-                    this.partData.stock_length = this.parseResult.length;
+                if (parsed.wall_thickness) {
+                    this.partData.stock_wall_thickness = parsed.wall_thickness;
                 }
 
+                // LENGTH: Apply if present (including 0 - use explicit null check)
+                if (parsed.length !== null && parsed.length !== undefined) {
+                    console.log(`✅ Setting stock_length = ${parsed.length}`);
+                    this.partData.stock_length = parsed.length;
+                } else {
+                    console.warn(`⚠️ parsed.length is ${parsed.length} - NOT setting stock_length`);
+                }
+
+                console.log('📝 partData AFTER applying dimensions (BEFORE save):', {
+                    shape: this.partData.stock_shape,
+                    diameter: this.partData.stock_diameter,
+                    width: this.partData.stock_width,
+                    height: this.partData.stock_height,
+                    length: this.partData.stock_length
+                });
+
                 // 3. Apply price category
-                if (this.parseResult.suggested_price_category_id) {
-                    this.partData.price_category_id = this.parseResult.suggested_price_category_id;
+                if (parsed.suggested_price_category_id) {
+                    this.partData.price_category_id = parsed.suggested_price_category_id;
                     this.selectedMaterial = this.materialItems.find(
-                        item => item.id === this.parseResult.suggested_price_category_id
+                        item => item.id === parsed.suggested_price_category_id
                     );
+
+                    // VALIDATE: Je vybraná kategorie v filteredCategories? (ghost selection check)
+                    if (this.selectedMaterial && !this.filteredCategories.some(item => item.id === this.selectedMaterial.id)) {
+                        console.warn('Parser found category not in filteredCategories for shape:', this.partData.stock_shape, this.selectedMaterial.name);
+                        window.showToast(`⚠️ ${this.selectedMaterial.name} nesedí s typem polotovaru - vyberte manuálně`, 'warning');
+                        this.partData.price_category_id = null;
+                        this.selectedMaterial = null;
+                    }
+                } else if (parsed.shape) {
+                    // Parser našel shape, ale NENAŠEL kategorii → reset staré kategorie (jinak ghost selection)
+                    this.partData.price_category_id = null;
+                    this.selectedMaterial = null;
                 }
 
                 // 4. Save & reload
                 await this.savePart();
+                console.log('📝 partData AFTER savePart():', {
+                    length: this.partData.stock_length,
+                    width: this.partData.stock_width,
+                    height: this.partData.stock_height
+                });
+
                 await this.loadStockCost();
+                console.log('📝 partData AFTER loadStockCost():', {
+                    length: this.partData.stock_length,
+                    width: this.partData.stock_width,
+                    height: this.partData.stock_height
+                });
+
                 await this.recalculateAllBatches();
 
-                // 5. Clear quick input
-                this.clearParseResult();
+                // 5. Show warnings/success (using snapshot)
+                if (parsed.warnings && parsed.warnings.length > 0) {
+                    parsed.warnings.forEach(warning => {
+                        window.showToast(`⚠️ ${warning}`, 'warning');
+                    });
+                } else {
+                    window.showToast('Materiál nastaven podle rozpoznání', 'success');
+                }
 
-                window.showToast('Materiál nastaven podle rozpoznání', 'success');
+                // 6. Clear quick input
+                this.clearParseResult();
 
             } catch (error) {
                 console.error('Error applying parsed material:', error);
@@ -1300,9 +1439,17 @@ function partEdit(partId, partNumber) {
             this.operationUpdateSequence++;
             const currentSequence = this.operationUpdateSequence;
 
+            // L-017: Snapshot to avoid Alpine Proxy race condition
+            // Freeze op.version and all values BEFORE timeout
+            const snapshot = JSON.parse(JSON.stringify(op));
+
+            // Track pending changes for beforeunload warning
+            this.hasPendingChanges = true;
+            this.pendingOperationSnapshot = snapshot;
+
             this.operationUpdateTimeout = setTimeout(async () => {
-                await this.updateOperation(op, currentSequence);
-            }, 400);
+                await this.updateOperation(snapshot, currentSequence);
+            }, 250);  // Reduced from 400ms for faster UX
         },
 
         async savePart() {
@@ -1343,6 +1490,13 @@ function partEdit(partId, partNumber) {
                 const response = await fetch(`/api/operations/part/${this.partId}`);
                 if (response.ok) {
                     this.operations = await response.json();
+
+                    // Auto-sync operation type/icon/name from machine (CRITICAL!)
+                    // Needed because DB may contain old hardcoded types that don't match machine
+                    this.operations.forEach(op => {
+                        this.updateOperationFromMachine(op);
+                    });
+
                     this.calculateTotalTime();
                 } else {
                     const errorText = await response.text();
@@ -1360,6 +1514,7 @@ function partEdit(partId, partNumber) {
                 const response = await fetch(`/api/batches/part/${this.partId}`);
                 if (response.ok) {
                     this.batches = await response.json();
+                    this.sortBatches();
                 } else {
                     const errorText = await response.text();
                     console.error('Failed to load batches:', response.status, errorText);
@@ -1454,9 +1609,9 @@ function partEdit(partId, partNumber) {
                     body: JSON.stringify({
                         part_id: this.partId,
                         seq: maxSeq + 10,
-                        name: 'OP' + (maxSeq + 10) + ' - Soustružení',
-                        type: 'turning',
-                        icon: '🔄',
+                        name: 'OP' + (maxSeq + 10),  // Generic name - type is set when machine is selected
+                        type: 'generic',  // Will be updated when machine is selected
+                        icon: '🔧',  // Generic tool icon
                         cutting_mode: 'mid',
                         setup_time_min: 30.0
                     })
@@ -1467,7 +1622,7 @@ function partEdit(partId, partNumber) {
                     this.operations.push(newOp);
                     this.calculateTotalTime();
                     await this.recalculateAllBatches(); // Přepočítat ceny po přidání operace
-                    window.showToast('Operace přidána', 'success');
+                    window.showToast('Operace přidána - vyberte stroj', 'success');
                 } else {
                     const error = await response.json();
                     window.showToast(error.detail || 'Chyba při přidání operace', 'error');
@@ -1476,6 +1631,40 @@ function partEdit(partId, partNumber) {
                 console.error('Error adding operation:', error);
                 window.showToast('Chyba při přidání operace', 'error');
             }
+        },
+
+        updateOperationFromWorkCenter(op) {
+            // Auto-update operation type/icon/name when work center is selected
+            if (!op.work_center_id) {
+                // No work center selected - reset to generic
+                op.type = 'generic';
+                op.icon = '🔧';
+                op.name = `OP${op.seq}`;
+                return;
+            }
+
+            const workCenter = this.workCenters.find(wc => wc.id === op.work_center_id);
+            if (!workCenter) return;
+
+            // WorkCenter type → Operation type mapping
+            const typeMap = {
+                'CNC_LATHE': { type: 'turning', icon: '🔄', label: 'Soustružení' },
+                'CNC_MILL_3AX': { type: 'milling', icon: '⚙️', label: 'Frézování 3AX' },
+                'CNC_MILL_4AX': { type: 'milling', icon: '⚙️', label: 'Frézování 4AX' },
+                'CNC_MILL_5AX': { type: 'milling', icon: '⚙️', label: 'Frézování 5AX' },
+                'SAW': { type: 'cutting', icon: '✂️', label: 'Řezání' },
+                'DRILL': { type: 'drilling', icon: '🔩', label: 'Vrtání' },
+                'QUALITY_CONTROL': { type: 'inspection', icon: '🔍', label: 'Kontrola' },
+                'MANUAL_ASSEMBLY': { type: 'assembly', icon: '🔧', label: 'Montáž' },
+                'EXTERNAL': { type: 'coop', icon: '🏭', label: 'Kooperace' }
+            };
+
+            const mapping = typeMap[workCenter.work_center_type] || { type: 'generic', icon: '🔧', label: 'Operace' };
+
+            // Update operation properties
+            op.type = mapping.type;
+            op.icon = mapping.icon;
+            op.name = `OP${op.seq} - ${mapping.label}`;
         },
 
         async changeMode(op, mode) {
@@ -1521,7 +1710,10 @@ function partEdit(partId, partNumber) {
                 };
 
                 const payload = {
-                    machine_id: op.machine_id,
+                    work_center_id: op.work_center_id,
+                    type: op.type,  // Auto-updated from work center type
+                    icon: op.icon,  // Auto-updated from work center type
+                    name: op.name,  // Auto-updated from work center type
                     operation_time_min: normalizeValue(op.operation_time_min, 0.0),
                     setup_time_min: normalizeValue(op.setup_time_min, 0.0),  // Empty field = 0, not 30!
                     is_coop: op.is_coop,
@@ -1553,6 +1745,11 @@ function partEdit(partId, partNumber) {
 
                     this.calculateTotalTime();
                     await this.recalculateAllBatches(); // Přepočítat ceny po změně operace
+
+                    // Clear pending changes flag (success)
+                    this.hasPendingChanges = false;
+                    this.pendingOperationSnapshot = null;
+
                     window.showToast('Operace aktualizována', 'success');
                 } else if (response.status === 409) {
                     window.showToast('Verze konfliktu - obnovte stránku', 'error');
@@ -1564,6 +1761,61 @@ function partEdit(partId, partNumber) {
             } catch (error) {
                 console.error('Error updating operation:', error);
                 window.showToast('Chyba při aktualizaci operace', 'error');
+            } finally {
+                // Always clear pending flag (even on error - user saw the error toast)
+                this.hasPendingChanges = false;
+                this.pendingOperationSnapshot = null;
+            }
+        },
+
+        flushPendingOperationSync() {
+            /**
+             * Best-effort synchronous flush for beforeunload event.
+             * Uses deprecated synchronous XHR as last resort to prevent data loss.
+             * Called only when user is leaving page with unsaved changes.
+             */
+            if (!this.pendingOperationSnapshot) return;
+
+            const op = this.pendingOperationSnapshot;
+
+            // Normalize values (same as async updateOperation)
+            const normalizeValue = (value, defaultValue) => {
+                if (value === 0) return 0;
+                if (value === null || value === undefined || isNaN(value) || value === '') {
+                    return defaultValue;
+                }
+                return value;
+            };
+
+            const payload = {
+                work_center_id: op.work_center_id,
+                type: op.type,
+                icon: op.icon,
+                name: op.name,
+                operation_time_min: normalizeValue(op.operation_time_min, 0.0),
+                setup_time_min: normalizeValue(op.setup_time_min, 0.0),
+                is_coop: op.is_coop,
+                coop_type: op.coop_type,
+                coop_price: normalizeValue(op.coop_price, 0.0),
+                coop_days: op.coop_days ?? 0,
+                version: op.version
+            };
+
+            try {
+                // Synchronous XHR (deprecated but only option for beforeunload)
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', `/api/operations/${op.id}`, false); // false = synchronous
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify(payload));
+
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    console.log('✅ Pending operation flushed before unload');
+                } else {
+                    console.warn('⚠️ Failed to flush pending operation:', xhr.status);
+                }
+            } catch (error) {
+                console.error('❌ Error flushing pending operation:', error);
+                // Fail silently - user is leaving anyway
             }
         },
 
@@ -1586,7 +1838,8 @@ function partEdit(partId, partNumber) {
                 if (response.ok) {
                     const newBatch = await response.json();
                     this.batches.push(newBatch);
-                    this.newBatchQty = 1;
+                    this.sortBatches();
+                    this.newBatchQty = null;
                     window.showToast('Kalkulace přidána', 'success');
                 } else {
                     const error = await response.json();
@@ -1615,6 +1868,7 @@ function partEdit(partId, partNumber) {
 
                 if (response.ok) {
                     this.batches = this.batches.filter(b => b.id !== batch.id);
+                    this.sortBatches();
                     window.showToast('Kalkulace smazána', 'success');
                 } else {
                     const error = await response.json();
