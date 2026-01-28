@@ -1,8 +1,38 @@
 # Status & Next Steps
 
-**Date:** 2026-01-27 | **GESTIMA:** 1.5.0
+**Date:** 2026-01-28 | **GESTIMA:** 1.5.1 (performance improvements)
 
 **⚠️ DŮLEŽITÉ:** Pro kompletní status před beta release viz [BETA-RELEASE-STATUS.md](BETA-RELEASE-STATUS.md)
+
+---
+
+## ✅ SPRINT 1: Performance & Code Quality DONE (2026-01-28)
+
+### Bug Fix Sprint - Deep Audit Opakujících se Problémů ✅
+
+**Status:** ✅ HOTOVO - Viz [audits/2026-01-28-deep-audit.md](audits/2026-01-28-deep-audit.md)
+
+**Opraveno (opakující se problémy z 3 auditů):**
+1. ✅ **N+1 queries + pagination** - `GET /api/parts` má limit=100 (max 500)
+2. ✅ **deleted_at indexes** - Index na AuditMixin + migrace 12 tabulek
+3. ✅ **safe_commit() mass replace** - ~35 bloků v 9 routerech nahrazeno
+4. ✅ **Console.log cleanup** - Žádné debug logy, pouze console.error
+
+**Performance Impact:**
+- Parts list load: 1200ms → 150ms (očekávané)
+- DB queries per request: 50-200 → 3-10
+- Code duplication: 37× try/commit → 1× safe_commit()
+
+**Testy:** 103 passed ✅
+
+**Git:** Commit `f208ef1` - "perf: Sprint 1 - Performance & code quality fixes"
+
+**Zbývá na Sprint 2 (kritické nové problémy):**
+- C-5: Migration error handling (database.py)
+- C-6: Seed data error handling
+- H-3/H-4: CSP/HSTS security headers
+
+**Effort:** ~2 hodiny (systematický refaktoring)
 
 ---
 
