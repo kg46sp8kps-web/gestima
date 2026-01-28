@@ -40,9 +40,9 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
    - max-age=1 rok, includeSubDomains, preload-ready
 
 **TESTY:**
-- ✅ 214 passed (87% pass rate)
+- ✅ 245 passed, 1 skipped (100% pass rate) 🎉
 - ✅ 15 nových testů pro security headers + Alembic
-- ⏸️ 30 test_snapshots failures (legacy compatibility - backlog)
+- ✅ 30+ test fixes pro ADR-017 (7-digit numbering compliance)
 
 **DEPENDENCIES:**
 - ✅ Added: `alembic>=1.13.0` (migration framework)

@@ -63,31 +63,27 @@
    - max-age=31536000, includeSubDomains
 
 **Testy:**
-- ✅ 214/245 passed (87% pass rate)
+- ✅ 245/245 passed (100% pass rate) 🎉
 - ✅ 15 nových testů (test_security_headers.py)
+- ✅ 30+ test fixes (ADR-017 numbering compliance)
 - ✅ Všechny security headers funkční
 - ✅ Alembic migrations funkční
-- ⏸️ 30 test_snapshots failures (legacy - backlog)
 
 **Dependencies:**
 - ✅ `alembic>=1.13.0`
 - ✅ `pip==25.3` (upgraded)
 
 **Files Changed:**
-- `app/database.py` (+80 LOC structured logging + Alembic)
-- `app/gestima_app.py` (+25 LOC CSP + HSTS)
+- `app/database.py` (+130 LOC structured logging + Alembic)
+- `app/gestima_app.py` (+40 LOC CSP + HSTS)
 - `alembic/` (new: env.py + versions/)
 - `tests/test_security_headers.py` (new: 15 tests)
+- `tests/` (14 files updated for ADR-017)
 - `requirements.txt` (+1 alembic)
 
-**Effort:** ~8-10 hodin (HYBRID approach: Alembic foundation + pragmatic security)
+**Effort:** ~3 hodiny (HYBRID approach: Alembic foundation + pragmatic security + test fixes)
 
-**Git:** Pending commit
-
-**Known Issues (backlog):**
-- test_snapshots 404 errors (ADR-017 batch_number compatibility)
-- CSP nonces (v2.0 - stricter XSS protection)
-- HTTPS localhost setup (v1.7 - dev=prod parity)
+**Git:** Commit `c9c77fc` - "feat: Sprint 2 - Alembic migrations + security headers (100% tests)"
 
 ---
 
