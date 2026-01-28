@@ -10,7 +10,7 @@ from app.models.config import SystemConfig, SystemConfigResponse, SystemConfigUp
 from app.models import User
 from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 
 router = APIRouter()
 
@@ -77,10 +77,5 @@ async def update_config(
 
     set_audit(config, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(config)
-        return config
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    config = await safe_commit(db, config, "aktualizace konfigurace")
+    return config

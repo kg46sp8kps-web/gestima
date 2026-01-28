@@ -15,7 +15,7 @@ from app.models import (
 )
 from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 from app.services.material_mapping import search_norms
 
 router = APIRouter()
@@ -295,13 +295,8 @@ async def api_update_material_norm(
 
     set_audit(norm, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(norm)
-        return MaterialNormResponse.model_validate(norm)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    norm = await safe_commit(db, norm, "aktualizace MaterialNorm")
+    return MaterialNormResponse.model_validate(norm)
 
 
 @router.delete("/api/material-norms/{norm_id}")
@@ -328,12 +323,8 @@ async def api_delete_material_norm(
     norm.deleted_at = datetime.utcnow()
     norm.deleted_by = current_user.username
 
-    try:
-        await db.commit()
-        return {"message": f"MaterialNorm '{norm.code}' smazána"}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    await safe_commit(db, action="mazání MaterialNorm")
+    return {"message": f"MaterialNorm '{norm.code}' smazána"}
 
 
 # ========== MATERIAL CATALOG (Groups + Price Categories) ==========
@@ -494,13 +485,8 @@ async def api_update_material_group(
 
     set_audit(group, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(group)
-        return MaterialGroupResponse.model_validate(group)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    group = await safe_commit(db, group, "aktualizace MaterialGroup")
+    return MaterialGroupResponse.model_validate(group)
 
 
 @router.delete("/api/material-groups/{group_id}")
@@ -527,12 +513,8 @@ async def api_delete_material_group(
     group.deleted_at = datetime.utcnow()
     group.deleted_by = current_user.username
 
-    try:
-        await db.commit()
-        return {"message": f"MaterialGroup '{group.code}' smazána"}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    await safe_commit(db, action="mazání MaterialGroup")
+    return {"message": f"MaterialGroup '{group.code}' smazána"}
 
 
 # ========== MaterialPriceCategory CRUD ==========
@@ -619,13 +601,8 @@ async def api_update_material_price_category(
 
     set_audit(category, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(category)
-        return MaterialPriceCategoryResponse.model_validate(category)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    category = await safe_commit(db, category, "aktualizace MaterialPriceCategory")
+    return MaterialPriceCategoryResponse.model_validate(category)
 
 
 @router.delete("/api/material-price-categories/{category_id}")
@@ -654,9 +631,5 @@ async def api_delete_material_price_category(
     category.deleted_at = datetime.utcnow()
     category.deleted_by = current_user.username
 
-    try:
-        await db.commit()
-        return {"message": f"MaterialPriceCategory '{category.code}' smazána"}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    await safe_commit(db, action="mazání MaterialPriceCategory")
+    return {"message": f"MaterialPriceCategory '{category.code}' smazána"}

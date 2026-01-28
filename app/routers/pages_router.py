@@ -14,7 +14,7 @@ from app.models.config import SystemConfig
 from app.models import User
 from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -226,13 +226,8 @@ async def machine_create_post(
     set_audit(machine, current_user.username)
     db.add(machine)
 
-    try:
-        await db.commit()
-        await db.refresh(machine)
-        return RedirectResponse(url="/machines", status_code=303)
-    except Exception as e:
-        await db.rollback()
-        return HTMLResponse(content=f"<h1>Chyba při vytváření stroje</h1><p>{str(e)}</p>", status_code=500)
+    await safe_commit(db, machine, "vytváření stroje")
+    return RedirectResponse(url="/machines", status_code=303)
 
 
 @router.post("/machines/{machine_id}")
@@ -311,12 +306,8 @@ async def machine_update_post(
     machine.notes = notes
     set_audit(machine, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        return RedirectResponse(url="/machines", status_code=303)
-    except Exception as e:
-        await db.rollback()
-        return HTMLResponse(content=f"<h1>Chyba při aktualizaci stroje</h1><p>{str(e)}</p>", status_code=500)
+    await safe_commit(db, machine, "aktualizace stroje")
+    return RedirectResponse(url="/machines", status_code=303)
 
 
 # ============================================================================

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import get_db
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse, PartFullResponse, StockCostResponse
@@ -28,13 +28,18 @@ router = APIRouter()
 
 @router.get("/", response_model=List[PartResponse])
 async def get_parts(
+    skip: int = Query(0, ge=0, description="Počet záznamů k přeskočení"),
+    limit: int = Query(100, ge=1, le=500, description="Max počet záznamů"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """List všech dílů s pagination (default limit=100, max=500)"""
     result = await db.execute(
         select(Part)
         .where(Part.deleted_at.is_(None))
         .order_by(Part.updated_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 
@@ -129,19 +134,9 @@ async def create_part(
     set_audit(part, current_user.username)  # Audit trail helper (db_helpers.py)
     db.add(part)
 
-    try:
-        await db.commit()
-        await db.refresh(part)
-        logger.info(f"Created part: {part.part_number}", extra={"part_id": part.id, "user": current_user.username})
-        return part
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error creating part: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní záznam nebo neplatné reference)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating part: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření dílu")
+    part = await safe_commit(db, part, "vytváření dílu")
+    logger.info(f"Created part: {part.part_number}", extra={"part_id": part.id, "user": current_user.username})
+    return part
 
 
 @router.put("/{part_number}", response_model=PartResponse)
@@ -167,19 +162,9 @@ async def update_part(
 
     set_audit(part, current_user.username, is_update=True)  # Audit trail helper
 
-    try:
-        await db.commit()
-        await db.refresh(part)
-        logger.info(f"Updated part: {part.part_number}", extra={"part_number": part_number, "user": current_user.username})
-        return part
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error updating part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní záznam nebo neplatné reference)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci dílu")
+    part = await safe_commit(db, part, "aktualizace dílu")
+    logger.info(f"Updated part: {part.part_number}", extra={"part_number": part_number, "user": current_user.username})
+    return part
 
 
 @router.post("/{part_number}/duplicate", response_model=PartResponse)
@@ -188,61 +173,44 @@ async def duplicate_part(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    """Duplikovat díl s novým part_number (přidá suffix -COPY-N)"""
+    """Duplikovat díl s novým part_number (generuje nové 7-digit číslo dle ADR-017)"""
+    from app.services.number_generator import NumberGenerator, NumberGenerationError
+
     result = await db.execute(select(Part).where(Part.part_number == part_number))
     original = result.scalar_one_or_none()
     if not original:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    base_number = original.part_number
-    max_retries = 10
+    # Generate new valid 7-digit part_number (ADR-017: 1XXXXXX format)
+    try:
+        new_part_number = await NumberGenerator.generate_part_number(db)
+    except NumberGenerationError as e:
+        logger.error(f"Failed to generate part number for duplicate: {e}")
+        raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo dílu")
 
-    # Retry loop - handles race condition via unique constraint
-    for attempt in range(max_retries):
-        # Find next available counter
-        counter = 1
-        new_part_number = f"{base_number}-COPY-{counter}"
+    # Create duplicate with new part_number
+    new_part = Part(
+        part_number=new_part_number,
+        article_number=original.article_number,
+        name=f"{original.name} (kopie)" if original.name else None,
+        material_item_id=original.material_item_id,
+        price_category_id=original.price_category_id,
+        stock_shape=original.stock_shape,
+        length=original.length,
+        notes=original.notes,
+        drawing_path=original.drawing_path,
+        stock_diameter=original.stock_diameter,
+        stock_length=original.stock_length,
+        stock_width=original.stock_width,
+        stock_height=original.stock_height,
+        stock_wall_thickness=original.stock_wall_thickness
+    )
+    set_audit(new_part, current_user.username)
+    db.add(new_part)
 
-        while True:
-            check = await db.execute(select(Part).where(Part.part_number == new_part_number))
-            if not check.scalar_one_or_none():
-                break
-            counter += 1
-            new_part_number = f"{base_number}-COPY-{counter}"
-
-        # Create duplicate
-        new_part = Part(
-            part_number=new_part_number,
-            article_number=original.article_number,
-            name=original.name,
-            material_item_id=original.material_item_id,
-            length=original.length,
-            notes=original.notes,
-            drawing_path=original.drawing_path,
-            stock_diameter=original.stock_diameter,
-            stock_length=original.stock_length,
-            stock_width=original.stock_width,
-            stock_height=original.stock_height,
-            stock_wall_thickness=original.stock_wall_thickness
-        )
-        set_audit(new_part, current_user.username)
-        db.add(new_part)
-
-        try:
-            await db.commit()
-            await db.refresh(new_part)
-            logger.info(f"Duplicated part {part_number} → {new_part.part_number}", extra={"part_number": new_part.part_number, "user": current_user.username})
-            return new_part
-        except IntegrityError:
-            await db.rollback()
-            logger.warning(f"Race condition in duplicate_part, attempt {attempt + 1}/{max_retries}")
-            if attempt == max_retries - 1:
-                raise HTTPException(status_code=409, detail="Nepodařilo se vygenerovat unikátní číslo dílu")
-            continue
-        except SQLAlchemyError as e:
-            await db.rollback()
-            logger.error(f"Error duplicating part {part_number}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Chyba databáze při duplikaci dílu")
+    new_part = await safe_commit(db, new_part, "duplikace dílu", "Nepodařilo se vytvořit duplikát dílu")
+    logger.info(f"Duplicated part {part_number} → {new_part.part_number}", extra={"part_number": new_part.part_number, "user": current_user.username})
+    return new_part
 
 
 @router.delete("/{part_number}", status_code=204)
@@ -258,18 +226,9 @@ async def delete_part(
 
     await db.delete(part)
 
-    try:
-        await db.commit()
-        logger.info(f"Deleted part: {part_number}", extra={"part_number": part_number, "user": current_user.username})
-        return {"message": "Díl smazán"}
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error deleting part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Nelze smazat díl - existují závislé záznamy (operace, dávky)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při mazání dílu")
+    await safe_commit(db, action="mazání dílu", integrity_error_msg="Nelze smazat díl - existují závislé záznamy (operace, dávky)")
+    logger.info(f"Deleted part: {part_number}", extra={"part_number": part_number, "user": current_user.username})
+    return {"message": "Díl smazán"}
 
 
 @router.get("/{part_number}/full")
@@ -406,15 +365,9 @@ async def copy_material_geometry(
 
     set_audit(part, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(part)
-        logger.info(f"Copied material geometry for part {part_number}", extra={"part_number": part_number, "user": current_user.username})
-        return {"message": "Geometrie zkopírována", "version": part.version}
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Error copying material geometry for part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+    part = await safe_commit(db, part, "kopírování geometrie")
+    logger.info(f"Copied material geometry for part {part_number}", extra={"part_number": part_number, "user": current_user.username})
+    return {"message": "Geometrie zkopírována", "version": part.version}
 
 
 # ============================================================================

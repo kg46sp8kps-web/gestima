@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 from app.dependencies import get_current_user, require_role
 from app.services.reference_loader import clear_cache
 from app.models import User, UserRole
@@ -82,20 +82,10 @@ async def create_material_group(
     set_audit(group, current_user.username)
     db.add(group)
 
-    try:
-        await db.commit()
-        await db.refresh(group)
-        clear_cache()  # Invalidate reference data cache
-        logger.info(f"Created material group: {group.code}", extra={"group_id": group.id, "user": current_user.username})
-        return group
-    except IntegrityError:
-        await db.rollback()
-        logger.error(f"Duplicate material group code: {data.code}")
-        raise HTTPException(status_code=409, detail=f"Skupina s kódem '{data.code}' již existuje")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating material group: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření skupiny materiálu")
+    group = await safe_commit(db, group, "vytváření skupiny materiálu", f"Skupina s kódem '{data.code}' již existuje")
+    clear_cache()  # Invalidate reference data cache
+    logger.info(f"Created material group: {group.code}", extra={"group_id": group.id, "user": current_user.username})
+    return group
 
 
 @router.put("/groups/{group_id}", response_model=MaterialGroupResponse)
@@ -121,19 +111,10 @@ async def update_material_group(
 
     set_audit(group, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(group)
-        clear_cache()  # Invalidate reference data cache
-        logger.info(f"Updated material group: {group.code}", extra={"group_id": group.id, "user": current_user.username})
-        return group
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní kód)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating material group: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci skupiny materiálu")
+    group = await safe_commit(db, group, "aktualizace skupiny materiálu", "Konflikt dat (duplicitní kód)")
+    clear_cache()  # Invalidate reference data cache
+    logger.info(f"Updated material group: {group.code}", extra={"group_id": group.id, "user": current_user.username})
+    return group
 
 
 # ========== MATERIAL PRICE CATEGORIES (ADR-014) ==========
@@ -182,20 +163,10 @@ async def create_price_category(
     set_audit(category, current_user.username)
     db.add(category)
 
-    try:
-        await db.commit()
-        await db.refresh(category)
-        clear_cache()
-        logger.info(f"Created price category: {category.code}", extra={"category_id": category.id, "user": current_user.username})
-        return category
-    except IntegrityError:
-        await db.rollback()
-        logger.error(f"Duplicate price category code: {data.code}")
-        raise HTTPException(status_code=409, detail=f"Cenová kategorie s kódem '{data.code}' již existuje")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating price category: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření cenové kategorie")
+    category = await safe_commit(db, category, "vytváření cenové kategorie", f"Cenová kategorie s kódem '{data.code}' již existuje")
+    clear_cache()
+    logger.info(f"Created price category: {category.code}", extra={"category_id": category.id, "user": current_user.username})
+    return category
 
 
 @router.put("/price-categories/{category_id}", response_model=MaterialPriceCategoryResponse)
@@ -221,19 +192,10 @@ async def update_price_category(
 
     set_audit(category, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(category)
-        clear_cache()
-        logger.info(f"Updated price category: {category.code}", extra={"category_id": category.id, "user": current_user.username})
-        return category
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní kód)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating price category: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci cenové kategorie")
+    category = await safe_commit(db, category, "aktualizace cenové kategorie", "Konflikt dat (duplicitní kód)")
+    clear_cache()
+    logger.info(f"Updated price category: {category.code}", extra={"category_id": category.id, "user": current_user.username})
+    return category
 
 
 # ========== MATERIAL PRICE TIERS (ADR-014) ==========
@@ -289,23 +251,13 @@ async def create_price_tier(
     set_audit(tier, current_user.username)
     db.add(tier)
 
-    try:
-        await db.commit()
-        await db.refresh(tier)
-        clear_cache()
-        logger.info(
-            f"Created price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg → {tier.price_per_kg} Kč/kg",
-            extra={"tier_id": tier.id, "category_id": tier.price_category_id, "user": current_user.username}
-        )
-        return tier
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error creating price tier: {e}")
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní tier)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating price tier: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření price tier")
+    tier = await safe_commit(db, tier, "vytváření price tier", "Konflikt dat (duplicitní tier)")
+    clear_cache()
+    logger.info(
+        f"Created price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg → {tier.price_per_kg} Kč/kg",
+        extra={"tier_id": tier.id, "category_id": tier.price_category_id, "user": current_user.username}
+    )
+    return tier
 
 
 @router.put("/price-tiers/{tier_id}", response_model=MaterialPriceTierResponse)
@@ -338,22 +290,13 @@ async def update_price_tier(
 
     set_audit(tier, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(tier)
-        clear_cache()
-        logger.info(
-            f"Updated price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg → {tier.price_per_kg} Kč/kg",
-            extra={"tier_id": tier.id, "user": current_user.username}
-        )
-        return tier
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="Konflikt dat")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating price tier: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci price tier")
+    tier = await safe_commit(db, tier, "aktualizace price tier", "Konflikt dat")
+    clear_cache()
+    logger.info(
+        f"Updated price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg → {tier.price_per_kg} Kč/kg",
+        extra={"tier_id": tier.id, "user": current_user.username}
+    )
+    return tier
 
 
 @router.delete("/price-tiers/{tier_id}", status_code=204)
@@ -372,15 +315,10 @@ async def delete_price_tier(
     tier.deleted_at = datetime.utcnow()
     tier.deleted_by = current_user.username
 
-    try:
-        await db.commit()
-        clear_cache()
-        logger.info(f"Deleted price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg", extra={"tier_id": tier.id, "user": current_user.username})
-        return {"message": f"Price tier smazán"}
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting price tier: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při mazání price tier")
+    await safe_commit(db, action="mazání price tier")
+    clear_cache()
+    logger.info(f"Deleted price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg", extra={"tier_id": tier.id, "user": current_user.username})
+    return {"message": f"Price tier smazán"}
 
 
 # ========== MATERIAL ITEMS ==========
@@ -472,19 +410,9 @@ async def create_material_item(
     set_audit(item, current_user.username)
     db.add(item)
 
-    try:
-        await db.commit()
-        await db.refresh(item)
-        logger.info(f"Created material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
-        return item
-    except IntegrityError:
-        await db.rollback()
-        logger.error(f"Duplicate material item code: {data.code}")
-        raise HTTPException(status_code=409, detail=f"Polotovar s kódem '{data.code}' již existuje")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating material item: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření polotovaru")
+    item = await safe_commit(db, item, "vytváření polotovaru", f"Polotovar s kódem '{data.code}' již existuje")
+    logger.info(f"Created material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
+    return item
 
 
 @router.put("/items/{material_number}", response_model=MaterialItemResponse)
@@ -524,18 +452,9 @@ async def update_material_item(
 
     set_audit(item, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(item)
-        logger.info(f"Updated material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
-        return item
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní kód)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating material item: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci polotovaru")
+    item = await safe_commit(db, item, "aktualizace polotovaru", "Konflikt dat (duplicitní kód)")
+    logger.info(f"Updated material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
+    return item
 
 
 @router.delete("/items/{material_number}", status_code=204)
@@ -554,14 +473,9 @@ async def delete_material_item(
     item.deleted_at = datetime.utcnow()
     item.deleted_by = current_user.username
 
-    try:
-        await db.commit()
-        logger.info(f"Deleted material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
-        return {"message": f"Polotovar '{item.code}' byl smazán"}
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting material item: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při mazání polotovaru")
+    await safe_commit(db, action="mazání polotovaru")
+    logger.info(f"Deleted material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
+    return {"message": f"Polotovar '{item.code}' byl smazán"}
 
 
 # ========== MATERIAL PARSER (Fáze 1: Smart Input) ==========

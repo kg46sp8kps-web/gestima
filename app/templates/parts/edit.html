@@ -402,97 +402,92 @@
                     </div>
                 </div>
                 <div class="ribbon-body" x-show="showBatches">
-                    <table style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
+                    <!-- Tabulka cen - kompaktní -->
+                    <table style="width: 100%; font-size: 0.7rem; border-collapse: collapse;">
                         <thead>
                             <tr style="border-bottom: 1px solid var(--border-color);">
-                                <th style="padding: 0.4rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
-                                <th style="padding: 0.4rem; text-align: left; color: var(--text-muted); font-weight: 600;">Cena/ks</th>
-                                <th style="padding: 0.4rem; text-align: right; color: var(--text-muted); font-weight: 600;">Celkem</th>
+                                <th style="padding: 0.3rem; text-align: left; color: var(--text-muted); font-weight: 600;">Dávka</th>
+                                <th style="padding: 0.3rem; text-align: left; color: var(--text-muted); font-weight: 600;">Rozpis (najeď myší)</th>
+                                <th style="padding: 0.3rem; text-align: right; color: var(--text-muted); font-weight: 600;">Cena/ks</th>
+                                <th style="padding: 0.3rem 0.5rem; text-align: right; color: var(--text-muted); font-weight: 600; border-left: 2px solid var(--border-color); background: var(--bg-secondary);">Celkem</th>
+                                <th style="padding: 0.3rem; text-align: center; color: var(--text-muted); font-weight: 600; width: 35px;"></th>
                             </tr>
                         </thead>
                         <tbody>
                             <template x-for="batch in batches" :key="batch.id">
                                 <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td style="padding: 0.4rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                                            <span x-text="batch.quantity + ' ks'"></span>
+                                    <!-- Dávka -->
+                                    <td style="padding: 0.3rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
+                                            <span style="font-weight: 600;" x-text="batch.quantity + ' ks'"></span>
                                             <span x-show="batch.is_frozen"
-                                                  style="background: var(--accent-green); color: white; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.6rem; font-weight: 600; white-space: nowrap;">
-                                                ZMRAZENO
+                                                  style="background: var(--accent-green); color: white; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.6rem; font-weight: 600; white-space: nowrap;">
+                                                FREEZE
                                             </span>
                                             <span x-show="batch.is_frozen && batch.snapshot_data?.warnings?.length > 0"
                                                   :title="'Varování:\n' + (batch.snapshot_data?.warnings || []).join('\n')"
-                                                  style="cursor: help; font-size: 0.9rem;">
-                                                ⚠️
-                                            </span>
+                                                  style="cursor: help; font-size: 0.85rem;">⚠️</span>
                                         </div>
                                     </td>
-                                    <td style="padding: 0.4rem;">
-                                        <!-- Bar chart with breakdown (FIXED WIDTH - ADR-016) -->
-                                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                                            <div style="font-weight: 600; color: var(--text-primary);"
-                                                 x-text="batch.unit_cost.toFixed(0) + ' Kč'"></div>
-                                            <div style="display: flex; width: 200px; height: 8px; border-radius: 3px; overflow: hidden; background: var(--bg-secondary);">
-                                                <div :style="`width: ${batch.material_percent}%; background: var(--accent-green);`"
-                                                     :title="'Materiál: ' + batch.material_cost.toFixed(0) + ' Kč (' + batch.material_percent + '%)'"></div>
-                                                <div :style="`width: ${batch.coop_percent}%; background: var(--accent-purple);`"
-                                                     :title="'Kooperace: ' + batch.coop_cost.toFixed(0) + ' Kč (' + batch.coop_percent + '%)'"></div>
-                                                <div :style="`width: ${batch.setup_percent}%; background: var(--accent-yellow);`"
-                                                     :title="'Seřízení: ' + batch.setup_cost.toFixed(0) + ' Kč (' + batch.setup_percent + '%)'"></div>
-                                                <div :style="`width: ${batch.machining_percent}%; background: var(--accent-blue);`"
-                                                     :title="'Výroba: ' + batch.machining_cost.toFixed(0) + ' Kč (' + batch.machining_percent + '%)'"></div>
-                                                <div :style="`width: ${batch.overhead_percent}%; background: #ED8936;`"
-                                                     :title="'Režie: ' + batch.overhead_cost.toFixed(0) + ' Kč (' + batch.overhead_percent + '%)'"></div>
-                                                <div :style="`width: ${batch.margin_percent}%; background: #E53E3E;`"
-                                                     :title="'Marže: ' + batch.margin_cost.toFixed(0) + ' Kč (' + batch.margin_percent + '%)'"></div>
+                                    <!-- Bar s detaily v tooltip -->
+                                    <td style="padding: 0.3rem;">
+                                        <div style="position: relative; height: 14px; border-radius: 3px; overflow: hidden; background: var(--bg-tertiary); cursor: help;"
+                                             :title="'Materiál: ' + batch.material_cost.toFixed(0) + ' Kč (' + batch.material_percent + '%)\n' +
+                                                     'Kooperace: ' + batch.coop_cost.toFixed(0) + ' Kč (' + batch.coop_percent + '%)\n' +
+                                                     'Seřízení: ' + batch.setup_cost.toFixed(0) + ' Kč (' + batch.setup_percent + '%)\n' +
+                                                     'Výroba: ' + batch.machining_cost.toFixed(0) + ' Kč (' + batch.machining_percent + '%)\n' +
+                                                     'Režie: ' + batch.overhead_cost.toFixed(0) + ' Kč (' + batch.overhead_percent + '%)\n' +
+                                                     'Marže: ' + batch.margin_cost.toFixed(0) + ' Kč (' + batch.margin_percent + '%)'">
+                                            <div style="display: flex; height: 100%;">
+                                                <div :style="`width: ${batch.material_percent}%; background: var(--accent-green);`"></div>
+                                                <div :style="`width: ${batch.coop_percent}%; background: var(--accent-purple);`"></div>
+                                                <div :style="`width: ${batch.setup_percent}%; background: var(--accent-yellow);`"></div>
+                                                <div :style="`width: ${batch.machining_percent}%; background: var(--accent-blue);`"></div>
+                                                <div :style="`width: ${batch.overhead_percent}%; background: #ED8936;`"></div>
+                                                <div :style="`width: ${batch.margin_percent}%; background: #E53E3E;`"></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td style="padding: 0.4rem; text-align: right; font-weight: 600; color: var(--accent-blue);"
+                                    <!-- Cena/ks -->
+                                    <td style="padding: 0.3rem; text-align: right; font-weight: 600; color: var(--text-primary);"
+                                        x-text="batch.unit_cost.toFixed(0) + ' Kč'"></td>
+                                    <!-- Celkem - oddělená -->
+                                    <td style="padding: 0.3rem 0.5rem; text-align: right; font-weight: 700; font-size: 0.8rem; color: var(--accent-blue); border-left: 2px solid var(--border-color); background: var(--bg-secondary);"
                                         x-text="batch.total_cost.toFixed(0) + ' Kč'"></td>
+                                    <!-- Akce -->
+                                    <td style="padding: 0.3rem; text-align: center;">
+                                        <button x-show="!batch.is_frozen"
+                                                @click="deleteBatch(batch)"
+                                                style="padding: 0.2rem 0.3rem; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.7rem; opacity: 0.6; transition: all 0.2s; border-radius: 3px;"
+                                                @mouseenter="$el.style.opacity = '1'; $el.style.background = 'rgba(229,62,62,0.1)'; $el.style.color = '#E53E3E'"
+                                                @mouseleave="$el.style.opacity = '0.6'; $el.style.background = 'none'; $el.style.color = 'var(--text-muted)'"
+                                                title="Smazat">🗑️</button>
+                                    </td>
                                 </tr>
                             </template>
                             <tr x-show="batches.length === 0">
-                                <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1rem; font-size: 0.75rem;">
+                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 0.8rem; font-size: 0.7rem;">
                                     Zatím žádné ceny
                                 </td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <!-- Legenda (ADR-016: +overhead +margin) -->
-                    <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; font-size: 0.65rem; color: var(--text-muted); justify-content: center; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div style="width: 12px; height: 8px; background: var(--accent-green); border-radius: 2px;"></div>
-                            <span>materiál</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div style="width: 12px; height: 8px; background: var(--accent-purple); border-radius: 2px;"></div>
-                            <span>kooperace</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div style="width: 12px; height: 8px; background: var(--accent-yellow); border-radius: 2px;"></div>
-                            <span>seřízení</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div style="width: 12px; height: 8px; background: var(--accent-blue); border-radius: 2px;"></div>
-                            <span>výroba</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div style="width: 12px; height: 8px; background: #ED8936; border-radius: 2px;"></div>
-                            <span>režie</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div style="width: 12px; height: 8px; background: #E53E3E; border-radius: 2px;"></div>
-                            <span>marže</span>
-                        </div>
+                    <!-- Legenda - kompaktní -->
+                    <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem; font-size: 0.6rem; color: var(--text-muted); justify-content: center; flex-wrap: wrap; padding: 0.4rem; background: var(--bg-secondary); border-radius: 3px;">
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-green); border-radius: 1px;"></span>mat</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-purple); border-radius: 1px;"></span>koop</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-yellow); border-radius: 1px;"></span>seř</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-blue); border-radius: 1px;"></span>výr</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: #ED8936; border-radius: 1px;"></span>rež</span>
+                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: #E53E3E; border-radius: 1px;"></span>mar</span>
                     </div>
 
                     <!-- Přidat batch -->
-                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
-                        <input type="number" x-model.number="newBatchQty" placeholder="Množství" min="1"
-                               style="width: 80px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; font-size: 0.75rem; color: var(--text-primary);">
-                        <button @click="addBatch()" class="btn-flat btn-add-op" style="font-size: 0.7rem; padding: 0.4rem 0.6rem;">
+                    <div style="margin-top: 0.5rem; display: flex; gap: 0.4rem; align-items: center;">
+                        <input type="number" x-model.number="newBatchQty" placeholder="ks" min="1"
+                               style="width: 60px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; padding: 0.3rem; font-size: 0.7rem; color: var(--text-primary); text-align: center;">
+                        <button @click="addBatch()" class="btn-flat btn-add-op" style="font-size: 0.65rem; padding: 0.3rem 0.5rem;">
                             + Přidat
                         </button>
                     </div>
@@ -508,8 +503,12 @@
                 <div class="ribbon-header" @click="showTime = !showTime">
                     <div class="ribbon-title">⏱️ Čas na kus</div>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-blue);" x-text="totalTimeWithSetup.toFixed(1) + ' min celkem'">
-                            0.0 min celkem
+                        <div style="display: flex; gap: 0.5rem; font-size: 0.8rem; font-weight: 600;">
+                            <span style="color: var(--accent-yellow);" x-text="'tj ' + totalSetupTime.toFixed(1)"></span>
+                            <span style="color: var(--text-muted);">+</span>
+                            <span style="color: var(--accent-blue);" x-text="'tp ' + totalOperationTime.toFixed(1)"></span>
+                            <span style="color: var(--text-muted);">=</span>
+                            <span style="color: var(--text-primary); font-weight: 700;" x-text="totalTimeWithSetup.toFixed(1) + ' min'"></span>
                         </div>
                         <div class="ribbon-toggle" x-text="showTime ? '▼' : '▶'">▼</div>
                     </div>
@@ -575,76 +574,78 @@
                     </div>
                 </div>
 
-                <div class="ribbon-body" x-show="showPriceDebug" style="padding: 0.75rem;">
-                    <!-- Breakdowns pro každý batch -->
-                    <template x-for="breakdown in priceBreakdowns" :key="breakdown.quantity">
-                        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 6px; border-left: 4px solid var(--accent-blue);">
-                            <!-- Header -->
-                            <div style="font-weight: 600; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span>Dávka: <span x-text="breakdown.quantity"></span> ks</span>
-                                <span style="color: var(--accent-blue); font-size: 1.1rem;" x-text="breakdown.cost_per_piece.toFixed(0) + ' Kč/ks'"></span>
-                            </div>
+                <div class="ribbon-body" x-show="showPriceDebug" style="padding: 0.5rem;">
+                    <!-- Breakdowns tabulka -->
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; font-size: 0.65rem; border-collapse: collapse;" x-show="priceBreakdowns.length > 0">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border-color); background: var(--bg-secondary);">
+                                    <th style="padding: 0.4rem; text-align: left; font-weight: 600;">Dávka</th>
+                                    <th style="padding: 0.4rem; text-align: left; font-weight: 600; min-width: 450px;">Cesta výpočtu (krok po kroku)</th>
+                                    <th style="padding: 0.4rem; text-align: right; font-weight: 600; background: var(--accent-blue); color: white;">Cena/ks</th>
+                                    <th style="padding: 0.4rem; text-align: right; font-weight: 600; background: var(--accent-green); color: white;">Celkem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="breakdown in priceBreakdowns" :key="breakdown.quantity">
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <td style="padding: 0.4rem; font-weight: 600; vertical-align: top;" x-text="breakdown.quantity + ' ks'"></td>
+                                        <td style="padding: 0.4rem; font-family: monospace; font-size: 0.6rem; line-height: 1.6; color: var(--text-secondary); vertical-align: top;">
+                                            <!-- Výpočet krok po kroku -->
+                                            <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+                                                <div>
+                                                    <strong style="color: var(--accent-blue);">1. Stroje:</strong>
+                                                    (Setup <span x-text="breakdown.machine_setup_time_min.toFixed(1)"></span>min × <span x-text="(breakdown.machine_setup_cost/breakdown.machine_setup_time_min*60).toFixed(0)"></span> Kč/h = <span x-text="(breakdown.machine_setup_cost/breakdown.quantity).toFixed(0)"></span> Kč)
+                                                    + (Operace <span x-text="breakdown.machine_operation_time_min.toFixed(1)"></span>min × <span x-text="(breakdown.machine_operation_cost/breakdown.machine_operation_time_min*60).toFixed(0)"></span> Kč/h = <span x-text="(breakdown.machine_operation_cost/breakdown.quantity).toFixed(0)"></span> Kč)
+                                                    = <strong x-text="(breakdown.machine_total/breakdown.quantity).toFixed(0)"></strong> Kč/ks
+                                                </div>
+                                                <div>
+                                                    <strong style="color: #ED8936;">2. + Režie:</strong>
+                                                    <span x-text="(breakdown.machine_total/breakdown.quantity).toFixed(0)"></span> Kč × <span x-text="breakdown.overhead_coefficient.toFixed(2)"></span>
+                                                    = <span x-text="(breakdown.work_with_overhead/breakdown.quantity).toFixed(0)"></span> Kč
+                                                    (+<span x-text="(breakdown.overhead_markup/breakdown.quantity).toFixed(0)"></span> Kč)
+                                                </div>
+                                                <div>
+                                                    <strong style="color: #E53E3E;">3. + Marže:</strong>
+                                                    <span x-text="(breakdown.work_with_overhead/breakdown.quantity).toFixed(0)"></span> Kč × <span x-text="breakdown.margin_coefficient.toFixed(2)"></span>
+                                                    = <span x-text="(breakdown.work_with_margin/breakdown.quantity).toFixed(0)"></span> Kč
+                                                    (+<span x-text="(breakdown.margin_markup/breakdown.quantity).toFixed(0)"></span> Kč)
+                                                </div>
+                                                <div x-show="breakdown.coop_cost > 0">
+                                                    <strong style="color: #9F7AEA;">4. + Kooperace:</strong>
+                                                    <span x-text="breakdown.coop_cost_raw.toFixed(0)"></span> Kč × <span x-text="breakdown.coop_coefficient.toFixed(2)"></span>
+                                                    = <span x-text="(breakdown.coop_cost/breakdown.quantity).toFixed(0)"></span> Kč/ks
+                                                </div>
+                                                <div>
+                                                    <strong style="color: #48BB78;">5. + Materiál:</strong>
+                                                    <span x-text="breakdown.material_cost_raw.toFixed(0)"></span> Kč × <span x-text="breakdown.stock_coefficient.toFixed(2)"></span>
+                                                    = <span x-text="(breakdown.material_cost/breakdown.quantity).toFixed(0)"></span> Kč/ks
+                                                </div>
+                                                <div style="margin-top: 0.25rem; padding-top: 0.25rem; border-top: 1px solid var(--border-color);">
+                                                    <strong style="color: var(--text-primary);">VÝSLEDEK:</strong>
+                                                    <span x-text="(breakdown.work_with_margin/breakdown.quantity).toFixed(0)"></span> +
+                                                    <span x-text="(breakdown.coop_cost/breakdown.quantity).toFixed(0)"></span> +
+                                                    <span x-text="(breakdown.material_cost/breakdown.quantity).toFixed(0)"></span>
+                                                    = <strong style="color: var(--accent-blue);" x-text="breakdown.cost_per_piece.toFixed(0)"></strong> Kč/ks
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style="padding: 0.4rem; text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--accent-blue); vertical-align: top;" x-text="breakdown.cost_per_piece.toFixed(0) + ' Kč'"></td>
+                                        <td style="padding: 0.4rem; text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--accent-green); vertical-align: top;" x-text="breakdown.total_cost.toFixed(0) + ' Kč'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
 
-                            <!-- Breakdown items -->
-                            <div style="font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                                <!-- STROJE -->
-                                <div>
-                                    <strong style="color: var(--text-primary);">STROJE (setup + operace):</strong>
-                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
-                                        Setup: <span x-text="breakdown.machine_setup_time_min.toFixed(1)"></span> min × sazba = <span x-text="(breakdown.machine_setup_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
-                                        Operace: <span x-text="breakdown.machine_operation_time_min.toFixed(1)"></span> min × sazba = <span x-text="(breakdown.machine_operation_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
-                                        <strong>Celkem stroje: <span x-text="(breakdown.machine_total / breakdown.quantity).toFixed(0)"></span> Kč/ks</strong>
-                                    </div>
-                                </div>
-
-                                <!-- REŽIE -->
-                                <div>
-                                    <strong style="color: var(--text-primary);">REŽIE (overhead_coefficient = <span x-text="breakdown.overhead_coefficient.toFixed(2)"></span>):</strong>
-                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
-                                        <span x-text="(breakdown.machine_total / breakdown.quantity).toFixed(0)"></span> Kč × <span x-text="breakdown.overhead_coefficient.toFixed(2)"></span> = <span x-text="(breakdown.work_with_overhead / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
-                                        <strong>Přirážka režie: +<span x-text="(breakdown.overhead_markup / breakdown.quantity).toFixed(0)"></span> Kč/ks (+<span x-text="breakdown.overhead_percent.toFixed(0)"></span>%)</strong>
-                                    </div>
-                                </div>
-
-                                <!-- MARŽE -->
-                                <div>
-                                    <strong style="color: var(--text-primary);">MARŽE (margin_coefficient = <span x-text="breakdown.margin_coefficient.toFixed(2)"></span>):</strong>
-                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
-                                        <span x-text="(breakdown.work_with_overhead / breakdown.quantity).toFixed(0)"></span> Kč × <span x-text="breakdown.margin_coefficient.toFixed(2)"></span> = <span x-text="(breakdown.work_with_margin / breakdown.quantity).toFixed(0)"></span> Kč/ks<br>
-                                        <strong>Přirážka marže: +<span x-text="(breakdown.margin_markup / breakdown.quantity).toFixed(0)"></span> Kč/ks (+<span x-text="breakdown.margin_percent.toFixed(0)"></span>%)</strong>
-                                    </div>
-                                </div>
-
-                                <!-- KOOPERACE -->
-                                <div x-show="breakdown.coop_cost > 0">
-                                    <strong style="color: var(--text-primary);">KOOPERACE (coop_coefficient = <span x-text="breakdown.coop_coefficient.toFixed(2)"></span>):</strong>
-                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
-                                        <span x-text="breakdown.coop_cost_raw.toFixed(0)"></span> Kč × <span x-text="breakdown.coop_coefficient.toFixed(2)"></span> = <strong><span x-text="(breakdown.coop_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks</strong>
-                                    </div>
-                                </div>
-
-                                <!-- MATERIÁL -->
-                                <div>
-                                    <strong style="color: var(--text-primary);">MATERIÁL (stock_coefficient = <span x-text="breakdown.stock_coefficient.toFixed(2)"></span>):</strong>
-                                    <div style="margin-left: 1rem; color: var(--text-secondary);">
-                                        <span x-text="breakdown.material_cost_raw.toFixed(0)"></span> Kč × <span x-text="breakdown.stock_coefficient.toFixed(2)"></span> = <strong><span x-text="(breakdown.material_cost / breakdown.quantity).toFixed(0)"></span> Kč/ks</strong>
-                                    </div>
-                                </div>
-
-                                <!-- CELKEM -->
-                                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid var(--border-color);">
-                                    <strong style="color: var(--accent-blue); font-size: 0.9rem;">
-                                        CELKEM: <span x-text="breakdown.cost_per_piece.toFixed(0)"></span> Kč/ks
-                                        (za <span x-text="breakdown.quantity"></span> ks = <span x-text="breakdown.total_cost.toFixed(0)"></span> Kč)
-                                    </strong>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
+                    <!-- Legenda -->
+                    <div x-show="priceBreakdowns.length > 0" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px; font-size: 0.65rem; color: var(--text-muted);">
+                        <strong>Popis:</strong> Každý řádek ukazuje kompletní cestu výpočtu od časů strojů přes koeficienty až k výsledné ceně. Hodnoty jsou zaokrouhlené na celé Kč.
+                    </div>
 
                     <!-- Empty state -->
-                    <div x-show="priceBreakdowns.length === 0" style="text-align: center; color: var(--text-muted); padding: 2rem; font-size: 0.85rem;">
-                        Klikni na "📊 Načíst breakdown" pro zobrazení detailního výpočtu cen
+                    <div x-show="priceBreakdowns.length === 0" style="text-align: center; color: var(--text-muted); padding: 1.5rem; font-size: 0.75rem;">
+                        📊 Klikni na "Načíst breakdown" pro zobrazení detailního výpočtu
                     </div>
                 </div>
             </div>
@@ -687,23 +688,30 @@
                                     </select>
                                 </div>
 
-                                <!-- tp (editovatelný inline) -->
+                                <!-- tj - seřizovací čas (editovatelný inline) -->
                                 <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
-                                    <span style="color: var(--text-muted); font-size: 0.7rem;">tp:</span>
+                                    <span style="color: var(--accent-yellow); font-size: 0.7rem; font-weight: 600;">tj:</span>
+                                    <input type="number" step="0.1" min="0" x-model.number="op.setup_time_min"
+                                           @input="debouncedUpdateOperation(op)"
+                                           style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
+                                    <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
+                                </div>
+
+                                <!-- tp - výrobní čas (editovatelný inline) -->
+                                <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
+                                    <span style="color: var(--accent-blue); font-size: 0.7rem; font-weight: 600;">tp:</span>
                                     <input type="number" step="0.1" min="0" x-model.number="op.operation_time_min"
                                            @input="debouncedUpdateOperation(op)"
                                            style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
                                     <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
                                 </div>
 
-                                <!-- tj (editovatelný inline) -->
-                                <div @click.stop style="display: flex; align-items: center; gap: 0.25rem;">
-                                    <span style="color: var(--text-muted); font-size: 0.7rem;">tj:</span>
-                                    <input type="number" step="0.1" min="0" x-model.number="op.setup_time_min"
-                                           @input="debouncedUpdateOperation(op)"
-                                           style="width: 60px; padding: 0.3rem 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-primary); font-size: 0.75rem; font-weight: 600; text-align: right;">
-                                    <span style="color: var(--text-muted); font-size: 0.7rem;">min</span>
-                                </div>
+                                <!-- Mazání operace -->
+                                <button @click.stop="deleteOperation(op)"
+                                        style="padding: 0.25rem 0.4rem; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; opacity: 0.6; transition: opacity 0.2s;"
+                                        @mouseenter="$el.style.opacity = '1'; $el.style.color = '#E53E3E'"
+                                        @mouseleave="$el.style.opacity = '0.6'; $el.style.color = 'var(--text-muted)'"
+                                        title="Smazat operaci">🗑️</button>
 
                                 <!-- Expand indicator (pro features) -->
                                 <div @click="expanded = !expanded" style="font-size: 0.7rem; color: var(--text-muted); cursor: pointer; padding: 0.25rem;" x-text="expanded ? '▼' : '▶'">▶</div>
@@ -753,14 +761,16 @@
     <!-- Modal - Detail cen všech dávek -->
     <div x-show="showPriceDetail"
          @click.self="showPriceDetail = false"
-         style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 2rem;"
+         style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;"
          x-transition>
         <div @click.stop
-             style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; max-width: 90vw; max-height: 90vh; overflow: auto; box-shadow: var(--shadow-md);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">📊 Detail cen všech dávek</h2>
+             style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; width: 90%; max-width: 680px; max-height: 85vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <h2 style="font-size: 1rem; font-weight: 700; color: var(--text-primary);">📊 Detail cen všech dávek</h2>
                 <button @click="showPriceDetail = false"
-                        style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1;"
+                        style="background: var(--bg-secondary); border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; padding: 0.25rem 0.5rem; line-height: 1; border-radius: 4px; transition: all 0.2s;"
+                        @mouseenter="$el.style.background = 'var(--bg-tertiary)'; $el.style.color = 'var(--text-primary)'"
+                        @mouseleave="$el.style.background = 'var(--bg-secondary)'; $el.style.color = 'var(--text-muted)'"
                         title="Zavřít">×</button>
             </div>
 
@@ -906,11 +916,23 @@ function partEdit(partId, partNumber) {
             return this.operations.filter(op => op.is_coop).length;
         },
 
-        get totalTimeWithSetup() {
-            // Celkový čas = seřízení + výroba (všechny operace, bez coop)
+        get totalSetupTime() {
+            // Celkový čas seřízení (tj) - všechny operace, bez coop
             return this.operations
                 .filter(op => !op.is_coop)
-                .reduce((sum, op) => sum + (op.setup_time_min || 0) + (op.operation_time_min || 0), 0);
+                .reduce((sum, op) => sum + (op.setup_time_min || 0), 0);
+        },
+
+        get totalOperationTime() {
+            // Celkový výrobní čas (tp) - všechny operace, bez coop
+            return this.operations
+                .filter(op => !op.is_coop)
+                .reduce((sum, op) => sum + (op.operation_time_min || 0), 0);
+        },
+
+        get totalTimeWithSetup() {
+            // Celkový čas = seřízení + výroba (všechny operace, bez coop)
+            return this.totalSetupTime + this.totalOperationTime;
         },
 
         get timeBreakdown() {
@@ -1397,6 +1419,31 @@ function partEdit(partId, partNumber) {
             }
         },
 
+        async deleteOperation(op) {
+            if (!confirm(`Smazat operaci ${op.seq} - ${op.name || 'bez názvu'}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/operations/${op.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    this.operations = this.operations.filter(o => o.id !== op.id);
+                    this.calculateTotalTime();
+                    await this.recalculateAllBatches();
+                    window.showToast('Operace smazána', 'success');
+                } else {
+                    const error = await response.json();
+                    window.showToast(error.detail || 'Chyba při mazání operace', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting operation:', error);
+                window.showToast('Chyba při mazání operace', 'error');
+            }
+        },
+
         async addOperation() {
             const maxSeq = this.operations.reduce((max, op) => Math.max(max, op.seq), 0);
 
@@ -1540,14 +1587,42 @@ function partEdit(partId, partNumber) {
                     const newBatch = await response.json();
                     this.batches.push(newBatch);
                     this.newBatchQty = 1;
-                    window.showToast('Batch přidán', 'success');
+                    window.showToast('Kalkulace přidána', 'success');
                 } else {
                     const error = await response.json();
-                    window.showToast(error.detail || 'Chyba při přidání batche', 'error');
+                    window.showToast(error.detail || 'Chyba při přidání kalkulace', 'error');
                 }
             } catch (error) {
                 console.error('Error adding batch:', error);
-                window.showToast('Chyba při přidání batche', 'error');
+                window.showToast('Chyba při přidání kalkulace', 'error');
+            }
+        },
+
+        async deleteBatch(batch) {
+            if (batch.is_frozen) {
+                window.showToast('Zmrazenou dávku nelze smazat', 'error');
+                return;
+            }
+
+            if (!confirm(`Smazat kalkulaci pro ${batch.quantity} ks?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/batches/${batch.batch_number}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    this.batches = this.batches.filter(b => b.id !== batch.id);
+                    window.showToast('Kalkulace smazána', 'success');
+                } else {
+                    const error = await response.json();
+                    window.showToast(error.detail || 'Chyba při mazání kalkulace', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting batch:', error);
+                window.showToast('Chyba při mazání kalkulace', 'error');
             }
         },
 

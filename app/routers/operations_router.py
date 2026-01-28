@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.database import get_db
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse, ChangeModeRequest
@@ -54,19 +54,9 @@ async def create_operation(
     set_audit(operation, current_user.username)
     db.add(operation)
 
-    try:
-        await db.commit()
-        await db.refresh(operation)
-        logger.info(f"Created operation: {operation.type}", extra={"operation_id": operation.id, "part_id": operation.part_id, "user": current_user.username})
-        return operation
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error creating operation: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (neplatná reference na díl)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating operation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření operace")
+    operation = await safe_commit(db, operation, "vytváření operace", "Konflikt dat (neplatná reference na díl)")
+    logger.info(f"Created operation: {operation.type}", extra={"operation_id": operation.id, "part_id": operation.part_id, "user": current_user.username})
+    return operation
 
 
 @router.put("/{operation_id}", response_model=OperationResponse)
@@ -92,19 +82,9 @@ async def update_operation(
 
     set_audit(operation, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(operation)
-        logger.info(f"Updated operation: {operation.type}", extra={"operation_id": operation.id, "user": current_user.username})
-        return operation
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error updating operation {operation_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (neplatné reference)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating operation {operation_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci operace")
+    operation = await safe_commit(db, operation, "aktualizace operace", "Konflikt dat (neplatné reference)")
+    logger.info(f"Updated operation: {operation.type}", extra={"operation_id": operation.id, "user": current_user.username})
+    return operation
 
 
 @router.delete("/{operation_id}", status_code=204)
@@ -121,18 +101,9 @@ async def delete_operation(
     operation_type = operation.type
     await db.delete(operation)
 
-    try:
-        await db.commit()
-        logger.info(f"Deleted operation: {operation_type}", extra={"operation_id": operation_id, "user": current_user.username})
-        return {"message": "Operace smazána"}
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error deleting operation {operation_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Nelze smazat operaci - existují závislé záznamy (features)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting operation {operation_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při mazání operace")
+    await safe_commit(db, action="mazání operace", integrity_error_msg="Nelze smazat operaci - existují závislé záznamy (features)")
+    logger.info(f"Deleted operation: {operation_type}", extra={"operation_id": operation_id, "user": current_user.username})
+    return {"message": "Operace smazána"}
 
 
 @router.post("/{operation_id}/change-mode", response_model=OperationResponse)
@@ -155,12 +126,6 @@ async def change_mode(
     operation.cutting_mode = data.cutting_mode.value
     set_audit(operation, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(operation)
-        logger.info(f"Changed cutting mode to {data.cutting_mode.value}", extra={"operation_id": operation_id, "user": current_user.username})
-        return operation
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error changing mode for operation {operation_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při změně režimu")
+    operation = await safe_commit(db, operation, "změna režimu")
+    logger.info(f"Changed cutting mode to {data.cutting_mode.value}", extra={"operation_id": operation_id, "user": current_user.username})
+    return operation

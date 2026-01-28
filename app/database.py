@@ -19,8 +19,8 @@ class AuditMixin:
     created_by = Column(String(100), nullable=True)
     updated_by = Column(String(100), nullable=True)
     
-    # Soft delete (ADR-001)
-    deleted_at = Column(DateTime, nullable=True)
+    # Soft delete (ADR-001) - index=True for query performance (C-3 audit fix)
+    deleted_at = Column(DateTime, nullable=True, index=True)
     deleted_by = Column(String(100), nullable=True)
     
     # Optimistic locking
@@ -73,6 +73,9 @@ async def init_db():
 
         # Migration: Add 7-digit random number fields (ADR-017)
         await _migrate_entity_numbers(conn)
+
+        # Migration: Add indexes on deleted_at columns (C-3 audit fix)
+        await _migrate_deleted_at_indexes(conn)
 
     # Seed data (order matters: price_categories → materials → material_norms)
     async with async_session() as session:
@@ -315,6 +318,47 @@ async def _migrate_entity_numbers(conn):
                     await conn.execute(
                         text(f"UPDATE batches SET batch_number = '{number}' WHERE id = {batch_id}")
                     )
+
+
+async def _migrate_deleted_at_indexes(conn):
+    """
+    Add indexes on deleted_at columns for performance (C-3 audit fix).
+    All list queries filter by deleted_at.is_(None), index makes these O(log n).
+    """
+    # Tables with AuditMixin (soft delete support)
+    tables_with_deleted_at = [
+        'parts',
+        'batches',
+        'operations',
+        'features',
+        'users',
+        'machines',
+        'system_config',
+        'material_groups',
+        'material_price_categories',
+        'material_price_tiers',
+        'material_items',
+        'material_norms',
+    ]
+
+    for table in tables_with_deleted_at:
+        # Check if table exists
+        result = await conn.execute(
+            text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+        )
+        if not result.fetchone():
+            continue
+
+        # Check if index exists
+        index_name = f'ix_{table}_deleted_at'
+        result = await conn.execute(
+            text(f"SELECT name FROM sqlite_master WHERE type='index' AND name='{index_name}'")
+        )
+        if result.fetchone():
+            continue  # Index already exists
+
+        # Create index
+        await conn.execute(text(f"CREATE INDEX {index_name} ON {table}(deleted_at)"))
 
 
 async def get_db():

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.database import get_db
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.machine import MachineDB, MachineCreate, MachineUpdate, MachineResponse
@@ -114,24 +114,14 @@ async def create_machine(
     set_audit(machine, current_user.username)
     db.add(machine)
 
-    try:
-        await db.commit()
-        await db.refresh(machine)
+    machine = await safe_commit(db, machine, "vytváření stroje", "Konflikt dat (duplicitní záznam)")
 
-        # Clear cache after successful create
-        from app.services.reference_loader import clear_cache
-        clear_cache()
+    # Clear cache after successful create
+    from app.services.reference_loader import clear_cache
+    clear_cache()
 
-        logger.info(f"Created machine: {machine.code}", extra={"machine_id": machine.id, "user": current_user.username})
-        return MachineResponse.from_orm(machine)
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error creating machine: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní záznam)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating machine: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření stroje")
+    logger.info(f"Created machine: {machine.code}", extra={"machine_id": machine.id, "user": current_user.username})
+    return MachineResponse.from_orm(machine)
 
 
 @router.put("/{machine_id}", response_model=MachineResponse)
@@ -161,24 +151,14 @@ async def update_machine(
 
     set_audit(machine, current_user.username, is_update=True)
 
-    try:
-        await db.commit()
-        await db.refresh(machine)
+    machine = await safe_commit(db, machine, "aktualizace stroje", "Konflikt dat (duplicitní záznam)")
 
-        # Clear cache after successful update
-        from app.services.reference_loader import clear_cache
-        clear_cache()
+    # Clear cache after successful update
+    from app.services.reference_loader import clear_cache
+    clear_cache()
 
-        logger.info(f"Updated machine: {machine.code}", extra={"machine_id": machine.id, "user": current_user.username})
-        return MachineResponse.from_orm(machine)
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error updating machine {machine_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (duplicitní záznam)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating machine {machine_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při aktualizaci stroje")
+    logger.info(f"Updated machine: {machine.code}", extra={"machine_id": machine.id, "user": current_user.username})
+    return MachineResponse.from_orm(machine)
 
 
 @router.delete("/{machine_id}", status_code=204)
@@ -196,23 +176,11 @@ async def delete_machine(
     machine_code = machine.code
     await db.delete(machine)
 
-    try:
-        await db.commit()
+    await safe_commit(db, action="mazání stroje", integrity_error_msg="Nelze smazat stroj - existují závislé záznamy (operace používají tento stroj)")
 
-        # Clear cache after successful delete
-        from app.services.reference_loader import clear_cache
-        clear_cache()
+    # Clear cache after successful delete
+    from app.services.reference_loader import clear_cache
+    clear_cache()
 
-        logger.info(f"Deleted machine: {machine_code}", extra={"machine_id": machine_id, "user": current_user.username})
-        return {"message": "Stroj smazán"}
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error deleting machine {machine_id}: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=409,
-            detail="Nelze smazat stroj - existují závislé záznamy (operace používají tento stroj)"
-        )
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting machine {machine_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při mazání stroje")
+    logger.info(f"Deleted machine: {machine_code}", extra={"machine_id": machine_id, "user": current_user.username})
+    return {"message": "Stroj smazán"}

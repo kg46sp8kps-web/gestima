@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.database import get_db
-from app.db_helpers import set_audit
+from app.db_helpers import set_audit, safe_commit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.batch import Batch, BatchCreate, BatchResponse
@@ -125,26 +125,16 @@ async def delete_batch(
     if batch.is_frozen:
         batch.deleted_at = datetime.utcnow()
         batch.deleted_by = current_user.username
-        try:
-            await db.commit()
-            logger.info(f"Soft deleted frozen batch: quantity={batch.quantity}", extra={"batch_number": batch_number, "user": current_user.username})
-            return {"message": "Zmrazená dávka smazána (soft delete)"}
-        except SQLAlchemyError as e:
-            await db.rollback()
-            logger.error(f"Database error soft deleting batch {batch_number}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Chyba databáze při mazání dávky")
+        await safe_commit(db, action="soft delete dávky")
+        logger.info(f"Soft deleted frozen batch: quantity={batch.quantity}", extra={"batch_number": batch_number, "user": current_user.username})
+        return {"message": "Zmrazená dávka smazána (soft delete)"}
 
     quantity = batch.quantity
     await db.delete(batch)
 
-    try:
-        await db.commit()
-        logger.info(f"Deleted batch: quantity={quantity}", extra={"batch_number": batch_number, "user": current_user.username})
-        return {"message": "Dávka smazána"}
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting batch {batch_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při mazání dávky")
+    await safe_commit(db, action="mazání dávky")
+    logger.info(f"Deleted batch: quantity={quantity}", extra={"batch_number": batch_number, "user": current_user.username})
+    return {"message": "Dávka smazána"}
 
 
 @router.post("/{batch_number}/freeze", response_model=BatchResponse)
@@ -247,18 +237,12 @@ async def clone_batch(
     set_audit(new_batch, current_user.username)
     db.add(new_batch)
 
-    try:
-        await db.commit()
-        await db.refresh(new_batch)
-        logger.info(
-            f"Cloned batch {batch_number} -> {new_batch.batch_number}: quantity={new_batch.quantity}",
-            extra={"original_number": batch_number, "new_number": new_batch.batch_number, "user": current_user.username}
-        )
-        return new_batch
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error cloning batch {batch_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při klonování dávky")
+    new_batch = await safe_commit(db, new_batch, "klonování dávky")
+    logger.info(
+        f"Cloned batch {batch_number} -> {new_batch.batch_number}: quantity={new_batch.quantity}",
+        extra={"original_number": batch_number, "new_number": new_batch.batch_number, "user": current_user.username}
+    )
+    return new_batch
 
 
 @router.post("/{batch_number}/recalculate", response_model=BatchResponse)
