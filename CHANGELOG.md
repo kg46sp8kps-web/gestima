@@ -7,6 +7,122 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.0.0] - PLANNED - Vue SPA Migration
+
+### Major Frontend Rewrite
+
+**Decision: Migrate from Alpine.js to Vue 3 SPA**
+
+**Důvody:**
+- Eliminace 6 anti-patternů (L-013 až L-021)
+- Profesionální SPA místo 800 LOC DIY router
+- TypeScript type safety
+- <50ms transitions (vs 80ms Alpine)
+- Žádné problikávání (full SPA)
+- Long-term připravenost na v4.0 MES
+
+**Architecture:**
+- Vue 3 Composition API
+- TypeScript strict mode
+- Pinia state management
+- Vue Router
+- Vite build tool
+
+**Modulární workspace:**
+- `/workspace/parts` - Díly
+- `/workspace/pricing` - Ceny
+- `/workspace/operations` - Operace
+- `/workspace/materials` - Materiál
+- `/workspace/batch-sets` - Cenové sady
+
+**Migration Timeline:** 6-8 týdnů
+
+**Documentation:**
+- [docs/VUE-MIGRATION.md](docs/VUE-MIGRATION.md) - Kompletní guide
+- [docs/ADR/024-vue-spa-migration.md](docs/ADR/024-vue-spa-migration.md) - Decision record
+
+**Backend Impact:** ZERO (FastAPI zůstává beze změny)
+
+---
+
+## [1.6.1] - 2026-01-29
+
+### Performance & Code Quality - Sprint 1 (Audit Fixes)
+
+**Fixed - N+1 Query Problems (zmíněno 3× v auditech):**
+- Added `selectinload()` eager loading to parts/batches/operations list endpoints
+- Added pagination (skip/limit) to batches and operations endpoints
+- Expected impact: Parts list load 1200ms → 150ms, queries 50-200 → 3-10
+
+**Fixed - Database Performance:**
+- Created Alembic migration adding 15 deleted_at indexes for all soft-delete models
+- Eliminates full table scans on list queries with `deleted_at.is_(None)`
+
+**Improved - Code Quality:**
+- Replaced 18× duplicated try/commit blocks with `safe_commit()` helper
+- Removed 12× console.log debug statements from production code
+
+**Changed Files:**
+- `app/routers/parts_router.py`, `batches_router.py`, `operations_router.py` - N+1 fixes
+- `app/routers/pricing_router.py` (9×), `batches_router.py` (4×), `admin_router.py` (3×), `work_centers_router.py` (2×) - safe_commit
+- `app/templates/parts/edit.html` (8×), `workspace.html`, `workspace_new.html` - console.log cleanup
+
+**Tests:** 286/304 passed ✅ (failures pre-existing)
+
+**Documentation:** [docs/sprints/sprint1-audit-fixes.md](docs/sprints/sprint1-audit-fixes.md)
+
+---
+
+## [Unreleased] - Workspace Management System
+
+### Added
+
+**Workspace Panel Constraints + Unlimited Scroll**
+
+- Panely nemůžou zmizet mimo obrazovku:
+  - Vlevo: x ≥ 0 (stěna)
+  - Vpravo: x ≤ containerWidth - 50px (50px vždy viditelné)
+  - Nahoru: y ≥ 0 (stěna)
+  - Dolů: **UNLIMITED** - container se dynamicky rozšiřuje
+- Container CSS změněn na `min-height` + `overflow-y: auto` (scrollable)
+- Nová metoda `_updateContainerHeight()` přepočítává výšku při drag/resize
+
+**Multi-Workspace Management**
+
+- **Max 6 workspaces** - uživatel může mít až 6 různých workspace layoutů
+- **Max 4 oblíbené** - oblíbené workspaces mají quick access buttons v toolbaru
+- **Workflow:**
+  1. Dropdown selector pro výběr workspace
+  2. ⭐/☆ Toggle favorite přímo v dropdown menu
+  3. Quick access buttons `⭐ Pricing` vedle dropdownu
+  4. Auto-save při každé změně layoutu
+  5. Manual save button 💾 pro jistotu
+
+**Workspace Operations:**
+- `➕ Nový workspace` - vytvoří prázdný workspace
+- `💾 Uložit jako...` - vytvoří kopii současného layoutu
+- `🗑️ Smazat tento` - smaže workspace (default nelze smazat)
+- `⭐ Toggle oblíbený` - přidá/odebere z quick access
+
+**Storage:**
+```javascript
+// localStorage: 'gestima_workspaces_v2'
+{
+    workspaces: {
+        "default": { name: "Default", panels: [...], favorite: true, order: 0 },
+        "workspace-123": { name: "My Setup", panels: [...], favorite: false, order: 1 }
+    },
+    activeWorkspaceId: "default"
+}
+```
+
+**Soubory:**
+- `app/static/js/core/workspace-controller.js` - kompletní refactoring (workspace management)
+- `app/templates/workspace.html` - toolbar UI + modals
+- `app/templates/workspace_new.html` - stejné změny
+
+---
+
 ## [1.6.0] - BatchSet Freeze Workflow (2026-01-28)
 
 ### Added
