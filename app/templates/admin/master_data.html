@@ -406,6 +406,31 @@
                 </label>
             </div>
 
+            <!-- Dirty Rate Warning -->
+            <template x-if="workCentersNeedingRecalc.length > 0">
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; border-left: 4px solid #ff6b6b;">
+                    <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                        <div style="font-size: 1.5rem;">⚠️</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; color: #333;">
+                                <span x-text="workCentersNeedingRecalc.length"></span> pracoviště <span x-show="workCentersNeedingRecalc.length === 1">má</span><span x-show="workCentersNeedingRecalc.length > 1">mají</span> změněné sazby
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.75rem;">
+                                Hodinové sazby byly změněny, ale batches nebyly přepočítány. Ceny mohou být neaktuální!
+                            </div>
+                            <div style="font-size: 0.8rem; color: #666;">
+                                Pracoviště:
+                                <template x-for="(wc, index) in workCentersNeedingRecalc" :key="wc.id">
+                                    <span>
+                                        <strong x-text="wc.name"></strong><span x-show="index < workCentersNeedingRecalc.length - 1">, </span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
             <!-- Table -->
             <table class="admin-table">
                 <thead>
@@ -447,6 +472,15 @@
                                 <span x-show="!wc.is_active" style="color: var(--text-muted); font-size: 0.8rem;">❌ Neaktivní</span>
                             </td>
                             <td style="text-align: right;">
+                                <button class="btn-flat"
+                                        :style="wc.needs_batch_recalculation
+                                            ? 'padding: 0.25rem 0.5rem; font-size: 0.75rem; background: #ff6b6b; color: white; font-weight: 600;'
+                                            : 'padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--text-muted);'"
+                                        :title="wc.needs_batch_recalculation ? 'Přepočítat batches (sazby změněny!)' : 'Batches aktuální'"
+                                        :disabled="!wc.needs_batch_recalculation"
+                                        @click="recalculateWorkCenterBatches(wc)">
+                                    🔄 Přepočítat
+                                </button>
                                 <button class="btn-flat"
                                         style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
                                         @click="editWorkCenter(wc)">
@@ -858,6 +892,11 @@ function adminPanel(allNorms, allGroups, allCategories, allWorkCenters, workCent
             return filtered;
         },
 
+        // Computed: workCentersNeedingRecalc (dirty rate warning)
+        get workCentersNeedingRecalc() {
+            return this.allWorkCenters.filter(wc => wc.needs_batch_recalculation === true);
+        },
+
         // Work Center type helpers
         getWorkCenterTypeIcon(type) {
             const icons = {
@@ -1020,6 +1059,52 @@ function adminPanel(allNorms, allGroups, allCategories, allWorkCenters, workCent
             } catch (error) {
                 console.error('Error deleting work center:', error);
                 window.showToast && window.showToast(error.message, 'error');
+            }
+        },
+
+        async recalculateWorkCenterBatches(wc) {
+            if (!wc.needs_batch_recalculation) {
+                return;
+            }
+
+            const confirmMsg = `Přepočítat všechny batches používající "${wc.name}"?\n\nBude přepočítána cena všech nezamčených batches s tímto pracovištěm.`;
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            try {
+                window.showToast && window.showToast(`Přepočítávám batches pro ${wc.name}...`, 'info');
+
+                const response = await fetch(`/api/work-centers/${wc.work_center_number}/recalculate-batches`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Chyba při přepočtu');
+                }
+
+                const result = await response.json();
+
+                // Refresh work center data to update timestamps
+                const wcResponse = await fetch(`/api/work-centers/${wc.work_center_number}`);
+                if (wcResponse.ok) {
+                    const updatedWc = await wcResponse.json();
+                    const index = this.allWorkCenters.findIndex(w => w.id === wc.id);
+                    if (index !== -1) {
+                        this.allWorkCenters[index] = updatedWc;
+                    }
+                }
+
+                const msg = result.failed_count > 0
+                    ? `Přepočítáno ${result.recalculated_count} batches, ${result.failed_count} selhalo`
+                    : `✅ Přepočítáno ${result.recalculated_count} batches`;
+
+                window.showToast && window.showToast(msg, result.failed_count > 0 ? 'warning' : 'success');
+            } catch (error) {
+                console.error('Error recalculating batches:', error);
+                window.showToast && window.showToast(`Chyba: ${error.message}`, 'error');
             }
         },
 

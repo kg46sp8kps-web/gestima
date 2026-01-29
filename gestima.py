@@ -121,23 +121,36 @@ class Gestima:
         print("👤 GESTIMA - Create Admin User")
         print("")
 
-        # Input username
-        username = input("Username: ").strip()
-        if not username or len(username) < 3:
-            print("❌ Username must be at least 3 characters")
-            sys.exit(1)
+        # Check for non-interactive mode (default credentials)
+        if not sys.stdin.isatty():
+            # Non-interactive mode - use defaults
+            username = "admin"
+            password = "asdfghjkl"
+            print("📝 Non-interactive mode - using default credentials")
+            print(f"   Username: {username}")
+            print(f"   Password: {password}")
+            print("")
+        else:
+            # Interactive mode - ask user
+            username = input("Username (default: admin): ").strip() or "admin"
+            if len(username) < 3:
+                print("❌ Username must be at least 3 characters")
+                sys.exit(1)
 
-        # Input password (hidden)
-        password = getpass.getpass("Password (min 8 chars): ")
-        if len(password) < 8:
-            print("❌ Password must be at least 8 characters")
-            sys.exit(1)
+            # Input password (hidden)
+            password = getpass.getpass("Password (min 8 chars, default: asdfghjkl): ")
+            if not password:
+                password = "asdfghjkl"
+            elif len(password) < 8:
+                print("❌ Password must be at least 8 characters")
+                sys.exit(1)
 
-        # Confirm password
-        password_confirm = getpass.getpass("Confirm password: ")
-        if password != password_confirm:
-            print("❌ Passwords do not match")
-            sys.exit(1)
+            # Confirm password if custom
+            if password != "asdfghjkl":
+                password_confirm = getpass.getpass("Confirm password: ")
+                if password != password_confirm:
+                    print("❌ Passwords do not match")
+                    sys.exit(1)
 
         print("")
         print("Creating admin user...")
@@ -268,10 +281,19 @@ print("✅ Database schema initialized")
         if result.returncode != 0:
             sys.exit(1)
 
+        # Seed material items (concrete stock items)
+        print("✓ Seeding material items (stock inventory)...")
+        result = subprocess.run([
+            str(VENV_PYTHON), "scripts/seed_material_items.py"
+        ])
+
+        if result.returncode != 0:
+            sys.exit(1)
+
         # Seed demo parts
         print("✓ Seeding demo parts...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_complete_part.py"
+            str(VENV_PYTHON), "scripts/seed_demo_parts.py"
         ])
 
         if result.returncode != 0:

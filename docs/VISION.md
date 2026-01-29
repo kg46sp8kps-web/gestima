@@ -377,10 +377,105 @@ Technology Sheet = MaterialItem × Operation → recommended params
 
 ---
 
+## Mobile Strategy (Shop Floor Terminals)
+
+**Decision:** 2026-01-28
+**Target:** v4.0 (MES module)
+
+### Recommended Stack: Capacitor + Alpine.js
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       GESTIMA API                            │
+│                    (FastAPI backend)                         │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+           ▼               ▼               ▼
+    ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+    │ Web App     │ │ Mobile App  │ │ Terminal    │
+    │ (Alpine.js) │ │ (Capacitor) │ │ (Kiosk)     │
+    │ Admin/Power │ │ Shop Floor  │ │ Touch UI    │
+    └─────────────┘ └─────────────┘ └─────────────┘
+```
+
+**Why Capacitor:**
+- ✅ Reuse Alpine.js code from web app
+- ✅ Native features (camera, barcode, offline SQLite)
+- ✅ Single codebase for iOS + Android
+- ✅ No React/Vue migration needed
+
+**Mobile Use Cases:**
+- 🏭 Work reporting (start/stop/pause operations)
+- 📋 View work orders and drawings
+- 📷 Photo documentation
+- 🔍 QR/Barcode scanning
+- ⚠️ Problem reporting
+
+**Offline Sync Pattern:**
+```javascript
+// Pending changes queue
+const syncManager = {
+    async reportWork(data) {
+        await localDB.insert('work_reports', data);
+        if (navigator.onLine) await this.sync();
+    },
+    async sync() { /* Push to API */ }
+};
+window.addEventListener('online', () => syncManager.sync());
+```
+
+**Timeline:**
+- v3.x: PWA experiment (quick win, limited offline)
+- v4.0: Full Capacitor app for MES terminals
+
+---
+
+## Workspace UI Architecture (ADR-023)
+
+**Decision:** 2026-01-28
+**Target:** v3.0 (full implementation)
+**Effort:** 9-12 sprints total
+
+### Migration Phases
+
+| Phase | Effort | What |
+|-------|--------|------|
+| Phase 1: Foundation | 3-4 sprints | Core infrastructure (LinkManager, Registry) |
+| Phase 2: Extraction | 2-3 sprints | Modules in separate files |
+| Phase 3: Workspace UI | 4-5 sprints | Drag/resize panels, layouts |
+
+### Large Dataset Handling (Batch Loading)
+
+For 1000+ items, use "Instant First, Complete Later" pattern:
+
+```javascript
+async loadParts() {
+    // 1. INSTANT: First 50 for viewport
+    const first = await fetch('/api/parts?limit=50');
+    this.parts = first.data;
+
+    // 2. BACKGROUND: Rest in batches (user sees no spinner)
+    if (first.total > 50) {
+        this.loadRemainingInBackground();
+    }
+}
+
+async loadRemainingInBackground() {
+    // requestIdleCallback = load when browser is idle
+    // User never sees loading state
+}
+```
+
+**Key principle:** Data loads in background, UI is always responsive.
+
+---
+
 ## Open Questions (To Be Decided)
 
 1. **Email service:** SendGrid/AWS SES vs self-hosted SMTP? → Decide in v2.0
-2. **Mobile app:** Native (React Native) vs PWA? → Decide in v4.0 based on tablet pilot
+2. ~~**Mobile app:** Native (React Native) vs PWA?~~ → **DECIDED: Capacitor** (2026-01-28)
 3. **Barcode scanning:** QR only or support Code128/DataMatrix? → Decide in v4.0
 4. **Multi-language:** Czech only or add English/German? → Decide in v5.0 based on demand
 5. **Backups:** Current daily CLI backup vs continuous replication? → Decide at PostgreSQL migration

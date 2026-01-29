@@ -107,3 +107,24 @@ class FeatureType(str, Enum):
     WASH = "wash"
     INSPECT = "inspect"
     PACK = "pack"
+
+
+class WorkCenterType(str, Enum):
+    """Typy pracovišť (ADR-021)"""
+
+    # CNC Soustruhy
+    CNC_LATHE = "CNC_LATHE"
+
+    # CNC Frézky
+    CNC_MILL_3AX = "CNC_MILL_3AX"    # 3-axis
+    CNC_MILL_4AX = "CNC_MILL_4AX"    # 4-axis (horizontal)
+    CNC_MILL_5AX = "CNC_MILL_5AX"    # 5-axis
+
+    # Ostatní stroje
+    SAW = "SAW"                      # Pily
+    DRILL = "DRILL"                  # Vrtačky
+
+    # Virtuální pracoviště
+    QUALITY_CONTROL = "QUALITY_CONTROL"   # Kontrola
+    MANUAL_ASSEMBLY = "MANUAL_ASSEMBLY"   # Mechanik/montáž
+    EXTERNAL = "EXTERNAL"                 # Kooperace

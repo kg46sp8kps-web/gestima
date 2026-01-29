@@ -6,8 +6,8 @@
     <title>{% block title %}GESTIMA{% endblock %}</title>
     <link rel="icon" type="image/png" href="/static/img/logo.png">
 
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    <script src="/static/js/vendor/htmx.min.js"></script>
+    <script defer src="/static/js/vendor/alpine.min.js"></script>
 
     <link rel="stylesheet" href="/static/css/gestima.css">
 
@@ -51,9 +51,15 @@
                 <a href="/parts" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
                     Díly
                 </a>
+                <a href="/pricing/batch-sets" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
+                    Sady cen
+                </a>
+                <a href="/workspace" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
+                    Workspace
+                </a>
                 {% if user and user.role.value == 'admin' %}
-                <a href="/admin/material-norms" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
-                    ⚙️ Admin
+                <a href="/admin/master-data" style="text-decoration: none; color: var(--text-secondary); padding: 0.4rem 0.7rem; border-radius: 5px; font-size: 0.8rem; transition: all 0.1s;">
+                    ⚙️ Master Data
                 </a>
                 {% endif %}
             </div>
@@ -91,7 +97,7 @@
                 <span style="font-size: 0.75rem; font-weight: 700;">
                     <span style="color: var(--accent-red);">GESTI</span><span style="color: var(--text-secondary);">MA</span>
                 </span>
-                <span>v1.1.0</span>
+                <span>v1.6.0</span>
                 <span>•</span>
                 <span style="font-style: italic; opacity: 0.8;">Be lazy. It's way better than talking to people.</span>
                 <span>•</span>
@@ -110,6 +116,19 @@
     <div id="toast-container" style="position: fixed; bottom: 35px; right: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end;"></div>
     
     <script src="/static/js/gestima.js"></script>
+
+    <!-- Core module infrastructure (ADR-023) -->
+    <script src="/static/js/core/module-interface.js"></script>
+    <script src="/static/js/core/module-registry.js"></script>
+    <script src="/static/js/core/link-manager.js"></script>
+    <script src="/static/js/core/workspace-controller.js"></script>
+
+    <!-- Modules -->
+    <script src="/static/js/modules/batch-sets.js"></script>
+    <script src="/static/js/modules/parts-list.js"></script>
+    <script src="/static/js/modules/part-material.js"></script>
+    <script src="/static/js/modules/part-operations.js"></script>
+    <script src="/static/js/modules/part-pricing.js"></script>
 
     <script>
         function navbarState() {

@@ -10,6 +10,12 @@ Místo mazání dokumentů je přesouváme do archivu, aby byla zachována histo
 
 | Dokument | Důvod archivace |
 |----------|-----------------|
+| **NEXT-STEPS-2026-01-28.md** | Nahrazeno docs/STATUS.md + docs/BACKLOG.md (nová struktura) |
+| **BETA-RELEASE-STATUS.md** | Zastaralý - Issues #1-#4 vyřešeny, nahrazeno STATUS.md |
+| **GESTIMA_1.0_SPEC.md** | Legacy specifikace z Kalkulator3000 v9.2 (997 řádků) |
+| **UI_ROADMAP.md** | Zastaralá UI roadmapa - většina věcí implementována |
+| **P2-PHASE-B-SUMMARY.md** | Dokončená implementace Minimal Snapshot (ADR-012) |
+| **2026-01-22-initial-audit.md** | Původní audit - State Machine, Price Decay návrhy |
 | **MATERIAL-NORMS-GUIDE.md** | Konsolidováno do docs/MATERIAL-GUIDE.md |
 | **MATERIAL-CATALOG-IMPORT.md** | Konsolidováno do docs/MATERIAL-GUIDE.md |
 | **MATERIAL-CATALOG-QUICKREF.md** | Konsolidováno do docs/MATERIAL-GUIDE.md |

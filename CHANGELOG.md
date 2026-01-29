@@ -7,7 +7,246 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.6.0] - BatchSet Freeze Workflow (2026-01-28)
+
+### Added
+
+**ADR-022: Freeze Loose Batches as Set Workflow**
+
+**Koncept:**
+- BatchSet = organizační vrstva nad Batches (NE separátní pricing modul)
+- Workflow: Vytvořit loose batches (1ks, 10ks, ...) → Zmrazit jako sadu → Začít novou sadu
+- Frozen batches = read-only, zmrazená cena (snapshot)
+
+**Implementace:**
+
+1. **Backend Endpoint** (`app/routers/pricing_router.py`)
+   - `POST /api/pricing/parts/{part_id}/freeze-batches-as-set`
+   - Najde všechny loose batches (batch_set_id IS NULL)
+   - Vytvoří novou BatchSet (35XXXXXX číslo)
+   - Přiřadí všechny loose batches do sady
+   - Zmrazí sadu + všechny batches atomicky
+   - Vrátí BatchSetWithBatchesResponse
+
+2. **Frontend UI** (`app/templates/parts/edit.html`)
+   - ✅ Dropdown pro výběr batch setu (nebo "Volné šarže")
+   - ✅ Button "📦 Zmrazit (X)" - zobrazí se jen pro loose batches
+   - ✅ Frozen batches = gray background + 🔒 FRZ badge
+   - ✅ "Přidat batch" jen pro loose batches (x-show gating)
+   - ✅ Info message při prohlížení frozen setu
+
+3. **State Management**
+   - `selectedBatchSetId: null` (null = loose batches, number = specific set)
+   - `looseBatchCount: 0` (count pro freeze button)
+   - `loadBatches()` filtruje podle selectedBatchSetId
+   - `freezeLooseBatches()` + confirmation dialog
+
+**Soubory:**
+- `app/routers/pricing_router.py:637-710` - Freeze endpoint
+- `app/templates/parts/edit.html:445-460` - Dropdown + freeze button
+- `app/templates/parts/edit.html:1106-1108` - State variables
+- `app/templates/parts/edit.html:1604-1626` - loadBatches() filtering
+- `app/templates/parts/edit.html:1676-1704` - freezeLooseBatches() method
+
+**Testy:**
+- ✅ Všech 15 BatchSet testů prošlo
+- ✅ Freeze endpoint atomicity (transaction)
+- ✅ Cascade delete behavior
+- ✅ Nullable part_id (orphaned sets)
+
+**UX Workflow:**
+```
+1. Create loose batches (1ks, 10ks, 100ks)
+2. Click "📦 Zmrazit (3)" → Frozen set created
+3. Dropdown switches to new frozen set (auto-select)
+4. Frozen batches visible (grayed, read-only)
+5. Switch to "Volné šarže" → start creating new batches
+```
+
+**Dokumentace:**
+- ✅ CHANGELOG.md: Feature v1.6.0
+- ✅ STATUS.md: Sprint 4 (BatchSet Freeze Workflow)
+
+### Fixed
+
+**Standalone Batch-Sets Page Empty**
+
+**Problém:**
+- List page `/pricing/batch-sets` zobrazovala "Zatím žádné sady cen" i když DB obsahovala 6 batch setů
+- Detail page `/pricing/batch-sets/10` fungovala správně
+- Console error: `Alpine Expression Error: statusFilter is not defined` (+ 15 dalších properties)
+
+**Root Cause:**
+- Externální skeleton modul `/app/static/js/modules/batch-sets.js` (workspace-ready prototype)
+- Exportoval `window.batchSetsModule` s nekompatibilním API (TODO placeholders)
+- Přepsal funkční inline script v `batch_sets.html`
+- Template volal `x-data="batchSetsModule()"` ale externální modul neměl properties:
+  - `statusFilter`, `showCreateModal`, `creating`, `partSearch`, `partSearchResults`, atd.
+  - API calls byly jen `console.log` TODO messages (nefunkční)
+
+**Fix:**
+- Smazán externální skeleton modul: `rm app/static/js/modules/batch-sets.js`
+- Inline script v HTML template je nyní jediná implementace
+- List page nyní správně načítá a zobrazuje všechny batch sety z DB
+
+**Files:**
+- Deleted: `app/static/js/modules/batch-sets.js` (workspace skeleton)
+- Active: `app/templates/pricing/batch_sets.html:216-371` (inline script)
+
+**Lesson Learned:**
+- ⚠️ Pokud exportuješ modul do `window.foo`, ujisti se že ŽÁDNÝ jiný soubor neexportuje stejný název
+- Module name collision = hard-to-debug Alpine.js errors (všechny properties undefined)
+- Workspace modules musí být SYNCHRONIZOVÁNY s HTML templates (nebo je třeba odstranit)
+
+---
+
+## [1.5.2] - Debounced Updates Data Loss Prevention (2026-01-28)
+
+### Fixed
+
+**L-019: Debounce Data Loss při Rychlém Opuštění Stránky**
+
+**Problém:** Debounced updates (timeout 250-400ms) způsobovaly ztrátu dat při rychlé navigaci + 409 Conflict při rychlé editaci.
+
+**Business Risk:**
+```
+User pod tlakem → rychle upraví tp: 30→5 min → okamžitá navigace (<250ms)
+→ Timeout nestihne → stará hodnota (30) → ŠPATNÁ KALKULACE → ztracená zakázka
+```
+
+**Implementace:**
+- ✅ **L-017 Snapshot Fix:** `JSON.parse(JSON.stringify(op))` zmrazí `op.version` před debouncingem
+  - Fixuje 409 Conflict při rychlé editaci (30→3→0)
+  - Každý debounce call má vlastní snapshot s konzistentní version
+- ✅ **beforeunload Warning:** Browser native warning při pokus o opuštění s neuloženými změnami
+- ✅ **Best-effort Sync Flush:** Synchronous XHR flush při unload (deprecated ale jediná možnost)
+- ✅ **Pending Changes Tracking:** `hasPendingChanges` flag + `pendingOperationSnapshot` state
+- ✅ **Timeout Optimization:** 400ms → 250ms pro rychlejší UX feedback
+
+**Soubory:**
+- `app/templates/parts/edit.html` (lines 1050-1065: beforeunload listener)
+- `app/templates/parts/edit.html` (lines 1431-1447: debouncedUpdateOperation snapshot)
+- `app/templates/parts/edit.html` (lines 1761-1813: flushPendingOperationSync)
+
+**Chování:**
+
+| Scénář | Před | Po |
+|--------|------|-----|
+| **Rychlá editace (30→3→0)** | ❌ 409 Conflict (všechny requests = stejná version) | ✅ Snapshot = každý request vlastní version |
+| **Rychlé opuštění (<250ms)** | ❌ Data loss (timeout nestihne) | ✅ Browser warning + sync flush |
+| **Normální editace** | ✅ OK (400ms timeout) | ✅ OK (250ms = rychlejší) |
+
+**Dokumentace:**
+- ✅ CLAUDE.md: Anti-pattern L-019 (Debounce data loss prevention)
+- ✅ CLAUDE.md: L-017 reference (Alpine Proxy snapshot)
+
+**Lesson Learned:**
+> "Edge case 5%" vs "Business risk = ztracená zakázka"
+> Debounce timeout není edge case, je to kritická business logika.
+
+### Bugfix (Post-release)
+
+**1. TypeError: updateOperationFromMachine is not a function**
+- ❌ Problém: Funkce přejmenována na `updateOperationFromWorkCenter` ale call site nebyl aktualizován
+- ✅ Fix: Opraveno volání v `loadOperations()` (line 1497)
+
+**2. False-positive beforeunload warning**
+- ❌ Problém: `clearTimeout()` nezruší timeout ID → `if (this.operationUpdateTimeout)` vždy TRUE
+- ✅ Fix: Vynulovat `this.operationUpdateTimeout = null` po `clearTimeout()`
+- 📍 Místa: `debouncedUpdateOperation` (line 1438), `updateOperation` finally block (line 1770)
+
+**Chování po fix:**
+- ✅ Normální navigace (po save) = žádný warning
+- ✅ Rychlá navigace (před save) = browser warning
+- ✅ Jen prohlížení (bez editu) = žádný warning
+
+---
+
 ## [Unreleased] - Performance & Infrastructure Sprint (2026-01-28)
+
+### WorkCenter Model + UI (ADR-021) - 2026-01-28
+
+**NEW FEATURE:** Pracoviště pro TPV (Technologický Postup Výroby) a MES preparation.
+
+**Implementace:**
+- ✅ `WorkCenter` model - fyzický stroj nebo virtuální pracoviště
+- ✅ `WorkCenterType` enum - 9 typů (CNC_LATHE, CNC_MILL_3AX/4AX/5AX, SAW, DRILL, QUALITY_CONTROL, MANUAL_ASSEMBLY, EXTERNAL)
+- ✅ Sequential numbering: 80XXXXXX (80000001-80999999)
+- ✅ Hourly rate breakdown (amortization, labor, tools, overhead)
+- ✅ Computed properties: `hourly_rate_setup` (bez nástrojů), `hourly_rate_operation` (s nástroji)
+- ✅ Full CRUD API: `/api/work-centers`
+- ✅ Alembic migrations: `c5e8f2a1b3d4` (base), `d6a7b8c9e0f1` (Machine merge)
+- ✅ Seed script: 16 pracovišť (fyzické stroje + virtuální stanice)
+- ✅ Comprehensive tests
+
+**Machine Model Merge:**
+- ✅ Merged Machine capabilities into WorkCenter (has_bar_feeder, has_sub_spindle, has_milling)
+- ✅ Merged production suitability (suitable_for_series, suitable_for_single)
+- ✅ Merged setup times (setup_base_min, setup_per_tool_min)
+- ✅ Merged bar feeder/saw specs (max_bar_diameter, max_cut_diameter, bar_feed_max_length)
+- ⏳ Machine model deprecated (dependencies to be cleaned up later)
+
+**UI:**
+- ✅ `material_norms.html` → `master_data.html` (central admin page)
+- ✅ `/admin/material-norms` → `/admin/master-data` (endpoint rename)
+- ✅ WorkCenters tab with full CRUD (create, edit, delete, search, filter by type)
+
+**Pracoviště (seed data):**
+```
+CNC Soustruhy: MASTURN 32, SMARTURN 160, NLX 2000, NZX 2000
+CNC Frézky:    FV20, MCV 750, TAJMAC H40, MILLTAP 700 (+5AX variants)
+Pily:          BOMAR STG240A, BOMAR STG250
+Ostatní:       KONTROLA, VS20 (vrtačka), MECHANIK, KOOPERACE
+```
+
+**Použití:**
+```bash
+# Spustit migraci:
+alembic upgrade head
+
+# Naplnit pracoviště:
+python scripts/seed_work_centers.py
+```
+
+### 8-Digit Entity Numbering Migration (ADR-017 v2.0) - 2026-01-28
+
+**BREAKING CHANGE:** Rozšíření z 7-digit na 8-digit číslování entit.
+
+**Důvod změny:**
+- 7-digit formát (1 prefix digit) = pouze 10 kategorií (0-9)
+- VISION.md plánuje 15+ typů entit
+- 8-digit formát (2 prefix digits) = 100 kategorií (00-99)
+
+**Nový formát:**
+```
+Parts:     10XXXXXX (10000000-10999999)
+Materials: 20XXXXXX (20000000-20999999)
+Batches:   30XXXXXX (30000000-30999999)
+```
+
+**Změny:**
+- ✅ Alembic migrace `bb9294eaadcc` - konverze dat (1XXXXXX → 10XXXXXX)
+- ✅ `number_generator.py` - nové rozsahy
+- ✅ SQLAlchemy modely - `String(8)` místo `String(7)`
+- ✅ Pydantic validace - `min_length=8, max_length=8`
+- ✅ Seed scripts - 8-digit formát
+- ✅ 243 testů prošlo
+
+**Migrace:**
+```bash
+# Spustit po updatu kódu:
+alembic upgrade head
+```
+
+### UI/UX Improvements (2026-01-28)
+
+**Operations Auto-Type Mapping:**
+- ✅ Operation type automatically derived from Machine type
+- ✅ Auto-mapping: `lathe → turning 🔄`, `mill → milling ⚙️`, `saw → cutting ✂️`
+- ✅ New operations created as generic (no hardcoded "Soustružení")
+- ✅ Fixed payload bug: type/icon/name now persisted to DB
+- ✅ Fixed label swap: **tp** = přípravný (seřízení), **tj** = jednotkový (výroba)
+- 📝 Documentation: New pattern in CLAUDE.md → VZORY section
 
 ### Sprint 2: Production-Ready Infrastructure (2026-01-28 - Alembic + Security)
 
@@ -28,9 +267,12 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 3. ✅ **Content Security Policy** (H-3 audit fix)
    - CSP header v `SecurityHeadersMiddleware`
-   - Pragmatic approach: `unsafe-inline` pro Alpine.js + HTMX
-   - Blokuje: 3rd party scripts, eval(), external resources
-   - Umožňuje: self origin, inline scripts/styles, HTMX AJAX
+   - Pragmatic approach: `unsafe-inline` + `unsafe-eval` pro Alpine.js
+   - Alpine.js REQUIRES `unsafe-eval` (new AsyncFunction reactivity)
+   - Blokuje: External CDN, 3rd party scripts
+   - Umožňuje: Self origin, inline scripts/styles, HTMX AJAX
+   - **Offline mode:** Alpine.js + HTMX lokální vendor files (no CDN!)
+   - ADR-020: CSP trade-off justification
    - Note: CSP nonces (stricter) plánované v v2.0
 
 4. ✅ **HSTS Security Header** (H-4 audit fix)
@@ -50,11 +292,18 @@ projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **FILES CHANGED:**
 - `app/database.py` - Alembic support + structured logging
-- `app/gestima_app.py` - CSP + HSTS headers
+- `app/gestima_app.py` - CSP + HSTS headers (unsafe-eval fix)
+- `gestima.py` - create-admin default credentials (admin/asdfghjkl)
+- `app/static/js/vendor/alpine.min.js` - Local Alpine.js (43 KB, offline)
+- `app/static/js/vendor/htmx.min.js` - Local HTMX (48 KB, offline)
+- `app/templates/base.html` - Vendor files (no CDN)
+- `app/templates/auth/login.html` - Vendor files (no CDN)
 - `alembic/env.py` - Async SQLAlchemy config
 - `alembic/versions/78917f98a52d_*.py` - Initial migration
 - `tests/test_security_headers.py` - 15 nových testů
 - `tests/conftest.py` - ADR-017 compatible fixtures
+- `docs/ADR/020-csp-unsafe-eval-alpinejs.md` - CSP trade-off justification
+- `docs/SERVER-TROUBLESHOOTING.md` - Alpine.js CSP + offline mode docs
 
 **VERZE:** 1.6.0 (infrastructure improvements)
 

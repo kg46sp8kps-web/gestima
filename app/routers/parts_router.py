@@ -173,7 +173,7 @@ async def duplicate_part(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    """Duplikovat díl s novým part_number (generuje nové 7-digit číslo dle ADR-017)"""
+    """Duplikovat díl s novým part_number (generuje nové 8-digit číslo dle ADR-017 v2.0)"""
     from app.services.number_generator import NumberGenerator, NumberGenerationError
 
     result = await db.execute(select(Part).where(Part.part_number == part_number))
@@ -181,7 +181,7 @@ async def duplicate_part(
     if not original:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    # Generate new valid 7-digit part_number (ADR-017: 1XXXXXX format)
+    # Generate new valid 8-digit part_number (ADR-017 v2.0: 10XXXXXX format)
     try:
         new_part_number = await NumberGenerator.generate_part_number(db)
     except NumberGenerationError as e:

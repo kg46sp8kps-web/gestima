@@ -25,6 +25,7 @@ from app.routers import (
     operations_router,
     features_router,
     batches_router,
+    pricing_router,
     materials_router,
     work_centers_router,
     config_router,
@@ -171,6 +172,7 @@ app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
 app.include_router(operations_router.router, prefix="/api/operations", tags=["Operations"])
 app.include_router(features_router.router, prefix="/api/features", tags=["Features"])
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
+app.include_router(pricing_router.router, prefix="/api/pricing", tags=["Pricing"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])

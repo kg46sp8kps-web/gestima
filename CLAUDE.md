@@ -18,7 +18,7 @@ Následující sekce jsou CHRÁNĚNÉ. Před smazáním/změnou MUSÍM upozornit
 
 ## OSOBNOST: Roy (IT Crowd)
 
-Jsem Roy - senior developer pod externím auditem. Přímočarý, efektivní, alergický na zbytečnosti. A. nikdy nepříjmám první řešení aniž bych zvážil alternativy. Nikdy neděláš chyby v syntaxi a moje příkazy schválíš až po argumentu, který obstojí v drsném provozu potom, co se nasadí systém. V komunikaci si kamarádský, uvolněný vtipný, originální, nikdy neopakuješ to stejné dokola.
+Jsem Roy - senior developer pod externím auditem. Přímočarý, efektivní, alergický na zbytečnosti. A. nikdy nepříjmám první řešení aniž bych zvážil alternativy. Nikdy neděláš chyby v syntaxi a moje příkazy schválíš až po argumentu, který obstojí v drsném provozu potom, co se nasadí systém. V komunikaci si kamarádský, uvolněný vtipný, originální, nikdy neopakuješ to stejné dokola, házíš vtipné hlášky i když si tu od práce.
 
 **Mantry:**
 - "Have you tried turning it off and on again?" (= nejdřív ověř základy)
@@ -52,6 +52,7 @@ NEVER: Tools first, explain later
 
 ### 2. Po implementaci (AUTOMATICKY!)
 - **TESTY:** Napsat + spustit (`pytest -v`)
+- **SEED TESTS:** Pokud schema změna → `pytest tests/test_seed_scripts.py`
 - **DOKUMENTACE:** Aktualizovat CLAUDE.md, ADR, CHANGELOG
 - **VERZOVÁNÍ:** Inkrementovat verzi pokud relevantní
 
@@ -63,7 +64,14 @@ NEVER: Tools first, explain later
 - [ ] Pydantic Field validace
 - [ ] Edit (ne Write) pro změny
 - [ ] Testy napsány
+- [ ] Seed tests passed (při schema změně)
 - [ ] Docs aktualizovány
+
+**Schema Change Red Flags (SPUSŤ seed tests!):**
+- Změna Pydantic Field (`max_length`, `gt`, `ge`, `required`)
+- Změna DB Column (`String(7)` → `String(10)`)
+- Přidání nového required field
+- Změna validation logiky v models/
 
 ---
 
@@ -188,6 +196,53 @@ if result.rowcount == 0:
     raise HTTPException(409, "Data změněna jiným uživatelem")
 ```
 
+### Operations - Machine Type Mapping (Auto-derivace typu)
+```javascript
+// Operation.type se automaticky odvozuje od Machine.type
+// Single Source of Truth: Machine určuje typ operace
+
+// Mapping tabulka:
+const typeMap = {
+    'lathe':   { type: 'turning',  icon: '🔄', label: 'Soustružení' },
+    'mill':    { type: 'milling',  icon: '⚙️', label: 'Frézování' },
+    'saw':     { type: 'cutting',  icon: '✂️', label: 'Řezání' },
+    'grinder': { type: 'grinding', icon: '💎', label: 'Broušení' },
+    'drill':   { type: 'drilling', icon: '🔩', label: 'Vrtání' }
+};
+
+// Auto-update při změně stroje:
+updateOperationFromMachine(op) {
+    const machine = this.machines.find(m => m.id === op.machine_id);
+    if (!machine) {
+        op.type = 'generic'; op.icon = '🔧'; op.name = `OP${op.seq}`;
+        return;
+    }
+    const mapping = typeMap[machine.type] || { type: 'generic', icon: '🔧', label: 'Operace' };
+    op.type = mapping.type;
+    op.icon = mapping.icon;
+    op.name = `OP${op.seq} - ${mapping.label}`;
+}
+
+// KRITICKÉ: Payload MUSÍ obsahovat type/icon/name!
+const payload = {
+    machine_id: op.machine_id,
+    type: op.type,    // ✅ Povinné!
+    icon: op.icon,    // ✅ Povinné!
+    name: op.name,    // ✅ Povinné!
+    // ... další pole
+};
+```
+
+**Pravidla:**
+- ✅ Typ operace = typ stroje (auto-mapping)
+- ✅ Nová operace BEZ stroje = `generic` 🔧
+- ✅ Payload obsahuje `type`, `icon`, `name` (jinak se neuloží!)
+- ✅ Auto-sync při načtení stránky (opraví starý data)
+
+**Norma české technologie:**
+- **tp** = čas přípravný (seřizovací, `setup_time_min`)
+- **tj** = čas jednotkový (kusový/výrobní, `operation_time_min`)
+
 ### Externí API (httpx)
 ```python
 # VŽDY přes backend proxy (bezpečnost - skrýt API od frontendu)
@@ -241,6 +296,314 @@ async def get_fact() -> Dict[str, Any]:
 | L-013 | Debounced race + NaN | Sequence tracking + isNaN() |
 | L-014 | Alpine x-show null errors | Použít x-if místo x-show |
 | L-015 | **Změna validace → fit data** | **READ ADRs! Fix DATA, ne validaci** |
+| L-016 | Regex partial match | Použít `\b` word boundaries (např. `\b[67]\d{3}\b`) |
+| L-017 | Alpine Proxy race condition | JSON.parse(JSON.stringify()) snapshot před použitím |
+| L-018 | `select()` na `input[type="number"]` | Nefunguje konzistentně - použít data-fresh pattern |
+| L-019 | Debounce data loss při rychlém opuštění | beforeunload warning + sync flush |
+| L-020 | Module name collision | Jen JEDNA implementace per modul (check window.foo conflicts) |
+
+### L-020: Module Name Collision (window.foo Conflict)
+
+**Problém:**
+Když VÍCE souborů exportuje do `window.foo`, poslední přepíše předchozí → Alpine.js errors "property is not defined".
+
+**Symptomy:**
+- Alpine.js console errors: `Alpine Expression Error: statusFilter is not defined`
+- Všechny properties z komponenty undefined (5-20 chyb v console)
+- Page vypadá prázdná i když backend vrací data
+- Detail page funguje, list page ne (nebo naopak - záleží na load order)
+- Hard to debug - properties se zdají být definované v HTML, ale Alpine je nevidí
+
+**Real-world incident (2026-01-28):**
+
+```
+File 1: app/templates/pricing/batch_sets.html (inline script)
+  function batchSetsModule() {
+    return {
+      statusFilter: '',
+      showCreateModal: false,
+      creating: false,
+      // ... 10+ dalších properties
+      async loadBatchSets() { /* funkční API call */ }
+    };
+  }
+
+File 2: app/static/js/modules/batch-sets.js (workspace skeleton)
+  function batchSetsModule(config = {}) {
+    return {
+      ...ModuleInterface.create({ moduleType: 'batch-sets' }),
+      partId: config.partId || null,
+      // MISSING: statusFilter, showCreateModal, creating, ...
+      async loadBatchSets() { console.log('TODO'); } // nefunkční
+    };
+  }
+  window.batchSetsModule = batchSetsModule; // ☠️ PŘEPÍŠE inline script!
+
+HTML template:
+  <div x-data="batchSetsModule()">  <!-- Volá externální modul! -->
+    <select x-model="statusFilter">  <!-- ❌ undefined! -->
+  </div>
+
+Result:
+  - Alpine hledá statusFilter v modulu z File 2 (workspace skeleton)
+  - Nenajde → ReferenceError: statusFilter is not defined
+  - 15+ Alpine errors v konzoli
+  - Page prázdná (loading stuck nebo empty state)
+```
+
+**❌ ŠPATNĚ (dva exporty):**
+```javascript
+// File A: inline script in HTML
+function batchSetsModule() { return { statusFilter: '', /* ... */ }; }
+
+// File B: external module
+function batchSetsModule() { return { partId: null, /* MISSING statusFilter */ }; }
+window.batchSetsModule = batchSetsModule;  // ☠️ Collision!
+```
+
+**✅ SPRÁVNĚ (single source):**
+```javascript
+// Option 1: Only inline script (remove external)
+rm app/static/js/modules/batch-sets.js
+
+// Option 2: Only external module (remove inline + update HTML)
+<script src="/static/js/modules/batch-sets.js"></script>
+<div x-data="batchSetsModule()">  <!-- Ujisti se že má VŠECHNY properties -->
+
+// Option 3: Different names
+window.batchSetsListModule = ...  // List page
+window.batchSetsDetailModule = ... // Detail page
+```
+
+**Detection Checklist:**
+
+```
+IF (Alpine errors "X is not defined" pro VŠECHNY properties):
+  1. Search codebase: `grep -r "window.MODULENAME" .`
+  2. Check: Kolik souborů exportuje stejný název?
+  3. IF více než 1:
+     → MODULE COLLISION! Smaž nebo přejmenuj.
+  4. ELSE:
+     → Load order problém (script před Alpine init)
+```
+
+**Prevention:**
+- ✅ Před exportem do `window.foo`: `grep -r "window.foo" .` (ujisti se že je jen 1)
+- ✅ Workspace skeleton modules: Buď DOKONČIT nebo SMAZAT (ne mix s inline)
+- ✅ Naming convention: `window.fooListModule`, `window.fooDetailModule` (distinct)
+- ✅ Pre-commit hook: Check duplicate `window.` exports
+
+**Kdy použít:**
+- Velké Alpine.js komponenty (500+ lines)
+- Workspace modules (ADR-023)
+- Reusable components across pages
+
+**Kdy NEPOUŽÍVAT external modules:**
+- Simple page-specific logic (inline je OK)
+- Prototypes/WIP features (inline script = faster iteration)
+- Single-use components
+
+**Files (incident):**
+- Deleted: `app/static/js/modules/batch-sets.js` (workspace skeleton)
+- Active: `app/templates/pricing/batch_sets.html:216-371` (inline script)
+
+**Lesson Learned:**
+> Export do `window.foo` = global namespace.
+> Global namespace collision = silent override.
+> Poslední vítězí, předchozí se ztratí bez warning.
+
+---
+
+### L-019: Debounce Data Loss při Rychlém Opuštění Stránky
+
+**Problém:**
+Debounced updates (timeout 250-400ms) můžou způsobit ztrátu dat když user rychle opustí stránku před vypršením timeoutu.
+
+**Business Risk:**
+```
+Real-world scénář (CRITICAL!):
+1. Pod tlakem: zákazník na telefonu
+2. Rychle upravíš tp: 30 → 5 min
+3. Klikneš jinam (< 250ms)
+4. Timeout nestihne → stará hodnota (30)
+5. Kalkulace = ŠPATNÁ CENA
+6. Nabídka = ztracená zakázka 💸
+```
+
+**Symptomy:**
+- Rychlá editace + okamžitá navigace = data se neuloží
+- User si nemusí všimnout (tlak, stres, multitasking)
+- 409 Conflict při rychlých změnách (Alpine Proxy = všechny pending requests vidí STEJNOU version!)
+
+**❌ ŠPATNĚ (bez ochrany):**
+```javascript
+debouncedUpdate(op) {
+    clearTimeout(this.timeout);
+    this.timeout = setTimeout(async () => {
+        await this.updateAPI(op);  // ❌ op = Alpine Proxy, mění se!
+    }, 400);
+}
+
+// User opustí stránku <400ms → data loss!
+// User rychle edituje: 30→3→0 → všechny requests = stejná op.version → 409!
+```
+
+**✅ SPRÁVNĚ (L-017 snapshot + beforeunload warning):**
+```javascript
+// State tracking
+hasPendingChanges: false,
+pendingOperationSnapshot: null,
+
+async init() {
+    // Prevent data loss
+    window.addEventListener('beforeunload', (e) => {
+        if (this.hasPendingChanges || this.operationUpdateTimeout) {
+            e.preventDefault();
+            e.returnValue = '';  // Browser native warning
+
+            // Best effort: flush pending updates synchronously
+            if (this.pendingOperationSnapshot) {
+                this.flushPendingOperationSync();
+            }
+        }
+    });
+},
+
+debouncedUpdate(op) {
+    clearTimeout(this.timeout);
+    this.operationUpdateSequence++;
+    const currentSequence = this.operationUpdateSequence;
+
+    // L-017: Snapshot to freeze op.version + values
+    const snapshot = JSON.parse(JSON.stringify(op));
+
+    // Track pending changes
+    this.hasPendingChanges = true;
+    this.pendingOperationSnapshot = snapshot;
+
+    this.timeout = setTimeout(async () => {
+        await this.updateAPI(snapshot, currentSequence);  // ✅ Snapshot!
+    }, 250);  // Faster feedback (250ms vs 400ms)
+},
+
+async updateAPI(op, requestSequence) {
+    const response = await fetch(`/api/operations/${op.id}`, {
+        body: JSON.stringify({ ...payload, version: op.version })
+    });
+
+    if (response.ok) {
+        // Race protection: ignore stale responses
+        if (requestSequence < this.operationUpdateSequence) {
+            return;  // Stale - ignore
+        }
+
+        // Clear pending flag
+        this.hasPendingChanges = false;
+        this.pendingOperationSnapshot = null;
+
+        // Update UI...
+    }
+},
+
+flushPendingOperationSync() {
+    // Best-effort sync flush for beforeunload
+    // Uses deprecated sync XHR (only option for unload)
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', `/api/operations/${op.id}`, false);  // false = sync
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(payload));
+}
+```
+
+**Jak to funguje:**
+
+| Scénář | Chování |
+|--------|---------|
+| **Normální (user počká)** | 1. Změna hodnoty<br>2. 250ms pauza<br>3. API update → success<br>4. hasPendingChanges = false<br>5. Navigace → ✅ žádný warning |
+| **Rychlé opuštění (<250ms)** | 1. Změna hodnoty<br>2. Okamžitá navigace<br>3. Browser warning: "Leave site?"<br>4. [Cancel] → zůstane / [Leave] → sync flush<br>5. Data uložena! 🎉 |
+| **Rychlé editace (30→3→0)** | 1. 3× změna<br>2. 3× snapshot (každý = vlastní version!)<br>3. Pouze poslední request se odešle<br>4. ✅ Žádný 409 Conflict |
+
+**Proč Snapshot (L-017)?**
+
+```javascript
+// ❌ BEZ snapshot:
+const op = { value: 30, version: 1 };  // Alpine Proxy!
+setTimeout(() => {
+    sendAPI(op);  // User už změnil → { value: 0, version: 2 }
+    // Payload = mix! Server: "version 2? Ale já mám 3!" → 409
+}, 250);
+
+// ✅ SE snapshot:
+const snapshot = JSON.parse(JSON.stringify(op));  // Kopie!
+// snapshot = { value: 30, version: 1 } - ZMRAZENO!
+setTimeout(() => {
+    sendAPI(snapshot);  // ✅ Konzistentní payload
+}, 250);
+```
+
+**Trade-offs:**
+
+| Řešení | Pros | Cons |
+|--------|------|------|
+| **Jen debounce** | ✅ Simple | ❌ Data loss risk |
+| **Snapshot (L-017)** | ✅ Fixuje 409 Conflict | ⚠️ Deep copy overhead (zanedbatelná) |
+| **beforeunload warning** | ✅ User awareness | ⚠️ Browser native popup (ale OK) |
+| **Sync XHR flush** | ✅ Best-effort save | ⚠️ Deprecated API (ale funguje) |
+
+**Kdy použít:**
+- Debounced updates na kritická business data (ceny, časy, množství)
+- Formuláře kde rychlá navigace je běžná (user pod tlakem)
+- Multi-field editace s Alpine.js + x-model
+
+**Kdy NENÍ třeba:**
+- Read-only data
+- Nekritická pole (poznámky, tagy)
+- Single-field formuláře s submit buttonem
+
+**Real-world implementace:**
+[app/templates/parts/edit.html:1050-1065](app/templates/parts/edit.html#L1050-L1065) (beforeunload)
+[app/templates/parts/edit.html:1431-1447](app/templates/parts/edit.html#L1431-L1447) (debouncedUpdateOperation)
+[app/templates/parts/edit.html:1761-1813](app/templates/parts/edit.html#L1761-L1813) (flushPendingOperationSync)
+
+**Lesson Learned:**
+> "Edge case" = 5% vs "Business risk" = ztracená zakázka.
+> Debounce timeout není edge case, je to kritická business logika.
+
+---
+
+### L-018: select() na input[type="number"] nefunguje konzistentně
+
+**Problém:**
+`$el.select()` na `input[type="number"]` nefunguje konzistentně ve všech prohlížečích. Někdy vybere text, někdy ne.
+
+**Symptomy:**
+- Uživatel klikne do pole, začne psát, ale hodnota se nepřepíše
+- Chování je náhodné - někdy funguje, někdy ne
+- `::selection` CSS hack nepomáhá
+
+**❌ ŠPATNĚ (nespolehlivé):**
+```html
+<input type="number" @focus="$el.select()">
+```
+
+**✅ SPRÁVNĚ (data-fresh pattern):**
+```html
+<input type="number"
+       @focus="$el.dataset.fresh = 'true'"
+       @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }"
+       @blur="$el.dataset.fresh = 'false'">
+```
+
+**Jak to funguje:**
+1. `@focus` → nastaví flag `data-fresh="true"`
+2. `@keydown` → pokud fresh=true a je to printable znak (length=1) → smaže hodnotu
+3. `@blur` → resetuje flag
+
+**Kdy použít:**
+- Number inputy kde chceš "type to replace" chování
+- Formuláře kde uživatel často přepisuje hodnoty
+
+---
 
 ### L-015: Changing Validation to Fit Bad Data (CRITICAL!)
 
@@ -987,18 +1350,74 @@ IF (60+ minut debugging AND stále nefunguje):
 
 ---
 
+## DOKUMENTACE - STRUKTURA A WORKFLOW
+
+### Kde co najít
+
+| Dokument | Účel | Kdy aktualizovat |
+|----------|------|------------------|
+| [docs/STATUS.md](docs/STATUS.md) | Co děláme TEĎ | Denně |
+| [docs/BACKLOG.md](docs/BACKLOG.md) | Co uděláme POZDĚJI | Weekly |
+| [docs/VISION.md](docs/VISION.md) | Dlouhodobá vize (rok+) | Kvartálně |
+| [CHANGELOG.md](CHANGELOG.md) | Co jsme UDĚLALI | Po dokončení |
+| **CLAUDE.md** (tento soubor) | Pravidla + Anti-patterns | Po lessons learned |
+
+### Workflow dokumentace
+
+```
+Nový nápad / issue z auditu
+         │
+         ▼
+    ┌─────────────┐
+    │  BACKLOG.md │  ← Zapsat s prioritou (HIGH/MED/LOW)
+    └──────┬──────┘
+           │
+    Rozhodneme pracovat
+           │
+           ▼
+    ┌─────────────┐
+    │  STATUS.md  │  ← Přesunout, aktualizovat průběžně
+    └──────┬──────┘
+           │
+    Hotovo
+           │
+           ▼
+    ┌─────────────┐
+    │ CHANGELOG   │  ← Zaznamenat verzi + změny
+    └──────┬──────┘
+           │
+    Naučili jsme se něco?
+           │
+           ▼
+    ┌─────────────┐
+    │  CLAUDE.md  │  ← Přidat anti-pattern (L-XXX)
+    └─────────────┘
+```
+
+### Pravidla
+
+1. **Jeden zdroj pravdy** - STATUS.md pro aktuální práci, ne 4 různé soubory
+2. **Archivovat, ne mazat** - Staré docs → `docs/archive/`
+3. **Žádné duplicity** - Informace na JEDNOM místě
+4. **Weekly review** - Zkontrolovat že BACKLOG a STATUS jsou aktuální
+
+---
+
 ## REFERENCE
 
 | Dokument | Účel |
 |----------|------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Přehled systému |
 | [docs/UI-GUIDE.md](docs/UI-GUIDE.md) | UI komponenty, layouty, vzory |
+| [docs/SEED-TESTING.md](docs/SEED-TESTING.md) | Seed scripts testing & validace |
 | [docs/VISION.md](docs/VISION.md) | Dlouhodobá vize (1 rok roadmap) |
-| [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) | Status + další kroky |
+| [docs/STATUS.md](docs/STATUS.md) | Aktuální stav projektu |
+| [docs/BACKLOG.md](docs/BACKLOG.md) | Co uděláme později |
 | [docs/ADR/](docs/ADR/) | Architektonická rozhodnutí |
+| [docs/audits/SUMMARY.md](docs/audits/SUMMARY.md) | Přehled auditů |
 | [CHANGELOG.md](CHANGELOG.md) | Historie změn |
 
 ---
 
-**Verze:** 3.7 (2026-01-27)
-**GESTIMA:** 1.4.0
+**Verze:** 3.9 (2026-01-28)
+**GESTIMA:** 1.6.0

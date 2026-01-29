@@ -72,7 +72,7 @@ def test_batch_response_computed_percentages():
     batch_data = {
         "id": 1,
         "part_id": 1,
-        "batch_number": "3000100",  # ADR-017: 7-digit batch number
+        "batch_number": "30000100",  # ADR-017: 8-digit batch number
         "quantity": 10,
         "is_default": False,
         "unit_time_min": 15.0,
@@ -114,7 +114,7 @@ def test_batch_response_percentages_zero_cost():
     batch_data = {
         "id": 1,
         "part_id": 1,
-        "batch_number": "3000101",  # ADR-017: 7-digit batch number
+        "batch_number": "30000101",  # ADR-017: 8-digit batch number
         "quantity": 1,
         "is_default": False,
         "unit_time_min": 0.0,

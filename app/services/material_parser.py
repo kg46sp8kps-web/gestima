@@ -56,6 +56,7 @@ class ParseResult(BaseModel):
     # Meta
     confidence: float = Field(..., ge=0.0, le=1.0)
     matched_pattern: str  # Pro debugging
+    warnings: List[str] = Field(default_factory=list)  # Chybové hlášky pro uživatele
 
 
 class MaterialParserService:
@@ -139,29 +140,31 @@ class MaterialParserService:
     ]
 
     # Normy materiálů (pattern → kategorie)
+    # DŮLEŽITÉ: Použít \b word boundaries aby se zabránilo partial match!
+    # Např. bez \b by "[67]\d{3}" matchlo "7240" uvnitř "17240" (ČSN nerez)
     MATERIAL_CATEGORY_PATTERNS = {
-        # Nerez (1.4xxx)
+        # Nerez (1.4xxx) - tečka funguje jako přirozený boundary
         r"1\.4\d{3}": "nerez",
 
-        # Ocel (1.0xxx - 1.2xxx)
+        # Ocel (1.0xxx - 1.2xxx) - tečka funguje jako přirozený boundary
         r"1\.[0-2]\d{3}": "ocel",
 
-        # Ocel (Sxxx - S235, S355)
-        r"S\d{3}": "ocel",
+        # Ocel (Sxxx - S235, S355) - \b pro standalone match
+        r"\bS\d{3}\b": "ocel",
 
-        # Ocel (Cxx - C45, C15, C60)
-        r"C\d{2,3}": "ocel",
+        # Ocel (Cxx - C45, C15, C60) - \b pro standalone match
+        r"\bC\d{2,3}\b": "ocel",
 
-        # Ocel (42CrMo4, 16MnCr5, 34CrNiMo6)
+        # Ocel (42CrMo4, 16MnCr5, 34CrNiMo6) - složený pattern, safe
         r"\d{2}[A-Z][a-z]+\d{1,2}": "ocel",
 
-        # Hliník (EN AW-xxxx)
+        # Hliník (EN AW-xxxx) - specifický formát, safe
         r"EN\s*AW[- ]?\d{4}": "hlinik",
 
-        # Hliník (6xxx, 7xxx série)
-        r"[67]\d{3}": "hlinik",
+        # Hliník (6xxx, 7xxx série) - KRITICKÉ: \b aby nematchlo uvnitř 17240!
+        r"\b[67]\d{3}\b": "hlinik",
 
-        # Mosaz (CuZnxx)
+        # Mosaz (CuZnxx) - písmena na začátku, safe
         r"CuZn\d{2}": "mosaz",
 
         # Mosaz (CuZnxxxPbx)
@@ -170,10 +173,10 @@ class MaterialParserService:
         # Bronz (CuSnxx)
         r"CuSn\d{1,2}": "bronz",
 
-        # Plasty (PA6, POM, PEEK)
-        r"PA\d{1,2}": "plast",
-        r"POM(-[CH])?": "plast",
-        r"PEEK": "plast",
+        # Plasty (PA6, POM, PEEK) - písmena na začátku, safe
+        r"\bPA\d{1,2}\b": "plast",
+        r"\bPOM(-[CH])?\b": "plast",
+        r"\bPEEK\b": "plast",
     }
 
     # Délka: "100mm", "L=100", "length=100", "100"
@@ -249,6 +252,21 @@ class MaterialParserService:
                 result.suggested_price_category_code = price_cat.code
                 result.suggested_price_category_name = price_cat.name
                 result.confidence += 0.05
+            else:
+                # WARNING: Nenalezena cenová kategorie pro tento materiál + tvar
+                shape_label = {
+                    StockShape.ROUND_BAR: "tyč kruhová",
+                    StockShape.SQUARE_BAR: "tyč čtvercová",
+                    StockShape.FLAT_BAR: "tyč plochá",
+                    StockShape.HEXAGONAL_BAR: "tyč šestihranná",
+                    StockShape.PLATE: "plech/deska",
+                    StockShape.TUBE: "trubka",
+                    StockShape.CASTING: "odlitek",
+                    StockShape.FORGING: "výkovek"
+                }.get(result.shape, str(result.shape))
+                result.warnings.append(
+                    f"Nenalezena cenová kategorie pro {result.suggested_material_group_name} + {shape_label}"
+                )
 
         # 5. Find MaterialItem (pokud máme group + shape + rozměry)
         if result.suggested_material_group_id and result.shape:
@@ -297,9 +315,14 @@ class MaterialParserService:
 
     async def _extract_material(self, text: str) -> Optional[Dict[str, str]]:
         """
-        Rozpozná materiálovou normu pomocí regex patterns.
-        Vrátí normu + kategorii (fallback).
+        Rozpozná materiálovou normu - VYLEPŠENÁ verze s DB lookup.
+
+        Strategy:
+        1. Zkus hardcoded regex patterns (nejběžnější normy)
+        2. Pokud nic → Extrahuj všechny potenciální kódy a validuj přes DB
+        3. Fallback na "unknown" kategorii
         """
+        # 1. Try hardcoded patterns first (fastest for common cases)
         for norm_pattern, category in self.MATERIAL_CATEGORY_PATTERNS.items():
             match = re.search(norm_pattern, text, re.IGNORECASE)
             if match:
@@ -307,6 +330,60 @@ class MaterialParserService:
                     "norm": match.group(0).upper(),
                     "category": category
                 }
+
+        # 2. FALLBACK: Extract potential material codes and validate via DB
+        # Patterns for material codes:
+        # - W.Nr: 1.4301, 1.0503 (1.xxxx)
+        # - EN/AISI: 6082, 304, C45, S235 (letters + numbers, 2-6 chars)
+        # - ČSN: 11109, 12050 (5-digit numbers)
+
+        potential_codes = []
+
+        # Find all potential material codes:
+        # - Pure digits: 4-6 chars (např. 6082, 1045, 11109) - filtruje 20, 100
+        # - Mixed: letter(s) + digits 2-6 total (např. C45, S235, X5CrNi18-10)
+        # - NOT: D20, Ø20 (shape dimensions), 100 (too short, délka)
+
+        # Pattern 1: Pure digits 4-6 chars (6082, 11109)
+        for match in re.finditer(r"\b(\d{4,6})\b", text):
+            code = match.group(1)
+            potential_codes.append(code)
+
+        # Pattern 2: Mixed alphanumeric (C45, S235, X5CrNi18-10)
+        for match in re.finditer(r"\b([A-Z]+\d+[A-Z\d]*)\b", text, re.IGNORECASE):
+            code = match.group(1).upper()
+            # Filter out shape dimensions (D20, Ø20)
+            if not code.startswith('D') and not code.startswith('Ø') and not code.startswith('O'):
+                potential_codes.append(code)
+
+        print(f"🔍 _extract_material: potential codes found: {potential_codes}")
+
+        # Try to find these codes in MaterialNorm DB
+        for code in potential_codes:
+            result = await self.db.execute(
+                select(MaterialNorm)
+                .where(
+                    or_(
+                        MaterialNorm.w_nr == code,
+                        MaterialNorm.en_iso == code,
+                        MaterialNorm.csn == code,
+                        MaterialNorm.aisi == code
+                    )
+                )
+                .limit(1)
+            )
+            norm = result.scalar_one_or_none()
+
+            if norm:
+                print(f"🔍 _extract_material: DB match found for '{code}' → MaterialNorm ID {norm.id}")
+                # Return with category from MaterialGroup
+                # (category is not needed anymore, _find_material_group will handle it)
+                return {
+                    "norm": code,
+                    "category": "unknown"  # Will be resolved via _find_material_group
+                }
+
+        print(f"🔍 _extract_material: no material code found")
         return None
 
     def _extract_length(
@@ -318,8 +395,10 @@ class MaterialParserService:
         """
         Rozpozná délku (mm).
 
-        Strategy: Odstranit matchnuté shape + material části z textu,
-        pak hledat length jen ve zbývajícím textu.
+        Strategy:
+        1. Odstranit matchnuté shape + material části z textu
+        2. Pokud materiál NEBYL rozpoznán, odfiltrovat potenciální materiálové kódy (4-6 číslic)
+        3. Vzít POSLEDNÍ číslo jako délku (délka je vždy na konci inputu)
 
         Args:
             text: Original input text
@@ -346,19 +425,53 @@ class MaterialParserService:
             # Remove the exact material norm string
             cleaned_text = re.sub(re.escape(material_norm), " ", cleaned_text, flags=re.IGNORECASE)
 
-        # Now find length in cleaned text
-        matches = list(re.finditer(self.LENGTH_REGEX, cleaned_text, re.IGNORECASE))
+        # Debug log
+        print(f"🔍 _extract_length: original='{text}', cleaned='{cleaned_text}'")
 
-        if not matches:
+        # Find all numbers in cleaned text
+        # Note: Don't use \b at end - "100mm" has no word boundary between "100" and "mm"
+        all_numbers = list(re.finditer(r"(?<!\d)(\d+(?:\.\d+)?)", cleaned_text))
+        print(f"🔍 _extract_length: found numbers: {[m.group(1) for m in all_numbers]}")
+
+        if not all_numbers:
             return None
 
-        # Take the FIRST standalone number (after removing shape/material)
-        # This should be the length
-        for match in matches:
+        # Filter out potential material codes if material was NOT recognized
+        # Material codes are typically 4-6 digit pure numbers (ČSN codes like 11373, 12050, 17240)
+        # Length is typically 2-4 digit number or < 10000 (max 10 meters)
+        candidate_numbers = []
+
+        for match in all_numbers:
             value = float(match.group(1))
-            # Sanity check: Length should be >= 1mm (ignore very small numbers)
-            if value >= 1.0:
-                return value
+            num_str = match.group(1).split('.')[0]  # Integer part
+            num_digits = len(num_str)
+
+            # Skip very small numbers (< 10mm is unlikely to be length)
+            if value < 10.0:
+                print(f"🔍 _extract_length: skipping {value} (too small for length)")
+                continue
+
+            # If material was NOT found, filter out potential material codes
+            if material_norm is None:
+                # 5-digit numbers are likely ČSN codes (11xxx, 12xxx, 17xxx)
+                if num_digits == 5 and 10000 <= value < 100000:
+                    print(f"🔍 _extract_length: skipping {value} (likely ČSN material code)")
+                    continue
+
+                # 4-digit numbers in 6xxx, 7xxx range are likely aluminum codes
+                if num_digits == 4 and (6000 <= value < 8000):
+                    print(f"🔍 _extract_length: skipping {value} (likely aluminum code)")
+                    continue
+
+            candidate_numbers.append(value)
+
+        print(f"🔍 _extract_length: candidate lengths after filtering: {candidate_numbers}")
+
+        # Take the LAST candidate (length is typically at the end of user input)
+        if candidate_numbers:
+            length = candidate_numbers[-1]
+            print(f"🔍 _extract_length: returning length={length} (last candidate)")
+            return length
 
         return None
 
@@ -454,12 +567,15 @@ class MaterialParserService:
 
         keywords = shape_keywords.get(shape, [])
         if not keywords:
+            print(f"🔍 _find_price_category: No keywords for shape {shape}")
             return None
 
         # Query DB
         conditions = [
             MaterialPriceCategory.code.ilike(f"%{kw}%") for kw in keywords
         ]
+
+        print(f"🔍 _find_price_category: Looking for material_group_id={material_group_id}, shape={shape}, keywords={keywords}")
 
         result = await self.db.execute(
             select(MaterialPriceCategory)
@@ -471,7 +587,13 @@ class MaterialParserService:
             .limit(1)
         )
 
-        return result.scalar_one_or_none()
+        category = result.scalar_one_or_none()
+        if category:
+            print(f"🔍 _find_price_category: Found category: {category.code} ({category.name})")
+        else:
+            print(f"🔍 _find_price_category: NO CATEGORY FOUND for material_group_id={material_group_id}, shape={shape}")
+
+        return category
 
     async def _find_material_item(
         self,

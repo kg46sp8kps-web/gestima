@@ -298,3 +298,51 @@ async def recalculate_batch(
         await db.rollback()
         logger.error(f"Unexpected error recalculating batch {batch_number}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při přepočítání dávky: {str(e)}")
+
+
+@router.post("/part/{part_id}/recalculate", status_code=204)
+async def recalculate_part_batches(
+    part_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """
+    Bulk přepočítání všech unfrozen batches pro daný part.
+
+    Použití:
+    - Po změně materiálu Part (workspace link: materialChanged)
+    - Po změně operací (workspace link: operationsChanged)
+    - Automaticky voláno z workspace part-pricing modulu
+    """
+    result = await db.execute(
+        select(Batch)
+        .where(Batch.part_id == part_id, Batch.is_frozen == False, Batch.deleted_at.is_(None))
+        .order_by(Batch.quantity)
+    )
+    batches = result.scalars().all()
+
+    if not batches:
+        # Žádné unfrozen batches - OK
+        return
+
+    try:
+        for batch in batches:
+            await recalculate_batch_costs(batch, db)
+
+        await db.commit()
+        logger.info(
+            f"Recalculated {len(batches)} batches for part {part_id}",
+            extra={"part_id": part_id, "batch_count": len(batches), "user": current_user.username}
+        )
+    except ValueError as e:
+        await db.rollback()
+        logger.error(f"Validation error recalculating batches for part {part_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error recalculating batches for part {part_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při přepočítání dávek")
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Unexpected error recalculating batches for part {part_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při přepočítání dávek: {str(e)}")

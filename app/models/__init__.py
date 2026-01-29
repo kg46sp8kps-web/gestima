@@ -6,6 +6,15 @@ from app.models.part import Part, PartCreate, PartUpdate, PartResponse
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
 from app.models.feature import Feature, FeatureCreate, FeatureUpdate, FeatureResponse
 from app.models.batch import Batch, BatchCreate, BatchResponse
+from app.models.batch_set import (
+    BatchSet,
+    BatchSetCreate,
+    BatchSetUpdate,
+    BatchSetResponse,
+    BatchSetWithBatchesResponse,
+    BatchSetListResponse,
+    generate_batch_set_name
+)
 # Machine model removed - replaced by WorkCenter (ADR-021)
 from app.models.material import (
     MaterialGroup,
@@ -43,6 +52,8 @@ __all__ = [
     "Operation", "OperationCreate", "OperationUpdate", "OperationResponse",
     "Feature", "FeatureCreate", "FeatureUpdate", "FeatureResponse",
     "Batch", "BatchCreate", "BatchResponse",
+    "BatchSet", "BatchSetCreate", "BatchSetUpdate", "BatchSetResponse",
+    "BatchSetWithBatchesResponse", "BatchSetListResponse", "generate_batch_set_name",
     "MaterialGroup", "MaterialGroupCreate", "MaterialGroupUpdate", "MaterialGroupResponse",
     "MaterialItem", "MaterialItemCreate", "MaterialItemUpdate", "MaterialItemResponse", "MaterialItemWithGroupResponse",
     "MaterialPriceCategory", "MaterialPriceTier",

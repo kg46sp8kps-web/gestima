@@ -24,20 +24,21 @@ templates = Jinja2Templates(directory="app/templates")
 
 # ========== MATERIAL NORMS ==========
 
-@router.get("/material-norms", response_class=HTMLResponse)
-async def admin_material_norms_page(
+@router.get("/master-data", response_class=HTMLResponse)
+async def admin_master_data_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     """
-    Admin page: Material Norms + Material Groups + Price Categories + System Config.
+    Admin page: Master Data - centrální správa kmenových dat.
 
-    UI zobrazuje 4 taby:
+    UI zobrazuje taby:
     - Tab 1: Material Norms (W.Nr | EN ISO | ČSN | AISI → MaterialGroup)
     - Tab 2: Material Groups (code, name, density)
     - Tab 3: Price Categories (code, name, material_group, tiers)
-    - Tab 4: System Config (koeficienty)
+    - Tab 4: Work Centers / Machines (pracoviště, stroje, sazby)
+    - Tab 5: System Config (koeficienty)
     """
     from app.models.material import MaterialPriceCategory, MaterialPriceTier
 
@@ -128,18 +129,42 @@ async def admin_material_norms_page(
         for c in categories_orm
     ]
 
-    # Tab 4: System Config
+    # Tab 4: Work Centers
+    from app.models.work_center import WorkCenter, WorkCenterResponse
+    from app.models.enums import WorkCenterType
+
+    result_work_centers = await db.execute(
+        select(WorkCenter)
+        .where(WorkCenter.deleted_at.is_(None))
+        .order_by(WorkCenter.priority.asc(), WorkCenter.name.asc())
+    )
+    work_centers_orm = result_work_centers.scalars().all()
+
+    work_centers_json = [
+        WorkCenterResponse.from_orm(wc).model_dump(mode="json")
+        for wc in work_centers_orm
+    ]
+
+    # Work center types for dropdown
+    work_center_types = [
+        {"value": t.value, "name": t.name}
+        for t in WorkCenterType
+    ]
+
+    # Tab 5: System Config
     result_config = await db.execute(
         select(SystemConfig).order_by(SystemConfig.key)
     )
     configs = result_config.scalars().all()
 
-    return templates.TemplateResponse("admin/material_norms.html", {
+    return templates.TemplateResponse("admin/master_data.html", {
         "request": request,
         "norms": norms_orm,
         "norms_json": norms_json,
         "groups_json": groups_json,
         "categories_json": categories_json,
+        "work_centers_json": work_centers_json,
+        "work_center_types": work_center_types,
         "configs": configs,
         "current_user": current_user
     })

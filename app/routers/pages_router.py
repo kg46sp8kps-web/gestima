@@ -110,6 +110,62 @@ async def part_pricing(
 
 
 # ============================================================================
+# WORKSPACE (ADR-023: Module Architecture)
+# ============================================================================
+
+@router.get("/workspace", response_class=HTMLResponse)
+async def workspace_page(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """Multi-panel workspace for linked module views (ADR-023)"""
+    return templates.TemplateResponse("workspace.html", {
+        "request": request,
+        "user": current_user
+    })
+
+
+# ============================================================================
+# PRICING PAGES (ADR-022: BatchSets)
+# ============================================================================
+
+@router.get("/pricing/batch-sets", response_class=HTMLResponse)
+async def batch_sets_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Standalone BatchSets management page (ADR-022)"""
+    return templates.TemplateResponse("pricing/batch_sets.html", {
+        "request": request,
+        "user": current_user
+    })
+
+
+@router.get("/pricing/batch-sets/{set_id}", response_class=HTMLResponse)
+async def batch_set_detail_page(
+    set_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """BatchSet detail page with batches (ADR-022)"""
+    from app.models.batch_set import BatchSet
+
+    result = await db.execute(select(BatchSet).where(BatchSet.id == set_id))
+    batch_set = result.scalar_one_or_none()
+
+    if not batch_set:
+        return HTMLResponse(content="<h1>Sada nenalezena</h1>", status_code=404)
+
+    return templates.TemplateResponse("pricing/batch_set_detail.html", {
+        "request": request,
+        "batch_set": batch_set,
+        "user": current_user
+    })
+
+
+# ============================================================================
 # MACHINES PAGES
 # ============================================================================
 

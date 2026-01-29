@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Sady cen - GESTIMA{% endblock %}
+
+{% block content %}
+<div x-data="batchSetsModule()" x-init="init()" style="padding: 1.5rem 2rem;">
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h1 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">
+                Sady cen
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+                Správa cenových sad pro díly (ADR-022)
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <select x-model="statusFilter" @change="loadBatchSets()"
+                    style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary);">
+                <option value="">Všechny stavy</option>
+                <option value="draft">Rozpracované</option>
+                <option value="frozen">Zmrazené</option>
+            </select>
+            <button @click="showCreateModal = true" class="btn-flat btn-save">
+                ➕ Vytvořit sadu
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+        Načítám sady...
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && batchSets.length === 0"
+         style="text-align: center; padding: 3rem; background: var(--bg-secondary); border-radius: 8px; border: 1px dashed var(--border-color);">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+        <div style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Zatím žádné sady cen
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">
+            Klikněte na "➕ Vytvořit sadu" pro vytvoření nové sady cen.
+        </p>
+    </div>
+
+    <!-- BatchSets Table -->
+    <div x-show="!loading && batchSets.length > 0">
+        <table style="width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <thead>
+                <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Číslo sady
+                    </th>
+                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Název
+                    </th>
+                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Díl
+                    </th>
+                    <th style="padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Dávky
+                    </th>
+                    <th style="padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Stav
+                    </th>
+                    <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Vytvořeno
+                    </th>
+                    <th style="padding: 0.75rem 1rem; text-align: center; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">
+                        Akce
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="batchSet in batchSets" :key="batchSet.id">
+                    <tr style="border-bottom: 1px solid var(--border-color);"
+                        :style="{ opacity: batchSet.status === 'frozen' ? 0.8 : 1 }">
+                        <td style="padding: 0.75rem 1rem;">
+                            <a :href="'/pricing/batch-sets/' + batchSet.id"
+                               style="color: var(--accent-blue); text-decoration: none; font-weight: 500;"
+                               x-text="batchSet.set_number"></a>
+                        </td>
+                        <td style="padding: 0.75rem 1rem; color: var(--text-primary);" x-text="batchSet.name"></td>
+                        <td style="padding: 0.75rem 1rem;">
+                            <template x-if="batchSet.part_id">
+                                <span style="color: var(--text-secondary);" x-text="'#' + batchSet.part_id"></span>
+                            </template>
+                            <template x-if="!batchSet.part_id">
+                                <span style="color: var(--text-muted); font-style: italic;">—</span>
+                            </template>
+                        </td>
+                        <td style="padding: 0.75rem 1rem; text-align: center;">
+                            <span style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;"
+                                  x-text="batchSet.batch_count"></span>
+                        </td>
+                        <td style="padding: 0.75rem 1rem; text-align: center;">
+                            <span :style="{
+                                    background: batchSet.status === 'frozen' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                                    color: batchSet.status === 'frozen' ? 'var(--accent-blue)' : 'var(--accent-green)',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '500'
+                                  }"
+                                  x-text="batchSet.status === 'frozen' ? '❄️ Zmrazeno' : '📝 Rozpracováno'">
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem 1rem; color: var(--text-secondary); font-size: 0.85rem;"
+                            x-text="formatDate(batchSet.created_at)"></td>
+                        <td style="padding: 0.75rem 1rem; text-align: center;">
+                            <div style="display: flex; gap: 0.25rem; justify-content: center;">
+                                <a :href="'/pricing/batch-sets/' + batchSet.id"
+                                   class="btn-flat"
+                                   style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                    Detail
+                                </a>
+                                <button x-show="batchSet.status === 'draft'"
+                                        @click="freezeSet(batchSet)"
+                                        class="btn-flat"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                        :disabled="batchSet.batch_count === 0">
+                                    ❄️
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Stats Footer -->
+    <div x-show="!loading && batchSets.length > 0"
+         style="margin-top: 1rem; display: flex; gap: 1.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+        <span>Celkem: <strong x-text="batchSets.length"></strong> sad</span>
+        <span>Rozpracovaných: <strong x-text="batchSets.filter(s => s.status === 'draft').length"></strong></span>
+        <span>Zmrazených: <strong x-text="batchSets.filter(s => s.status === 'frozen').length"></strong></span>
+    </div>
+
+    <!-- Create BatchSet Modal -->
+    <div x-show="showCreateModal"
+         style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;"
+         @click.self="closeCreateModal()"
+         x-transition>
+        <div style="background: var(--bg-primary); border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem;">
+                ➕ Vytvořit novou sadu cen
+            </h3>
+
+            <!-- Part Search -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-primary);">
+                    Díl <span style="color: var(--accent-red);">*</span>
+                </label>
+                <div style="position: relative;">
+                    <input
+                        type="text"
+                        x-model="partSearch"
+                        @input.debounce.300ms="searchParts()"
+                        @focus="showPartResults = true"
+                        placeholder="Hledat díl podle čísla, názvu..."
+                        style="width: 100%;"
+                        :disabled="creating"
+                    >
+                    <!-- Search Results Dropdown -->
+                    <div x-show="showPartResults && partSearchResults.length > 0"
+                         @click.away="showPartResults = false"
+                         style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem; max-height: 300px; overflow-y: auto; z-index: 1001; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <template x-for="part in partSearchResults" :key="part.id">
+                            <div @click="selectPart(part)"
+                                 style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border-color);"
+                                 :style="{ background: selectedPart && selectedPart.id === part.id ? 'var(--bg-secondary)' : 'transparent' }"
+                                 @mouseenter="$el.style.background = 'var(--bg-secondary)'"
+                                 @mouseleave="$el.style.background = selectedPart && selectedPart.id === part.id ? 'var(--bg-secondary)' : 'transparent'">
+                                <div style="font-weight: 500; color: var(--text-primary);" x-text="part.part_number"></div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);" x-text="part.name || '(bez názvu)'"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <!-- No Results -->
+                    <div x-show="showPartResults && partSearch.length > 0 && partSearchResults.length === 0 && !searchingParts"
+                         style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem; padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; z-index: 1001;">
+                        Žádné díly nenalezeny
+                    </div>
+                </div>
+                <!-- Selected Part Display -->
+                <div x-show="selectedPart" style="margin-top: 0.5rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight: 500; color: var(--accent-blue);" x-text="selectedPart?.part_number"></span>
+                            <span style="color: var(--text-secondary); margin-left: 0.5rem;" x-text="selectedPart?.name"></span>
+                        </div>
+                        <button @click="clearSelectedPart()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; padding: 0.25rem;">×</button>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button @click="closeCreateModal()" class="btn-flat" :disabled="creating">
+                    Zrušit
+                </button>
+                <button @click="createBatchSet()" class="btn-flat btn-save" :disabled="!selectedPart || creating">
+                    <span x-show="!creating">Vytvořit</span>
+                    <span x-show="creating">Vytvářím...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function batchSetsModule() {
+    return {
+        // Module identity (ADR-023: Workspace ready)
+        moduleType: 'batch-sets-list',
+        moduleId: crypto.randomUUID(),
+
+        // State
+        batchSets: [],
+        loading: false,
+        statusFilter: '',
+
+        // Create Modal State
+        showCreateModal: false,
+        partSearch: '',
+        partSearchResults: [],
+        showPartResults: false,
+        searchingParts: false,
+        selectedPart: null,
+        
+        creating: false,
+
+        // Lifecycle
+        async init() {
+            await this.loadBatchSets();
+        },
+
+        // API Methods
+        async loadBatchSets() {
+            this.loading = true;
+            try {
+                let url = '/api/pricing/batch-sets';
+                if (this.statusFilter) {
+                    url += `?status=${this.statusFilter}`;
+                }
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to load batch sets');
+                this.batchSets = await response.json();
+            } catch (error) {
+                console.error('Error loading batch sets:', error);
+                alert('Nepodařilo se načíst sady cen');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async freezeSet(batchSet) {
+            if (!confirm(`Zmrazit sadu "${batchSet.name}"?\n\nVšechny dávky v sadě budou zmrazeny a nebude je možné upravovat.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/pricing/batch-sets/${batchSet.id}/freeze`, {
+                    method: 'POST'
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to freeze batch set');
+                }
+                await this.loadBatchSets();
+            } catch (error) {
+                console.error('Error freezing batch set:', error);
+                alert('Nepodařilo se zmrazit sadu: ' + error.message);
+            }
+        },
+
+        // Create Modal Methods
+        async searchParts() {
+            if (!this.partSearch.trim()) {
+                this.partSearchResults = [];
+                this.showPartResults = false;
+                return;
+            }
+
+            this.searchingParts = true;
+            try {
+                const response = await fetch(`/api/parts/search?search=${encodeURIComponent(this.partSearch)}&limit=20`);
+                if (!response.ok) throw new Error('Failed to search parts');
+                const data = await response.json();
+                this.partSearchResults = data.parts || [];
+                this.showPartResults = true;
+            } catch (error) {
+                console.error('Error searching parts:', error);
+                this.partSearchResults = [];
+            } finally {
+                this.searchingParts = false;
+            }
+        },
+
+        selectPart(part) {
+            this.selectedPart = part;
+            this.partSearch = part.part_number;
+            this.showPartResults = false;
+        },
+
+        clearSelectedPart() {
+            this.selectedPart = null;
+            this.partSearch = '';
+            this.partSearchResults = [];
+        },
+
+        async createBatchSet() {
+            if (!this.selectedPart) {
+                alert('Vyberte díl');
+                return;
+            }
+
+            this.creating = true;
+            try {
+                const payload = {
+                    part_id: this.selectedPart.id
+                };
+
+                const response = await fetch('/api/pricing/batch-sets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to create batch set');
+                }
+
+                const newSet = await response.json();
+                this.closeCreateModal();
+
+                // Redirect to detail page
+                window.location.href = `/pricing/batch-sets/${newSet.id}`;
+            } catch (error) {
+                console.error('Error creating batch set:', error);
+                alert('Nepodařilo se vytvořit sadu: ' + error.message);
+            } finally {
+                this.creating = false;
+            }
+        },
+
+        closeCreateModal() {
+            this.showCreateModal = false;
+            this.partSearch = '';
+            this.partSearchResults = [];
+            this.showPartResults = false;
+            this.selectedPart = null;
+            
+            this.creating = false;
+        },
+
+        // Helpers
+        formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('cs-CZ') + ' ' + date.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+        }
+    };
+}
+</script>
+{% endblock %}

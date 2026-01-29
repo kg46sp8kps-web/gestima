@@ -1,5 +1,5 @@
 """
-Tests for NumberGenerator service (ADR-017: 7-digit Random Numbering)
+Tests for NumberGenerator service (ADR-017: 8-digit Random Numbering v2.0)
 
 Test coverage:
 - Single number generation (all entity types)
@@ -26,31 +26,31 @@ class TestNumberGeneratorSingle:
     """Test single number generation"""
 
     async def test_generate_part_number_format(self, db_session: AsyncSession):
-        """Part number should be 7-digit starting with 1"""
+        """Part number should be 8-digit starting with 10"""
         number = await NumberGenerator.generate_part_number(db_session)
 
-        assert len(number) == 7, "Part number must be 7 digits"
+        assert len(number) == 8, "Part number must be 8 digits"
         assert number.isdigit(), "Part number must be numeric"
-        assert number.startswith('1'), "Part number must start with 1"
-        assert 1000000 <= int(number) <= 1999999, "Part number out of range"
+        assert number.startswith('10'), "Part number must start with 10"
+        assert 10000000 <= int(number) <= 10999999, "Part number out of range"
 
     async def test_generate_material_number_format(self, db_session: AsyncSession):
-        """Material number should be 7-digit starting with 2"""
+        """Material number should be 8-digit starting with 20"""
         number = await NumberGenerator.generate_material_number(db_session)
 
-        assert len(number) == 7, "Material number must be 7 digits"
+        assert len(number) == 8, "Material number must be 8 digits"
         assert number.isdigit(), "Material number must be numeric"
-        assert number.startswith('2'), "Material number must start with 2"
-        assert 2000000 <= int(number) <= 2999999, "Material number out of range"
+        assert number.startswith('20'), "Material number must start with 20"
+        assert 20000000 <= int(number) <= 20999999, "Material number out of range"
 
     async def test_generate_batch_number_format(self, db_session: AsyncSession):
-        """Batch number should be 7-digit starting with 3"""
+        """Batch number should be 8-digit starting with 30"""
         number = await NumberGenerator.generate_batch_number(db_session)
 
-        assert len(number) == 7, "Batch number must be 7 digits"
+        assert len(number) == 8, "Batch number must be 8 digits"
         assert number.isdigit(), "Batch number must be numeric"
-        assert number.startswith('3'), "Batch number must start with 3"
-        assert 3000000 <= int(number) <= 3999999, "Batch number out of range"
+        assert number.startswith('30'), "Batch number must start with 30"
+        assert 30000000 <= int(number) <= 30999999, "Batch number out of range"
 
     async def test_generate_part_number_uniqueness(self, db_session: AsyncSession):
         """Generated part numbers should be unique"""
@@ -67,8 +67,8 @@ class TestNumberGeneratorSingle:
         price_category
     ):
         """Generator should avoid numbers already in database"""
-        # Create a part with known number
-        existing_number = "1123456"
+        # Create a part with known number (8-digit format)
+        existing_number = "10123456"
         part = Part(
             part_number=existing_number,
             name="Test Part",
@@ -95,8 +95,8 @@ class TestNumberGeneratorBatch:
 
         assert len(numbers) == 10, "Should generate exactly 10 numbers"
         assert len(set(numbers)) == 10, "All numbers should be unique"
-        assert all(len(n) == 7 for n in numbers), "All numbers should be 7 digits"
-        assert all(n.startswith('1') for n in numbers), "All should start with 1"
+        assert all(len(n) == 8 for n in numbers), "All numbers should be 8 digits"
+        assert all(n.startswith('10') for n in numbers), "All should start with 10"
 
     async def test_generate_batch_30_numbers(self, db_session: AsyncSession):
         """Generate 30 numbers in batch (user's use case)"""
@@ -152,11 +152,11 @@ class TestNumberGeneratorCollisions:
         price_category
     ):
         """Generator should handle collisions gracefully"""
-        # Pre-populate database with some numbers
+        # Pre-populate database with some numbers (8-digit format)
         existing_numbers = set()
         for i in range(100):
-            number = f"1{i:06d}"  # 1000000, 1000001, ...
-            if 1000000 <= int(number) <= 1999999:
+            number = f"10{i:06d}"  # 10000000, 10000001, ...
+            if 10000000 <= int(number) <= 10999999:
                 part = Part(
                     part_number=number,
                     name=f"Part {i}",
@@ -211,13 +211,13 @@ class TestNumberGeneratorEdgeCases:
 
         def mock_randint(min_val, max_val):
             call_count[0] += 1
-            return 1000000  # Always return same number
+            return 10000000  # Always return same number (8-digit)
 
         monkeypatch.setattr('random.randint', mock_randint)
 
         # First call creates the collision
         part = Part(
-            part_number="1000000",
+            part_number="10000000",
             name="Existing",
             price_category_id=1,
             created_by="test"
@@ -298,8 +298,8 @@ class TestNumberGeneratorIntegration:
         saved_part = result.scalar_one()
 
         assert saved_part.part_number is not None
-        assert len(saved_part.part_number) == 7
-        assert saved_part.part_number.startswith('1')
+        assert len(saved_part.part_number) == 8
+        assert saved_part.part_number.startswith('10')
 
 
 # Fixtures for tests

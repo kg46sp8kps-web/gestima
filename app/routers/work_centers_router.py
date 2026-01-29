@@ -1,6 +1,7 @@
 """GESTIMA - Work Centers API router (ADR-021)"""
 
 import logging
+from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_, func
@@ -17,7 +18,11 @@ from app.models.work_center import (
     WorkCenterUpdate,
     WorkCenterResponse
 )
+from app.models.batch import Batch
+from app.models.part import Part
+from app.models.operation import Operation
 from app.services.number_generator import NumberGenerator
+from app.services.batch_service import recalculate_batch_costs
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -199,9 +204,32 @@ async def update_work_center(
             detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu."
         )
 
+    # Detect rate changes for dirty tracking (ADR-021 extension)
+    rate_fields = [
+        'hourly_rate_amortization',
+        'hourly_rate_labor',
+        'hourly_rate_tools',
+        'hourly_rate_overhead'
+    ]
+    old_rates = {field: getattr(work_center, field) for field in rate_fields}
+    update_dict = data.model_dump(exclude_unset=True, exclude={'version'})
+
+    rates_changed = any(
+        field in update_dict and update_dict[field] != old_rates[field]
+        for field in rate_fields
+    )
+
     # Update fields (exclude version - auto-incremented by event listener)
-    for key, value in data.model_dump(exclude_unset=True, exclude={'version'}).items():
+    for key, value in update_dict.items():
         setattr(work_center, key, value)
+
+    # If rates changed, mark timestamp
+    if rates_changed:
+        work_center.last_rate_changed_at = datetime.now()
+        logger.info(
+            f"Work center {work_center_number} rates changed - batch recalculation needed",
+            extra={"work_center_number": work_center_number, "user": current_user.username}
+        )
 
     set_audit(work_center, current_user.username, is_update=True)
 
@@ -216,6 +244,77 @@ async def update_work_center(
         extra={"work_center_id": work_center.id, "user": current_user.username}
     )
     return WorkCenterResponse.from_orm(work_center)
+
+
+@router.post("/{work_center_number}/recalculate-batches")
+async def recalculate_batches(
+    work_center_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """Přepočítat všechny batches používající toto pracoviště"""
+    # Get work center
+    result = await db.execute(
+        select(WorkCenter).where(WorkCenter.work_center_number == work_center_number)
+    )
+    work_center = result.scalar_one_or_none()
+    if not work_center:
+        raise HTTPException(status_code=404, detail="Pracoviště nenalezeno")
+
+    # Find all non-frozen batches using this work center
+    # Join through operations to find batches
+    batches_query = (
+        select(Batch)
+        .join(Part, Batch.part_id == Part.id)
+        .join(Operation, Operation.part_id == Part.id)
+        .where(
+            Operation.work_center_id == work_center.id,
+            Batch.is_frozen == False
+        )
+        .distinct()
+    )
+
+    batches_result = await db.execute(batches_query)
+    batches = batches_result.scalars().all()
+
+    recalculated_count = 0
+    failed_count = 0
+    for batch in batches:
+        try:
+            await recalculate_batch_costs(batch, db)
+            recalculated_count += 1
+        except Exception as e:
+            failed_count += 1
+            logger.error(
+                f"Failed to recalculate batch {batch.id}: {e}",
+                exc_info=True,
+                extra={"batch_id": batch.id, "work_center_id": work_center.id}
+            )
+
+    # Commit all batch updates
+    await db.commit()
+
+    # Update timestamp
+    work_center.batches_recalculated_at = datetime.now()
+    await db.commit()
+
+    logger.info(
+        f"Recalculated {recalculated_count} batches for work center {work_center_number}",
+        extra={
+            "work_center_number": work_center_number,
+            "work_center_id": work_center.id,
+            "batches_count": recalculated_count,
+            "failed_count": failed_count,
+            "user": current_user.username
+        }
+    )
+
+    return {
+        "recalculated_count": recalculated_count,
+        "failed_count": failed_count,
+        "work_center_number": work_center_number,
+        "timestamp": work_center.batches_recalculated_at
+    }
 
 
 @router.delete("/{work_center_number}", status_code=204)

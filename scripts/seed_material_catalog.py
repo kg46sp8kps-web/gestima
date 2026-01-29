@@ -347,18 +347,25 @@ async def seed_catalog():
         print("SEED: Material Catalog (Groups + Price Categories + Tiers)")
         print("=" * 80)
 
-        # Check if already seeded
+        # Check if already seeded (groups + categories)
         result = await db.execute(select(MaterialGroup))
         existing_groups = result.scalars().all()
 
-        if len(existing_groups) >= 10:
-            print(f"\n⚠️  Already seeded ({len(existing_groups)} groups found)")
+        result_cats = await db.execute(select(MaterialPriceCategory))
+        existing_categories = result_cats.scalars().all()
+
+        if len(existing_groups) >= 10 and len(existing_categories) >= 30:
+            print(f"\n⚠️  Already seeded ({len(existing_groups)} groups, {len(existing_categories)} categories found)")
             print("Skipping seed to avoid duplicates.")
             print("If you want to re-seed, delete existing data first:")
             print("  DELETE FROM material_price_tiers;")
             print("  DELETE FROM material_price_categories;")
             print("  DELETE FROM material_groups;")
             return
+
+        if len(existing_groups) >= 10 and len(existing_categories) < 30:
+            print(f"\n⚠️  Groups seeded ({len(existing_groups)} groups), but categories missing ({len(existing_categories)} found)")
+            print("Continuing with category seeding...")
 
         # === STEP 1: Create MaterialGroups ===
         print("\n[1/3] Creating MaterialGroups...")

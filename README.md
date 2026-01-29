@@ -50,7 +50,7 @@ cd scripts\windows
 # 5. Seed + Create users
 python -m app.seed_materials
 python scripts\seed_machines.py
-python gestima.py create-admin
+python gestima.py create-admin  # Default: admin / asdfghjkl
 
 # 6. Autostart + Backup (Task Scheduler)
 # See: PRODUCTION-SETUP.md steps 13-14

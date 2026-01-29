@@ -388,3 +388,102 @@ class TestMaterialParserEdgeCases:
         result = await parser.parse("D20 (C45) 100mm")
         assert result.diameter == 20.0
         # Note: Závorky mohou ovlivnit parsing, ale nemělo by to spadnout
+
+    @pytest.mark.asyncio
+    async def test_csn_code_17240_not_aluminum(self, db_session):
+        """
+        CRITICAL BUG FIX: ČSN kód 17240 (nerez) nesmí matchovat jako hliník.
+
+        Bug: Regex [67]\\d{3} matchoval "7240" uvnitř "17240" → špatně "hlinik"
+        Fix: Přidat \\b word boundary → [67]\\d{3}\\b
+
+        Input: "20x20 17240 345"
+        Expected: shape=SQUARE_BAR, material_category=unknown (DB lookup), length=345
+        """
+        parser = MaterialParserService(db_session)
+        result = await parser.parse("20x20 17240 345")
+
+        # Shape OK
+        assert result.shape == StockShape.SQUARE_BAR
+        assert result.width == 20.0
+        assert result.height == 20.0
+
+        # Material: 17240 NESMÍ být "hlinik"!
+        # After fix: DB lookup najde 17240 → nerez, nebo "unknown" pokud není v DB
+        assert result.material_category != "hlinik", \
+            "BUG: 17240 (ČSN nerez) was incorrectly matched as aluminum!"
+
+        # Length: musí být 345, NE 1!
+        # Bug: když "7240" matchlo, odstranilo se z "17240" → "1 345" → length=1
+        assert result.length == 345.0, \
+            f"BUG: Length should be 345, got {result.length} (partial match corruption)"
+
+    @pytest.mark.asyncio
+    async def test_aluminum_pattern_standalone_only(self, db_session):
+        """
+        Hliníkové série 6xxx a 7xxx musí matchovat POUZE jako standalone čísla.
+
+        Valid: "6060", "7075" (samostatně)
+        Invalid: "17240" (7240 uvnitř), "16082" (6082 uvnitř)
+        """
+        parser = MaterialParserService(db_session)
+
+        # Valid aluminum codes
+        r1 = await parser.parse("D20 6060 100")
+        assert r1.material_category == "hlinik"
+
+        r2 = await parser.parse("D20 7075 100")
+        assert r2.material_category == "hlinik"
+
+        # Invalid: partial match inside larger numbers
+        r3 = await parser.parse("D20 17240 100")  # 17240 = ČSN nerez, NOT 7240 aluminum
+        assert r3.material_category != "hlinik"
+
+        r4 = await parser.parse("D20 16082 100")  # 16082 != 6082 aluminum
+        assert r4.material_category != "hlinik"
+
+    @pytest.mark.asyncio
+    async def test_length_not_corrupted_by_material_removal(self, db_session):
+        """
+        Odstranění materiálu z textu nesmí poškodit okolní čísla.
+
+        Bug: "17240" matchlo jako "7240" → po odstranění "17240" → "1 345" → length=1
+        Fix: Word boundaries zabrání partial match
+        """
+        parser = MaterialParserService(db_session)
+
+        # Test various ČSN codes that could corrupt length
+        test_cases = [
+            ("20x20 17240 345", 345.0),  # 17240 nerez
+            ("20x20 12050 500", 500.0),  # 12050 ocel
+            ("20x20 11373 250", 250.0),  # 11373 ocel
+        ]
+
+        for input_str, expected_length in test_cases:
+            result = await parser.parse(input_str)
+            assert result.length == expected_length, \
+                f"Input '{input_str}': Expected length {expected_length}, got {result.length}"
+
+    @pytest.mark.asyncio
+    async def test_five_digit_csn_codes(self, db_session):
+        """
+        Pětimístné ČSN kódy (11xxx, 12xxx, 17xxx) musí být rozpoznány přes DB lookup.
+        """
+        parser = MaterialParserService(db_session)
+
+        # These should trigger DB fallback (not hardcoded patterns)
+        # Note: Results depend on MaterialNorm seed data in DB
+        csn_codes = ["11373", "12050", "17240", "17247"]
+
+        for code in csn_codes:
+            result = await parser.parse(f"D20 {code} 100")
+
+            # Material norm should be the ČSN code (via DB lookup)
+            # Note: If DB doesn't have the norm, it will be None - that's OK
+            if result.material_norm:
+                assert result.material_norm == code, \
+                    f"ČSN code {code} not recognized"
+
+            # Length should NOT be affected by material removal
+            assert result.length == 100.0, \
+                f"Length corrupted for ČSN code {code}"

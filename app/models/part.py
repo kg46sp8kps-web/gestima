@@ -17,7 +17,7 @@ class Part(Base, AuditMixin):
     __tablename__ = "parts"
 
     id = Column(Integer, primary_key=True, index=True)
-    part_number = Column(String(7), unique=True, nullable=False, index=True)  # 7-digit random: 1XXXXXX
+    part_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 10XXXXXX
     article_number = Column(String(50), nullable=True, index=True)  # Dodavatelské číslo
     name = Column(String(200), nullable=True)
 
@@ -50,10 +50,11 @@ class Part(Base, AuditMixin):
     price_category = relationship("MaterialPriceCategory", foreign_keys=[price_category_id])
     operations = relationship("Operation", back_populates="part", cascade="all, delete-orphan")
     batches = relationship("Batch", back_populates="part", cascade="all, delete-orphan")
+    batch_sets = relationship("BatchSet", back_populates="part")  # ADR-022: Sady cen
 
 
 class PartBase(BaseModel):
-    part_number: str = Field(..., min_length=7, max_length=7, description="Číslo dílu (unikátní, 7-digit)")
+    part_number: str = Field(..., min_length=8, max_length=8, description="Číslo dílu (unikátní, 8-digit)")
     article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
     name: str = Field("", max_length=200, description="Název dílu")
     material_item_id: Optional[int] = Field(None, gt=0, description="ID materiálové položky (future)")
@@ -71,7 +72,7 @@ class PartBase(BaseModel):
 
 class PartCreate(BaseModel):
     """Create new part - part_number is auto-generated if not provided"""
-    part_number: Optional[str] = Field(None, min_length=7, max_length=7, description="Číslo dílu (auto-generated)")
+    part_number: Optional[str] = Field(None, min_length=8, max_length=8, description="Číslo dílu (auto-generated)")
     article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
     name: str = Field("", max_length=200, description="Název dílu")
     material_item_id: Optional[int] = Field(None, gt=0, description="ID materiálové položky (future)")
@@ -88,7 +89,7 @@ class PartCreate(BaseModel):
 
 
 class PartUpdate(BaseModel):
-    part_number: Optional[str] = Field(None, min_length=7, max_length=7)
+    part_number: Optional[str] = Field(None, min_length=8, max_length=8)
     article_number: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = Field(None, max_length=200)
     material_item_id: Optional[int] = Field(None, gt=0)

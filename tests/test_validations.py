@@ -23,34 +23,34 @@ class TestPartValidations:
         assert "part_number" in str(exc_info.value)
 
     def test_part_number_exact_length(self):
-        """part_number musí mít přesně 7 znaků (ADR-017)"""
+        """part_number musí mít přesně 8 znaků (ADR-017 v2.0)"""
         from app.models.part import PartCreate
-        # Too long
+        # Too long (9 digits)
         with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="12345678", material_item_id=1)
+            PartCreate(part_number="123456789", material_item_id=1)
         assert "part_number" in str(exc_info.value)
-        # Too short
+        # Too short (7 digits)
         with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="123456", material_item_id=1)
+            PartCreate(part_number="1234567", material_item_id=1)
         assert "part_number" in str(exc_info.value)
 
     def test_part_length_non_negative(self):
         """length nesmí být záporná"""
         from app.models.part import PartCreate
         with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="1000001", material_item_id=1, length=-5)
+            PartCreate(part_number="10000001", material_item_id=1, length=-5)
         assert "length" in str(exc_info.value)
 
     def test_part_valid_data(self):
         """Validní data projdou"""
         from app.models.part import PartCreate
         part = PartCreate(
-            part_number="1000001",  # 7-digit number (ADR-017)
+            part_number="10000001",  # 8-digit number (ADR-017)
             material_item_id=1,
             length=100.0,
             name="Test díl"
         )
-        assert part.part_number == "1000001"
+        assert part.part_number == "10000001"
         assert part.length == 100.0
 
 

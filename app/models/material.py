@@ -81,7 +81,7 @@ class MaterialItem(Base, AuditMixin):
     __tablename__ = "material_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    material_number = Column(String(7), unique=True, nullable=False, index=True)  # 7-digit random: 2XXXXXX
+    material_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 20XXXXXX
     code = Column(String(50), unique=True, nullable=False, index=True)    # "1.0715-D20"
     name = Column(String(200), nullable=False)                            # "1.0715 D20 - tyč kruhová ocel"
 
@@ -213,7 +213,7 @@ class MaterialPriceCategoryWithTiersResponse(MaterialPriceCategoryResponse):
 # ----- MaterialItem -----
 
 class MaterialItemBase(BaseModel):
-    material_number: str = Field(..., min_length=7, max_length=7, description="Číslo materiálu (7-digit)")
+    material_number: str = Field(..., min_length=8, max_length=8, description="Číslo materiálu (8-digit)")
     code: str = Field(..., max_length=50, description="Kód položky (např. 1.0715-D20)")
     name: str = Field(..., max_length=200, description="Název položky")
     shape: StockShape = Field(..., description="Tvar polotovaru")
@@ -233,7 +233,7 @@ class MaterialItemBase(BaseModel):
 
 class MaterialItemCreate(BaseModel):
     """Create new material item - material_number is auto-generated if not provided"""
-    material_number: Optional[str] = Field(None, min_length=7, max_length=7, description="Číslo materiálu (auto-generated)")
+    material_number: Optional[str] = Field(None, min_length=8, max_length=8, description="Číslo materiálu (auto-generated)")
     code: str = Field(..., max_length=50, description="Kód položky (např. 1.0715-D20)")
     name: str = Field(..., max_length=200, description="Název položky")
     shape: StockShape = Field(..., description="Tvar polotovaru")
@@ -252,7 +252,7 @@ class MaterialItemCreate(BaseModel):
 
 
 class MaterialItemUpdate(BaseModel):
-    material_number: Optional[str] = Field(None, min_length=7, max_length=7)
+    material_number: Optional[str] = Field(None, min_length=8, max_length=8)
     code: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = Field(None, max_length=200)
     shape: Optional[StockShape] = None

@@ -13,7 +13,7 @@ class Batch(Base, AuditMixin):
     __tablename__ = "batches"
     
     id = Column(Integer, primary_key=True, index=True)
-    batch_number = Column(String(7), unique=True, nullable=False, index=True)  # 7-digit random: 3XXXXXX
+    batch_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 30XXXXXX
     part_id = Column(Integer, ForeignKey("parts.id", ondelete="CASCADE"), index=True)
     quantity = Column(Integer, default=1, nullable=False)
     is_default = Column(Boolean, default=False)
@@ -46,22 +46,26 @@ class Batch(Base, AuditMixin):
     unit_price_frozen = Column(Float, nullable=True, index=True)
     total_price_frozen = Column(Float, nullable=True)
 
+    # BatchSet FK (ADR-022: Sady cen)
+    batch_set_id = Column(Integer, ForeignKey("batch_sets.id", ondelete="CASCADE"), nullable=True, index=True)
+
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version
 
     part = relationship("Part", back_populates="batches")
+    batch_set = relationship("BatchSet", back_populates="batches")
     frozen_by = relationship("User")
 
 
 class BatchBase(BaseModel):
-    batch_number: str = Field(..., min_length=7, max_length=7, description="Číslo šarže (7-digit)")
+    batch_number: str = Field(..., min_length=8, max_length=8, description="Číslo šarže (8-digit)")
     quantity: int = Field(1, gt=0, description="Množství kusů (musí být > 0)")
     is_default: bool = False
 
 
 class BatchCreate(BaseModel):
     """Create new batch - batch_number is auto-generated if not provided"""
-    batch_number: Optional[str] = Field(None, min_length=7, max_length=7, description="Číslo šarže (auto-generated)")
+    batch_number: Optional[str] = Field(None, min_length=8, max_length=8, description="Číslo šarže (auto-generated)")
     part_id: int = Field(..., gt=0, description="ID dílu")
     quantity: int = Field(1, gt=0, description="Množství kusů (musí být > 0)")
     is_default: bool = False
@@ -69,7 +73,7 @@ class BatchCreate(BaseModel):
 
 class BatchUpdate(BaseModel):
     """Schema for updating batch"""
-    batch_number: Optional[str] = Field(None, min_length=7, max_length=7)
+    batch_number: Optional[str] = Field(None, min_length=8, max_length=8)
     quantity: Optional[int] = Field(None, gt=0, description="Množství kusů")
     is_default: Optional[bool] = None
     version: int  # Optimistic locking (ADR-008)
@@ -81,6 +85,7 @@ class BatchResponse(BaseModel):
     id: int
     batch_number: str
     part_id: int
+    batch_set_id: Optional[int] = None  # ADR-022
     quantity: int
     is_default: bool
     unit_time_min: float

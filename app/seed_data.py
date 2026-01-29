@@ -3,7 +3,7 @@
 Tento skript vytváří demo data při každém startu aplikace.
 Demo záznamy mají v notes "DEMO" pro snadnou identifikaci a mazání.
 
-KRITICKÉ: Demo data MUSÍ dodržovat ADR-017 (7-digit random numbering: 1XXXXXX)
+KRITICKÉ: Demo data MUSÍ dodržovat ADR-017 v2.0 (8-digit random numbering: 10XXXXXX)
 """
 
 import logging
@@ -22,7 +22,7 @@ async def seed_demo_parts(db: AsyncSession):
 
     Demo parts mají v notes "DEMO" a dají se snadno smazat a znovu vytvořit.
 
-    IMPORTANT: Uses NumberGenerator to comply with ADR-017 (7-digit format: 1XXXXXX)
+    IMPORTANT: Uses NumberGenerator to comply with ADR-017 v2.0 (8-digit format: 10XXXXXX)
     """
     try:
         # Zjisti jestli máme nějaký materiál
@@ -43,7 +43,7 @@ async def seed_demo_parts(db: AsyncSession):
             logger.debug("Demo parts already exist")
             return
 
-        # Generate 7-digit part numbers (ADR-017: 1XXXXXX format)
+        # Generate 8-digit part numbers (ADR-017 v2.0: 10XXXXXX format)
         part_numbers = await NumberGenerator.generate_part_numbers_batch(db, 3)
 
         # Demo parts data (WITHOUT hardcoded part_numbers!)
@@ -71,7 +71,7 @@ async def seed_demo_parts(db: AsyncSession):
         created_count = 0
         for i, data in enumerate(demo_parts_data):
             part = Part(
-                part_number=part_numbers[i],  # ADR-017 compliant (1XXXXXX)
+                part_number=part_numbers[i],  # ADR-017 v2.0 compliant (10XXXXXX)
                 article_number=data["article_number"],
                 name=data["name"],
                 material_item_id=material.id,

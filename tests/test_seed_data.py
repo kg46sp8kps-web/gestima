@@ -1,6 +1,6 @@
-"""GESTIMA - Tests for seed data compliance with ADR-017
+"""GESTIMA - Tests for seed data compliance with ADR-017 v2.0
 
-CRITICAL: Seed data MUST comply with ADR-017 (7-digit random numbering).
+CRITICAL: Seed data MUST comply with ADR-017 v2.0 (8-digit random numbering).
 This test prevents L-015 anti-pattern (changing validation to fit bad data).
 
 Real-world incident (2026-01-27):
@@ -10,6 +10,8 @@ Real-world incident (2026-01-27):
 - Caught by user: "tohle je kritické selhání!!!"
 
 Prevention: This test ensures seed data never violates architecture again.
+
+Migration note (2026-01-28): ADR-017 v2.0 expands to 8-digit format (10XXXXXX).
 """
 
 import pytest
@@ -23,7 +25,7 @@ from app.models.part import Part
 @pytest.mark.asyncio
 async def test_seed_demo_parts_adr017_compliance(db_session):
     """
-    CRITICAL: Demo parts MUST comply with ADR-017 (7-digit format: 1XXXXXX)
+    CRITICAL: Demo parts MUST comply with ADR-017 v2.0 (8-digit format: 10XXXXXX)
 
     Test prevents L-015 anti-pattern (changing validation to fit bad data).
     If this test fails, FIX seed_data.py - DO NOT relax validation!
@@ -40,29 +42,29 @@ async def test_seed_demo_parts_adr017_compliance(db_session):
     # Assert: At least 3 demo parts created
     assert len(demo_parts) >= 3, "Expected at least 3 demo parts"
 
-    # ADR-017: Format MUST be 1XXXXXX (7 digits, starts with 1)
-    adr017_pattern = re.compile(r"^1\d{6}$")
+    # ADR-017 v2.0: Format MUST be 10XXXXXX (8 digits, starts with 10)
+    adr017_pattern = re.compile(r"^10\d{6}$")
 
     for part in demo_parts:
-        # FAIL if part_number doesn't match ADR-017
+        # FAIL if part_number doesn't match ADR-017 v2.0
         assert adr017_pattern.match(part.part_number), (
-            f"❌ SEED DATA VIOLATES ADR-017!\n"
+            f"❌ SEED DATA VIOLATES ADR-017 v2.0!\n"
             f"   Part: {part.name}\n"
             f"   part_number: {part.part_number}\n"
-            f"   Expected: 1XXXXXX (7 digits, starts with 1)\n"
+            f"   Expected: 10XXXXXX (8 digits, starts with 10)\n"
             f"   Found: {len(part.part_number)} characters\n"
             f"\n"
             f"   🚨 FIX: app/seed_data.py - use NumberGenerator!\n"
             f"   ❌ DO NOT: Change validation to fit bad data (L-015)!\n"
-            f"   📖 READ: docs/ADR/017-7digit-random-numbering.md\n"
+            f"   📖 READ: docs/ADR/017-8digit-entity-numbering.md\n"
         )
 
         # Additional checks
-        assert len(part.part_number) == 7, (
-            f"part_number '{part.part_number}' must be exactly 7 characters"
+        assert len(part.part_number) == 8, (
+            f"part_number '{part.part_number}' must be exactly 8 characters"
         )
-        assert part.part_number[0] == "1", (
-            f"part_number '{part.part_number}' must start with '1' (ADR-017 prefix)"
+        assert part.part_number.startswith("10"), (
+            f"part_number '{part.part_number}' must start with '10' (ADR-017 v2.0 prefix)"
         )
         assert part.part_number.isdigit(), (
             f"part_number '{part.part_number}' must contain only digits (no letters/symbols)"

@@ -442,6 +442,27 @@
                     </div>
                 </div>
                 <div class="ribbon-body" x-show="showBatches">
+                    <!-- Batch Set Selector + Freeze Button -->
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; align-items: center;">
+                        <div style="flex: 1;">
+                            <select x-model="selectedBatchSetId"
+                                    @change="loadBatches()"
+                                    style="width: 100%; padding: 0.4rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 0.7rem;">
+                                <option value="">📝 Volné šarže (rozpracováno)</option>
+                                <template x-for="set in batchSets" :key="set.id">
+                                    <option :value="set.id" x-text="'📦 ' + set.set_number + ' - ' + set.name + ' (' + set.batch_count + ' ks)'"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <button x-show="selectedBatchSetId === '' && looseBatchCount > 0"
+                                @click="freezeLooseBatches()"
+                                class="btn-flat"
+                                style="font-size: 0.7rem; padding: 0.4rem 0.6rem; white-space: nowrap; background: var(--accent-green); color: white;"
+                                :title="'Zmrazit ' + looseBatchCount + ' volných šarží jako sadu'">
+                            <span x-text="'📦 Zmrazit (' + looseBatchCount + ')'"></span>
+                        </button>
+                    </div>
+
                     <!-- Tabulka cen - kompaktní -->
                     <table style="width: 100%; font-size: 0.65rem; border-collapse: collapse;">
                         <thead>
@@ -460,14 +481,15 @@
                         </thead>
                         <tbody>
                             <template x-for="batch in batches" :key="batch.id">
-                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                <tr :style="batch.is_frozen ? 'border-bottom: 1px solid var(--border-color); opacity: 0.6; background: var(--bg-secondary);' : 'border-bottom: 1px solid var(--border-color);'">
                                     <!-- Dávka -->
                                     <td style="padding: 0.2rem;">
                                         <div style="display: flex; align-items: center; gap: 0.2rem; flex-wrap: wrap;">
                                             <span style="font-weight: 600;" x-text="batch.quantity + ' ks'"></span>
                                             <span x-show="batch.is_frozen"
-                                                  style="background: var(--accent-green); color: white; padding: 0.1rem 0.2rem; border-radius: 2px; font-size: 0.55rem; font-weight: 600;">
-                                                FRZ
+                                                  style="background: var(--accent-green); color: white; padding: 0.1rem 0.2rem; border-radius: 2px; font-size: 0.55rem; font-weight: 600;"
+                                                  title="Zmrazeno - nelze měnit">
+                                                🔒 FRZ
                                             </span>
                                         </div>
                                     </td>
@@ -534,8 +556,8 @@
                         <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 6px; background: var(--accent-blue); border-radius: 1px;"></span>tj</span>
                     </div>
 
-                    <!-- Přidat batch -->
-                    <div style="margin-top: 0.5rem; display: flex; gap: 0.4rem; align-items: center;">
+                    <!-- Přidat batch (pouze pro volné šarže) -->
+                    <div x-show="selectedBatchSetId === ''" style="margin-top: 0.5rem; display: flex; gap: 0.4rem; align-items: center;">
                         <input type="number" x-model.number="newBatchQty" placeholder="ks" min="1"
                                @keydown.enter="addBatch()" @focus="$el.dataset.fresh = 'true'" @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }" @blur="$el.dataset.fresh = 'false'"
                                style="width: 60px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 3px; padding: 0.3rem; font-size: 0.7rem; color: var(--text-primary); text-align: center;">
@@ -543,12 +565,82 @@
                             + Přidat
                         </button>
                     </div>
+
+                    <!-- Info when viewing frozen set -->
+                    <div x-show="selectedBatchSetId !== ''" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px; font-size: 0.7rem; color: var(--text-muted); text-align: center;">
+                        🔒 Prohlížíte zmrazenou sadu. Pro editaci přepněte na "Volné šarže".
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Scrollovatelný obsah -->
         <div class="right-panel-content">
+
+            <!-- Sady cen (ADR-022) -->
+            <div class="ribbon" style="margin-bottom: 1rem;">
+                <div class="ribbon-header" @click="showBatchSets = !showBatchSets">
+                    <div class="ribbon-title">📦 Sady cen</div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button @click.stop="createBatchSet()" class="btn-flat" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                            ➕ Přidat sadu
+                        </button>
+                        <div class="ribbon-toggle" x-text="showBatchSets ? '▼' : '▶'">▼</div>
+                    </div>
+                </div>
+                <div class="ribbon-body" x-show="showBatchSets">
+                    <!-- BatchSets Table -->
+                    <template x-if="batchSets.length > 0">
+                        <table style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                                    <th style="padding: 0.5rem; text-align: left; font-weight: 600; color: var(--text-secondary);">Číslo sady</th>
+                                    <th style="padding: 0.5rem; text-align: left; font-weight: 600; color: var(--text-secondary);">Název</th>
+                                    <th style="padding: 0.5rem; text-align: center; font-weight: 600; color: var(--text-secondary);">Dávky</th>
+                                    <th style="padding: 0.5rem; text-align: center; font-weight: 600; color: var(--text-secondary);">Stav</th>
+                                    <th style="padding: 0.5rem; text-align: center; font-weight: 600; color: var(--text-secondary);">Akce</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="set in batchSets" :key="set.id">
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <td style="padding: 0.5rem;">
+                                            <a :href="'/pricing/batch-sets/' + set.id" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;" x-text="set.set_number"></a>
+                                        </td>
+                                        <td style="padding: 0.5rem; color: var(--text-primary);" x-text="set.name"></td>
+                                        <td style="padding: 0.5rem; text-align: center;">
+                                            <span style="background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: 4px;" x-text="set.batch_count || 0"></span>
+                                        </td>
+                                        <td style="padding: 0.5rem; text-align: center;">
+                                            <span :style="{
+                                                    background: set.status === 'frozen' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                                                    color: set.status === 'frozen' ? 'var(--accent-blue)' : 'var(--accent-green)',
+                                                    padding: '0.25rem 0.5rem',
+                                                    borderRadius: '4px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '500'
+                                                  }"
+                                                  x-text="set.status === 'frozen' ? '❄️' : '📝'">
+                                            </span>
+                                        </td>
+                                        <td style="padding: 0.5rem; text-align: center;">
+                                            <a :href="'/pricing/batch-sets/' + set.id" class="btn-flat" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
+                                                Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+                    <!-- Empty State -->
+                    <div x-show="batchSets.length === 0" style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.8rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+                        <div>Zatím žádné sady cen</div>
+                        <div style="font-size: 0.7rem; margin-top: 0.25rem;">Klikněte na "➕ Přidat sadu" pro vytvoření.</div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Čas na kus (detailní rozklad podle kategorií) -->
             <div class="ribbon" style="margin-bottom: 1rem;">
@@ -880,6 +972,7 @@ function partEdit(partId, partNumber) {
         showStock: true,
         showPrice: true,
         showBatches: true,
+        showBatchSets: true,
         showTime: true,
         showOperations: true,
         showPriceDetail: false,
@@ -1038,6 +1131,9 @@ function partEdit(partId, partNumber) {
         // Operations & Batches
         operations: [],
         batches: [],
+        batchSets: [],  // ADR-022: BatchSets for pricing
+        selectedBatchSetId: '',  // '' = loose batches, number = specific set
+        looseBatchCount: 0,  // Count of loose batches (for freeze button)
         totalTime: 0,
         newBatchQty: null,
 
@@ -1072,11 +1168,12 @@ function partEdit(partId, partNumber) {
             // 2. Load part with material item
             await this.loadPart();
 
-            // 3. Load stock cost, operations, batches
+            // 3. Load stock cost, operations, batches, batch sets
             await Promise.all([
                 this.loadStockCost(),
                 this.loadOperations(),
-                this.loadBatches()
+                this.loadBatches(),
+                this.loadBatchSets()
             ]);
         },
 
@@ -1435,6 +1532,8 @@ function partEdit(partId, partNumber) {
 
         debouncedUpdateOperation(op) {
             clearTimeout(this.operationUpdateTimeout);
+            this.operationUpdateTimeout = null;  // Clear reference after cancelling
+
             // Increment sequence to track this update
             this.operationUpdateSequence++;
             const currentSequence = this.operationUpdateSequence;
@@ -1491,10 +1590,10 @@ function partEdit(partId, partNumber) {
                 if (response.ok) {
                     this.operations = await response.json();
 
-                    // Auto-sync operation type/icon/name from machine (CRITICAL!)
-                    // Needed because DB may contain old hardcoded types that don't match machine
+                    // Auto-sync operation type/icon/name from work center (CRITICAL!)
+                    // Needed because DB may contain old hardcoded types that don't match work center
                     this.operations.forEach(op => {
-                        this.updateOperationFromMachine(op);
+                        this.updateOperationFromWorkCenter(op);
                     });
 
                     this.calculateTotalTime();
@@ -1511,9 +1610,24 @@ function partEdit(partId, partNumber) {
 
         async loadBatches() {
             try {
+                // Fetch all batches for this part
                 const response = await fetch(`/api/batches/part/${this.partId}`);
                 if (response.ok) {
-                    this.batches = await response.json();
+                    const allBatches = await response.json();
+
+                    // Filter batches based on selectedBatchSetId
+                    if (this.selectedBatchSetId === '') {
+                        // Show only loose batches (batch_set_id IS NULL)
+                        this.batches = allBatches.filter(b => b.batch_set_id === null);
+                        this.looseBatchCount = this.batches.length;
+                    } else {
+                        // Show batches from selected set (convert string to number)
+                        const setId = parseInt(this.selectedBatchSetId, 10);
+                        this.batches = allBatches.filter(b => b.batch_set_id === setId);
+                        // Also count loose batches for the freeze button
+                        this.looseBatchCount = allBatches.filter(b => b.batch_set_id === null).length;
+                    }
+
                     this.sortBatches();
                 } else {
                     const errorText = await response.text();
@@ -1523,6 +1637,81 @@ function partEdit(partId, partNumber) {
             } catch (error) {
                 console.error('Error loading batches:', error);
                 window.showToast('Chyba při načítání cenových přehledů', 'error');
+            }
+        },
+
+        async loadBatchSets() {
+            // ADR-022: Load BatchSets for this part
+            try {
+                const response = await fetch(`/api/pricing/part/${this.partId}/batch-sets`);
+                if (response.ok) {
+                    this.batchSets = await response.json();
+                } else {
+                    console.error('Failed to load batch sets:', response.status);
+                    // Silent fail - not critical
+                }
+            } catch (error) {
+                console.error('Error loading batch sets:', error);
+                // Silent fail - not critical
+            }
+        },
+
+        async createBatchSet() {
+            // ADR-022: Create new BatchSet for this part
+            try {
+                const response = await fetch('/api/pricing/batch-sets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ part_id: this.partId })
+                });
+
+                if (response.ok) {
+                    const newSet = await response.json();
+                    window.showToast('Sada vytvořena', 'success');
+                    // Redirect to detail page
+                    window.location.href = `/pricing/batch-sets/${newSet.id}`;
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to create batch set');
+                }
+            } catch (error) {
+                console.error('Error creating batch set:', error);
+                window.showToast('Nepodařilo se vytvořit sadu: ' + error.message, 'error');
+            }
+        },
+
+        async freezeLooseBatches() {
+            // ADR-022: Freeze all loose batches into a new BatchSet
+            if (this.looseBatchCount === 0) {
+                window.showToast('Žádné volné šarže k zmrazení', 'warning');
+                return;
+            }
+
+            if (!confirm(`Zmrazit všechny volné šarže (${this.looseBatchCount} ks) jako sadu?\n\nPo zmrazení nebude možné ceny měnit.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/pricing/parts/${this.partId}/freeze-batches-as-set`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const frozenSet = await response.json();
+                    window.showToast(`Sada zmrazena: ${frozenSet.set_number} (${frozenSet.batches.length} šarží)`, 'success');
+
+                    // Reload batch sets and select the new frozen set
+                    await this.loadBatchSets();
+                    this.selectedBatchSetId = frozenSet.id;
+                    await this.loadBatches();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to freeze batches');
+                }
+            } catch (error) {
+                console.error('Error freezing loose batches:', error);
+                window.showToast('Nepodařilo se zmrazit šarže: ' + error.message, 'error');
             }
         },
 
@@ -1762,9 +1951,10 @@ function partEdit(partId, partNumber) {
                 console.error('Error updating operation:', error);
                 window.showToast('Chyba při aktualizaci operace', 'error');
             } finally {
-                // Always clear pending flag (even on error - user saw the error toast)
+                // Always clear pending changes (even on error - user saw the error toast)
                 this.hasPendingChanges = false;
                 this.pendingOperationSnapshot = null;
+                this.operationUpdateTimeout = null;  // Clear timeout reference
             }
         },
 
@@ -1837,8 +2027,8 @@ function partEdit(partId, partNumber) {
 
                 if (response.ok) {
                     const newBatch = await response.json();
-                    this.batches.push(newBatch);
-                    this.sortBatches();
+                    // Reload batches to update looseBatchCount
+                    await this.loadBatches();
                     this.newBatchQty = null;
                     window.showToast('Kalkulace přidána', 'success');
                 } else {
@@ -1867,8 +2057,8 @@ function partEdit(partId, partNumber) {
                 });
 
                 if (response.ok) {
-                    this.batches = this.batches.filter(b => b.id !== batch.id);
-                    this.sortBatches();
+                    // Reload batches to update looseBatchCount
+                    await this.loadBatches();
                     window.showToast('Kalkulace smazána', 'success');
                 } else {
                     const error = await response.json();

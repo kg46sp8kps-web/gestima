@@ -33,22 +33,22 @@ from import_material_catalog import (
 
 # ========== MOCK NUMBER GENERATOR (pro preview) ==========
 class MockNumberGenerator:
-    """Mock generator pro preview - generuje fake 2XXXXXX čísla bez DB"""
+    """Mock generator pro preview - generuje fake 20XXXXXX čísla bez DB"""
 
-    MATERIAL_MIN = 2000000
-    MATERIAL_MAX = 2999999
+    MATERIAL_MIN = 20000000
+    MATERIAL_MAX = 20999999
 
     def __init__(self):
         self.used_numbers: Set[str] = set()
 
     def generate_material_numbers_batch(self, count: int) -> list[str]:
-        """Generate batch of unique 7-digit material numbers for preview"""
+        """Generate batch of unique 8-digit material numbers for preview"""
         numbers = []
         attempts = 0
         max_attempts = count * 10  # Safety limit
 
         while len(numbers) < count and attempts < max_attempts:
-            # Generate random 7-digit number in range 2000000-2999999
+            # Generate random 8-digit number in range 20000000-20999999
             num = random.randint(self.MATERIAL_MIN, self.MATERIAL_MAX)
             num_str = str(num)
 

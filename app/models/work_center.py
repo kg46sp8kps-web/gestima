@@ -9,7 +9,7 @@ Sequential numbering: 80XXXXXX (80000001-80999999)
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Column, Integer, String, Float, Boolean, Text, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Float, Boolean, Text, Enum as SQLEnum, DateTime
 
 from app.database import Base, AuditMixin
 from app.models.enums import WorkCenterType
@@ -65,6 +65,10 @@ class WorkCenter(Base, AuditMixin):
     priority = Column(Integer, default=99)
     notes = Column(Text, nullable=True)
 
+    # Batch recalculation tracking (for dirty rate warning - ADR-021 extension)
+    last_rate_changed_at = Column(DateTime, nullable=True)
+    batches_recalculated_at = Column(DateTime, nullable=True)
+
     @property
     def hourly_rate_setup(self) -> Optional[float]:
         """Seřizovací sazba (BEZ nástrojů) - používá se při tp"""
@@ -94,6 +98,15 @@ class WorkCenter(Base, AuditMixin):
     def hourly_rate_total(self) -> Optional[float]:
         """Celková hodinová sazba (alias pro hourly_rate_operation)"""
         return self.hourly_rate_operation
+
+    @property
+    def needs_batch_recalculation(self) -> bool:
+        """True pokud rate změněn a batches nebyli recalculated"""
+        if not self.last_rate_changed_at:
+            return False  # Žádná změna rate
+        if not self.batches_recalculated_at:
+            return True  # Rate změněn ale nikdy nepřepočítáno
+        return self.last_rate_changed_at > self.batches_recalculated_at
 
 
 # =============================================================================
@@ -204,10 +217,15 @@ class WorkCenterResponse(WorkCenterBase):
     created_at: datetime
     updated_at: datetime
 
+    # Batch recalculation tracking
+    last_rate_changed_at: Optional[datetime] = Field(None, description="Poslední změna hodinových sazeb")
+    batches_recalculated_at: Optional[datetime] = Field(None, description="Poslední přepočet batches")
+
     # Computed fields (read-only)
     hourly_rate_setup: Optional[float] = Field(None, description="Computed: seřizovací sazba (bez nástrojů)")
     hourly_rate_operation: Optional[float] = Field(None, description="Computed: výrobní sazba (s nástroji)")
     hourly_rate_total: Optional[float] = Field(None, description="Computed: celková hodinová sazba")
+    needs_batch_recalculation: bool = Field(False, description="Computed: potřeba přepočítat batches")
 
     @classmethod
     def from_orm(cls, work_center: WorkCenter) -> "WorkCenterResponse":
@@ -243,7 +261,10 @@ class WorkCenterResponse(WorkCenterBase):
             version=work_center.version,
             created_at=work_center.created_at,
             updated_at=work_center.updated_at,
+            last_rate_changed_at=work_center.last_rate_changed_at,
+            batches_recalculated_at=work_center.batches_recalculated_at,
             hourly_rate_setup=work_center.hourly_rate_setup,
             hourly_rate_operation=work_center.hourly_rate_operation,
             hourly_rate_total=work_center.hourly_rate_total,
+            needs_batch_recalculation=work_center.needs_batch_recalculation,
         )
