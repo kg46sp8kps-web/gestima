@@ -1,26 +1,30 @@
 # GESTIMA Vue SPA Migration Guide
 
-**Version:** 1.0
+## 🔥 FULL STACK FRESH START 🔥
+
+**Version:** 2.0
 **Date:** 2026-01-29
 **Status:** APPROVED
 **Author:** Roy (AI Dev Team)
+**Scope:** Frontend rewrite + Backend review & optimization
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
-2. [Current State Inventory](#2-current-state-inventory)
-3. [Vue SPA Architecture](#3-vue-spa-architecture)
-4. [Component Mapping](#4-component-mapping)
-5. [API Client Design](#5-api-client-design)
-6. [Store (Pinia) Design](#6-store-pinia-design)
-7. [Router Design](#7-router-design)
-8. [Migration Phases](#8-migration-phases)
-9. [Performance Requirements](#9-performance-requirements)
-10. [Testing Strategy](#10-testing-strategy)
-11. [Deployment Strategy](#11-deployment-strategy)
-12. [Rollback Plan](#12-rollback-plan)
+2. [Backend Code Review & Optimization](#2-backend-code-review--optimization)
+3. [Current State Inventory](#3-current-state-inventory)
+4. [Vue SPA Architecture](#4-vue-spa-architecture)
+5. [Component Mapping](#5-component-mapping)
+6. [API Client Design](#6-api-client-design)
+7. [Store (Pinia) Design](#7-store-pinia-design)
+8. [Router Design](#8-router-design)
+9. [Migration Phases](#9-migration-phases)
+10. [Performance Requirements](#10-performance-requirements)
+11. [Testing Strategy](#11-testing-strategy)
+12. [Deployment Strategy](#12-deployment-strategy)
+13. [Rollback Plan](#13-rollback-plan)
 
 ---
 
@@ -28,10 +32,20 @@
 
 ### Decision
 
-**GESTIMA přechází z Alpine.js na Vue 3 SPA.**
+**GESTIMA FULL STACK REFRESH: Vue 3 SPA + Backend Optimization**
+
+### Scope
+
+| Layer | Action |
+|-------|--------|
+| **Frontend** | Complete rewrite: Alpine.js → Vue 3 SPA |
+| **Backend** | Review & optimize: Routers, Services, Models |
+| **Database** | Keep as-is (SQLite + existing schema) |
+| **API** | Keep endpoints, improve implementation |
 
 ### Důvody
 
+**Frontend (Vue 3):**
 1. **Profesionální SPA** - Žádný DIY router (800 LOC workspace-controller.js)
 2. **Zero workaroundy** - Eliminace L-013, L-017, L-018, L-019, L-020, L-021
 3. **Performance** - 41ms transitions (vs 80ms Alpine.js)
@@ -39,24 +53,294 @@
 5. **Long-term** - Připravenost na v4.0 MES (real-time, offline)
 6. **TypeScript** - Compile-time type safety
 
+**Backend (Optimization):**
+1. **Code quality** - Odstranit duplicity, nepoužívaný kód
+2. **Performance** - Identifikovat a opravit N+1 queries
+3. **Security** - Review input validation, SQL injection prevention
+4. **Consistency** - Jednotný error handling, response format
+5. **Documentation** - Aktuální docstrings, OpenAPI schema
+
 ### Timeline
 
 ```
-Week 1-2: Foundation (setup, auth, layout)
-Week 3-4: Workspace migration (core functionality)
-Week 5-6: Remaining pages (CRUD, admin)
+Week 1-2: Foundation + Backend Review (setup, auth, routers audit)
+Week 3-4: Workspace migration + Services optimization
+Week 5-6: Remaining pages + Final backend cleanup
 Week 7-8: Testing & deployment
 ─────────────────────────────────────────
 Total: 6-8 týdnů
 ```
 
-### Backend Impact
+### Philosophy
 
-**ZERO.** FastAPI backend zůstává beze změny. Vue konzumuje existující `/api/*` endpointy.
+> **"Když už to děláme, uděláme to POŘÁDNĚ."**
+>
+> Toto není jen frontend rewrite. Je to příležitost pro FRESH START:
+> - Projít KAŽDÝ router endpoint
+> - Zkontrolovat KAŽDOU service funkci
+> - Odstranit VŠECHEN legacy code
+> - Vytvořit ČISTOU, maintainable codebase
 
 ---
 
-## 2. Current State Inventory
+## 2. Backend Code Review & Optimization
+
+### 2.1 Routers Review Checklist
+
+**Pro KAŽDÝ endpoint v každém routeru:**
+
+```
+□ Endpoint je stále potřebný? (není obsolete)
+□ Správný HTTP method (GET/POST/PUT/DELETE)
+□ Správné status codes (200, 201, 204, 400, 401, 403, 404, 409, 422, 500)
+□ Input validation (Pydantic schema)
+□ Output serialization (response_model)
+□ Error handling (HTTPException s detailním message)
+□ Auth check (get_current_user dependency)
+□ Role check (admin/operator/viewer)
+□ Eager loading (selectinload pro relationships)
+□ Pagination (skip/limit pro list endpoints)
+□ Optimistic locking (version field pro PUT)
+□ Audit trail (created_by, updated_by)
+□ Soft delete (deleted_at, deleted_by)
+□ Docstring aktuální
+□ OpenAPI tags správné
+```
+
+### 2.2 Routers to Review
+
+| Router | Endpoints | Priority | Status |
+|--------|-----------|----------|--------|
+| `auth_router.py` | 3 | 🔴 HIGH | ⬜ TODO |
+| `parts_router.py` | 12 | 🔴 HIGH | ⬜ TODO |
+| `operations_router.py` | 6 | 🔴 HIGH | ⬜ TODO |
+| `batches_router.py` | 8 | 🔴 HIGH | ⬜ TODO |
+| `pricing_router.py` | 12 | 🔴 HIGH | ⬜ TODO |
+| `work_centers_router.py` | 7 | 🟡 MED | ⬜ TODO |
+| `materials_router.py` | 15 | 🟡 MED | ⬜ TODO |
+| `features_router.py` | 5 | 🟡 MED | ⬜ TODO |
+| `admin_router.py` | 10 | 🟢 LOW | ⬜ TODO |
+| `config_router.py` | 3 | 🟢 LOW | ⬜ TODO |
+| `data_router.py` | 4 | 🟢 LOW | ⬜ TODO |
+| `misc_router.py` | 2 | 🟢 LOW | ⬜ TODO |
+
+**Total: 87 endpoints to review**
+
+### 2.3 Common Issues to Fix
+
+#### Issue 1: Inconsistent Error Handling
+
+```python
+# ❌ BEFORE (inconsistent):
+if not part:
+    raise HTTPException(404)  # Missing detail
+
+if not part:
+    raise HTTPException(status_code=404, detail="Part not found")  # Different style
+
+# ✅ AFTER (consistent):
+if not part:
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Part with number {part_number} not found"
+    )
+```
+
+#### Issue 2: Missing Eager Loading
+
+```python
+# ❌ BEFORE (N+1 query):
+parts = await db.execute(select(Part))
+for part in parts:
+    print(part.material_item.name)  # N+1!
+
+# ✅ AFTER (eager load):
+parts = await db.execute(
+    select(Part)
+    .options(selectinload(Part.material_item))
+)
+```
+
+#### Issue 3: Duplicated Transaction Handling
+
+```python
+# ❌ BEFORE (duplicated try/except):
+try:
+    db.add(entity)
+    await db.commit()
+    await db.refresh(entity)
+except IntegrityError:
+    await db.rollback()
+    raise HTTPException(409, "Duplicate")
+
+# ✅ AFTER (use safe_commit helper):
+await safe_commit(db, entity, "Entity already exists")
+```
+
+#### Issue 4: Missing Pagination
+
+```python
+# ❌ BEFORE (returns all):
+@router.get("/items")
+async def list_items(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Item))
+    return result.scalars().all()  # Could be 10,000 items!
+
+# ✅ AFTER (paginated):
+@router.get("/items")
+async def list_items(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500)
+):
+    result = await db.execute(
+        select(Item)
+        .offset(skip)
+        .limit(limit)
+    )
+    return result.scalars().all()
+```
+
+#### Issue 5: Weak Input Validation
+
+```python
+# ❌ BEFORE (no validation):
+class PartCreate(BaseModel):
+    name: str
+    quantity: int
+
+# ✅ AFTER (proper validation):
+class PartCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    quantity: int = Field(..., gt=0, le=1_000_000)
+
+    @field_validator('name')
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('Name cannot be empty or whitespace')
+        return v.strip()
+```
+
+### 2.4 Services Review Checklist
+
+**Pro KAŽDOU service funkci:**
+
+```
+□ Single responsibility (jedna funkce = jedna věc)
+□ No side effects (nepřepisuje neočekávané data)
+□ Proper error handling (raise, ne return None)
+□ Type hints (input a output types)
+□ Docstring s příklady
+□ Unit testable (no hidden dependencies)
+□ No business logic in routers (patří sem)
+□ No DB queries duplicated (centralize zde)
+```
+
+### 2.5 Services to Review
+
+| Service | Functions | Priority | Status |
+|---------|-----------|----------|--------|
+| `price_calculator.py` | ~10 | 🔴 HIGH | ⬜ TODO |
+| `batch_service.py` | ~8 | 🔴 HIGH | ⬜ TODO |
+| `part_service.py` | ~6 | 🟡 MED | ⬜ TODO |
+| `material_service.py` | ~5 | 🟡 MED | ⬜ TODO |
+| `auth_service.py` | ~4 | 🟢 LOW | ⬜ TODO |
+
+### 2.6 Models Review Checklist
+
+**Pro KAŽDÝ model:**
+
+```
+□ Správné typy (String length, Integer constraints)
+□ Nullable fields správně nastavené
+□ Default values smysluplné
+□ Relationships oboustranné (back_populates)
+□ Indexes na často queryované sloupce
+□ Unique constraints kde potřeba
+□ Soft delete fields (deleted_at, deleted_by)
+□ Audit fields (created_at, created_by, updated_at, updated_by)
+□ Version field pro optimistic locking
+□ __repr__ pro debugging
+```
+
+### 2.7 Schemas Review Checklist
+
+**Pro KAŽDÉ Pydantic schema:**
+
+```
+□ Field validace (min/max length, gt/ge/lt/le)
+□ Optional vs Required správně
+□ Default values smysluplné
+□ Config class (from_attributes = True)
+□ Example values pro OpenAPI
+□ Computed fields kde potřeba
+□ Validator functions pro complex rules
+```
+
+### 2.8 What to Look For (Red Flags)
+
+| Red Flag | Action |
+|----------|--------|
+| `# TODO` comments | Resolve or create issue |
+| `# HACK` comments | Refactor properly |
+| `# FIXME` comments | Fix it now |
+| Commented-out code | Delete it |
+| Unused imports | Remove |
+| Unused functions | Remove |
+| Duplicate code | Extract to helper |
+| Magic numbers | Create constants |
+| Long functions (>50 LOC) | Split into smaller |
+| Deep nesting (>3 levels) | Refactor |
+| No type hints | Add them |
+| No docstrings | Add them |
+| Bare `except:` | Specify exception type |
+| `print()` statements | Use logger |
+| Hardcoded values | Use config/env |
+
+### 2.9 Backend Optimization Goals
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| Avg endpoint response | ~150ms | <100ms |
+| List endpoints (100 items) | ~300ms | <150ms |
+| Code coverage | ~60% | >80% |
+| Pylint score | Unknown | >9.0 |
+| TODO comments | Unknown | 0 |
+| Unused code | Unknown | 0 |
+| Duplicate code | Unknown | 0 |
+
+### 2.10 Backend Review Output
+
+Po review každého routeru vytvořím:
+
+```markdown
+## Router: parts_router.py
+
+### Endpoints Reviewed: 12/12 ✅
+
+### Issues Found:
+1. ❌ GET /parts/ - missing pagination
+2. ⚠️ PUT /parts/{id} - weak validation
+3. ✅ POST /parts/ - OK
+
+### Changes Made:
+- Added pagination to list endpoint
+- Added Field validation to PartUpdate schema
+- Fixed N+1 query in get_part_full
+
+### Performance Before/After:
+- GET /parts/: 450ms → 120ms
+- GET /parts/{id}/full: 280ms → 95ms
+
+### Tests Added:
+- test_parts_pagination
+- test_parts_validation_error
+```
+
+---
+
+## 3. Current State Inventory
 
 ### 2.1 Templates (Jinja2)
 
@@ -310,7 +594,7 @@ GET    /api/misc/weather                   → Weather data
 
 ---
 
-## 3. Vue SPA Architecture
+## 4. Vue SPA Architecture
 
 ### 3.1 Project Structure
 
@@ -571,7 +855,7 @@ export function useOptimisticLock<T extends { version: number }>() {
 
 ---
 
-## 4. Component Mapping
+## 5. Component Mapping
 
 ### 4.1 Template → Vue View Mapping
 
@@ -628,7 +912,7 @@ export function useOptimisticLock<T extends { version: number }>() {
 
 ---
 
-## 5. API Client Design
+## 6. API Client Design
 
 ### 5.1 Client Setup
 
@@ -879,7 +1163,7 @@ export const operationsApi = {
 
 ---
 
-## 6. Store (Pinia) Design
+## 7. Store (Pinia) Design
 
 ### 6.1 Auth Store
 
@@ -1195,7 +1479,7 @@ export const useUiStore = defineStore('ui', () => {
 
 ---
 
-## 7. Router Design
+## 8. Router Design
 
 ### 7.1 Route Definitions
 
@@ -1426,9 +1710,9 @@ declare module 'vue-router' {
 
 ---
 
-## 8. Migration Phases
+## 9. Migration Phases
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Foundation + Backend Review (Week 1-2)
 
 #### Day 1-2: Project Setup
 
@@ -1463,9 +1747,9 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] CSS files copied from existing
 - [ ] TypeScript strict mode enabled
 
-#### Day 3-4: Core Infrastructure
+#### Day 3-4: Core Infrastructure + Auth Router Review
 
-**Create files:**
+**Vue files to create:**
 
 1. `src/api/client.ts` - Axios instance with interceptors
 2. `src/stores/auth.ts` - Authentication store
@@ -1474,6 +1758,17 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 5. `src/App.vue` - Root component
 6. `src/main.ts` - Vue app entry
 
+**Backend review (auth_router.py):**
+
+```
+□ POST /api/auth/login - Review token handling
+□ POST /api/auth/logout - Verify cookie clearing
+□ GET /api/auth/me - Check response schema
+□ Verify HttpOnly cookie security
+□ Check password hashing (bcrypt)
+□ Review session timeout
+```
+
 **Checklist Day 3-4:**
 - [ ] API client with error handling
 - [ ] Auth store with login/logout
@@ -1481,10 +1776,11 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Basic router setup
 - [ ] App.vue with layout
 - [ ] Login view working
+- [ ] **auth_router.py reviewed & optimized**
 
-#### Day 5-7: Layout & Auth
+#### Day 5-7: Layout & Auth + Parts Router Review
 
-**Create files:**
+**Vue files to create:**
 
 1. `src/components/layout/AppHeader.vue`
 2. `src/components/layout/AppSidebar.vue`
@@ -1492,6 +1788,25 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 4. `src/views/auth/LoginView.vue`
 5. `src/components/ui/Toast.vue`
 6. `src/components/ui/Spinner.vue`
+
+**Backend review (parts_router.py):**
+
+```
+□ GET /api/parts/ - Pagination, eager loading
+□ GET /api/parts/search - Query optimization
+□ GET /api/parts/{part_number} - 404 handling
+□ GET /api/parts/{part_number}/full - N+1 check
+□ POST /api/parts/ - Input validation
+□ PUT /api/parts/{part_number} - Optimistic lock
+□ DELETE /api/parts/{part_number} - Soft delete
+□ POST /api/parts/{part_number}/duplicate - Transaction
+□ GET /api/parts/{part_number}/pricing - Calculation
+□ GET /api/parts/{part_number}/stock-cost - Material cost
+□ POST /api/parts/{part_number}/copy-material-geometry
+□ GET /api/parts/{part_number}/pricing/series
+□ Review Pydantic schemas (PartCreate, PartUpdate)
+□ Check error messages consistency
+```
 
 **Checklist Day 5-7:**
 - [ ] Header with user info, navigation
@@ -1501,8 +1816,10 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Toast notifications working
 - [ ] Loading spinner
 - [ ] Protected route working
+- [ ] **parts_router.py reviewed & optimized**
+- [ ] **parts schemas reviewed**
 
-### Phase 2: Workspace Migration (Week 3-4)
+### Phase 2: Workspace Migration + Services Review (Week 3-4)
 
 #### Day 8-10: Workspace Shell
 
@@ -1548,7 +1865,24 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Part selection updates context
 - [ ] Pagination if needed
 
-#### Day 13-14: Part Pricing Module
+#### Day 13-14: Part Pricing Module + Batches Router Review
+
+**Backend review (batches_router.py + pricing_router.py):**
+
+```
+□ GET /api/batches/part/{part_id} - Eager load batch_set
+□ GET /api/batches/{batch_number} - 404 handling
+□ POST /api/batches/ - Auto-calculate costs
+□ DELETE /api/batches/{batch_number} - Soft delete check
+□ POST /api/batches/{batch_number}/freeze - Transaction integrity
+□ POST /api/batches/{batch_number}/clone - Deep copy
+□ POST /api/batches/{batch_number}/recalculate - Frozen check
+□ GET /api/pricing/batch-sets - List with counts
+□ POST /api/pricing/batch-sets - Auto-generate number
+□ POST /api/pricing/batch-sets/{id}/freeze - Atomic freeze all
+□ Review price_calculator.py service
+□ Check cost calculation accuracy
+```
 
 **Migrate:** `app/static/js/modules/part-pricing.js` → `PartPricingModule.vue`
 
@@ -1571,8 +1905,26 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Create batch working
 - [ ] Delete batch working
 - [ ] Recalculate working
+- [ ] **batches_router.py reviewed & optimized**
+- [ ] **pricing_router.py reviewed & optimized**
+- [ ] **price_calculator.py reviewed**
 
-#### Day 15-16: Part Operations Module
+#### Day 15-16: Part Operations Module + Operations Router Review
+
+**Backend review (operations_router.py + features_router.py):**
+
+```
+□ GET /api/operations/part/{part_id} - Eager load work_center
+□ POST /api/operations/ - Validate work_center exists
+□ PUT /api/operations/{id} - Version check, time validation
+□ DELETE /api/operations/{id} - Cascade features?
+□ POST /api/operations/{id}/change-mode - Mode validation
+□ GET /api/features/operation/{op_id} - Ordered by seq
+□ POST /api/features/ - Sequence auto-assign
+□ PUT /api/features/{id} - Time validation
+□ DELETE /api/features/{id} - Recalculate parent
+□ Review work center rate application
+```
 
 **Migrate:** `app/static/js/modules/part-operations.js` → `PartOperationsModule.vue`
 
@@ -1595,8 +1947,26 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Add operation
 - [ ] Delete operation
 - [ ] Work center dropdown
+- [ ] **operations_router.py reviewed & optimized**
+- [ ] **features_router.py reviewed & optimized**
 
-#### Day 17-18: Part Material Module
+#### Day 17-18: Part Material Module + Materials Router Review
+
+**Backend review (materials_router.py):**
+
+```
+□ GET /api/materials/groups - List all groups
+□ GET /api/materials/items - Pagination, filtering
+□ GET /api/materials/items/{number} - 404 handling
+□ POST /api/materials/items - Auto-generate number
+□ PUT /api/materials/items/{number} - Version check
+□ DELETE /api/materials/items/{number} - Check references
+□ POST /api/materials/parse - Parser accuracy
+□ GET /api/materials/price-categories - Include tiers
+□ GET /api/materials/price-tiers - Filtering
+□ Review material_service.py
+□ Check parser edge cases
+```
 
 **Migrate:** `app/static/js/modules/part-material.js` → `PartMaterialModule.vue`
 
@@ -1618,8 +1988,25 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Stock type selection
 - [ ] Dimension inputs
 - [ ] Cost display
+- [ ] **materials_router.py reviewed & optimized**
+- [ ] **material_service.py reviewed**
 
-#### Day 19-21: Batch Sets Module
+#### Day 19-21: Batch Sets Module + Work Centers Router Review
+
+**Backend review (work_centers_router.py):**
+
+```
+□ GET /api/work-centers/ - Pagination
+□ GET /api/work-centers/search - Multi-field search
+□ GET /api/work-centers/types - Enum values
+□ GET /api/work-centers/{number} - 404 handling
+□ POST /api/work-centers/ - Rate validation
+□ PUT /api/work-centers/{number} - Rate change detection
+□ DELETE /api/work-centers/{number} - Check operation refs
+□ POST /api/work-centers/{number}/recalculate-batches
+□ Review hourly rate calculations
+□ Check WorkCenter → Operation type mapping
+```
 
 **Migrate:** `app/static/js/modules/batch-sets.js` → `BatchSetsModule.vue`
 
@@ -1643,8 +2030,10 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Add batch to set
 - [ ] Freeze set
 - [ ] Clone set
+- [ ] **work_centers_router.py reviewed & optimized**
+- [ ] **All high-priority routers complete ✅**
 
-### Phase 3: Remaining Pages (Week 5-6)
+### Phase 3: Remaining Pages + Admin/Config Review (Week 5-6)
 
 #### Day 22-23: CRUD Pages (Parts)
 
@@ -1676,7 +2065,26 @@ mkdir -p src/{api,types,stores,composables,components/{layout,ui,forms,workspace
 - [ ] Batch sets list page
 - [ ] Batch set detail page
 
-#### Day 26-27: Admin Pages
+#### Day 26-27: Admin Pages + Admin Router Review
+
+**Backend review (admin_router.py + config_router.py):**
+
+```
+□ GET /api/admin/material-groups - Admin-only access
+□ GET /api/admin/material-norms/search - Query optimization
+□ POST /api/admin/material-norms - Duplicate check
+□ PUT /api/admin/material-norms/{id} - Version check
+□ DELETE /api/admin/material-norms/{id} - Soft delete
+□ POST /api/admin/material-groups - Unique name
+□ PUT /api/admin/material-groups/{id} - Version check
+□ DELETE /api/admin/material-groups/{id} - Check item refs
+□ POST /api/admin/material-price-categories - Validation
+□ PUT /api/admin/material-price-categories/{id}
+□ DELETE /api/admin/material-price-categories/{id}
+□ GET /api/config/ - All config
+□ PUT /api/config/{key} - Validate key exists
+□ Review role-based access (Admin only)
+```
 
 **Create files:**
 
@@ -1779,7 +2187,7 @@ if os.path.exists("frontend/dist"):
 
 ---
 
-## 9. Performance Requirements
+## 10. Performance Requirements
 
 ### 9.1 Targets
 
@@ -1836,7 +2244,7 @@ watch(debouncedSearch, (value) => {
 
 ---
 
-## 10. Testing Strategy
+## 11. Testing Strategy
 
 ### 10.1 Unit Tests (Vitest)
 
@@ -1953,7 +2361,7 @@ test.describe('Performance', () => {
 
 ---
 
-## 11. Deployment Strategy
+## 12. Deployment Strategy
 
 ### 11.1 Development
 
@@ -2074,7 +2482,7 @@ python gestima.py run
 
 ---
 
-## 12. Rollback Plan
+## 13. Rollback Plan
 
 ### 12.1 Feature Flag
 
