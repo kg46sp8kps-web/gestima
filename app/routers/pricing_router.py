@@ -191,22 +191,12 @@ async def create_batch_set(
     set_audit(batch_set, current_user.username)
     db.add(batch_set)
 
-    try:
-        await db.commit()
-        await db.refresh(batch_set)
-        logger.info(
-            f"Created batch set: {batch_set.set_number} for part {data.part_id}",
-            extra={"batch_set_id": batch_set.id, "part_id": data.part_id, "user": current_user.username}
-        )
-        return batch_set
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error creating batch set: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating batch set: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+    batch_set = await safe_commit(db, batch_set, "vytváření sady")
+    logger.info(
+        f"Created batch set: {batch_set.set_number} for part {data.part_id}",
+        extra={"batch_set_id": batch_set.id, "part_id": data.part_id, "user": current_user.username}
+    )
+    return batch_set
 
 
 @router.put("/batch-sets/{set_id}", response_model=BatchSetResponse)
@@ -237,14 +227,7 @@ async def update_batch_set(
     batch_set.updated_by = current_user.username
     batch_set.updated_at = datetime.utcnow()
 
-    try:
-        await db.commit()
-        await db.refresh(batch_set)
-        return batch_set
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error updating batch set: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+    return await safe_commit(db, batch_set, "aktualizace sady")
 
 
 @router.delete("/batch-sets/{set_id}", status_code=204)
@@ -277,16 +260,11 @@ async def delete_batch_set(
             batch.deleted_at = now
             batch.deleted_by = current_user.username
 
-    try:
-        await db.commit()
-        logger.info(
-            f"Soft deleted batch set {set_id} with {len(batch_set.batches)} batches",
-            extra={"batch_set_id": set_id, "user": current_user.username}
-        )
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error deleting batch set: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+    await safe_commit(db, action="soft delete sady")
+    logger.info(
+        f"Soft deleted batch set {set_id} with {len(batch_set.batches)} batches",
+        extra={"batch_set_id": set_id, "user": current_user.username}
+    )
 
 
 # =============================================================================
@@ -348,8 +326,7 @@ async def freeze_batch_set(
         batch_set.updated_by = current_user.username
         batch_set.updated_at = now
 
-        await db.commit()
-        await db.refresh(batch_set)
+        await safe_commit(db, batch_set, "zmrazení sady")
 
         logger.info(
             f"Frozen batch set {set_id} with {len(active_batches)} batches",
@@ -410,8 +387,7 @@ async def recalculate_batch_set(
         batch_set.updated_by = current_user.username
         batch_set.updated_at = datetime.utcnow()
 
-        await db.commit()
-        await db.refresh(batch_set)
+        await safe_commit(db, batch_set, "přepočet sady")
 
         logger.info(
             f"Recalculated batch set {set_id} with {len(active_batches)} batches",
@@ -512,19 +488,13 @@ async def clone_batch_set(
         set_audit(new_batch, current_user.username)
         db.add(new_batch)
 
-    try:
-        await db.commit()
-        await db.refresh(new_set)
+    new_set = await safe_commit(db, new_set, "klonování sady")
 
-        logger.info(
-            f"Cloned batch set {set_id} -> {new_set.id} with {len(active_batches)} batches",
-            extra={"original_id": set_id, "new_id": new_set.id, "user": current_user.username}
-        )
-        return new_set
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error cloning batch set: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+    logger.info(
+        f"Cloned batch set {set_id} -> {new_set.id} with {len(active_batches)} batches",
+        extra={"original_id": set_id, "new_id": new_set.id, "user": current_user.username}
+    )
+    return new_set
 
 
 # =============================================================================
@@ -575,23 +545,18 @@ async def add_batch_to_set(
     try:
         # Auto-calculate costs
         await recalculate_batch_costs(batch, db)
-
-        await db.commit()
-        await db.refresh(batch)
-
-        logger.info(
-            f"Added batch to set {set_id}: quantity={quantity}, unit_cost={batch.unit_cost}",
-            extra={"batch_set_id": set_id, "batch_id": batch.id, "user": current_user.username}
-        )
-        return batch
     except ValueError as e:
         await db.rollback()
         logger.error(f"Validation error adding batch: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error adding batch: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+
+    batch = await safe_commit(db, batch, "přidání batche do sady")
+
+    logger.info(
+        f"Added batch to set {set_id}: quantity={quantity}, unit_cost={batch.unit_cost}",
+        extra={"batch_set_id": set_id, "batch_id": batch.id, "user": current_user.username}
+    )
+    return batch
 
 
 @router.delete("/batch-sets/{set_id}/batches/{batch_id}", status_code=204)
@@ -622,16 +587,11 @@ async def remove_batch_from_set(
     # Hard delete for non-frozen batches
     await db.delete(batch)
 
-    try:
-        await db.commit()
-        logger.info(
-            f"Removed batch {batch_id} from set {set_id}",
-            extra={"batch_set_id": set_id, "batch_id": batch_id, "user": current_user.username}
-        )
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error removing batch: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze")
+    await safe_commit(db, action="odebrání batche ze sady")
+    logger.info(
+        f"Removed batch {batch_id} from set {set_id}",
+        extra={"batch_set_id": set_id, "batch_id": batch_id, "user": current_user.username}
+    )
 
 
 # =============================================================================
@@ -714,8 +674,7 @@ async def freeze_loose_batches_as_set(
         batch_set.frozen_at = now
         batch_set.frozen_by_id = current_user.id
 
-        await db.commit()
-        await db.refresh(batch_set)
+        await safe_commit(db, batch_set, "zmrazení volných batchí do sady")
 
         logger.info(
             f"Froze {len(loose_batches)} loose batches into new set {batch_set.set_number}",

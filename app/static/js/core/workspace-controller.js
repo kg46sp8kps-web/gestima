@@ -24,8 +24,12 @@ function workspaceController() {
         // ═══════════════════════════════════════════════════════════════
 
         panels: [],
-        activeWorkspace: 'default',
+        activeWorkspaceId: 'default',
         activePanelId: null,
+
+        // Workspace management
+        workspaces: {}, // All saved workspaces
+        showWorkspaceDropdown: false,
 
         // Drag state
         dragging: null,
@@ -40,8 +44,17 @@ function workspaceController() {
         selectedModuleType: null,
         selectedLinkColor: null,
 
-        // Layout storage key
-        _storageKey: 'gestima_workspace_layout',
+        // Workspace modals
+        showNewWorkspaceModal: false,
+        showSaveAsModal: false,
+        newWorkspaceName: '',
+
+        // Storage keys
+        _storageKey: 'gestima_workspaces_v2',
+
+        // Limits
+        MAX_WORKSPACES: 6,
+        MAX_FAVORITES: 4,
 
         // ═══════════════════════════════════════════════════════════════
         // Lifecycle
@@ -55,13 +68,11 @@ function workspaceController() {
                 LinkManager.restoreState();
             }
 
-            // Load saved layout
-            this.loadLayout();
+            // Load all workspaces
+            this.loadWorkspaces();
 
-            // If no panels, add a default one
-            if (this.panels.length === 0) {
-                // Don't add default panel - let user add what they need
-            }
+            // Load active workspace layout
+            this.loadWorkspace(this.activeWorkspaceId);
 
             // Setup global event listeners for drag/resize
             this._setupEventListeners();
@@ -331,56 +342,291 @@ function workspaceController() {
         },
 
         // ═══════════════════════════════════════════════════════════════
-        // Layout Persistence
+        // Workspace Management
         // ═══════════════════════════════════════════════════════════════
 
-        saveLayout() {
-            try {
-                const layout = {
-                    workspace: this.activeWorkspace,
-                    panels: this.panels.map(p => ({
-                        id: p.id,
-                        moduleType: p.moduleType,
-                        linkColor: p.linkColor,
-                        position: { ...p.position },
-                        minimized: p.minimized,
-                        zIndex: p.zIndex
-                    })),
-                    timestamp: Date.now()
-                };
-                localStorage.setItem(this._storageKey, JSON.stringify(layout));
-                console.debug('[Workspace] Layout saved');
-            } catch (e) {
-                console.warn('[Workspace] Could not save layout:', e.message);
-            }
-        },
-
-        loadLayout() {
+        /**
+         * Load all workspaces from localStorage
+         */
+        loadWorkspaces() {
             try {
                 const saved = localStorage.getItem(this._storageKey);
                 if (saved) {
-                    const layout = JSON.parse(saved);
-                    this.activeWorkspace = layout.workspace || 'default';
-                    this.panels = layout.panels || [];
-                    console.debug('[Workspace] Layout loaded:', this.panels.length, 'panels');
-
-                    // Update container height after loading panels
-                    setTimeout(() => this._updateContainerHeight(), 100);
+                    const data = JSON.parse(saved);
+                    this.workspaces = data.workspaces || {};
+                    this.activeWorkspaceId = data.activeWorkspaceId || 'default';
+                    console.debug('[Workspace] Loaded', Object.keys(this.workspaces).length, 'workspaces');
+                } else {
+                    // Initialize with default workspace
+                    this._initializeDefaultWorkspace();
                 }
             } catch (e) {
-                console.warn('[Workspace] Could not load layout:', e.message);
-                this.panels = [];
+                console.warn('[Workspace] Could not load workspaces:', e.message);
+                this._initializeDefaultWorkspace();
             }
         },
 
+        /**
+         * Save all workspaces to localStorage
+         */
+        saveWorkspaces() {
+            try {
+                const data = {
+                    workspaces: this.workspaces,
+                    activeWorkspaceId: this.activeWorkspaceId,
+                    version: 2,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(this._storageKey, JSON.stringify(data));
+                console.debug('[Workspace] Saved', Object.keys(this.workspaces).length, 'workspaces');
+            } catch (e) {
+                console.warn('[Workspace] Could not save workspaces:', e.message);
+            }
+        },
+
+        /**
+         * Save current workspace panels
+         */
+        saveCurrentWorkspace() {
+            if (!this.workspaces[this.activeWorkspaceId]) {
+                console.warn('[Workspace] Active workspace not found:', this.activeWorkspaceId);
+                return;
+            }
+
+            this.workspaces[this.activeWorkspaceId].panels = this.panels.map(p => ({
+                id: p.id,
+                moduleType: p.moduleType,
+                linkColor: p.linkColor,
+                position: { ...p.position },
+                minimized: p.minimized,
+                zIndex: p.zIndex
+            }));
+            this.workspaces[this.activeWorkspaceId].timestamp = Date.now();
+
+            this.saveWorkspaces();
+        },
+
+        /**
+         * Load workspace by ID
+         */
+        loadWorkspace(workspaceId) {
+            const workspace = this.workspaces[workspaceId];
+            if (!workspace) {
+                console.warn('[Workspace] Workspace not found:', workspaceId);
+                return;
+            }
+
+            this.panels = workspace.panels || [];
+            this.activeWorkspaceId = workspaceId;
+            this.activePanelId = null;
+
+            console.debug('[Workspace] Loaded workspace:', workspace.name, '(', this.panels.length, 'panels)');
+
+            // Update container height after loading
+            setTimeout(() => this._updateContainerHeight(), 100);
+        },
+
+        /**
+         * Switch to different workspace
+         */
+        switchWorkspace(workspaceId) {
+            if (workspaceId === this.activeWorkspaceId) return;
+
+            // Save current workspace
+            this.saveCurrentWorkspace();
+
+            // Load new workspace
+            this.loadWorkspace(workspaceId);
+
+            // Save active workspace ID
+            this.saveWorkspaces();
+
+            this._showToast(`Přepnuto na: ${this.workspaces[workspaceId].name}`, 'success');
+        },
+
+        /**
+         * Create new workspace
+         */
+        createWorkspace(name) {
+            if (!name || !name.trim()) {
+                this._showToast('Zadej název workspace', 'warning');
+                return;
+            }
+
+            // Check max workspaces limit
+            if (Object.keys(this.workspaces).length >= this.MAX_WORKSPACES) {
+                this._showToast(`Max ${this.MAX_WORKSPACES} workspaces!`, 'error');
+                return;
+            }
+
+            // Generate unique ID
+            const id = `workspace-${Date.now()}`;
+
+            // Create workspace
+            this.workspaces[id] = {
+                id: id,
+                name: name.trim(),
+                panels: [],
+                favorite: false,
+                order: Object.keys(this.workspaces).length,
+                timestamp: Date.now()
+            };
+
+            // Save and switch to new workspace
+            this.saveCurrentWorkspace();
+            this.switchWorkspace(id);
+
+            console.debug('[Workspace] Created:', name);
+            this._showToast(`Vytvořen workspace: ${name}`, 'success');
+        },
+
+        /**
+         * Save current workspace as new copy
+         */
+        saveWorkspaceAs(name) {
+            if (!name || !name.trim()) {
+                this._showToast('Zadej název workspace', 'warning');
+                return;
+            }
+
+            // Check max workspaces limit
+            if (Object.keys(this.workspaces).length >= this.MAX_WORKSPACES) {
+                this._showToast(`Max ${this.MAX_WORKSPACES} workspaces!`, 'error');
+                return;
+            }
+
+            // Generate unique ID
+            const id = `workspace-${Date.now()}`;
+
+            // Copy current workspace
+            this.workspaces[id] = {
+                id: id,
+                name: name.trim(),
+                panels: JSON.parse(JSON.stringify(this.panels)), // Deep copy
+                favorite: false,
+                order: Object.keys(this.workspaces).length,
+                timestamp: Date.now()
+            };
+
+            this.saveWorkspaces();
+
+            console.debug('[Workspace] Saved as:', name);
+            this._showToast(`Uloženo jako: ${name}`, 'success');
+        },
+
+        /**
+         * Delete workspace
+         */
+        deleteWorkspace(workspaceId) {
+            if (workspaceId === 'default') {
+                this._showToast('Default workspace nelze smazat!', 'error');
+                return;
+            }
+
+            const workspace = this.workspaces[workspaceId];
+            if (!workspace) return;
+
+            if (!confirm(`Opravdu smazat workspace "${workspace.name}"?`)) {
+                return;
+            }
+
+            delete this.workspaces[workspaceId];
+
+            // If deleted active workspace, switch to default
+            if (this.activeWorkspaceId === workspaceId) {
+                this.switchWorkspace('default');
+            }
+
+            this.saveWorkspaces();
+
+            console.debug('[Workspace] Deleted:', workspace.name);
+            this._showToast(`Smazán workspace: ${workspace.name}`, 'success');
+        },
+
+        /**
+         * Toggle workspace favorite status
+         */
+        toggleFavorite(workspaceId) {
+            const workspace = this.workspaces[workspaceId];
+            if (!workspace) return;
+
+            // Check max favorites limit if adding
+            if (!workspace.favorite) {
+                const favCount = Object.values(this.workspaces).filter(w => w.favorite).length;
+                if (favCount >= this.MAX_FAVORITES) {
+                    this._showToast(`Max ${this.MAX_FAVORITES} oblíbené workspaces!`, 'warning');
+                    return;
+                }
+            }
+
+            workspace.favorite = !workspace.favorite;
+            this.saveWorkspaces();
+
+            const status = workspace.favorite ? 'přidán do' : 'odebrán z';
+            this._showToast(`${workspace.name} ${status} oblíbených`, 'success');
+        },
+
+        /**
+         * Get list of all workspaces sorted by order
+         */
+        getWorkspacesList() {
+            return Object.values(this.workspaces).sort((a, b) => a.order - b.order);
+        },
+
+        /**
+         * Get list of favorite workspaces
+         */
+        getFavoriteWorkspaces() {
+            return Object.values(this.workspaces)
+                .filter(w => w.favorite)
+                .sort((a, b) => a.order - b.order);
+        },
+
+        /**
+         * Get active workspace object
+         */
+        getActiveWorkspace() {
+            return this.workspaces[this.activeWorkspaceId];
+        },
+
+        /**
+         * Initialize default workspace
+         */
+        _initializeDefaultWorkspace() {
+            this.workspaces = {
+                'default': {
+                    id: 'default',
+                    name: 'Default',
+                    panels: [],
+                    favorite: true,
+                    order: 0,
+                    timestamp: Date.now()
+                }
+            };
+            this.activeWorkspaceId = 'default';
+            this.saveWorkspaces();
+            console.debug('[Workspace] Initialized default workspace');
+        },
+
+        /**
+         * Legacy: saveLayout (compatibility wrapper)
+         */
+        saveLayout() {
+            this.saveCurrentWorkspace();
+        },
+
+        /**
+         * Reset current workspace (clear all panels)
+         */
         resetLayout() {
-            if (!confirm('Opravdu resetovat workspace? Všechny panely budou odstraněny.')) {
+            if (!confirm('Opravdu resetovat tento workspace? Všechny panely budou odstraněny.')) {
                 return;
             }
             this.panels = [];
             this.activePanelId = null;
-            localStorage.removeItem(this._storageKey);
+            this.saveCurrentWorkspace();
             console.debug('[Workspace] Layout reset');
+            this._showToast('Workspace resetován', 'success');
         },
 
         // ═══════════════════════════════════════════════════════════════
@@ -498,7 +744,6 @@ function workspaceController() {
             if (window.showToast) {
                 window.showToast(message, type);
             } else {
-                console.log(`[${type}] ${message}`);
             }
         }
     };

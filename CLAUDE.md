@@ -1,5 +1,72 @@
 # CLAUDE.md - Pravidla pro AI Asistenta
 
+---
+## ⛔ BLOKUJÍCÍ CHECKLIST (PŘED KAŽDOU AKCÍ!)
+---
+
+### 1. PŘED odpovědí na NETRIVIÁLNÍ úkol
+
+```
+□ Co se může pokazit?
+□ Není jednodušší způsob?
+□ Zvážil jsem alternativy? (NIKDY nepřijímám první řešení!)
+□ Je to NÁVRH nebo IMPLEMENTACE?
+```
+
+**IF netriviální (nová feature, multi-file, architektura):**
+```
+→ NEJDŘÍV TEXT: Návrh, kritické otázky, alternativy
+→ ČEKEJ NA SCHVÁLENÍ od uživatele
+→ TEPRVE POTOM: Tools/implementace
+```
+
+**NEVER: Tools first, explain later!**
+
+---
+
+### 2. PŘED Write/Edit (kontrola duplicit)
+
+```bash
+# Existuje podobný kód?
+grep -r "PATTERN" app/  # např. "debouncedUpdate", "data-fresh"
+
+# Kolik výskytů?
+grep -r "PATTERN" app/ | wc -l
+```
+
+**IF výskyt > 1:**
+→ **STOP!** Nepiš nový kód.
+→ Použij existující NEBO navrhni extrakci do sdílené komponenty.
+
+**Porušení = L-002 (Duplikace logiky)**
+
+---
+
+### 3. PO implementaci (AUTOMATICKY!)
+
+```
+□ Testy napsány + spuštěny (pytest -v)
+□ Dokumentace aktualizována (CLAUDE.md, ADR, CHANGELOG)
+□ Verze inkrementována (pokud relevantní)
+□ Schema změna? → pytest tests/test_seed_scripts.py
+```
+
+---
+
+### 4. SELF-CHECK (Funguji jako senior developer?)
+
+```
+□ Neházím první řešení bez alternativ
+□ Ptám se kritické otázky PŘED implementací
+□ Neduplikuji kód (L-002)
+□ Neobcházím pravidla v CLAUDE.md
+□ Přiznám když nevím místo hádání
+```
+
+**Pokud jakákoliv odpověď = NE → STOP a oprav přístup!**
+
+---
+
 ## NIKDY NEMAZAT (vyžaduje explicitní souhlas)
 
 Následující sekce jsou CHRÁNĚNÉ. Před smazáním/změnou MUSÍM upozornit:
@@ -301,691 +368,9 @@ async def get_fact() -> Dict[str, Any]:
 | L-018 | `select()` na `input[type="number"]` | Nefunguje konzistentně - použít data-fresh pattern |
 | L-019 | Debounce data loss při rychlém opuštění | beforeunload warning + sync flush |
 | L-020 | Module name collision | Jen JEDNA implementace per modul (check window.foo conflicts) |
+| L-021 | HTML Select string/number mismatch | `parseInt(selectedId, 10)` před porovnáním s API response |
 
-### L-020: Module Name Collision (window.foo Conflict)
-
-**Problém:**
-Když VÍCE souborů exportuje do `window.foo`, poslední přepíše předchozí → Alpine.js errors "property is not defined".
-
-**Symptomy:**
-- Alpine.js console errors: `Alpine Expression Error: statusFilter is not defined`
-- Všechny properties z komponenty undefined (5-20 chyb v console)
-- Page vypadá prázdná i když backend vrací data
-- Detail page funguje, list page ne (nebo naopak - záleží na load order)
-- Hard to debug - properties se zdají být definované v HTML, ale Alpine je nevidí
-
-**Real-world incident (2026-01-28):**
-
-```
-File 1: app/templates/pricing/batch_sets.html (inline script)
-  function batchSetsModule() {
-    return {
-      statusFilter: '',
-      showCreateModal: false,
-      creating: false,
-      // ... 10+ dalších properties
-      async loadBatchSets() { /* funkční API call */ }
-    };
-  }
-
-File 2: app/static/js/modules/batch-sets.js (workspace skeleton)
-  function batchSetsModule(config = {}) {
-    return {
-      ...ModuleInterface.create({ moduleType: 'batch-sets' }),
-      partId: config.partId || null,
-      // MISSING: statusFilter, showCreateModal, creating, ...
-      async loadBatchSets() { console.log('TODO'); } // nefunkční
-    };
-  }
-  window.batchSetsModule = batchSetsModule; // ☠️ PŘEPÍŠE inline script!
-
-HTML template:
-  <div x-data="batchSetsModule()">  <!-- Volá externální modul! -->
-    <select x-model="statusFilter">  <!-- ❌ undefined! -->
-  </div>
-
-Result:
-  - Alpine hledá statusFilter v modulu z File 2 (workspace skeleton)
-  - Nenajde → ReferenceError: statusFilter is not defined
-  - 15+ Alpine errors v konzoli
-  - Page prázdná (loading stuck nebo empty state)
-```
-
-**❌ ŠPATNĚ (dva exporty):**
-```javascript
-// File A: inline script in HTML
-function batchSetsModule() { return { statusFilter: '', /* ... */ }; }
-
-// File B: external module
-function batchSetsModule() { return { partId: null, /* MISSING statusFilter */ }; }
-window.batchSetsModule = batchSetsModule;  // ☠️ Collision!
-```
-
-**✅ SPRÁVNĚ (single source):**
-```javascript
-// Option 1: Only inline script (remove external)
-rm app/static/js/modules/batch-sets.js
-
-// Option 2: Only external module (remove inline + update HTML)
-<script src="/static/js/modules/batch-sets.js"></script>
-<div x-data="batchSetsModule()">  <!-- Ujisti se že má VŠECHNY properties -->
-
-// Option 3: Different names
-window.batchSetsListModule = ...  // List page
-window.batchSetsDetailModule = ... // Detail page
-```
-
-**Detection Checklist:**
-
-```
-IF (Alpine errors "X is not defined" pro VŠECHNY properties):
-  1. Search codebase: `grep -r "window.MODULENAME" .`
-  2. Check: Kolik souborů exportuje stejný název?
-  3. IF více než 1:
-     → MODULE COLLISION! Smaž nebo přejmenuj.
-  4. ELSE:
-     → Load order problém (script před Alpine init)
-```
-
-**Prevention:**
-- ✅ Před exportem do `window.foo`: `grep -r "window.foo" .` (ujisti se že je jen 1)
-- ✅ Workspace skeleton modules: Buď DOKONČIT nebo SMAZAT (ne mix s inline)
-- ✅ Naming convention: `window.fooListModule`, `window.fooDetailModule` (distinct)
-- ✅ Pre-commit hook: Check duplicate `window.` exports
-
-**Kdy použít:**
-- Velké Alpine.js komponenty (500+ lines)
-- Workspace modules (ADR-023)
-- Reusable components across pages
-
-**Kdy NEPOUŽÍVAT external modules:**
-- Simple page-specific logic (inline je OK)
-- Prototypes/WIP features (inline script = faster iteration)
-- Single-use components
-
-**Files (incident):**
-- Deleted: `app/static/js/modules/batch-sets.js` (workspace skeleton)
-- Active: `app/templates/pricing/batch_sets.html:216-371` (inline script)
-
-**Lesson Learned:**
-> Export do `window.foo` = global namespace.
-> Global namespace collision = silent override.
-> Poslední vítězí, předchozí se ztratí bez warning.
-
----
-
-### L-019: Debounce Data Loss při Rychlém Opuštění Stránky
-
-**Problém:**
-Debounced updates (timeout 250-400ms) můžou způsobit ztrátu dat když user rychle opustí stránku před vypršením timeoutu.
-
-**Business Risk:**
-```
-Real-world scénář (CRITICAL!):
-1. Pod tlakem: zákazník na telefonu
-2. Rychle upravíš tp: 30 → 5 min
-3. Klikneš jinam (< 250ms)
-4. Timeout nestihne → stará hodnota (30)
-5. Kalkulace = ŠPATNÁ CENA
-6. Nabídka = ztracená zakázka 💸
-```
-
-**Symptomy:**
-- Rychlá editace + okamžitá navigace = data se neuloží
-- User si nemusí všimnout (tlak, stres, multitasking)
-- 409 Conflict při rychlých změnách (Alpine Proxy = všechny pending requests vidí STEJNOU version!)
-
-**❌ ŠPATNĚ (bez ochrany):**
-```javascript
-debouncedUpdate(op) {
-    clearTimeout(this.timeout);
-    this.timeout = setTimeout(async () => {
-        await this.updateAPI(op);  // ❌ op = Alpine Proxy, mění se!
-    }, 400);
-}
-
-// User opustí stránku <400ms → data loss!
-// User rychle edituje: 30→3→0 → všechny requests = stejná op.version → 409!
-```
-
-**✅ SPRÁVNĚ (L-017 snapshot + beforeunload warning):**
-```javascript
-// State tracking
-hasPendingChanges: false,
-pendingOperationSnapshot: null,
-
-async init() {
-    // Prevent data loss
-    window.addEventListener('beforeunload', (e) => {
-        if (this.hasPendingChanges || this.operationUpdateTimeout) {
-            e.preventDefault();
-            e.returnValue = '';  // Browser native warning
-
-            // Best effort: flush pending updates synchronously
-            if (this.pendingOperationSnapshot) {
-                this.flushPendingOperationSync();
-            }
-        }
-    });
-},
-
-debouncedUpdate(op) {
-    clearTimeout(this.timeout);
-    this.operationUpdateSequence++;
-    const currentSequence = this.operationUpdateSequence;
-
-    // L-017: Snapshot to freeze op.version + values
-    const snapshot = JSON.parse(JSON.stringify(op));
-
-    // Track pending changes
-    this.hasPendingChanges = true;
-    this.pendingOperationSnapshot = snapshot;
-
-    this.timeout = setTimeout(async () => {
-        await this.updateAPI(snapshot, currentSequence);  // ✅ Snapshot!
-    }, 250);  // Faster feedback (250ms vs 400ms)
-},
-
-async updateAPI(op, requestSequence) {
-    const response = await fetch(`/api/operations/${op.id}`, {
-        body: JSON.stringify({ ...payload, version: op.version })
-    });
-
-    if (response.ok) {
-        // Race protection: ignore stale responses
-        if (requestSequence < this.operationUpdateSequence) {
-            return;  // Stale - ignore
-        }
-
-        // Clear pending flag
-        this.hasPendingChanges = false;
-        this.pendingOperationSnapshot = null;
-
-        // Update UI...
-    }
-},
-
-flushPendingOperationSync() {
-    // Best-effort sync flush for beforeunload
-    // Uses deprecated sync XHR (only option for unload)
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', `/api/operations/${op.id}`, false);  // false = sync
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify(payload));
-}
-```
-
-**Jak to funguje:**
-
-| Scénář | Chování |
-|--------|---------|
-| **Normální (user počká)** | 1. Změna hodnoty<br>2. 250ms pauza<br>3. API update → success<br>4. hasPendingChanges = false<br>5. Navigace → ✅ žádný warning |
-| **Rychlé opuštění (<250ms)** | 1. Změna hodnoty<br>2. Okamžitá navigace<br>3. Browser warning: "Leave site?"<br>4. [Cancel] → zůstane / [Leave] → sync flush<br>5. Data uložena! 🎉 |
-| **Rychlé editace (30→3→0)** | 1. 3× změna<br>2. 3× snapshot (každý = vlastní version!)<br>3. Pouze poslední request se odešle<br>4. ✅ Žádný 409 Conflict |
-
-**Proč Snapshot (L-017)?**
-
-```javascript
-// ❌ BEZ snapshot:
-const op = { value: 30, version: 1 };  // Alpine Proxy!
-setTimeout(() => {
-    sendAPI(op);  // User už změnil → { value: 0, version: 2 }
-    // Payload = mix! Server: "version 2? Ale já mám 3!" → 409
-}, 250);
-
-// ✅ SE snapshot:
-const snapshot = JSON.parse(JSON.stringify(op));  // Kopie!
-// snapshot = { value: 30, version: 1 } - ZMRAZENO!
-setTimeout(() => {
-    sendAPI(snapshot);  // ✅ Konzistentní payload
-}, 250);
-```
-
-**Trade-offs:**
-
-| Řešení | Pros | Cons |
-|--------|------|------|
-| **Jen debounce** | ✅ Simple | ❌ Data loss risk |
-| **Snapshot (L-017)** | ✅ Fixuje 409 Conflict | ⚠️ Deep copy overhead (zanedbatelná) |
-| **beforeunload warning** | ✅ User awareness | ⚠️ Browser native popup (ale OK) |
-| **Sync XHR flush** | ✅ Best-effort save | ⚠️ Deprecated API (ale funguje) |
-
-**Kdy použít:**
-- Debounced updates na kritická business data (ceny, časy, množství)
-- Formuláře kde rychlá navigace je běžná (user pod tlakem)
-- Multi-field editace s Alpine.js + x-model
-
-**Kdy NENÍ třeba:**
-- Read-only data
-- Nekritická pole (poznámky, tagy)
-- Single-field formuláře s submit buttonem
-
-**Real-world implementace:**
-[app/templates/parts/edit.html:1050-1065](app/templates/parts/edit.html#L1050-L1065) (beforeunload)
-[app/templates/parts/edit.html:1431-1447](app/templates/parts/edit.html#L1431-L1447) (debouncedUpdateOperation)
-[app/templates/parts/edit.html:1761-1813](app/templates/parts/edit.html#L1761-L1813) (flushPendingOperationSync)
-
-**Lesson Learned:**
-> "Edge case" = 5% vs "Business risk" = ztracená zakázka.
-> Debounce timeout není edge case, je to kritická business logika.
-
----
-
-### L-018: select() na input[type="number"] nefunguje konzistentně
-
-**Problém:**
-`$el.select()` na `input[type="number"]` nefunguje konzistentně ve všech prohlížečích. Někdy vybere text, někdy ne.
-
-**Symptomy:**
-- Uživatel klikne do pole, začne psát, ale hodnota se nepřepíše
-- Chování je náhodné - někdy funguje, někdy ne
-- `::selection` CSS hack nepomáhá
-
-**❌ ŠPATNĚ (nespolehlivé):**
-```html
-<input type="number" @focus="$el.select()">
-```
-
-**✅ SPRÁVNĚ (data-fresh pattern):**
-```html
-<input type="number"
-       @focus="$el.dataset.fresh = 'true'"
-       @keydown="if($el.dataset.fresh === 'true' && $event.key.length === 1 && !$event.ctrlKey && !$event.metaKey) { $el.value = ''; $el.dataset.fresh = 'false' }"
-       @blur="$el.dataset.fresh = 'false'">
-```
-
-**Jak to funguje:**
-1. `@focus` → nastaví flag `data-fresh="true"`
-2. `@keydown` → pokud fresh=true a je to printable znak (length=1) → smaže hodnotu
-3. `@blur` → resetuje flag
-
-**Kdy použít:**
-- Number inputy kde chceš "type to replace" chování
-- Formuláře kde uživatel často přepisuje hodnoty
-
----
-
-### L-015: Changing Validation to Fit Bad Data (CRITICAL!)
-
-**Problém:**
-Validace failuje → místo opravy dat se změní validace → porušení architektury.
-
-**Symptomy:**
-- `ValidationError: String should have at most 7 characters [input_value='DEMO-003']`
-- "Změňme max_length=7 → 50 aby to prošlo"
-- "Seed data nefungují, relax validation"
-- SQLite passes but Pydantic fails
-- "Opakující se problém" (už po X-té!)
-
-**Real-world incident (2026-01-27):**
-
-```python
-# ❌ ŠPATNĚ (téměř se stalo!):
-# Error: ValidationError part_number 'DEMO-003' (8 chars) > max_length=7
-# Plánovaný fix: String(7) → String(50), max_length=7 → 50
-
-# ✅ SPRÁVNĚ (po zastavení uživatelem):
-# 1. READ: docs/ADR/017-7digit-random-numbering.md
-# 2. ZJIŠTĚNO: Format MUSÍ být 1XXXXXX (7 digits random)
-# 3. ROOT CAUSE: seed_data.py vytváří DEMO-XXX (porušuje ADR-017!)
-# 4. FIX: Opravit seed script + smazat špatná data
-# 5. PREVENCE: pytest validace seed outputs, ADR checklist
-```
-
-**Důsledky walkaroundu (kdyby prošel):**
-
-| Dopad | Popis |
-|-------|-------|
-| ❌ Porušení ADR-017 | 7-digit numbering system ignorován |
-| ❌ Broken architecture | Validace ≠ ADR ≠ dokumentace |
-| ❌ Seed data broken | Každý nový dev má invalid demo data |
-| ❌ Import problémy | 3000+ parts import by selhal (různé formáty) |
-| ❌ Technical debt | "Dočasný" workaround = permanent |
-| ❌ Future migrations | Cleanup old data = extra práce |
-| ❌ Testing hell | Tests pass but prod fails |
-
-**Root Cause Analysis:**
-
-```
-Proč se to stalo?
-├─ Seed script vytvořil DEMO-XXX (8 znaků)
-├─ Žádné ADR check před změnou validace
-├─ Žádná pytest validace seed outputs
-├─ "Opakující se problém" ignorován (symptom systémové chyby)
-└─ Rychlý fix místo analýzy (záplatování)
-```
-
-**Correct Workflow:**
-
-```
-IF ValidationError:
-    1. STOP! Nenavrh změnu validace!
-    2. READ: docs/ADR/ (search by entity/field name)
-    3. ANALYZE: Co je SPRÁVNĚ podle ADR?
-    4. IDENTIFY: Jsou data wrong nebo validace wrong?
-    5a. IF data wrong:
-        → FIX: Seed script, migration, manual DELETE
-        → TEST: pytest pro seed outputs
-        → DOCUMENT: Anti-pattern pokud opakující se
-    5b. IF validace wrong:
-        → UPDATE ADR: Document reason for change
-        → FIX: Code + Pydantic + tests
-        → REVIEW: Je to breaking change?
-```
-
-**Prevention Checklist:**
-
-```
-- [ ] BEFORE změna DB/Pydantic: READ ADRs (mandatory!)
-- [ ] Pytest validace pro seed data outputs
-- [ ] Pre-commit hook: test seed script
-- [ ] Documentation: ADR → code → tests sync
-- [ ] Code review: Flag validation changes (high risk!)
-```
-
-**Red Flags (when to use this checklist):**
-
-- 🚨 Changing `max_length`, `min_length`, removing `gt=0`
-- 🚨 "Validation too strict" feedback
-- 🚨 Seed/demo data fail validation
-- 🚨 "Opakující se problém" (systémová chyba!)
-- 🚨 SQLite passes but Pydantic fails (VARCHAR length!)
-
-**Related:**
-- ADR-017: 7-Digit Random Entity Numbering
-- L-010: STOP záplatování - Fix root cause
-- KRITICKÁ PRAVIDLA #12: BEFORE změny DB/Pydantic
-
-**Lesson Learned:**
-> "Data are wrong" ≠ "Change validation to fit data"
-> Fix data, preserve architecture integrity.
-
----
-
-### L-012: HTMX Boost + Alpine.js = NEPOUŽÍVAT
-
-**Rozhodnutí:** `hx-boost` je v GESTIMA **VYPNUTÝ**.
-
-**Proč:**
-- `hx-boost="true"` způsobuje nekonzistentní chování stránek
-- HTMX při AJAX navigaci NESPOUŠTÍ `<script>` tagy
-- Alpine komponenty se nezaregistrují
-- CSS/layout se chová jinak než při full page load
-- Komplexita převyšuje benefit (SPA-like navigace)
-
-**Symptomy (když je boost zapnutý):**
-- `Alpine Expression Error: componentName is not defined`
-- Dashboard má jiný layout po navigaci vs po refreshi
-- Data se nenačítají po kliknutí na odkaz
-
-**✅ SPRÁVNĚ:**
-```html
-<!-- base.html -->
-<body>  <!-- BEZ hx-boost! -->
-```
-
-**❌ ŠPATNĚ:**
-```html
-<body hx-boost="true">  <!-- Způsobuje problémy s Alpine.js -->
-```
-
-**HTMX stále používáme pro:**
-- Dynamické načítání fragmentů (`hx-get`, `hx-post`)
-- Inline editing
-- Partial updates bez full page reload
-
-**HTMX NEPOUŽÍVÁME pro:**
-- Globální SPA-like navigaci (`hx-boost`)
-
-### L-011: CSS Conflicts - Global vs. Component Styles
-
-**Problém:**
-Global CSS (např. `body { min-width: 1200px; }`) ovlivňuje komponenty které to nepotřebují (login page).
-
-**Symptomy:**
-- Layout funguje v izolovaném testu, ale ne v aplikaci
-- Responsive chování nefunguje jen na některých stránkách
-- Mezery/padding se chovají asymetricky
-
-**❌ ŠPATNĚ (záplatování padding/margin):**
-```css
-/* Zkoušet různé kombinace bez zjištění root cause */
-padding: 0 20px;           /* Nefunguje */
-padding: 20px;              /* Pořád ne */
-calc(100% - 40px);          /* Stále ne */
-box-sizing: border-box;     /* Proč to nefunguje?! */
-```
-
-**✅ SPRÁVNĚ (najít konflikt, přepsat inline):**
-```html
-<!-- Zjistit: base.css má body { min-width: 1200px } -->
-<!-- Fix: Přepsat inline pro login page -->
-<body style="min-width: 0; padding: 20px; ...">
-```
-
-**Debug checklist:**
-1. Otevři DevTools → Elements → Computed styles
-2. Zkontroluj padding/margin/width - odkud přichází?
-3. Najdi konfliktní CSS v globálních stylech
-4. Přepiš inline nebo v samostatném `<style>` bloku
-
-**Kdy použít inline override:**
-- Login/standalone pages které nepotřebují global layout
-- Komponenty s výrazně odlišnými požadavky než main app
-- Quick fix když nemůžeš měnit global CSS (breaking change)
-
----
-
-### L-010: STOP záplatování - Fix root cause
-
-**Symptomy záplatování:**
-- "Zkusím ještě tohle..."
-- 3+ pokusy bez pochopení problému
-- Přidávání !important, inline stylů, try/except bez logiky
-- "Snad to teraz funguje"
-
-**❌ ŠPATNĚ (záplaty na záplaty):**
-```python
-# Nefunguje? Přidej try/except
-try:
-    broken_function()
-except:
-    pass  # Snad to bude OK
-
-# Stále ne? Přidej fallback
-if not result:
-    result = default_value  # Hack
-
-# Pořád ne? Přidej timeout, retry, cache...
-```
-
-**✅ SPRÁVNĚ (Roy's way):**
-```
-IF bug:
-    STOP nasazování záplat
-    ASK: "Co je root cause?"
-    DEBUG: Logování, breakpoints, traceback
-    FIX: Oprav příčinu, ne symptom
-    TEST: Ověř že problém je pryč
-    CLEAN: Smaž všechny záplaty
-```
-
-**Pravidlo 3 pokusů:**
-- Pokus 1: Rychlý fix (OK)
-- Pokus 2: Hmm, nefunguje (pozor)
-- Pokus 3: STOP! Debuguj root cause
-
-Víc než 3 pokusy = děláš to špatně. Zastavit, zjistit PROČ, opravit čistě.
-
----
-
-### L-013: Debounced Updates - Race Condition + NaN Handling
-
-**Problém:**
-Při debounced updates (např. Alpine.js input s `@input="debouncedUpdate()"`) mohou stale API responses přijít v nesprávném pořadí a přepsat novější hodnoty staršími.
-
-**Symptomy:**
-- Uživatel zadá hodnotu 0, ale zobrazí se default hodnota (např. 30)
-- Progresivní mazání (30 → 3 → 0) resetuje hodnotu zpět
-- `x-model.number` převede prázdné pole na `NaN`, který prochází `!== null && !== undefined` kontrolami
-
-**❌ ŠPATNĚ (bez race protection):**
-```javascript
-// Debounced update bez sequence tracking
-debouncedUpdate(item) {
-    clearTimeout(this.timeout);
-    this.timeout = setTimeout(async () => {
-        const response = await fetch('/api/items/' + item.id, {
-            body: JSON.stringify({ value: item.value ?? 30 })  // NaN → 30!
-        });
-        const updated = await response.json();
-        this.items = this.items.map(i => i.id === updated.id ? updated : i);
-        // ☠️ Stale response může přijít později a přepsat novější hodnotu!
-    }, 400);
-}
-```
-
-**✅ SPRÁVNĚ (sequence tracking + NaN handling):**
-```javascript
-// 1. Add sequence counter
-operationUpdateSequence: 0,
-
-// 2. Increment sequence before update
-debouncedUpdate(item) {
-    clearTimeout(this.timeout);
-    this.operationUpdateSequence++;
-    const currentSequence = this.operationUpdateSequence;
-
-    this.timeout = setTimeout(async () => {
-        await this.updateItem(item, currentSequence);
-    }, 400);
-},
-
-// 3. Ignore stale responses + handle NaN
-async updateItem(item, requestSequence) {
-    // Normalize NaN/null/undefined to defaults, preserve 0
-    const normalizeValue = (value, defaultValue) => {
-        if (value === 0) return 0;  // Keep 0!
-        if (value === null || value === undefined || isNaN(value) || value === '') {
-            return defaultValue;
-        }
-        return value;
-    };
-
-    const response = await fetch('/api/items/' + item.id, {
-        body: JSON.stringify({
-            value: normalizeValue(item.value, 0)  // Empty field = 0
-        })
-    });
-
-    const updated = await response.json();
-
-    // RACE PROTECTION: Ignore stale responses
-    if (requestSequence < this.operationUpdateSequence) {
-        console.log('Ignoring stale response');
-        return;
-    }
-
-    this.items = this.items.map(i => i.id === updated.id ? updated : i);
-}
-```
-
-**Příklad race condition:**
-```
-User: 30 → delete → 3 → delete → 0
-Debounce triggers: seq#1(30) → seq#2(3) → seq#3(0)
-API responses arrive: #1 → #3 → #2 (out of order!)
-
-Without protection:
-- Response #1 (30): Applied
-- Response #3 (0): Applied ✓
-- Response #2 (3): Applied ✗ (overwrites 0 with stale 3!)
-
-With sequence tracking:
-- Response #1 (seq=1 < 3): Applied
-- Response #3 (seq=3 = 3): Applied
-- Response #2 (seq=2 < 3): IGNORED ✓
-```
-
-**NaN Handling:**
-- `x-model.number=""` převede prázdný string na `NaN`
-- `NaN !== null && NaN !== undefined` je `true` (kontrola neprojde!)
-- Backend často převede `NaN` na `null` → vrátí default hodnotu
-- **Fix:** Explicitní `isNaN()` kontrola + prázdný string `''`
-
-**Kdy použít:**
-- Debounced updates s `x-model.number` (Alpine.js)
-- Jakýkoliv asynchronní update který může být přerušen novějším
-- Number inputs kde 0 je validní hodnota
-
-**Real-world příklad:**
-[app/templates/parts/edit.html:851-1090](app/templates/parts/edit.html#L851-L1090)
-
----
-
-### L-014: Alpine.js x-show with Null Object Properties
-
-**Problém:**
-Alpine.js evaluuje **všechny expressions** na stránce, i když parent element má `x-show="false"`. Pokud child element přistupuje k properties null objektu, vznikají chyby `Cannot read properties of null`.
-
-**Symptomy:**
-- Konzole plná `TypeError: Cannot read properties of null (reading 'confidence')`
-- Chyby se objevují i když parent má `x-show="object && object.property > 0"`
-- 10-20 stejných chyb při každém načtení stránky
-
-**❌ ŠPATNĚ (x-show nezabrání evaluaci child expressions):**
-```html
-<!-- Parent má null check, ale nestačí! -->
-<div x-show="parseResult && parseResult.confidence > 0">
-    <!-- ❌ Alpine evaluuje tohle i když parent je hidden -->
-    <span x-show="parseResult.confidence >= 0.7">✅ OK</span>
-    <span x-text="parseResult.confidence"></span>
-    <button :disabled="parseResult.confidence < 0.4">Použít</button>
-</div>
-```
-
-**✅ SPRÁVNĚ (x-if odstraní element z DOM):**
-```html
-<!-- x-if NERENDUJE element když je false -->
-<template x-if="parseResult && parseResult.confidence > 0">
-    <div>
-        <!-- ✓ Tyto expressions se evaluují JEN když parseResult existuje -->
-        <span x-show="parseResult.confidence >= 0.7">✅ OK</span>
-        <span x-text="parseResult.confidence"></span>
-        <button :disabled="parseResult.confidence < 0.4">Použít</button>
-    </div>
-</template>
-```
-
-**Kdy použít:**
-- Dynamický obsah který závisí na async data (API response)
-- Komponenty s počáteční hodnotou `null`/`undefined`
-- Conditional rendering objektů s properties
-
-**Kdy NENÍ třeba:**
-- Simple boolean flags (`x-show="isOpen"`)
-- Primitive hodnoty (strings, numbers)
-- Data která jsou inicializována při mount
-
-**Rozdíl x-show vs x-if:**
-
-| | `x-show` | `x-if` |
-|---|----------|--------|
-| Renderování | Element vždy v DOM (hidden CSS) | Element není v DOM |
-| Expressions | Evaluují se vždy | Evaluují se jen když true |
-| Performance | Faster toggle (CSS only) | Re-render při změně |
-| Null-safe | ❌ NE (child expressions se evaluují) | ✅ ANO |
-
-**Rule of thumb:**
-```
-IF (používáš object.property V child elements):
-    → Použij x-if na parent
-ELSE:
-    → x-show je OK
-```
-
-**Real-world fix:**
-[app/templates/parts/edit.html:73](app/templates/parts/edit.html#L73) (změna `x-show` → `x-if`)
+**Detailní popisy všech anti-patternů:** [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md)
 
 ---
 
@@ -1052,34 +437,6 @@ Doporučení: [lepší řešení]
 Alternativy: [1, 2, 3]
 ```
 
-**Příklady:**
-
-✅ **GREEN (bez dopadu):**
-```
-User: "Přidej pole Part.article_number"
-Roy: ✅ OK, simple field extension, žádný dopad na budoucnost
-```
-
-🟡 **YELLOW (varování, ale OK):**
-```
-User: "Přidej computed field Part.total_weight"
-Roy: 🟡 VISION: Orders/WorkOrders budou potřebovat snapshot tohoto pole.
-     Doporučení: Přidat i Part.weight_snapshot_json (pro freeze).
-     Alternativa: Počítat on-the-fly v Order (pomalejší, ale OK pro v2.0).
-     Rozhodnutí: [čekám na odpověď]
-```
-
-🔴 **RED (blokující konflikt):**
-```
-User: "Přidej field Part.current_warehouse_location"
-Roy: 🚨 BREAKING - Modul WAREHOUSE (v6.0+)!
-     Problém: Toto patří do Warehouse.stock_items, NE do Parts.
-     Důvod: Part = design/tech info, Stock = instance tracking.
-     Budoucnost: 1 Part může mít 100 ks na různých lokacích.
-     Doporučení: Zatím přidej Part.notes (dočasné řešení).
-     Alternativa: Pokud urgentní → vytvořit ADR VIS-XXX.
-```
-
 ### Kritické domény (WATCH!)
 
 | Doména | Modul | Timeline | Co hlídat |
@@ -1090,263 +447,18 @@ Roy: 🚨 BREAKING - Modul WAREHOUSE (v6.0+)!
 | MaterialItem | Tech DB | v5.0 | Price tiers OK, properties v5.0 |
 | Operation | MES, Routing | v4.0 | Soft delete MUST (WorkOrder FK) |
 
-### Best Practices (Z budoucnosti)
-
-**1. Snapshot Pattern (Orders, Quotes, WorkOrders):**
-```python
-# ✅ CORRECT: Freeze data when locking
-order.part_snapshot = {
-    "part_id": part.id,           # FK pro relaci
-    "part_number": part.part_number,
-    "material": part.material_item.name,
-    "price": calculated_price,
-    "snapshot_date": datetime.utcnow()
-}
-
-# ❌ WRONG: Computed field bez snapshot
-order.total_price  # Co když Part.material cena změní?
-```
-
-**2. Runtime State (MES, Real-time Tracking):**
-```python
-# ✅ CORRECT: State v cache/Redis
-redis.set(f"machine:{machine_id}:status", "busy")
-
-# ❌ WRONG: State v DB (high write frequency)
-machine.current_status = "busy"  # 1000× update/den = problém
-```
-
-**3. Soft Delete Pro FK (Orders, WorkOrders):**
-```python
-# ✅ CORRECT: Soft delete (FK stable)
-part.deleted_at = datetime.utcnow()
-
-# ❌ WRONG: Hard delete (FK broken)
-db.delete(part)  # Order.part_id → NULL? Chyba!
-```
-
-### Reference
-
-- [docs/VISION.md](docs/VISION.md) - Roadmap, moduly, timeline
-- [docs/ADR/VIS-001](docs/ADR/VIS-001-soft-delete-for-future-modules.md) - Soft delete policy
-- [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) - Aktuální priority
-
 ---
 
-## DEBUG WORKFLOW (Roy's Way)
+## DEBUG WORKFLOW
 
-**Účel:** Debugování často zabere víc času než psaní kódu. Tento workflow šetří hodiny.
+**Detailní debug workflow:** [docs/patterns/DEBUG-WORKFLOW.md](docs/patterns/DEBUG-WORKFLOW.md)
 
----
-
-### PRAVIDLO: 1 problém = 1 root cause = 1 fix
-
-**Nikdy:** 3+ pokusy na "zkoušku"
-**Vždy:** Analyzuj → Pochop → Oprav jednou
-
----
-
-### 1. STOP - Nepřidávej kód! (0-2 min)
-
-Když něco nefunguje:
-
-```
-1. ✅ F12 → Console tab
-2. ✅ Přečti PRVNÍ chybu (další jsou často následné)
-3. ✅ Klikni na odkaz vpravo (např. app.js:123) → ukáže přesný řádek
-```
-
-**RED FLAGS:**
-- `SyntaxError` = problém v JavaScriptu/HTML syntaxi
-- `ReferenceError` = proměnná neexistuje (komponenta se neinicializovala)
-- `TypeError` = špatný typ dat
-
----
-
-### 2. IDENTIFIKUJ ROOT CAUSE (2-5 min)
-
-#### SyntaxError Checklist:
-
-- [ ] **Inline JSON v HTML atributu?** (`x-data="func({{ json }})"`)
-  - **FIX:** Přesuň do `<script>window.DATA = {{ json | tojson | safe }}</script>`
-  - **Příklad:**
-    ```html
-    <!-- ❌ ŠPATNĚ: Obří JSON inline -->
-    <div x-data="adminPanel({{ norms_json | tojson }})">
-
-    <!-- ✅ SPRÁVNĚ: Data v script tagu -->
-    <script>window.NORMS = {{ norms_json | tojson | safe }};</script>
-    <div x-data="adminPanel(window.NORMS)">
-    ```
-
-- [ ] **`<script>` tag v included template?** (Jinja2 `{% include %}`)
-  - **FIX:** Přesuň do parent template `{% block scripts %}`
-  - **Důvod:** Include vloží script DOVNITŘ komponenty = rozbije HTML strukturu
-
-- [ ] **Trailing comma v JavaScript objektu?**
-  - **FIX:** Použij `{% if not loop.last %},{% endif %}` v Jinja2 loops
-  - **Příklad:**
-    ```javascript
-    values: {
-        {% for config in configs %}
-        '{{ config.key }}': {{ config.value }}{% if not loop.last %},{% endif %}
-        {% endfor %}
-    }
-    ```
-
-- [ ] **Escapované znaky v řetězci?** (`"text with \"quotes\""`)
-  - **FIX:** Použij Jinja2 `| safe` filter nebo triple quotes
-
-#### ReferenceError Checklist:
-
-- [ ] **Alpine.js komponenta se neinicializovala?**
-  - **Důvod:** Syntax error výše (oprav ten)
-- [ ] **Chybějící `x-data` atribut?**
-- [ ] **Event listener před inicializací?** (`@event="variable"` kde variable neexistuje)
-
----
-
-### 3. OPRAV JEDNOU EDITACÍ (1-2 min)
-
-**Pravidlo 1 editace:**
-```
-✅ Najdi root cause
-✅ Udělej JEDNU opravu
-✅ Test
-```
-
-**Pokud nefunguje:**
-```
-❌ NESTŘÍLEJ dalšími pokusy!
-✅ git revert (vrať změnu)
-✅ Znovu analyzuj (možná špatný root cause)
-```
-
----
-
-### 4. ANTI-PATTERNS (Co NEDĚLAT)
-
-❌ **Záplaty na záplaty:**
-```
-Pokus 1: Přidat console.log
-Pokus 2: Změnit event listener
-Pokus 3: Přidat try/catch
-Pokus 4: Komentovat kód
-Pokus 5: Vytvořit "simple" verzi
-...
-Pokus 15: ???
-```
-
-❌ **"Možná to pomůže" syndrome:**
-- Měnit věci bez analýzy
-- Komentovat kód "na zkoušku"
-- Vytvářet "workaround" verze
-- Přidávat `!important`, `|| null`, `try/catch` všude
-
-❌ **Ignorovat první chybu:**
-- Scrollovat přes 50 chyb v konzoli
-- Řešit 10. chybu místo 1. (ta 1. způsobuje všechny ostatní!)
-
----
-
-### 5. COMMON PITFALLS
-
-| Symptom | Root Cause | Fix |
-|---------|------------|-----|
-| `SyntaxError: Unexpected token` | Inline JSON v HTML atributu | `<script>window.DATA = {{ json \| tojson \| safe }}</script>` |
-| `ReferenceError: X is not defined` | Alpine.js se neinicializoval | Fix syntax error (viz výše) |
-| `</script>` tag uprostřed HTML | Include má vlastní `<script>` | Přesuň do parent `{% block scripts %}` |
-| Trailing comma error | Jinja2 loop generuje `,` za posledním | `{% if not loop.last %},{% endif %}` |
-| Page načítá ale nic nefunguje | JavaScript crash = žádné eventy | Console tab = první chyba! |
-
----
-
-### 6. DEBUG CHECKLIST (před další editací)
-
-```
-- [ ] Přečetl jsem PRVNÍ chybu v Console?
-- [ ] Vím PŘESNĚ na kterém řádku je problém?
-- [ ] Rozumím PROČ ten řádek způsobuje chybu?
-- [ ] Mám JEDNO konkrétní řešení (ne "zkusím tohle")?
-```
-
-**Pokud jakákoliv odpověď je "NE":**
-→ **STOP! Analyzuj víc, NEPIŠ kód!**
-
----
-
-### 7. REAL-WORLD PŘÍKLAD
-
-#### ❌ Co jsem dělal (60+ minut):
-
-1. Přidal console.log debugging (3 min)
-2. Změnil `@close-modal` → `x-on:close-modal` (2 min)
-3. Opravil trailing commas v JS objektech (5 min)
-4. Přesouval `<script>` tagy mezi soubory (10 min)
-5. Zakomentoval included template (5 min)
-6. Vytvořil "simple" HTML verzi bez Alpine.js (5 min)
-7. ... 15+ pokusů bez analýzy
-8. **Celkem: 60+ minut**
-
-#### ✅ Co jsem měl udělat (5 minut):
-
-1. Console: `SyntaxError: Unexpected token ';'` → Syntax error v JS (1 min)
-2. View Source (Ctrl+U): Našel `x-data="adminPanel([{...34 objektů...}])"` (2 min)
-3. Identifikace: Obří inline JSON = known issue (Alpine.js neumí escapovat) (1 min)
-4. **FIX:** Přesunout do `<script>window.NORMS = {{ json }}` (1 min)
-5. **Celkem: 5 minut**
-
----
-
-### 8. ROY'S DEBUG MANTRAS
-
-> **"Have you tried turning it off and on again?"**
-> = Hard refresh (Ctrl+Shift+R) pro vymazání cache
-
-> **"This is going to be a long day..."**
-> = >3 chyby stejného typu → root cause je JEDEN problém
-
-> **"Did you see the first error?"**
-> = První chyba v Console je klíč. Zbytek jsou následné.
-
-> **"Stop patching, find the cause!"**
-> = 3+ pokusy = špatný přístup. STOP a analyzuj.
-
----
-
-### 9. TOOL CHECKLIST
-
-**Browser DevTools:**
-- Console tab - chyby + warnings
-- Sources tab - breakpoints (pokud potřebuješ)
-- Network tab - API calls (pokud je problém s backendem)
-
-**View Page Source (Ctrl+U):**
-- Vidíš co Jinja2 skutečně vygeneroval
-- Najdeš inline JSON, escapované znaky, HTML strukturu
-
-**Git:**
-- `git diff` - co jsem změnil?
-- `git checkout -- file.html` - vrať soubor
-- `git log --oneline -5` - co fungovalo naposledy?
-
----
-
-### 10. KDY ESKALOVAT (zeptat se uživatele)
-
-```
-IF (60+ minut debugging AND stále nefunguje):
-    ✅ Shrň co jsi zkoušel
-    ✅ Ukaž PRVNÍ chybu v Console
-    ✅ Ptej se na root cause, ne na další "fix"
-
-    ❌ NE: "Zkusil jsem 10 věcí a nic nefunguje"
-    ✅ ANO: "Console říká X na řádku Y, nerozumím proč"
-```
-
----
-
-**Poučení:** Většina bugů má **1 root cause**. Najdi ho PŘED psaním kódu.
+**Quick reference:**
+1. **STOP** - Nepřidávej kód
+2. **F12** - Přečti PRVNÍ chybu v Console
+3. **Analyzuj** - Root cause, ne symptom
+4. **FIX** - Jedna editace, test
+5. **Pravidlo 3 pokusů** - Víc = špatný přístup
 
 ---
 
@@ -1407,6 +519,8 @@ Nový nápad / issue z auditu
 
 | Dokument | Účel |
 |----------|------|
+| [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md) | Detailní L-001 až L-021 |
+| [docs/patterns/DEBUG-WORKFLOW.md](docs/patterns/DEBUG-WORKFLOW.md) | Debug postup |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Přehled systému |
 | [docs/UI-GUIDE.md](docs/UI-GUIDE.md) | UI komponenty, layouty, vzory |
 | [docs/SEED-TESTING.md](docs/SEED-TESTING.md) | Seed scripts testing & validace |
@@ -1419,5 +533,8 @@ Nový nápad / issue z auditu
 
 ---
 
-**Verze:** 3.9 (2026-01-28)
-**GESTIMA:** 1.6.0
+**Verze:** 4.0 (2026-01-29)
+**GESTIMA:** 1.7.0
+
+---
+**Poznámka k verzi 4.0:** Dokumentace reorganizována. Detailní anti-patterns přesunuty do [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md), debug workflow do [docs/patterns/DEBUG-WORKFLOW.md](docs/patterns/DEBUG-WORKFLOW.md). Žádné informace nebyly ztraceny.

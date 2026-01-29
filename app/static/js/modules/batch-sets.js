@@ -676,7 +676,6 @@ function _batchSetsWorkspaceModule(config = {}) {
             if (window.showToast) {
                 window.showToast(message, type);
             } else {
-                console.log(`[${type}] ${message}`);
             }
         }
     };

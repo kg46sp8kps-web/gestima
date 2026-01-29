@@ -246,15 +246,10 @@ async def api_create_material_norm(
         note=data.note
     )
     set_audit(norm, current_user.username, is_update=False)
+    db.add(norm)
 
-    try:
-        db.add(norm)
-        await db.commit()
-        await db.refresh(norm)
-        return MaterialNormResponse.model_validate(norm)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    norm = await safe_commit(db, norm, "vytváření normy")
+    return MaterialNormResponse.model_validate(norm)
 
 
 @router.put("/api/material-norms/{norm_id}")
@@ -450,15 +445,10 @@ async def api_create_material_group(
         density=data.density
     )
     set_audit(group, current_user.username, is_update=False)
+    db.add(group)
 
-    try:
-        db.add(group)
-        await db.commit()
-        await db.refresh(group)
-        return MaterialGroupResponse.model_validate(group)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    group = await safe_commit(db, group, "vytváření skupiny materiálu")
+    return MaterialGroupResponse.model_validate(group)
 
 
 @router.put("/api/material-groups/{group_id}")
@@ -569,15 +559,10 @@ async def api_create_material_price_category(
         name=data.name
     )
     set_audit(category, current_user.username, is_update=False)
+    db.add(category)
 
-    try:
-        db.add(category)
-        await db.commit()
-        await db.refresh(category)
-        return MaterialPriceCategoryResponse.model_validate(category)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    category = await safe_commit(db, category, "vytváření cenové kategorie")
+    return MaterialPriceCategoryResponse.model_validate(category)
 
 
 @router.put("/api/material-price-categories/{category_id}")

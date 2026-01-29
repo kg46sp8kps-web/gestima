@@ -1297,7 +1297,6 @@ function partEdit(partId, partNumber) {
 
                 if (response.ok) {
                     this.parseResult = await response.json();
-                    console.log('🔍 Parser result:', this.parseResult);
                 } else {
                     console.error('Parse failed:', response.status);
                     this.parseResult = null;
@@ -1320,7 +1319,6 @@ function partEdit(partId, partNumber) {
             // If input exists but no parseResult, or parse is in progress, wait for fresh parse
             if (this.quickMaterialInput && this.quickMaterialInput.trim().length >= 2) {
                 if (!this.parseResult || this.parsingMaterial) {
-                    console.log('⏳ Triggering immediate parse before apply...');
                     await this.parseMaterialDescription();
                 }
             }
@@ -1332,7 +1330,6 @@ function partEdit(partId, partNumber) {
 
             // SNAPSHOT: Create a copy of parseResult to avoid race conditions with reactive proxy
             const parsed = JSON.parse(JSON.stringify(this.parseResult));
-            console.log('📝 Applying parsed material (snapshot):', parsed);
 
             try {
                 // 1. Apply shape
@@ -1360,13 +1357,11 @@ function partEdit(partId, partNumber) {
 
                 // LENGTH: Apply if present (including 0 - use explicit null check)
                 if (parsed.length !== null && parsed.length !== undefined) {
-                    console.log(`✅ Setting stock_length = ${parsed.length}`);
                     this.partData.stock_length = parsed.length;
                 } else {
                     console.warn(`⚠️ parsed.length is ${parsed.length} - NOT setting stock_length`);
                 }
 
-                console.log('📝 partData AFTER applying dimensions (BEFORE save):', {
                     shape: this.partData.stock_shape,
                     diameter: this.partData.stock_diameter,
                     width: this.partData.stock_width,
@@ -1396,14 +1391,12 @@ function partEdit(partId, partNumber) {
 
                 // 4. Save & reload
                 await this.savePart();
-                console.log('📝 partData AFTER savePart():', {
                     length: this.partData.stock_length,
                     width: this.partData.stock_width,
                     height: this.partData.stock_height
                 });
 
                 await this.loadStockCost();
-                console.log('📝 partData AFTER loadStockCost():', {
                     length: this.partData.stock_length,
                     width: this.partData.stock_width,
                     height: this.partData.stock_height
@@ -1999,7 +1992,6 @@ function partEdit(partId, partNumber) {
                 xhr.send(JSON.stringify(payload));
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    console.log('✅ Pending operation flushed before unload');
                 } else {
                     console.warn('⚠️ Failed to flush pending operation:', xhr.status);
                 }

@@ -156,6 +156,118 @@
         color: var(--text-muted);
     }
 
+    /* Workspace Selector */
+    .workspace-selector {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .workspace-dropdown-btn {
+        padding: 4px 8px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.15s;
+    }
+
+    .workspace-dropdown-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--accent-blue);
+    }
+
+    .workspace-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        min-width: 200px;
+        z-index: 100;
+        overflow: hidden;
+    }
+
+    .workspace-dropdown-item {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.15s;
+    }
+
+    .workspace-dropdown-item:hover {
+        background: var(--bg-hover);
+    }
+
+    .workspace-dropdown-item.active {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--accent-blue);
+        font-weight: 600;
+    }
+
+    .workspace-dropdown-item.action {
+        border-top: 1px solid var(--border-color);
+        color: var(--text-secondary);
+    }
+
+    .workspace-dropdown-item.action:hover {
+        color: var(--text-primary);
+    }
+
+    .workspace-favorite-btn {
+        cursor: pointer;
+        font-size: 0.9rem;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+    }
+
+    .workspace-favorite-btn:hover,
+    .workspace-favorite-btn.active {
+        opacity: 1;
+    }
+
+    /* Quick Access Buttons */
+    .workspace-quick-btn {
+        padding: 4px 10px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .workspace-quick-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--accent-blue);
+    }
+
+    .workspace-quick-btn.active {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        font-weight: 600;
+    }
+
     /* Add Modal */
     .modal-overlay {
         position: fixed;
@@ -295,9 +407,71 @@
     <!-- Toolbar -->
     <div class="workspace-toolbar">
         <div class="toolbar-left">
-            <span class="toolbar-title">Workspace</span>
+            <!-- Workspace Selector -->
+            <div class="workspace-selector" x-data="{ open: false }" @click.outside="open = false">
+                <!-- Dropdown Button -->
+                <button @click="open = !open" class="workspace-dropdown-btn">
+                    <span x-text="getActiveWorkspace()?.name || 'Default'"></span>
+                    <span style="font-size: 0.6rem;" x-text="open ? '▲' : '▼'"></span>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div x-show="open" x-transition class="workspace-dropdown-menu">
+                    <!-- Workspace List -->
+                    <template x-for="ws in getWorkspacesList()" :key="ws.id">
+                        <div class="workspace-dropdown-item"
+                             :class="{ 'active': ws.id === activeWorkspaceId }"
+                             @click="switchWorkspace(ws.id); open = false;">
+                            <span class="workspace-favorite-btn"
+                                  :class="{ 'active': ws.favorite }"
+                                  @click.stop="toggleFavorite(ws.id)"
+                                  x-text="ws.favorite ? '⭐' : '☆'">
+                            </span>
+                            <span style="flex: 1;" x-text="ws.name"></span>
+                            <span x-show="ws.id === activeWorkspaceId" style="color: var(--accent-blue);">✓</span>
+                        </div>
+                    </template>
+
+                    <!-- Actions -->
+                    <div class="workspace-dropdown-item action" @click="showNewWorkspaceModal = true; open = false;">
+                        ➕ Nový workspace
+                    </div>
+                    <div class="workspace-dropdown-item action" @click="showSaveAsModal = true; open = false;">
+                        💾 Uložit jako...
+                    </div>
+                    <div class="workspace-dropdown-item action"
+                         x-show="activeWorkspaceId !== 'default'"
+                         @click="deleteWorkspace(activeWorkspaceId); open = false;">
+                        🗑️ Smazat tento
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access Buttons (Favorites) -->
+            <template x-for="ws in getFavoriteWorkspaces()" :key="ws.id">
+                <button class="workspace-quick-btn"
+                        :class="{ 'active': ws.id === activeWorkspaceId }"
+                        @click="switchWorkspace(ws.id)">
+                    <span>⭐</span>
+                    <span x-text="ws.name"></span>
+                </button>
+            </template>
+
+            <!-- Separator -->
+            <div style="width: 1px; height: 20px; background: var(--border-color);"></div>
+
+            <!-- Manual Save Button -->
+            <button @click="saveCurrentWorkspace(); _showToast('Workspace uložen ✓', 'success')"
+                    class="btn-flat"
+                    style="padding: 4px 8px; font-size: 0.75rem;"
+                    title="Uložit workspace">
+                💾
+            </button>
+
+            <!-- Panel Stats -->
             <span class="toolbar-stats" x-text="`${panels.length} panel${panels.length !== 1 ? 'y' : ''}`"></span>
         </div>
+
         <div class="toolbar-right">
             <button @click="openAddModal()" class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">
                 + Pridat modul
@@ -460,6 +634,72 @@
             </div>
         </div>
     </template>
+
+    <!-- New Workspace Modal -->
+    <template x-if="showNewWorkspaceModal">
+        <div class="modal-overlay" @click.self="showNewWorkspaceModal = false">
+            <div class="modal-content">
+                <div class="modal-title">Nový workspace</div>
+
+                <div class="modal-section">
+                    <label class="modal-label">Název workspace</label>
+                    <input type="text"
+                           x-model="newWorkspaceName"
+                           @keydown.enter="createWorkspace(newWorkspaceName); showNewWorkspaceModal = false; newWorkspaceName = ''"
+                           placeholder="např. Pricing Setup"
+                           style="width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; color: var(--text-primary);"
+                           autofocus>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px;">
+                        Max <span x-text="MAX_WORKSPACES"></span> workspaces celkem
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button @click="showNewWorkspaceModal = false; newWorkspaceName = ''" class="btn-flat">
+                        Zrušit
+                    </button>
+                    <button @click="createWorkspace(newWorkspaceName); showNewWorkspaceModal = false; newWorkspaceName = ''"
+                            class="btn-primary"
+                            :disabled="!newWorkspaceName.trim()">
+                        Vytvořit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Save As Modal -->
+    <template x-if="showSaveAsModal">
+        <div class="modal-overlay" @click.self="showSaveAsModal = false">
+            <div class="modal-content">
+                <div class="modal-title">Uložit workspace jako...</div>
+
+                <div class="modal-section">
+                    <label class="modal-label">Název nové kopie</label>
+                    <input type="text"
+                           x-model="newWorkspaceName"
+                           @keydown.enter="saveWorkspaceAs(newWorkspaceName); showSaveAsModal = false; newWorkspaceName = ''"
+                           placeholder="např. Pricing Setup v2"
+                           style="width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; color: var(--text-primary);"
+                           autofocus>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px;">
+                        Vytvoří kopii současného workspace s <span x-text="panels.length"></span> panely
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button @click="showSaveAsModal = false; newWorkspaceName = ''" class="btn-flat">
+                        Zrušit
+                    </button>
+                    <button @click="saveWorkspaceAs(newWorkspaceName); showSaveAsModal = false; newWorkspaceName = ''"
+                            class="btn-primary"
+                            :disabled="!newWorkspaceName.trim()">
+                        Uložit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
 
 <script>
@@ -478,7 +718,6 @@
             moduleId: panel.id,
             linkColor: panel.linkColor,
             init() {
-                console.log(`[${this.moduleType}] Fallback module initialized`);
             },
             getModuleIcon(type) {
                 return window.ModuleRegistry?.getMeta(type)?.icon || '📁';

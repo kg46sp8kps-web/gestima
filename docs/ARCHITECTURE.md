@@ -1,15 +1,16 @@
 # GESTIMA - Architecture Overview
 
-**Verze:** 1.2 (2026-01-25)
+**Verze:** 1.3 (2026-01-29)
 **Účel:** Rychlá orientace v projektu (5 minut k pochopení)
 
 ---
 
-## 🎯 Quick Start
+## Quick Start
 
 ```
 FastAPI + SQLAlchemy 2.0 (async) + SQLite + Jinja2 + Alpine.js + HTMX
 Backend: Python 3.9+, Frontend: Server-rendered HTML
+Migrations: Alembic, Security: CSP + HSTS
 ```
 
 **Hierarchie entit:**
@@ -21,28 +22,49 @@ Part (Díl)
   ├─ Operations (1:N) - technologické kroky
   │    └─ Features (1:N) - konkrétní úkony s geometrií
   ├─ Batches (1:N) - cenové kalkulace pro dávky
+  │    └─ BatchSet (N:1) - sada zmrazených batchů (ADR-022)
   └─ MaterialItem (N:1) - vazba na polotovar
+
+WorkCenter (Pracoviště) - fyzický stroj nebo virtuální pracoviště (ADR-021)
 ```
 
 ---
 
-## 📁 Directory Map
+## Directory Map
 
 ```
 gestima/
 ├── app/
-│   ├── models/              # SQLAlchemy modely (Part, Operation, Feature, Batch)
-│   ├── routers/             # API endpoints (parts_router.py, operations_router.py...)
-│   ├── services/            # Business logika (price_calculator.py, time_calculator.py)
-│   ├── templates/           # Jinja2 HTML (index.html, edit.html)
-│   ├── static/              # CSS, JS (main.js, tailwind.css)
-│   ├── database.py          # DB setup + AuditMixin (soft delete)
-│   ├── logging_config.py    # Structured logging (JSON + console)
-│   ├── rate_limiter.py      # Rate limiting (slowapi)
-│   └── gestima_app.py       # FastAPI app + global error handler
-├── data/                    # CSV data (materials, machines, cutting_conditions)
-├── tests/                   # pytest testy
-└── docs/                    # Dokumentace
+│   ├── models/              # SQLAlchemy modely
+│   │   ├── part.py          # Part, Operation, Feature, Batch
+│   │   ├── work_center.py   # WorkCenter (ADR-021)
+│   │   └── batch_set.py     # BatchSet (ADR-022)
+│   ├── routers/             # API endpoints
+│   │   ├── parts_router.py
+│   │   ├── operations_router.py
+│   │   ├── work_centers_router.py  # NEW
+│   │   └── pricing_router.py       # BatchSet freeze
+│   ├── services/            # Business logika
+│   │   ├── price_calculator.py
+│   │   ├── time_calculator.py
+│   │   └── snapshot_service.py
+│   ├── templates/           # Jinja2 HTML
+│   │   ├── parts/           # edit.html, list
+│   │   ├── workspace.html   # Workspace modules (ADR-023)
+│   │   └── admin/           # master_data.html
+│   ├── static/
+│   │   ├── js/
+│   │   │   ├── core/        # module-registry.js, link-manager.js
+│   │   │   └── modules/     # Workspace moduly (ADR-023)
+│   │   └── css/
+│   ├── database.py          # DB setup + AuditMixin
+│   └── gestima_app.py       # FastAPI + CSP/HSTS headers
+├── alembic/                 # DB migrations
+├── data/                    # CSV seed data
+├── tests/                   # pytest
+└── docs/
+    ├── patterns/            # ANTI-PATTERNS.md, DEBUG-WORKFLOW.md
+    └── ADR/                 # 23 architektonických rozhodnutí
 ```
 
 **Kde co najdu:**
@@ -54,200 +76,136 @@ gestima/
 | Backup/restore DB | services/backup_service.py |
 | Snapshots (freeze) | services/snapshot_service.py |
 | API díly | routers/parts_router.py |
-| API operace | routers/operations_router.py |
-| API materiály | routers/materials_router.py |
-| API auth | routers/auth_router.py |
+| API pracoviště | routers/work_centers_router.py |
+| API batch freeze | routers/pricing_router.py |
 | DB modely | models/*.py |
-| DB helpers | db_helpers.py (soft_delete, safe_commit, set_audit) |
-| HTML šablony | templates/*.html |
-| Frontend logika | static/main.js (Alpine.js) |
-| Testy | tests/test_*.py |
-| Error handling | logging_config.py, gestima_app.py |
-| Rate limiting | rate_limiter.py |
-| Auth service | services/auth_service.py |
+| Workspace moduly | static/js/modules/*.js |
+| Alembic migrations | alembic/versions/*.py |
+| Anti-patterns | docs/patterns/ANTI-PATTERNS.md |
+| Debug workflow | docs/patterns/DEBUG-WORKFLOW.md |
 
 ---
 
-## 🔄 Data Flow
-
-### Typický request cycle
-```
-1. User Action (browser)
-2. HTMX/Alpine.js → API call (fetch)
-3. Router (routers/*.py) → validates input
-4. Service (services/*.py) → business logic + calculations
-5. DB (SQLAlchemy async) → CRUD operations
-6. Response (JSON) → backend
-7. Frontend updates (Alpine.js) → re-render
-```
-
-### Příklad: "Změna cutting_mode"
-```
-User clicks "HIGH mode"
-  ↓
-POST /api/operations/{id}/change-mode {"cutting_mode": "high"}
-  ↓
-operations_router.py:change_mode()
-  ↓
-db.commit() [with error handling]
-  ↓
-Response: Updated operation JSON
-  ↓
-Alpine.js: Update UI + recalculate features
-```
-
----
-
-## 🏗️ System Diagram
+## System Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     BROWSER (User)                      │
-│  Jinja2 Templates + Alpine.js + HTMX + TailwindCSS     │
+│  Jinja2 Templates + Alpine.js + HTMX                   │
+│  Workspace Modules (ADR-023)                            │
 └────────────────────┬────────────────────────────────────┘
                      │ HTTP (JSON/HTML)
                      ▼
 ┌─────────────────────────────────────────────────────────┐
-│                  FastAPI (gestima_app.py)               │
+│              Caddy (Reverse Proxy)                      │
+│              HTTPS + Rate Limiting                      │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              FastAPI (gestima_app.py)                   │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Security: CSP + HSTS headers (ADR-020)          │  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Auth Middleware (JWT HttpOnly Cookie)           │  │
+│  └──────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  Routers (API endpoints)                         │  │
-│  │  - parts_router.py    - operations_router.py     │  │
-│  │  - features_router.py - batches_router.py        │  │
-│  │  - data_router.py     - pages_router.py          │  │
+│  │  - parts, operations, features, batches          │  │
+│  │  - work_centers, pricing, materials              │  │
 │  └──────────────────────────────────────────────────┘  │
 │                     ▼                                    │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  Services (Business Logic)                       │  │
-│  │  - price_calculator.py                           │  │
-│  │  - time_calculator.py                            │  │
+│  │  - price_calculator, time_calculator             │  │
+│  │  - snapshot_service                              │  │
 │  └──────────────────────────────────────────────────┘  │
 │                     ▼                                    │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  SQLAlchemy 2.0 (async ORM)                      │  │
-│  │  Models: Part, Operation, Feature, Batch         │  │
+│  │  Models: Part, Operation, Feature, Batch,        │  │
+│  │          WorkCenter, BatchSet, MaterialItem      │  │
 │  └──────────────────────────────────────────────────┘  │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │         SQLite + WAL mode (gestima.db)                  │
-│  Tables: parts, operations, features, batches,          │
-│          materials, machines, cutting_conditions        │
+│         Alembic migrations                              │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔑 Key Architectural Decisions
+## Key Architectural Decisions
 
 | Rozhodnutí | Důvod | ADR |
 |------------|-------|-----|
 | **Soft delete** | Audit trail + data recovery | ADR-001 |
-| **Integer IDs** | Simplicity vs UUIDs | ADR-003 |
+| **8-digit numbering** | Scalable entity IDs (PPXXXXXX) | ADR-017 |
 | **JWT + HttpOnly Cookie** | Security (XSS/CSRF protection) | ADR-005 |
 | **Role Hierarchy** | Admin >= Operator >= Viewer | ADR-006 |
-| **HTTPS via Caddy** | TLS termination + reverse proxy | ADR-007 |
 | **Optimistic Locking** | Conflict detection via version | ADR-008 |
-| **Material Hierarchy** | Two-tier: Group → Item | ADR-011 |
 | **Minimal Snapshot** | Freeze batch prices | ADR-012 |
-| **localStorage for UI** | Zero latency, KISS | ADR-013 |
-| **Async SQLAlchemy** | Performance + modern Python | N/A |
-| **Server-side rendering** | SEO + simplicity | N/A |
+| **WorkCenter model** | Physical + virtual machines | ADR-021 |
+| **BatchSet model** | Organize frozen batches | ADR-022 |
+| **Workspace modules** | Multi-panel linked views | ADR-023 |
+| **CSP + HSTS** | Security headers | ADR-020 |
 
 ---
 
-## 🚀 Critical Paths (User Flows)
+## New in v1.7.0
 
-### 1. Vytvoření dílu
-```
-GET / → index.html
-  ↓
-User: "Nový díl"
-  ↓
-POST /api/parts {"part_number": "...", "material_group": "..."}
-  ↓
-parts_router.create_part()
-  ↓
-DB: INSERT into parts
-  ↓
-Response: Created part JSON
-  ↓
-UI: Redirect to /edit/{part_id}
-```
+### WorkCenter Model (ADR-021)
+- Single model for physical machines and virtual workstations
+- 8-digit sequential numbering (80XXXXXX)
+- Replaces separate Machine model
 
-### 2. Přidání operace
-```
-/edit/{part_id}
-  ↓
-User: "Přidat operaci"
-  ↓
-POST /api/operations {"part_id": X, "operation_type": "turning"}
-  ↓
-operations_router.create_operation()
-  ↓
-DB: INSERT into operations
-  ↓
-Response: New operation JSON
-  ↓
-UI: Add operation card to DOM
-```
+### BatchSet Model (ADR-022)
+- Groups loose batches into frozen sets
+- Atomic freeze workflow
+- Timestamp-based naming (35XXXXXX)
 
-### 3. Výpočet ceny
-```
-User změnil material/rozměry/quantities
-  ↓
-Frontend: Shromáždí všechna data
-  ↓
-POST /api/calculate (nebo GET s params)
-  ↓
-price_calculator.py:
-  - Material cost (volume * density * price)
-  - Machining cost (time * hourly_rate)
-  - Setup cost (setup_time * hourly_rate / quantity)
-  ↓
-Response: Calculated prices per batch
-  ↓
-UI: Update price ribbons
-```
+### Workspace Modules (ADR-023)
+- Extracted from edit.html to separate JS files
+- 4 modules: parts-list, part-material, part-operations, part-pricing
+- LinkManager for cross-module communication
 
 ---
 
-## 📋 Production Checklist
+## Production Checklist
 
-### P0 - BLOCKER (bez tohoto nelze nasadit)
+### P0 - BLOCKER
 | Status | Requirement |
 |--------|-------------|
 | ✅ | Authentication (OAuth2 + JWT HttpOnly Cookie) |
 | ✅ | Authorization (RBAC: Admin/Operator/Viewer) |
-| ✅ | Role Hierarchy (Admin >= Operator >= Viewer) |
-| ✅ | HTTPS dokumentace (Caddy reverse proxy) |
-| ✅ | DEBUG=False (.env.example) |
+| ✅ | HTTPS via Caddy reverse proxy |
+| ✅ | CSP + HSTS security headers |
 
-### P1 - KRITICKÉ (všechny splněny ✅)
+### P1 - KRITICKÉ
 | Status | Requirement |
 |--------|-------------|
-| ✅ | Transaction error handling (14 míst) |
-| ✅ | Structured logging (logging_config.py) |
-| ✅ | Global error handler (gestima_app.py) |
-| ✅ | Backup strategie (CLI: backup, backup-list, backup-restore) |
-| ✅ | Audit trail (set_audit helper) |
-| ✅ | CORS (konfigurovatelný whitelist) |
-| ✅ | Rate limiting (slowapi: 100/min API, 10/min auth) |
-
-**Detaily:** [CLAUDE.md](../CLAUDE.md#production-requirements)
+| ✅ | Transaction error handling |
+| ✅ | Structured logging |
+| ✅ | Backup strategie (CLI commands) |
+| ✅ | Alembic migrations |
+| ✅ | Rate limiting (100/min API, 10/min auth) |
 
 ---
 
-## 📚 Reference
+## Reference
 
-- **Kompletní spec:** [GESTIMA_1.0_SPEC.md](GESTIMA_1.0_SPEC.md) (997 řádků, datový model + API)
-- **Pravidla vývoje:** [CLAUDE.md](../CLAUDE.md) (workflow + patterns)
-- **ADR:** [docs/ADR/](ADR/) (architektonická rozhodnutí)
-- **UI dokumentace:** [UI_REFERENCE.md](UI_REFERENCE.md)
-- **Testing:** [TESTING.md](TESTING.md)
+| Dokument | Účel |
+|----------|------|
+| [CLAUDE.md](../CLAUDE.md) | Pravidla, workflow, anti-patterns |
+| [docs/patterns/](patterns/) | ANTI-PATTERNS.md, DEBUG-WORKFLOW.md |
+| [docs/ADR/](ADR/) | 23 architektonických rozhodnutí |
+| [docs/VISION.md](VISION.md) | 1-year roadmap |
+| [docs/STATUS.md](STATUS.md) | Aktuální stav projektu |
 
 ---
 
-**Verze:** 1.2
-**Poslední update:** 2026-01-25
-**Autor:** Auto-generated
+**Verze:** 1.3
+**Poslední update:** 2026-01-29

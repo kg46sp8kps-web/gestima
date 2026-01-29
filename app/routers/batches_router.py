@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,13 +26,18 @@ router = APIRouter()
 @router.get("/part/{part_id}", response_model=List[BatchResponse])
 async def get_batches(
     part_id: int,
+    skip: int = Query(0, ge=0, description="Počet záznamů k přeskočení"),
+    limit: int = Query(100, ge=1, le=500, description="Max počet záznamů"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
         select(Batch)
+        .options(selectinload(Batch.part))
         .where(Batch.part_id == part_id, Batch.deleted_at.is_(None))
         .order_by(Batch.quantity)
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 
@@ -82,32 +87,18 @@ async def create_batch(
     try:
         # Auto-calculate costs před commitem
         await recalculate_batch_costs(batch, db)
-
-        await db.commit()
-        await db.refresh(batch)
-        logger.info(
-            f"Created batch: quantity={batch.quantity}, unit_cost={batch.unit_cost} Kč",
-            extra={"batch_id": batch.id, "part_id": batch.part_id, "user": current_user.username}
-        )
-        return batch
     except ValueError as e:
         # Chyba z recalculate (Part not found, missing material, atd.)
         await db.rollback()
         logger.error(f"Validation error creating batch: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"Integrity error creating batch: {e}", exc_info=True)
-        raise HTTPException(status_code=409, detail="Konflikt dat (neplatná reference na díl)")
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error creating batch: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření dávky")
-    except Exception as e:
-        # Catch-all pro neočekávané chyby
-        await db.rollback()
-        logger.error(f"Unexpected error creating batch: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při vytváření dávky: {str(e)}")
+
+    batch = await safe_commit(db, batch, "vytváření dávky", "Konflikt dat (neplatná reference na díl)")
+    logger.info(
+        f"Created batch: quantity={batch.quantity}, unit_cost={batch.unit_cost} Kč",
+        extra={"batch_id": batch.id, "part_id": batch.part_id, "user": current_user.username}
+    )
+    return batch
 
 
 @router.delete("/{batch_number}", status_code=204)
@@ -176,14 +167,9 @@ async def freeze_batch(
         batch.unit_price_frozen = batch.unit_cost  # Redundantní pro reporty
         batch.total_price_frozen = batch.total_cost
 
-        await db.commit()
-        await db.refresh(batch)
+        batch = await safe_commit(db, batch, "zmrazení dávky")
         logger.info(f"Frozen batch: quantity={batch.quantity}", extra={"batch_number": batch_number, "user": current_user.username})
         return batch
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error freezing batch {batch_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při zmrazování dávky")
     except Exception as e:
         await db.rollback()
         logger.error(f"Freeze batch {batch_number} failed: {e}", exc_info=True)
@@ -277,27 +263,18 @@ async def recalculate_batch(
     try:
         # Přepočítat náklady
         await recalculate_batch_costs(batch, db)
-        await db.commit()
-        await db.refresh(batch)
-        logger.info(
-            f"Recalculated batch {batch_number}: unit_cost={batch.unit_cost} Kč",
-            extra={"batch_number": batch_number, "user": current_user.username}
-        )
-        return batch
     except ValueError as e:
         # Chyba z recalculate (Part not found, missing material, atd.)
         await db.rollback()
         logger.error(f"Validation error recalculating batch {batch_number}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error recalculating batch {batch_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při přepočítání dávky")
-    except Exception as e:
-        # Catch-all pro neočekávané chyby
-        await db.rollback()
-        logger.error(f"Unexpected error recalculating batch {batch_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při přepočítání dávky: {str(e)}")
+
+    batch = await safe_commit(db, batch, "přepočítání dávky")
+    logger.info(
+        f"Recalculated batch {batch_number}: unit_cost={batch.unit_cost} Kč",
+        extra={"batch_number": batch_number, "user": current_user.username}
+    )
+    return batch
 
 
 @router.post("/part/{part_id}/recalculate", status_code=204)
@@ -328,21 +305,13 @@ async def recalculate_part_batches(
     try:
         for batch in batches:
             await recalculate_batch_costs(batch, db)
-
-        await db.commit()
-        logger.info(
-            f"Recalculated {len(batches)} batches for part {part_id}",
-            extra={"part_id": part_id, "batch_count": len(batches), "user": current_user.username}
-        )
     except ValueError as e:
         await db.rollback()
         logger.error(f"Validation error recalculating batches for part {part_id}: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
-    except SQLAlchemyError as e:
-        await db.rollback()
-        logger.error(f"Database error recalculating batches for part {part_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba databáze při přepočítání dávek")
-    except Exception as e:
-        await db.rollback()
-        logger.error(f"Unexpected error recalculating batches for part {part_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Neočekávaná chyba při přepočítání dávek: {str(e)}")
+
+    await safe_commit(db, action="přepočítání dávek")
+    logger.info(
+        f"Recalculated {len(batches)} batches for part {part_id}",
+        extra={"part_id": part_id, "batch_count": len(batches), "user": current_user.username}
+    )

@@ -2,7 +2,7 @@
 
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -20,6 +20,8 @@ router = APIRouter()
 @router.get("/part/{part_id}", response_model=List[OperationResponse])
 async def get_operations(
     part_id: int,
+    skip: int = Query(0, ge=0, description="Počet záznamů k přeskočení"),
+    limit: int = Query(100, ge=1, le=500, description="Max počet záznamů"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -27,6 +29,8 @@ async def get_operations(
         select(Operation)
         .where(Operation.part_id == part_id, Operation.deleted_at.is_(None))
         .order_by(Operation.seq)
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 

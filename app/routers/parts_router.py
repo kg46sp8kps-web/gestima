@@ -36,6 +36,11 @@ async def get_parts(
     """List všech dílů s pagination (default limit=100, max=500)"""
     result = await db.execute(
         select(Part)
+        .options(
+            selectinload(Part.material_item),
+            selectinload(Part.operations),
+            selectinload(Part.batches)
+        )
         .where(Part.deleted_at.is_(None))
         .order_by(Part.updated_at.desc())
         .offset(skip)
@@ -53,7 +58,11 @@ async def search_parts(
     current_user: User = Depends(get_current_user)
 ):
     """Filtrování dílů s multi-field search"""
-    query = select(Part).where(Part.deleted_at.is_(None))
+    query = select(Part).options(
+        selectinload(Part.material_item),
+        selectinload(Part.operations),
+        selectinload(Part.batches)
+    ).where(Part.deleted_at.is_(None))
 
     if search.strip():
         search_term = f"%{search.strip()}%"

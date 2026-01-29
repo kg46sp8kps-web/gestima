@@ -292,11 +292,11 @@ async def recalculate_batches(
             )
 
     # Commit all batch updates
-    await db.commit()
+    await safe_commit(db, action="přepočítání dávek")
 
     # Update timestamp
     work_center.batches_recalculated_at = datetime.now()
-    await db.commit()
+    await safe_commit(db, work_center, "aktualizace timestampu")
 
     logger.info(
         f"Recalculated {recalculated_count} batches for work center {work_center_number}",

@@ -44,7 +44,7 @@ function _partPricingWorkspaceModule(config = {}) {
         batchSets: [],
 
         // Selection
-        selectedSetId: null,
+        selectedSetId: '',  // Empty string = loose batches (like parts/edit.html)
         newBatchQty: 1,
         newSetName: '',
         showCreateSetModal: false,
@@ -101,8 +101,10 @@ function _partPricingWorkspaceModule(config = {}) {
             }
 
             // React to material/operations changes - recalculate and reload
-            if (context.type === 'materialChanged' || context.type === 'operationsChanged') {
+            // LinkManager stores event type in _lastEvent, not type
+            if (context._lastEvent === 'materialChanged' || context._lastEvent === 'operationsChanged') {
                 if (this.partId) {
+                    console.debug(`[part-pricing] Detected ${context._lastEvent}, recalculating batches...`);
                     await this.recalculateBatches();
                     await this.loadData();  // Reload after recalc
                 }
@@ -138,12 +140,15 @@ function _partPricingWorkspaceModule(config = {}) {
         },
 
         async loadBatches() {
+            if (!this.partId) return;
+
             try {
                 const response = await fetch(`/api/batches/part/${this.partId}`);
                 if (response.ok) {
                     this.batches = await response.json();
                     // Sort by quantity
                     this.batches.sort((a, b) => a.quantity - b.quantity);
+                    console.debug(`[part-pricing] Loaded ${this.batches.length} batches, selectedSetId="${this.selectedSetId}", displaying ${this.displayedBatches.length}`);
                 }
             } catch (err) {
                 console.error('[part-pricing] Batches load error:', err);
@@ -293,7 +298,7 @@ function _partPricingWorkspaceModule(config = {}) {
 
                 const newSet = await response.json();
                 this.batchSets.push(newSet);
-                this.selectedSetId = newSet.id;
+                this.selectedSetId = String(newSet.id);  // Keep as string for dropdown
                 this.newSetName = '';
                 this.showCreateSetModal = false;
 
@@ -307,12 +312,13 @@ function _partPricingWorkspaceModule(config = {}) {
         },
 
         async freezeCurrentSet() {
-            if (!this.selectedSetId) {
+            if (!this.selectedSetId || this.selectedSetId === '') {
                 this._showToast('Není vybrána žádná sada', 'warning');
                 return;
             }
 
-            const set = this.batchSets.find(s => s.id === this.selectedSetId);
+            const setIdNum = parseInt(this.selectedSetId, 10);
+            const set = this.batchSets.find(s => s.id === setIdNum);
             if (!set) return;
 
             if (set.status === 'frozen') {
@@ -377,16 +383,19 @@ function _partPricingWorkspaceModule(config = {}) {
         // ═══════════════════════════════════════════════════════════════
 
         get displayedBatches() {
-            if (this.selectedSetId === null) {
+            if (this.selectedSetId === '') {
                 // Show loose batches (not in any set)
                 return this.batches.filter(b => !b.batch_set_id);
-            } else if (this.selectedSetId === 'all') {
-                // Show all batches
-                return this.batches;
             } else {
                 // Show batches from selected set
-                return this.batches.filter(b => b.batch_set_id === this.selectedSetId);
+                // FIX: selectedSetId is STRING from dropdown, batch_set_id is NUMBER from API
+                const setIdNum = parseInt(this.selectedSetId, 10);
+                return this.batches.filter(b => b.batch_set_id === setIdNum);
             }
+        },
+
+        get looseBatchCount() {
+            return this.looseBatches.length;
         },
 
         get looseBatches() {
@@ -398,8 +407,10 @@ function _partPricingWorkspaceModule(config = {}) {
         },
 
         get selectedSet() {
-            if (!this.selectedSetId || this.selectedSetId === 'all') return null;
-            return this.batchSets.find(s => s.id === this.selectedSetId);
+            if (!this.selectedSetId || this.selectedSetId === '') return null;
+            // FIX: selectedSetId is STRING from dropdown, s.id is NUMBER from API
+            const setIdNum = parseInt(this.selectedSetId, 10);
+            return this.batchSets.find(s => s.id === setIdNum);
         },
 
         // ═══════════════════════════════════════════════════════════════
