@@ -2,7 +2,7 @@
 /**
  * Part Detail View - Full page part editing with tabs
  *
- * Reuses workspace modules in tab layout:
+ * Tabs:
  * - Tab 0: Basic info (name, description)
  * - Tab 1: Material settings (PartMaterialModule)
  * - Tab 2: Operations (PartOperationsModule)
@@ -14,7 +14,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePartsStore } from '@/stores/parts'
 import { useUiStore } from '@/stores/ui'
 import FormTabs from '@/components/ui/FormTabs.vue'
-import PartMaterialModule from '@/views/workspace/modules/PartMaterialModule.vue'
+import PartMaterialModule from '@/components/modules/PartMaterialModule.vue'
 import PartOperationsModule from '@/components/modules/PartOperationsModule.vue'
 import PartPricingModule from '@/components/modules/PartPricingModule.vue'
 import Skeleton from '@/components/ui/Skeleton.vue'
@@ -90,11 +90,8 @@ function goBack() {
   router.push({ name: 'parts-list' })
 }
 
-function goToWorkspace() {
-  router.push({
-    name: 'workspace',
-    query: { partNumber: partNumber.value }
-  })
+function goToWindows() {
+  router.push({ name: 'windows' })
 }
 </script>
 
@@ -133,8 +130,8 @@ function goToWorkspace() {
         </div>
 
         <div class="header-actions">
-          <button class="btn btn-secondary" @click="goToWorkspace">
-            Otevřít ve Workspace
+          <button class="btn btn-secondary" @click="goToWindows">
+            🪟 Floating Windows
           </button>
         </div>
       </header>

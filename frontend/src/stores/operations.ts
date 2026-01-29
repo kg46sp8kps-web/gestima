@@ -1,14 +1,12 @@
 /**
  * GESTIMA - Operations Pinia Store
  *
- * Manages operations for the current part in workspace context.
- * Listens for partId changes from workspace store.
+ * Manages operations for parts.
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { operationsApi, workCentersApi } from '@/api/operations'
-import { useWorkspaceStore } from './workspace'
 import { useUiStore } from './ui'
 import type {
   Operation,
@@ -181,11 +179,7 @@ export const useOperationsStore = defineStore('operations', () => {
 
       // Handle version conflict
       if (err?.status === 409) {
-        ui.showToast('Konflikt verze - obnovuji data', 'warning')
-        const workspace = useWorkspaceStore()
-        if (workspace.context.partId) {
-          await loadOperations(workspace.context.partId)
-        }
+        ui.showToast('Konflikt verze - obnovte stránku', 'warning')
       } else {
         ui.showToast('Chyba při ukládání', 'error')
       }

@@ -8,7 +8,7 @@
 
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import PartsListModule from '@/views/workspace/modules/PartsListModule.vue'
+import PartsListModule from '@/components/modules/PartsListModule.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -44,7 +44,7 @@ function handleCreatePart() {
       </div>
     </header>
 
-    <!-- Parts list module (reused from workspace) -->
+    <!-- Parts list module -->
     <div class="page-content">
       <PartsListModule
         :standalone="true"

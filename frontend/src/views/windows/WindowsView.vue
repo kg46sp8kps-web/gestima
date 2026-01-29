@@ -4,7 +4,6 @@
  */
 
 import { useWindowsStore } from '@/stores/windows'
-import WindowManager from '@/components/windows/WindowManager.vue'
 import FloatingWindow from '@/components/windows/FloatingWindow.vue'
 
 // Module components (lazy loaded)
@@ -13,7 +12,7 @@ import { defineAsyncComponent } from 'vue'
 const PartsListModule = defineAsyncComponent(() => import('@/components/modules/PartsListModule.vue'))
 const PartPricingModule = defineAsyncComponent(() => import('@/components/modules/PartPricingModule.vue'))
 const PartOperationsModule = defineAsyncComponent(() => import('@/components/modules/PartOperationsModule.vue'))
-const PartMaterialModule = defineAsyncComponent(() => import('@/views/workspace/modules/PartMaterialModule.vue'))
+const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
 
 const store = useWindowsStore()
@@ -33,9 +32,6 @@ function getModuleComponent(module: string) {
 
 <template>
   <div class="windows-view">
-    <!-- Window Manager (toolbar) -->
-    <WindowManager />
-
     <!-- Floating Windows -->
     <div class="windows-container">
       <FloatingWindow
@@ -52,7 +48,7 @@ function getModuleComponent(module: string) {
     <div v-if="store.windows.length === 0" class="empty-state">
       <div class="empty-icon">🪟</div>
       <h2>No Windows Open</h2>
-      <p>Click a module button above to open a window</p>
+      <p>Use the menu (☰) to open modules</p>
     </div>
   </div>
 </template>
@@ -70,7 +66,6 @@ function getModuleComponent(module: string) {
 .windows-container {
   position: absolute;
   inset: 0;
-  top: 50px; /* Space for WindowManager toolbar */
 }
 
 /* Empty State */

@@ -7,7 +7,6 @@ import './assets/css/base.css'
 import './assets/css/layout.css'
 import './assets/css/components.css'
 import './assets/css/forms.css'
-import './assets/css/workspace-grids.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

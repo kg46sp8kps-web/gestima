@@ -90,6 +90,36 @@
                 </router-link>
               </div>
 
+              <!-- Windows Modules (only on /windows route) -->
+              <template v-if="isWindowsRoute">
+                <div class="menu-divider"></div>
+                <div class="menu-section">
+                  <div class="menu-section-title">Open Modules</div>
+                  <button
+                    v-for="mod in windowModules"
+                    :key="mod.value"
+                    class="menu-item"
+                    @click="openWindowModule(mod.value, mod.label, mod.icon)"
+                  >
+                    <span class="menu-icon">{{ mod.icon }}</span>
+                    <span class="menu-label">{{ mod.label }}</span>
+                  </button>
+                </div>
+
+                <div class="menu-divider"></div>
+                <div class="menu-section">
+                  <div class="menu-section-title">Window Actions</div>
+                  <button class="menu-item" @click="arrangeWindows('grid')">
+                    <span class="menu-icon">🔲</span>
+                    <span class="menu-label">Arrange Grid</span>
+                  </button>
+                  <button class="menu-item" @click="closeAllWindows">
+                    <span class="menu-icon">❌</span>
+                    <span class="menu-label">Close All</span>
+                  </button>
+                </div>
+              </template>
+
               <div class="menu-divider"></div>
 
               <div class="menu-section">
@@ -143,11 +173,13 @@ import { ref, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { useWindowsStore, type WindowModule } from '@/stores/windows'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const ui = useUiStore()
+const windowsStore = useWindowsStore()
 
 // State
 const showMenu = ref(false)
@@ -164,6 +196,18 @@ const navItems = computed(() => [
   { to: '/work-centers', icon: '🏭', label: 'Pracoviště' },
   { to: '/windows', icon: '🪟', label: 'Windows' },
 ])
+
+// Windows modules (available only on /windows route)
+const windowModules = [
+  { value: 'parts-list' as WindowModule, label: 'Parts List', icon: '📦' },
+  { value: 'part-pricing' as WindowModule, label: 'Pricing', icon: '💰' },
+  { value: 'part-operations' as WindowModule, label: 'Operations', icon: '⚙️' },
+  { value: 'part-material' as WindowModule, label: 'Material', icon: '🧱' },
+  { value: 'batch-sets' as WindowModule, label: 'Batch Sets', icon: '📋' }
+]
+
+// Check if on Windows route
+const isWindowsRoute = computed(() => route.path === '/windows')
 
 // Check if route is active
 function isActive(path: string): boolean {
@@ -223,6 +267,24 @@ async function handleLogout() {
   } catch (err) {
     ui.showError('Chyba při odhlašování')
   }
+}
+
+// Windows actions
+function openWindowModule(module: WindowModule, label: string, icon: string) {
+  windowsStore.openWindow(module, `${icon} ${label}`)
+  showMenu.value = false
+}
+
+function arrangeWindows(mode: 'grid' | 'horizontal' | 'vertical') {
+  windowsStore.arrangeWindows(mode)
+  showMenu.value = false
+}
+
+function closeAllWindows() {
+  if (confirm('Zavřít všechna okna?')) {
+    windowsStore.closeAllWindows()
+  }
+  showMenu.value = false
 }
 
 // Keyboard shortcut (Ctrl+K)
