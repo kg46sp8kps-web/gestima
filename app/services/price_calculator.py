@@ -1,4 +1,9 @@
-"""GESTIMA - Cenová kalkulace"""
+"""GESTIMA - Cenová kalkulace
+
+ADR-024: MaterialInput refactor (v1.8.0)
+- Added calculate_stock_cost_from_material_input() for new MaterialInput model
+- calculate_stock_cost_from_part() DEPRECATED (use MaterialInput instead)
+"""
 
 import logging
 import math
@@ -117,14 +122,13 @@ async def calculate_stock_cost_from_part(
     Migration 2026-01-26: Podporuje Part.price_category + Part.stock_shape.
 
     Používá:
-    - Part.stock_* pro geometrii (editovatelné uživatelem)
-    - Part.stock_shape pro typ polotovaru (NOVÉ)
-    - Part.price_category → price tier podle quantity (NOVÉ)
-    - Part.price_category.material_group.density pro hustotu (NOVÉ)
-    - Fallback: Part.material_item.* (staré)
+    - Part.material_inputs (ADR-024) pro materiálové vstupy
+    - MaterialInput.stock_* pro geometrii polotovaru
+    - MaterialInput.price_category → price tier podle quantity
+    - MaterialInput.material_item.group.density pro hustotu
 
     Args:
-        part: Part instance (s eager-loaded price_category.material_group nebo material_item.group)
+        part: Part instance (s eager-loaded material_inputs)
         quantity: Množství kusů (pro výběr správného price tier)
         db: AsyncSession (pro lazy loading pokud potřeba)
 
@@ -133,7 +137,7 @@ async def calculate_stock_cost_from_part(
     """
     result = MaterialCost()
 
-    # Migration 2026-01-26: Priorita Part.price_category, fallback Part.material_item
+    # ADR-024: MaterialInput refactor - Part.material_inputs[0] obsahuje material data
     price_category = None
     material_group = None
     stock_shape = part.stock_shape
@@ -555,8 +559,9 @@ async def calculate_part_price(
     result.coop_cost = result.coop_cost_raw * result.coop_coefficient * quantity
 
     # === 5. MATERIÁL (s koeficientem) ===
-    material_calc = await calculate_stock_cost_from_part(part, quantity, db)
-    result.material_cost_raw = material_calc.cost  # Za 1 kus
+    # ADR-024: Use new MaterialInput-based calculation
+    material_cost_per_piece = await calculate_part_material_cost(part, quantity, db)
+    result.material_cost_raw = material_cost_per_piece  # Za 1 kus
     result.material_cost = result.material_cost_raw * result.stock_coefficient * quantity
 
     # === 6. CELKEM ===
@@ -587,3 +592,175 @@ async def calculate_series_pricing(
         breakdown = await calculate_part_price(part, qty, db)
         results.append(breakdown)
     return results
+
+
+# ============================================================================
+# MATERIALINPUT KALKULACE (ADR-024 - v1.8.0)
+# ============================================================================
+
+async def calculate_stock_cost_from_material_input(
+    material_input,
+    quantity: int = 1,
+    db: AsyncSession = None
+) -> MaterialCost:
+    """
+    Výpočet ceny polotovaru z MaterialInput (ADR-024).
+
+    Nová implementace pro MaterialInput model (v1.8.0).
+    Nahrazuje calculate_stock_cost_from_part() pro nové díly.
+
+    Args:
+        material_input: MaterialInput instance (s eager-loaded price_category.material_group)
+        quantity: Množství kusů (pro výběr správného price tier)
+        db: AsyncSession (pro lazy loading pokud potřeba)
+
+    Returns:
+        MaterialCost: volume, weight, price_per_kg (pro snapshot), cost, density
+    """
+    result = MaterialCost()
+
+    if db is None:
+        logger.error("DB session required for dynamic price tier selection")
+        return result
+
+    # Načíst price_category a material_group
+    price_category = material_input.price_category
+    if not price_category:
+        logger.error(f"MaterialInput {material_input.id} has no price_category")
+        return result
+
+    material_group = price_category.material_group if price_category else None
+    if not material_group:
+        logger.error(f"PriceCategory {price_category.id} has no material_group")
+        return result
+
+    stock_shape = material_input.stock_shape
+    if not stock_shape:
+        logger.error(f"MaterialInput {material_input.id} has no stock_shape")
+        return result
+
+    # Geometrie z MaterialInput
+    stock_diameter = material_input.stock_diameter or 0
+    stock_length = material_input.stock_length or 0
+    stock_width = material_input.stock_width or 0
+    stock_height = material_input.stock_height or 0
+    stock_wall_thickness = material_input.stock_wall_thickness or 0
+
+    # Výpočet objemu podle tvaru polotovaru
+    volume_mm3 = 0
+
+    if stock_shape == StockShape.ROUND_BAR:
+        # Tyč kruhová: π × r² × délka
+        if stock_diameter > 0 and stock_length > 0:
+            r = stock_diameter / 2
+            volume_mm3 = math.pi * r**2 * stock_length
+
+    elif stock_shape == StockShape.SQUARE_BAR:
+        # Tyč čtvercová: a² × délka
+        if stock_width > 0 and stock_length > 0:
+            volume_mm3 = stock_width**2 * stock_length
+
+    elif stock_shape == StockShape.FLAT_BAR:
+        # Tyč plochá: šířka × výška × délka
+        if stock_width > 0 and stock_height > 0 and stock_length > 0:
+            volume_mm3 = stock_width * stock_height * stock_length
+
+    elif stock_shape == StockShape.HEXAGONAL_BAR:
+        # Tyč šestihranná: (3√3/2) × a² × délka
+        if stock_diameter > 0 and stock_length > 0:
+            a = stock_diameter / 2
+            area = (3 * math.sqrt(3) / 2) * a**2
+            volume_mm3 = area * stock_length
+
+    elif stock_shape == StockShape.PLATE:
+        # Plech: šířka × výška × délka
+        if stock_width > 0 and stock_height > 0 and stock_length > 0:
+            volume_mm3 = stock_width * stock_height * stock_length
+
+    elif stock_shape == StockShape.TUBE:
+        # Trubka: π × (r_outer² - r_inner²) × délka
+        if stock_diameter > 0 and stock_wall_thickness > 0 and stock_length > 0:
+            r_outer = stock_diameter / 2
+            r_inner = r_outer - stock_wall_thickness
+            if r_inner <= 0:
+                logger.warning(
+                    f"Invalid tube geometry: wall_thickness ({stock_wall_thickness}) >= radius ({r_outer})"
+                )
+                raise ValueError("Tloušťka stěny nemůže být větší nebo rovna poloměru")
+            volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
+
+    elif stock_shape in [StockShape.CASTING, StockShape.FORGING]:
+        # Odlitek/výkovek: aproximace jako kruhová tyč
+        if stock_diameter > 0 and stock_length > 0:
+            r = stock_diameter / 2
+            volume_mm3 = math.pi * r**2 * stock_length
+
+    # Převod na hmotnost
+    volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
+    weight_kg = volume_dm3 * material_group.density
+
+    # Zohlednit MaterialInput.quantity (kolik kusů polotovaru na 1 díl)
+    weight_kg_per_part = weight_kg * material_input.quantity
+
+    # ADR-014: Dynamický výběr ceny podle quantity
+    total_weight = weight_kg_per_part * quantity
+    price_per_kg = await get_price_per_kg_for_weight(price_category, total_weight, db)
+
+    # Cena za 1 kus dílu (včetně quantity materiálů)
+    cost = weight_kg_per_part * price_per_kg
+
+    result.volume_mm3 = round(volume_mm3, 0)
+    result.weight_kg = round(weight_kg_per_part, 3)  # Celková váha za 1 díl
+    result.price_per_kg = price_per_kg  # Pro snapshot (ADR-012)
+    result.density = material_group.density
+    result.cost = round(cost, 2)
+
+    return result
+
+
+async def calculate_part_material_cost(
+    part,
+    quantity: int = 1,
+    db: AsyncSession = None
+) -> float:
+    """
+    Součet ceny všech MaterialInputs pro Part (ADR-024).
+
+    Args:
+        part: Part instance (s eager-loaded material_inputs)
+        quantity: Množství kusů
+        db: AsyncSession
+
+    Returns:
+        float: Celková cena materiálu za 1 kus dílu
+    """
+    if db is None:
+        logger.error("DB session required for material cost calculation")
+        return 0.0
+
+    # Načíst material_inputs pokud nejsou eager loaded
+    if not hasattr(part, 'material_inputs'):
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+        from app.models.part import Part
+
+        stmt = select(Part).where(Part.id == part.id).options(
+            selectinload(Part.material_inputs)
+        )
+        loaded = await db.execute(stmt)
+        part = loaded.scalar_one()
+
+    total_cost = 0.0
+
+    for material_input in part.material_inputs:
+        if material_input.deleted_at:  # Skip soft-deleted
+            continue
+
+        mat_cost = await calculate_stock_cost_from_material_input(
+            material_input,
+            quantity,
+            db
+        )
+        total_cost += mat_cost.cost
+
+    return round(total_cost, 2)

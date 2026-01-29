@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -202,7 +202,7 @@ async def update_price_category(
 
 @router.get("/price-tiers", response_model=List[MaterialPriceTierResponse])
 async def get_price_tiers(
-    category_id: int = None,
+    category_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -318,14 +318,14 @@ async def delete_price_tier(
     await safe_commit(db, action="mazání price tier")
     clear_cache()
     logger.info(f"Deleted price tier: {tier.min_weight}-{tier.max_weight or '∞'} kg", extra={"tier_id": tier.id, "user": current_user.username})
-    return {"message": f"Price tier smazán"}
+    return None  # 204 No Content
 
 
 # ========== MATERIAL ITEMS ==========
 
 @router.get("/items", response_model=List[MaterialItemWithGroupResponse])
 async def get_material_items(
-    group_id: int = None,
+    group_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -475,7 +475,7 @@ async def delete_material_item(
 
     await safe_commit(db, action="mazání polotovaru")
     logger.info(f"Deleted material item: {item.code}", extra={"material_number": item.material_number, "user": current_user.username})
-    return {"message": f"Polotovar '{item.code}' byl smazán"}
+    return None  # 204 No Content
 
 
 # ========== MATERIAL PARSER (Fáze 1: Smart Input) ==========

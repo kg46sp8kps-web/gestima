@@ -39,13 +39,15 @@ async def create_batch_snapshot(
         if not hasattr(batch, 'part') or not batch.part:
             from sqlalchemy import select
             from app.models.material import MaterialItem
+            from app.models.material_input import MaterialInput
             stmt = select(Batch).where(Batch.id == batch.id).options(
                 selectinload(Batch.part)
-                .selectinload(Part.material_item)
+                .selectinload(Part.material_inputs)
+                .selectinload(MaterialInput.material_item)
                 .selectinload(MaterialItem.group),
                 selectinload(Batch.part)
-                .selectinload(Part.material_item)
-                .selectinload(MaterialItem.price_category)
+                .selectinload(Part.material_inputs)
+                .selectinload(MaterialInput.price_category)
             )
             result = await db.execute(stmt)
             loaded_batch = result.scalar_one_or_none()

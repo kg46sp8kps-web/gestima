@@ -27,6 +27,7 @@ from app.routers import (
     batches_router,
     pricing_router,
     materials_router,
+    material_inputs_router,  # ADR-024
     work_centers_router,
     config_router,
     data_router,
@@ -174,6 +175,7 @@ app.include_router(features_router.router, prefix="/api/features", tags=["Featur
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(pricing_router.router, prefix="/api/pricing", tags=["Pricing"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
+app.include_router(material_inputs_router.router)  # ADR-024: prefix already in router
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])

@@ -90,8 +90,7 @@ async def test_audit_fields_auto_created(db_session: AsyncSession):
     """Test that audit fields are automatically populated"""
     part = Part(
         part_number="TEST001",
-        name="Test Part",
-        material_item_id=db_session.test_material_item_id
+        name="Test Part"
     )
     db_session.add(part)
     await db_session.commit()
@@ -109,8 +108,7 @@ async def test_version_auto_increments_on_update(db_session: AsyncSession):
     """Test optimistic locking: version increments automatically"""
     part = Part(
         part_number="TEST002",
-        name="Test Part 2",
-        material_item_id=db_session.test_material_item_id
+        name="Test Part 2"
     )
     db_session.add(part)
     await db_session.commit()
@@ -131,8 +129,7 @@ async def test_soft_delete_marks_as_deleted(db_session: AsyncSession):
     """Test soft delete doesn't remove record from DB"""
     part = Part(
         part_number="TEST003",
-        name="Test Part 3",
-        material_item_id=db_session.test_material_item_id
+        name="Test Part 3"
     )
     db_session.add(part)
     await db_session.commit()
@@ -154,8 +151,8 @@ async def test_soft_delete_marks_as_deleted(db_session: AsyncSession):
 async def test_get_active_excludes_deleted(db_session: AsyncSession):
     """Test that get_active() doesn't return soft-deleted records"""
     # Create two parts
-    part1 = Part(part_number="TEST004", name="Active Part", material_item_id=db_session.test_material_item_id)
-    part2 = Part(part_number="TEST005", name="Deleted Part", material_item_id=db_session.test_material_item_id)
+    part1 = Part(part_number="TEST004", name="Active Part")
+    part2 = Part(part_number="TEST005", name="Deleted Part")
     
     db_session.add_all([part1, part2])
     await db_session.commit()
@@ -177,7 +174,7 @@ async def test_get_active_excludes_deleted(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_restore_undeletes_record(db_session: AsyncSession):
     """Test that restore() brings back soft-deleted records"""
-    part = Part(part_number="TEST006", name="Test Part", material_item_id=db_session.test_material_item_id)
+    part = Part(part_number="TEST006", name="Test Part")
     db_session.add(part)
     await db_session.commit()
     
@@ -200,9 +197,9 @@ async def test_restore_undeletes_record(db_session: AsyncSession):
 async def test_get_all_active_excludes_deleted(db_session: AsyncSession):
     """Test that get_all_active() returns only non-deleted records"""
     # Create 3 parts
-    part1 = Part(part_number="TEST007", name="Active 1", material_item_id=db_session.test_material_item_id)
-    part2 = Part(part_number="TEST008", name="Active 2", material_item_id=db_session.test_material_item_id)
-    part3 = Part(part_number="TEST009", name="Deleted", material_item_id=db_session.test_material_item_id)
+    part1 = Part(part_number="TEST007", name="Active 1")
+    part2 = Part(part_number="TEST008", name="Active 2")
+    part3 = Part(part_number="TEST009", name="Deleted")
     
     db_session.add_all([part1, part2, part3])
     await db_session.commit()
@@ -221,7 +218,7 @@ async def test_get_all_active_excludes_deleted(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_concurrent_update_conflict_detection(db_session: AsyncSession):
     """Test optimistic locking detects concurrent updates"""
-    part = Part(part_number="TEST010", name="Concurrent Test", material_item_id=db_session.test_material_item_id)
+    part = Part(part_number="TEST010", name="Concurrent Test")
     db_session.add(part)
     await db_session.commit()
     await db_session.refresh(part)

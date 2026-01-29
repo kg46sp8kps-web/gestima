@@ -1,4 +1,9 @@
-"""GESTIMA - Part model"""
+"""GESTIMA - Part model
+
+ADR-024: MaterialInput refactor (v1.8.0)
+- Removed material fields (moved to MaterialInput table)
+- Added revision fields (revision, customer_revision, status)
+"""
 
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
@@ -7,7 +12,7 @@ from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKe
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
-from app.models.enums import StockShape
+from app.models.enums import StockShape, PartStatus
 
 if TYPE_CHECKING:
     from app.models.material import MaterialItemWithGroupResponse, MaterialPriceCategoryWithGroupResponse
@@ -21,20 +26,10 @@ class Part(Base, AuditMixin):
     article_number = Column(String(50), nullable=True, index=True)  # Dodavatelské číslo
     name = Column(String(200), nullable=True)
 
-    # Material hierarchy (ADR-011: Two-Tier Model)
-    # Migration 2026-01-26: Part nyní odkazuje na MaterialPriceCategory (pro cenu podle množství)
-    # MaterialItem zůstává pro budoucnost (specifické polotovary s normou + rozměrem)
-    # AUDIT-FIX: Added ondelete="SET NULL" to prevent orphan FK references
-    material_item_id = Column(Integer, ForeignKey("material_items.id", ondelete="SET NULL"), nullable=True)  # Future: norma + rozměr
-    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="SET NULL"), nullable=True)  # Cenová kategorie
-
-    # Geometrie polotovaru (editovatelné, inicializováno z MaterialItem)
-    stock_shape = Column(Enum(StockShape), nullable=True)  # Migration 2026-01-26: Typ polotovaru
-    stock_diameter = Column(Float, nullable=True)        # mm - pro tyče, trubky
-    stock_length = Column(Float, nullable=True)          # mm - délka polotovaru
-    stock_width = Column(Float, nullable=True)           # mm - pro ploché, plechy
-    stock_height = Column(Float, nullable=True)          # mm - pro ploché, plechy
-    stock_wall_thickness = Column(Float, nullable=True)  # mm - pro trubky
+    # ADR-024: Revize (v1.8.0 - MaterialInput refactor)
+    revision = Column(String(2), default="A", nullable=False)  # Interní revize (A-Z)
+    customer_revision = Column(String(50), nullable=True)      # Zákaznická revize (zobrazená na výkresu)
+    status = Column(String(20), default="active", nullable=False)  # Lifecycle status (validated by Pydantic)
 
     # Rozměry dílu (ne polotovaru!)
     length = Column(Float, default=0.0)  # mm - délka obráběné části
@@ -46,8 +41,7 @@ class Part(Base, AuditMixin):
     #                      deleted_at, deleted_by, version
 
     # Relationships
-    material_item = relationship("MaterialItem", back_populates="parts")
-    price_category = relationship("MaterialPriceCategory", foreign_keys=[price_category_id])
+    material_inputs = relationship("MaterialInput", back_populates="part", cascade="all, delete-orphan", order_by="MaterialInput.seq")  # ADR-024
     operations = relationship("Operation", back_populates="part", cascade="all, delete-orphan")
     batches = relationship("Batch", back_populates="part", cascade="all, delete-orphan")
     batch_sets = relationship("BatchSet", back_populates="part")  # ADR-022: Sady cen
@@ -57,17 +51,11 @@ class PartBase(BaseModel):
     part_number: str = Field(..., min_length=8, max_length=8, description="Číslo dílu (unikátní, 8-digit)")
     article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
     name: str = Field("", max_length=200, description="Název dílu")
-    material_item_id: Optional[int] = Field(None, gt=0, description="ID materiálové položky (future)")
-    price_category_id: Optional[int] = Field(None, gt=0, description="ID cenové kategorie")
+    revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize (A-Z)")
+    customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
+    status: PartStatus = Field(PartStatus.DRAFT, description="Status dílu")
     length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
     notes: str = Field("", max_length=500, description="Poznámky")
-    # Geometrie polotovaru
-    stock_shape: Optional[StockShape] = Field(None, description="Typ polotovaru (tyč, plech...)")
-    stock_diameter: Optional[float] = Field(None, ge=0, description="Průměr polotovaru v mm")
-    stock_length: Optional[float] = Field(None, ge=0, description="Délka polotovaru v mm")
-    stock_width: Optional[float] = Field(None, ge=0, description="Šířka polotovaru v mm")
-    stock_height: Optional[float] = Field(None, ge=0, description="Výška polotovaru v mm")
-    stock_wall_thickness: Optional[float] = Field(None, ge=0, description="Tloušťka stěny v mm")
 
 
 class PartCreate(BaseModel):
@@ -75,34 +63,22 @@ class PartCreate(BaseModel):
     part_number: Optional[str] = Field(None, min_length=8, max_length=8, description="Číslo dílu (auto-generated)")
     article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
     name: str = Field("", max_length=200, description="Název dílu")
-    material_item_id: Optional[int] = Field(None, gt=0, description="ID materiálové položky (future)")
-    price_category_id: Optional[int] = Field(None, gt=0, description="ID cenové kategorie")
+    revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize")
+    customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
+    status: PartStatus = Field(PartStatus.DRAFT, description="Status dílu")
     length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
     notes: str = Field("", max_length=500, description="Poznámky")
-    # Geometrie polotovaru
-    stock_shape: Optional[StockShape] = Field(None, description="Typ polotovaru (tyč, plech...)")
-    stock_diameter: Optional[float] = Field(None, ge=0, description="Průměr polotovaru v mm")
-    stock_length: Optional[float] = Field(None, ge=0, description="Délka polotovaru v mm")
-    stock_width: Optional[float] = Field(None, ge=0, description="Šířka polotovaru v mm")
-    stock_height: Optional[float] = Field(None, ge=0, description="Výška polotovaru v mm")
-    stock_wall_thickness: Optional[float] = Field(None, ge=0, description="Tloušťka stěny v mm")
 
 
 class PartUpdate(BaseModel):
     part_number: Optional[str] = Field(None, min_length=8, max_length=8)
     article_number: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = Field(None, max_length=200)
-    material_item_id: Optional[int] = Field(None, gt=0)
-    price_category_id: Optional[int] = Field(None, gt=0)
+    revision: Optional[str] = Field(None, min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$")
+    customer_revision: Optional[str] = Field(None, max_length=50)
+    status: Optional[PartStatus] = None
     length: Optional[float] = Field(None, ge=0)
     notes: Optional[str] = Field(None, max_length=500)
-    # Geometrie polotovaru
-    stock_shape: Optional[StockShape] = Field(None)
-    stock_diameter: Optional[float] = Field(None, ge=0)
-    stock_length: Optional[float] = Field(None, ge=0)
-    stock_width: Optional[float] = Field(None, ge=0)
-    stock_height: Optional[float] = Field(None, ge=0)
-    stock_wall_thickness: Optional[float] = Field(None, ge=0)
     version: int  # Optimistic locking (ADR-008)
 
 
@@ -116,13 +92,12 @@ class PartResponse(PartBase):
 
 
 class PartFullResponse(PartResponse):
-    """Part s eager-loaded MaterialPriceCategory + MaterialGroup"""
-    material_item: Optional["MaterialItemWithGroupResponse"] = None  # Future: specifické polotovary
-    price_category: Optional["MaterialPriceCategoryWithGroupResponse"] = None  # Migration 2026-01-26
+    """Part s eager-loaded relationships"""
+    pass  # MaterialInputs added via separate endpoint
 
 
 class StockCostResponse(BaseModel):
-    """Výpočet ceny polotovaru (z backendu)"""
+    """Výpočet ceny polotovaru (z backendu) - DEPRECATED, use MaterialInput"""
     volume_mm3: float = 0
     weight_kg: float = 0
     price_per_kg: float = 0

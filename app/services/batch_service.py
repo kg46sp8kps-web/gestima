@@ -46,16 +46,12 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
     try:
         # 1. Načíst Part s material dependencies + operations (Migration 2026-01-26: + Part.price_category)
         stmt = select(Part).where(Part.id == batch.part_id).options(
-            # Nové: Part.price_category + material_group + tiers
-            selectinload(Part.price_category)
-            .selectinload(MaterialPriceCategory.material_group),
-            selectinload(Part.price_category)
-            .selectinload(MaterialPriceCategory.tiers),
-            # Fallback: Part.material_item (starší parts)
-            selectinload(Part.material_item)
+            # MaterialInputs (ADR-024)
+            selectinload(Part.material_inputs)
+            .selectinload(MaterialInput.material_item)
             .selectinload(MaterialItem.group),
-            selectinload(Part.material_item)
-            .selectinload(MaterialItem.price_category)
+            selectinload(Part.material_inputs)
+            .selectinload(MaterialInput.price_category)
             .selectinload(MaterialPriceCategory.tiers),
             # Operations (pro calculate_part_price - ADR-016)
             selectinload(Part.operations),

@@ -118,14 +118,14 @@ async def delete_batch(
         batch.deleted_by = current_user.username
         await safe_commit(db, action="soft delete dávky")
         logger.info(f"Soft deleted frozen batch: quantity={batch.quantity}", extra={"batch_number": batch_number, "user": current_user.username})
-        return {"message": "Zmrazená dávka smazána (soft delete)"}
+        return  # 204 No Content
 
     quantity = batch.quantity
     await db.delete(batch)
 
     await safe_commit(db, action="mazání dávky")
     logger.info(f"Deleted batch: quantity={quantity}", extra={"batch_number": batch_number, "user": current_user.username})
-    return {"message": "Dávka smazána"}
+    return  # 204 No Content
 
 
 @router.post("/{batch_number}/freeze", response_model=BatchResponse)
@@ -140,10 +140,10 @@ async def freeze_batch(
     Vytvoří snapshot s aktuálními cenami a zmrazí batch (is_frozen=True).
     Zmrazený batch nelze editovat.
     """
-    # Načíst batch s part + material_item + group + price_category (eager loading)
+    # Načíst batch s part + material_inputs + material_item + group + price_category (eager loading)
     stmt = select(Batch).where(Batch.batch_number == batch_number).options(
-        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.group),
-        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.price_category)
+        selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.material_item).selectinload(MaterialItem.group),
+        selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.material_item).selectinload(MaterialItem.price_category)
     )
     result = await db.execute(stmt)
     batch = result.scalar_one_or_none()
@@ -196,16 +196,18 @@ async def clone_batch(
     if not original:
         raise HTTPException(status_code=404, detail="Dávka nenalezena")
 
+    original_batch_number = batch_number  # Uložit před přepsáním pro logging
+
     # Generate new batch_number for clone
     try:
-        batch_number = await NumberGenerator.generate_batch_number(db)
+        new_batch_number = await NumberGenerator.generate_batch_number(db)
     except NumberGenerationError as e:
         logger.error(f"Failed to generate batch number for clone: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo šarže pro klon.")
 
     # Vytvořit nový batch (bez freeze dat)
     new_batch = Batch(
-        batch_number=batch_number,
+        batch_number=new_batch_number,
         part_id=original.part_id,
         quantity=original.quantity,
         is_default=False,  # Klony nejsou default
@@ -225,8 +227,8 @@ async def clone_batch(
 
     new_batch = await safe_commit(db, new_batch, "klonování dávky")
     logger.info(
-        f"Cloned batch {batch_number} -> {new_batch.batch_number}: quantity={new_batch.quantity}",
-        extra={"original_number": batch_number, "new_number": new_batch.batch_number, "user": current_user.username}
+        f"Cloned batch {original_batch_number} -> {new_batch.batch_number}: quantity={new_batch.quantity}",
+        extra={"original_number": original_batch_number, "new_number": new_batch.batch_number, "user": current_user.username}
     )
     return new_batch
 

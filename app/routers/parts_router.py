@@ -37,7 +37,7 @@ async def get_parts(
     result = await db.execute(
         select(Part)
         .options(
-            selectinload(Part.material_item),
+            selectinload(Part.material_inputs),
             selectinload(Part.operations),
             selectinload(Part.batches)
         )
@@ -59,7 +59,7 @@ async def search_parts(
 ):
     """Filtrování dílů s multi-field search"""
     query = select(Part).options(
-        selectinload(Part.material_item),
+        selectinload(Part.material_inputs),
         selectinload(Part.operations),
         selectinload(Part.batches)
     ).where(Part.deleted_at.is_(None))
@@ -250,8 +250,8 @@ async def get_part_full(
     result = await db.execute(
         select(Part)
         .options(
-            joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category),
             joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group)
         )
         .where(Part.part_number == part_number)
@@ -320,7 +320,7 @@ async def get_stock_cost(
     current_user: User = Depends(get_current_user)
 ):
     """Výpočet ceny polotovaru (Python, ne JS) - L-001 compliant
-    Migration 2026-01-26: Podporuje Part.price_category (+ fallback na Part.material_item)
+    ADR-024: MaterialInput refactor - používá Part.material_inputs
     """
     result = await db.execute(
         select(Part)
@@ -329,8 +329,8 @@ async def get_stock_cost(
             joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
             joinedload(Part.price_category).selectinload(MaterialPriceCategory.tiers),
             # Fallback: Part.material_item.price_category + group + tiers
-            joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category).selectinload(MaterialPriceCategory.tiers)
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).selectinload(MaterialPriceCategory.tiers)
         )
         .where(Part.part_number == part_number)
     )
@@ -355,7 +355,7 @@ async def copy_material_geometry(
     """Zkopíruje rozměry z MaterialItem do Part.stock_*"""
     result = await db.execute(
         select(Part)
-        .options(joinedload(Part.material_item))
+        .options(joinedload(Part.material_inputs).joinedload(MaterialInput.material_item))
         .where(Part.part_number == part_number)
     )
     part = result.scalar_one_or_none()
@@ -479,9 +479,9 @@ async def get_part_pricing(
             joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
             joinedload(Part.price_category).joinedload(MaterialPriceCategory.tiers),
             # Fallback cesta: Part.material_item (pro staré parts)
-            joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
         )
         .where(Part.part_number == part_number)
     )
@@ -522,9 +522,9 @@ async def get_series_pricing(
             joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
             joinedload(Part.price_category).joinedload(MaterialPriceCategory.tiers),
             # Fallback cesta: Part.material_item (pro staré parts)
-            joinedload(Part.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
+            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
         )
         .where(Part.part_number == part_number)
     )

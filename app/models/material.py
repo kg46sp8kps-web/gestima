@@ -109,9 +109,6 @@ class MaterialItem(Base, AuditMixin):
     group = relationship("MaterialGroup", back_populates="items")
     price_category = relationship("MaterialPriceCategory", back_populates="items")
 
-    # Vztah k dílům
-    parts = relationship("Part", back_populates="material_item")
-
 
 # ========== PYDANTIC SCHEMAS ==========
 

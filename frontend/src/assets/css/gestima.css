@@ -1,0 +1,55 @@
+/* ============================================================================
+   GESTIMA - Main CSS
+   Importuje všechny moduly z Guesstimator designu
+   ============================================================================ */
+
+@import 'variables.css';
+@import 'base.css';
+@import 'layout.css';
+@import 'components.css';
+@import 'operations.css';
+
+/* === TRANSITIONS === */
+* {
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* === FORMS === */
+input, select, textarea {
+    padding: 0.4rem 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+/* === HTMX === */
+.htmx-request {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}

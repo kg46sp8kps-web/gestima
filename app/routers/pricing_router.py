@@ -288,8 +288,8 @@ async def freeze_batch_set(
         BatchSet.id == set_id,
         BatchSet.deleted_at.is_(None)
     ).options(
-        selectinload(BatchSet.batches).selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.group),
-        selectinload(BatchSet.batches).selectinload(Batch.part).selectinload(Part.price_category)
+        selectinload(BatchSet.batches).selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.material_item).selectinload(MaterialItem.group),
+        selectinload(BatchSet.batches).selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.price_category)
     )
     result = await db.execute(query)
     batch_set = result.scalar_one_or_none()
@@ -626,9 +626,9 @@ async def freeze_loose_batches_as_set(
         Batch.batch_set_id.is_(None),
         Batch.deleted_at.is_(None)
     ).options(
-        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.group),
-        selectinload(Batch.part).selectinload(Part.material_item).selectinload(MaterialItem.price_category),
-        selectinload(Batch.part).selectinload(Part.price_category)
+        selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.material_item).selectinload(MaterialItem.group),
+        selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.price_category),
+        selectinload(Batch.part).selectinload(Part.material_inputs)
     )
     result = await db.execute(query)
     loose_batches = result.scalars().all()

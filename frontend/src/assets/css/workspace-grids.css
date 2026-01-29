@@ -1,0 +1,157 @@
+/**
+ * GESTIMA Workspace Grid Layouts
+ * Static CSS classes for performance (no dynamic grid-template-areas!)
+ * Each layout = pre-defined class = instant switch (<30ms)
+ */
+
+/* ============================================================================
+   BASE WORKSPACE GRID
+   ============================================================================ */
+.workspace-grid {
+  display: grid;
+  gap: 1px; /* Minimal gap = more space for panels */
+  height: 100%;
+  width: 100%;
+  background: var(--border-color); /* Gap color */
+  contain: layout style; /* CSS containment = faster paint */
+}
+
+.workspace-grid > * {
+  background: var(--bg-primary); /* Panel background */
+  overflow: hidden; /* Prevent content overflow */
+}
+
+/* ============================================================================
+   SINGLE PANEL
+   ============================================================================ */
+.grid-single {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.grid-single > :nth-child(1) {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+/* ============================================================================
+   DUAL - HORIZONTAL
+   ============================================================================ */
+.grid-dual-h {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+.grid-dual-h > :nth-child(1) {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+.grid-dual-h > :nth-child(2) {
+  grid-area: 1 / 2 / 2 / 3;
+}
+
+/* ============================================================================
+   DUAL - VERTICAL
+   ============================================================================ */
+.grid-dual-v {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.grid-dual-v > :nth-child(1) {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+.grid-dual-v > :nth-child(2) {
+  grid-area: 2 / 1 / 3 / 2;
+}
+
+/* ============================================================================
+   TRIPLE - 3 COLUMNS
+   ============================================================================ */
+.grid-triple {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr;
+}
+
+.grid-triple > :nth-child(1) {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+.grid-triple > :nth-child(2) {
+  grid-area: 1 / 2 / 2 / 3;
+}
+
+.grid-triple > :nth-child(3) {
+  grid-area: 1 / 3 / 2 / 4;
+}
+
+/* ============================================================================
+   QUAD - 2x2 GRID
+   ============================================================================ */
+.grid-quad {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.grid-quad > :nth-child(1) {
+  grid-area: 1 / 1 / 2 / 2; /* Top-left */
+}
+
+.grid-quad > :nth-child(2) {
+  grid-area: 1 / 2 / 2 / 3; /* Top-right */
+}
+
+.grid-quad > :nth-child(3) {
+  grid-area: 2 / 1 / 3 / 2; /* Bottom-left */
+}
+
+.grid-quad > :nth-child(4) {
+  grid-area: 2 / 2 / 3 / 3; /* Bottom-right */
+}
+
+/* ============================================================================
+   HEX - 3x2 GRID (6 panels, ultrawide!)
+   ============================================================================ */
+.grid-hex {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr 1fr;
+}
+
+.grid-hex > :nth-child(1) {
+  grid-area: 1 / 1 / 2 / 2; /* Top-left */
+}
+
+.grid-hex > :nth-child(2) {
+  grid-area: 1 / 2 / 2 / 3; /* Top-center */
+}
+
+.grid-hex > :nth-child(3) {
+  grid-area: 1 / 3 / 2 / 4; /* Top-right */
+}
+
+.grid-hex > :nth-child(4) {
+  grid-area: 2 / 1 / 3 / 2; /* Bottom-left */
+}
+
+.grid-hex > :nth-child(5) {
+  grid-area: 2 / 2 / 3 / 3; /* Bottom-center */
+}
+
+.grid-hex > :nth-child(6) {
+  grid-area: 2 / 3 / 3 / 4; /* Bottom-right */
+}
+
+/* ============================================================================
+   RESPONSIVE (auto-switch on small screens)
+   ============================================================================ */
+@media (max-width: 1024px) {
+  /* Force single-panel on tablet/mobile */
+  .workspace-grid:not(.grid-single) {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+  }
+
+  .workspace-grid > :not(:first-child) {
+    display: none; /* Hide non-first panels */
+  }
+}

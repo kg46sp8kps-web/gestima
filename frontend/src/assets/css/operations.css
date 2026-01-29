@@ -1,0 +1,164 @@
+/* ============================================================================
+   GESTIMA - Operations
+   ============================================================================ */
+
+/* === OPERATION CARDS === */
+.operation-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+/* === OPERATION HEADER === */
+.op-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    cursor: default;
+    transition: background 0.1s;
+}
+
+.op-header:hover {
+    background: var(--bg-card-hover);
+}
+
+.op-seq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 22px;
+    background: var(--accent-red);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 4px;
+}
+
+.op-icon {
+    font-size: 0.9rem;
+}
+
+.op-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.op-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+/* === MODE BUTTONS === */
+.mode-buttons-inline {
+    display: flex;
+    gap: 2px;
+}
+
+.mode-btn-sm {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.1s;
+    min-width: 22px;
+    text-align: center;
+}
+
+.mode-btn-sm:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-secondary);
+}
+
+.mode-btn-sm.active {
+    color: white;
+}
+
+.mode-btn-sm.mode-low.active {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+.mode-btn-sm.mode-mid.active {
+    background: var(--accent-yellow);
+    border-color: var(--accent-yellow);
+    color: #000;
+}
+
+.mode-btn-sm.mode-high.active {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+}
+
+/* === TIME DISPLAY === */
+.op-time-display {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.op-time-display strong {
+    color: var(--text-primary);
+}
+
+/* === FEATURES SECTION === */
+.features-section {
+    padding: 0.6rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.no-features {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* === SECTION HEADER (pro sekce uvnitř ribbonů) === */
+.section-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    transition: background 0.1s;
+    user-select: none;
+}
+
+.section-header:hover {
+    background: var(--bg-card-hover);
+}
+
+/* Obsah sekce - stejné pozadí jako operace */
+.section-body {
+    padding: 0.75rem !important;  /* !important kvůli x-collapse inline stylům */
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0;
+}
+
+/* První sekce - zaoblené horní rohy */
+.ribbon-body-sections > div:first-child .section-header {
+    border-radius: 6px 6px 0 0;
+}
+
+/* Poslední sekce - zaoblené dolní rohy */
+.ribbon-body-sections > div:last-child .section-body {
+    border-radius: 0 0 6px 6px;
+}

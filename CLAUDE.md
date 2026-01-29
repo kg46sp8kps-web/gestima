@@ -49,11 +49,51 @@ grep -r "PATTERN" app/ | wc -l
 □ Dokumentace aktualizována (CLAUDE.md, ADR, CHANGELOG)
 □ Verze inkrementována (pokud relevantní)
 □ Schema změna? → pytest tests/test_seed_scripts.py
+□ VERIFICATION executed + output pasted (grep/test results)
 ```
 
 ---
 
-### 4. SELF-CHECK (Funguji jako senior developer?)
+### 4. PŘED tím než řeknu "HOTOVO" (MANDATORY VERIFICATION!)
+
+**BANNED PHRASES (NIKDY nepoužívat!):**
+- ❌ "mělo by být OK"
+- ❌ "měl jsem to opravit"
+- ❌ "teď už to bude fungovat"
+- ❌ "všechny soubory jsou vyčištěny" (bez grep outputu)
+
+**REQUIRED PHRASES (VŽDY použít!):**
+- ✅ "Verification: `grep ... | wc -l` = 0 matches"
+- ✅ "Test output: `pytest -v` = X passed, 0 failed"
+- ✅ "Checked ALL files: `find ... | wc -l` = Y files, Z matches removed"
+
+**VERIFICATION CHECKLIST (před každým "hotovo"):**
+
+```bash
+# Frontend CSS changes
+□ grep -r "\.CLASSNAME\s*{" frontend/src --include="*.vue" | wc -l
+□ Paste output → Confirm = 0 duplicates (only design-system.css)
+
+# Backend changes
+□ pytest -v (paste summary: X passed, 0 failed)
+□ grep deprecated patterns (paste: 0 matches)
+
+# Multi-file refactor
+□ find . -name "*.EXTENSION" | wc -l  # Total files
+□ grep -r "OLD_PATTERN" --include="*.EXTENSION" | wc -l  # Confirm = 0
+
+# Systematic cleanup
+□ List ALL affected files BEFORE editing
+□ Read ALL files (not piece-by-piece!)
+□ Edit ALL files in ONE session
+□ Verify ALL files cleaned (grep = 0 matches)
+```
+
+**RULE:** Žádné "hotovo" BEZ verification command + output!
+
+---
+
+### 5. SELF-CHECK (Funguji jako senior developer?)
 
 ```
 □ Neházím první řešení bez alternativ
@@ -61,6 +101,8 @@ grep -r "PATTERN" app/ | wc -l
 □ Neduplikuji kód (L-002)
 □ Neobcházím pravidla v CLAUDE.md
 □ Přiznám když nevím místo hádání
+□ NIKDY neříkám "mělo by být OK" - vždy VERIFY!
+□ Když říkám "hotovo" → paste grep/test output jako DŮKAZ
 ```
 
 **Pokud jakákoliv odpověď = NE → STOP a oprav přístup!**
@@ -75,7 +117,7 @@ Následující sekce jsou CHRÁNĚNÉ. Před smazáním/změnou MUSÍM upozornit
 ```
 
 **Chráněné sekce:**
-- OSOBNOST (Roy + audit) používáš neustále originální Roy hlášky
+- OSOBNOST (Roy + audit) používáš neustále originální Roy hlášky, mluvíš česky
 - WORKFLOW (návrh → schválení → implementace)
 - PO IMPLEMENTACI (testy, docs, verzování)
 - KRITICKÁ PRAVIDLA (1-9)
@@ -117,6 +159,26 @@ NEVER: Tools first, explain later
 - Read PŘED Edit!
 - ADR check (architektonické rozhodnutí?)
 
+**IF multi-file change (např. CSS cleanup, refactor, rename):**
+```bash
+# SYSTEMATIC APPROACH (L-035):
+1. GREP ALL: Find ALL affected files
+   → grep -r "PATTERN" --include="*.ext" | wc -l
+   → Paste count BEFORE starting
+
+2. READ ALL: Read ALL files in ONE session
+   → NOT piece-by-piece! (causes repeated issues)
+
+3. EDIT ALL: Edit ALL files in ONE session
+   → NOT one-by-one over 4 attempts!
+
+4. VERIFY ALL: Grep again to confirm
+   → grep -r "PATTERN" --include="*.ext" | wc -l = 0
+   → Paste verification output
+```
+
+**Porušení = opakování stejné chyby 4x → ztráta důvěry!**
+
 ### 2. Po implementaci (AUTOMATICKY!)
 - **TESTY:** Napsat + spustit (`pytest -v`)
 - **SEED TESTS:** Pokud schema změna → `pytest tests/test_seed_scripts.py`
@@ -133,6 +195,8 @@ NEVER: Tools first, explain later
 - [ ] Testy napsány
 - [ ] Seed tests passed (při schema změně)
 - [ ] Docs aktualizovány
+- [ ] dodržuji pravidlo <100 ms odezvy?
+- [ ] Je architektura optimální, profesionální a výsledný kód "dokonalý"?
 
 **Schema Change Red Flags (SPUSŤ seed tests!):**
 - Změna Pydantic Field (`max_length`, `gt`, `ge`, `required`)
@@ -148,8 +212,8 @@ NEVER: Tools first, explain later
 |--------|------|
 | Backend | FastAPI, SQLAlchemy 2.0 (async), Pydantic v2 |
 | DB | SQLite + WAL, aiosqlite |
-| Frontend | Jinja2, Alpine.js, HTMX |
-| Testy | pytest, pytest-asyncio |
+| Frontend | **Vue 3 SPA** (primary), Jinja2/Alpine.js/HTMX (legacy) |
+| Testy | pytest, pytest-asyncio, Vitest (Vue) |
 
 ```
 app/
@@ -177,8 +241,10 @@ app/
 | 8 | Latency < 100ms | Vždy optimalizovat |
 | 9 | Pydantic Field validace | `gt=0`, `ge=0`, `max_length` |
 | 10 | Over-engneering | KISS principle|
-| 11 | Reusable building block | je-li to možné, nedělej něco dvakrát|
+| 11 | Reusable building block | je-li to možné, nedělaj něco dvakrát|
 | 12 | **PŘED změnou DB/Pydantic** | **CHECK ADRs! Data špatně ≠ změň validaci** |
+| 13 | **MANDATORY VERIFICATION** | **Žádné "hotovo" BEZ grep/test output!** |
+| 14 | **NO FAT COMPONENTS** | **Generic-first! Thin wrappers, NOT 1000-line monsters** |
 
 ---
 
@@ -234,6 +300,121 @@ length: float = Field(0.0, ge=0)      # rozměry
 price: float = Field(..., gt=0)       # ceny
 name: str = Field("", max_length=200) # texty
 ```
+
+---
+
+### 🚨 NO FAT COMPONENTS - Generic-First Architecture (MANDATORY!)
+
+**STOP! Před návrhem jakékoli komponenty/modulu MUSÍŠ:**
+
+```
+- [ ] 1. ASK: Bude to použitelné jinde? (Inventory, Search, Admin?)
+- [ ] 2. THINK: Generic building block nebo context-specific?
+- [ ] 3. DESIGN: Thin wrapper + generic components, NOT fat module
+- [ ] 4. VERIFY: Podobá se to Part model (lean) nebo old fat form?
+- [ ] 5. NEVER: Navrhnout 1000-line context-specific monster!
+```
+
+**Špatný přístup (FAT, SPECIFIC):**
+
+```typescript
+// ❌ PartMaterialModule.vue (1000 LOC)
+// - Parser embedded
+// - Form embedded
+// - List embedded
+// - Tightly coupled to Part
+// - Cannot reuse for Inventory, MaterialItems, Stock
+// - Porušuje LEAN principle!
+
+<template>
+  <div class="part-material-module">
+    <!-- 200 lines: Parser -->
+    <!-- 300 lines: Add form -->
+    <!-- 400 lines: List -->
+    <!-- 100 lines: Operation linking -->
+    <!-- = 1000 lines of non-reusable code! -->
+  </div>
+</template>
+```
+
+**Správný přístup (LEAN, GENERIC):**
+
+```typescript
+// ✅ Generic building blocks (reusable everywhere!)
+/components/materials/
+├── MaterialParserInput.vue      (150 LOC) - AI parser, reusable
+├── MaterialDimensionFields.vue  (200 LOC) - Dynamic fields, reusable
+├── MaterialCategorySelect.vue   (100 LOC) - Filtered select, reusable
+└── MaterialCard.vue             (150 LOC) - Display card, reusable
+
+// ✅ Generic manager (NOT part-specific!)
+/components/materials/
+└── MaterialManager.vue          (300 LOC)
+    → Orchestruje výše uvedené komponenty
+    → Přijímá filter: { part_id?, operation_id?, in_stock? }
+    → Použitelné kdekoli!
+
+// ✅ Thin context wrappers (50 LOC each!)
+/views/workspace/modules/
+├── PartMaterialPanel.vue        (50 LOC)
+│   → <MaterialManager :filter="{ part_id }" />
+├── OperationMaterialPanel.vue   (50 LOC)
+│   → <MaterialManager :filter="{ operation_id }" />
+└── StockMaterialPanel.vue       (50 LOC)
+    → <MaterialManager :filter="{ in_stock: true }" />
+```
+
+**Budoucí použití (Inventory v4.0):**
+
+```vue
+<!-- STEJNÉ komponenty! Žádný nový kód! -->
+<template>
+  <div class="inventory-view">
+    <SearchBar />  <!-- Generic search -->
+    <FilterPanel>  <!-- Generic filters -->
+      <CategorySelector :categories="['parts', 'materials', 'products']" />
+    </FilterPanel>
+    <ItemGrid      <!-- Generic grid -->
+      :items="results"
+      :config="currentConfig"  <!-- partConfig | materialConfig -->
+    />
+  </div>
+</template>
+```
+
+**Příklad (tento incident 2026-01-29):**
+
+```
+❌ WRONG: "Vytvořím PartMaterialModule.vue (1196 řádků)"
+- Navrženo: Fat module specific pro Part
+- Problém: Nelze použít pro Inventory/MaterialItems/Stock
+- Porušuje: LEAN principle (Part je lean, proč by UI měl být fat?)
+
+✅ RIGHT: "Vytvořím MaterialManager + thin wrappers"
+- Generic MaterialManager (300 LOC)
+- PartMaterialPanel thin wrapper (50 LOC)
+- Reusable pro Inventory, Admin, Search
+- Následuje LEAN principle!
+```
+
+**Red Flags (když MUSÍŠ použít tento checklist):**
+
+- 🚨 **Component > 500 LOC** - Pravděpodobně příliš specifický nebo nedostatečně rozložený
+- 🚨 **Tight coupling** - "PartXYZ", "OrderXYZ" místo generic "ItemXYZ"
+- 🚨 **Duplicitní logika** - Parser v Part + stejný parser v Material
+- 🚨 **"Nelze použít jinde"** - Pokud nemůžeš použít pro Inventory/Search = špatný design
+- 🚨 **Ignoruješ budoucí use cases** - "Teď potřebuju jen pro Part" = technical debt
+
+**Proč je to KRITICKÉ:**
+
+- **Porušení LEAN** - Backend lean (Part + MaterialInput), frontend fat (PartMaterialModule) = inconsistent
+- **Technical debt** - 1000 LOC non-reusable → Inventory v4.0 = další 1000 LOC duplicate
+- **Maintenance hell** - Bug v parseru? Fix na 3 místech místo 1
+- **Inconsistent UX** - Každý modul vypadá jinak = poor UX
+- **Vision ignorance** - Inventory/Tech DB v budoucnosti = všechno předělat
+
+**Pravidlo:**
+> "Pokud komponenta nemůže být použita v Inventory search (v4.0), je příliš specifická!"
 
 ---
 
@@ -369,6 +550,21 @@ async def get_fact() -> Dict[str, Any]:
 | L-019 | Debounce data loss při rychlém opuštění | beforeunload warning + sync flush |
 | L-020 | Module name collision | Jen JEDNA implementace per modul (check window.foo conflicts) |
 | L-021 | HTML Select string/number mismatch | `parseInt(selectedId, 10)` před porovnáním s API response |
+| L-022 | Undefined CSS variables | Verify all `var(--foo)` exist in design-system.css! |
+| L-023 | Poor color contrast | Never same color family for text + bg (red-on-red) |
+| L-024 | **Teleport testing** | **Use `document.querySelector` + `attachTo: document.body`** |
+| L-025 | textContent whitespace | Use `.trim()` when comparing text content |
+| L-026 | **Deep object equality** | **Use `.toEqual()`, NOT `.toContain()` for objects** |
+| L-027 | Intl.NumberFormat spaces | Non-breaking spaces `\u00A0` - `.replace(/\u00A0/g, ' ')` |
+| L-028 | SQLite Enum(str, Enum) broken | Use `String(X)` in model, Pydantic validates |
+| L-029 | Post-refactor orphaned code | Grep old relationships! (`Part.material_item` after ADR-024) |
+| L-030 | Migration duplicate index | Use `if_not_exists=True` or `Base.metadata.create_all()` |
+| L-031 | **Post-refactor: Missing seed scripts** | **DB schema change → UPDATE seed_* scripts!** |
+| L-032 | Seed script validation | Run `python gestima.py seed-demo` after schema changes |
+| L-033 | **Duplicate CSS utilities** | **ONE building block! Check design-system.css FIRST** |
+| L-034 | Module-specific utility classes | Use global utilities from design-system.css, NOT local copies |
+| L-035 | Piece-by-piece CSS cleanup | Systematic: grep → read ALL → edit ALL → verify (not 1-by-1!) |
+| L-036 | **Fat context-specific components** | **Generic-first! Thin wrappers (50 LOC), NOT 1000-line monsters** |
 
 **Detailní popisy všech anti-patternů:** [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md)
 
@@ -393,13 +589,40 @@ Alternativy: 1, 2, 3
 
 ## PŘÍKAZY
 
+### Základní příkazy
+
 ```bash
 python gestima.py setup          # Setup
-python gestima.py create-admin   # První admin
-python gestima.py run            # Spuštění
+python gestima.py seed-demo      # Reset DB + demo data + admin (demo/demo123)
+python gestima.py create-admin   # První admin (custom username/password)
+python gestima.py run            # Spuštění serveru
 python gestima.py test           # Testy
 python gestima.py backup         # Záloha
 ```
+
+### Server Control (Quick Reference)
+
+```bash
+# Zjistit jestli server běží
+lsof -ti:8000
+
+# Zastavit server
+pkill -f "gestima.py run" && pkill -f "uvicorn"
+
+# Nastartovat server (background)
+python gestima.py run > /tmp/gestima_server.log 2>&1 &
+
+# Restartovat server (one-liner)
+pkill -f "gestima.py run" && pkill -f "uvicorn" && sleep 2 && python gestima.py run > /tmp/gestima_server.log 2>&1 &
+
+# Sledovat logy
+tail -f /tmp/gestima_server.log
+
+# Zkontrolovat health
+curl http://localhost:8000/health
+```
+
+**Detailní troubleshooting:** [docs/SERVER-CONTROL.md](docs/SERVER-CONTROL.md)
 
 ---
 
@@ -519,10 +742,10 @@ Nový nápad / issue z auditu
 
 | Dokument | Účel |
 |----------|------|
-| [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md) | Detailní L-001 až L-021 |
+| [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md) | Detailní L-001 až L-035 |
 | [docs/patterns/DEBUG-WORKFLOW.md](docs/patterns/DEBUG-WORKFLOW.md) | Debug postup |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Přehled systému |
-| [docs/UI-GUIDE.md](docs/UI-GUIDE.md) | UI komponenty, layouty, vzory |
+| [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md) | ⭐ BIBLE! Kompletní guide: Design tokens + Vue komponenty + patterns (vše v jednom) |
 | [docs/SEED-TESTING.md](docs/SEED-TESTING.md) | Seed scripts testing & validace |
 | [docs/VISION.md](docs/VISION.md) | Dlouhodobá vize (1 rok roadmap) |
 | [docs/STATUS.md](docs/STATUS.md) | Aktuální stav projektu |
@@ -533,8 +756,14 @@ Nový nápad / issue z auditu
 
 ---
 
-**Verze:** 4.0 (2026-01-29)
-**GESTIMA:** 1.7.0
+**Verze:** 4.1 (2026-01-29)
+**GESTIMA:** 1.9.1
+
+---
+**Poznámka k verzi 1.9.1:** Vue SPA Testing Complete - 286 tests passing (100% pass rate). Stores, API, Components fully tested.
+
+---
+**Poznámka k verzi 1.8.0:** MaterialInput refactor (ADR-024) - Material přesunut z Part do samostatné tabulky s M:N vztahem k operacím. Lean Part architektura, BOM-ready pro v3.0 PLM.
 
 ---
 **Poznámka k verzi 4.0:** Dokumentace reorganizována. Detailní anti-patterns přesunuty do [docs/patterns/ANTI-PATTERNS.md](docs/patterns/ANTI-PATTERNS.md), debug workflow do [docs/patterns/DEBUG-WORKFLOW.md](docs/patterns/DEBUG-WORKFLOW.md). Žádné informace nebyly ztraceny.

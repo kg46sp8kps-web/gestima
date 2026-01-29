@@ -1,4 +1,8 @@
-"""GESTIMA - Operation model"""
+"""GESTIMA - Operation model
+
+ADR-024: MaterialInput refactor (v1.8.0)
+- Added M:N relationship with MaterialInput
+"""
 
 from datetime import datetime
 from typing import Optional
@@ -7,6 +11,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
+from app.models.material_input import material_operation_link
 
 
 class Operation(Base, AuditMixin):
@@ -37,9 +42,16 @@ class Operation(Base, AuditMixin):
     
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version
-    
+
     part = relationship("Part", back_populates="operations")
     features = relationship("Feature", back_populates="operation", cascade="all, delete-orphan")
+
+    # ADR-024: M:N relationship with MaterialInput
+    material_inputs = relationship(
+        "MaterialInput",
+        secondary=material_operation_link,
+        back_populates="operations"
+    )
 
 
 class OperationBase(BaseModel):

@@ -344,4 +344,4 @@ async def delete_work_center(
         f"Deleted work center: {work_center_name} ({work_center_number})",
         extra={"work_center_number": work_center_number, "user": current_user.username}
     )
-    return {"message": "Pracoviště smazáno"}
+    return None  # 204 No Content

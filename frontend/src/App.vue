@@ -1,0 +1,57 @@
+<script setup lang="ts">
+/**
+ * GESTIMA Root Component
+ * Global layout with AppHeader/AppFooter on all pages except login
+ */
+import { computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+import { useDarkMode } from '@/composables/useDarkMode'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
+
+const route = useRoute()
+
+// Initialize dark mode (will load from localStorage)
+const { isDark } = useDarkMode()
+
+// Hide header/footer on login page
+const isLoginPage = computed(() => route.name === 'login')
+</script>
+
+<template>
+  <div id="app" class="app-layout">
+    <!-- Global header (except login) -->
+    <AppHeader v-if="!isLoginPage" />
+
+    <!-- Main content -->
+    <main class="app-main" :class="{ 'with-chrome': !isLoginPage }">
+      <RouterView />
+    </main>
+
+    <!-- Global footer (except login) -->
+    <AppFooter v-if="!isLoginPage" />
+
+    <!-- Global toast notifications -->
+    <ToastContainer />
+  </div>
+</template>
+
+<style>
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.app-main.with-chrome {
+  /* Space for fixed header if needed */
+}
+</style>

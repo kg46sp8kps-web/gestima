@@ -1,6 +1,6 @@
 # GESTIMA - Architecture Overview
 
-**Verze:** 1.3 (2026-01-29)
+**Verze:** 1.4 (2026-01-29)
 **Účel:** Rychlá orientace v projektu (5 minut k pochopení)
 
 ---
@@ -16,14 +16,17 @@ Migrations: Alembic, Security: CSP + HSTS
 **Hierarchie entit:**
 ```
 MaterialGroup (Kategorie materiálů)
-  └─ MaterialItem (1:N) - konkrétní polotovary s cenami
+  └─ MaterialPriceCategory (1:N) - cenové kategorie s tiery
+       └─ MaterialItem (1:N) - konkrétní polotovary s normami
 
-Part (Díl)
+Part (Díl - Lean Model, ADR-024)
+  ├─ MaterialInputs (1:N) - materiálové vstupy (nezávislé)
+  │    └─ Operations (M:N) - kdy se spotřebovává
   ├─ Operations (1:N) - technologické kroky
-  │    └─ Features (1:N) - konkrétní úkony s geometrií
+  │    ├─ Features (1:N) - konkrétní úkony s geometrií
+  │    └─ MaterialInputs (M:N) - co spotřebovává
   ├─ Batches (1:N) - cenové kalkulace pro dávky
   │    └─ BatchSet (N:1) - sada zmrazených batchů (ADR-022)
-  └─ MaterialItem (N:1) - vazba na polotovar
 
 WorkCenter (Pracoviště) - fyzický stroj nebo virtuální pracoviště (ADR-021)
 ```
@@ -37,6 +40,7 @@ gestima/
 ├── app/
 │   ├── models/              # SQLAlchemy modely
 │   │   ├── part.py          # Part, Operation, Feature, Batch
+│   │   ├── material_input.py # MaterialInput (ADR-024)
 │   │   ├── work_center.py   # WorkCenter (ADR-021)
 │   │   └── batch_set.py     # BatchSet (ADR-022)
 │   ├── routers/             # API endpoints
@@ -151,6 +155,7 @@ gestima/
 | **WorkCenter model** | Physical + virtual machines | ADR-021 |
 | **BatchSet model** | Organize frozen batches | ADR-022 |
 | **Workspace modules** | Multi-panel linked views | ADR-023 |
+| **MaterialInput refactor** | Lean Part + M:N material-operation | ADR-024 |
 | **CSP + HSTS** | Security headers | ADR-020 |
 
 ---
@@ -171,6 +176,20 @@ gestima/
 - Extracted from edit.html to separate JS files
 - 4 modules: parts-list, part-material, part-operations, part-pricing
 - LinkManager for cross-module communication
+
+---
+
+## New in v1.8.0
+
+### MaterialInput Refactor (ADR-024)
+- **Lean Part model** - Material moved to separate `material_inputs` table
+- **M:N relationship** - MaterialInput ↔ Operation via `material_operation_link`
+- **Part can have 1-N materials** - Supports assemblies, weldments
+- **Independent lifecycle** - MaterialInput exists without operations (buy parts)
+- **Revision fields** - Added `revision` (internal A-Z), `customer_revision` (displayed)
+- **Status field** - Added `status` (draft/active/archived)
+- **BOM-ready** - Prepared for v3.0 PLM migration
+- **API endpoints** - 8 new endpoints for CRUD + link/unlink
 
 ---
 

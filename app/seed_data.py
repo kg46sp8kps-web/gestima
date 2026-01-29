@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.part import Part
 from app.models.material import MaterialItem
+from app.models.material_input import MaterialInput
+from app.models.enums import StockShape
 from app.services.number_generator import NumberGenerator
 
 logger = logging.getLogger(__name__)
@@ -68,23 +70,42 @@ async def seed_demo_parts(db: AsyncSession):
             },
         ]
 
-        created_count = 0
+        # Step 1: Create Parts first (without material)
+        created_parts = []
         for i, data in enumerate(demo_parts_data):
             part = Part(
                 part_number=part_numbers[i],  # ADR-017 v2.0 compliant (10XXXXXX)
                 article_number=data["article_number"],
                 name=data["name"],
-                material_item_id=material.id,
                 length=data["length"],
                 notes=data["notes"],
                 created_by="system_seed"
             )
             db.add(part)
-            created_count += 1
+            created_parts.append(part)
 
-        if created_count > 0:
+        if created_parts:
             await db.commit()
-            logger.info(f"✅ Created {created_count} demo parts with ADR-017 compliant numbers: {part_numbers}")
+            logger.info(f"✅ Created {len(created_parts)} demo parts with ADR-017 compliant numbers: {part_numbers}")
+
+            # Step 2: Refresh to get IDs, then create MaterialInput for each Part (ADR-024)
+            for part in created_parts:
+                await db.refresh(part)
+                material_input = MaterialInput(
+                    part_id=part.id,
+                    seq=0,  # First material for this part
+                    price_category_id=material.price_category_id,
+                    material_item_id=material.id,
+                    stock_shape=material.shape,  # Use shape from MaterialItem
+                    stock_diameter=material.diameter if material.shape == StockShape.ROUND_BAR else None,
+                    stock_length=part.length if part.length else 100.0,  # Use part length or default
+                    quantity=1,
+                    notes="DEMO - Auto-generated material input",
+                )
+                db.add(material_input)
+
+            await db.commit()
+            logger.info(f"✅ Created {len(created_parts)} MaterialInputs for demo parts")
         else:
             logger.debug("Demo parts already exist")
 

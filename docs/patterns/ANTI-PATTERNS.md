@@ -32,6 +32,20 @@ Tento dokument obsahuje detailní popisy všech anti-patternů (L-001 až L-021)
 | L-019 | Debounce data loss při rychlém opuštění | beforeunload warning + sync flush |
 | L-020 | Module name collision | Jen JEDNA implementace per modul |
 | L-021 | HTML Select string/number mismatch | `parseInt(selectedId, 10)` |
+| L-022 | Undefined CSS variables | Verify all `var(--foo)` exist! |
+| L-023 | Poor color contrast | Never same color family (red-on-red) |
+| L-024 | Teleport testing | Use `document.querySelector` |
+| L-025 | textContent whitespace | Use `.trim()` |
+| L-026 | Deep object equality | Use `.toEqual()`, NOT `.toContain()` |
+| L-027 | Intl.NumberFormat spaces | Non-breaking `\u00A0` |
+| L-028 | SQLite Enum(str, Enum) broken | Use `String(X)` |
+| L-029 | Post-refactor orphaned code | Grep old relationships! |
+| L-030 | Migration duplicate index | Use `if_not_exists=True` |
+| L-031 | Post-refactor: Missing seed scripts | DB schema → UPDATE seed_* |
+| L-032 | Seed script validation | Run `gestima.py seed-demo` |
+| L-033 | **Duplicate CSS utilities** | **Check design-system.css FIRST!** |
+| L-034 | Module-specific utility classes | Use global utilities |
+| L-035 | **Piece-by-piece CSS cleanup** | **Systematic: grep ALL → edit ALL → verify** |
 
 ---
 
@@ -371,6 +385,238 @@ IF (dropdown + API data + filter/find):
 **Files opraveny (2026-01-29):**
 - [app/static/js/modules/part-pricing.js:349-350](app/static/js/modules/part-pricing.js#L349-L350)
 - [app/static/js/modules/part-pricing.js:369-370](app/static/js/modules/part-pricing.js#L369-L370)
+
+---
+
+### L-033: Duplicate CSS Utility Classes
+
+**Problém:** Stejné CSS třídy (`.btn`, `.badge`, atd.) definované v MNOHA souborech → nekonzistence, konflikty.
+
+**Pravidlo:** ONE Building Block! POUZE `design-system.css` obsahuje utility classes.
+
+**Symptomy:**
+- Červený badge v modulu A vypadá jinak než v modulu B
+- Button hover animace funguje tady, tam ne
+- Stejná třída, 3 různé definice
+
+**❌ ŠPATNĚ:**
+```vue
+<!-- PartOperationsModule.vue -->
+<style scoped>
+.part-badge {
+  padding: 2px 8px;
+  background: var(--color-primary-light); /* ❌ světle červená */
+  color: var(--color-primary); /* ❌ červená na červené! */
+}
+</style>
+
+<!-- PartMaterialModule.vue -->
+<style scoped>
+.part-badge {
+  padding: 4px 12px; /* ❌ jiný padding! */
+  background: var(--color-primary); /* ❌ jiná barva! */
+  color: white;
+}
+</style>
+```
+
+**✅ SPRÁVNĚ:**
+```vue
+<!-- frontend/src/assets/css/design-system.css -->
+/* JEDEN zdroj pravdy pro VŠECHNY moduly */
+.part-badge {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  background: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+}
+
+<!-- ALL moduly používají POUZE tuto definici -->
+<template>
+  <span class="part-badge">{{ partNumber }}</span>
+</template>
+
+<style scoped>
+/* ❌ ŽÁDNÉ .part-badge definice! */
+/* ❌ ŽÁDNÉ .btn definice! */
+/* ❌ ŽÁDNÉ utility classes - jen component-specific! */
+</style>
+```
+
+**Prevention Checklist:**
+```bash
+# PŘED přidáním nové CSS třídy:
+1. grep -r "\.CLASSNAME\s*{" frontend/src/assets/css/design-system.css
+2. IF existuje → použij, NEPIŠ novou!
+3. IF neexistuje → přidej DO design-system.css (ne do modulu!)
+4. VERIFY: grep -r "\.CLASSNAME\s*{" frontend/src --include="*.vue" | wc -l = 0
+```
+
+**Incident (2026-01-29):**
+- Nalezeno **372 řádků** duplicitního CSS!
+- `.btn` definován 58x napříč moduly
+- `.part-badge` 3 různé definice → nekonzistentní vzhled
+- `.time-badge` 4 různé implementace
+- 4 pokusy o opravu → piece-by-piece approach NEFUNGOVAL!
+
+**Root Cause:**
+- Neprojel jsem VŠECHNY soubory najednou (L-035)
+- Říkal jsem "hotovo" bez grep verification
+- Opravil jsem 2 moduly → zůstalo dalších 9!
+
+**Files opraveny (v1.9.4 - systematic cleanup):**
+- Workspace modules (5): BatchSetsModule, PartMaterialModule, PartOperationsModule, PartPricingModule, PartsListModule
+- View components (6): SettingsView, PartsListView, PartCreateView, PartDetailView, WorkCentersListView, WorkCenterEditView
+
+**Verifikace:**
+```bash
+$ grep -r "^\.part-badge\s*{" frontend/src --include="*.vue" | wc -l
+0  # ✅ ŽÁDNÉ duplicity!
+
+$ grep -r "^\.btn\s*{" frontend/src --include="*.vue" | wc -l
+0  # ✅ ŽÁDNÉ duplicity!
+
+$ grep -r "^\.time-badge" frontend/src --include="*.vue" | wc -l
+0  # ✅ ŽÁDNÉ duplicity!
+```
+
+---
+
+### L-034: Module-Specific Utility Classes
+
+**Problém:** Vytváření lokálních kopií globálních utilities místo použití existujících.
+
+**Pravidlo:** VŽDY check `design-system.css` FIRST před přidáním nové třídy!
+
+**❌ ŠPATNĚ:**
+```vue
+<!-- Nový modul -->
+<style scoped>
+/* ❌ Vytvořil jsem vlastní .btn místo použití globálního */
+.btn {
+  padding: 8px 16px;
+  background: #991b1b; /* ❌ hardcoded! */
+}
+</style>
+```
+
+**✅ SPRÁVNĚ:**
+```vue
+<template>
+  <!-- ✅ Používám existující utility z design-system.css -->
+  <button class="btn btn-primary">Click me</button>
+</template>
+
+<style scoped>
+/* ✅ POUZE component-specific styles, ŽÁDNÉ utilities! */
+.my-special-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+}
+</style>
+```
+
+---
+
+### L-035: Piece-by-Piece CSS Cleanup (CRITICAL!)
+
+**Problém:** Opravování problémů "jeden soubor po druhém" místo systematického přístupu → OPAKOVANÉ CHYBY!
+
+**Pravidlo:** Multi-file changes = grep ALL → read ALL → edit ALL → verify!
+
+**Incident (2026-01-29) - 4 pokusy než SPRÁVNĚ:**
+
+**Pokus 1:** "Opravil jsem operace"
+- Reality: Opravil 1 soubor z 11!
+
+**Pokus 2:** "Teď je to všude opravené"
+- Reality: Opravil další 2 soubory, zůstalo 8!
+
+**Pokus 3:** "Zkontroloval jsem workspace moduly"
+- Reality: Workspace OK, ale view soubory stále měly duplicity!
+
+**Pokus 4 (SPRÁVNĚ):** Systematic approach
+```bash
+# 1. GREP ALL
+$ grep -r "^\.btn\s*{" frontend/src --include="*.vue"
+# → 58 matches!
+
+# 2. LIST ALL affected files
+BatchSetsModule.vue
+PartMaterialModule.vue
+PartOperationsModule.vue
+... (11 files total)
+
+# 3. READ ALL files in ONE session (parallel Read calls)
+
+# 4. EDIT ALL files in ONE session (parallel Edit calls)
+
+# 5. VERIFY ALL
+$ grep -r "^\.btn\s*{" frontend/src --include="*.vue" | wc -l
+0  # ✅ VERIFIED!
+```
+
+**❌ ŠPATNĚ (piece-by-piece):**
+```
+User: "Oprav operace"
+→ Edit PartOperationsModule.vue
+→ "Hotovo!"
+
+User: "A co ostatní moduly?"
+→ Edit PartMaterialModule.vue
+→ "Teď je to hotovo!"
+
+User: "Prošel jsi VŠECHNY?"
+→ Edit dalších 6 souborů
+→ "Teď určitě hotovo!"
+
+User: "A view soubory?"
+→ ... (4. pokus)
+```
+
+**✅ SPRÁVNĚ (systematic):**
+```bash
+# BEFORE any edits:
+1. grep -r "PATTERN" --include="*.ext" # Find ALL
+2. wc -l → List total count
+3. Read ALL affected files (one message, parallel calls)
+4. Edit ALL affected files (one message, parallel calls)
+5. grep -r "PATTERN" → Verify = 0 matches
+6. Paste verification output → PROOF it's done!
+```
+
+**Prevention Checklist:**
+```
+IF (multi-file change like refactor, rename, cleanup):
+  □ Step 1: grep ALL affected files FIRST
+  □ Step 2: Count total files (set expectation)
+  □ Step 3: Read ALL files in ONE session
+  □ Step 4: Edit ALL files in ONE session
+  □ Step 5: Verify with grep (0 matches)
+  □ Step 6: Paste verification as PROOF
+
+NEVER:
+  ❌ Fix one file → "done"
+  ❌ Fix "some" files → "should be OK"
+  ❌ "I checked modules" (what about views?)
+  ❌ No verification command output
+```
+
+**Root Cause Analysis:**
+- Lack of systematic approach
+- No verification BEFORE saying "done"
+- "Mělo by být OK" instead of grep proof
+- Fixing visible files, ignoring others
+- Not reading ALL files before starting
+
+**Impact:**
+- User frustration (4 attempts!)
+- Lost trust ("if UI is wrong 4x, what about backend?")
+- Wasted time (could be 1 attempt if systematic)
+
+**Lesson:**
+> "Systematic approach isn't optional - it's MANDATORY for multi-file changes!"
 
 ---
 

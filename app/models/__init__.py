@@ -36,6 +36,12 @@ from app.models.material_norm import (
     MaterialNormResponse,
     MaterialNormWithGroupResponse
 )
+from app.models.material_input import (
+    MaterialInput,
+    MaterialInputCreate,
+    MaterialInputUpdate,
+    MaterialInputResponse
+)
 from app.models.cutting_condition import CuttingConditionDB, CuttingConditionCreate, CuttingConditionResponse
 from app.models.config import SystemConfig, SystemConfigCreate, SystemConfigUpdate, SystemConfigResponse
 from app.models.work_center import (
@@ -56,6 +62,7 @@ __all__ = [
     "BatchSetWithBatchesResponse", "BatchSetListResponse", "generate_batch_set_name",
     "MaterialGroup", "MaterialGroupCreate", "MaterialGroupUpdate", "MaterialGroupResponse",
     "MaterialItem", "MaterialItemCreate", "MaterialItemUpdate", "MaterialItemResponse", "MaterialItemWithGroupResponse",
+    "MaterialInput", "MaterialInputCreate", "MaterialInputUpdate", "MaterialInputResponse",
     "MaterialPriceCategory", "MaterialPriceTier",
     "MaterialNorm", "MaterialNormCreate", "MaterialNormUpdate", "MaterialNormResponse", "MaterialNormWithGroupResponse",
     "CuttingConditionDB", "CuttingConditionCreate", "CuttingConditionResponse",

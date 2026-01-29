@@ -9,6 +9,13 @@ class UserRole(str, Enum):
     VIEWER = "viewer"
 
 
+class PartStatus(str, Enum):
+    """Status dílu (lifecycle)"""
+    DRAFT = "draft"        # Rozpracovaný (wizard nedokončen)
+    ACTIVE = "active"      # Aktivní (v provozu)
+    ARCHIVED = "archived"  # Archivovaný
+
+
 class StockType(str, Enum):
     ROD = "tyc"
     TUBE = "trubka"

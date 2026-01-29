@@ -76,8 +76,17 @@ async def update_feature(
         logger.warning(f"Version conflict updating feature {feature_id}: expected {data.version}, got {feature.version}", extra={"feature_id": feature_id, "user": current_user.username})
         raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
 
+    # Locked field validation - nelze měnit zamčené řezné podmínky
+    update_data = data.model_dump(exclude_unset=True, exclude={'version'})
+    if feature.Vc_locked and 'Vc' in update_data:
+        raise HTTPException(status_code=400, detail="Řezná rychlost (Vc) je uzamčena a nelze ji změnit")
+    if feature.f_locked and 'f' in update_data:
+        raise HTTPException(status_code=400, detail="Posuv (f) je uzamčen a nelze jej změnit")
+    if feature.Ap_locked and 'Ap' in update_data:
+        raise HTTPException(status_code=400, detail="Hloubka řezu (Ap) je uzamčena a nelze ji změnit")
+
     # Update fields (exclude version - it's auto-incremented by event listener)
-    for key, value in data.model_dump(exclude_unset=True, exclude={'version'}).items():
+    for key, value in update_data.items():
         setattr(feature, key, value)
 
     set_audit(feature, current_user.username, is_update=True)
@@ -103,4 +112,4 @@ async def delete_feature(
 
     await safe_commit(db, action="mazání kroku")
     logger.info(f"Deleted feature: {feature_type}", extra={"feature_id": feature_id, "user": current_user.username})
-    return {"message": "Krok smazán"}
+    return  # 204 No Content
