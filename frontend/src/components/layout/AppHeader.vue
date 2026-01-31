@@ -472,12 +472,14 @@ async function handleLogout() {
 
 // Windows actions
 function openWindowModule(module: WindowModule, label: string, icon: string) {
-  windowsStore.openWindow(module, `${icon} ${label}`)
+  const title = `${icon} ${label}`
+  windowsStore.openWindow(module, title)
   showMenu.value = false
 }
 
 function openWindowFromToolbar(module: WindowModule, label: string, icon: string) {
-  windowsStore.openWindow(module, `${icon} ${label}`)
+  const title = `${icon} ${label}`
+  windowsStore.openWindow(module, title)
   showModuleDropdown.value = false
 }
 

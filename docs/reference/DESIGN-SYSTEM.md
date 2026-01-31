@@ -1,9 +1,22 @@
-# GESTIMA Design System v1.1
+# GESTIMA Design System v1.2
 
 **"Industrial Precision"** - Originální dark-first design pro výrobní kalkulace
 
 **Approved:** 2026-01-31
-**Status:** ✅ Production Ready (+ Parametric Density System)
+**Status:** ✅ Production Ready (+ Ultra-Compact Density for Large Monitors)
+**Target Display:** 27" @ 2560x1440 (primary development display)
+
+---
+
+## 🖥️ Target Display Specifications
+
+**PRIMARY:** 27" @ 2560x1440 (Dell/LG UltraSharp equivalent)
+- **Pixel density:** ~109 PPI
+- **Optimal viewing distance:** 60-80 cm
+- **Design philosophy:** ULTRA-compact ERP-style density (Infor, SAP, Oracle)
+
+**SECONDARY:** Laptops @ 1080p (comfortable mode)
+- Switch density via toggle: 📐 (compact) ⟷ 📏 (comfortable)
 
 ---
 
@@ -13,8 +26,8 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 
 **Principy:**
 - **Dark-first** - tmavý režim je default (dílna/továrna vibe)
-- **Čitelné** - readable font sizes (15px base, ne 14px)
-- **Kompaktní** - efficient use of space (8pt grid)
+- **Ultra-compact** - optimized for 27"+ displays (12px base, 4pt grid)
+- **Density-aware** - parametric spacing for different screen sizes
 - **Originální** - ne generický Tailwind UI clone
 - **Precizní** - monospace pro čísla/data
 
@@ -101,20 +114,20 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 
 **Apple-inspired** system fonts = native look & feel
 
-### Font Sizes
+### Font Sizes (Optimized for 27" @ 2560x1440)
 
 | Token | Size | Usage |
 |-------|------|-------|
-| `--text-2xs` | 10px | Tiny labels |
-| `--text-xs` | 12px | Captions, table headers |
-| `--text-sm` | 14px | Small text, buttons |
-| `--text-base` | **15px** | Body (readable!) |
-| `--text-lg` | 16px | Large body |
-| `--text-xl` | 18px | Subheadings |
-| `--text-2xl` | 20px | Headings |
-| `--text-3xl` | 24px | Large headings |
+| `--text-2xs` | 9px | Tiny labels, fine print |
+| `--text-xs` | 10px | Captions, table headers |
+| `--text-sm` | 11px | Small text, buttons |
+| `--text-base` | **12px** | Body (optimized for large displays) |
+| `--text-lg` | 13px | Large body |
+| `--text-xl` | 14px | Subheadings |
+| `--text-2xl` | 16px | Headings |
+| `--text-3xl` | 18px | Large headings |
 
-**Note:** `15px` base (not 14px!) for better readability
+**Note:** Font sizes reduced ~20% from v1.1 to optimize for 27" displays. Use **comfortable mode** (📏) on smaller screens/laptops.
 
 ### Font Weights
 
@@ -127,18 +140,34 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 
 ---
 
-## 📐 Spacing (8pt Grid)
+## 📐 Spacing (4pt Grid for Large Monitors)
 
 | Token | Size | Usage |
 |-------|------|-------|
 | `--space-1` | 4px | Tiny gaps |
-| `--space-2` | **8px** | Base unit |
-| `--space-3` | 12px | Small padding |
-| `--space-4` | 16px | Medium padding |
-| `--space-6` | 24px | Large padding |
-| `--space-8` | 32px | Extra large |
+| `--space-2` | **6px** | Base unit (reduced from 8px) |
+| `--space-3` | 8px | Small padding |
+| `--space-4` | 12px | Medium padding (reduced from 16px) |
+| `--space-6` | 20px | Large padding (reduced from 24px) |
+| `--space-8` | 24px | Extra large (reduced from 32px) |
 
-**8pt grid** = compact but readable (not 12pt!)
+**4pt grid** = ultra-compact for 27"+ displays (was 8pt in v1.1)
+
+### Density System
+
+**Compact Mode (default)** - 27" @ 2560x1440+
+- Module padding: 6px
+- Cell padding: 4px/8px
+- Row height: 24px
+- Base font: 11px
+
+**Comfortable Mode** - Laptops @ 1080p
+- Module padding: 12px
+- Cell padding: 8px/12px
+- Row height: 36px
+- Base font: 13px
+
+Toggle: Click 📐/📏 in header
 
 ---
 

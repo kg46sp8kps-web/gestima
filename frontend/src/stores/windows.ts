@@ -53,13 +53,32 @@ export const useWindowsStore = defineStore('windows', () => {
   const minimizedWindows = computed(() => windows.value.filter(w => w.minimized))
   const favoriteViews = computed(() => savedViews.value.filter(v => v.favorite))
 
+  // Helper: Find first available linking group
+  function findAvailableLinkingGroup(): LinkingGroup {
+    const groups: LinkingGroup[] = ['red', 'blue', 'green', 'yellow']
+
+    // Find first group not already used
+    for (const group of groups) {
+      const isUsed = windows.value.some(w => w.linkingGroup === group)
+      if (!isUsed) return group
+    }
+
+    // All groups used, assign 'red' (user can change later)
+    return 'red'
+  }
+
   // Actions
-  function openWindow(module: WindowModule, title: string) {
+  function openWindow(module: WindowModule, title: string, linkingGroup?: LinkingGroup) {
     // Allow multiple windows of the same type (for comparison workflows)
     // Find free space (no overlapping)
     const defaultWidth = 800
     const defaultHeight = 600
     const position = findFreePosition(defaultWidth, defaultHeight)
+
+    // Auto-assign linking group if not specified (for part-main, always assign)
+    const assignedGroup = linkingGroup !== undefined
+      ? linkingGroup
+      : (module === 'part-main' ? findAvailableLinkingGroup() : null)
 
     // If no free space found, auto-arrange existing windows first
     if (position.x === -1) {
@@ -78,14 +97,14 @@ export const useWindowsStore = defineStore('windows', () => {
         zIndex: nextZIndex++,
         minimized: false,
         maximized: false,
-        linkingGroup: null
+        linkingGroup: assignedGroup
       }
 
       windows.value.push(newWindow)
 
       // Arrange all windows including the new one
       arrangeWindows('grid')
-      return
+      return newWindow.id
     }
 
     const newWindow: WindowState = {
@@ -99,10 +118,11 @@ export const useWindowsStore = defineStore('windows', () => {
       zIndex: nextZIndex++,
       minimized: false,
       maximized: false,
-      linkingGroup: null // Default: unlinked
+      linkingGroup: assignedGroup
     }
 
     windows.value.push(newWindow)
+    return newWindow.id
   }
 
   function setWindowLinkingGroup(id: string, group: LinkingGroup) {

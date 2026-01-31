@@ -229,15 +229,15 @@
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
   --font-mono: 'SF Mono', ui-monospace, 'Cascadia Code', 'Courier New', monospace;
 
-  /* Font sizes (readable, not too small!) */
-  --text-2xs: 0.625rem;   /* 10px */
-  --text-xs: 0.75rem;     /* 12px */
-  --text-sm: 0.875rem;    /* 14px */
-  --text-base: 0.9375rem; /* 15px */
-  --text-lg: 1rem;        /* 16px */
-  --text-xl: 1.125rem;    /* 18px */
-  --text-2xl: 1.25rem;    /* 20px */
-  --text-3xl: 1.5rem;     /* 24px */
+  /* Font sizes (optimized for 27" @ 2560x1440) */
+  --text-2xs: 0.5625rem;  /* 9px */
+  --text-xs: 0.625rem;    /* 10px */
+  --text-sm: 0.6875rem;   /* 11px */
+  --text-base: 0.75rem;   /* 12px - BASE for large monitors */
+  --text-lg: 0.8125rem;   /* 13px */
+  --text-xl: 0.875rem;    /* 14px */
+  --text-2xl: 1rem;       /* 16px */
+  --text-3xl: 1.125rem;   /* 18px */
 
   /* Font weights */
   --font-normal: 400;
@@ -247,78 +247,80 @@
 
   /* Line heights */
   --leading-tight: 1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.75;
+  --leading-normal: 1.4;
+  --leading-relaxed: 1.6;
 }
 
 /* === SPACING === */
 :root {
-  /* 8pt grid (compact but readable) */
-  --space-1: 0.25rem;  /* 4px */
-  --space-2: 0.5rem;   /* 8px - BASE */
-  --space-3: 0.75rem;  /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-5: 1.25rem;  /* 20px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-10: 2.5rem;  /* 40px */
-  --space-12: 3rem;    /* 48px */
+  /* 4pt grid (ultra-compact for large monitors 27" @ 2560x1440) */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.375rem;  /* 6px - BASE */
+  --space-3: 0.5rem;    /* 8px */
+  --space-4: 0.75rem;   /* 12px */
+  --space-5: 1rem;      /* 16px */
+  --space-6: 1.25rem;   /* 20px */
+  --space-8: 1.5rem;    /* 24px */
+  --space-10: 2rem;     /* 32px */
+  --space-12: 2.5rem;   /* 40px */
 }
 
 /* === DENSITY SYSTEM === */
 /*
-   Parametric density for different screen sizes:
-   - compact (default): Ultra-dense Infor-style for 2560x1440+
-   - comfortable: Current spacing for tablets/laptops
+   TARGET: 27" @ 2560x1440 (primary development display)
+
+   Parametric density:
+   - compact (default): ULTRA-dense ERP-style for 27"+ @ 1440p+
+   - comfortable: Tablet/laptop spacing (1080p, smaller displays)
 
    Usage: document.documentElement.dataset.density = 'comfortable'
    Or: <html data-density="comfortable">
 */
 :root, :root[data-density="compact"] {
   /* Table/Grid density */
-  --density-cell-py: 0.375rem;     /* 6px - vertical padding */
-  --density-cell-px: 0.625rem;     /* 10px - horizontal padding */
-  --density-row-height: 28px;
+  --density-cell-py: 0.25rem;      /* 4px - vertical padding */
+  --density-cell-px: 0.5rem;       /* 8px - horizontal padding */
+  --density-row-height: 24px;
 
   /* Typography density */
-  --density-font-sm: 0.6875rem;    /* 11px - small text */
-  --density-font-base: 0.75rem;    /* 12px - base text */
-  --density-font-md: 0.8125rem;    /* 13px - medium text */
+  --density-font-sm: 0.625rem;     /* 10px - small text */
+  --density-font-base: 0.6875rem;  /* 11px - base text */
+  --density-font-md: 0.75rem;      /* 12px - medium text */
 
   /* Component density */
-  --density-input-py: 0.25rem;     /* 4px */
-  --density-input-px: 0.5rem;      /* 8px */
-  --density-btn-py: 0.25rem;       /* 4px */
+  --density-input-py: 0.1875rem;   /* 3px */
+  --density-input-px: 0.375rem;    /* 6px */
+  --density-btn-py: 0.1875rem;     /* 3px */
   --density-btn-px: 0.5rem;        /* 8px */
-  --density-module-padding: 0.5rem; /* 8px */
-  --density-section-gap: 0.5rem;   /* 8px */
+  --density-module-padding: 0.375rem; /* 6px */
+  --density-section-gap: 0.375rem; /* 6px */
 
   /* Window density */
-  --density-window-min-width: 300px;
-  --density-window-content-padding: 0.375rem; /* 6px */
+  --density-window-min-width: 280px;
+  --density-window-content-padding: 0.25rem; /* 4px */
 }
 
 :root[data-density="comfortable"] {
   /* Table/Grid density */
-  --density-cell-py: 0.75rem;      /* 12px */
-  --density-cell-px: 1rem;         /* 16px */
-  --density-row-height: 42px;
+  --density-cell-py: 0.5rem;       /* 8px */
+  --density-cell-px: 0.75rem;      /* 12px */
+  --density-row-height: 36px;
 
   /* Typography density */
-  --density-font-sm: 0.875rem;     /* 14px */
-  --density-font-base: 0.9375rem;  /* 15px */
-  --density-font-md: 1rem;         /* 16px */
+  --density-font-sm: 0.75rem;      /* 12px */
+  --density-font-base: 0.8125rem;  /* 13px */
+  --density-font-md: 0.875rem;     /* 14px */
 
   /* Component density */
-  --density-input-py: 0.5rem;      /* 8px */
-  --density-input-px: 0.75rem;     /* 12px */
-  --density-btn-py: 0.5rem;        /* 8px */
+  --density-input-py: 0.375rem;    /* 6px */
+  --density-input-px: 0.625rem;    /* 10px */
+  --density-btn-py: 0.375rem;      /* 6px */
   --density-btn-px: 0.75rem;       /* 12px */
-  --density-module-padding: 1rem;  /* 16px */
-  --density-section-gap: 1rem;     /* 16px */
+  --density-module-padding: 0.75rem; /* 12px */
+  --density-section-gap: 0.75rem;  /* 12px */
 
   /* Window density */
-  --density-window-min-width: 400px;
+  --density-window-min-width: 360px;
   --density-window-content-padding: 0.5rem; /* 8px */
 }
 

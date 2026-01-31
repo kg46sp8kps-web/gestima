@@ -90,10 +90,10 @@ onMounted(async () => {
   }
 })
 
-// Watch linked context changes
-watch(() => contextStore.getContext(props.linkingGroup), (context) => {
-  if (isLinked.value && context && context.partId) {
-    const part = partsStore.parts.find(p => p.id === context.partId)
+// Watch linked context changes (watch contextPartId computed for reactivity)
+watch(contextPartId, (newPartId) => {
+  if (isLinked.value && newPartId) {
+    const part = partsStore.parts.find(p => p.id === newPartId)
     if (part) {
       selectedPart.value = part
     }

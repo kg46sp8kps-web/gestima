@@ -77,18 +77,24 @@ function handleCancelCreate() {
 
 // Window actions
 function openMaterialWindow() {
-  if (!selectedPart.value || !props.linkingGroup) return
-  windowsStore.openWindow('part-material', props.linkingGroup)
+  if (!selectedPart.value) return
+
+  const title = `🧱 Material - ${selectedPart.value.part_number}`
+  windowsStore.openWindow('part-material', title, props.linkingGroup || null)
 }
 
 function openOperationsWindow() {
-  if (!selectedPart.value || !props.linkingGroup) return
-  windowsStore.openWindow('part-operations', props.linkingGroup)
+  if (!selectedPart.value) return
+
+  const title = `⚙️ Operations - ${selectedPart.value.part_number}`
+  windowsStore.openWindow('part-operations', title, props.linkingGroup || null)
 }
 
 function openPricingWindow() {
-  if (!selectedPart.value || !props.linkingGroup) return
-  windowsStore.openWindow('part-pricing', props.linkingGroup)
+  if (!selectedPart.value) return
+
+  const title = `💰 Pricing - ${selectedPart.value.part_number}`
+  windowsStore.openWindow('part-pricing', title, props.linkingGroup || null)
 }
 
 // Load parts on mount and auto-select if partNumber provided
