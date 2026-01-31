@@ -121,13 +121,25 @@ export const useBatchesStore = defineStore('batches', () => {
 
   /**
    * Set current part and load all data
+   * Auto-recalculates batches when switching parts to ensure fresh pricing
    */
-  async function setPartContext(partId: number, linkingGroup: LinkingGroup): Promise<void> {
+  async function setPartContext(partId: number, linkingGroup: LinkingGroup, forceRecalc = true): Promise<void> {
     const ctx = getOrCreateContext(linkingGroup)
     if (ctx.currentPartId === partId) return
 
     ctx.currentPartId = partId
     ctx.selectedSetId = null // Reset to loose batches
+
+    // Auto-recalculate batches to ensure fresh data after operations/materials changes
+    if (forceRecalc) {
+      try {
+        await batchesApi.recalculateBatchesForPart(partId)
+      } catch (error) {
+        // Recalculation failed - continue loading (possibly stale) data
+        console.warn('Batch auto-recalculation failed:', error)
+      }
+    }
+
     await loadAll(linkingGroup)
   }
 

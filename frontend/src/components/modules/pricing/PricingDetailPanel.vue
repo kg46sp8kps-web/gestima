@@ -93,9 +93,9 @@ async function executeDelete() {
   }
 }
 
-// Watch partId changes
+// Watch partId changes (works for both linked AND standalone mode)
 watch(() => props.partId, async (newPartId) => {
-  if (newPartId && props.linkingGroup) {
+  if (newPartId) {
     const ctx = batchesStore.getContext(props.linkingGroup)
     if (ctx.currentPartId !== newPartId) {
       await batchesStore.setPartContext(newPartId, props.linkingGroup)
