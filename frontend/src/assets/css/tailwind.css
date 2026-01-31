@@ -1,0 +1,8 @@
+/**
+ * Tailwind CSS - Utilities only (no base reset)
+ * Base styles handled by design-system.css
+ */
+
+/* Import only utilities, skip @tailwind base to avoid conflicts */
+@tailwind components;
+@tailwind utilities;

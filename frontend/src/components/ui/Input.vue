@@ -7,6 +7,7 @@
 
     <input
       ref="inputRef"
+      v-select-on-focus
       :type="type"
       :value="modelValue"
       :placeholder="placeholder"
@@ -16,7 +17,6 @@
       @input="handleInput"
       @focus="handleFocus"
       @blur="handleBlur"
-      @click="selectAll"
     />
 
     <span v-if="error" class="input-error">{{ error }}</span>
@@ -86,18 +86,11 @@ const handleBlur = (event: FocusEvent) => {
   emit('blur', event);
 };
 
-// GESTIMA SPEC: Click = select all (invisible selection)
-const selectAll = () => {
-  if (inputRef.value && !props.readonly && !props.disabled) {
-    inputRef.value.select();
-  }
-};
-
 // Expose for parent access
 defineExpose({
   focus: () => inputRef.value?.focus(),
   blur: () => inputRef.value?.blur(),
-  select: selectAll
+  select: () => inputRef.value?.select()
 });
 </script>
 
@@ -113,7 +106,7 @@ defineExpose({
 .input-label {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .input-required {
@@ -127,7 +120,7 @@ defineExpose({
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--text-base);
+  color: var(--text-body);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   transition: var(--transition-fast);

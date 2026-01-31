@@ -4,18 +4,32 @@
  * Open/close windows, arrange to grid, save/load views
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, type Component } from 'vue'
 import { useWindowsStore, type WindowModule } from '@/stores/windows'
+import {
+  Package,
+  DollarSign,
+  Settings,
+  Box,
+  ClipboardList,
+  Save,
+  Folder,
+  X,
+  Star,
+  Grid3x3,
+  AlignHorizontalSpaceAround,
+  AlignVerticalSpaceAround
+} from 'lucide-vue-next'
 
 const store = useWindowsStore()
 
-// Available modules
-const modules: Array<{ value: WindowModule; label: string; icon: string }> = [
-  { value: 'part-main', label: 'Part Main', icon: '📦' },
-  { value: 'part-pricing', label: 'Pricing', icon: '💰' },
-  { value: 'part-operations', label: 'Operations', icon: '⚙️' },
-  { value: 'part-material', label: 'Material', icon: '🧱' },
-  { value: 'batch-sets', label: 'Batch Sets', icon: '📋' }
+// Available modules with Lucide icons
+const modules: Array<{ value: WindowModule; label: string; icon: Component }> = [
+  { value: 'part-main', label: 'Part Main', icon: Package },
+  { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
+  { value: 'part-operations', label: 'Operations', icon: Settings },
+  { value: 'part-material', label: 'Material', icon: Box },
+  { value: 'batch-sets', label: 'Batch Sets', icon: ClipboardList }
 ]
 
 // Save view dialog
@@ -25,8 +39,8 @@ const viewName = ref('')
 // Arrange mode
 const arrangeMode = ref<'grid' | 'horizontal' | 'vertical'>('grid')
 
-function openModule(module: WindowModule, label: string, icon: string) {
-  store.openWindow(module, `${icon} ${label}`)
+function openModule(module: WindowModule, label: string) {
+  store.openWindow(module, label)
 }
 
 function handleArrange() {
@@ -84,11 +98,12 @@ function handleCloseAll() {
         <button
           v-for="mod in modules"
           :key="mod.value"
-          @click="openModule(mod.value, mod.label, mod.icon)"
+          @click="openModule(mod.value, mod.label)"
           class="btn-module"
           :title="`Open ${mod.label}`"
         >
-          {{ mod.icon }} {{ mod.label }}
+          <component :is="mod.icon" :size="16" />
+          <span>{{ mod.label }}</span>
         </button>
       </div>
 
@@ -101,9 +116,9 @@ function handleCloseAll() {
             class="select-arrange"
             :disabled="store.openWindows.length === 0"
           >
-            <option value="grid">🔲 Grid</option>
-            <option value="horizontal">⬌ Horizontal</option>
-            <option value="vertical">⬍ Vertical</option>
+            <option value="grid">Grid</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
           </select>
           <button
             @click="handleArrange"
@@ -121,7 +136,8 @@ function handleCloseAll() {
           title="Save current window layout"
           :disabled="store.openWindows.length === 0"
         >
-          💾 Save View
+          <Save :size="16" />
+          <span>Save View</span>
         </button>
 
         <!-- Views dropdown (all views) -->
@@ -130,13 +146,13 @@ function handleCloseAll() {
           @change="handleLoadViewFromSelect"
           class="select-view"
         >
-          <option value="">📁 Load View...</option>
+          <option value="">Load View...</option>
           <option
             v-for="view in store.savedViews"
             :key="view.id"
             :value="view.id"
           >
-            {{ view.favorite ? '⭐' : '' }} {{ view.name }}
+            {{ view.favorite ? '★' : '' }} {{ view.name }}
           </option>
         </select>
 
@@ -146,7 +162,8 @@ function handleCloseAll() {
           title="Close all windows"
           :disabled="store.openWindows.length === 0"
         >
-          ❌ Close All
+          <X :size="16" />
+          <span>Close All</span>
         </button>
       </div>
 
@@ -162,24 +179,27 @@ function handleCloseAll() {
             :class="{ active: store.currentViewId === view.id }"
             :title="view.name"
           >
-            ⭐ {{ view.name }}
+            <Star :size="14" :fill="store.currentViewId === view.id ? 'currentColor' : 'none'" />
+            <span>{{ view.name }}</span>
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- Minimized Windows Bar -->
-    <div v-if="store.minimizedWindows.length > 0" class="minimized-bar">
-      <label class="section-label">Minimized:</label>
-      <button
-        v-for="win in store.minimizedWindows"
-        :key="win.id"
-        @click="store.restoreWindow(win.id)"
-        class="btn-minimized"
-        :title="`Restore ${win.title}`"
-      >
-        {{ win.title }}
-      </button>
+      <!-- System Tray (Minimized Windows) -->
+      <div v-if="store.minimizedWindows.length > 0" class="toolbar-section system-tray">
+        <label class="section-label">Tray:</label>
+        <div class="tray-icons">
+          <button
+            v-for="win in store.minimizedWindows"
+            :key="win.id"
+            @click="store.restoreWindow(win.id)"
+            class="btn-tray-icon"
+            :title="`Restore: ${win.title}`"
+          >
+            {{ win.title.split(' ')[0] }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Save View Dialog -->
@@ -211,7 +231,8 @@ function handleCloseAll() {
   z-index: 1000;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
 }
 
 /* Toolbar */
@@ -231,7 +252,7 @@ function handleCloseAll() {
 }
 
 .section-label {
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   color: var(--text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -241,21 +262,26 @@ function handleCloseAll() {
 /* Buttons */
 .btn-module,
 .btn-action {
-  padding: 0.5rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   cursor: pointer;
-  transition: all 150ms;
+  transition: all var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-module:hover,
 .btn-action:hover {
-  background: var(--bg-hover);
+  background: var(--state-hover);
   border-color: var(--primary-color);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-action:disabled {
@@ -279,20 +305,22 @@ function handleCloseAll() {
 
 .select-arrange,
 .select-view {
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   cursor: pointer;
-  transition: all 150ms;
+  transition: all var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-sm);
 }
 
 .select-arrange:hover,
 .select-view:hover {
-  background: var(--bg-hover);
+  background: var(--state-hover);
   border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
 }
 
 .select-arrange:disabled {
@@ -308,20 +336,25 @@ function handleCloseAll() {
 }
 
 .btn-favorite-view {
-  padding: 0.5rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   cursor: pointer;
-  transition: all 150ms;
+  transition: all var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-favorite-view:hover {
-  background: var(--bg-hover);
+  background: var(--state-hover);
   border-color: var(--primary-color);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-favorite-view.active {
@@ -330,31 +363,39 @@ function handleCloseAll() {
   border-color: var(--primary-color);
 }
 
-/* Minimized Bar */
-.minimized-bar {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
+/* System Tray */
+.system-tray {
+  margin-left: auto;
 }
 
-.btn-minimized {
-  padding: 0.4rem 0.75rem;
+.tray-icons {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.btn-tray-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: all 150ms;
+  transition: all var(--duration-fast) var(--ease-out);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
 }
 
-.btn-minimized:hover {
+.btn-tray-icon:hover {
   background: var(--primary-color);
   color: white;
-  transform: translateY(-1px);
+  transform: scale(1.15);
+  box-shadow: var(--shadow-md);
 }
 
 /* Modal */
@@ -374,10 +415,10 @@ function handleCloseAll() {
 .modal {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
   width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
 }
 
 .modal h3 {
@@ -387,19 +428,21 @@ function handleCloseAll() {
 
 .input-view-name {
   width: 100%;
-  padding: 0.75rem;
-  background: var(--bg-primary);
+  padding: var(--space-3);
+  background: var(--bg-input);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-5);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .input-view-name:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .modal-actions {
@@ -410,31 +453,35 @@ function handleCloseAll() {
 
 .btn-primary,
 .btn-secondary {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xl);
   cursor: pointer;
-  transition: all 150ms;
+  transition: all var(--duration-fast) var(--ease-out);
+  font-weight: var(--font-medium);
 }
 
 .btn-primary {
   background: var(--primary-color);
   color: white;
   border: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: var(--color-primary-hover);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-  background: var(--bg-secondary);
+  background: var(--bg-card);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover);
+  background: var(--state-hover);
+  border-color: var(--border-strong);
 }
 </style>

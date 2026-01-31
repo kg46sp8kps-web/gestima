@@ -276,15 +276,21 @@ export const useBatchesStore = defineStore('batches', () => {
   }
 
   /**
-   * Recalculate all batches for current part
+   * Recalculate all batches for a part
+   * @param linkingGroup - The linking group context
+   * @param partId - Optional partId. If provided, uses this; otherwise uses ctx.currentPartId
+   * @param silent - If true, suppresses success toast (for auto-recalc after operation/material changes)
    */
-  async function recalculateBatches(linkingGroup: LinkingGroup): Promise<void> {
+  async function recalculateBatches(linkingGroup: LinkingGroup, partId?: number, silent = false): Promise<void> {
     const ctx = getOrCreateContext(linkingGroup)
-    if (!ctx.currentPartId) return
+    const targetPartId = partId ?? ctx.currentPartId
+    if (!targetPartId) return
 
-    await batchesApi.recalculateBatchesForPart(ctx.currentPartId)
+    await batchesApi.recalculateBatchesForPart(targetPartId)
     await loadBatches(linkingGroup)
-    ui.showSuccess('Dávky přepočítány')
+    if (!silent) {
+      ui.showSuccess('Dávky přepočítány')
+    }
   }
 
   // ==========================================================================

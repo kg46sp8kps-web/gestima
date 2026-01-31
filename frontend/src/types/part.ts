@@ -18,11 +18,13 @@ export type StockShape =
 export interface PartBase {
   part_number: string
   article_number: string | null
+  drawing_path: string | null
   name: string
+  customer_revision: string | null
+  notes: string
   material_item_id: number | null
   price_category_id: number | null
   length: number
-  notes: string
   stock_shape: StockShape | null
   stock_diameter: number | null
   stock_length: number | null
@@ -38,20 +40,15 @@ export interface Part extends PartBase {
   updated_at: string
 }
 
+/**
+ * Create new part - simplified (part_number auto-generated)
+ */
 export interface PartCreate {
-  part_number?: string
-  article_number?: string | null
-  name: string
-  material_item_id?: number | null
-  price_category_id?: number | null
-  length?: number
-  notes?: string
-  stock_shape?: StockShape | null
-  stock_diameter?: number | null
-  stock_length?: number | null
-  stock_width?: number | null
-  stock_height?: number | null
-  stock_wall_thickness?: number | null
+  article_number: string  // REQUIRED
+  drawing_path?: string | null
+  name: string  // REQUIRED
+  customer_revision?: string | null
+  notes?: string | null
 }
 
 export interface PartUpdate extends Partial<PartBase> {

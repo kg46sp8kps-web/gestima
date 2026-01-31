@@ -133,9 +133,9 @@ async function handleLogin() {
 
     await router.push(redirect)
 
-    ui.showSuccess('✅ Přihlášení úspěšné')
+    ui.showSuccess('Přihlášení úspěšné')
   } catch (err: any) {
-    ui.showError('❌ ' + (err.message || 'Neplatné přihlašovací údaje'))
+    ui.showError(err.message || 'Neplatné přihlašovací údaje')
     loading.value = false
   }
 }
@@ -173,7 +173,7 @@ async function handleLogin() {
 }
 
 .logo-text {
-  font-size: 2rem;
+  font-size: var(--text-6xl);
   font-weight: 700;
   letter-spacing: 0.5px;
 }
@@ -201,7 +201,7 @@ async function handleLogin() {
 }
 
 .ribbon-title {
-  font-size: 0.8rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.3px;
@@ -235,7 +235,7 @@ async function handleLogin() {
 }
 
 .info-label {
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
   color: var(--text-muted);
   margin-bottom: 0.5rem;
 }
@@ -253,14 +253,14 @@ async function handleLogin() {
 }
 
 .info-title {
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   color: var(--text-primary);
   font-weight: 600;
   margin-bottom: 0.3rem;
 }
 
 .info-text {
-  font-size: 0.7rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.3;
 }
@@ -288,7 +288,7 @@ async function handleLogin() {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   color: var(--text-primary);
-  font-size: 0.8rem;
+  font-size: var(--text-lg);
   padding: 0.5rem 0.6rem;
   width: 100%;
   transition: border-color 0.2s;
@@ -310,7 +310,7 @@ async function handleLogin() {
   background: var(--accent-red);
   color: white;
   padding: 0.65rem 1rem;
-  font-size: 0.85rem;
+  font-size: var(--text-lg);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -335,7 +335,7 @@ async function handleLogin() {
 .login-footer {
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
 }
 
 .footer-quote {

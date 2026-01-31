@@ -51,9 +51,9 @@
   --bg-raised: #1a1a1a;
   --bg-input: #0f0f0f;
 
-  /* TEXT (White spectrum) */
+  /* TEXT COLORS (White spectrum) */
   --text-primary: #ffffff;
-  --text-base: #f5f5f5;
+  --text-body: #f5f5f5;
   --text-secondary: #a3a3a3;
   --text-tertiary: #737373;
   --text-disabled: #525252;
@@ -70,10 +70,11 @@
   --state-focus-bg: rgba(37, 99, 235, 0.25);
   --state-focus-border: #2563eb;
 
-  /* SHADOWS (dark mode) */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.8);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+  /* SHADOWS (shadcn-inspired - modern & subtle) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
 
   /* DATA VISUALIZATION */
   --chart-material: #10b981;
@@ -99,7 +100,7 @@
   --bg-input: #ffffff;
 
   --text-primary: #0a0a0a;
-  --text-base: #171717;
+  --text-body: #171717;
   --text-secondary: #525252;
   --text-tertiary: #a3a3a3;
   --text-disabled: #d4d4d4;
@@ -111,9 +112,10 @@
   --state-active: #e5e5e5;
   --state-selected: rgba(153, 27, 27, 0.08);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
 /* ALTERNATIVE PALETTES (ready to use!) */
@@ -197,16 +199,22 @@
   /* Accent aliases (map to primary/info) */
   --accent-primary: var(--palette-info);
   --accent-primary-hover: var(--palette-info-hover);
+  --accent-blue: var(--palette-info);
   --accent-red: var(--palette-primary);
   --accent-muted: var(--text-tertiary);
   --accent-subtle: rgba(37, 99, 235, 0.1);
+
+  /* Status color aliases (for forms.css compatibility) */
+  --error: var(--color-danger);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
 
   /* Color aliases */
   --primary-color: var(--color-primary);
   --color-background: var(--bg-base);
   --color-border: var(--border-default);
   --color-heading: var(--text-primary);
-  --color-text: var(--text-base);
+  --color-text: var(--text-body);
   --gestima-red: var(--palette-primary);
 
   /* Text aliases */
@@ -238,6 +246,13 @@
   --text-xl: 0.875rem;    /* 14px */
   --text-2xl: 1rem;       /* 16px */
   --text-3xl: 1.125rem;   /* 18px */
+
+  /* Display sizes (for headers, heroes, empty states) */
+  --text-4xl: 1.25rem;    /* 20px */
+  --text-5xl: 1.5rem;     /* 24px */
+  --text-6xl: 2rem;       /* 32px */
+  --text-7xl: 3rem;       /* 48px - hero/empty state icons */
+  --text-8xl: 4rem;       /* 64px - large icons */
 
   /* Font weights */
   --font-normal: 400;
@@ -282,10 +297,10 @@
   --density-cell-px: 0.5rem;       /* 8px - horizontal padding */
   --density-row-height: 24px;
 
-  /* Typography density */
-  --density-font-sm: 0.625rem;     /* 10px - small text */
-  --density-font-base: 0.6875rem;  /* 11px - base text */
-  --density-font-md: 0.75rem;      /* 12px - medium text */
+  /* Typography density - references to text tokens (single source of truth) */
+  --density-font-sm: var(--text-xs);
+  --density-font-base: var(--text-sm);
+  --density-font-md: var(--text-base);
 
   /* Component density */
   --density-input-py: 0.1875rem;   /* 3px */
@@ -306,10 +321,10 @@
   --density-cell-px: 0.75rem;      /* 12px */
   --density-row-height: 36px;
 
-  /* Typography density */
-  --density-font-sm: 0.75rem;      /* 12px */
-  --density-font-base: 0.8125rem;  /* 13px */
-  --density-font-md: 0.875rem;     /* 14px */
+  /* Typography density - same references, fonts controlled via Settings */
+  --density-font-sm: var(--text-xs);
+  --density-font-base: var(--text-sm);
+  --density-font-md: var(--text-base);
 
   /* Component density */
   --density-input-py: 0.375rem;    /* 6px */
@@ -324,12 +339,80 @@
   --density-window-content-padding: 0.5rem; /* 8px */
 }
 
-/* === BORDER RADIUS === */
+/* === TYPOGRAPHY SCALE === */
+/*
+   Customizable font size presets for different monitor sizes/preferences
+
+   Usage: document.documentElement.dataset.fontScale = 'normal' | 'large'
+   Or: <html data-font-scale="normal">
+
+   Default (no attribute): Compact - optimized for 27" @ 2560x1440
+*/
+
+/* Default: Compact scale (current - for 27"+ large monitors) */
+:root, :root[data-font-scale="compact"] {
+  /* Already defined in :root - this is the baseline */
+}
+
+/* Normal scale - for 24" monitors @ 1920x1080 */
+:root[data-font-scale="normal"] {
+  --text-2xs: 0.625rem;   /* 10px */
+  --text-xs: 0.6875rem;   /* 11px */
+  --text-sm: 0.75rem;     /* 12px */
+  --text-base: 0.8125rem; /* 13px - BASE */
+  --text-lg: 0.875rem;    /* 14px */
+  --text-xl: 1rem;        /* 16px */
+  --text-2xl: 1.125rem;   /* 18px */
+  --text-3xl: 1.25rem;    /* 20px */
+  --text-4xl: 1.5rem;     /* 24px */
+  --text-5xl: 1.75rem;    /* 28px */
+  --text-6xl: 2.25rem;    /* 36px */
+  --text-7xl: 3.5rem;     /* 56px */
+  --text-8xl: 4.5rem;     /* 72px */
+}
+
+/* Large scale - for smaller screens or accessibility */
+:root[data-font-scale="large"] {
+  --text-2xs: 0.6875rem;  /* 11px */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.8125rem;   /* 13px */
+  --text-base: 0.875rem;  /* 14px - BASE */
+  --text-lg: 1rem;        /* 16px */
+  --text-xl: 1.125rem;    /* 18px */
+  --text-2xl: 1.25rem;    /* 20px */
+  --text-3xl: 1.375rem;   /* 22px */
+  --text-4xl: 1.75rem;    /* 28px */
+  --text-5xl: 2rem;       /* 32px */
+  --text-6xl: 2.5rem;     /* 40px */
+  --text-7xl: 4rem;       /* 64px */
+  --text-8xl: 5rem;       /* 80px */
+}
+
+/* Extra Large scale - high accessibility */
+:root[data-font-scale="xlarge"] {
+  --text-2xs: 0.75rem;    /* 12px */
+  --text-xs: 0.8125rem;   /* 13px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px - BASE */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.75rem;    /* 28px */
+  --text-4xl: 2rem;       /* 32px */
+  --text-5xl: 2.5rem;     /* 40px */
+  --text-6xl: 3rem;       /* 48px */
+  --text-7xl: 4.5rem;     /* 72px */
+  --text-8xl: 6rem;       /* 96px */
+}
+
+/* === BORDER RADIUS (shadcn-inspired) === */
 :root {
+  --radius: 0.5rem;      /* 8px - base radius */
   --radius-sm: 0.25rem;  /* 4px */
   --radius-md: 0.375rem; /* 6px */
   --radius-lg: 0.5rem;   /* 8px */
   --radius-xl: 0.75rem;  /* 12px */
+  --radius-2xl: 1rem;    /* 16px */
   --radius-none: 0;
 }
 
@@ -358,12 +441,25 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
-  color: var(--text-base);
+  color: var(--text-body);
   background: var(--bg-base);
+}
+
+/* Ensure all text elements use design system colors */
+div, span, p, label, td, th, li {
+  color: var(--text-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--color-info);
   transition: background-color var(--duration-normal) var(--ease-out),
               color var(--duration-normal) var(--ease-out);
 }
@@ -374,7 +470,7 @@ select,
 textarea,
 button {
   font-family: inherit;
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 input,
@@ -382,6 +478,12 @@ select,
 textarea {
   background: var(--bg-input);
   border: 1px solid var(--border-default);
+}
+
+/* Select option styling for dark mode */
+select option {
+  background: var(--bg-surface);
+  color: var(--text-body);
 }
 
 input:focus,
@@ -403,6 +505,8 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+  color: var(--text-body);
+  background: var(--bg-input);
 }
 
 /* Hide selection highlight (click = select all, but invisible) */

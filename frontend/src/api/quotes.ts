@@ -16,6 +16,7 @@ import type {
 
 /**
  * Get all quotes with pagination and optional status filter
+ * NOTE: Backend returns Quote[] directly, not { quotes, total }
  */
 export async function getQuotes(
   skip = 0,
@@ -25,8 +26,15 @@ export async function getQuotes(
   const params: any = { skip, limit }
   if (status) params.status = status
 
-  const response = await apiClient.get<QuotesListResponse>('/quotes/', { params })
-  return response.data
+  const response = await apiClient.get<Quote[]>('/quotes/', { params })
+
+  // Backend returns array directly, transform to expected format
+  return {
+    quotes: response.data,
+    total: response.data.length, // Note: no pagination from backend yet
+    skip,
+    limit
+  }
 }
 
 /**

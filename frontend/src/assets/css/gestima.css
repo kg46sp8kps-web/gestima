@@ -21,7 +21,7 @@ input, select, textarea {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     color: var(--text-primary);
-    font-size: 0.8rem;
+    font-size: var(--text-lg);
 }
 
 input:focus, select:focus, textarea:focus {

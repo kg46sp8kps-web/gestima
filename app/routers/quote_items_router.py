@@ -97,7 +97,7 @@ async def create_quote_item(
         quote_id=quote.id,
         part_id=data.part_id,
         part_number=part.part_number,
-        part_name=part.part_name,
+        part_name=part.name,
         quantity=data.quantity,
         unit_price=unit_price,
         notes=data.notes,
@@ -181,11 +181,9 @@ async def update_quote_item(
     if item.version != data.version:
         raise HTTPException(status_code=409, detail="Version conflict")
 
-    # Update fields
+    # Update fields (unit_price is read-only from frozen batch)
     if data.quantity is not None:
         item.quantity = data.quantity
-    if data.unit_price is not None:
-        item.unit_price = data.unit_price
     if data.notes is not None:
         item.notes = data.notes
 

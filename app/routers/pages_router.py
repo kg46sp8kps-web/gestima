@@ -1,196 +1,93 @@
-"""GESTIMA - HTML Pages router (HTMX)"""
+"""GESTIMA - HTML Pages router (Vue SPA Redirects)
 
-from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+ARCHIVED: 2026-01-31
+All Jinja2/Alpine.js templates moved to: archive/legacy-alpinejs-v1.6.1/
 
-from app.database import get_db
-from app.models.part import Part
-# Machine model removed - replaced by WorkCenter (ADR-021)
-from app.models.config import SystemConfig
-from app.models import User
-from app.models.enums import UserRole
-from app.dependencies import get_current_user, require_role
-from app.db_helpers import set_audit, safe_commit
+This router now redirects legacy URLs to Vue SPA equivalents.
+Vue SPA is served from: frontend/dist/ via FastAPI static files.
+"""
+
+from fastapi import APIRouter
+from fastapi.responses import RedirectResponse
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
-
-
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    """Login page (public)"""
-    return templates.TemplateResponse("auth/login.html", {"request": request})
-
-
-@router.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Dashboard (protected)"""
-    result = await db.execute(select(Part).order_by(Part.updated_at.desc()).limit(20))
-    parts = result.scalars().all()
-
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "parts": parts,
-        "user": current_user
-    })
-
-
-@router.get("/parts", response_class=HTMLResponse)
-async def parts_list(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
-    """Parts list with filtering (protected)"""
-    return templates.TemplateResponse("parts_list.html", {
-        "request": request,
-        "user": current_user
-    })
-
-
-@router.get("/parts/new", response_class=HTMLResponse)
-async def part_new(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
-    """Create new part (protected)"""
-    return templates.TemplateResponse("parts/new.html", {
-        "request": request,
-        "user": current_user
-    })
-
-
-@router.get("/parts/{part_number}/edit", response_class=HTMLResponse)
-async def part_edit(
-    part_number: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Edit part (protected)"""
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
-    part = result.scalar_one_or_none()
-
-    if not part:
-        return HTMLResponse(content="<h1>Díl nenalezen</h1>", status_code=404)
-
-    return templates.TemplateResponse("parts/edit.html", {
-        "request": request,
-        "part": part,
-        "user": current_user
-    })
-
-
-@router.get("/parts/{part_number}/pricing", response_class=HTMLResponse)
-async def part_pricing(
-    part_number: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Part pricing breakdown page (protected)"""
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
-    part = result.scalar_one_or_none()
-
-    if not part:
-        return HTMLResponse(content="<h1>Díl nenalezen</h1>", status_code=404)
-
-    return templates.TemplateResponse("parts/pricing.html", {
-        "request": request,
-        "part": part,
-        "user": current_user
-    })
 
 
 # ============================================================================
-# WORKSPACE (ADR-023: Module Architecture)
+# LEGACY URL REDIRECTS → VUE SPA
 # ============================================================================
+# These redirects ensure old bookmarks/links continue to work.
+# Vue SPA handles all routing via Vue Router.
 
-@router.get("/workspace", response_class=HTMLResponse)
-async def workspace_page(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
-    """Multi-panel workspace for linked module views (ADR-023)"""
-    return templates.TemplateResponse("workspace.html", {
-        "request": request,
-        "user": current_user
-    })
+@router.get("/login")
+async def login_redirect():
+    """Redirect to Vue SPA login"""
+    return RedirectResponse(url="/auth/login", status_code=302)
 
 
-# ============================================================================
-# PRICING PAGES (ADR-022: BatchSets)
-# ============================================================================
-
-@router.get("/pricing/batch-sets", response_class=HTMLResponse)
-async def batch_sets_page(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Standalone BatchSets management page (ADR-022)"""
-    return templates.TemplateResponse("pricing/batch_sets.html", {
-        "request": request,
-        "user": current_user
-    })
+@router.get("/parts")
+async def parts_list_redirect():
+    """Redirect to Vue SPA parts list"""
+    return RedirectResponse(url="/parts", status_code=302)
 
 
-@router.get("/pricing/batch-sets/{set_id}", response_class=HTMLResponse)
-async def batch_set_detail_page(
-    set_id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """BatchSet detail page with batches (ADR-022)"""
-    from app.models.batch_set import BatchSet
-
-    result = await db.execute(select(BatchSet).where(BatchSet.id == set_id))
-    batch_set = result.scalar_one_or_none()
-
-    if not batch_set:
-        return HTMLResponse(content="<h1>Sada nenalezena</h1>", status_code=404)
-
-    return templates.TemplateResponse("pricing/batch_set_detail.html", {
-        "request": request,
-        "batch_set": batch_set,
-        "user": current_user
-    })
+@router.get("/parts/new")
+async def parts_new_redirect():
+    """Redirect to Vue SPA create part"""
+    return RedirectResponse(url="/parts/new", status_code=302)
 
 
-# ============================================================================
-# MACHINES PAGES
-# ============================================================================
+@router.get("/parts/{part_number}/edit")
+async def parts_edit_redirect(part_number: str):
+    """Redirect to Vue SPA part detail"""
+    return RedirectResponse(url=f"/parts/{part_number}", status_code=302)
 
-# ============================================================================
-# MACHINES ROUTES - DEPRECATED (replaced by WorkCenters, ADR-021)
-# ============================================================================
-# All /machines routes removed. See work_centers_router.py for replacement.
+
+@router.get("/parts/{part_number}/pricing")
+async def parts_pricing_redirect(part_number: str):
+    """Redirect to Vue SPA part detail (pricing tab)"""
+    return RedirectResponse(url=f"/parts/{part_number}?tab=pricing", status_code=302)
+
+
+@router.get("/workspace")
+async def workspace_redirect():
+    """Redirect to Vue SPA windows view"""
+    return RedirectResponse(url="/windows", status_code=302)
+
+
+@router.get("/pricing/batch-sets")
+async def batch_sets_redirect():
+    """Redirect to Vue SPA batch sets"""
+    return RedirectResponse(url="/pricing/batch-sets", status_code=302)
+
+
+@router.get("/pricing/batch-sets/{set_id}")
+async def batch_set_detail_redirect(set_id: int):
+    """Redirect to Vue SPA batch set detail"""
+    return RedirectResponse(url=f"/pricing/batch-sets/{set_id}", status_code=302)
+
+
+@router.get("/settings")
+async def settings_redirect():
+    """Redirect to Vue SPA settings"""
+    return RedirectResponse(url="/settings", status_code=302)
 
 
 # ============================================================================
-# SETTINGS / ADMIN PAGES
+# REMOVED ROUTES (Alpine.js era)
 # ============================================================================
-
-@router.get("/settings", response_class=HTMLResponse)
-async def settings_page(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN]))
-):
-    """System settings page (admin only)"""
-    result = await db.execute(select(SystemConfig).order_by(SystemConfig.key))
-    configs = result.scalars().all()
-
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
-        "configs": configs,
-        "user": current_user
-    })
+# The following routes were removed as they served Jinja2 templates:
+#
+# GET /              → Vue SPA serves index.html at root
+# GET /login         → Redirected above
+# GET /parts         → Redirected above
+# GET /parts/new     → Redirected above
+# GET /parts/{id}/edit    → Redirected above
+# GET /parts/{id}/pricing → Redirected above
+# GET /workspace     → Redirected above
+# GET /pricing/*     → Redirected above
+# GET /settings      → Redirected above
+# GET /machines/*    → Removed (ADR-021: WorkCenters)
+#
+# All templates archived in: archive/legacy-alpinejs-v1.6.1/templates/
+# ============================================================================

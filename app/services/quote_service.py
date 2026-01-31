@@ -39,7 +39,10 @@ class QuoteService:
         3. Return unit_price_frozen from first batch in set
 
         Returns:
-            Unit price (float), defaults to 0.0 if no frozen batch found
+            Unit price (float)
+
+        Raises:
+            HTTPException 400: If no frozen batch_set found (must freeze batch first)
         """
         # Find latest frozen batch_set
         result = await db.execute(
@@ -56,7 +59,10 @@ class QuoteService:
 
         if not batch_set:
             logger.warning(f"No frozen batch_set found for part_id={part_id}")
-            return 0.0
+            raise HTTPException(
+                status_code=400,
+                detail=f"Část nemá zmrazenou kalkulaci. Nejdříve zmrazte batch pro přidání do nabídky."
+            )
 
         # Get first batch from the set
         result = await db.execute(
@@ -71,7 +77,10 @@ class QuoteService:
 
         if not batch:
             logger.warning(f"No batches found in batch_set {batch_set.set_number}")
-            return 0.0
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sada kalkulací {batch_set.set_number} neobsahuje žádné batche."
+            )
 
         # Return frozen price or fallback to unit_cost
         price = batch.unit_price_frozen if batch.unit_price_frozen else batch.unit_cost

@@ -79,22 +79,40 @@ function handleCancelCreate() {
 function openMaterialWindow() {
   if (!selectedPart.value) return
 
-  const title = `🧱 Material - ${selectedPart.value.part_number}`
+  const title = `Material - ${selectedPart.value.part_number}`
   windowsStore.openWindow('part-material', title, props.linkingGroup || null)
 }
 
 function openOperationsWindow() {
   if (!selectedPart.value) return
 
-  const title = `⚙️ Operations - ${selectedPart.value.part_number}`
+  const title = `Operations - ${selectedPart.value.part_number}`
   windowsStore.openWindow('part-operations', title, props.linkingGroup || null)
 }
 
 function openPricingWindow() {
   if (!selectedPart.value) return
 
-  const title = `💰 Pricing - ${selectedPart.value.part_number}`
+  const title = `Pricing - ${selectedPart.value.part_number}`
   windowsStore.openWindow('part-pricing', title, props.linkingGroup || null)
+}
+
+function openDrawingWindow() {
+  if (!selectedPart.value) return
+
+  const title = `Drawing - ${selectedPart.value.part_number}`
+  windowsStore.openWindow('part-drawing', title, props.linkingGroup || null)
+}
+
+async function refreshPart() {
+  if (!selectedPart.value) return
+
+  // Reload part data from API
+  await partsStore.fetchParts()
+  const updatedPart = partsStore.parts.find(p => p.id === selectedPart.value?.id)
+  if (updatedPart) {
+    selectedPart.value = updatedPart
+  }
 }
 
 // Load parts on mount and auto-select if partNumber provided
@@ -139,7 +157,6 @@ watch(() => props.partNumber, (newPartNumber) => {
     <div class="right-panel">
       <!-- Mode 1: EMPTY -->
       <div v-if="!selectedPart && !isCreating" class="empty">
-        <div class="empty-icon">🔍</div>
         <p>Vyberte díl ze seznamu vlevo</p>
       </div>
 
@@ -151,6 +168,8 @@ watch(() => props.partNumber, (newPartNumber) => {
         @open-material="openMaterialWindow"
         @open-operations="openOperationsWindow"
         @open-pricing="openPricingWindow"
+        @open-drawing="openDrawingWindow"
+        @refresh="refreshPart"
       />
 
       <!-- Mode 3: CREATE -->

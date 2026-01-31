@@ -39,7 +39,11 @@ Každý ADR obsahuje:
 | 021 | WorkCenter Model Design | Přijato | 2026-01-28 |
 | 022 | BatchSet Model (Sady cen) | Přijato | 2026-01-28 |
 | 023 | Workspace Module Architecture | Přijato (Design) | 2026-01-28 |
+| 024 | Vue SPA Migration + Material Input Refactor | Implementováno | 2026-01-29 |
+| 025 | Workspace Layout System | Implementováno | 2026-01-30 |
+| 026 | Universal Module Pattern (Split-Pane) | Implementováno | 2026-01-30 |
 | VIS-001 | Soft Delete for Future Modules | Přijato | 2026-01-25 |
+| VIS-002 | Quotes Workflow & Snapshot Protection | Implementováno | 2026-01-31 |
 
 ## Archivované ADRs
 

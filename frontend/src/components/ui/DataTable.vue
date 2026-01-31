@@ -8,7 +8,9 @@
     <!-- Empty state -->
     <div v-else-if="!data || data.length === 0" class="data-table-empty">
       <slot name="empty">
-        <div class="empty-icon">📭</div>
+        <div class="empty-icon">
+          <Inbox :size="48" :stroke-width="1.5" />
+        </div>
         <p class="empty-text">{{ emptyText }}</p>
       </slot>
     </div>
@@ -43,10 +45,9 @@
               <div class="th-content">
                 <span>{{ col.label }}</span>
                 <span v-if="col.sortable" class="sort-icon">
-                  <template v-if="sortKey === col.key">
-                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                  </template>
-                  <template v-else>↕</template>
+                  <ArrowUp v-if="sortKey === col.key && sortDirection === 'asc'" :size="14" :stroke-width="2" />
+                  <ArrowDown v-else-if="sortKey === col.key && sortDirection === 'desc'" :size="14" :stroke-width="2" />
+                  <ArrowUpDown v-else :size="14" :stroke-width="2" />
                 </span>
               </div>
             </th>
@@ -95,7 +96,8 @@
                   {{ formatDate(getCellValue(row, col)) }}
                 </template>
                 <template v-else-if="col.format === 'boolean'">
-                  {{ getCellValue(row, col) ? '✓' : '✗' }}
+                  <Check v-if="getCellValue(row, col)" :size="16" :stroke-width="2" class="bool-icon bool-true" />
+                  <X v-else :size="16" :stroke-width="2" class="bool-icon bool-false" />
                 </template>
                 <template v-else>
                   {{ getCellValue(row, col) ?? '—' }}
@@ -157,6 +159,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Spinner from './Spinner.vue';
+import { ArrowUp, ArrowDown, ArrowUpDown, Check, X, Inbox } from 'lucide-vue-next';
 
 // === TYPES ===
 
@@ -405,9 +408,9 @@ const toggleAll = () => {
 }
 
 .empty-icon {
-  font-size: 3rem;
   margin-bottom: var(--space-4);
-  opacity: 0.5;
+  opacity: 0.3;
+  color: var(--text-tertiary);
 }
 
 .empty-text {
@@ -468,12 +471,27 @@ const toggleAll = () => {
 }
 
 .sort-icon {
-  font-size: var(--text-xs);
   opacity: 0.5;
+  display: flex;
+  align-items: center;
 }
 
 .data-table th.sorted .sort-icon {
   opacity: 1;
+}
+
+/* Boolean icons */
+.bool-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.bool-true {
+  color: var(--color-success);
+}
+
+.bool-false {
+  color: var(--text-tertiary);
 }
 
 /* === BODY === */

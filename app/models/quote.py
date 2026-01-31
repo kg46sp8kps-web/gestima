@@ -118,9 +118,8 @@ class QuoteItemCreate(BaseModel):
 
 
 class QuoteItemUpdate(BaseModel):
-    """Update quote item - only quantity and notes editable"""
+    """Update quote item - only quantity and notes editable (price comes from frozen batch)"""
     quantity: Optional[int] = Field(None, gt=0, description="Množství")
-    unit_price: Optional[float] = Field(None, ge=0.0, description="Jednotková cena")
     notes: Optional[str] = Field(None, description="Poznámky")
     version: int = Field(..., description="Optimistic locking")
 

@@ -444,8 +444,7 @@ describe('Quotes Store', () => {
 
       const itemData: QuoteItemCreate = {
         part_id: 20,
-        quantity: 10,
-        unit_price: 200
+        quantity: 10
       }
 
       await store.addQuoteItem('Q-001', itemData)

@@ -73,12 +73,14 @@
  * <FormTabs
  *   v-model="activeTab"
  *   :tabs="[
- *     { label: 'Základní', icon: '📝' },
- *     { label: 'Materiál', icon: '🔧', badge: 3 },
- *     { label: 'Operace', icon: '⚙️', disabled: true }
+ *     { label: 'Základní' },
+ *     { label: 'Materiál', badge: 3 },
+ *     { label: 'Operace', disabled: true }
  *   ]"
  * >
  * ```
+ *
+ * Note: For icons, use Lucide Vue components directly in tab labels or custom slots.
  */
 
 export interface TabItem {

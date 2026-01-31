@@ -28,12 +28,14 @@ function createMockPart(overrides: Partial<Part> = {}): Part {
     id: 1,
     part_number: '1000001',
     article_number: null,
+    drawing_path: null,
     name: 'Test Part',
+    customer_revision: null,
     material_item_id: null,
     price_category_id: null,
     length: 0,
     notes: '',
-    stock_shape: 'round_bar',
+    stock_shape: null,
     stock_diameter: null,
     stock_length: null,
     stock_width: null,
@@ -220,8 +222,8 @@ describe('Parts Store', () => {
     it('should create part successfully', async () => {
       const store = usePartsStore()
       const createData: PartCreate = {
-        name: 'New Part',
-        stock_shape: 'round_bar'
+        article_number: 'ART-001',
+        name: 'New Part'
       }
       const newPart = createMockPart({
         id: 10,
@@ -245,7 +247,7 @@ describe('Parts Store', () => {
       const store = usePartsStore()
       ;(partsApi.createPart as Mock).mockRejectedValue(new Error('Duplicate'))
 
-      await expect(store.createPart({ name: 'Test', stock_shape: 'round_bar' }))
+      await expect(store.createPart({ article_number: 'ART-002', name: 'Test' }))
         .rejects.toThrow('Duplicate')
       expect(uiStore.toasts[0]!.type).toBe('error')
     })

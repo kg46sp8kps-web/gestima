@@ -109,6 +109,14 @@ async def get_price_per_kg_for_weight(
         f"[{selected_tier.min_weight}-{selected_tier.max_weight or '∞'}] → {selected_tier.price_per_kg} Kč/kg"
     )
 
+    # Defensive check: price_per_kg should never be None, but handle it just in case
+    if selected_tier.price_per_kg is None:
+        logger.error(
+            f"Tier {selected_tier.id} has NULL price_per_kg! "
+            f"This violates NOT NULL constraint. Returning 0."
+        )
+        return 0.0
+
     return selected_tier.price_per_kg
 
 
@@ -229,11 +237,27 @@ async def calculate_stock_cost_from_part(
 
     # Převod na hmotnost (Migration 2026-01-26: material_group.density místo group.density)
     volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
-    weight_kg = volume_dm3 * material_group.density
+
+    # Defensive check: density should never be None
+    if material_group.density is None:
+        logger.error(
+            f"MaterialGroup {material_group.id} has NULL density! "
+            f"This violates NOT NULL constraint. Using 0."
+        )
+        weight_kg = 0.0
+    else:
+        weight_kg = volume_dm3 * material_group.density
 
     # ADR-014: Dynamický výběr ceny podle quantity
     total_weight = weight_kg * quantity
     price_per_kg = await get_price_per_kg_for_weight(price_category, total_weight, db)
+
+    # Defensive check: price_per_kg should never be None
+    if price_per_kg is None:
+        logger.error(
+            f"get_price_per_kg_for_weight returned None for price_category {price_category.id}. Using 0."
+        )
+        price_per_kg = 0.0
 
     # Cena za 1 kus
     cost = weight_kg * price_per_kg
@@ -516,6 +540,26 @@ async def calculate_part_price(
         work_center = work_centers_dict.get(op.work_center_id)
         if not work_center:
             logger.warning(f"WorkCenter {op.work_center_id} not found, skipping operation {op.id}")
+            continue
+
+        # Defensive checks - operation times
+        if op.setup_time_min is None or op.operation_time_min is None:
+            logger.warning(
+                f"Operation {op.id} has NULL time values "
+                f"(setup={op.setup_time_min}, operation={op.operation_time_min}), skipping"
+            )
+            continue
+
+        # Defensive checks - work center rates
+        if (work_center.hourly_rate_setup is None or
+            work_center.hourly_rate_operation is None or
+            work_center.hourly_rate_amortization is None or
+            work_center.hourly_rate_labor is None or
+            work_center.hourly_rate_tools is None or
+            work_center.hourly_rate_overhead is None):
+            logger.warning(
+                f"WorkCenter {work_center.id} has NULL hourly rates, skipping operation {op.id}"
+            )
             continue
 
         # Setup (BEZ nástrojů) - jednou pro celý batch

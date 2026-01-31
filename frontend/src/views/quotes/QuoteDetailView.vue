@@ -11,6 +11,7 @@ import { useUiStore } from '@/stores/ui'
 import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { QuoteUpdate, QuoteItemCreate, QuoteItemUpdate, QuoteItem } from '@/types/quote'
+import { FileText, Package, Camera, Send, CheckCircle, XCircle, Copy, Trash2, AlertTriangle } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,9 +22,9 @@ const uiStore = useUiStore()
 const activeTab = ref(0)
 
 const tabs = [
-  { label: 'Základní info', icon: '📄' },
-  { label: 'Položky', icon: '📦' },
-  { label: 'Snapshot', icon: '📸' }
+  { label: 'Základní info', icon: 'FileText' },
+  { label: 'Položky', icon: 'Package' },
+  { label: 'Snapshot', icon: 'Camera' }
 ]
 
 // Form state (Tab 0 - Základní info)
@@ -199,7 +200,6 @@ async function handleAddItem() {
     const createData: QuoteItemCreate = {
       part_id: addItemForm.value.part_id,
       quantity: addItemForm.value.quantity,
-      unit_price: addItemForm.value.unit_price || undefined,
       notes: addItemForm.value.notes || undefined
     }
     await quotesStore.addQuoteItem(quote.value.quote_number, createData)
@@ -261,7 +261,8 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleSend"
           >
-            📤 Odeslat
+            <Send :size="14" />
+            Odeslat
           </button>
           <button
             v-if="quote.status === 'sent'"
@@ -269,7 +270,8 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleApprove"
           >
-            ✅ Schválit
+            <CheckCircle :size="14" />
+            Schválit
           </button>
           <button
             v-if="quote.status === 'sent'"
@@ -277,10 +279,12 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleReject"
           >
-            ❌ Odmítnout
+            <XCircle :size="14" />
+            Odmítnout
           </button>
           <button class="btn" :disabled="isLoading" @click="handleClone">
-            📋 Duplikovat
+            <Copy :size="14" />
+            Duplikovat
           </button>
         </div>
       </header>
@@ -320,6 +324,7 @@ onMounted(() => {
                     v-model.number="form.partner_id"
                     type="number"
                     :disabled="!canEdit"
+                    v-select-on-focus
                   />
                   <small>ID partnera (zákazníka)</small>
                 </div>
@@ -363,6 +368,7 @@ onMounted(() => {
                       min="0"
                       max="100"
                       :disabled="!canEdit"
+                      v-select-on-focus
                     />
                   </div>
 
@@ -375,6 +381,7 @@ onMounted(() => {
                       min="0"
                       max="100"
                       :disabled="!canEdit"
+                      v-select-on-focus
                     />
                   </div>
                 </div>
@@ -386,7 +393,8 @@ onMounted(() => {
                 </div>
 
                 <div v-else class="edit-lock-warning">
-                  ⚠️ Nelze editovat odeslanou nabídku
+                  <AlertTriangle :size="16" />
+                  Nelze editovat odeslanou nabídku
                 </div>
               </div>
             </form>
@@ -418,6 +426,7 @@ onMounted(() => {
                       v-model.number="addItemForm.part_id"
                       type="number"
                       required
+                      v-select-on-focus
                     />
                     <small>TODO: Autocomplete na díly</small>
                   </div>
@@ -429,6 +438,7 @@ onMounted(() => {
                       type="number"
                       min="1"
                       required
+                      v-select-on-focus
                     />
                   </div>
 
@@ -438,6 +448,7 @@ onMounted(() => {
                       v-model.number="addItemForm.unit_price"
                       type="number"
                       step="0.01"
+                      v-select-on-focus
                     />
                     <small>Volitelné - auto z frozen batch</small>
                   </div>
@@ -476,7 +487,7 @@ onMounted(() => {
                       title="Smazat"
                       @click.stop="handleDeleteItem(row as unknown as QuoteItem)"
                     >
-                      🗑️
+                      <Trash2 :size="14" />
                     </button>
                   </div>
                 </template>
@@ -533,7 +544,7 @@ onMounted(() => {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
 }
 
 .btn-back:hover {
@@ -546,7 +557,7 @@ onMounted(() => {
 
 .page-title {
   margin: 0 0 var(--spacing-xs) 0;
-  font-size: 1.5rem;
+  font-size: var(--text-5xl);
   font-weight: 600;
 }
 
@@ -565,7 +576,7 @@ onMounted(() => {
 .status-badge {
   padding: 4px 12px;
   border-radius: 12px;
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   font-weight: 500;
 }
 
@@ -605,17 +616,17 @@ onMounted(() => {
 }
 
 .total-label {
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   color: var(--color-gray-600);
 }
 
 .total-value {
-  font-size: 1.125rem;
+  font-size: var(--text-3xl);
   font-weight: 600;
 }
 
 .total-final .total-value {
-  font-size: 1.5rem;
+  font-size: var(--text-5xl);
   color: var(--color-primary);
 }
 
@@ -640,7 +651,7 @@ onMounted(() => {
 
 .card-title {
   margin: 0 0 var(--spacing-lg) 0;
-  font-size: 1.25rem;
+  font-size: var(--text-4xl);
   font-weight: 600;
 }
 
@@ -652,7 +663,7 @@ onMounted(() => {
   display: block;
   margin-bottom: var(--spacing-xs);
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
 }
 
 .form-group input,
@@ -662,7 +673,7 @@ onMounted(() => {
   padding: var(--spacing-sm);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
 }
 
 .form-group input:disabled,
@@ -674,7 +685,7 @@ onMounted(() => {
 .form-group small {
   display: block;
   margin-top: var(--spacing-xs);
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   color: var(--color-gray-600);
 }
 
@@ -712,7 +723,7 @@ onMounted(() => {
 
 .items-header h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-4xl);
   font-weight: 600;
 }
 
@@ -726,7 +737,7 @@ onMounted(() => {
 
 .add-item-form h3 {
   margin: 0 0 var(--spacing-md) 0;
-  font-size: 1rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
 }
 
@@ -742,7 +753,7 @@ onMounted(() => {
 
 .snapshot-section h2 {
   margin: 0 0 var(--spacing-lg) 0;
-  font-size: 1.25rem;
+  font-size: var(--text-4xl);
   font-weight: 600;
 }
 
@@ -751,7 +762,7 @@ onMounted(() => {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: var(--spacing-md);
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   overflow-x: auto;
 }
 </style>

@@ -1,11 +1,14 @@
 """GESTIMA - MaterialNorm model (norma → MaterialGroup mapping s aliasy)"""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
     from app.models.material import MaterialGroupResponse
+
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 
@@ -91,4 +94,4 @@ class MaterialNormResponse(MaterialNormBase):
 
 class MaterialNormWithGroupResponse(MaterialNormResponse):
     """MaterialNorm s eager-loaded MaterialGroup"""
-    material_group: "MaterialGroupResponse"
+    material_group: MaterialGroupResponse

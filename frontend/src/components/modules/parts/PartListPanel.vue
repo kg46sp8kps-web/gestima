@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
+import { Plus, Package } from 'lucide-vue-next'
 
 interface Props {
   linkingGroup?: LinkingGroup
@@ -73,13 +74,15 @@ defineExpose({
     <div class="list-header">
       <h3>Díly</h3>
       <button @click="handleCreate" class="btn-create">
-        ➕ Nový
+        <Plus :size="14" :stroke-width="2" />
+        Nový
       </button>
     </div>
 
     <!-- Search Bar -->
     <input
       v-model="searchQuery"
+      v-select-on-focus
       type="text"
       placeholder="Filtrovat díly..."
       class="search-input"
@@ -93,7 +96,9 @@ defineExpose({
 
     <!-- Empty State -->
     <div v-else-if="!hasParts" class="empty-list">
-      <div class="empty-icon">📦</div>
+      <div class="empty-icon">
+        <Package :size="48" :stroke-width="1.5" />
+      </div>
       <p>Žádné díly</p>
     </div>
 
@@ -138,6 +143,9 @@ defineExpose({
 }
 
 .btn-create {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   background: var(--color-primary);
   color: white;
@@ -159,7 +167,7 @@ defineExpose({
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   background: var(--bg-input);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .search-input:focus {
@@ -202,7 +210,10 @@ defineExpose({
 }
 
 .empty-list .empty-icon {
-  font-size: var(--text-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
 }
 
 .empty-list p {
@@ -247,6 +258,6 @@ defineExpose({
 .part-item .part-name {
   display: block;
   font-size: var(--text-sm);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 </style>

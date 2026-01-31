@@ -16,10 +16,30 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session
-from app.models.material import MaterialPriceCategory, MaterialPriceTier
+from app.models.material import MaterialPriceCategory, MaterialPriceTier, MaterialGroup
 from app.db_helpers import set_audit
+
+
+# ========== MAPPING: Price Category → Material Group ==========
+# Každá price category musí být namapována na správnou material group pro výpočet hustoty
+PRICE_CATEGORY_TO_GROUP = {
+    "OCEL-KRUHOVA": "OCEL-KONS",
+    "OCEL-PLOCHA": "OCEL-KONS",
+    "OCEL-DESKY": "OCEL-KONS",
+    "OCEL-TRUBKA": "OCEL-KONS",
+    "NEREZ-KRUHOVA": "NEREZ",
+    "NEREZ-PLOCHA": "NEREZ",
+    "HLINIK-DESKY": "HLINIK",
+    "HLINIK-KRUHOVA": "HLINIK",
+    "HLINIK-PLOCHA": "HLINIK",
+    "PLASTY-DESKY": "PLAST",
+    "PLASTY-TYCE": "PLAST",
+    "OCEL-NASTROJOVA": "OCEL-NAST",
+    "MOSAZ-BRONZ": "MOSAZ",
+}
 
 
 # ========== PRICE CATEGORIES & TIERS (podle PDF) ==========
@@ -147,19 +167,35 @@ async def seed_price_categories(db: AsyncSession):
     print(f"   Tiers: {total_tiers}")
     print()
 
+    # Load material groups for mapping
+    print("📦 Loading Material Groups for mapping...")
+    groups_result = await db.execute(select(MaterialGroup))
+    groups_dict = {g.code: g.id for g in groups_result.scalars().all()}
+    print(f"   Found {len(groups_dict)} material groups")
+    print()
+
     username = "seed_script"
 
     for cat_data in PRICE_CATEGORIES:
+        # Map to material_group_id
+        group_code = PRICE_CATEGORY_TO_GROUP.get(cat_data["code"])
+        material_group_id = groups_dict.get(group_code) if group_code else None
+
+        if not material_group_id:
+            print(f"⚠️  WARNING: No material_group mapping for {cat_data['code']}")
+
         # Create category
         category = MaterialPriceCategory(
             code=cat_data["code"],
-            name=cat_data["name"]
+            name=cat_data["name"],
+            material_group_id=material_group_id  # ✅ ROOT CAUSE FIX!
         )
         set_audit(category, username)
         db.add(category)
         await db.flush()  # Get ID
 
-        print(f"✅ {category.code:20} - {category.name}")
+        group_info = f" → {group_code}" if group_code else " (no group)"
+        print(f"✅ {category.code:20} - {category.name}{group_info}")
 
         # Create tiers
         for tier_data in cat_data["tiers"]:

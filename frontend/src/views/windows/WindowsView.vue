@@ -6,6 +6,9 @@
 import { onMounted } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import FloatingWindow from '@/components/windows/FloatingWindow.vue'
+import Taskbar from '@/components/windows/Taskbar.vue'
+import WindowManager from '@/components/windows/WindowManager-new.vue'
+import { LayoutGrid } from 'lucide-vue-next'
 
 // Module components (lazy loaded)
 import { defineAsyncComponent } from 'vue'
@@ -14,7 +17,10 @@ const PartMainModule = defineAsyncComponent(() => import('@/components/modules/P
 const PartPricingModule = defineAsyncComponent(() => import('@/components/modules/PartPricingModule.vue'))
 const PartOperationsModule = defineAsyncComponent(() => import('@/components/modules/PartOperationsModule.vue'))
 const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
+const PartDrawingWindow = defineAsyncComponent(() => import('@/components/modules/parts/PartDrawingWindow.vue'))
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
+const PartnersListModule = defineAsyncComponent(() => import('@/components/modules/PartnersListModule.vue'))
+const QuotesListModule = defineAsyncComponent(() => import('@/components/modules/QuotesListModule.vue'))
 
 const store = useWindowsStore()
 
@@ -25,7 +31,10 @@ function getModuleComponent(module: string) {
     case 'part-pricing': return PartPricingModule
     case 'part-operations': return PartOperationsModule
     case 'part-material': return PartMaterialModule
+    case 'part-drawing': return PartDrawingWindow
     case 'batch-sets': return BatchSetsModule
+    case 'partners-list': return PartnersListModule
+    case 'quotes-list': return QuotesListModule
     default: return null
   }
 }
@@ -43,6 +52,9 @@ onMounted(() => {
 
 <template>
   <div class="windows-view">
+    <!-- Window Manager Toolbar -->
+    <WindowManager />
+
     <!-- Floating Windows -->
     <div class="windows-container">
       <FloatingWindow
@@ -60,10 +72,13 @@ onMounted(() => {
 
     <!-- Empty State -->
     <div v-if="store.windows.length === 0" class="empty-state">
-      <div class="empty-icon">🪟</div>
+      <LayoutGrid :size="64" :stroke-width="1" class="empty-icon" />
       <h2>No Windows Open</h2>
-      <p>Use the menu (☰) to open modules</p>
+      <p>Use the toolbar above to open modules</p>
     </div>
+
+    <!-- Bottom Taskbar -->
+    <Taskbar />
   </div>
 </template>
 
@@ -73,8 +88,10 @@ onMounted(() => {
   height: 100%;
   min-height: calc(100vh - 120px); /* Account for header + footer */
   overflow: hidden;
-  background: var(--bg-primary);
+  background: var(--bg-base);
   position: relative;
+  padding-top: 52px; /* Space for WindowManager toolbar */
+  padding-bottom: 40px; /* Space for taskbar */
 }
 
 .windows-container {
@@ -93,19 +110,19 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  margin-bottom: var(--space-5);
+  opacity: 0.3;
+  color: var(--text-tertiary);
 }
 
 .empty-state h2 {
-  font-size: 1.5rem;
+  font-size: var(--text-5xl);
   margin: 0 0 0.5rem 0;
   color: var(--text-primary);
 }
 
 .empty-state p {
-  font-size: 1rem;
+  font-size: var(--text-2xl);
   margin: 0;
 }
 </style>

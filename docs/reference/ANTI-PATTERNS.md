@@ -46,6 +46,9 @@ Tento dokument obsahuje detailní popisy všech anti-patternů (L-001 až L-021)
 | L-033 | **Duplicate CSS utilities** | **Check design-system.css FIRST!** |
 | L-034 | Module-specific utility classes | Use global utilities |
 | L-035 | **Piece-by-piece CSS cleanup** | **Systematic: grep ALL → edit ALL → verify** |
+| L-036 | **Hardcoded font-size/spacing** | **ONLY design system tokens! `var(--text-*)`, `var(--space-*)`** |
+| L-037 | **Mixing directives with event handlers** | **ONE mechanism! Either directive OR @event, NEVER both** |
+| L-038 | **Emoji in production UI** | **NO EMOJI! Lucide icons only (professional, consistent, parametric)** |
 
 ---
 
@@ -617,6 +620,330 @@ NEVER:
 
 **Lesson:**
 > "Systematic approach isn't optional - it's MANDATORY for multi-file changes!"
+
+---
+
+### L-036: NO HARDCODED CSS VALUES (CRITICAL!)
+
+**Problém:** Hardcoded font-size, padding, margin hodnoty místo design system tokenů → UI neškáluje, nekonzistence, nemožnost centrálně měnit.
+
+**Pravidlo:** VŽDY použij CSS custom properties z `design-system.css`. NIKDY hardcoded hodnoty!
+
+**Font Size Tokens:**
+```css
+/* Typography scale */
+--text-2xs: 0.5625rem;  /* 9px */
+--text-xs: 0.625rem;    /* 10px */
+--text-sm: 0.6875rem;   /* 11px */
+--text-base: 0.75rem;   /* 12px - BASE */
+--text-lg: 0.8125rem;   /* 13px */
+--text-xl: 0.875rem;    /* 14px */
+--text-2xl: 1rem;       /* 16px */
+--text-3xl: 1.125rem;   /* 18px */
+--text-4xl: 1.25rem;    /* 20px - display */
+--text-5xl: 1.5rem;     /* 24px - display */
+--text-6xl: 2rem;       /* 32px - hero */
+--text-7xl: 3rem;       /* 48px - hero icons */
+--text-8xl: 4rem;       /* 64px - large icons */
+```
+
+**❌ ŠPATNĚ:**
+```css
+.my-component {
+  font-size: 0.875rem;   /* ❌ hardcoded! */
+  padding: 12px 16px;    /* ❌ hardcoded! */
+  margin-bottom: 1rem;   /* ❌ hardcoded! */
+}
+
+.icon {
+  font-size: 3rem;       /* ❌ hardcoded! */
+}
+```
+
+**✅ SPRÁVNĚ:**
+```css
+.my-component {
+  font-size: var(--text-xl);      /* ✅ token */
+  padding: var(--space-3) var(--space-4);  /* ✅ token */
+  margin-bottom: var(--space-5);   /* ✅ token */
+}
+
+.icon {
+  font-size: var(--text-7xl);      /* ✅ token */
+}
+```
+
+**Proč je to kritické:**
+1. **Font scale nastavení** - uživatel si může zvolit kompaktní/normální/velké písmo v Nastavení
+2. **Konzistence** - všechny komponenty škálují stejně
+3. **Údržba** - změna na jednom místě = změna všude
+4. **Přístupnost** - snadná implementace zvětšení pro accessibility
+
+**Prevention:**
+```bash
+# PŘED každým Pull Requestem:
+grep -r "font-size:\s*[0-9]" frontend/src --include="*.vue" --include="*.css" | wc -l
+# MUSÍ vrátit: 0
+
+# PŘED každým novým CSS:
+# 1. Zkontroluj design-system.css pro existující token
+# 2. IF není → přidej token DO design-system.css
+# 3. Použij token v komponentě
+```
+
+**Incident (2026-01-31):**
+- Nalezeno **100+ hardcoded font-size** hodnot!
+- Důvod: Neexistovala pravidlo, UI vypadalo "jako pro tablet"
+- Řešení: Kompletní audit všech souborů, konverze na tokeny
+- Přidáno: Font scale nastavení v Settings (compact/normal/large/xlarge)
+
+**Files aktualizované:**
+- AppHeader.vue (18 hodnot)
+- FloatingWindow.vue (5 hodnot)
+- WindowManager.vue (7 hodnot)
+- forms.css (10 hodnot)
+- operations.css (6 hodnot)
+- components.css (3 hodnot)
+- layout.css (2 hodnoty)
+- All views (35+ hodnot)
+- UI components (5 hodnot)
+
+**Verifikace:**
+```bash
+$ grep -r "font-size:\s*[0-9]" frontend/src --include="*.vue" --include="*.css" | wc -l
+0  # ✅ ŽÁDNÉ hardcoded hodnoty!
+```
+
+---
+
+### L-037: Mixing Directives with Event Handlers (CRITICAL!)
+
+**Problém:** Globální direktiva + lokální event handler na stejném elementu → race conditions, nesourodé chování!
+
+**Pravidlo:** JEDEN mechanismus pro jednu funkci! Either direktiva OR @event, NIKDY oba!
+
+**Incident (2026-01-31) - Select-on-focus nesourodost:**
+
+**Symptom:**
+- Uživatel hlásí "někdy to hodnotu přepíše a někdy přidávám k původní"
+- "jak kdyby se po prvním kliknutí ve formuláři něco změnilo"
+- Chování nepředvídatelné, nedá se popsat kdy funguje a kdy ne
+
+**Root Cause:**
+```vue
+<!-- ❌ ŠPATNĚ: DVOJÍ mechanismus! -->
+<script setup>
+// Lokální funkce
+function selectOnFocus(event: FocusEvent) {
+  const input = event.target as HTMLInputElement
+  requestAnimationFrame(() => input.select())
+}
+</script>
+
+<template>
+  <!-- Direktiva + event handler = KONFLIKT! -->
+  <input
+    v-select-on-focus         <!-- Globální direktiva: mousedown + focus -->
+    @focus="selectOnFocus"    <!-- Lokální handler: focus -->
+    type="number"
+  />
+</template>
+```
+
+**Co se děje:**
+1. **Click na unfocused input:**
+   - mousedown → preventDefault → focus → select() (direktiva)
+   - focus event → select() (lokální handler)
+   - **DOUBLE select()** → race condition!
+
+2. **Click na already focused input:**
+   - mousedown → preventDefault → select() (direktiva)
+   - ŽÁDNÝ focus event (už focused)
+   - Lokální handler se NEVOLÁ
+   - Jiné chování než případ 1!
+
+3. **Výsledek:**
+   - Nesourodé chování podle stavu inputu
+   - requestAnimationFrame timing conflicts
+   - Uživatel netuší co se stane při kliknutí
+
+**✅ SPRÁVNĚ:**
+```vue
+<script setup>
+// ❌ ODSTRANIT lokální funkci!
+// function selectOnFocus() { ... }
+</script>
+
+<template>
+  <!-- ✅ JEN direktiva, žádný @focus -->
+  <input
+    v-select-on-focus
+    type="number"
+  />
+</template>
+```
+
+**Prevention Checklist:**
+```bash
+# PŘED použitím globální direktivy:
+1. grep "@focus.*select" --include="*.vue"  # Najdi konflikty
+2. Odstraň ALL lokální handlery se stejnou funkcí
+3. Použij POUZE direktivu
+
+# NEBO naopak:
+1. Pokud existuje @focus handler pro specifický use-case
+2. NEPOUŽÍVEJ globální direktivu na ten element
+```
+
+**Obecné pravidlo:**
+```
+IF (existuje globální direktiva pro funkci X):
+  → Použij POUZE direktivu
+  → NIKDY nepřidávej @event pro stejnou funkci
+
+IF (potřebuješ custom chování):
+  → Použij @event
+  → NEAPLIKUJ globální direktivu
+```
+
+**Files opravené (2026-01-31):**
+- OperationsDetailPanel.vue
+  - Odstraněna funkce `selectOnFocus`
+  - Odstraněno 5x `@focus="selectOnFocus"`
+  - Přidáno 5x `v-select-on-focus`
+  - tp, tj, coop_price, coop_min_price, coop_days
+
+**Verifikace:**
+```bash
+$ grep '@focus="selectOnFocus"' frontend/src -r
+# ✅ ŽÁDNÉ výsledky!
+
+$ grep 'function selectOnFocus' frontend/src -r
+# ✅ ŽÁDNÉ výsledky!
+```
+
+---
+
+### L-038: Emoji v produkčním UI (BANNED!)
+
+**Datum:** 2026-02-01
+**Pravidlo:** NO EMOJI v produkčním kódu - POUZE Lucide Vue Next komponenty!
+
+**Proč:**
+1. **Neprofesionální vzhled** - Emoji působí neseriozně v B2B aplikaci
+2. **Nekonzistentní rendering** - Různé OS/browsery zobrazují emoji jinak
+3. **Neparametrický** - Nelze změnit barvu, velikost, stroke-width
+4. **Accessibility issues** - Screen readery čtou emoji jako text
+5. **Design system compliance** - Emoji nerespektují design tokens
+
+**BAD - Emoji všude:**
+```vue
+<template>
+  <button>➕ Nový</button>
+  <div class="empty">📦 Žádné díly</div>
+  <span>🔧 Operace</span>
+</template>
+```
+
+**GOOD - Lucide ikony:**
+```vue
+<script setup>
+import { Plus, Package, Settings } from 'lucide-vue-next'
+</script>
+
+<template>
+  <button class="btn">
+    <Plus :size="14" :stroke-width="2" />
+    Nový
+  </button>
+
+  <div class="empty-icon">
+    <Package :size="48" :stroke-width="1.5" />
+  </div>
+
+  <span class="op-icon">
+    <Settings :size="16" :stroke-width="2" />
+  </span>
+</template>
+
+<style scoped>
+.btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+</style>
+```
+
+**Detekce:**
+```bash
+# Najdi emoji v kódu
+grep -r "[🀀-🿿😀-🙏🚀-🛿⚀-⚿✀-➿⬀-⬿]" frontend/src --include="*.vue" --include="*.ts"
+
+# Vyloučit test files a archive
+grep -r "[emoji-pattern]" frontend/src --include="*.vue" --include="*.ts" \
+  --exclude-dir="__tests__" --exclude-dir="archive"
+```
+
+**Fix:**
+```bash
+# 1. Import Lucide komponenty
+import { IconName } from 'lucide-vue-next'
+
+# 2. Replace emoji s komponentou
+- <span>🔧</span>
++ <span><Wrench :size="16" :stroke-width="2" /></span>
+
+# 3. Update CSS pro flexbox alignment
+.icon-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+```
+
+**Standardní velikosti:**
+- Buttons (inline): 14-16px, stroke-width: 2
+- Headers: 20px, stroke-width: 2
+- Action buttons: 32px, stroke-width: 1.5-2
+- Empty states: 48px, stroke-width: 1.5
+
+**Výjimky:**
+- ✅ Geometrické symboly pro FUNKČNÍ labels (□, ⬡, ⊙ v materials.ts pro tvary)
+- ✅ JSDoc komentáře (dokumentace, ne produkce)
+- ❌ UI elementy, buttons, empty states, status badges
+
+**Files opravené (2026-02-01):**
+- 20+ souborů: PartnerListPanel, QuoteListPanel, PartListPanel, PartDetailPanel
+- MaterialDetailPanel, PricingDetailPanel, OperationsDetailPanel, QuoteDetailPanel
+- All views: MasterDataView, QuoteDetailView, PartnersView, DashboardView
+- Stores: operations.ts (icon: 'wrench'), materials.ts
+- Types: operation.ts (OPERATION_TYPE_MAP)
+- UI components: Modal.vue, ToastContainer.vue
+
+**Icon mapping:**
+- ➕ → Plus | 📦 → Package | 🏢 → Building2 | 👥 → Users
+- 🏭 → Factory | 📋 → ClipboardList | 📝 → FileEdit | 📤 → Send
+- ✅ → CheckCircle | ❌ → XCircle | 🗑️ → Trash2 | ✏️ → Edit
+- 🔒 → Lock | ⚙️ → Settings | 💰 → DollarSign | 🔧 → Wrench
+
+**Documentation:**
+- DESIGN-SYSTEM.md: Nová sekce "Icons" s pravidly a příklady
+- STATUS.md: Day 38 - Complete emoji removal documented
+
+**Verifikace:**
+```bash
+$ grep -r "[🀀-🿿😀-🙏🚀-🛿]" frontend/src --include="*.vue" --include="*.ts" \
+    --exclude-dir="__tests__" --exclude-dir="archive"
+# ✅ 0 výsledků v produkčním kódu!
+```
 
 ---
 

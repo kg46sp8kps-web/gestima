@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+# Jinja2Templates removed - archived in legacy-alpinejs-v1.6.1/ (2026-01-31)
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -36,7 +36,8 @@ from app.routers import (
     misc_router,
     admin_router,
     quotes_router,
-    quote_items_router
+    quote_items_router,
+    uploads_router
 )
 from app.database import async_session, engine, close_db
 
@@ -83,7 +84,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "img-src 'self' data:",               # Allow data: URIs for inline images
             "font-src 'self'",
             "connect-src 'self'",                 # HTMX AJAX
-            "frame-ancestors 'none'",             # Redundant with X-Frame-Options
+            "frame-src 'self'",                   # Allow iframes from same origin (PDF preview)
+            "frame-ancestors 'self'",             # Allow this content in iframes from same origin
             "base-uri 'self'",
             "form-action 'self'",
         ])
@@ -118,6 +120,13 @@ async def lifespan(app: FastAPI):
     # Seed demo data
     async with async_session() as db:
         await seed_demo_parts(db)
+
+    # Cleanup expired temp files (drawing uploads)
+    from app.services.drawing_service import DrawingService
+    drawing_service = DrawingService()
+    deleted_count = await drawing_service.cleanup_expired_temp_files()
+    if deleted_count > 0:
+        logger.info(f"🧹 Startup cleanup: deleted {deleted_count} expired temp files")
 
     yield
 
@@ -168,7 +177,7 @@ if frontend_dist.exists():
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="vue-assets")
     logger.info(f"✅ Vue SPA assets mounted: {frontend_dist / 'assets'}")
 
-templates = Jinja2Templates(directory="app/templates")
+# Jinja2 templates archived (2026-01-31) - see archive/legacy-alpinejs-v1.6.1/
 
 # Favicon route (zabrání 404 chybám)
 @app.get("/favicon.ico", include_in_schema=False)
@@ -188,6 +197,7 @@ app.include_router(material_inputs_router.router)  # ADR-024: prefix already in 
 app.include_router(partners_router.router, prefix="/api/partners", tags=["Partners"])
 app.include_router(quotes_router.router, prefix="/api/quotes", tags=["Quotes"])
 app.include_router(quote_items_router.router, prefix="/api", tags=["Quote Items"])
+app.include_router(uploads_router.router, prefix="/api/uploads", tags=["Uploads"])
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])

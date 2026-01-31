@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Operations Detail Panel Component
- * Manages operations list with expand/collapse and inline editing
+ * Inline editing pattern - edit tp/tj/work center directly on row
+ * Expand only for advanced settings (cutting mode, coop)
  */
 
 import { ref, computed, watch, reactive } from 'vue'
@@ -10,6 +11,7 @@ import type { Operation, CuttingMode } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
 import DeleteOperationModal from './DeleteOperationModal.vue'
+import { Settings, Trash2, Lock, Unlock } from 'lucide-vue-next'
 
 interface Props {
   partId: number | null
@@ -20,71 +22,35 @@ const props = withDefaults(defineProps<Props>(), {
   linkingGroup: null
 })
 
-interface EditForm {
-  name: string
-  work_center_id: number | null
-  setup_time_min: number
-  operation_time_min: number
-  setup_time_locked: boolean
-  operation_time_locked: boolean
-  cutting_mode: CuttingMode
-  is_coop: boolean
-  coop_price: number
-  coop_min_price: number
-  coop_days: number
-}
-
 const operationsStore = useOperationsStore()
 
 // Local state
-const editForms = reactive<Record<number, EditForm>>({})
+const expandedOps = reactive<Record<number, boolean>>({})
 const showDeleteConfirm = ref(false)
 const operationToDelete = ref<Operation | null>(null)
+
+// Debounce timers per operation
+const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
 
 // Computed from store (per-context)
 const operations = computed(() => operationsStore.getContext(props.linkingGroup).operations)
 const sortedOperations = computed(() => operationsStore.getSortedOperations(props.linkingGroup))
 const loading = computed(() => operationsStore.getContext(props.linkingGroup).loading)
-const expandedOps = computed(() => operationsStore.getContext(props.linkingGroup).expandedOps)
+
 // Computed from store (global)
 const activeWorkCenters = computed(() => operationsStore.activeWorkCenters)
 const saving = computed(() => operationsStore.saving)
 
-// Helper to safely get form (used in template after v-if guard)
-function form(opId: number): EditForm {
-  return editForms[opId]!
-}
-
-// Initialize edit forms for all operations
-function initEditForms() {
-  for (const op of operations.value) {
-    if (!editForms[op.id]) {
-      editForms[op.id] = createEditForm(op)
-    }
-  }
-}
-
-// Create edit form from operation
-function createEditForm(op: Operation): EditForm {
-  return {
-    name: op.name,
-    work_center_id: op.work_center_id,
-    setup_time_min: op.setup_time_min,
-    operation_time_min: op.operation_time_min,
-    setup_time_locked: op.setup_time_locked,
-    operation_time_locked: op.operation_time_locked,
-    cutting_mode: op.cutting_mode,
-    is_coop: op.is_coop,
-    coop_price: op.coop_price,
-    coop_min_price: op.coop_min_price,
-    coop_days: op.coop_days
-  }
-}
-
-// Watch operations changes to update edit forms
-watch(operations, () => {
-  initEditForms()
-}, { deep: true })
+// Compute max work center name width for dropdown sizing
+const maxWorkCenterWidth = computed(() => {
+  if (activeWorkCenters.value.length === 0) return 180
+  const maxName = activeWorkCenters.value.reduce((max, wc) => {
+    const name = `${wc.work_center_number} - ${wc.name}`
+    return name.length > max.length ? name : max
+  }, '')
+  // Approximate: 7px per character + padding
+  return Math.min(Math.max(maxName.length * 7 + 40, 180), 320)
+})
 
 // Watch partId change (when linked)
 watch(() => props.partId, async (newPartId) => {
@@ -99,13 +65,87 @@ async function loadData(partId: number) {
     operationsStore.loadWorkCenters(),
     operationsStore.loadOperations(partId, props.linkingGroup)
   ])
-  initEditForms()
 }
 
 // Toggle expanded state
 function toggleExpanded(opId: number) {
-  const ctx = operationsStore.getContext(props.linkingGroup)
-  ctx.expandedOps[opId] = !ctx.expandedOps[opId]
+  expandedOps[opId] = !expandedOps[opId]
+}
+
+// Debounced update operation
+function debouncedUpdateOperation(op: Operation, field: keyof Operation, value: any) {
+  // Update local state immediately for responsive UI
+  const opIndex = operations.value.findIndex(o => o.id === op.id)
+  if (opIndex !== -1) {
+    ;(operations.value[opIndex] as any)[field] = value
+  }
+
+  // Clear existing timer for this operation
+  const existingTimer = debounceTimers.get(op.id)
+  if (existingTimer) {
+    clearTimeout(existingTimer)
+  }
+
+  // Set new timer
+  const timer = setTimeout(async () => {
+    debounceTimers.delete(op.id)
+    await operationsStore.updateOperation(op.id, { [field]: value }, props.linkingGroup)
+  }, 500)
+
+  debounceTimers.set(op.id, timer)
+}
+
+// Handle work center change
+async function onWorkCenterChange(op: Operation, newWorkCenterId: number | null) {
+  // Update work center
+  const updates: Partial<Operation> = {
+    work_center_id: newWorkCenterId
+  }
+
+  // Update type/icon/name based on work center
+  if (newWorkCenterId) {
+    const wc = activeWorkCenters.value.find(w => w.id === newWorkCenterId)
+    if (wc) {
+      const wcType = wc.work_center_type.toLowerCase().replace('cnc_', '').replace('_', '')
+      const mapping = OPERATION_TYPE_MAP[wcType] ?? OPERATION_TYPE_MAP.generic
+      if (mapping) {
+        updates.name = `OP${op.seq} - ${mapping.label}`
+        updates.type = mapping.type
+        updates.icon = mapping.icon
+      }
+    }
+  }
+
+  // Update local state immediately
+  const opIndex = operations.value.findIndex(o => o.id === op.id)
+  const opToUpdate = operations.value[opIndex]
+  if (opIndex !== -1 && opToUpdate) {
+    Object.assign(opToUpdate, updates)
+  }
+
+  // Save to backend
+  await operationsStore.updateOperation(op.id, updates, props.linkingGroup)
+}
+
+// Change cutting mode
+async function changeMode(op: Operation, mode: CuttingMode) {
+  await operationsStore.changeMode(op.id, mode, props.linkingGroup)
+}
+
+// Toggle coop mode
+async function toggleCoop(op: Operation) {
+  const newValue = !op.is_coop
+  // Update local state immediately
+  const opIndex = operations.value.findIndex(o => o.id === op.id)
+  if (opIndex !== -1 && operations.value[opIndex]) {
+    operations.value[opIndex]!.is_coop = newValue
+  }
+  await operationsStore.updateOperation(op.id, { is_coop: newValue }, props.linkingGroup)
+}
+
+// Update coop fields with debounce
+function updateCoopField(op: Operation, field: 'coop_price' | 'coop_min_price' | 'coop_days', value: number) {
+  debouncedUpdateOperation(op, field, value)
 }
 
 // Add new operation
@@ -114,49 +154,8 @@ async function handleAddOperation() {
 
   const newOp = await operationsStore.addOperation(props.partId, props.linkingGroup)
   if (newOp) {
-    editForms[newOp.id] = createEditForm(newOp)
-  }
-}
-
-// Save operation
-async function saveOperation(op: Operation) {
-  const formData = editForms[op.id]
-  if (!formData) return
-
-  await operationsStore.updateOperation(op.id, {
-    name: formData.name,
-    work_center_id: formData.work_center_id,
-    setup_time_min: formData.setup_time_min,
-    operation_time_min: formData.operation_time_min,
-    setup_time_locked: formData.setup_time_locked,
-    operation_time_locked: formData.operation_time_locked,
-    cutting_mode: formData.cutting_mode,
-    is_coop: formData.is_coop,
-    coop_price: formData.coop_price,
-    coop_min_price: formData.coop_min_price,
-    coop_days: formData.coop_days
-  }, props.linkingGroup)
-}
-
-// Handle work center change (update type/icon)
-function onWorkCenterChange(opId: number) {
-  const formData = editForms[opId]
-  if (!formData) return
-
-  const wcId = formData.work_center_id
-  if (!wcId) {
-    // No work center - keep current name
-    return
-  }
-
-  const wc = activeWorkCenters.value.find(w => w.id === wcId)
-  if (wc) {
-    const wcType = wc.work_center_type.toLowerCase().replace('cnc_', '').replace('_', '')
-    const mapping = OPERATION_TYPE_MAP[wcType] ?? OPERATION_TYPE_MAP.generic
-    const op = operations.value.find(o => o.id === opId)
-    if (op && mapping) {
-      formData.name = `OP${op.seq} - ${mapping.label}`
-    }
+    // Expand new operation to show settings
+    expandedOps[newOp.id] = true
   }
 }
 
@@ -171,17 +170,10 @@ async function executeDelete() {
 
   const opId = operationToDelete.value.id
   await operationsStore.deleteOperation(opId, props.linkingGroup)
-  delete editForms[opId]
+  delete expandedOps[opId]
 
   showDeleteConfirm.value = false
   operationToDelete.value = null
-}
-
-// Format time helper
-function formatTime(minutes: number): string {
-  if (minutes === 0) return '0 min'
-  if (minutes < 1) return `${(minutes * 60).toFixed(0)} s`
-  return `${minutes.toFixed(1)} min`
 }
 
 // Expose operationsCount for parent
@@ -196,7 +188,7 @@ defineExpose({
     <div class="panel-header">
       <h3>Operace</h3>
       <button
-        class="btn-primary"
+        class="btn-add"
         @click="handleAddOperation"
         :disabled="!partId || loading"
       >
@@ -212,9 +204,9 @@ defineExpose({
 
     <!-- Empty -->
     <div v-else-if="operations.length === 0" class="empty">
-      <div class="empty-icon">🔧</div>
+      <Settings :size="48" class="empty-icon" />
       <p>Žádné operace</p>
-      <p class="hint">Přidejte první operaci kliknutím na tlačítko výše</p>
+      <p class="hint">Klikni na "+ Přidat operaci" pro začátek</p>
     </div>
 
     <!-- Operations List -->
@@ -225,161 +217,188 @@ defineExpose({
         class="operation-card"
         :class="{ 'is-coop': op.is_coop, 'is-expanded': expandedOps[op.id] }"
       >
-        <!-- Collapsed header -->
-        <div class="op-header" @click="toggleExpanded(op.id)">
-          <div class="op-info">
+        <!-- Inline Row - editable fields directly visible -->
+        <div class="op-row">
+          <!-- Seq + Icon -->
+          <div class="op-seq-icon">
             <span class="op-seq">{{ op.seq }}</span>
             <span class="op-icon">{{ op.icon }}</span>
-            <span class="op-name">{{ op.name }}</span>
-            <span v-if="op.is_coop" class="coop-badge">Kooperace</span>
           </div>
-          <div class="op-times">
-            <span class="time-badge" title="Přípravný čas">tp: {{ formatTime(op.setup_time_min) }}</span>
-            <span class="time-badge" title="Kusový čas">tj: {{ formatTime(op.operation_time_min) }}</span>
+
+          <!-- Work Center Dropdown (inline) -->
+          <div class="op-work-center" @click.stop>
+            <select
+              :value="op.work_center_id"
+              @change="onWorkCenterChange(op, ($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null)"
+              class="wc-select"
+              :style="{ width: maxWorkCenterWidth + 'px' }"
+            >
+              <option :value="null">- Pracoviště -</option>
+              <option
+                v-for="wc in activeWorkCenters"
+                :key="wc.id"
+                :value="wc.id"
+              >
+                {{ wc.work_center_number }} - {{ wc.name }}
+              </option>
+            </select>
           </div>
-          <button class="expand-btn" type="button">
-            {{ expandedOps[op.id] ? '▲' : '▼' }}
+
+          <!-- tp - setup time (inline editable) -->
+          <div class="time-field" @click.stop>
+            <span class="time-label tp">tp:</span>
+            <input
+              v-select-on-focus
+              type="number"
+              step="0.1"
+              min="0"
+              :value="op.setup_time_min"
+              @input="debouncedUpdateOperation(op, 'setup_time_min', Number(($event.target as HTMLInputElement).value))"
+              class="time-input"
+              :disabled="op.setup_time_locked"
+            />
+            <span class="time-unit">min</span>
+            <button
+              class="lock-btn"
+              :class="{ 'is-locked': op.setup_time_locked }"
+              @click="debouncedUpdateOperation(op, 'setup_time_locked', !op.setup_time_locked)"
+              :title="op.setup_time_locked ? 'Odemknout' : 'Zamknout'"
+            >
+              <Lock v-if="op.setup_time_locked" :size="12" />
+              <Unlock v-else :size="12" />
+            </button>
+          </div>
+
+          <!-- tj - operation time (inline editable) -->
+          <div class="time-field" @click.stop>
+            <span class="time-label tj">tj:</span>
+            <input
+              v-select-on-focus
+              type="number"
+              step="0.01"
+              min="0"
+              :value="op.operation_time_min"
+              @input="debouncedUpdateOperation(op, 'operation_time_min', Number(($event.target as HTMLInputElement).value))"
+              class="time-input"
+              :disabled="op.operation_time_locked"
+            />
+            <span class="time-unit">min</span>
+            <button
+              class="lock-btn"
+              :class="{ 'is-locked': op.operation_time_locked }"
+              @click="debouncedUpdateOperation(op, 'operation_time_locked', !op.operation_time_locked)"
+              :title="op.operation_time_locked ? 'Odemknout' : 'Zamknout'"
+            >
+              <Lock v-if="op.operation_time_locked" :size="12" />
+              <Unlock v-else :size="12" />
+            </button>
+          </div>
+
+          <!-- Coop badge -->
+          <span v-if="op.is_coop" class="coop-badge">Koop</span>
+
+          <!-- Delete button -->
+          <button
+            class="delete-btn"
+            @click.stop="confirmDelete(op)"
+            title="Smazat operaci"
+          >
+            <Trash2 :size="16" />
+          </button>
+
+          <!-- Expand toggle -->
+          <button
+            class="expand-btn"
+            @click="toggleExpanded(op.id)"
+            :title="expandedOps[op.id] ? 'Sbalit' : 'Rozbalit nastavení'"
+          >
+            {{ expandedOps[op.id] ? '▼' : '▶' }}
           </button>
         </div>
 
-        <!-- Expanded edit form -->
-        <div v-if="expandedOps[op.id] && editForms[op.id]" class="op-details">
-          <form @submit.prevent="saveOperation(op)">
-            <!-- Name + Work Center -->
-            <div class="form-row">
-              <div class="form-field">
-                <label>Název</label>
-                <input
-                  v-model="form(op.id).name"
-                  type="text"
-                  maxlength="100"
-                  required
-                />
-              </div>
-              <div class="form-field">
-                <label>Pracoviště</label>
-                <select
-                  v-model="form(op.id).work_center_id"
-                  @change="onWorkCenterChange(op.id)"
-                >
-                  <option :value="null">-- Bez pracoviště --</option>
-                  <option v-for="wc in activeWorkCenters" :key="wc.id" :value="wc.id">
-                    {{ wc.work_center_number }} - {{ wc.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Times with lock buttons -->
-            <div class="form-row">
-              <div class="form-field">
-                <label>
-                  Přípravný čas (tp) [min]
-                  <button
-                    type="button"
-                    class="lock-btn"
-                    :class="{ 'is-locked': form(op.id).setup_time_locked }"
-                    @click="form(op.id).setup_time_locked = !form(op.id).setup_time_locked"
-                    title="Zamknout hodnotu"
-                  >
-                    {{ form(op.id).setup_time_locked ? '🔒' : '🔓' }}
-                  </button>
-                </label>
-                <input
-                  v-model.number="form(op.id).setup_time_min"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  :disabled="form(op.id).setup_time_locked"
-                />
-              </div>
-              <div class="form-field">
-                <label>
-                  Kusový čas (tj) [min]
-                  <button
-                    type="button"
-                    class="lock-btn"
-                    :class="{ 'is-locked': form(op.id).operation_time_locked }"
-                    @click="form(op.id).operation_time_locked = !form(op.id).operation_time_locked"
-                    title="Zamknout hodnotu"
-                  >
-                    {{ form(op.id).operation_time_locked ? '🔒' : '🔓' }}
-                  </button>
-                </label>
-                <input
-                  v-model.number="form(op.id).operation_time_min"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  :disabled="form(op.id).operation_time_locked"
-                />
-              </div>
-              <div class="form-field">
-                <label>Režim</label>
-                <select v-model="form(op.id).cutting_mode">
-                  <option value="low">Dokončovací</option>
-                  <option value="mid">Střední</option>
-                  <option value="high">Hrubovací</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Coop checkbox -->
-            <div class="form-row">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="form(op.id).is_coop" />
-                Kooperace (externí dodavatel)
-              </label>
-            </div>
-
-            <!-- Coop fields (conditional) -->
-            <div v-if="form(op.id).is_coop" class="form-row coop-fields">
-              <div class="form-field">
-                <label>Cena kooperace [Kč]</label>
-                <input
-                  v-model.number="form(op.id).coop_price"
-                  type="number"
-                  min="0"
-                  step="1"
-                />
-              </div>
-              <div class="form-field">
-                <label>Min. cena [Kč]</label>
-                <input
-                  v-model.number="form(op.id).coop_min_price"
-                  type="number"
-                  min="0"
-                  step="1"
-                />
-              </div>
-              <div class="form-field">
-                <label>Dodací dny</label>
-                <input
-                  v-model.number="form(op.id).coop_days"
-                  type="number"
-                  min="0"
-                />
-              </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="form-actions">
+        <!-- Expanded Settings (cutting mode, coop) -->
+        <div v-if="expandedOps[op.id]" class="op-settings">
+          <!-- Cutting Mode -->
+          <div class="setting-group">
+            <label class="setting-label">Režim řezání</label>
+            <div class="mode-buttons">
               <button
-                type="button"
-                class="btn-danger"
-                @click="confirmDelete(op)"
-              >
-                🗑️ Smazat
-              </button>
-              <button
-                type="submit"
-                class="btn-primary"
+                @click="changeMode(op, 'low')"
+                :class="{ active: op.cutting_mode === 'low' }"
+                class="mode-btn mode-low"
                 :disabled="saving"
               >
-                {{ saving ? 'Ukládám...' : '💾 Uložit' }}
+                LOW
+              </button>
+              <button
+                @click="changeMode(op, 'mid')"
+                :class="{ active: op.cutting_mode === 'mid' }"
+                class="mode-btn mode-mid"
+                :disabled="saving"
+              >
+                MID
+              </button>
+              <button
+                @click="changeMode(op, 'high')"
+                :class="{ active: op.cutting_mode === 'high' }"
+                class="mode-btn mode-high"
+                :disabled="saving"
+              >
+                HIGH
               </button>
             </div>
-          </form>
+          </div>
+
+          <!-- Coop Toggle -->
+          <div class="setting-group">
+            <label class="coop-toggle">
+              <input
+                type="checkbox"
+                :checked="op.is_coop"
+                @change="toggleCoop(op)"
+              />
+              Kooperace (externí dodavatel)
+            </label>
+          </div>
+
+          <!-- Coop Fields (conditional) -->
+          <div v-if="op.is_coop" class="coop-fields">
+            <div class="coop-field">
+              <label>Cena [Kč]</label>
+              <input
+                v-select-on-focus
+                type="number"
+                min="0"
+                step="1"
+                :value="op.coop_price"
+                @input="updateCoopField(op, 'coop_price', Number(($event.target as HTMLInputElement).value))"
+                class="coop-input"
+              />
+            </div>
+            <div class="coop-field">
+              <label>Min. cena [Kč]</label>
+              <input
+                v-select-on-focus
+                type="number"
+                min="0"
+                step="1"
+                :value="op.coop_min_price"
+                @input="updateCoopField(op, 'coop_min_price', Number(($event.target as HTMLInputElement).value))"
+                class="coop-input"
+              />
+            </div>
+            <div class="coop-field">
+              <label>Dní</label>
+              <input
+                v-select-on-focus
+                type="number"
+                min="0"
+                :value="op.coop_days"
+                @input="updateCoopField(op, 'coop_days', Number(($event.target as HTMLInputElement).value))"
+                class="coop-input"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -399,9 +418,9 @@ defineExpose({
 .operations-detail-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   height: 100%;
-  padding: var(--space-4);
+  padding: var(--space-3);
   overflow: hidden;
 }
 
@@ -413,9 +432,30 @@ defineExpose({
 
 .panel-header h3 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+}
+
+.btn-add {
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-add:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* === LOADING === */
@@ -424,13 +464,13 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-8);
+  padding: var(--space-6);
   color: var(--text-secondary);
 }
 
 .spinner {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border: 2px solid var(--border-default);
   border-top-color: var(--color-primary);
   border-radius: 50%;
@@ -447,22 +487,22 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-8);
+  padding: var(--space-6);
   color: var(--text-tertiary);
   text-align: center;
 }
 
 .empty-icon {
-  font-size: var(--text-2xl);
+  color: var(--text-secondary);
 }
 
 .empty p {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .empty .hint {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
@@ -470,15 +510,16 @@ defineExpose({
 .operations-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   overflow-y: auto;
   flex: 1;
 }
 
 .operation-card {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
   background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
   transition: var(--transition-fast);
 }
 
@@ -488,46 +529,128 @@ defineExpose({
 
 .operation-card.is-expanded {
   border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.op-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.op-header:hover {
-  background: var(--state-hover);
-}
-
-.op-info {
-  flex: 1;
+/* === INLINE ROW === */
+.op-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface);
+}
+
+.op-row:hover {
+  background: var(--state-hover);
+}
+
+.op-seq-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 50px;
 }
 
 .op-seq {
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  min-width: 30px;
+  font-size: var(--text-xs);
 }
 
 .op-icon {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
-.op-name {
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
+/* Work Center Select */
+.op-work-center {
+  flex-shrink: 0;
+}
+
+.wc-select {
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  cursor: pointer;
 }
 
+.wc-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--state-focus-bg);
+}
+
+/* Time Fields */
+.time-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.time-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+.time-label.tp {
+  color: var(--color-warning);
+}
+
+.time-label.tj {
+  color: var(--color-primary);
+}
+
+.time-input {
+  width: 55px;
+  padding: var(--space-1) var(--space-1);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-align: right;
+}
+
+.time-input:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
+}
+
+.time-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-muted);
+}
+
+.time-unit {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.lock-btn {
+  padding: var(--space-1);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  opacity: 0.5;
+  transition: var(--transition-fast);
+}
+
+.lock-btn:hover {
+  opacity: 1;
+}
+
+.lock-btn.is-locked {
+  opacity: 1;
+}
+
+/* Coop Badge */
 .coop-badge {
   padding: var(--space-1) var(--space-2);
   background: var(--color-warning);
@@ -535,28 +658,33 @@ defineExpose({
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
+  margin-left: auto;
 }
 
-.op-times {
-  display: flex;
-  gap: var(--space-2);
+/* Delete Button */
+.delete-btn {
+  padding: var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  opacity: 0.4;
+  transition: var(--transition-fast);
 }
 
-.time-badge {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-muted);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+.delete-btn:hover {
+  opacity: 1;
+  color: var(--color-danger);
 }
 
+/* Expand Button */
 .expand-btn {
   padding: var(--space-1) var(--space-2);
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   transition: var(--transition-fast);
 }
 
@@ -564,146 +692,122 @@ defineExpose({
   color: var(--text-primary);
 }
 
-/* === EXPANDED FORM === */
-.op-details {
-  padding: var(--space-4);
+/* === EXPANDED SETTINGS === */
+.op-settings {
+  padding: var(--space-3);
   border-top: 1px solid var(--border-default);
   background: var(--bg-muted);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
 }
 
-.form-field {
+.setting-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.form-field label {
-  font-size: var(--text-sm);
+.setting-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
   font-weight: var(--font-medium);
-  color: var(--text-base);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
 }
 
-.lock-btn {
-  padding: var(--space-1);
-  background: transparent;
+/* Mode Buttons */
+.mode-buttons {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.mode-btn {
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
   font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
   transition: var(--transition-fast);
 }
 
-.lock-btn:hover {
+.mode-btn:hover:not(:disabled) {
   background: var(--state-hover);
 }
 
-.lock-btn.is-locked {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.form-field input,
-.form-field select {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  background: var(--bg-input);
-  color: var(--text-base);
-  transition: var(--transition-fast);
-}
-
-.form-field input:focus,
-.form-field select:focus {
-  outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
-}
-
-.form-field input:disabled {
+.mode-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--bg-muted);
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-base);
-  cursor: pointer;
-}
-
-.coop-fields {
-  background: var(--bg-warning-subtle, #fef3c7);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
-}
-
-/* === BUTTONS === */
-.btn-primary,
-.btn-secondary,
-.btn-danger {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-primary {
-  background: var(--color-primary);
+.mode-btn.active {
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+.mode-btn.mode-low.active {
+  background: #10b981;
+  border-color: #10b981;
 }
 
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.mode-btn.mode-mid.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
 }
 
-.btn-secondary {
-  background: var(--bg-surface);
+.mode-btn.mode-high.active {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Coop Toggle */
+.coop-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--text-primary);
+  cursor: pointer;
+}
+
+.coop-toggle input {
+  cursor: pointer;
+}
+
+/* Coop Fields */
+.coop-fields {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-warning);
+}
+
+.coop-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.coop-field label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.coop-input {
+  width: 80px;
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
 }
 
-.btn-secondary:hover {
-  background: var(--state-hover);
+.coop-input:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
 }
-
-.btn-danger {
-  background: var(--color-danger-subtle, #fee2e2);
-  color: var(--color-danger, #dc2626);
-}
-
-.btn-danger:hover {
-  background: var(--color-danger-subtle-hover, #fecaca);
-}
-
 </style>

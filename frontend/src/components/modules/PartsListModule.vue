@@ -10,6 +10,7 @@ import { ref, onMounted, computed } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useWindowContextStore } from '@/stores/windowContext'
 import type { LinkingGroup } from '@/stores/windows'
+import { Package, Calendar } from 'lucide-vue-next'
 
 interface Props {
   standalone?: boolean
@@ -65,7 +66,9 @@ function formatDate(dateString: string) {
       <p>Načítám díly...</p>
     </div>
     <div v-else-if="!hasParts" class="empty">
-      <div class="empty-icon">📦</div>
+      <div class="empty-icon">
+        <Package :size="48" />
+      </div>
       <p>Žádné díly k zobrazení</p>
       <p class="hint">Vytvořte první díl pomocí tlačítka "+ Nový díl"</p>
     </div>
@@ -84,7 +87,8 @@ function formatDate(dateString: string) {
         <p v-if="part.notes" class="part-notes">{{ part.notes }}</p>
         <div class="part-meta">
           <span class="meta-item">
-            📅 {{ formatDate(part.created_at) }}
+            <Calendar :size="12" class="meta-icon" />
+            {{ formatDate(part.created_at) }}
           </span>
         </div>
       </div>
@@ -139,9 +143,12 @@ function formatDate(dateString: string) {
 }
 
 .empty-icon {
-  font-size: var(--text-3xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: var(--space-4);
   opacity: 0.5;
+  color: var(--text-secondary);
 }
 
 .empty p {
@@ -232,5 +239,12 @@ function formatDate(dateString: string) {
 .meta-item {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.meta-icon {
+  display: inline-block;
 }
 </style>

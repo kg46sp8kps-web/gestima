@@ -28,10 +28,10 @@ class AuditMixin:
 
 
 # WAL mode for concurrent reads during writes (ADR)
+# Note: check_same_thread is for sync SQLite only, NOT for aiosqlite
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    connect_args={"check_same_thread": False}
+    echo=settings.DEBUG
 )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

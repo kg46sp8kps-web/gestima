@@ -169,7 +169,7 @@ class MaterialPriceCategoryResponse(MaterialPriceCategoryBase):
 
 class MaterialPriceCategoryWithGroupResponse(MaterialPriceCategoryResponse):
     """MaterialPriceCategory s eager-loaded MaterialGroup (pro dropdown)"""
-    material_group: Optional["MaterialGroupResponse"] = None
+    material_group: Optional[MaterialGroupResponse] = None
 
 
 # ----- MaterialPriceTier -----

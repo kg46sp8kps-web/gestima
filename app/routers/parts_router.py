@@ -1,8 +1,13 @@
 """GESTIMA - Parts API router"""
 
 import logging
+import shutil
+import uuid
+from datetime import datetime
+from pathlib import Path
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -21,10 +26,19 @@ from app.services.price_calculator import (
     calculate_series_pricing,
     PriceBreakdown
 )
+from app.services.drawing_service import DrawingService
+from app.schemas.upload import DrawingUploadResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Drawing storage directory (kept for backwards compatibility)
+DRAWINGS_DIR = Path("uploads/drawings")
+DRAWINGS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Drawing service (security-focused file operations)
+drawing_service = DrawingService()
 
 
 @router.get("/", response_model=List[PartResponse])
@@ -123,29 +137,50 @@ async def create_part(
 ):
     from app.services.number_generator import NumberGenerator, NumberGenerationError
 
-    # Auto-generate part_number if not provided
-    if not data.part_number:
-        try:
-            part_number = await NumberGenerator.generate_part_number(db)
-        except NumberGenerationError as e:
-            logger.error(f"Failed to generate part number: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo dílu. Zkuste to znovu.")
-    else:
-        part_number = data.part_number
-        # Kontrola duplicitního čísla dílu (pokud zadáno ručně)
-        result = await db.execute(select(Part).where(Part.part_number == part_number))
-        existing = result.scalar_one_or_none()
-        if existing:
-            raise HTTPException(status_code=400, detail=f"Díl s číslem '{part_number}' již existuje")
+    # Auto-generate part_number (10XXXXXX)
+    try:
+        part_number = await NumberGenerator.generate_part_number(db)
+    except NumberGenerationError as e:
+        logger.error(f"Failed to generate part number: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo dílu. Zkuste to znovu.")
 
-    # Create part with generated/provided number
-    part_data = data.model_dump(exclude={'part_number'})
-    part = Part(part_number=part_number, **part_data)
+    # Handle temp_drawing_id if provided
+    final_drawing_path = data.drawing_path  # Fallback to old field
+    if data.temp_drawing_id:
+        try:
+            # Move temp file to permanent storage
+            final_drawing_path = await drawing_service.move_temp_to_permanent(
+                data.temp_drawing_id,
+                part_number
+            )
+            logger.info(f"Moved temp drawing {data.temp_drawing_id} → {final_drawing_path}")
+        except HTTPException as e:
+            # If temp file not found, log warning but don't fail part creation
+            logger.warning(f"Temp drawing {data.temp_drawing_id} not found, skipping: {e.detail}")
+            final_drawing_path = None
+
+    # Create part with auto-generated number + defaults
+    part = Part(
+        part_number=part_number,
+        article_number=data.article_number,
+        drawing_path=final_drawing_path,
+        name=data.name,
+        customer_revision=data.customer_revision,
+        notes=data.notes,
+        # Defaults from SQL schema
+        revision="A",
+        status="active",
+        length=0.0
+    )
     set_audit(part, current_user.username)  # Audit trail helper (db_helpers.py)
     db.add(part)
 
     part = await safe_commit(db, part, "vytváření dílu")
-    logger.info(f"Created part: {part.part_number}", extra={"part_id": part.id, "user": current_user.username})
+    logger.info(f"Created part: {part.part_number}", extra={
+        "part_id": part.id,
+        "user": current_user.username,
+        "has_drawing": bool(final_drawing_path)
+    })
     return part
 
 
@@ -536,3 +571,167 @@ async def get_series_pricing(
 
     breakdowns = await calculate_series_pricing(part, qty_list, db)
     return [PriceBreakdownResponse.from_breakdown(b) for b in breakdowns]
+
+
+# ============================================================================
+# DRAWING ENDPOINTS
+# ============================================================================
+
+@router.post("/{part_number}/drawing", response_model=DrawingUploadResponse, status_code=201)
+async def upload_part_drawing(
+    part_number: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """
+    Upload PDF drawing to part.
+    Replaces existing drawing if present.
+
+    Security checks:
+    - PDF validation via magic bytes (not just MIME type)
+    - File size limit (10MB)
+    - Path traversal prevention
+
+    Returns:
+        DrawingUploadResponse: part_number, filename, drawing_path, size, uploaded_at
+    """
+    # Find part first
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    # SECURITY: Validate PDF using DrawingService (magic bytes check!)
+    # This also validates file size and sanitizes part_number
+    try:
+        # Delete old drawing if exists
+        if part.drawing_path:
+            try:
+                await drawing_service.delete_drawing(part_number)
+            except HTTPException:
+                # Old drawing missing - that's okay, continue
+                pass
+
+        # Save new drawing (with security validations)
+        drawing_path, file_size = await drawing_service.save_permanent(file, part_number)
+
+        # Update part in transaction
+        part.drawing_path = drawing_path
+        set_audit(part, current_user.username, is_update=True)
+
+        part = await safe_commit(db, part, "nahrávání výkresu")
+        logger.info(f"Drawing uploaded for part {part_number}", extra={
+            "part_number": part_number,
+            "user": current_user.username,
+            "size": file_size
+        })
+
+        return DrawingUploadResponse(
+            part_number=part_number,
+            filename=file.filename or "drawing.pdf",
+            drawing_path=drawing_path,
+            size=file_size,
+            uploaded_at=datetime.utcnow()
+        )
+
+    except HTTPException:
+        # Re-raise validation errors from DrawingService
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload drawing for part {part_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to save drawing")
+    finally:
+        await file.close()
+
+
+@router.get("/{part_number}/drawing")
+async def get_part_drawing(
+    part_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Serve PDF drawing for viewing/download.
+    Returns FileResponse with proper Content-Type and filename.
+
+    Security:
+    - Path traversal prevention via DrawingService
+    - File existence validation
+    """
+    # Verify part exists
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    if not part.drawing_path:
+        raise HTTPException(status_code=404, detail="Drawing not found for this part")
+
+    # SECURITY: Use DrawingService to get validated path
+    try:
+        drawing_path = drawing_service.get_drawing_path(part_number)
+
+        return FileResponse(
+            path=str(drawing_path),
+            media_type="application/pdf",
+            filename=f"{part_number}_drawing.pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="{part_number}_drawing.pdf"'
+            }
+        )
+
+    except HTTPException:
+        # DrawingService raises 404 if file not found
+        logger.warning(f"Drawing file missing for part {part_number}: {part.drawing_path}")
+        raise
+
+
+@router.delete("/{part_number}/drawing", status_code=204)
+async def delete_part_drawing(
+    part_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """
+    Delete part drawing file.
+
+    Security:
+    - Path traversal prevention via DrawingService
+    - Transaction handling (file + DB update)
+
+    Returns:
+        204 No Content on success
+    """
+    # Verify part exists
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nenalezen")
+
+    if not part.drawing_path:
+        raise HTTPException(status_code=404, detail="No drawing to delete")
+
+    # SECURITY: Use DrawingService to delete file (validates path)
+    try:
+        await drawing_service.delete_drawing(part_number)
+
+        # Update part in transaction
+        part.drawing_path = None
+        set_audit(part, current_user.username, is_update=True)
+
+        part = await safe_commit(db, part, "mazání výkresu")
+        logger.info(f"Drawing deleted for part {part_number}", extra={
+            "part_number": part_number,
+            "user": current_user.username
+        })
+
+        # 204 No Content (no response body needed)
+        return None
+
+    except HTTPException:
+        # Re-raise DrawingService errors
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete drawing for part {part_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to delete drawing")

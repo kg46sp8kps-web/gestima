@@ -13,6 +13,7 @@ import type {
 } from '@/types/material'
 import type { LinkingGroup } from '@/stores/windows'
 import { STOCK_SHAPE_OPTIONS, getShapeDimensionFields } from '@/types/material'
+import { Package, Trash2, Save } from 'lucide-vue-next'
 
 interface Props {
   partId: number | null
@@ -292,7 +293,7 @@ async function executeDelete() {
 
     <!-- Empty state -->
     <div v-else-if="materialInputs.length === 0" class="empty">
-      <div class="empty-icon">🧱</div>
+      <Package :size="48" class="empty-icon" />
       <p>Žádné materiály</p>
       <p class="hint">Přidejte materiál kliknutím na tlačítko výše</p>
     </div>
@@ -371,6 +372,7 @@ async function executeDelete() {
                   class="form-input"
                   min="0"
                   step="0.1"
+                  v-select-on-focus
                 />
               </div>
               <div class="form-group">
@@ -381,6 +383,7 @@ async function executeDelete() {
                   class="form-input"
                   min="0"
                   step="0.1"
+                  v-select-on-focus
                 />
               </div>
               <div v-if="showWidth(form(mat.id).stock_shape)" class="form-group">
@@ -391,6 +394,7 @@ async function executeDelete() {
                   class="form-input"
                   min="0"
                   step="0.1"
+                  v-select-on-focus
                 />
               </div>
               <div v-if="showHeight(form(mat.id).stock_shape)" class="form-group">
@@ -401,6 +405,7 @@ async function executeDelete() {
                   class="form-input"
                   min="0"
                   step="0.1"
+                  v-select-on-focus
                 />
               </div>
               <div v-if="showWallThickness(form(mat.id).stock_shape)" class="form-group">
@@ -411,6 +416,7 @@ async function executeDelete() {
                   class="form-input"
                   min="0"
                   step="0.1"
+                  v-select-on-focus
                 />
               </div>
             </div>
@@ -424,6 +430,7 @@ async function executeDelete() {
                   type="number"
                   class="form-input"
                   min="1"
+                  v-select-on-focus
                 />
               </div>
               <div class="form-group" style="flex: 2;">
@@ -460,14 +467,16 @@ async function executeDelete() {
                 class="btn-danger"
                 @click="confirmDelete(mat)"
               >
-                🗑️ Smazat
+                <Trash2 :size="16" />
+                Smazat
               </button>
               <button
                 type="submit"
                 class="btn-primary"
                 :disabled="saving"
               >
-                {{ saving ? 'Ukládám...' : '💾 Uložit' }}
+                <Save :size="16" />
+                {{ saving ? 'Ukládám...' : 'Uložit' }}
               </button>
             </div>
           </form>
@@ -526,23 +535,23 @@ async function executeDelete() {
             <div class="form-row">
               <div v-if="showDiameter(newMaterial.stock_shape)" class="form-group">
                 <label>Průměr [mm]</label>
-                <input v-model.number="newMaterial.stock_diameter" type="number" class="form-input" min="0" step="0.1" />
+                <input v-model.number="newMaterial.stock_diameter" type="number" class="form-input" min="0" step="0.1" v-select-on-focus />
               </div>
               <div class="form-group">
                 <label>Délka [mm] <span class="required">*</span></label>
-                <input v-model.number="newMaterial.stock_length" type="number" class="form-input" min="0" step="0.1" required />
+                <input v-model.number="newMaterial.stock_length" type="number" class="form-input" min="0" step="0.1" required v-select-on-focus />
               </div>
               <div v-if="showWidth(newMaterial.stock_shape)" class="form-group">
                 <label>Šířka [mm]</label>
-                <input v-model.number="newMaterial.stock_width" type="number" class="form-input" min="0" step="0.1" />
+                <input v-model.number="newMaterial.stock_width" type="number" class="form-input" min="0" step="0.1" v-select-on-focus />
               </div>
               <div v-if="showHeight(newMaterial.stock_shape)" class="form-group">
                 <label>Výška [mm]</label>
-                <input v-model.number="newMaterial.stock_height" type="number" class="form-input" min="0" step="0.1" />
+                <input v-model.number="newMaterial.stock_height" type="number" class="form-input" min="0" step="0.1" v-select-on-focus />
               </div>
               <div v-if="showWallThickness(newMaterial.stock_shape)" class="form-group">
                 <label>Tloušťka stěny [mm]</label>
-                <input v-model.number="newMaterial.stock_wall_thickness" type="number" class="form-input" min="0" step="0.1" />
+                <input v-model.number="newMaterial.stock_wall_thickness" type="number" class="form-input" min="0" step="0.1" v-select-on-focus />
               </div>
             </div>
 
@@ -550,7 +559,7 @@ async function executeDelete() {
             <div class="form-row">
               <div class="form-group" style="max-width: 120px;">
                 <label>Počet kusů</label>
-                <input v-model.number="newMaterial.quantity" type="number" class="form-input" min="1" />
+                <input v-model.number="newMaterial.quantity" type="number" class="form-input" min="1" v-select-on-focus />
               </div>
             </div>
 
@@ -634,9 +643,9 @@ async function executeDelete() {
 }
 
 .empty-icon {
-  font-size: var(--text-2xl);
   margin-bottom: var(--space-2);
   opacity: 0.5;
+  color: var(--text-secondary);
 }
 
 .hint {
@@ -690,7 +699,7 @@ async function executeDelete() {
 
 .mat-shape {
   font-weight: var(--font-medium);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .mat-dims {
@@ -755,7 +764,7 @@ async function executeDelete() {
   display: block;
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: var(--text-base);
+  color: var(--text-body);
   margin-bottom: var(--space-1);
 }
 
@@ -771,7 +780,7 @@ async function executeDelete() {
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   background: var(--bg-input);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .form-input:focus,
@@ -791,7 +800,7 @@ async function executeDelete() {
 
 .linked-ops label {
   font-size: var(--text-sm);
-  color: var(--text-base);
+  color: var(--text-body);
   margin-bottom: var(--space-2);
   display: block;
 }
@@ -863,13 +872,16 @@ async function executeDelete() {
 
 .summary-value {
   font-weight: var(--font-medium);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 /* Buttons */
 .btn-primary,
 .btn-secondary,
 .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border: none;
   border-radius: var(--radius-md);
@@ -895,7 +907,7 @@ async function executeDelete() {
 
 .btn-secondary {
   background: var(--bg-raised);
-  color: var(--text-base);
+  color: var(--text-body);
   border: 1px solid var(--border-default);
 }
 

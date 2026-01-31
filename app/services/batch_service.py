@@ -54,6 +54,9 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
             selectinload(Part.material_inputs)
             .selectinload(MaterialInput.price_category)
             .selectinload(MaterialPriceCategory.tiers),
+            selectinload(Part.material_inputs)
+            .selectinload(MaterialInput.price_category)
+            .selectinload(MaterialPriceCategory.material_group),
             # Operations (pro calculate_part_price - ADR-016)
             selectinload(Part.operations),
         )

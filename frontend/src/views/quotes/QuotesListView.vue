@@ -41,28 +41,28 @@
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Quote)"
                 >
-                  ✏️
+                  <Edit :size="14" />
                 </button>
                 <button
                   class="btn-icon btn-primary"
                   title="Odeslat"
                   @click.stop="handleSend(row as unknown as Quote)"
                 >
-                  📤
+                  <Send :size="14" />
                 </button>
                 <button
                   class="btn-icon"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  📋
+                  <Copy :size="14" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Quote)"
                 >
-                  🗑️
+                  <Trash2 :size="14" />
                 </button>
               </div>
             </template>
@@ -98,21 +98,21 @@
                   title="Schválit"
                   @click.stop="handleApprove(row as unknown as Quote)"
                 >
-                  ✅
+                  <CheckCircle :size="14" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Odmítnout"
                   @click.stop="handleReject(row as unknown as Quote)"
                 >
-                  ❌
+                  <XCircle :size="14" />
                 </button>
                 <button
                   class="btn-icon"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  📋
+                  <Copy :size="14" />
                 </button>
               </div>
             </template>
@@ -148,7 +148,7 @@
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  📋
+                  <Copy :size="14" />
                 </button>
               </div>
             </template>
@@ -184,14 +184,14 @@
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  📋
+                  <Copy :size="14" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Quote)"
                 >
-                  🗑️
+                  <Trash2 :size="14" />
                 </button>
               </div>
             </template>
@@ -209,6 +209,7 @@ import { useQuotesStore } from '@/stores/quotes'
 import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Quote, QuoteStatus } from '@/types/quote'
+import { FileEdit, Send, CheckCircle, XCircle, Edit, Copy, Trash2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const quotesStore = useQuotesStore()
@@ -217,10 +218,10 @@ const quotesStore = useQuotesStore()
 const activeTab = ref(0)
 
 const tabs = [
-  { label: 'Koncepty', icon: '📝' },
-  { label: 'Odeslané', icon: '📤' },
-  { label: 'Schválené', icon: '✅' },
-  { label: 'Odmítnuté', icon: '❌' }
+  { label: 'Koncepty', icon: 'FileEdit' },
+  { label: 'Odeslané', icon: 'Send' },
+  { label: 'Schválené', icon: 'CheckCircle' },
+  { label: 'Odmítnuté', icon: 'XCircle' }
 ]
 
 // Computed data (filtered by status)
@@ -357,7 +358,7 @@ onMounted(() => {
 
 .page-header h1 {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: var(--text-5xl);
   font-weight: 600;
 }
 
@@ -379,7 +380,7 @@ onMounted(() => {
 .status-badge {
   padding: 4px 12px;
   border-radius: 12px;
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   font-weight: 500;
 }
 

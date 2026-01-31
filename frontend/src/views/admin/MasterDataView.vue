@@ -7,6 +7,7 @@ import type { Column } from '@/components/ui/DataTable.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { useUiStore } from '@/stores/ui'
 import { useOperationsStore } from '@/stores/operations'
+import { Trash2, CheckCircle, XCircle } from 'lucide-vue-next'
 import type { MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialGroup, MaterialGroupCreate, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate, MaterialPriceTier, MaterialPriceTierCreate, MaterialPriceTierUpdate } from '@/types/material'
 import type { WorkCenter, WorkCenterCreate, WorkCenterUpdate, WorkCenterType } from '@/types/operation'
 import {
@@ -34,10 +35,10 @@ const operationsStore = useOperationsStore()
 
 const activeTab = ref(0)
 const tabs = [
-  { label: 'Normy materiálů', icon: '📋' },
-  { label: 'Skupiny materiálů', icon: '🏷️' },
-  { label: 'Cenové kategorie', icon: '💰' },
-  { label: 'Pracoviště', icon: '🏭' }
+  { label: 'Normy materiálů', icon: 'ClipboardList' },
+  { label: 'Skupiny materiálů', icon: 'Tag' },
+  { label: 'Cenové kategorie', icon: 'DollarSign' },
+  { label: 'Pracoviště', icon: 'Factory' }
 ]
 
 // Tab 0: Material Norms
@@ -166,7 +167,7 @@ const workCenterColumns: Column[] = [
   { key: 'is_active', label: 'Aktivní', format: 'boolean', width: '100px' }
 ]
 
-const loadingWorkCenters = computed(() => operationsStore.loading)
+const loadingWorkCenters = ref(false)
 const workCenters = computed(() => operationsStore.workCenters)
 
 // Tab 0: Material Norms Methods
@@ -208,7 +209,8 @@ function openCreateNormModal() {
   showNormModal.value = true
 }
 
-function openEditNormModal(norm: MaterialNorm) {
+function openEditNormModal(row: Record<string, unknown>) {
+  const norm = row as unknown as MaterialNorm
   editingNorm.value = norm
   normForm.value = {
     w_nr: norm.w_nr || '',
@@ -287,7 +289,8 @@ function openCreateGroupModal() {
   showGroupModal.value = true
 }
 
-function openEditGroupModal(group: MaterialGroup) {
+function openEditGroupModal(row: Record<string, unknown>) {
+  const group = row as unknown as MaterialGroup
   editingGroup.value = group
   groupForm.value = {
     code: group.code,
@@ -369,7 +372,8 @@ function openCreateCategoryModal() {
   showCategoryModal.value = true
 }
 
-async function openEditCategoryModal(category: MaterialPriceCategory) {
+async function openEditCategoryModal(row: Record<string, unknown>) {
+  const category = row as unknown as MaterialPriceCategory
   editingCategory.value = category
   selectedCategory.value = category
   categoryForm.value = {
@@ -573,7 +577,12 @@ async function deleteTierItem(tier: MaterialPriceTier) {
 
 // Tab 3: Work Centers Methods
 async function loadWorkCenters() {
-  await operationsStore.loadWorkCenters()
+  loadingWorkCenters.value = true
+  try {
+    await operationsStore.loadWorkCenters()
+  } finally {
+    loadingWorkCenters.value = false
+  }
 }
 
 function openCreateWorkCenterModal() {
@@ -601,7 +610,8 @@ function openCreateWorkCenterModal() {
   showWorkCenterModal.value = true
 }
 
-function openEditWorkCenterModal(wc: WorkCenter) {
+function openEditWorkCenterModal(row: Record<string, unknown>) {
+  const wc = row as unknown as WorkCenter
   editingWorkCenter.value = wc
   workCenterForm.value = {
     name: wc.name,
@@ -879,7 +889,7 @@ onMounted(async () => {
             />
 
             <!-- Combined Category Edit + Tiers Modal -->
-            <Modal v-model="showCategoryModal" :title="editingCategory ? `Upravit kategorii - ${categoryForm.code}` : 'Nová kategorie'" size="large">
+            <Modal v-model="showCategoryModal" :title="editingCategory ? `Upravit kategorii - ${categoryForm.code}` : 'Nová kategorie'" size="lg">
               <div class="combined-category-modal">
                 <!-- Category Edit Form -->
                 <form @submit.prevent="saveCategory" class="category-form-section">
@@ -955,6 +965,7 @@ onMounted(async () => {
                             step="0.001"
                             min="0"
                             class="inline-input"
+                            v-select-on-focus
                             @blur="saveCellEdit(tier)"
                             @keyup.enter="saveCellEdit(tier)"
                             @keyup.esc="cancelCellEdit"
@@ -974,6 +985,7 @@ onMounted(async () => {
                             min="0"
                             class="inline-input"
                             placeholder="∞"
+                            v-select-on-focus
                             @blur="saveCellEdit(tier)"
                             @keyup.enter="saveCellEdit(tier)"
                             @keyup.esc="cancelCellEdit"
@@ -992,6 +1004,7 @@ onMounted(async () => {
                             step="0.01"
                             min="0"
                             class="inline-input"
+                            v-select-on-focus
                             @blur="saveCellEdit(tier)"
                             @keyup.enter="saveCellEdit(tier)"
                             @keyup.esc="cancelCellEdit"
@@ -1003,7 +1016,9 @@ onMounted(async () => {
 
                         <!-- Actions -->
                         <td>
-                          <button @click="deleteTierItem(tier)" class="btn-icon" title="Smazat">🗑️</button>
+                          <button @click="deleteTierItem(tier)" class="btn-icon" title="Smazat">
+                            <Trash2 :size="14" />
+                          </button>
                         </td>
                       </tr>
 
@@ -1017,6 +1032,7 @@ onMounted(async () => {
                             min="0"
                             class="inline-input"
                             placeholder="Min kg"
+                            v-select-on-focus
                           />
                         </td>
                         <td>
@@ -1027,6 +1043,7 @@ onMounted(async () => {
                             min="0"
                             class="inline-input"
                             placeholder="Max kg (∞)"
+                            v-select-on-focus
                           />
                         </td>
                         <td>
@@ -1037,11 +1054,16 @@ onMounted(async () => {
                             min="0"
                             class="inline-input"
                             placeholder="Kč/kg"
+                            v-select-on-focus
                           />
                         </td>
                         <td>
-                          <button @click="saveTier" class="btn-icon" title="Uložit" :disabled="savingTier">✅</button>
-                          <button @click="cancelAddTier" class="btn-icon" title="Zrušit">❌</button>
+                          <button @click="saveTier" class="btn-icon" title="Uložit" :disabled="savingTier">
+                            <CheckCircle :size="14" />
+                          </button>
+                          <button @click="cancelAddTier" class="btn-icon" title="Zrušit">
+                            <XCircle :size="14" />
+                          </button>
                         </td>
                       </tr>
 

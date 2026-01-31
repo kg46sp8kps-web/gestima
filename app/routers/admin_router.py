@@ -1,8 +1,11 @@
-"""GESTIMA - Admin router (Material Norms, System Config, ...)"""
+"""GESTIMA - Admin router (Material Norms, System Config, ...)
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+UPDATED: 2026-01-31
+Jinja2 templates archived in: archive/legacy-alpinejs-v1.6.1/
+"""
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,7 +22,6 @@ from app.db_helpers import set_audit, safe_commit
 from app.services.material_mapping import search_norms
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ========== MATERIAL NORMS ==========
@@ -248,73 +250,12 @@ async def api_delete_material_norm(
 
 
 # ========== MATERIAL CATALOG (Groups + Price Categories) ==========
+# ARCHIVED: 2026-01-31 - Jinja2 template moved to archive/legacy-alpinejs-v1.6.1/
 
-@router.get("/material-catalog", response_class=HTMLResponse)
-async def admin_material_catalog_page(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN]))
-):
-    """
-    Admin page: Material Catalog (MaterialGroups + MaterialPriceCategories).
-
-    UI zobrazuje: 2 taby pro správu kategorií před importem katalogu.
-    """
-    from app.models.material import MaterialPriceCategory
-
-    # Load MaterialGroups
-    result_groups = await db.execute(
-        select(MaterialGroup)
-        .where(MaterialGroup.deleted_at.is_(None))
-        .order_by(MaterialGroup.code)
-    )
-    groups_orm = result_groups.scalars().all()
-
-    # Convert to dict for JSON serialization
-    groups_json = [
-        {
-            "id": g.id,
-            "code": g.code,
-            "name": g.name,
-            "density": float(g.density),
-            "version": g.version
-        }
-        for g in groups_orm
-    ]
-
-    # Load MaterialPriceCategories with MaterialGroup
-    result_categories = await db.execute(
-        select(MaterialPriceCategory)
-        .options(selectinload(MaterialPriceCategory.material_group))
-        .where(MaterialPriceCategory.deleted_at.is_(None))
-        .order_by(MaterialPriceCategory.code)
-    )
-    categories_orm = result_categories.scalars().all()
-
-    # Convert to dict for JSON serialization
-    categories_json = [
-        {
-            "id": c.id,
-            "code": c.code,
-            "name": c.name,
-            "material_group_id": c.material_group_id,
-            "material_group": {
-                "id": c.material_group.id,
-                "code": c.material_group.code,
-                "name": c.material_group.name,
-                "density": float(c.material_group.density)
-            } if c.material_group else None,
-            "version": c.version
-        }
-        for c in categories_orm
-    ]
-
-    return templates.TemplateResponse("admin/material_catalog.html", {
-        "request": request,
-        "groups_json": groups_json,
-        "categories_json": categories_json,
-        "current_user": current_user
-    })
+@router.get("/material-catalog")
+async def admin_material_catalog_redirect():
+    """Redirect to Vue SPA Master Data (Material Catalog tab)"""
+    return RedirectResponse(url="/admin/master-data?tab=materials", status_code=302)
 
 
 # ========== MaterialGroup CRUD ==========

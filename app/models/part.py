@@ -50,6 +50,7 @@ class Part(Base, AuditMixin):
 class PartBase(BaseModel):
     part_number: str = Field(..., min_length=8, max_length=8, description="Číslo dílu (unikátní, 8-digit)")
     article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
+    drawing_path: Optional[str] = Field(None, max_length=500, description="Cesta k PDF výkresu")
     name: str = Field("", max_length=200, description="Název dílu")
     revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize (A-Z)")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
@@ -59,15 +60,13 @@ class PartBase(BaseModel):
 
 
 class PartCreate(BaseModel):
-    """Create new part - part_number is auto-generated if not provided"""
-    part_number: Optional[str] = Field(None, min_length=8, max_length=8, description="Číslo dílu (auto-generated)")
-    article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
-    name: str = Field("", max_length=200, description="Název dílu")
-    revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize")
+    """Create new part - simplified (part_number auto-generated 10XXXXXX)"""
+    article_number: str = Field(..., max_length=50, description="Dodavatelské číslo (REQUIRED)")
+    drawing_path: Optional[str] = Field(None, max_length=500, description="Cesta k výkresu (deprecated, use temp_drawing_id)")
+    temp_drawing_id: Optional[str] = Field(None, description="UUID temp file to move to permanent storage")
+    name: str = Field(..., max_length=200, description="Název dílu (REQUIRED)")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
-    status: PartStatus = Field(PartStatus.DRAFT, description="Status dílu")
-    length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
-    notes: str = Field("", max_length=500, description="Poznámky")
+    notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
 
 class PartUpdate(BaseModel):

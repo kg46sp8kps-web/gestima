@@ -232,14 +232,14 @@ export interface WorkCenterUpdate {
   version: number;  // Required for optimistic locking
 }
 
-// Operation type mapping (for icons and labels)
+// Operation type mapping (for labels and icons)
 export const OPERATION_TYPE_MAP: Record<string, { type: OperationType; icon: string; label: string }> = {
-  lathe: { type: 'turning', icon: '🔄', label: 'Soustružení' },
-  mill: { type: 'milling', icon: '⚙️', label: 'Frézování' },
-  saw: { type: 'cutting', icon: '✂️', label: 'Řezání' },
-  grinder: { type: 'grinding', icon: '💎', label: 'Broušení' },
-  drill: { type: 'drilling', icon: '🔩', label: 'Vrtání' },
-  generic: { type: 'generic', icon: '🔧', label: 'Operace' }
+  lathe: { type: 'turning', icon: 'rotate-cw', label: 'Soustružení' },
+  mill: { type: 'milling', icon: 'settings', label: 'Frézování' },
+  saw: { type: 'cutting', icon: 'scissors', label: 'Řezání' },
+  grinder: { type: 'grinding', icon: 'gem', label: 'Broušení' },
+  drill: { type: 'drilling', icon: 'wrench', label: 'Vrtání' },
+  generic: { type: 'generic', icon: 'wrench', label: 'Operace' }
 };
 
 // Cutting mode labels

@@ -1,9 +1,9 @@
-# GESTIMA Design System v1.2
+# GESTIMA Design System v1.5
 
 **"Industrial Precision"** - Originální dark-first design pro výrobní kalkulace
 
 **Approved:** 2026-01-31
-**Status:** ✅ Production Ready (+ Ultra-Compact Density for Large Monitors)
+**Status:** ✅ Production Ready (+ Full Design Token Editor + Text Color Fix)
 **Target Display:** 27" @ 2560x1440 (primary development display)
 
 ---
@@ -16,7 +16,7 @@
 - **Design philosophy:** ULTRA-compact ERP-style density (Infor, SAP, Oracle)
 
 **SECONDARY:** Laptops @ 1080p (comfortable mode)
-- Switch density via toggle: 📐 (compact) ⟷ 📏 (comfortable)
+- Switch density via toggle: Compact ⟷ Comfortable
 
 ---
 
@@ -66,15 +66,17 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 | `--bg-raised` | `#1a1a1a` | Modals, elevated |
 | `--bg-input` | `#0f0f0f` | Form inputs |
 
-### Text (White Spectrum)
+### Text Colors (White Spectrum)
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | `--text-primary` | `#ffffff` | Headings, emphasis |
-| `--text-base` | `#f5f5f5` | Body text |
+| `--text-body` | `#f5f5f5` | Body text (default) |
 | `--text-secondary` | `#a3a3a3` | Labels, secondary |
 | `--text-tertiary` | `#737373` | Muted text |
 | `--text-disabled` | `#525252` | Disabled states |
+
+**DŮLEŽITÉ:** `--text-body` je pro BARVU textu, `--text-base` je pro VELIKOST písma (12px). Nepoužívejte `color: var(--text-base)` - to je chyba!
 
 ### Borders
 
@@ -101,6 +103,22 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 | `--scrollbar-thumb-hover` | `#525252` | Scrollbar handle hover |
 | `--scrollbar-track` | `var(--bg-base)` | Scrollbar track background |
 
+### Legacy Aliases (Kompatibilita)
+
+Pro zpětnou kompatibilitu jsou definovány aliasy pro staré proměnné:
+
+| Legacy Token | Maps To | Usage |
+|--------------|---------|-------|
+| `--accent-blue` | `var(--palette-info)` | forms.css, legacy components |
+| `--error` | `var(--color-danger)` | Error states |
+| `--success` | `var(--color-success)` | Success states |
+| `--warning` | `var(--color-warning)` | Warning states |
+| `--bg-primary` | `var(--bg-base)` | Background alias |
+| `--bg-secondary` | `var(--bg-surface)` | Surface alias |
+| `--border-color` | `var(--border-default)` | Border alias |
+
+**PRAVIDLO:** V nových komponentách používejte **semantic tokeny** (`--color-*`, `--bg-*`), ne legacy aliasy!
+
 ---
 
 ## 🔤 Typography
@@ -126,8 +144,47 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 | `--text-xl` | 14px | Subheadings |
 | `--text-2xl` | 16px | Headings |
 | `--text-3xl` | 18px | Large headings |
+| `--text-4xl` | 20px | Section titles |
+| `--text-5xl` | 24px | Page headers |
+| `--text-6xl` | 32px | Hero text |
+| `--text-7xl` | 48px | Empty state icons |
+| `--text-8xl` | 64px | Large display icons |
 
-**Note:** Font sizes reduced ~20% from v1.1 to optimize for 27" displays. Use **comfortable mode** (📏) on smaller screens/laptops.
+**Note:** Font sizes optimized for 27" displays. Use **Settings → Typografie** to adjust each size individually.
+
+### Design Token Editor (Settings)
+
+GESTIMA podporuje **plné přizpůsobení všech design tokenů** přes Settings stránku. Uživatel může nastavit přesnou hodnotu v pixelech pro každý token.
+
+**Editovatelné tokeny:**
+
+| Kategorie | Tokeny | Počet |
+|-----------|--------|-------|
+| **Typografie** | `--text-2xs` až `--text-8xl` | 13 |
+| **Spacing** | `--space-1` až `--space-10` | 8 |
+| **Density** | row-height, cell padding, btn padding | 9 |
+
+**Funkce:**
+- **Live preview** - změny se aplikují okamžitě
+- **Persistence** - ukládá se do `localStorage` jako `gestima_design_tokens`
+- **Auto-load** - tokeny se načtou při startu aplikace
+- **Reset** - možnost resetovat jednotlivé kategorie nebo vše
+
+**Implementation:**
+```typescript
+// V App.vue - načtení při startu
+function initDesignTokens() {
+  const saved = localStorage.getItem('gestima_design_tokens')
+  if (saved) {
+    const tokens = JSON.parse(saved)
+    Object.entries(tokens).forEach(([name, value]) => {
+      document.documentElement.style.setProperty(`--${name}`, `${value / 16}rem`)
+    })
+  }
+}
+```
+
+**Persistence:** Saved in `localStorage` under `gestima_design_tokens` key.
 
 ### Font Weights
 
@@ -159,15 +216,21 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 - Module padding: 6px
 - Cell padding: 4px/8px
 - Row height: 24px
-- Base font: 11px
 
 **Comfortable Mode** - Laptops @ 1080p
 - Module padding: 12px
 - Cell padding: 8px/12px
 - Row height: 36px
-- Base font: 13px
 
-Toggle: Click 📐/📏 in header
+Toggle: Click density toggle in header
+
+**DŮLEŽITÉ:** Density-font tokeny (`--density-font-sm`, `--density-font-base`, `--density-font-md`) nyní odkazují na `--text-*` tokeny:
+```css
+--density-font-sm: var(--text-xs);
+--density-font-base: var(--text-sm);
+--density-font-md: var(--text-base);
+```
+To znamená **jeden zdroj pravdy** pro font velikosti - editujete `--text-*` v Settings a vše se aktualizuje.
 
 ---
 
@@ -181,6 +244,92 @@ Toggle: Click 📐/📏 in header
 | `--radius-xl` | 12px | Large containers |
 
 **Sharp edges on data tables** (precision), rounded on UI controls
+
+---
+
+## 🎨 Icons
+
+**Library:** [Lucide Vue Next](https://lucide.dev/guide/packages/lucide-vue-next) v0.x
+
+**Přístup:** NO EMOJI - pouze profesionální Lucide ikony
+
+### Používání
+
+```vue
+<script setup>
+import { Package, Settings, Trash2 } from 'lucide-vue-next'
+</script>
+
+<template>
+  <!-- Inline icon (text size) -->
+  <button>
+    <Settings :size="14" :stroke-width="2" />
+    Nastavení
+  </button>
+
+  <!-- Large icon (empty states) -->
+  <div class="empty-state">
+    <Package :size="48" :stroke-width="1.5" />
+    <p>Žádné díly</p>
+  </div>
+</template>
+```
+
+### Standardní velikosti
+
+| Použití | Size | Stroke Width |
+|---------|------|--------------|
+| Buttons (inline) | 14-16px | 2 |
+| Headers | 20px | 2 |
+| Action buttons | 32px | 1.5-2 |
+| Empty states | 48px | 1.5 |
+
+### Často používané ikony
+
+| Účel | Ikona | Import |
+|------|-------|--------|
+| Díly/komponenty | Package | `Package` |
+| Operace | Settings | `Settings` |
+| Ceny/finance | DollarSign | `DollarSign` |
+| Materiál | Box | `Box` |
+| Smazat | Trash2 | `Trash2` |
+| Upravit | Edit | `Edit` |
+| Zavřít | X | `X` |
+| Plus/přidat | Plus | `Plus` |
+| Link/propojení | Link | `Link` |
+| Schválit | CheckCircle | `CheckCircle` |
+| Odmítnout | XCircle | `XCircle` |
+
+### Stylingová pravidla
+
+```css
+/* Wrapper pro flexbox alignment */
+.btn-with-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Icon color inheritance */
+.icon {
+  color: currentColor; /* Inherits from parent */
+}
+
+/* Empty state icons */
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+```
+
+### DŮLEŽITÉ: NO EMOJI
+
+- ❌ **BANNED:** Emoji (🔧, ⚙️, 📦, etc.) v produkčním kódu
+- ❌ **BANNED:** Unicode symboly pro UI elementy
+- ✅ **ALLOWED:** Geometrické symboly POUZE pro funkční labels (např. □ pro tvar materiálu)
+- ✅ **REQUIRED:** Lucide Vue komponenty pro všechny UI ikony
 
 ---
 
@@ -848,7 +997,9 @@ const expanded = ref(true);
   <div class="operation-card">
     <div class="op-header">
       <div class="op-seq">{{ seq }}</div>
-      <div class="op-icon">{{ icon }}</div>
+      <div class="op-icon">
+        <component :is="iconComponent" :size="16" :stroke-width="2" />
+      </div>
       <div class="op-name">{{ name }}</div>
 
       <!-- Mode buttons -->
@@ -875,11 +1026,11 @@ const expanded = ref(true);
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, type Component } from 'vue';
 
 defineProps<{
   seq: number;
-  icon: string;
+  iconComponent: Component; // Lucide icon component
   name: string;
   selectedMode: string;
   setupTime: number;
@@ -922,7 +1073,10 @@ const expanded = ref(false);
 }
 
 .op-icon {
-  font-size: var(--text-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
 }
 
 .op-name {

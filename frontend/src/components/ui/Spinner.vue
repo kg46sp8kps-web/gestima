@@ -46,6 +46,6 @@ const props = withDefaults(defineProps<{
 
 .spinner-text {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
 }
 </style>

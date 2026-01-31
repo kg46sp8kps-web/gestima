@@ -25,7 +25,7 @@
                 @click="close"
                 aria-label="Close modal"
               >
-                ✕
+                <X :size="20" :stroke-width="2" />
               </button>
             </div>
 
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { watch, onMounted, onUnmounted } from 'vue';
+import { X } from 'lucide-vue-next';
 
 interface Props {
   modelValue: boolean;

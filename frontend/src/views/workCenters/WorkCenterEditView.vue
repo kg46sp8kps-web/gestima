@@ -8,6 +8,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useOperationsStore } from '@/stores/operations'
 import { useUiStore } from '@/stores/ui'
+import type { WorkCenterType } from '@/types/operation'
+import Input from '@/components/ui/Input.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,7 +22,7 @@ const isCreateMode = computed(() => !route.params.workCenterNumber)
 // Form state
 const form = ref({
   name: '',
-  work_center_type: 'CNC_LATHE' as const,
+  work_center_type: 'CNC_LATHE' as WorkCenterType,
   hourly_rate_amortization: 0,
   hourly_rate_labor: 0,
   hourly_rate_tools: 0,
@@ -174,23 +176,19 @@ onMounted(() => {
           <h2 class="card-title">Hodinové sazby (Kč/h)</h2>
 
           <div class="form-group">
-            <label>Amortizace</label>
-            <input v-model.number="form.hourly_rate_amortization" type="number" step="0.01" />
+            <Input v-model="form.hourly_rate_amortization" type="number" label="Amortizace" />
           </div>
 
           <div class="form-group">
-            <label>Mzdy</label>
-            <input v-model.number="form.hourly_rate_labor" type="number" step="0.01" />
+            <Input v-model="form.hourly_rate_labor" type="number" label="Mzdy" />
           </div>
 
           <div class="form-group">
-            <label>Nástroje</label>
-            <input v-model.number="form.hourly_rate_tools" type="number" step="0.01" />
+            <Input v-model="form.hourly_rate_tools" type="number" label="Nástroje" />
           </div>
 
           <div class="form-group">
-            <label>Režie</label>
-            <input v-model.number="form.hourly_rate_overhead" type="number" step="0.01" />
+            <Input v-model="form.hourly_rate_overhead" type="number" label="Režie" />
           </div>
 
           <div class="total-rate">

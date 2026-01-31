@@ -1,6 +1,13 @@
+<script setup lang="ts">
+import { ClipboardList } from 'lucide-vue-next'
+</script>
+
 <template>
   <div class="module-placeholder">
-    <h2>📋 Batch Sets</h2>
+    <h2>
+      <ClipboardList :size="24" class="inline-icon" />
+      Batch Sets
+    </h2>
     <p>Batch Sets module will go here</p>
     <p class="hint">This is a placeholder - integrate later</p>
   </div>
@@ -15,6 +22,14 @@
 .module-placeholder h2 {
   margin: 0 0 1rem 0;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.inline-icon {
+  display: inline-block;
 }
 
 .module-placeholder p {

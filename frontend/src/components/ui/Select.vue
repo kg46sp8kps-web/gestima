@@ -115,7 +115,7 @@ defineExpose({
 .select-label {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .select-required {
@@ -136,7 +136,7 @@ defineExpose({
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--text-base);
+  color: var(--text-body);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   transition: var(--transition-fast);
@@ -210,7 +210,7 @@ defineExpose({
 /* === OPTION STYLING (limited browser support) === */
 .select option {
   background: var(--bg-surface);
-  color: var(--text-base);
+  color: var(--text-body);
   padding: var(--space-2);
 }
 

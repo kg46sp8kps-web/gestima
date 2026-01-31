@@ -29,6 +29,7 @@ from app.models.batch_set import (
 )
 from app.models.part import Part
 from app.models.material import MaterialItem
+from app.models.material_input import MaterialInput
 from app.services.snapshot_service import create_batch_snapshot
 from app.services.batch_service import recalculate_batch_costs
 from app.services.number_generator import NumberGenerator, NumberGenerationError

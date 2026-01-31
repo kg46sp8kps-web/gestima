@@ -17,9 +17,34 @@ const ui = useUiStore()
 // Initialize dark mode (will load from localStorage)
 const { isDark } = useDarkMode()
 
-// Initialize density on app start
+// Initialize design tokens from localStorage
+function initDesignTokens() {
+  const saved = localStorage.getItem('gestima_design_tokens')
+  if (saved) {
+    try {
+      const tokens = JSON.parse(saved)
+      Object.entries(tokens).forEach(([name, value]) => {
+        const cssVar = `--${name}`
+        const numValue = value as number
+        // Font sizes and spacing in rem, row-height in px
+        if (name.startsWith('text-') || name.startsWith('space-')) {
+          document.documentElement.style.setProperty(cssVar, `${numValue / 16}rem`)
+        } else if (name === 'density-row-height') {
+          document.documentElement.style.setProperty(cssVar, `${numValue}px`)
+        } else {
+          document.documentElement.style.setProperty(cssVar, `${numValue / 16}rem`)
+        }
+      })
+    } catch (e) {
+      console.error('Failed to load design tokens:', e)
+    }
+  }
+}
+
+// Initialize density and design tokens on app start
 onMounted(() => {
   ui.initDensity()
+  initDesignTokens()
 })
 
 // Hide header/footer on login page

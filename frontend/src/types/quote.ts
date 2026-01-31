@@ -88,20 +88,20 @@ export interface QuoteUpdate {
 
 /**
  * Create new quote item payload
+ * Note: unit_price is auto-loaded from frozen batch (read-only)
  */
 export interface QuoteItemCreate {
   part_id: number
   quantity: number
-  unit_price?: number // Optional - auto-loaded from frozen batch
   notes?: string
 }
 
 /**
  * Update existing quote item payload
+ * Note: unit_price is read-only (comes from frozen batch)
  */
 export interface QuoteItemUpdate {
   quantity?: number
-  unit_price?: number
   notes?: string
   version: number
 }

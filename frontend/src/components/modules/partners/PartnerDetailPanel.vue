@@ -6,6 +6,7 @@
 import { ref, computed, reactive, watch } from 'vue'
 import { usePartnersStore } from '@/stores/partners'
 import type { Partner, PartnerCreate, PartnerUpdate } from '@/types/partner'
+import { Building2, Edit, Trash2, Save } from 'lucide-vue-next'
 
 interface Props {
   partner: Partner | null
@@ -208,7 +209,7 @@ async function executeDelete() {
   <div class="partner-detail-panel">
     <!-- Empty State -->
     <div v-if="!partner" class="empty">
-      <div class="empty-icon">🏢</div>
+      <Building2 :size="48" class="empty-icon" />
       <p>Vyberte partnera pro zobrazení detailů</p>
       <button class="btn-primary" @click="openCreateForm">
         + Vytvořit nového partnera
@@ -224,14 +225,16 @@ async function executeDelete() {
           class="btn-primary"
           @click="startEdit"
         >
-          ✏️ Upravit
+          <Edit :size="16" />
+          Upravit
         </button>
         <template v-else>
           <button class="btn-secondary" @click="cancelEdit">
             Zrušit
           </button>
           <button class="btn-primary" @click="savePartner" :disabled="saving">
-            {{ saving ? 'Ukládám...' : '💾 Uložit' }}
+            <Save :size="16" />
+            {{ saving ? 'Ukládám...' : 'Uložit' }}
           </button>
         </template>
         <button
@@ -239,7 +242,8 @@ async function executeDelete() {
           class="btn-danger"
           @click="confirmDelete"
         >
-          🗑️ Smazat
+          <Trash2 :size="16" />
+          Smazat
         </button>
       </div>
 
@@ -566,9 +570,9 @@ async function executeDelete() {
 }
 
 .empty-icon {
-  font-size: var(--text-2xl);
   margin-bottom: var(--space-2);
   opacity: 0.5;
+  color: var(--text-secondary);
 }
 
 .empty p {
@@ -610,7 +614,7 @@ async function executeDelete() {
 }
 
 .tab-button:hover {
-  color: var(--text-base);
+  color: var(--text-body);
   background: var(--state-hover);
 }
 
@@ -651,7 +655,7 @@ async function executeDelete() {
 .form-group label {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .required {
@@ -665,7 +669,7 @@ async function executeDelete() {
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   background: var(--bg-input);
-  color: var(--text-base);
+  color: var(--text-body);
   font-family: inherit;
 }
 
@@ -712,6 +716,9 @@ async function executeDelete() {
 .btn-primary,
 .btn-secondary,
 .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border: none;
   border-radius: var(--radius-md);
@@ -737,7 +744,7 @@ async function executeDelete() {
 
 .btn-secondary {
   background: var(--bg-raised);
-  color: var(--text-base);
+  color: var(--text-body);
   border: 1px solid var(--border-default);
 }
 
@@ -788,7 +795,7 @@ async function executeDelete() {
 
 .modal-content p {
   margin: 0 0 var(--space-4) 0;
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .modal-actions {

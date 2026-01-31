@@ -2,6 +2,7 @@
  * GESTIMA Operations Store Tests
  *
  * Tests operations CRUD, work center integration, and computed totals.
+ * Uses multi-context pattern with linkingGroup parameter.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
@@ -9,7 +10,10 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useOperationsStore } from '../operations'
 import { useUiStore } from '../ui'
 import { operationsApi, workCentersApi } from '@/api/operations'
-import type { Operation, WorkCenter, OperationCreate, OperationUpdate } from '@/types'
+import type { Operation, WorkCenter } from '@/types'
+
+// Default linking group for tests
+const LINK_GROUP = null
 
 // Mock operations API
 vi.mock('@/api/operations', () => ({
@@ -23,6 +27,13 @@ vi.mock('@/api/operations', () => ({
   workCentersApi: {
     list: vi.fn()
   }
+}))
+
+// Mock batches store to avoid side effects
+vi.mock('../batches', () => ({
+  useBatchesStore: () => ({
+    recalculateBatches: vi.fn()
+  })
 }))
 
 // Helper to create valid Operation mock
@@ -56,13 +67,13 @@ function createMockOperation(overrides: Partial<Operation> = {}): Operation {
 function createMockWorkCenter(overrides: Partial<WorkCenter> = {}): WorkCenter {
   return {
     id: 1,
-    number: 'WC-001',
+    work_center_number: 'WC-001',
     name: 'Soustruh 1',
-    type: 'lathe',
+    work_center_type: 'cnc_lathe',
     hourly_rate: 1200,
     is_active: true,
     ...overrides
-  }
+  } as WorkCenter
 }
 
 describe('Operations Store', () => {
@@ -84,15 +95,16 @@ describe('Operations Store', () => {
   describe('Initial State', () => {
     it('should have correct initial state', () => {
       const store = useOperationsStore()
+      const ctx = store.getContext(LINK_GROUP)
 
-      expect(store.operations).toEqual([])
+      expect(ctx.operations).toEqual([])
       expect(store.workCenters).toEqual([])
-      expect(store.loading).toBe(false)
+      expect(ctx.loading).toBe(false)
       expect(store.saving).toBe(false)
-      expect(store.error).toBeNull()
-      expect(store.expandedOps).toEqual({})
-      expect(store.totalSetupTime).toBe(0)
-      expect(store.totalOperationTime).toBe(0)
+      expect(ctx.error).toBeNull()
+      expect(ctx.expandedOps).toEqual({})
+      expect(store.getTotalSetupTime(LINK_GROUP)).toBe(0)
+      expect(store.getTotalOperationTime(LINK_GROUP)).toBe(0)
     })
   })
 
@@ -102,8 +114,8 @@ describe('Operations Store', () => {
 
   describe('Load Work Centers', () => {
     const mockWorkCenters: WorkCenter[] = [
-      createMockWorkCenter({ id: 1, number: 'WC-001', name: 'Soustruh 1', type: 'lathe' }),
-      createMockWorkCenter({ id: 2, number: 'WC-002', name: 'Fréza 1', type: 'mill', hourly_rate: 1500 })
+      createMockWorkCenter({ id: 1, work_center_number: 'WC-001', name: 'Soustruh 1', work_center_type: 'CNC_LATHE' }),
+      createMockWorkCenter({ id: 2, work_center_number: 'WC-002', name: 'Fréza 1', work_center_type: 'CNC_MILL_3AX' })
     ]
 
     it('should load work centers successfully', async () => {
@@ -152,11 +164,12 @@ describe('Operations Store', () => {
       const store = useOperationsStore()
       ;(operationsApi.listByPart as Mock).mockResolvedValue(mockOperations)
 
-      await store.loadOperations(100)
+      await store.loadOperations(100, LINK_GROUP)
+      const ctx = store.getContext(LINK_GROUP)
 
       expect(operationsApi.listByPart).toHaveBeenCalledWith(100)
-      expect(store.operations).toEqual(mockOperations)
-      expect(store.loading).toBe(false)
+      expect(ctx.operations).toEqual(mockOperations)
+      expect(ctx.loading).toBe(false)
     })
 
     it('should set loading=true during fetch', async () => {
@@ -165,31 +178,33 @@ describe('Operations Store', () => {
         () => new Promise(resolve => setTimeout(() => resolve([]), 100))
       )
 
-      const promise = store.loadOperations(100)
-      expect(store.loading).toBe(true)
+      const promise = store.loadOperations(100, LINK_GROUP)
+      expect(store.getContext(LINK_GROUP).loading).toBe(true)
 
       await promise
-      expect(store.loading).toBe(false)
+      expect(store.getContext(LINK_GROUP).loading).toBe(false)
     })
 
     it('should handle load error', async () => {
       const store = useOperationsStore()
       ;(operationsApi.listByPart as Mock).mockRejectedValue(new Error('Server error'))
 
-      await store.loadOperations(100)
+      await store.loadOperations(100, LINK_GROUP)
+      const ctx = store.getContext(LINK_GROUP)
 
-      expect(store.operations).toEqual([])
-      expect(store.error).toBe('Chyba při načítání operací')
+      expect(ctx.operations).toEqual([])
+      expect(ctx.error).toBe('Chyba při načítání operací')
       expect(console.error).toHaveBeenCalled()
     })
 
     it('should clear operations if partId is falsy', async () => {
       const store = useOperationsStore()
-      store.operations = mockOperations
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = mockOperations
 
-      await store.loadOperations(0)
+      await store.loadOperations(0, LINK_GROUP)
 
-      expect(store.operations).toEqual([])
+      expect(store.getContext(LINK_GROUP).operations).toEqual([])
       expect(operationsApi.listByPart).not.toHaveBeenCalled()
     })
   })
@@ -206,40 +221,48 @@ describe('Operations Store', () => {
 
     it('should sort operations by sequence', () => {
       const store = useOperationsStore()
-      store.operations = mockOperations
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = mockOperations
 
-      expect(store.sortedOperations[0]!.seq).toBe(10)
-      expect(store.sortedOperations[1]!.seq).toBe(20)
+      const sorted = store.getSortedOperations(LINK_GROUP)
+      expect(sorted[0]!.seq).toBe(10)
+      expect(sorted[1]!.seq).toBe(20)
     })
 
     it('should filter internal operations', () => {
       const store = useOperationsStore()
-      store.operations = mockOperations
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = mockOperations
 
-      expect(store.internalOperations).toHaveLength(1)
-      expect(store.internalOperations[0]!.is_coop).toBe(false)
+      const internal = store.getInternalOperations(LINK_GROUP)
+      expect(internal).toHaveLength(1)
+      expect(internal[0]!.is_coop).toBe(false)
     })
 
     it('should filter cooperation operations', () => {
       const store = useOperationsStore()
-      store.operations = mockOperations
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = mockOperations
 
-      expect(store.coopOperations).toHaveLength(1)
-      expect(store.coopOperations[0]!.is_coop).toBe(true)
+      const coop = store.getCoopOperations(LINK_GROUP)
+      expect(coop).toHaveLength(1)
+      expect(coop[0]!.is_coop).toBe(true)
     })
 
     it('should calculate total setup time', () => {
       const store = useOperationsStore()
-      store.operations = mockOperations
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = mockOperations
 
-      expect(store.totalSetupTime).toBe(25) // 10 + 15
+      expect(store.getTotalSetupTime(LINK_GROUP)).toBe(25) // 10 + 15
     })
 
     it('should calculate total operation time', () => {
       const store = useOperationsStore()
-      store.operations = mockOperations
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = mockOperations
 
-      expect(store.totalOperationTime).toBe(13) // 5 + 8
+      expect(store.getTotalOperationTime(LINK_GROUP)).toBe(13) // 5 + 8
     })
   })
 
@@ -261,7 +284,8 @@ describe('Operations Store', () => {
       })
       ;(operationsApi.create as Mock).mockResolvedValue(newOp)
 
-      const result = await store.addOperation(100)
+      const result = await store.addOperation(100, LINK_GROUP)
+      const ctx = store.getContext(LINK_GROUP)
 
       expect(operationsApi.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -272,15 +296,16 @@ describe('Operations Store', () => {
         })
       )
       expect(result).toEqual(newOp)
-      expect(store.operations).toHaveLength(1)
-      expect(store.operations[0]).toEqual(newOp)
-      expect(store.expandedOps[10]).toBe(true)
+      expect(ctx.operations).toHaveLength(1)
+      expect(ctx.operations[0]).toEqual(newOp)
+      expect(ctx.expandedOps[10]).toBe(true)
       expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
     it('should calculate next sequence from existing operations', async () => {
       const store = useOperationsStore()
-      store.operations = [
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = [
         createMockOperation({ id: 1, seq: 10 }),
         createMockOperation({ id: 2, seq: 20 })
       ]
@@ -288,7 +313,7 @@ describe('Operations Store', () => {
         createMockOperation({ id: 3, seq: 30, name: 'OP30', type: 'generic', icon: '🔧' })
       )
 
-      await store.addOperation(100)
+      await store.addOperation(100, LINK_GROUP)
 
       expect(operationsApi.create).toHaveBeenCalledWith(
         expect.objectContaining({ seq: 30 })
@@ -299,7 +324,7 @@ describe('Operations Store', () => {
       const store = useOperationsStore()
       ;(operationsApi.create as Mock).mockRejectedValue(new Error('Server error'))
 
-      const result = await store.addOperation(100)
+      const result = await store.addOperation(100, LINK_GROUP)
 
       expect(result).toBeNull()
       expect(uiStore.toasts[0]!.type).toBe('error')
@@ -315,27 +340,29 @@ describe('Operations Store', () => {
 
     it('should update operation successfully', async () => {
       const store = useOperationsStore()
-      store.operations = [existingOp]
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = [existingOp]
 
       const updatedOp = { ...existingOp, setup_time_min: 20, version: 2 }
       ;(operationsApi.update as Mock).mockResolvedValue(updatedOp)
 
-      await store.updateOperation(1, { setup_time_min: 20 })
+      await store.updateOperation(1, { setup_time_min: 20 }, LINK_GROUP)
 
       expect(operationsApi.update).toHaveBeenCalledWith(1, {
         setup_time_min: 20,
         version: 1
       })
-      expect(store.operations[0]!.setup_time_min).toBe(20)
+      expect(ctx.operations[0]!.setup_time_min).toBe(20)
     })
 
     it('should handle version conflict (409)', async () => {
       const store = useOperationsStore()
-      store.operations = [existingOp]
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = [existingOp]
       ;(operationsApi.update as Mock).mockRejectedValue({ status: 409 })
       ;(operationsApi.listByPart as Mock).mockResolvedValue([existingOp])
 
-      await store.updateOperation(1, { setup_time_min: 20 })
+      await store.updateOperation(1, { setup_time_min: 20 }, LINK_GROUP)
 
       expect(uiStore.toasts[0]!.type).toBe('warning')
       expect(uiStore.toasts[0]!.message).toContain('Konflikt')
@@ -344,7 +371,7 @@ describe('Operations Store', () => {
     it('should handle operation not found', async () => {
       const store = useOperationsStore()
 
-      const result = await store.updateOperation(999, { setup_time_min: 20 })
+      const result = await store.updateOperation(999, { setup_time_min: 20 }, LINK_GROUP)
 
       expect(result).toBeNull()
       expect(uiStore.toasts[0]!.message).toContain('nenalezena')
@@ -358,16 +385,17 @@ describe('Operations Store', () => {
   describe('Delete Operation', () => {
     it('should delete operation successfully', async () => {
       const store = useOperationsStore()
-      store.operations = [createMockOperation()]
-      store.expandedOps = { 1: true }
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = [createMockOperation()]
+      ctx.expandedOps = { 1: true }
       ;(operationsApi.delete as Mock).mockResolvedValue(undefined)
 
-      const result = await store.deleteOperation(1)
+      const result = await store.deleteOperation(1, LINK_GROUP)
 
       expect(operationsApi.delete).toHaveBeenCalledWith(1)
       expect(result).toBe(true)
-      expect(store.operations).toHaveLength(0)
-      expect(store.expandedOps[1]).toBeUndefined()
+      expect(ctx.operations).toHaveLength(0)
+      expect(ctx.expandedOps[1]).toBeUndefined()
       expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
@@ -375,7 +403,7 @@ describe('Operations Store', () => {
       const store = useOperationsStore()
       ;(operationsApi.delete as Mock).mockRejectedValue(new Error('Server error'))
 
-      const result = await store.deleteOperation(1)
+      const result = await store.deleteOperation(1, LINK_GROUP)
 
       expect(result).toBe(false)
       expect(uiStore.toasts[0]!.type).toBe('error')
@@ -390,11 +418,11 @@ describe('Operations Store', () => {
     it('should toggle expand state', () => {
       const store = useOperationsStore()
 
-      store.toggleExpand(1)
-      expect(store.isExpanded(1)).toBe(true)
+      store.toggleExpand(1, LINK_GROUP)
+      expect(store.isExpanded(1, LINK_GROUP)).toBe(true)
 
-      store.toggleExpand(1)
-      expect(store.isExpanded(1)).toBe(false)
+      store.toggleExpand(1, LINK_GROUP)
+      expect(store.isExpanded(1, LINK_GROUP)).toBe(false)
     })
 
     it('should get work center name', () => {
@@ -408,15 +436,16 @@ describe('Operations Store', () => {
 
     it('should clear operations', () => {
       const store = useOperationsStore()
-      store.operations = [createMockOperation()]
-      store.expandedOps = { 1: true }
-      store.error = 'Some error'
+      const ctx = store.getContext(LINK_GROUP)
+      ctx.operations = [createMockOperation()]
+      ctx.expandedOps = { 1: true }
+      ctx.error = 'Some error'
 
-      store.clearOperations()
+      store.clearOperations(LINK_GROUP)
 
-      expect(store.operations).toEqual([])
-      expect(store.expandedOps).toEqual({})
-      expect(store.error).toBeNull()
+      expect(ctx.operations).toEqual([])
+      expect(ctx.expandedOps).toEqual({})
+      expect(ctx.error).toBeNull()
     })
   })
 })

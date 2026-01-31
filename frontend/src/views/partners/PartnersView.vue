@@ -30,14 +30,14 @@
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Partner)"
                 >
-                  ✏️
+                  <Edit :size="14" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Partner)"
                 >
-                  🗑️
+                  <Trash2 :size="14" />
                 </button>
               </div>
             </template>
@@ -63,14 +63,14 @@
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Partner)"
                 >
-                  ✏️
+                  <Edit :size="14" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Partner)"
                 >
-                  🗑️
+                  <Trash2 :size="14" />
                 </button>
               </div>
             </template>
@@ -88,6 +88,7 @@ import { usePartnersStore } from '@/stores/partners'
 import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Partner } from '@/types/partner'
+import { Users, Factory, Edit, Trash2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const partnersStore = usePartnersStore()
@@ -96,8 +97,8 @@ const partnersStore = usePartnersStore()
 const activeTab = ref(0)
 
 const tabs = [
-  { label: 'Zákazníci', icon: '👥' },
-  { label: 'Dodavatelé', icon: '🏭' }
+  { label: 'Zákazníci', icon: 'Users' },
+  { label: 'Dodavatelé', icon: 'Factory' }
 ]
 
 // Computed data

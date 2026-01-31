@@ -29,6 +29,7 @@ import type {
 import * as materialsApi from '@/api/materials'
 import * as materialInputsApi from '@/api/materialInputs'
 import { useUiStore } from './ui'
+import { useBatchesStore } from './batches'
 import type { LinkingGroup } from './windows'
 
 /**
@@ -154,7 +155,7 @@ export const useMaterialsStore = defineStore('materials', () => {
     // FALLBACK: If filter found nothing, show all categories
     if (filtered.length === 0) {
       console.warn(
-        `⚠️ No categories found for shape ${stockShape} with suffixes ${suffixes.join(', ')} - showing all`
+        `WARNING: No categories found for shape ${stockShape} with suffixes ${suffixes.join(', ')} - showing all`
       )
       return priceCategories.value
     }
@@ -227,6 +228,16 @@ export const useMaterialsStore = defineStore('materials', () => {
         await loadMaterialInputs(ctx.currentPartId, linkingGroup)
       }
 
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
+      }
+
       ui.showSuccess('Materiál vytvořen')
       return newMaterial
     } catch (error: any) {
@@ -255,6 +266,16 @@ export const useMaterialsStore = defineStore('materials', () => {
       if (index !== -1) {
         const existing = ctx.materialInputs[index]!
         ctx.materialInputs[index] = { ...existing, ...updated, operations: existing.operations }
+      }
+
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
       }
 
       return updated
@@ -287,6 +308,16 @@ export const useMaterialsStore = defineStore('materials', () => {
       const ctx = getOrCreateContext(linkingGroup)
       ctx.materialInputs = ctx.materialInputs.filter(m => m.id !== materialId)
 
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
+      }
+
       ui.showSuccess('Materiál smazán')
     } catch (error: any) {
       ui.showError(error.message || 'Chyba při mazání materiálu')
@@ -313,6 +344,16 @@ export const useMaterialsStore = defineStore('materials', () => {
       const ctx = getOrCreateContext(linkingGroup)
       if (ctx.currentPartId) {
         await loadMaterialInputs(ctx.currentPartId, linkingGroup)
+      }
+
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
       }
 
       ui.showSuccess('Materiál přiřazen k operaci')
@@ -344,6 +385,16 @@ export const useMaterialsStore = defineStore('materials', () => {
       const ctx = getOrCreateContext(linkingGroup)
       if (ctx.currentPartId) {
         await loadMaterialInputs(ctx.currentPartId, linkingGroup)
+      }
+
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
       }
 
       ui.showSuccess('Vazba odebrána')

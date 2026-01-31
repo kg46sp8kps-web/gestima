@@ -114,7 +114,7 @@ const handleClick = (event: MouseEvent) => {
 /* Secondary */
 .btn-secondary {
   background: var(--bg-raised);
-  color: var(--text-base);
+  color: var(--text-body);
   border-color: var(--border-default);
 }
 
@@ -141,7 +141,7 @@ const handleClick = (event: MouseEvent) => {
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--state-hover);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 /* === LOADING STATE === */

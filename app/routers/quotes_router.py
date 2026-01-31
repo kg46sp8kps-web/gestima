@@ -118,8 +118,12 @@ async def get_quote(
     current_user: User = Depends(get_current_user)
 ):
     """Get single quote by quote_number (with items)"""
+    from sqlalchemy.orm import selectinload
+
     result = await db.execute(
-        select(Quote).where(
+        select(Quote)
+        .options(selectinload(Quote.items))  # Eager load items
+        .where(
             Quote.quote_number == quote_number,
             Quote.deleted_at.is_(None)
         )
@@ -237,7 +241,12 @@ async def delete_quote(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Soft delete quote"""
+    """
+    Soft delete quote.
+
+    Protection: SENT and APPROVED quotes cannot be deleted (contain legal snapshot).
+    Only DRAFT and REJECTED quotes can be deleted.
+    """
     result = await db.execute(
         select(Quote).where(
             Quote.quote_number == quote_number,
@@ -249,14 +258,24 @@ async def delete_quote(
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
 
-    # Soft delete
+    # Protect SENT and APPROVED quotes from deletion
+    if quote.status in [QuoteStatus.SENT.value, QuoteStatus.APPROVED.value]:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Nelze smazat nabídku ve stavu '{quote.status}'. "
+                "Odeslané a schválené nabídky obsahují právně závazný snapshot a nesmí být smazány."
+            )
+        )
+
+    # Soft delete (only DRAFT and REJECTED)
     from datetime import datetime
     quote.deleted_at = datetime.utcnow()
     quote.deleted_by = current_user.username
 
     await safe_commit(db, action="mazání nabídky")
 
-    logger.info(f"Deleted quote {quote_number} by {current_user.username}")
+    logger.info(f"Deleted quote {quote_number} (status={quote.status}) by {current_user.username}")
     return {"message": "Quote deleted"}
 
 

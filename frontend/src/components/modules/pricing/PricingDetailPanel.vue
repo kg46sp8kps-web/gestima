@@ -3,10 +3,11 @@
  * Pricing Detail Panel Component
  * Displays batches list with cost breakdown and management actions
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useBatchesStore } from '@/stores/batches'
 import type { Batch } from '@/types/batch'
 import type { LinkingGroup } from '@/stores/windows'
+import { DollarSign, Trash2, Snowflake, RefreshCw, BarChart3 } from 'lucide-vue-next'
 
 interface Props {
   partId: number | null
@@ -25,18 +26,44 @@ const batchesStore = useBatchesStore()
 
 // State
 const showDetailModal = ref(false)
-const showAddModal = ref(false)
 const showDeleteConfirm = ref(false)
 const selectedBatch = ref<Batch | null>(null)
 const batchToDelete = ref<Batch | null>(null)
 const newQuantity = ref<number>(100)
 const saving = ref(false)
+const emptyInputRef = ref<HTMLInputElement | null>(null)
+const ribbonInputRef = ref<HTMLInputElement | null>(null)
 
 // Computed from store
+const batchSets = computed(() => {
+  const ctx = batchesStore.getContext(props.linkingGroup)
+  return ctx.batchSets
+})
+const selectedSet = computed(() => batchesStore.getSelectedSet(props.linkingGroup))
 const displayedBatches = computed(() => batchesStore.getDisplayedBatches(props.linkingGroup))
 const loading = computed(() => {
   const ctx = batchesStore.getContext(props.linkingGroup)
   return ctx.loading || ctx.batchesLoading
+})
+
+// Dropdown options for sets
+const setOptions = computed(() => {
+  const options: Array<{ value: number | null; label: string; status: 'draft' | 'frozen' }> = [
+    { value: null, label: 'Aktivní (rozpracováno)', status: 'draft' }
+  ]
+
+  // Add frozen sets
+  batchSets.value
+    .filter(s => s.status === 'frozen')
+    .forEach(s => {
+      options.push({
+        value: s.id,
+        label: s.name,
+        status: 'frozen'
+      })
+    })
+
+  return options
 })
 
 // Format price
@@ -45,20 +72,32 @@ function formatPrice(value: number | null | undefined): string {
   return value.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// Open add batch modal
-function openAddBatch() {
-  newQuantity.value = 100
-  showAddModal.value = true
+// Calculate bar percentages (only for base costs: material, coop, setup, machining)
+function getBarPercentages(batch: Batch) {
+  const baseCost = batch.material_cost + batch.coop_cost + batch.setup_cost + batch.machining_cost
+  if (baseCost === 0) return { material: 0, coop: 0, setup: 0, machining: 0 }
+
+  return {
+    material: (batch.material_cost / baseCost) * 100,
+    coop: (batch.coop_cost / baseCost) * 100,
+    setup: (batch.setup_cost / baseCost) * 100,
+    machining: (batch.machining_cost / baseCost) * 100
+  }
 }
 
-// Add batch
-async function addBatch() {
+// Add batch inline (Enter key or button)
+async function addBatchInline() {
   if (!props.partId || !newQuantity.value || newQuantity.value < 1) return
 
   saving.value = true
   try {
     await batchesStore.createBatch(newQuantity.value, props.linkingGroup)
-    showAddModal.value = false
+    newQuantity.value = 100 // Reset to default
+    // Keep focus on input for quick consecutive additions
+    await nextTick()
+    // Focus on ribbon input (the one in the main view)
+    await nextTick() // Double nextTick to ensure DOM is fully updated
+    ribbonInputRef.value?.focus()
   } catch (error) {
     // Error handled in store
   } finally {
@@ -93,6 +132,41 @@ async function executeDelete() {
   }
 }
 
+// Select batch set
+function onSelectSet(setId: number | null) {
+  batchesStore.selectSet(setId, props.linkingGroup)
+}
+
+// Freeze current active set (loose batches)
+async function freezeActiveSet() {
+  if (displayedBatches.value.length === 0) return
+
+  saving.value = true
+  try {
+    await batchesStore.freezeLooseBatchesAsSet(props.linkingGroup)
+    // Stay on active set (don't switch to frozen one)
+    batchesStore.selectSet(null, props.linkingGroup)
+  } catch (error) {
+    // Error handled in store
+  } finally {
+    saving.value = false
+  }
+}
+
+// Recalculate batches
+async function recalculateBatches() {
+  if (!props.partId) return
+
+  saving.value = true
+  try {
+    await batchesStore.recalculateBatches(props.linkingGroup)
+  } catch (error) {
+    // Error handled in store
+  } finally {
+    saving.value = false
+  }
+}
+
 // Watch partId changes (works for both linked AND standalone mode)
 watch(() => props.partId, async (newPartId) => {
   if (newPartId) {
@@ -118,119 +192,172 @@ watch(displayedBatches, (newBatches) => {
     </div>
 
     <!-- Empty -->
-    <div v-else-if="displayedBatches.length === 0" class="empty">
-      <div class="empty-icon">💰</div>
+    <div v-else-if="displayedBatches.length === 0 && batchSets.length === 0" class="empty">
+      <DollarSign :size="48" class="empty-icon" />
       <p>Žádné cenové dávky</p>
       <p class="hint">Přidejte první dávku pro výpočet ceny</p>
-      <button class="btn-primary" @click="openAddBatch" :disabled="!partId">
-        + Přidat dávku
-      </button>
+      <div class="empty-add">
+        <input
+          ref="emptyInputRef"
+          v-model.number="newQuantity"
+          type="number"
+          class="empty-input"
+          min="1"
+          placeholder="100"
+          @keyup.enter="addBatchInline"
+          :disabled="!partId || saving"
+          v-select-on-focus
+        />
+        <button class="btn-primary" @click="addBatchInline" :disabled="!partId || saving || !newQuantity">
+          + Přidat
+        </button>
+      </div>
     </div>
 
-    <!-- Batches List -->
-    <div v-else class="batches-list">
-      <!-- Actions Bar -->
-      <div class="actions-bar">
-        <button class="btn-primary btn-sm" @click="openAddBatch" :disabled="!partId || saving">
-          + Přidat dávku
-        </button>
-        <span class="batches-count">{{ displayedBatches.length }} dávek</span>
+    <!-- Main Content Grid -->
+    <div v-else class="main-grid">
+      <!-- Top Ribbon: Set Selector + Info + Actions -->
+      <div class="info-panel">
+        <div class="panel-content">
+          <!-- Batch Set Selector -->
+          <div class="set-selector">
+            <label class="set-label">Sada cen:</label>
+            <select
+              :value="selectedSet?.id ?? null"
+              @change="onSelectSet(($event.target as HTMLSelectElement).value === '' ? null : Number(($event.target as HTMLSelectElement).value))"
+              class="set-dropdown"
+            >
+              <option
+                v-for="option in setOptions"
+                :key="option.value ?? 'active'"
+                :value="option.value ?? ''"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Inline Add Batch (only for active set) -->
+          <div v-if="selectedSet === null || selectedSet.status === 'draft'" class="add-batch-inline">
+            <label class="add-label">Nová dávka (ks)</label>
+            <div class="add-input-row">
+              <input
+                ref="ribbonInputRef"
+                v-model.number="newQuantity"
+                type="number"
+                class="add-input"
+                min="1"
+                placeholder="100"
+                @keyup.enter="addBatchInline"
+                :disabled="!partId || saving"
+                v-select-on-focus
+              />
+              <button
+                class="add-btn"
+                @click="addBatchInline"
+                :disabled="!partId || saving || !newQuantity || newQuantity < 1"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions (only for active set) -->
+          <div v-if="selectedSet === null || selectedSet.status === 'draft'" class="panel-actions">
+            <button
+              class="panel-btn"
+              @click="recalculateBatches"
+              :disabled="!partId || saving || displayedBatches.length === 0"
+            >
+              <RefreshCw :size="14" />
+              Přepočítat
+            </button>
+            <button
+              class="panel-btn freeze-all"
+              @click="freezeActiveSet"
+              :disabled="!partId || saving || displayedBatches.length === 0"
+            >
+              <Snowflake :size="14" />
+              Zmrazit sadu
+            </button>
+          </div>
+        </div>
       </div>
 
+      <!-- Batches List -->
+      <div class="batches-list">
       <!-- Batches Table -->
       <div class="batches-table-wrapper">
         <table class="batches-table">
           <thead>
             <tr>
-              <th class="col-qty">Množství</th>
-              <th class="col-unit">Cena/ks</th>
-              <th class="col-total">Celkem</th>
+              <th class="col-qty">ks</th>
+              <th class="col-cost">Materiál</th>
+              <th class="col-cost">Koop</th>
               <th class="col-breakdown">Rozklad nákladů</th>
-              <th class="col-actions">Akce</th>
+              <th class="col-cost">Cena práce</th>
+              <th class="col-cost">Režie</th>
+              <th class="col-cost">Marže</th>
+              <th class="col-price">Cena/ks</th>
+              <th v-if="selectedSet === null || selectedSet.status === 'draft'" class="col-actions">Akce</th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="batch in displayedBatches"
-              :key="batch.id"
-              :class="{ 'is-frozen': batch.is_frozen, 'is-default': batch.is_default }"
-            >
+            <tr v-for="batch in displayedBatches" :key="batch.id">
               <td class="col-qty">
-                <span class="qty-value">{{ batch.quantity }} ks</span>
-                <span v-if="batch.is_default" class="default-badge">Výchozí</span>
-                <span v-if="batch.is_frozen" class="frozen-badge">🔒</span>
+                <span class="qty-value">{{ batch.quantity }}</span>
               </td>
-              <td class="col-unit">
-                <span class="price-main">{{ formatPrice(batch.unit_price) }} Kč</span>
-              </td>
-              <td class="col-total">
-                <span class="price-total">{{ formatPrice(batch.total_cost) }} Kč</span>
-              </td>
+              <td class="col-cost">{{ formatPrice(batch.material_cost) }}</td>
+              <td class="col-cost">{{ formatPrice(batch.coop_cost) }}</td>
               <td class="col-breakdown">
                 <div class="cost-bar">
                   <div
                     class="cost-segment material"
-                    :style="{ width: batch.material_percent + '%' }"
-                    :title="`Materiál: ${formatPrice(batch.material_cost)} Kč (${batch.material_percent.toFixed(1)}%)`"
+                    :style="{ width: getBarPercentages(batch).material + '%' }"
+                    :title="`Materiál: ${formatPrice(batch.material_cost)} Kč (${getBarPercentages(batch).material.toFixed(1)}%)`"
                   ></div>
                   <div
-                    class="cost-segment machining"
-                    :style="{ width: batch.machining_percent + '%' }"
-                    :title="`Obrábění: ${formatPrice(batch.machining_cost)} Kč (${batch.machining_percent.toFixed(1)}%)`"
+                    v-if="batch.coop_cost > 0"
+                    class="cost-segment coop"
+                    :style="{ width: getBarPercentages(batch).coop + '%' }"
+                    :title="`Kooperace: ${formatPrice(batch.coop_cost)} Kč (${getBarPercentages(batch).coop.toFixed(1)}%)`"
                   ></div>
                   <div
                     class="cost-segment setup"
-                    :style="{ width: batch.setup_percent + '%' }"
-                    :title="`Seřízení: ${formatPrice(batch.setup_cost)} Kč (${batch.setup_percent.toFixed(1)}%)`"
+                    :style="{ width: getBarPercentages(batch).setup + '%' }"
+                    :title="`Seřízení: ${formatPrice(batch.setup_cost)} Kč (${getBarPercentages(batch).setup.toFixed(1)}%)`"
                   ></div>
                   <div
-                    class="cost-segment overhead"
-                    :style="{ width: batch.overhead_percent + '%' }"
-                    :title="`Režie: ${formatPrice(batch.overhead_cost)} Kč (${batch.overhead_percent.toFixed(1)}%)`"
-                  ></div>
-                  <div
-                    class="cost-segment margin"
-                    :style="{ width: batch.margin_percent + '%' }"
-                    :title="`Marže: ${formatPrice(batch.margin_cost)} Kč (${batch.margin_percent.toFixed(1)}%)`"
-                  ></div>
-                  <div
-                    v-if="batch.coop_percent > 0"
-                    class="cost-segment coop"
-                    :style="{ width: batch.coop_percent + '%' }"
-                    :title="`Kooperace: ${formatPrice(batch.coop_cost)} Kč (${batch.coop_percent.toFixed(1)}%)`"
+                    class="cost-segment machining"
+                    :style="{ width: getBarPercentages(batch).machining + '%' }"
+                    :title="`Obrábění: ${formatPrice(batch.machining_cost)} Kč (${getBarPercentages(batch).machining.toFixed(1)}%)`"
                   ></div>
                 </div>
               </td>
-              <td class="col-actions">
+              <td class="col-cost">{{ formatPrice(batch.machining_cost + batch.setup_cost) }}</td>
+              <td class="col-cost">{{ formatPrice(batch.overhead_cost) }}</td>
+              <td class="col-cost">{{ formatPrice(batch.margin_cost) }}</td>
+              <td class="col-price price-highlight">{{ formatPrice(batch.unit_cost) }} Kč</td>
+              <td v-if="selectedSet === null || selectedSet.status === 'draft'" class="col-actions">
                 <button
-                  v-if="!batch.is_frozen"
                   class="action-btn"
                   @click="confirmDelete(batch)"
                   title="Smazat dávku"
                 >
-                  🗑️
+                  <Trash2 :size="16" />
                 </button>
                 <button
                   class="action-btn"
                   @click="expandBatch(batch)"
                   title="Detail"
                 >
-                  📊
+                  <BarChart3 :size="16" />
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <!-- Cost Legend -->
-      <div class="cost-legend">
-        <span class="legend-item"><span class="dot material"></span> Materiál</span>
-        <span class="legend-item"><span class="dot machining"></span> Obrábění</span>
-        <span class="legend-item"><span class="dot setup"></span> Seřízení</span>
-        <span class="legend-item"><span class="dot overhead"></span> Režie</span>
-        <span class="legend-item"><span class="dot margin"></span> Marže</span>
-        <span class="legend-item"><span class="dot coop"></span> Kooperace</span>
       </div>
     </div>
 
@@ -307,33 +434,6 @@ watch(displayedBatches, (newBatches) => {
       </div>
     </Teleport>
 
-    <!-- Add Batch Modal -->
-    <Teleport to="body">
-      <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
-        <div class="modal-content">
-          <h3>Nová dávka</h3>
-          <form @submit.prevent="addBatch">
-            <div class="form-group">
-              <label>Množství (ks) <span class="required">*</span></label>
-              <input
-                v-model.number="newQuantity"
-                type="number"
-                class="form-input"
-                min="1"
-                required
-                autofocus
-              />
-            </div>
-            <div class="modal-actions">
-              <button type="button" class="btn-secondary" @click="showAddModal = false">Zrušit</button>
-              <button type="submit" class="btn-primary" :disabled="saving || !newQuantity || newQuantity < 1">
-                {{ saving ? 'Vytvářím...' : 'Vytvořit' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
 
     <!-- Delete Confirmation -->
     <Teleport to="body">
@@ -396,7 +496,7 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .empty-icon {
-  font-size: var(--text-2xl);
+  color: var(--text-secondary);
 }
 
 .hint {
@@ -404,19 +504,137 @@ watch(displayedBatches, (newBatches) => {
   margin-top: 0;
 }
 
-/* Actions Bar */
-.actions-bar {
+.empty-add {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
-.batches-count {
-  color: var(--text-secondary);
+.empty-input {
+  width: 100px;
+  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  text-align: center;
+  font-size: var(--text-base);
+}
+
+.empty-input:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
+}
+
+/* Add Batch Inline */
+.add-batch-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.add-label {
   font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-weight: var(--font-medium);
+}
+
+.add-input-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.add-input {
+  width: 100px;
+  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.add-input:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
+}
+
+.add-btn {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.add-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Main Grid Layout */
+.main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+/* Info Panel (top ribbon) */
+.info-panel {
+  background: var(--bg-raised);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.panel-content {
+  display: grid;
+  grid-template-columns: 200px 180px auto;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+/* Set Selector */
+.set-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.set-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-weight: var(--font-medium);
+}
+
+.set-dropdown {
+  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.set-dropdown:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
 }
 
 /* Batches List */
@@ -424,6 +642,79 @@ watch(displayedBatches, (newBatches) => {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.info-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2) var(--space-4);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+  gap: var(--space-2);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.stat-value.highlight {
+  color: var(--color-primary);
+}
+
+.stat-value.frozen {
+  color: var(--palette-success);
+}
+
+.panel-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.panel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.panel-btn:hover:not(:disabled) {
+  background: var(--state-hover);
+  border-color: var(--color-primary);
+}
+
+.panel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.panel-btn.freeze-all {
+  background: rgba(5, 150, 105, 0.1);
+  border-color: var(--palette-success);
+  color: var(--palette-success);
+}
+
+.panel-btn.freeze-all:hover:not(:disabled) {
+  background: rgba(5, 150, 105, 0.2);
 }
 
 /* Batches Table */
@@ -465,42 +756,42 @@ watch(displayedBatches, (newBatches) => {
   background: rgba(37, 99, 235, 0.05);
 }
 
-.col-qty { width: 150px; }
-.col-unit { width: 120px; }
-.col-total { width: 140px; }
-.col-breakdown { width: auto; min-width: 200px; }
-.col-actions { width: 80px; text-align: center !important; }
+.col-qty {
+  width: 80px;
+  text-align: right;
+  font-weight: var(--font-semibold);
+}
+
+.col-cost {
+  width: 100px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.col-price {
+  width: 120px;
+  text-align: right;
+  font-weight: var(--font-semibold);
+}
+
+.col-actions {
+  width: 80px;
+  text-align: center !important;
+}
+
+.col-breakdown {
+  min-width: 200px;
+}
 
 .qty-value {
   font-weight: var(--font-semibold);
 }
 
-.default-badge {
-  font-size: var(--text-xs);
-  padding: var(--space-1);
-  background: var(--palette-info);
-  color: white;
-  border-radius: var(--radius-sm);
-  margin-left: var(--space-2);
-}
-
-.frozen-badge {
-  margin-left: var(--space-1);
-}
-
-.price-main {
-  font-weight: var(--font-semibold);
-  color: var(--color-primary);
-}
-
-.price-total {
-  color: var(--text-secondary);
-}
-
 /* Cost Bar */
 .cost-bar {
   display: flex;
-  height: 16px;
+  height: 24px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-raised);
@@ -508,15 +799,36 @@ watch(displayedBatches, (newBatches) => {
 
 .cost-segment {
   height: 100%;
-  min-width: 2px;
+  transition: var(--transition-fast);
 }
 
-.cost-segment.material { background: #3b82f6; }
-.cost-segment.machining { background: #10b981; }
-.cost-segment.setup { background: #f59e0b; }
-.cost-segment.overhead { background: #8b5cf6; }
-.cost-segment.margin { background: #ef4444; }
-.cost-segment.coop { background: #ec4899; }
+.cost-segment.material {
+  background: #8b5cf6; /* Purple */
+}
+
+.cost-segment.coop {
+  background: #f59e0b; /* Orange */
+}
+
+.cost-segment.setup {
+  background: #3b82f6; /* Blue */
+}
+
+.cost-segment.machining {
+  background: #10b981; /* Green */
+}
+
+.cost-segment.overhead {
+  background: #ef4444; /* Red */
+}
+
+.cost-segment.margin {
+  background: #06b6d4; /* Cyan */
+}
+
+.price-highlight {
+  color: var(--color-primary);
+}
 
 .action-btn {
   background: none;
@@ -532,36 +844,11 @@ watch(displayedBatches, (newBatches) => {
   opacity: 1;
 }
 
-/* Cost Legend */
-.cost-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--text-secondary);
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-sm);
-}
-
-.dot.material { background: #3b82f6; }
-.dot.machining { background: #10b981; }
-.dot.setup { background: #f59e0b; }
-.dot.overhead { background: #8b5cf6; }
-.dot.margin { background: #ef4444; }
-.dot.coop { background: #ec4899; }
 
 /* Buttons (from design system) */
 .btn-primary,
@@ -679,8 +966,8 @@ watch(displayedBatches, (newBatches) => {
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  background: var(--bg-surface);
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
 }
 
 /* Detail Modal */

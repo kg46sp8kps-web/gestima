@@ -21,7 +21,9 @@ const typeFilter = ref<string | null>(null)
 const includeInactive = ref(false)
 
 // Computed
-const loading = computed(() => operationsStore.loading)
+// Note: loading is now per-context in multi-context pattern, but work centers are global
+// Use a simple loading ref since loadWorkCenters doesn't track per-context loading
+const loading = ref(false)
 const workCenters = computed(() => operationsStore.workCenters)
 
 // DataTable columns
@@ -35,7 +37,12 @@ const columns: Column[] = [
 
 // Methods
 async function loadWorkCenters() {
-  await operationsStore.loadWorkCenters()
+  loading.value = true
+  try {
+    await operationsStore.loadWorkCenters()
+  } finally {
+    loading.value = false
+  }
 }
 
 function handleRowClick(wc: Record<string, unknown>) {
@@ -74,6 +81,7 @@ onMounted(() => {
     <div class="page-filters">
       <input
         v-model="searchQuery"
+        v-select-on-focus
         type="text"
         class="search-input"
         placeholder="Hledat podle čísla nebo názvu..."

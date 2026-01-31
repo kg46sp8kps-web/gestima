@@ -23,7 +23,10 @@
       <div class="footer-right">
         <span>FastAPI + SQLite + Vue.js</span>
         <span class="footer-sep">•</span>
-        <span class="footer-powered">Powered by Python 🐍</span>
+        <span class="footer-powered">
+          <Code :size="12" class="code-icon" />
+          Powered by Python
+        </span>
       </div>
     </div>
   </footer>
@@ -31,6 +34,7 @@
 
 <script setup lang="ts">
 // Footer component - displays company info, version, and tech stack
+import { Code } from 'lucide-vue-next'
 </script>
 
 <style scoped>
@@ -56,7 +60,7 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--text-secondary, #6b7280);
-  font-size: 0.7rem;
+  font-size: var(--text-sm);
   justify-self: start;
 }
 
@@ -72,12 +76,12 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--text-muted, #9ca3af);
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
   justify-self: center;
 }
 
 .footer-brand {
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   font-weight: 700;
 }
 
@@ -104,7 +108,7 @@
   align-items: center;
   gap: 0.3rem;
   color: var(--text-muted, #9ca3af);
-  font-size: 0.6rem;
+  font-size: var(--text-2xs);
   justify-self: end;
   text-align: right;
 }
@@ -112,5 +116,12 @@
 .footer-powered {
   font-style: italic;
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.code-icon {
+  display: inline-block;
 }
 </style>

@@ -13,7 +13,7 @@
     border: 1px solid var(--border-color);
     border-radius: 5px;
     color: var(--text-secondary);
-    font-size: 0.8rem;
+    font-size: var(--text-lg);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.1s;
@@ -57,13 +57,13 @@
     padding: 0.4rem 0.5rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.8rem;
+    font-size: var(--text-lg);
 }
 
 .price-table th {
     color: var(--text-secondary);
     font-weight: 500;
-    font-size: 0.75rem;
+    font-size: var(--text-base);
 }
 
 .batch-qty {

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { usePartnersStore } from '@/stores/partners'
 import type { Partner } from '@/types/partner'
+import { Plus, Building2, Users, Factory } from 'lucide-vue-next'
 
 interface Props {
   selectedPartner?: Partner | null
@@ -74,7 +75,8 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
     <div class="list-header">
       <h3>Partneři</h3>
       <button @click="handleCreate" class="btn-create">
-        ➕ Nový
+        <Plus :size="14" :stroke-width="2" />
+        Nový
       </button>
     </div>
 
@@ -106,6 +108,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
     <!-- Search Bar -->
     <input
       v-model="searchQuery"
+      v-select-on-focus
       type="text"
       placeholder="Filtrovat partnery..."
       class="search-input"
@@ -119,7 +122,9 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 
     <!-- Empty State -->
     <div v-else-if="!hasPartners" class="empty-list">
-      <div class="empty-icon">🏢</div>
+      <div class="empty-icon">
+        <Building2 :size="48" :stroke-width="1.5" />
+      </div>
       <p>Žádní partneři</p>
     </div>
 
@@ -135,8 +140,12 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
         <div class="partner-header">
           <span class="partner-number">{{ partner.partner_number }}</span>
           <div class="partner-badges">
-            <span v-if="partner.is_customer" class="badge-customer" title="Zákazník">👥</span>
-            <span v-if="partner.is_supplier" class="badge-supplier" title="Dodavatel">🏭</span>
+            <span v-if="partner.is_customer" class="badge-customer" title="Zákazník">
+              <Users :size="14" :stroke-width="2" />
+            </span>
+            <span v-if="partner.is_supplier" class="badge-supplier" title="Dodavatel">
+              <Factory :size="14" :stroke-width="2" />
+            </span>
           </div>
         </div>
         <span class="partner-name">{{ partner.company_name }}</span>
@@ -169,6 +178,9 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .btn-create {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   background: var(--palette-primary);
   color: white;
@@ -204,7 +216,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .tab-button:hover {
-  color: var(--text-base);
+  color: var(--text-body);
   background: var(--state-hover);
 }
 
@@ -219,7 +231,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   background: var(--bg-input);
-  color: var(--text-base);
+  color: var(--text-body);
 }
 
 .search-input:focus {
@@ -262,7 +274,10 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .empty-list .empty-icon {
-  font-size: var(--text-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
 }
 
 .empty-list p {
@@ -316,13 +331,23 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 
 .badge-customer,
 .badge-supplier {
-  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-customer {
+  color: var(--color-primary);
+}
+
+.badge-supplier {
+  color: var(--text-secondary);
 }
 
 .partner-name {
   display: block;
   font-size: var(--text-sm);
-  color: var(--text-base);
+  color: var(--text-body);
   font-weight: var(--font-medium);
 }
 </style>

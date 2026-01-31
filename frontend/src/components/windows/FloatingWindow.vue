@@ -104,33 +104,7 @@ function onDragMove(event: MouseEvent) {
   newX = snapped.x
   newY = snapped.y
 
-  // Check for collision - prevent overlapping
-  if (checkCollision(newX, newY, props.window.width, props.window.height)) {
-    return // Don't move if would overlap
-  }
-
   store.updateWindowPosition(props.window.id, newX, newY)
-}
-
-// Check if position would cause collision with other windows
-function checkCollision(x: number, y: number, width: number, height: number): boolean {
-  const otherWindows = store.windows.filter(w => w.id !== props.window.id && !w.minimized)
-
-  for (const other of otherWindows) {
-    // Check if rectangles overlap
-    const overlap = !(
-      x + width <= other.x || // This window is left of other
-      x >= other.x + other.width || // This window is right of other
-      y + height <= other.y || // This window is above other
-      y >= other.y + other.height // This window is below other
-    )
-
-    if (overlap) {
-      return true // Collision detected
-    }
-  }
-
-  return false // No collision
 }
 
 function applySnapping(x: number, y: number, width: number, height: number) {
@@ -225,11 +199,6 @@ function onResizeMove(event: MouseEvent) {
   newWidth = snapped.width
   newHeight = snapped.height
 
-  // Check for collision - prevent overlapping during resize
-  if (checkCollision(props.window.x, props.window.y, newWidth, newHeight)) {
-    return // Don't resize if would overlap
-  }
-
   store.updateWindowSize(props.window.id, newWidth, newHeight)
 }
 
@@ -284,17 +253,18 @@ function onResizeEnd() {
   document.removeEventListener('mouseup', onResizeEnd)
 }
 
-// Linking group colors
-const linkingGroupColors = {
-  red: '🔴',
-  blue: '🔵',
-  green: '🟢',
-  yellow: '🟡',
-  null: '⚪'
+// Linking group colors (CSS classes instead of emoji)
+type LinkingGroupKey = Exclude<LinkingGroup, null> | 'null'
+const linkingGroupColors: Record<LinkingGroupKey, string> = {
+  red: '#ef4444',
+  blue: '#3b82f6',
+  green: '#10b981',
+  yellow: '#f59e0b',
+  null: '#6b7280'
 }
 
 // Computed
-const linkingGroupDot = computed(() => {
+const linkingGroupColor = computed(() => {
   return linkingGroupColors[props.window.linkingGroup || 'null']
 })
 
@@ -324,13 +294,13 @@ function setLinkingGroup(group: LinkingGroup) {
   showColorDropdown.value = false
 }
 
-// Color options
+// Color options with hex colors
 const colorOptions = [
-  { value: 'red' as LinkingGroup, icon: '🔴', label: 'Red' },
-  { value: 'blue' as LinkingGroup, icon: '🔵', label: 'Blue' },
-  { value: 'green' as LinkingGroup, icon: '🟢', label: 'Green' },
-  { value: 'yellow' as LinkingGroup, icon: '🟡', label: 'Yellow' },
-  { value: null as LinkingGroup, icon: '⚪', label: 'Unlinked' }
+  { value: 'red' as LinkingGroup, color: '#ef4444', label: 'Red' },
+  { value: 'blue' as LinkingGroup, color: '#3b82f6', label: 'Blue' },
+  { value: 'green' as LinkingGroup, color: '#10b981', label: 'Green' },
+  { value: 'yellow' as LinkingGroup, color: '#f59e0b', label: 'Yellow' },
+  { value: null as LinkingGroup, color: '#6b7280', label: 'Unlinked' }
 ]
 </script>
 
@@ -350,13 +320,13 @@ const colorOptions = [
       <div class="window-title-row">
         <!-- Color dropdown on dot -->
         <div class="color-dropdown-wrapper">
-          <span
+          <button
             class="linking-dot clickable"
             @click.stop="toggleColorDropdown"
             title="Click to change linking group"
           >
-            {{ linkingGroupDot }}
-          </span>
+            <span class="color-dot" :style="{ backgroundColor: linkingGroupColor }"></span>
+          </button>
           <Transition name="dropdown-fade">
             <div v-if="showColorDropdown" class="color-dropdown" @click.stop>
               <button
@@ -366,7 +336,7 @@ const colorOptions = [
                 :class="{ 'is-active': window.linkingGroup === opt.value }"
                 @click="setLinkingGroup(opt.value)"
               >
-                <span class="option-icon">{{ opt.icon }}</span>
+                <span class="color-dot" :style="{ backgroundColor: opt.color }"></span>
                 <span class="option-label">{{ opt.label }}</span>
               </button>
             </div>
@@ -375,13 +345,13 @@ const colorOptions = [
         <span class="window-title">{{ window.title }}</span>
       </div>
       <div class="window-controls">
-        <button class="btn-control btn-minimize" @click="handleMinimize" title="Minimize">
+        <button class="btn-control btn-minimize" @click.stop="handleMinimize" title="Minimize">
           −
         </button>
-        <button class="btn-control btn-maximize" @click="handleMaximize" title="Maximize">
-          {{ window.maximized ? '❐' : '□' }}
+        <button class="btn-control btn-maximize" @click.stop="handleMaximize" title="Maximize">
+          {{ window.maximized ? '⤢' : '□' }}
         </button>
-        <button class="btn-control btn-close" @click="handleClose" title="Close">
+        <button class="btn-control btn-close" @click.stop="handleClose" title="Close">
           ×
         </button>
       </div>
@@ -406,16 +376,16 @@ const colorOptions = [
   position: fixed;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow 150ms;
+  transition: box-shadow var(--duration-normal) var(--ease-out);
 }
 
 .floating-window:hover {
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
 }
 
 .floating-window.is-maximized {
@@ -433,11 +403,12 @@ const colorOptions = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0.5rem;
+  padding: var(--space-2) var(--space-3);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   cursor: move;
   user-select: none;
+  backdrop-filter: blur(8px);
 }
 
 .is-maximized .window-titlebar {
@@ -457,20 +428,30 @@ const colorOptions = [
 }
 
 .linking-dot {
-  font-size: 0.625rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
 .linking-dot.clickable {
   cursor: pointer;
-  padding: 0.125rem 0.25rem;
-  border-radius: 3px;
-  transition: background 150ms;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .linking-dot.clickable:hover {
-  background: var(--bg-hover);
+  background: var(--state-hover);
+}
+
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 /* Color Dropdown */
@@ -481,24 +462,24 @@ const colorOptions = [
   min-width: 120px;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
   z-index: 10000;
 }
 
 .color-option {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.5rem;
-  border-radius: 4px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: background var(--duration-fast) var(--ease-out);
   width: 100%;
   text-align: left;
 }
@@ -510,12 +491,6 @@ const colorOptions = [
 .color-option.is-active {
   background: var(--accent-subtle, #fee2e2);
   font-weight: 500;
-}
-
-.option-icon {
-  font-size: 0.875rem;
-  width: 16px;
-  text-align: center;
 }
 
 .option-label {
@@ -536,7 +511,7 @@ const colorOptions = [
 
 .window-title {
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: var(--text-base);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -553,21 +528,21 @@ const colorOptions = [
   width: 20px;
   height: 20px;
   border: none;
-  background: var(--bg-card);
+  background: transparent;
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: var(--text-xl);
   line-height: 1;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 150ms;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .btn-control:hover {
-  background: var(--bg-hover);
-  transform: scale(1.05);
+  background: var(--state-hover);
+  transform: scale(1.1);
 }
 
 .btn-close:hover {
@@ -590,13 +565,14 @@ const colorOptions = [
   width: 20px;
   height: 20px;
   cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, var(--border-color) 50%);
-  opacity: 0.5;
-  transition: opacity 150ms;
+  background: linear-gradient(135deg, transparent 50%, var(--border-strong) 50%);
+  opacity: 0.3;
+  transition: opacity var(--duration-fast) var(--ease-out);
+  border-bottom-right-radius: var(--radius-lg);
 }
 
 .resize-handle:hover {
-  opacity: 1;
+  opacity: 0.7;
 }
 
 /* Scrollbar */

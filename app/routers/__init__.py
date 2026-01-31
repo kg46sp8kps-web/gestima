@@ -17,5 +17,6 @@ from app.routers import (
     config_router,
     admin_router,
     quotes_router,
-    quote_items_router
+    quote_items_router,
+    uploads_router
 )

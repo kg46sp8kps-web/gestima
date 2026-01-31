@@ -12,6 +12,7 @@ import { useWindowContextStore } from '@/stores/windowContext'
 import { useMaterialsStore } from '@/stores/materials'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
+import { Link } from 'lucide-vue-next'
 
 import PartListPanel from './parts/PartListPanel.vue'
 import MaterialHeader from './material/MaterialHeader.vue'
@@ -124,7 +125,9 @@ watch(() => props.partNumber, (newPartNumber) => {
     </div>
     <div v-else class="left-panel-linked">
       <div class="linked-badge">
-        <span class="link-icon">🔗</span>
+        <span class="link-icon">
+          <Link :size="20" />
+        </span>
         <div class="badge-content">
           <span class="badge-label">Linked to</span>
           <span class="badge-value">{{ selectedPart?.part_number || '-' }}</span>
@@ -189,7 +192,9 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 .link-icon {
-  font-size: var(--text-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .badge-content {

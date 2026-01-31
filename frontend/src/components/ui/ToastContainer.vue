@@ -9,15 +9,9 @@
           data-testid="toast"
           @click="ui.removeToast(toast.id)"
         >
-          <div class="toast-icon">
-            <span v-if="toast.type === 'success'">✓</span>
-            <span v-else-if="toast.type === 'error'">✕</span>
-            <span v-else-if="toast.type === 'warning'">⚠</span>
-            <span v-else>ℹ</span>
-          </div>
           <div class="toast-message">{{ toast.message }}</div>
           <button class="toast-close" @click.stop="ui.removeToast(toast.id)">
-            ✕
+            <X :size="16" :stroke-width="2" />
           </button>
         </div>
       </TransitionGroup>
@@ -27,6 +21,7 @@
 
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
+import { X } from 'lucide-vue-next'
 
 const ui = useUiStore()
 </script>
@@ -34,9 +29,9 @@ const ui = useUiStore()
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 1rem;
+  top: 80px;
   right: 1rem;
-  z-index: 9999;
+  z-index: 10003;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -50,9 +45,11 @@ const ui = useUiStore()
   min-width: 300px;
   max-width: 500px;
   padding: 1rem;
-  background-color: white;
+  background-color: #1f2937;
+  color: #f9fafb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: all;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -63,42 +60,27 @@ const ui = useUiStore()
   transform: translateY(-2px);
 }
 
-.toast-icon {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 14px;
+/* Border colors by type */
+.toast-success {
+  border-left-color: var(--color-success);
 }
 
-.toast-success .toast-icon {
-  background-color: var(--color-success-light);
-  color: var(--color-success);
+.toast-error {
+  border-left-color: var(--color-danger);
 }
 
-.toast-error .toast-icon {
-  background-color: var(--color-danger);
-  color: white;
+.toast-warning {
+  border-left-color: var(--color-warning);
 }
 
-.toast-warning .toast-icon {
-  background-color: var(--color-warning-light);
-  color: var(--color-warning);
-}
-
-.toast-info .toast-icon {
-  background-color: var(--color-info);
-  color: white;
+.toast-info {
+  border-left-color: var(--color-info);
 }
 
 .toast-message {
   flex: 1;
-  color: var(--text-base);
-  font-size: 0.875rem;
+  color: #f9fafb;
+  font-size: var(--text-xl);
   line-height: 1.4;
 }
 
@@ -106,9 +88,8 @@ const ui = useUiStore()
   flex-shrink: 0;
   background: none;
   border: none;
-  color: var(--text-tertiary);
+  color: #9ca3af;
   cursor: pointer;
-  font-size: 1.25rem;
   padding: 0;
   width: 20px;
   height: 20px;
@@ -119,7 +100,7 @@ const ui = useUiStore()
 }
 
 .toast-close:hover {
-  color: var(--text-primary);
+  color: #f9fafb;
 }
 
 /* Toast animations */

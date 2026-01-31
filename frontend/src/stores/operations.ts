@@ -9,6 +9,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { operationsApi, workCentersApi } from '@/api/operations'
 import { useUiStore } from './ui'
+import { useBatchesStore } from './batches'
 import type {
   Operation,
   OperationCreate,
@@ -26,6 +27,7 @@ import type { LinkingGroup } from './windows'
  * Per-window context state
  */
 interface OperationsContext {
+  currentPartId: number | null
   operations: Operation[]
   loading: boolean
   error: string | null
@@ -46,6 +48,7 @@ export const useOperationsStore = defineStore('operations', () => {
     const key = linkingGroup || 'unlinked'
     if (!contexts.value.has(key)) {
       contexts.value.set(key, {
+        currentPartId: null,
         operations: [],
         loading: false,
         error: null,
@@ -133,9 +136,11 @@ export const useOperationsStore = defineStore('operations', () => {
 
     if (!partId) {
       ctx.operations = []
+      ctx.currentPartId = null
       return
     }
 
+    ctx.currentPartId = partId
     ctx.loading = true
     ctx.error = null
 
@@ -169,7 +174,7 @@ export const useOperationsStore = defineStore('operations', () => {
         seq: nextSeq,
         name: `OP${nextSeq}`,
         type: 'generic',
-        icon: '🔧',
+        icon: 'wrench',
         setup_time_min: 0,
         operation_time_min: 0,
         is_coop: false,
@@ -181,6 +186,14 @@ export const useOperationsStore = defineStore('operations', () => {
 
       // Expand new operation
       ctx.expandedOps[newOp.id] = true
+
+      // Trigger batch recalculation for live pricing updates
+      try {
+        const batchesStore = useBatchesStore()
+        await batchesStore.recalculateBatches(linkingGroup, partId, true)
+      } catch (e) {
+        // Ignore - batches context may not be initialized
+      }
 
       ui.showToast('Operace přidána', 'success')
       return newOp
@@ -222,6 +235,16 @@ export const useOperationsStore = defineStore('operations', () => {
         ctx.operations[idx] = updated
       }
 
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
+      }
+
       return updated
 
     } catch (err: any) {
@@ -252,6 +275,16 @@ export const useOperationsStore = defineStore('operations', () => {
       // Remove from local state
       ctx.operations = ctx.operations.filter(o => o.id !== operationId)
       delete ctx.expandedOps[operationId]
+
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
+      }
 
       ui.showToast('Operace smazána', 'success')
       return true
@@ -284,6 +317,16 @@ export const useOperationsStore = defineStore('operations', () => {
       const idx = ctx.operations.findIndex(o => o.id === operationId)
       if (idx !== -1) {
         ctx.operations[idx] = updated
+      }
+
+      // Trigger batch recalculation for live pricing updates
+      if (ctx.currentPartId) {
+        try {
+          const batchesStore = useBatchesStore()
+          await batchesStore.recalculateBatches(linkingGroup, ctx.currentPartId, true)
+        } catch (e) {
+          // Ignore - batches context may not be initialized
+        }
       }
 
       ui.showToast(`Režim nastaven na ${mode.toUpperCase()}`, 'success')
@@ -333,7 +376,7 @@ export const useOperationsStore = defineStore('operations', () => {
    * Get operation type info from work center
    */
   function getOperationTypeFromWorkCenter(workCenterId: number | null): { type: OperationType; icon: string; label: string } {
-    const defaultType = { type: 'generic' as OperationType, icon: '🔧', label: 'Operace' }
+    const defaultType = { type: 'generic' as OperationType, icon: 'wrench', label: 'Operace' }
 
     if (!workCenterId) {
       return defaultType

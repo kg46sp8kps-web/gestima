@@ -5,6 +5,7 @@
  */
 import { computed } from 'vue'
 import type { Partner } from '@/types/partner'
+import { Users, Factory } from 'lucide-vue-next'
 
 interface Props {
   partner: Partner | null
@@ -41,10 +42,12 @@ const contactInfo = computed(() => {
       <!-- Type Badges -->
       <div class="partner-type">
         <span v-if="partner.is_customer" class="type-badge customer">
-          👥 Zákazník
+          <Users :size="14" class="badge-icon" />
+          Zákazník
         </span>
         <span v-if="partner.is_supplier" class="type-badge supplier">
-          🏭 Dodavatel
+          <Factory :size="14" class="badge-icon" />
+          Dodavatel
         </span>
       </div>
 
@@ -112,6 +115,13 @@ const contactInfo = computed(() => {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.badge-icon {
+  display: inline-block;
 }
 
 .type-badge.customer {

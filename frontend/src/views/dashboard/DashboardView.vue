@@ -16,7 +16,9 @@
 
       <!-- Coming Soon -->
       <div class="coming-soon-section">
-        <div class="coming-soon-icon">📊</div>
+        <div class="coming-soon-icon">
+          <BarChart3 :size="48" />
+        </div>
         <h2>Dashboard</h2>
         <p class="coming-soon-text">
           Připravujeme pro vás přehledy, KPIs a notifikace.
@@ -31,7 +33,9 @@
 
       <!-- Work Button -->
       <button class="work-button" @click="goToWork">
-        <span class="work-icon">🚀</span>
+        <span class="work-icon">
+          <Rocket :size="32" />
+        </span>
         <span class="work-label">Pracuj</span>
       </button>
     </div>
@@ -41,6 +45,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { BarChart3, Rocket } from 'lucide-vue-next'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -80,14 +85,14 @@ function goToWork() {
 
 .welcome-header h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: var(--text-6xl);
   font-weight: 700;
 }
 
 .welcome-subtitle {
   margin: 0.5rem 0 0;
   opacity: 0.9;
-  font-size: 0.95rem;
+  font-size: var(--text-xl);
 }
 
 .welcome-user {
@@ -102,7 +107,7 @@ function goToWork() {
 }
 
 .user-greeting {
-  font-size: 0.8rem;
+  font-size: var(--text-lg);
   opacity: 0.8;
 }
 
@@ -114,7 +119,7 @@ function goToWork() {
   background: rgba(255, 255, 255, 0.25);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.7rem;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   font-weight: 600;
 }
@@ -129,20 +134,23 @@ function goToWork() {
 }
 
 .coming-soon-icon {
-  font-size: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 1rem;
+  color: var(--text-secondary, #6b7280);
 }
 
 .coming-soon-section h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.25rem;
+  font-size: var(--text-4xl);
   color: var(--text-primary, #111);
 }
 
 .coming-soon-text {
   margin: 0 0 1.5rem;
   color: var(--text-muted, #6b7280);
-  font-size: 0.9rem;
+  font-size: var(--text-xl);
 }
 
 .coming-soon-features {
@@ -156,7 +164,7 @@ function goToWork() {
 
 .coming-soon-features li {
   color: var(--text-secondary, #374151);
-  font-size: 0.85rem;
+  font-size: var(--text-lg);
   padding: 0.5rem 1rem;
   background: var(--bg-muted, #f3f4f6);
   border-radius: 8px;
@@ -177,7 +185,7 @@ function goToWork() {
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1.25rem;
+  font-size: var(--text-4xl);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -191,6 +199,8 @@ function goToWork() {
 }
 
 .work-icon {
-  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

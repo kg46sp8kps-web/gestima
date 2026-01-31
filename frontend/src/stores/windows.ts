@@ -11,7 +11,10 @@ export type WindowModule =
   | 'part-pricing'
   | 'part-operations'
   | 'part-material'
+  | 'part-drawing'
   | 'batch-sets'
+  | 'partners-list'
+  | 'quotes-list'
 
 export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
 

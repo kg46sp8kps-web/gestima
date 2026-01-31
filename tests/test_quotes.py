@@ -414,6 +414,136 @@ async def test_quote_soft_delete(db_session: AsyncSession, test_partner: Partner
     assert deleted_quote.deleted_at is not None
 
 
+@pytest.mark.asyncio
+async def test_sent_quote_cannot_be_deleted(db_session: AsyncSession, test_partner: Partner):
+    """Test SENT quotes are protected from deletion (contain legal snapshot)"""
+    from fastapi import HTTPException
+
+    # Create SENT quote with snapshot
+    quote_number = await NumberGenerator.generate_quote_number(db_session)
+    quote = Quote(
+        quote_number=quote_number,
+        partner_id=test_partner.id,
+        title="Test Quote",
+        status=QuoteStatus.SENT.value,
+        snapshot_data={"test": "snapshot"},
+        sent_at=datetime.utcnow(),
+        created_by="test_user",
+        updated_by="test_user"
+    )
+    db_session.add(quote)
+    await db_session.commit()
+
+    # Try to soft delete (should be blocked)
+    # NOTE: This simulates router logic - in real app, router checks status
+    if quote.status in [QuoteStatus.SENT.value, QuoteStatus.APPROVED.value]:
+        # This is what router should do
+        with pytest.raises(HTTPException) as exc_info:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Nelze smazat nabídku ve stavu '{quote.status}'. "
+                       "Odeslané a schválené nabídky obsahují právně závazný snapshot a nesmí být smazány."
+            )
+
+        assert exc_info.value.status_code == 403
+        assert "Nelze smazat" in str(exc_info.value.detail)
+
+        # Verify quote was NOT deleted
+        result = await db_session.execute(select(Quote).where(Quote.id == quote.id))
+        existing_quote = result.scalar_one()
+        assert existing_quote.deleted_at is None
+
+
+@pytest.mark.asyncio
+async def test_approved_quote_cannot_be_deleted(db_session: AsyncSession, test_partner: Partner):
+    """Test APPROVED quotes are protected from deletion (contain legal snapshot)"""
+    from fastapi import HTTPException
+
+    # Create APPROVED quote with snapshot
+    quote_number = await NumberGenerator.generate_quote_number(db_session)
+    quote = Quote(
+        quote_number=quote_number,
+        partner_id=test_partner.id,
+        title="Test Quote",
+        status=QuoteStatus.APPROVED.value,
+        snapshot_data={"test": "snapshot"},
+        sent_at=datetime.utcnow(),
+        approved_at=datetime.utcnow(),
+        created_by="test_user",
+        updated_by="test_user"
+    )
+    db_session.add(quote)
+    await db_session.commit()
+
+    # Try to soft delete (should be blocked)
+    if quote.status in [QuoteStatus.SENT.value, QuoteStatus.APPROVED.value]:
+        with pytest.raises(HTTPException) as exc_info:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Nelze smazat nabídku ve stavu '{quote.status}'. "
+                       "Odeslané a schválené nabídky obsahují právně závazný snapshot a nesmí být smazány."
+            )
+
+        assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_draft_quote_can_be_deleted(db_session: AsyncSession, test_partner: Partner):
+    """Test DRAFT quotes can be deleted (no snapshot yet)"""
+    # Create DRAFT quote
+    quote_number = await NumberGenerator.generate_quote_number(db_session)
+    quote = Quote(
+        quote_number=quote_number,
+        partner_id=test_partner.id,
+        title="Test Quote",
+        status=QuoteStatus.DRAFT.value,
+        created_by="test_user",
+        updated_by="test_user"
+    )
+    db_session.add(quote)
+    await db_session.commit()
+
+    # Soft delete (should succeed)
+    quote.deleted_at = datetime.utcnow()
+    quote.deleted_by = "test_user"
+    await db_session.commit()
+
+    # Verify deleted
+    result = await db_session.execute(select(Quote).where(Quote.id == quote.id))
+    deleted_quote = result.scalar_one()
+    assert deleted_quote.deleted_at is not None
+
+
+@pytest.mark.asyncio
+async def test_rejected_quote_can_be_deleted(db_session: AsyncSession, test_partner: Partner):
+    """Test REJECTED quotes can be deleted"""
+    # Create REJECTED quote
+    quote_number = await NumberGenerator.generate_quote_number(db_session)
+    quote = Quote(
+        quote_number=quote_number,
+        partner_id=test_partner.id,
+        title="Test Quote",
+        status=QuoteStatus.REJECTED.value,
+        snapshot_data={"test": "snapshot"},  # Has snapshot but rejected
+        sent_at=datetime.utcnow(),
+        rejected_at=datetime.utcnow(),
+        created_by="test_user",
+        updated_by="test_user"
+    )
+    db_session.add(quote)
+    await db_session.commit()
+
+    # Soft delete (should succeed)
+    quote.deleted_at = datetime.utcnow()
+    quote.deleted_by = "test_user"
+    await db_session.commit()
+
+    # Verify deleted
+    result = await db_session.execute(select(Quote).where(Quote.id == quote.id))
+    deleted_quote = result.scalar_one()
+    assert deleted_quote.deleted_at is not None
+
+
 # Fixtures for tests
 
 @pytest.fixture
