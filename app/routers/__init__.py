@@ -15,5 +15,7 @@ from app.routers import (
     misc_router,
     work_centers_router,
     config_router,
-    admin_router
+    admin_router,
+    quotes_router,
+    quote_items_router
 )

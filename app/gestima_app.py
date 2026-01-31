@@ -34,7 +34,9 @@ from app.routers import (
     data_router,
     pages_router,
     misc_router,
-    admin_router
+    admin_router,
+    quotes_router,
+    quote_items_router
 )
 from app.database import async_session, engine, close_db
 
@@ -184,6 +186,8 @@ app.include_router(pricing_router.router, prefix="/api/pricing", tags=["Pricing"
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 app.include_router(material_inputs_router.router)  # ADR-024: prefix already in router
 app.include_router(partners_router.router, prefix="/api/partners", tags=["Partners"])
+app.include_router(quotes_router.router, prefix="/api/quotes", tags=["Quotes"])
+app.include_router(quote_items_router.router, prefix="/api", tags=["Quote Items"])
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])

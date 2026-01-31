@@ -1,6 +1,6 @@
 """GESTIMA - Modely"""
 
-from app.models.enums import StockType, StockShape, CuttingMode, FeatureType, UserRole, WorkCenterType
+from app.models.enums import StockType, StockShape, CuttingMode, FeatureType, UserRole, WorkCenterType, QuoteStatus
 from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
@@ -56,9 +56,21 @@ from app.models.partner import (
     PartnerUpdate,
     PartnerResponse
 )
+from app.models.quote import (
+    Quote,
+    QuoteItem,
+    QuoteCreate,
+    QuoteUpdate,
+    QuoteResponse,
+    QuoteWithItemsResponse,
+    QuoteListResponse,
+    QuoteItemCreate,
+    QuoteItemUpdate,
+    QuoteItemResponse
+)
 
 __all__ = [
-    "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType",
+    "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
     "User", "UserCreate", "UserUpdate", "UserResponse", "LoginRequest", "TokenResponse",
     "Part", "PartCreate", "PartUpdate", "PartResponse",
     "Operation", "OperationCreate", "OperationUpdate", "OperationResponse",
@@ -75,4 +87,7 @@ __all__ = [
     "SystemConfig", "SystemConfigCreate", "SystemConfigUpdate", "SystemConfigResponse",
     "WorkCenter", "WorkCenterCreate", "WorkCenterUpdate", "WorkCenterResponse",
     "Partner", "PartnerCreate", "PartnerUpdate", "PartnerResponse",
+    "Quote", "QuoteItem", "QuoteCreate", "QuoteUpdate", "QuoteResponse",
+    "QuoteWithItemsResponse", "QuoteListResponse",
+    "QuoteItemCreate", "QuoteItemUpdate", "QuoteItemResponse",
 ]

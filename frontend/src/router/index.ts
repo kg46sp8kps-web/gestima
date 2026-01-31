@@ -63,6 +63,24 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
+  // Quotes
+  {
+    path: '/quotes',
+    name: 'quotes-list',
+    component: () => import('@/views/quotes/QuotesListView.vue'),
+    meta: {
+      title: 'Nabídky'
+    }
+  },
+  {
+    path: '/quotes/:quoteNumber',
+    name: 'quote-detail',
+    component: () => import('@/views/quotes/QuoteDetailView.vue'),
+    meta: {
+      title: 'Detail nabídky'
+    }
+  },
+
   // Admin
   {
     path: '/admin/master-data',
