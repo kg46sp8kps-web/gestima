@@ -172,9 +172,19 @@ class MaterialInputResponse(MaterialInputBase):
     updated_at: datetime
 
 
+class OperationSummary(BaseModel):
+    """Lightweight Operation summary for MaterialInput response (avoids circular import)"""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    seq: int
+    name: str
+    type: str
+
+
 class MaterialInputWithOperationsResponse(MaterialInputResponse):
     """MaterialInput s eager-loaded operations"""
-    operations: List["OperationResponse"] = []  # Forward reference to avoid circular import
+    operations: List[OperationSummary] = []
 
 
 # ═══════════════════════════════════════════════════════════════

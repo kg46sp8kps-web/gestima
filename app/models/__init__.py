@@ -50,6 +50,12 @@ from app.models.work_center import (
     WorkCenterUpdate,
     WorkCenterResponse
 )
+from app.models.partner import (
+    Partner,
+    PartnerCreate,
+    PartnerUpdate,
+    PartnerResponse
+)
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType",
@@ -68,4 +74,5 @@ __all__ = [
     "CuttingConditionDB", "CuttingConditionCreate", "CuttingConditionResponse",
     "SystemConfig", "SystemConfigCreate", "SystemConfigUpdate", "SystemConfigResponse",
     "WorkCenter", "WorkCenterCreate", "WorkCenterUpdate", "WorkCenterResponse",
+    "Partner", "PartnerCreate", "PartnerUpdate", "PartnerResponse",
 ]

@@ -9,6 +9,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '../auth'
 import { authApi } from '@/api/auth'
 import type { User } from '@/types/auth'
+import { UserRole } from '@/types/auth'
 
 // Mock authApi
 vi.mock('@/api/auth', () => ({
@@ -18,6 +19,22 @@ vi.mock('@/api/auth', () => ({
     me: vi.fn()
   }
 }))
+
+// Helper to create valid User mock
+function createMockUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 1,
+    username: 'testuser',
+    email: null,
+    role: UserRole.OPERATOR,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00Z',
+    created_by: null,
+    updated_at: null,
+    updated_by: null,
+    ...overrides
+  }
+}
 
 describe('Auth Store', () => {
   beforeEach(() => {
@@ -55,13 +72,7 @@ describe('Auth Store', () => {
   // ==========================================================================
 
   describe('Login', () => {
-    const mockUser: User = {
-      id: 1,
-      username: 'testuser',
-      full_name: 'Test User',
-      role: 'operator',
-      created_at: '2026-01-01T00:00:00Z'
-    }
+    const mockUser = createMockUser()
 
     it('should login successfully and fetch user', async () => {
       const store = useAuthStore()
@@ -129,13 +140,7 @@ describe('Auth Store', () => {
   describe('Logout', () => {
     it('should logout successfully', async () => {
       const store = useAuthStore()
-      store.user = {
-        id: 1,
-        username: 'testuser',
-        full_name: 'Test User',
-        role: 'operator',
-        created_at: '2026-01-01T00:00:00Z'
-      }
+      store.user = createMockUser()
       ;(authApi.logout as Mock).mockResolvedValue(undefined)
 
       await store.logout()
@@ -147,13 +152,7 @@ describe('Auth Store', () => {
 
     it('should force logout even if API call fails', async () => {
       const store = useAuthStore()
-      store.user = {
-        id: 1,
-        username: 'testuser',
-        full_name: 'Test User',
-        role: 'operator',
-        created_at: '2026-01-01T00:00:00Z'
-      }
+      store.user = createMockUser()
       ;(authApi.logout as Mock).mockRejectedValue(new Error('Server error'))
 
       await store.logout()
@@ -168,13 +167,7 @@ describe('Auth Store', () => {
   // ==========================================================================
 
   describe('Fetch Current User', () => {
-    const mockUser: User = {
-      id: 1,
-      username: 'testuser',
-      full_name: 'Test User',
-      role: 'admin',
-      created_at: '2026-01-01T00:00:00Z'
-    }
+    const mockUser = createMockUser({ role: UserRole.ADMIN })
 
     it('should fetch current user successfully', async () => {
       const store = useAuthStore()
@@ -206,50 +199,32 @@ describe('Auth Store', () => {
   describe('Permissions', () => {
     it('should correctly identify admin role', () => {
       const store = useAuthStore()
-      store.user = {
-        id: 1,
-        username: 'admin',
-        full_name: 'Admin User',
-        role: 'admin',
-        created_at: '2026-01-01T00:00:00Z'
-      }
+      store.user = createMockUser({ username: 'admin', role: UserRole.ADMIN })
 
       expect(store.isAdmin).toBe(true)
       expect(store.isOperator).toBe(true) // admin >= operator
       expect(store.isViewer).toBe(true) // admin >= viewer
-      expect(store.currentRole).toBe('admin')
+      expect(store.currentRole).toBe(UserRole.ADMIN)
     })
 
     it('should correctly identify operator role', () => {
       const store = useAuthStore()
-      store.user = {
-        id: 2,
-        username: 'operator',
-        full_name: 'Operator User',
-        role: 'operator',
-        created_at: '2026-01-01T00:00:00Z'
-      }
+      store.user = createMockUser({ username: 'operator', role: UserRole.OPERATOR })
 
       expect(store.isAdmin).toBe(false)
       expect(store.isOperator).toBe(true)
       expect(store.isViewer).toBe(true) // operator >= viewer
-      expect(store.currentRole).toBe('operator')
+      expect(store.currentRole).toBe(UserRole.OPERATOR)
     })
 
     it('should correctly identify viewer role', () => {
       const store = useAuthStore()
-      store.user = {
-        id: 3,
-        username: 'viewer',
-        full_name: 'Viewer User',
-        role: 'viewer',
-        created_at: '2026-01-01T00:00:00Z'
-      }
+      store.user = createMockUser({ username: 'viewer', role: UserRole.VIEWER })
 
       expect(store.isAdmin).toBe(false)
       expect(store.isOperator).toBe(false)
       expect(store.isViewer).toBe(true)
-      expect(store.currentRole).toBe('viewer')
+      expect(store.currentRole).toBe(UserRole.VIEWER)
     })
 
     it('should handle no user (unauthenticated)', () => {
@@ -269,13 +244,7 @@ describe('Auth Store', () => {
   describe('Clear Auth', () => {
     it('should clear auth state', () => {
       const store = useAuthStore()
-      store.user = {
-        id: 1,
-        username: 'test',
-        full_name: 'Test',
-        role: 'admin',
-        created_at: '2026-01-01T00:00:00Z'
-      }
+      store.user = createMockUser({ username: 'test', role: UserRole.ADMIN })
       store.error = 'Some error'
 
       store.clearAuth()

@@ -24,150 +24,11 @@ templates = Jinja2Templates(directory="app/templates")
 
 # ========== MATERIAL NORMS ==========
 
-@router.get("/master-data", response_class=HTMLResponse)
-async def admin_master_data_page(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN]))
-):
-    """
-    Admin page: Master Data - centrální správa kmenových dat.
-
-    UI zobrazuje taby:
-    - Tab 1: Material Norms (W.Nr | EN ISO | ČSN | AISI → MaterialGroup)
-    - Tab 2: Material Groups (code, name, density)
-    - Tab 3: Price Categories (code, name, material_group, tiers)
-    - Tab 4: Work Centers / Machines (pracoviště, stroje, sazby)
-    - Tab 5: System Config (koeficienty)
-    """
-    from app.models.material import MaterialPriceCategory, MaterialPriceTier
-
-    # Tab 1: Material Norms
-    result = await db.execute(
-        select(MaterialNorm)
-        .options(selectinload(MaterialNorm.material_group))
-        .where(MaterialNorm.deleted_at.is_(None))
-        .order_by(MaterialNorm.id)
-    )
-    norms_orm = result.scalars().all()
-
-    norms_json = [
-        {
-            "id": norm.id,
-            "w_nr": norm.w_nr,
-            "en_iso": norm.en_iso,
-            "csn": norm.csn,
-            "aisi": norm.aisi,
-            "material_group_id": norm.material_group_id,
-            "material_group": {
-                "id": norm.material_group.id,
-                "code": norm.material_group.code,
-                "name": norm.material_group.name,
-                "density": float(norm.material_group.density)
-            } if norm.material_group else None,
-            "note": norm.note,
-            "version": norm.version
-        }
-        for norm in norms_orm
-    ]
-
-    # Tab 2: Material Groups
-    result_groups = await db.execute(
-        select(MaterialGroup)
-        .where(MaterialGroup.deleted_at.is_(None))
-        .order_by(MaterialGroup.code)
-    )
-    groups_orm = result_groups.scalars().all()
-
-    groups_json = [
-        {
-            "id": g.id,
-            "code": g.code,
-            "name": g.name,
-            "density": float(g.density),
-            "version": g.version
-        }
-        for g in groups_orm
-    ]
-
-    # Tab 3: Price Categories with Tiers
-    result_categories = await db.execute(
-        select(MaterialPriceCategory)
-        .options(
-            selectinload(MaterialPriceCategory.material_group),
-            selectinload(MaterialPriceCategory.tiers)
-        )
-        .where(MaterialPriceCategory.deleted_at.is_(None))
-        .order_by(MaterialPriceCategory.code)
-    )
-    categories_orm = result_categories.scalars().all()
-
-    categories_json = [
-        {
-            "id": c.id,
-            "code": c.code,
-            "name": c.name,
-            "material_group_id": c.material_group_id,
-            "material_group": {
-                "id": c.material_group.id,
-                "code": c.material_group.code,
-                "name": c.material_group.name,
-                "density": float(c.material_group.density)
-            } if c.material_group else None,
-            "tiers": [
-                {
-                    "id": t.id,
-                    "min_weight": float(t.min_weight),
-                    "max_weight": float(t.max_weight) if t.max_weight else None,
-                    "price_per_kg": float(t.price_per_kg),
-                    "version": t.version
-                }
-                for t in sorted(c.tiers, key=lambda x: x.min_weight)
-            ],
-            "version": c.version
-        }
-        for c in categories_orm
-    ]
-
-    # Tab 4: Work Centers
-    from app.models.work_center import WorkCenter, WorkCenterResponse
-    from app.models.enums import WorkCenterType
-
-    result_work_centers = await db.execute(
-        select(WorkCenter)
-        .where(WorkCenter.deleted_at.is_(None))
-        .order_by(WorkCenter.priority.asc(), WorkCenter.name.asc())
-    )
-    work_centers_orm = result_work_centers.scalars().all()
-
-    work_centers_json = [
-        WorkCenterResponse.from_orm(wc).model_dump(mode="json")
-        for wc in work_centers_orm
-    ]
-
-    # Work center types for dropdown
-    work_center_types = [
-        {"value": t.value, "name": t.name}
-        for t in WorkCenterType
-    ]
-
-    # Tab 5: System Config
-    result_config = await db.execute(
-        select(SystemConfig).order_by(SystemConfig.key)
-    )
-    configs = result_config.scalars().all()
-
-    return templates.TemplateResponse("admin/master_data.html", {
-        "request": request,
-        "norms": norms_orm,
-        "norms_json": norms_json,
-        "groups_json": groups_json,
-        "categories_json": categories_json,
-        "work_centers_json": work_centers_json,
-        "work_center_types": work_center_types,
-        "configs": configs,
-        "current_user": current_user
-    })
+# LEGACY: Commented out - replaced by Vue SPA
+# @router.get("/master-data", response_class=HTMLResponse)
+# async def admin_master_data_page(...):
+#     """Vue SPA now handles /admin/master-data route"""
+#     pass
 
 
 @router.get("/api/material-groups")
@@ -186,6 +47,45 @@ async def api_get_material_groups(
     )
     groups = result.scalars().all()
     return [MaterialGroupResponse.model_validate(g) for g in groups]
+
+
+@router.get("/api/material-norms", response_model=List[Dict[str, Any]])
+async def api_list_material_norms(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    API: List all material norms with material_group eagerly loaded.
+    """
+    result = await db.execute(
+        select(MaterialNorm)
+        .options(selectinload(MaterialNorm.material_group))
+        .where(MaterialNorm.deleted_at.is_(None))
+        .order_by(MaterialNorm.id)
+    )
+    norms = result.scalars().all()
+
+    return [
+        {
+            "id": norm.id,
+            "w_nr": norm.w_nr,
+            "en_iso": norm.en_iso,
+            "csn": norm.csn,
+            "aisi": norm.aisi,
+            "material_group_id": norm.material_group_id,
+            "material_group": {
+                "id": norm.material_group.id,
+                "code": norm.material_group.code,
+                "name": norm.material_group.name,
+                "density": float(norm.material_group.density)
+            } if norm.material_group else None,
+            "note": norm.note,
+            "version": norm.version,
+            "created_at": norm.created_at.isoformat(),
+            "updated_at": norm.updated_at.isoformat()
+        }
+        for norm in norms
+    ]
 
 
 @router.get("/api/material-norms/search")

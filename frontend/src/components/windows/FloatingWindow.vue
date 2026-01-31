@@ -5,7 +5,7 @@
  */
 
 import { ref, computed } from 'vue'
-import { useWindowsStore, type WindowState } from '@/stores/windows'
+import { useWindowsStore, type WindowState, type LinkingGroup } from '@/stores/windows'
 
 interface Props {
   window: WindowState
@@ -27,6 +27,9 @@ const resizeStartX = ref(0)
 const resizeStartY = ref(0)
 const resizeStartWidth = ref(0)
 const resizeStartHeight = ref(0)
+
+// Color dropdown state
+const showColorDropdown = ref(false)
 
 // Window style
 const windowStyle = computed(() => {
@@ -51,6 +54,15 @@ const windowStyle = computed(() => {
 
 // Snap threshold (pixels)
 const SNAP_THRESHOLD = 15
+
+// Min window dimensions (read from CSS variable)
+const getMinWidth = () => {
+  const cssValue = getComputedStyle(document.documentElement)
+    .getPropertyValue('--density-window-min-width')
+    .trim()
+  return cssValue ? parseInt(cssValue, 10) : 300
+}
+const MIN_HEIGHT = 200
 
 // Drag handlers
 function startDrag(event: MouseEvent) {
@@ -193,8 +205,8 @@ function onResizeMove(event: MouseEvent) {
   const deltaX = event.clientX - resizeStartX.value
   const deltaY = event.clientY - resizeStartY.value
 
-  let newWidth = Math.max(400, resizeStartWidth.value + deltaX)
-  let newHeight = Math.max(300, resizeStartHeight.value + deltaY)
+  let newWidth = Math.max(getMinWidth(), resizeStartWidth.value + deltaX)
+  let newHeight = Math.max(MIN_HEIGHT, resizeStartHeight.value + deltaY)
 
   // Apply screen boundaries (prevent resizing outside)
   const maxWidth = window.innerWidth - props.window.x
@@ -272,6 +284,20 @@ function onResizeEnd() {
   document.removeEventListener('mouseup', onResizeEnd)
 }
 
+// Linking group colors
+const linkingGroupColors = {
+  red: '🔴',
+  blue: '🔵',
+  green: '🟢',
+  yellow: '🟡',
+  null: '⚪'
+}
+
+// Computed
+const linkingGroupDot = computed(() => {
+  return linkingGroupColors[props.window.linkingGroup || 'null']
+})
+
 // Window actions
 function handleClose() {
   store.closeWindow(props.window.id)
@@ -288,6 +314,24 @@ function handleMaximize() {
 function handleFocus() {
   store.bringToFront(props.window.id)
 }
+
+function toggleColorDropdown() {
+  showColorDropdown.value = !showColorDropdown.value
+}
+
+function setLinkingGroup(group: LinkingGroup) {
+  store.setWindowLinkingGroup(props.window.id, group)
+  showColorDropdown.value = false
+}
+
+// Color options
+const colorOptions = [
+  { value: 'red' as LinkingGroup, icon: '🔴', label: 'Red' },
+  { value: 'blue' as LinkingGroup, icon: '🔵', label: 'Blue' },
+  { value: 'green' as LinkingGroup, icon: '🟢', label: 'Green' },
+  { value: 'yellow' as LinkingGroup, icon: '🟡', label: 'Yellow' },
+  { value: null as LinkingGroup, icon: '⚪', label: 'Unlinked' }
+]
 </script>
 
 <template>
@@ -303,7 +347,33 @@ function handleFocus() {
   >
     <!-- Titlebar -->
     <div class="window-titlebar" @mousedown="startDrag">
-      <div class="window-title">{{ window.title }}</div>
+      <div class="window-title-row">
+        <!-- Color dropdown on dot -->
+        <div class="color-dropdown-wrapper">
+          <span
+            class="linking-dot clickable"
+            @click.stop="toggleColorDropdown"
+            title="Click to change linking group"
+          >
+            {{ linkingGroupDot }}
+          </span>
+          <Transition name="dropdown-fade">
+            <div v-if="showColorDropdown" class="color-dropdown" @click.stop>
+              <button
+                v-for="opt in colorOptions"
+                :key="opt.value || 'none'"
+                class="color-option"
+                :class="{ 'is-active': window.linkingGroup === opt.value }"
+                @click="setLinkingGroup(opt.value)"
+              >
+                <span class="option-icon">{{ opt.icon }}</span>
+                <span class="option-label">{{ opt.label }}</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
+        <span class="window-title">{{ window.title }}</span>
+      </div>
       <div class="window-controls">
         <button class="btn-control btn-minimize" @click="handleMinimize" title="Minimize">
           −
@@ -363,9 +433,9 @@ function handleFocus() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem 0.5rem;
   background: var(--bg-secondary);
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   cursor: move;
   user-select: none;
 }
@@ -374,26 +444,120 @@ function handleFocus() {
   cursor: default;
 }
 
+.window-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.color-dropdown-wrapper {
+  position: relative;
+}
+
+.linking-dot {
+  font-size: 0.625rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.linking-dot.clickable {
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  transition: background 150ms;
+}
+
+.linking-dot.clickable:hover {
+  background: var(--bg-hover);
+}
+
+/* Color Dropdown */
+.color-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 120px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem;
+  z-index: 10000;
+}
+
+.color-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.color-option:hover {
+  background: var(--bg-primary, #f3f4f6);
+}
+
+.color-option.is-active {
+  background: var(--accent-subtle, #fee2e2);
+  font-weight: 500;
+}
+
+.option-icon {
+  font-size: 0.875rem;
+  width: 16px;
+  text-align: center;
+}
+
+.option-label {
+  flex: 1;
+}
+
+/* Dropdown Transition */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .window-title {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .window-controls {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.125rem;
+  flex-shrink: 0;
 }
 
 .btn-control {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border: none;
   background: var(--bg-card);
   color: var(--text-primary);
-  font-size: 1.2rem;
+  font-size: 0.875rem;
   line-height: 1;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -403,7 +567,7 @@ function handleFocus() {
 
 .btn-control:hover {
   background: var(--bg-hover);
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .btn-close:hover {
@@ -415,7 +579,7 @@ function handleFocus() {
 .window-content {
   flex: 1;
   overflow: auto;
-  padding: 1rem;
+  padding: var(--density-window-content-padding, 0.5rem);
 }
 
 /* Resize handle */

@@ -1,5 +1,6 @@
 /**
  * GESTIMA - Operations Pinia Store
+ * MULTI-CONTEXT PATTERN: Supports per-linkingGroup contexts for multi-window workflow
  *
  * Manages operations for parts.
  */
@@ -13,51 +14,96 @@ import type {
   OperationCreate,
   OperationUpdate,
   WorkCenter,
+  WorkCenterCreate,
+  WorkCenterUpdate,
   CuttingMode,
   OperationType
 } from '@/types'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
+import type { LinkingGroup } from './windows'
+
+/**
+ * Per-window context state
+ */
+interface OperationsContext {
+  operations: Operation[]
+  loading: boolean
+  error: string | null
+  expandedOps: Record<number, boolean>
+}
 
 export const useOperationsStore = defineStore('operations', () => {
   // ═══════════════════════════════════════════════════════════════════════════
-  // State
+  // State - Multi-context pattern
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const operations = ref<Operation[]>([])
+  const contexts = ref<Map<string, OperationsContext>>(new Map())
+
+  /**
+   * Get or create context for a linking group
+   */
+  function getOrCreateContext(linkingGroup: LinkingGroup): OperationsContext {
+    const key = linkingGroup || 'unlinked'
+    if (!contexts.value.has(key)) {
+      contexts.value.set(key, {
+        operations: [],
+        loading: false,
+        error: null,
+        expandedOps: {}
+      })
+    }
+    return contexts.value.get(key)!
+  }
+
+  /**
+   * Get context (for direct access in components)
+   */
+  function getContext(linkingGroup: LinkingGroup): OperationsContext {
+    return getOrCreateContext(linkingGroup)
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // State - Global (shared across all windows)
+  // ═══════════════════════════════════════════════════════════════════════════
+
   const workCenters = ref<WorkCenter[]>([])
-  const loading = ref(false)
   const saving = ref(false)
-  const error = ref<string | null>(null)
-  const expandedOps = ref<Record<number, boolean>>({})
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Getters
+  // Getters - Per-context
   // ═══════════════════════════════════════════════════════════════════════════
 
   /** Operations sorted by sequence */
-  const sortedOperations = computed(() =>
-    [...operations.value].sort((a, b) => a.seq - b.seq)
-  )
+  function getSortedOperations(linkingGroup: LinkingGroup): Operation[] {
+    const ctx = getOrCreateContext(linkingGroup)
+    return [...ctx.operations].sort((a, b) => a.seq - b.seq)
+  }
 
   /** Internal operations (not coop) */
-  const internalOperations = computed(() =>
-    sortedOperations.value.filter(op => !op.is_coop)
-  )
+  function getInternalOperations(linkingGroup: LinkingGroup): Operation[] {
+    return getSortedOperations(linkingGroup).filter(op => !op.is_coop)
+  }
 
   /** Cooperation operations */
-  const coopOperations = computed(() =>
-    sortedOperations.value.filter(op => op.is_coop)
-  )
+  function getCoopOperations(linkingGroup: LinkingGroup): Operation[] {
+    return getSortedOperations(linkingGroup).filter(op => op.is_coop)
+  }
 
   /** Total setup time in minutes */
-  const totalSetupTime = computed(() =>
-    operations.value.reduce((sum, op) => sum + (op.setup_time_min || 0), 0)
-  )
+  function getTotalSetupTime(linkingGroup: LinkingGroup): number {
+    const ctx = getOrCreateContext(linkingGroup)
+    return ctx.operations.reduce((sum, op) => sum + (op.setup_time_min || 0), 0)
+  }
 
   /** Total operation time in minutes */
-  const totalOperationTime = computed(() =>
-    operations.value.reduce((sum, op) => sum + (op.operation_time_min || 0), 0)
-  )
+  function getTotalOperationTime(linkingGroup: LinkingGroup): number {
+    const ctx = getOrCreateContext(linkingGroup)
+    return ctx.operations.reduce((sum, op) => sum + (op.operation_time_min || 0), 0)
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Getters - Global
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /** Active work centers only */
   const activeWorkCenters = computed(() =>
@@ -82,37 +128,40 @@ export const useOperationsStore = defineStore('operations', () => {
   /**
    * Load operations for a part
    */
-  async function loadOperations(partId: number): Promise<void> {
+  async function loadOperations(partId: number, linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+
     if (!partId) {
-      operations.value = []
+      ctx.operations = []
       return
     }
 
-    loading.value = true
-    error.value = null
+    ctx.loading = true
+    ctx.error = null
 
     try {
-      operations.value = await operationsApi.listByPart(partId)
-      console.debug(`[operations] Loaded ${operations.value.length} operations for part ${partId}`)
+      ctx.operations = await operationsApi.listByPart(partId)
+      console.debug(`[operations] Loaded ${ctx.operations.length} operations for part ${partId}`)
     } catch (err) {
       console.error('[operations] Load error:', err)
-      error.value = 'Chyba při načítání operací'
-      operations.value = []
+      ctx.error = 'Chyba při načítání operací'
+      ctx.operations = []
     } finally {
-      loading.value = false
+      ctx.loading = false
     }
   }
 
   /**
    * Add new operation
    */
-  async function addOperation(partId: number): Promise<Operation | null> {
+  async function addOperation(partId: number, linkingGroup: LinkingGroup): Promise<Operation | null> {
     const ui = useUiStore()
+    const ctx = getOrCreateContext(linkingGroup)
 
     try {
       // Calculate next sequence number
-      const nextSeq = operations.value.length > 0
-        ? Math.max(...operations.value.map(o => o.seq)) + 10
+      const nextSeq = ctx.operations.length > 0
+        ? Math.max(...ctx.operations.map(o => o.seq)) + 10
         : 10
 
       const payload: OperationCreate = {
@@ -128,10 +177,10 @@ export const useOperationsStore = defineStore('operations', () => {
       }
 
       const newOp = await operationsApi.create(payload)
-      operations.value.push(newOp)
+      ctx.operations.push(newOp)
 
       // Expand new operation
-      expandedOps.value[newOp.id] = true
+      ctx.expandedOps[newOp.id] = true
 
       ui.showToast('Operace přidána', 'success')
       return newOp
@@ -146,11 +195,12 @@ export const useOperationsStore = defineStore('operations', () => {
   /**
    * Update operation (with optimistic locking)
    */
-  async function updateOperation(operationId: number, updates: Partial<OperationUpdate>): Promise<Operation | null> {
+  async function updateOperation(operationId: number, updates: Partial<OperationUpdate>, linkingGroup: LinkingGroup): Promise<Operation | null> {
     const ui = useUiStore()
+    const ctx = getOrCreateContext(linkingGroup)
 
     // Find current operation
-    const current = operations.value.find(o => o.id === operationId)
+    const current = ctx.operations.find(o => o.id === operationId)
     if (!current) {
       ui.showToast('Operace nenalezena', 'error')
       return null
@@ -167,9 +217,9 @@ export const useOperationsStore = defineStore('operations', () => {
       const updated = await operationsApi.update(operationId, payload)
 
       // Update local state
-      const idx = operations.value.findIndex(o => o.id === operationId)
+      const idx = ctx.operations.findIndex(o => o.id === operationId)
       if (idx !== -1) {
-        operations.value[idx] = updated
+        ctx.operations[idx] = updated
       }
 
       return updated
@@ -192,15 +242,16 @@ export const useOperationsStore = defineStore('operations', () => {
   /**
    * Delete operation
    */
-  async function deleteOperation(operationId: number): Promise<boolean> {
+  async function deleteOperation(operationId: number, linkingGroup: LinkingGroup): Promise<boolean> {
     const ui = useUiStore()
+    const ctx = getOrCreateContext(linkingGroup)
 
     try {
       await operationsApi.delete(operationId)
 
       // Remove from local state
-      operations.value = operations.value.filter(o => o.id !== operationId)
-      delete expandedOps.value[operationId]
+      ctx.operations = ctx.operations.filter(o => o.id !== operationId)
+      delete ctx.expandedOps[operationId]
 
       ui.showToast('Operace smazána', 'success')
       return true
@@ -215,11 +266,12 @@ export const useOperationsStore = defineStore('operations', () => {
   /**
    * Change cutting mode
    */
-  async function changeMode(operationId: number, mode: CuttingMode): Promise<Operation | null> {
+  async function changeMode(operationId: number, mode: CuttingMode, linkingGroup: LinkingGroup): Promise<Operation | null> {
     const ui = useUiStore()
+    const ctx = getOrCreateContext(linkingGroup)
 
     // Find current operation
-    const current = operations.value.find(o => o.id === operationId)
+    const current = ctx.operations.find(o => o.id === operationId)
     if (!current) return null
 
     try {
@@ -229,9 +281,9 @@ export const useOperationsStore = defineStore('operations', () => {
       })
 
       // Update local state
-      const idx = operations.value.findIndex(o => o.id === operationId)
+      const idx = ctx.operations.findIndex(o => o.id === operationId)
       if (idx !== -1) {
-        operations.value[idx] = updated
+        ctx.operations[idx] = updated
       }
 
       ui.showToast(`Režim nastaven na ${mode.toUpperCase()}`, 'success')
@@ -247,25 +299,28 @@ export const useOperationsStore = defineStore('operations', () => {
   /**
    * Toggle cooperation mode
    */
-  async function toggleCoopMode(operationId: number): Promise<Operation | null> {
-    const current = operations.value.find(o => o.id === operationId)
+  async function toggleCoopMode(operationId: number, linkingGroup: LinkingGroup): Promise<Operation | null> {
+    const ctx = getOrCreateContext(linkingGroup)
+    const current = ctx.operations.find(o => o.id === operationId)
     if (!current) return null
 
     return updateOperation(operationId, {
       is_coop: !current.is_coop
-    })
+    }, linkingGroup)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UI Helpers
   // ═══════════════════════════════════════════════════════════════════════════
 
-  function toggleExpand(operationId: number): void {
-    expandedOps.value[operationId] = !expandedOps.value[operationId]
+  function toggleExpand(operationId: number, linkingGroup: LinkingGroup): void {
+    const ctx = getOrCreateContext(linkingGroup)
+    ctx.expandedOps[operationId] = !ctx.expandedOps[operationId]
   }
 
-  function isExpanded(operationId: number): boolean {
-    return !!expandedOps.value[operationId]
+  function isExpanded(operationId: number, linkingGroup: LinkingGroup): boolean {
+    const ctx = getOrCreateContext(linkingGroup)
+    return !!ctx.expandedOps[operationId]
   }
 
   function getWorkCenterName(workCenterId: number | null): string {
@@ -287,37 +342,96 @@ export const useOperationsStore = defineStore('operations', () => {
     if (!wc) {
       return defaultType
     }
-    return OPERATION_TYPE_MAP[wc.type] ?? defaultType
+    return OPERATION_TYPE_MAP[wc.work_center_type] ?? defaultType
   }
 
   /**
-   * Clear all state
+   * Create new work center
    */
-  function clearOperations(): void {
-    operations.value = []
-    expandedOps.value = {}
-    error.value = null
+  async function createWorkCenter(data: WorkCenterCreate): Promise<WorkCenter> {
+    saving.value = true
+    try {
+      const created = await workCentersApi.create(data)
+      workCenters.value.push(created)
+      return created
+    } finally {
+      saving.value = false
+    }
+  }
+
+  /**
+   * Update work center by number
+   */
+  async function updateWorkCenter(workCenterNumber: string, data: WorkCenterUpdate): Promise<WorkCenter> {
+    saving.value = true
+    try {
+      const updated = await workCentersApi.update(workCenterNumber, data)
+      const index = workCenters.value.findIndex(wc => wc.work_center_number === workCenterNumber)
+      if (index !== -1) {
+        workCenters.value[index] = updated
+      }
+      return updated
+    } finally {
+      saving.value = false
+    }
+  }
+
+  /**
+   * Delete work center by number
+   */
+  async function deleteWorkCenter(workCenterNumber: string): Promise<void> {
+    await workCentersApi.delete(workCenterNumber)
+    workCenters.value = workCenters.value.filter(wc => wc.work_center_number !== workCenterNumber)
+  }
+
+  /**
+   * Clear context state
+   */
+  function clearOperations(linkingGroup: LinkingGroup): void {
+    const ctx = getOrCreateContext(linkingGroup)
+    ctx.operations = []
+    ctx.expandedOps = {}
+    ctx.error = null
+  }
+
+  /**
+   * Reset context for a linking group
+   */
+  function reset(linkingGroup: LinkingGroup): void {
+    const key = linkingGroup || 'unlinked'
+    contexts.value.delete(key)
+  }
+
+  /**
+   * Reset all contexts
+   */
+  function resetAll(): void {
+    contexts.value.clear()
   }
 
   return {
-    // State
-    operations,
+    // State - Global
     workCenters,
-    loading,
     saving,
-    error,
-    expandedOps,
 
-    // Getters
-    sortedOperations,
-    internalOperations,
-    coopOperations,
-    totalSetupTime,
-    totalOperationTime,
+    // Getters - Per-context
+    getContext,
+    getSortedOperations,
+    getInternalOperations,
+    getCoopOperations,
+    getTotalSetupTime,
+    getTotalOperationTime,
+
+    // Getters - Global
     activeWorkCenters,
 
-    // Actions
+    // Actions - Work Centers
     loadWorkCenters,
+    createWorkCenter,
+    updateWorkCenter,
+    deleteWorkCenter,
+
+    // Actions - Operations
     loadOperations,
     addOperation,
     updateOperation,
@@ -330,6 +444,10 @@ export const useOperationsStore = defineStore('operations', () => {
     isExpanded,
     getWorkCenterName,
     getOperationTypeFromWorkCenter,
-    clearOperations
+
+    // Reset
+    clearOperations,
+    reset,
+    resetAll
   }
 })

@@ -48,9 +48,9 @@ describe('DataTable Component', () => {
       })
 
       const headers = wrapper.findAll('th')
-      expect(headers[0].text()).toContain('Name')
-      expect(headers[1].text()).toContain('Age')
-      expect(headers[2].text()).toContain('Active')
+      expect(headers[0]!.text()).toContain('Name')
+      expect(headers[1]!.text()).toContain('Age')
+      expect(headers[2]!.text()).toContain('Active')
     })
 
     it('should render cell values', () => {
@@ -61,12 +61,12 @@ describe('DataTable Component', () => {
         }
       })
 
-      const firstRow = wrapper.findAll('tbody tr')[0]
+      const firstRow = wrapper.findAll('tbody tr')[0]!
       const cells = firstRow.findAll('td')
 
-      expect(cells[0].text()).toBe('Alice')
-      expect(cells[1].text()).toContain('25') // formatNumber adds spaces
-      expect(cells[2].text()).toBe('✓') // boolean format
+      expect(cells[0]!.text()).toBe('Alice')
+      expect(cells[1]!.text()).toContain('25') // formatNumber adds spaces
+      expect(cells[2]!.text()).toBe('✓') // boolean format
     })
 
     it('should show loading state', () => {
@@ -128,8 +128,8 @@ describe('DataTable Component', () => {
 
       const headers = wrapper.findAll('th')
       expect(headers).toHaveLength(2) // Only name and active
-      expect(headers[0].text()).toContain('Name')
-      expect(headers[1].text()).toContain('Active')
+      expect(headers[0]!.text()).toContain('Name')
+      expect(headers[1]!.text()).toContain('Active')
     })
   })
 
@@ -183,8 +183,8 @@ describe('DataTable Component', () => {
       })
 
       const cells = wrapper.findAll('tbody td')
-      expect(cells[0].text()).toBe('✓')
-      expect(cells[1].text()).toBe('✗')
+      expect(cells[0]!.text()).toBe('✓')
+      expect(cells[1]!.text()).toBe('✗')
     })
 
     it('should show dash for null/undefined', () => {
@@ -215,7 +215,7 @@ describe('DataTable Component', () => {
         }
       })
 
-      const nameHeader = wrapper.findAll('th')[0]
+      const nameHeader = wrapper.findAll('th')[0]!
       expect(nameHeader.classes()).toContain('sortable')
       expect(nameHeader.find('.sort-icon').exists()).toBe(true)
     })
@@ -228,7 +228,7 @@ describe('DataTable Component', () => {
         }
       })
 
-      const nameHeader = wrapper.findAll('th')[0]
+      const nameHeader = wrapper.findAll('th')[0]!
       await nameHeader.trigger('click')
 
       expect(wrapper.emitted('sort')).toBeTruthy()
@@ -247,7 +247,7 @@ describe('DataTable Component', () => {
         }
       })
 
-      const nameHeader = wrapper.findAll('th')[0]
+      const nameHeader = wrapper.findAll('th')[0]!
       await nameHeader.trigger('click')
 
       expect(wrapper.emitted('sort')![0]).toEqual([
@@ -265,7 +265,7 @@ describe('DataTable Component', () => {
         }
       })
 
-      const nameHeader = wrapper.findAll('th')[0]
+      const nameHeader = wrapper.findAll('th')[0]!
       expect(nameHeader.classes()).toContain('sorted')
       expect(nameHeader.text()).toContain('↑')
     })
@@ -350,14 +350,14 @@ describe('DataTable Component', () => {
     it('should disable previous button on first page', () => {
       const wrapper = mount(DataTable, { props: paginationProps })
 
-      const prevBtn = wrapper.findAll('.pagination-btn')[0]
+      const prevBtn = wrapper.findAll('.pagination-btn')[0]!
       expect(prevBtn.attributes('disabled')).toBeDefined()
     })
 
     it('should enable next button when hasNextPage', () => {
       const wrapper = mount(DataTable, { props: paginationProps })
 
-      const nextBtn = wrapper.findAll('.pagination-btn')[1]
+      const nextBtn = wrapper.findAll('.pagination-btn')[1]!
       expect(nextBtn.attributes('disabled')).toBeUndefined()
     })
 
@@ -369,14 +369,14 @@ describe('DataTable Component', () => {
         }
       })
 
-      const nextBtn = wrapper.findAll('.pagination-btn')[1]
+      const nextBtn = wrapper.findAll('.pagination-btn')[1]!
       expect(nextBtn.attributes('disabled')).toBeDefined()
     })
 
     it('should emit page-change on button click', async () => {
       const wrapper = mount(DataTable, { props: paginationProps })
 
-      const nextBtn = wrapper.findAll('.pagination-btn')[1]
+      const nextBtn = wrapper.findAll('.pagination-btn')[1]!
       await nextBtn.trigger('click')
 
       expect(wrapper.emitted('page-change')).toBeTruthy()
@@ -413,8 +413,8 @@ describe('DataTable Component', () => {
       })
 
       const cells = wrapper.findAll('tbody td')
-      expect(cells[0].text()).toBe('Alice')
-      expect(cells[1].text()).toBe('alice@example.com')
+      expect(cells[0]!.text()).toBe('Alice')
+      expect(cells[1]!.text()).toBe('alice@example.com')
     })
   })
 })

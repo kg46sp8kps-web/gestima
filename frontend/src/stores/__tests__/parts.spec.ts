@@ -22,6 +22,30 @@ vi.mock('@/api/parts', () => ({
   deletePart: vi.fn()
 }))
 
+// Helper to create valid Part mock
+function createMockPart(overrides: Partial<Part> = {}): Part {
+  return {
+    id: 1,
+    part_number: '1000001',
+    article_number: null,
+    name: 'Test Part',
+    material_item_id: null,
+    price_category_id: null,
+    length: 0,
+    notes: '',
+    stock_shape: 'round_bar',
+    stock_diameter: null,
+    stock_length: null,
+    stock_width: null,
+    stock_height: null,
+    stock_wall_thickness: null,
+    version: 1,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    ...overrides
+  }
+}
+
 describe('Parts Store', () => {
   let uiStore: ReturnType<typeof useUiStore>
 
@@ -64,34 +88,8 @@ describe('Parts Store', () => {
 
   describe('Fetch Parts', () => {
     const mockParts: Part[] = [
-      {
-        id: 1,
-        part_number: '1000001',
-        name: 'Test Part 1',
-        material_item_id: null,
-        stock_type: 'bar',
-        stock_diameter: null,
-        stock_length: null,
-        stock_width: null,
-        stock_height: null,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      },
-      {
-        id: 2,
-        part_number: '1000002',
-        name: 'Test Part 2',
-        material_item_id: null,
-        stock_type: 'sheet',
-        stock_diameter: null,
-        stock_length: null,
-        stock_width: null,
-        stock_height: null,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      }
+      createMockPart({ id: 1, part_number: '1000001', name: 'Test Part 1' }),
+      createMockPart({ id: 2, part_number: '1000002', name: 'Test Part 2', stock_shape: 'plate' })
     ]
 
     it('should fetch parts successfully', async () => {
@@ -128,7 +126,7 @@ describe('Parts Store', () => {
       await expect(store.fetchParts()).rejects.toThrow('Network error')
       expect(store.loading).toBe(false)
       expect(uiStore.toasts.length).toBeGreaterThan(0)
-      expect(uiStore.toasts[0].type).toBe('error')
+      expect(uiStore.toasts[0]!.type).toBe('error')
     })
 
     it('should use pagination parameters', async () => {
@@ -151,22 +149,7 @@ describe('Parts Store', () => {
     it('should search parts when searchQuery is set', async () => {
       const store = usePartsStore()
       const searchResponse = {
-        parts: [
-          {
-            id: 1,
-            part_number: '1000001',
-            name: 'Searched Part',
-            material_item_id: null,
-            stock_type: 'bar' as const,
-            stock_diameter: null,
-            stock_length: null,
-            stock_width: null,
-            stock_height: null,
-            version: 1,
-            created_at: '2026-01-01T00:00:00Z',
-            created_by: 1
-          }
-        ],
+        parts: [createMockPart({ name: 'Searched Part' })],
         total: 1,
         skip: 0,
         limit: 50
@@ -208,20 +191,7 @@ describe('Parts Store', () => {
   // ==========================================================================
 
   describe('Fetch Single Part', () => {
-    const mockPart: Part = {
-      id: 1,
-      part_number: '1000001',
-      name: 'Test Part',
-      material_item_id: null,
-      stock_type: 'bar',
-      stock_diameter: null,
-      stock_length: null,
-      stock_width: null,
-      stock_height: null,
-      version: 1,
-      created_at: '2026-01-01T00:00:00Z',
-      created_by: 1
-    }
+    const mockPart = createMockPart()
 
     it('should fetch single part successfully', async () => {
       const store = usePartsStore()
@@ -238,7 +208,7 @@ describe('Parts Store', () => {
       ;(partsApi.getPart as Mock).mockRejectedValue(new Error('Not found'))
 
       await expect(store.fetchPart('9999999')).rejects.toThrow('Not found')
-      expect(uiStore.toasts[0].type).toBe('error')
+      expect(uiStore.toasts[0]!.type).toBe('error')
     })
   })
 
@@ -251,22 +221,15 @@ describe('Parts Store', () => {
       const store = usePartsStore()
       const createData: PartCreate = {
         name: 'New Part',
-        stock_type: 'bar'
+        stock_shape: 'round_bar'
       }
-      const newPart: Part = {
+      const newPart = createMockPart({
         id: 10,
         part_number: '1000010',
         name: 'New Part',
-        material_item_id: null,
-        stock_type: 'bar',
-        stock_diameter: null,
-        stock_length: null,
-        stock_width: null,
-        stock_height: null,
-        version: 1,
         created_at: '2026-01-29T00:00:00Z',
-        created_by: 1
-      }
+        updated_at: '2026-01-29T00:00:00Z'
+      })
       ;(partsApi.createPart as Mock).mockResolvedValue(newPart)
 
       const result = await store.createPart(createData)
@@ -275,16 +238,16 @@ describe('Parts Store', () => {
       expect(result).toEqual(newPart)
       expect(store.parts[0]).toEqual(newPart) // Unshift to beginning
       expect(store.total).toBe(1)
-      expect(uiStore.toasts[0].type).toBe('success')
+      expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
     it('should handle create error', async () => {
       const store = usePartsStore()
       ;(partsApi.createPart as Mock).mockRejectedValue(new Error('Duplicate'))
 
-      await expect(store.createPart({ name: 'Test', stock_type: 'bar' }))
+      await expect(store.createPart({ name: 'Test', stock_shape: 'round_bar' }))
         .rejects.toThrow('Duplicate')
-      expect(uiStore.toasts[0].type).toBe('error')
+      expect(uiStore.toasts[0]!.type).toBe('error')
     })
   })
 
@@ -293,20 +256,7 @@ describe('Parts Store', () => {
   // ==========================================================================
 
   describe('Update Part', () => {
-    const existingPart: Part = {
-      id: 1,
-      part_number: '1000001',
-      name: 'Old Name',
-      material_item_id: null,
-      stock_type: 'bar',
-      stock_diameter: null,
-      stock_length: null,
-      stock_width: null,
-      stock_height: null,
-      version: 1,
-      created_at: '2026-01-01T00:00:00Z',
-      created_by: 1
-    }
+    const existingPart = createMockPart({ name: 'Old Name' })
 
     it('should update part successfully', async () => {
       const store = usePartsStore()
@@ -327,9 +277,9 @@ describe('Parts Store', () => {
       await store.updatePart('1000001', updateData)
 
       expect(partsApi.updatePart).toHaveBeenCalledWith('1000001', updateData)
-      expect(store.parts[0].name).toBe('New Name')
+      expect(store.parts[0]!.name).toBe('New Name')
       expect(store.currentPart?.name).toBe('New Name')
-      expect(uiStore.toasts[0].type).toBe('success')
+      expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
     it('should update only in list if part is in list', async () => {
@@ -342,7 +292,7 @@ describe('Parts Store', () => {
 
       await store.updatePart('1000001', { name: 'Updated', version: 1 })
 
-      expect(store.parts[0].name).toBe('Updated')
+      expect(store.parts[0]!.name).toBe('Updated')
       expect(store.currentPart).toBeNull()
     })
 
@@ -353,7 +303,7 @@ describe('Parts Store', () => {
       await expect(
         store.updatePart('1000001', { name: 'Test', version: 1 })
       ).rejects.toThrow('Version conflict')
-      expect(uiStore.toasts[0].type).toBe('error')
+      expect(uiStore.toasts[0]!.type).toBe('error')
     })
   })
 
@@ -364,20 +314,13 @@ describe('Parts Store', () => {
   describe('Duplicate Part', () => {
     it('should duplicate part successfully', async () => {
       const store = usePartsStore()
-      const duplicatedPart: Part = {
+      const duplicatedPart = createMockPart({
         id: 20,
         part_number: '1000020',
         name: 'Copy of Test Part',
-        material_item_id: null,
-        stock_type: 'bar',
-        stock_diameter: null,
-        stock_length: null,
-        stock_width: null,
-        stock_height: null,
-        version: 1,
         created_at: '2026-01-29T00:00:00Z',
-        created_by: 1
-      }
+        updated_at: '2026-01-29T00:00:00Z'
+      })
       ;(partsApi.duplicatePart as Mock).mockResolvedValue(duplicatedPart)
 
       const result = await store.duplicatePart('1000001')
@@ -386,7 +329,7 @@ describe('Parts Store', () => {
       expect(result).toEqual(duplicatedPart)
       expect(store.parts[0]).toEqual(duplicatedPart)
       expect(store.total).toBe(1)
-      expect(uiStore.toasts[0].message).toContain('1000020')
+      expect(uiStore.toasts[0]!.message).toContain('1000020')
     })
   })
 
@@ -395,20 +338,7 @@ describe('Parts Store', () => {
   // ==========================================================================
 
   describe('Delete Part', () => {
-    const partToDelete: Part = {
-      id: 1,
-      part_number: '1000001',
-      name: 'To Delete',
-      material_item_id: null,
-      stock_type: 'bar',
-      stock_diameter: null,
-      stock_length: null,
-      stock_width: null,
-      stock_height: null,
-      version: 1,
-      created_at: '2026-01-01T00:00:00Z',
-      created_by: 1
-    }
+    const partToDelete = createMockPart({ name: 'To Delete' })
 
     it('should delete part successfully', async () => {
       const store = usePartsStore()
@@ -421,7 +351,7 @@ describe('Parts Store', () => {
       expect(partsApi.deletePart).toHaveBeenCalledWith('1000001')
       expect(store.parts).toHaveLength(0)
       expect(store.total).toBe(0)
-      expect(uiStore.toasts[0].type).toBe('success')
+      expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
     it('should clear currentPart if deleted', async () => {
@@ -437,7 +367,7 @@ describe('Parts Store', () => {
 
     it('should NOT clear currentPart if different part deleted', async () => {
       const store = usePartsStore()
-      const otherPart: Part = { ...partToDelete, id: 2, part_number: '1000002' }
+      const otherPart = createMockPart({ id: 2, part_number: '1000002' })
       store.parts = [partToDelete, otherPart]
       store.currentPart = otherPart
       ;(partsApi.deletePart as Mock).mockResolvedValue(undefined)
@@ -571,23 +501,8 @@ describe('Parts Store', () => {
   describe('Reset', () => {
     it('should reset store to initial state', () => {
       const store = usePartsStore()
-      store.parts = [
-        {
-          id: 1,
-          part_number: '1000001',
-          name: 'Test',
-          material_item_id: null,
-          stock_type: 'bar',
-          stock_diameter: null,
-          stock_length: null,
-          stock_width: null,
-          stock_height: null,
-          version: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          created_by: 1
-        }
-      ]
-      store.currentPart = store.parts[0]
+      store.parts = [createMockPart()]
+      store.currentPart = store.parts[0] ?? null
       store.total = 100
       store.searchQuery = 'test'
       store.skip = 50

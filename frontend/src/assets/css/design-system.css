@@ -265,6 +265,63 @@
   --space-12: 3rem;    /* 48px */
 }
 
+/* === DENSITY SYSTEM === */
+/*
+   Parametric density for different screen sizes:
+   - compact (default): Ultra-dense Infor-style for 2560x1440+
+   - comfortable: Current spacing for tablets/laptops
+
+   Usage: document.documentElement.dataset.density = 'comfortable'
+   Or: <html data-density="comfortable">
+*/
+:root, :root[data-density="compact"] {
+  /* Table/Grid density */
+  --density-cell-py: 0.375rem;     /* 6px - vertical padding */
+  --density-cell-px: 0.625rem;     /* 10px - horizontal padding */
+  --density-row-height: 28px;
+
+  /* Typography density */
+  --density-font-sm: 0.6875rem;    /* 11px - small text */
+  --density-font-base: 0.75rem;    /* 12px - base text */
+  --density-font-md: 0.8125rem;    /* 13px - medium text */
+
+  /* Component density */
+  --density-input-py: 0.25rem;     /* 4px */
+  --density-input-px: 0.5rem;      /* 8px */
+  --density-btn-py: 0.25rem;       /* 4px */
+  --density-btn-px: 0.5rem;        /* 8px */
+  --density-module-padding: 0.5rem; /* 8px */
+  --density-section-gap: 0.5rem;   /* 8px */
+
+  /* Window density */
+  --density-window-min-width: 300px;
+  --density-window-content-padding: 0.375rem; /* 6px */
+}
+
+:root[data-density="comfortable"] {
+  /* Table/Grid density */
+  --density-cell-py: 0.75rem;      /* 12px */
+  --density-cell-px: 1rem;         /* 16px */
+  --density-row-height: 42px;
+
+  /* Typography density */
+  --density-font-sm: 0.875rem;     /* 14px */
+  --density-font-base: 0.9375rem;  /* 15px */
+  --density-font-md: 1rem;         /* 16px */
+
+  /* Component density */
+  --density-input-py: 0.5rem;      /* 8px */
+  --density-input-px: 0.75rem;     /* 12px */
+  --density-btn-py: 0.5rem;        /* 8px */
+  --density-btn-px: 0.75rem;       /* 12px */
+  --density-module-padding: 1rem;  /* 16px */
+  --density-section-gap: 1rem;     /* 16px */
+
+  /* Window density */
+  --density-window-min-width: 400px;
+  --density-window-content-padding: 0.5rem; /* 8px */
+}
+
 /* === BORDER RADIUS === */
 :root {
   --radius-sm: 0.25rem;  /* 4px */

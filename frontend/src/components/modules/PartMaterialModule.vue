@@ -317,18 +317,24 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { useMaterialsStore } from '@/stores/materials'
+import { useWindowContextStore } from '@/stores/windowContext'
 import type { MaterialInputWithOperations, MaterialInputCreate, StockShape } from '@/types/material'
+import type { LinkingGroup } from '@/stores/windows'
 import { STOCK_SHAPE_OPTIONS, getShapeDimensionFields } from '@/types/material'
 
 // Props
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   inline?: boolean
   partId: number | null
   partNumber: string
-}>()
+  linkingGroup?: LinkingGroup
+}>(), {
+  linkingGroup: null
+})
 
 // Stores
 const materialsStore = useMaterialsStore()
+const contextStore = useWindowContextStore()
 
 // Local state
 const expandedMaterials = reactive<Record<number, boolean>>({})
@@ -379,14 +385,36 @@ function form(matId: number): EditForm {
   return editForms[matId]!
 }
 
-// Computed from store
-const materialInputs = computed(() => materialsStore.materialInputs)
-const stockCost = computed(() => materialsStore.stockCost)
-const loading = computed(() => materialsStore.loadingInputs || materialsStore.loading)
+// Computed from store (per-context)
+const materialInputs = computed(() => materialsStore.getContext(props.linkingGroup).materialInputs)
+const stockCost = computed(() => materialsStore.getContext(props.linkingGroup).stockCost)
+const loading = computed(() => {
+  const ctx = materialsStore.getContext(props.linkingGroup)
+  return ctx.loadingInputs || materialsStore.loading
+})
+
+// Computed from store (global)
 const saving = computed(() => materialsStore.saving)
 
+// Computed: Get partId from window context (direct property access for fine-grained reactivity)
+const contextPartId = computed(() => {
+  if (!props.linkingGroup) return null
+
+  // Direct access to specific color's ref (NOT via function call)
+  switch (props.linkingGroup) {
+    case 'red': return contextStore.redContext.partId
+    case 'blue': return contextStore.blueContext.partId
+    case 'green': return contextStore.greenContext.partId
+    case 'yellow': return contextStore.yellowContext.partId
+    default: return null
+  }
+})
+
+// Effective partId (context or props)
+const effectivePartId = computed(() => contextPartId.value ?? props.partId)
+
 // Watch for partId changes
-watch(() => props.partId, async (newPartId) => {
+watch(effectivePartId, async (newPartId) => {
   if (newPartId) {
     await loadData(newPartId)
   }
@@ -395,9 +423,9 @@ watch(() => props.partId, async (newPartId) => {
 // Load data
 async function loadData(partId: number) {
   await materialsStore.loadReferenceData()
-  await materialsStore.loadMaterialInputs(partId)
+  await materialsStore.loadMaterialInputs(partId, props.linkingGroup)
   if (props.partNumber) {
-    await materialsStore.setPartContext(props.partNumber)
+    await materialsStore.setPartContext(props.partNumber, props.linkingGroup)
   }
   initEditForms()
 }
@@ -520,12 +548,12 @@ async function createMaterial() {
   }
 
   try {
-    await materialsStore.createMaterialInput(data)
+    await materialsStore.createMaterialInput(data, props.linkingGroup)
     showCreateForm.value = false
     initEditForms()
     // Reload stock cost
     if (props.partNumber) {
-      await materialsStore.reloadStockCost()
+      await materialsStore.reloadStockCost(props.linkingGroup)
     }
   } catch (error) {
     // Error handled in store
@@ -549,10 +577,10 @@ async function saveMaterial(mat: MaterialInputWithOperations) {
       quantity: form.quantity,
       notes: form.notes,
       version: mat.version
-    })
+    }, props.linkingGroup)
     // Reload stock cost
     if (props.partNumber) {
-      await materialsStore.reloadStockCost()
+      await materialsStore.reloadStockCost(props.linkingGroup)
     }
   } catch (error) {
     // Error handled in store
@@ -561,7 +589,7 @@ async function saveMaterial(mat: MaterialInputWithOperations) {
 
 // Unlink operation
 async function unlinkOperation(materialId: number, operationId: number) {
-  await materialsStore.unlinkMaterialFromOperation(materialId, operationId)
+  await materialsStore.unlinkMaterialFromOperation(materialId, operationId, props.linkingGroup)
 }
 
 // Delete
@@ -573,7 +601,7 @@ function confirmDelete(mat: MaterialInputWithOperations) {
 async function executeDelete() {
   if (!materialToDelete.value) return
 
-  await materialsStore.deleteMaterialInput(materialToDelete.value.id)
+  await materialsStore.deleteMaterialInput(materialToDelete.value.id, props.linkingGroup)
   delete editForms[materialToDelete.value.id]
   delete expandedMaterials[materialToDelete.value.id]
 
@@ -582,26 +610,26 @@ async function executeDelete() {
 
   // Reload stock cost
   if (props.partNumber) {
-    await materialsStore.reloadStockCost()
+    await materialsStore.reloadStockCost(props.linkingGroup)
   }
 }
 </script>
 
 <style scoped>
 .material-module {
-  padding: 1rem;
+  padding: var(--density-module-padding, 1rem);
 }
 
 .module-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: var(--density-section-gap, 0.75rem);
 }
 
 .module-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--density-font-md, 1rem);
 }
 
 .header-actions {
@@ -612,7 +640,7 @@ async function executeDelete() {
 
 .materials-count {
   color: var(--text-muted);
-  font-size: 0.875rem;
+  font-size: var(--density-font-sm, 0.8rem);
 }
 
 /* Loading & Empty states */
@@ -671,7 +699,7 @@ async function executeDelete() {
 .mat-header {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: var(--density-cell-py, 0.5rem) var(--density-cell-px, 0.75rem);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -690,7 +718,7 @@ async function executeDelete() {
 .mat-seq {
   font-weight: 600;
   color: var(--text-muted);
-  font-size: 0.875rem;
+  font-size: var(--density-font-sm, 0.8rem);
 }
 
 .mat-shape {
@@ -699,7 +727,7 @@ async function executeDelete() {
 
 .mat-dims {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--density-font-sm, 0.8rem);
 }
 
 .quantity-badge {
@@ -770,10 +798,10 @@ async function executeDelete() {
 .form-input,
 .form-select {
   width: 100%;
-  padding: 0.5rem;
+  padding: var(--density-input-py, 0.375rem) var(--density-input-px, 0.5rem);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 0.9rem;
+  border-radius: 4px;
+  font-size: var(--density-font-base, 0.8rem);
   background: var(--bg-surface);
 }
 
@@ -868,17 +896,17 @@ async function executeDelete() {
 
 /* Buttons */
 .btn {
-  padding: 0.5rem 1rem;
+  padding: var(--density-btn-py, 0.375rem) var(--density-btn-px, 0.75rem);
   border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 4px;
+  font-size: var(--density-font-base, 0.8rem);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.8rem;
+  padding: var(--density-btn-py, 0.25rem) var(--density-btn-px, 0.5rem);
+  font-size: var(--density-font-sm, 0.75rem);
 }
 
 .btn-primary {

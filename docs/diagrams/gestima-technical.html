@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESTIMA - Technical Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo .red { color: #e94560; }
+        .version {
+            display: inline-block;
+            background: #e94560;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 1rem;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+        }
+
+        nav {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        nav a {
+            color: #e94560;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        section {
+            margin-bottom: 3rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        h2 {
+            color: #e94560;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(233, 69, 96, 0.3);
+        }
+
+        h3 {
+            color: #fff;
+            font-size: 1.3rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .diagram-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Info cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid #e94560;
+        }
+
+        .info-card h4 {
+            color: #e94560;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .info-card ul {
+            list-style: none;
+        }
+
+        .info-card li {
+            padding: 0.4rem 0;
+            color: #ccc;
+        }
+
+        .info-card li::before {
+            content: "→ ";
+            color: #e94560;
+        }
+
+        .info-card code {
+            background: rgba(0,0,0,0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #7dd3fc;
+        }
+
+        /* Table styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .data-table th {
+            background: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .data-table code {
+            background: rgba(0,0,0,0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: #7dd3fc;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-green { background: #22c55e; color: white; }
+        .badge-yellow { background: #eab308; color: #333; }
+        .badge-blue { background: #3b82f6; color: white; }
+        .badge-red { background: #ef4444; color: white; }
+        .badge-purple { background: #a855f7; color: white; }
+
+        /* Code blocks */
+        pre.code-block {
+            background: #1e1e2e;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #cdd6f4;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .code-block .keyword { color: #cba6f7; }
+        .code-block .string { color: #a6e3a1; }
+        .code-block .comment { color: #6c7086; }
+        .code-block .function { color: #89b4fa; }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: #333;
+                padding: 1rem;
+            }
+            header, section, nav {
+                background: white;
+                border: 1px solid #ddd;
+            }
+            .logo .red { color: #e94560; }
+            h2 { color: #e94560; }
+            .info-card { background: #f8f9fa; }
+            nav { display: none; }
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="red">GESTIMA</span>
+                <span class="version">Technical Architecture</span>
+            </div>
+            <div class="subtitle">Database, Transactions, Security & Data Consistency</div>
+        </header>
+
+        <nav>
+            <a href="#erd">ERD Database</a>
+            <a href="#transactions">Transactions</a>
+            <a href="#security">Security</a>
+            <a href="#consistency">Data Consistency</a>
+            <a href="#audit">Audit Trail</a>
+        </nav>
+
+        <!-- ============================================================== -->
+        <!-- ERD DATABASE -->
+        <!-- ============================================================== -->
+        <section id="erd">
+            <h2>1. Entity Relationship Diagram - Full Database</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+erDiagram
+    %% === CORE ENTITIES ===
+    users {
+        int id PK
+        string username UK "unique, indexed"
+        string email UK "nullable"
+        string hashed_password "bcrypt"
+        enum role "admin|operator|viewer"
+        bool is_active
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "soft delete"
+        int version "optimistic lock"
+    }
+
+    parts {
+        int id PK
+        string part_number UK "8-digit: 10XXXXXX"
+        string article_number "supplier ref"
+        string name
+        string revision "A-Z"
+        string customer_revision
+        string status "draft|active|obsolete"
+        float length "mm"
+        string notes
+        string drawing_path
+        datetime created_at
+        datetime updated_at
+        string created_by FK
+        string updated_by FK
+        datetime deleted_at
+        int version
+    }
+
+    operations {
+        int id PK
+        int part_id FK
+        int seq "ordering"
+        string name
+        string type "turning|milling|cutting"
+        string icon "emoji"
+        int work_center_id FK
+        string cutting_mode "min|mid|max"
+        float setup_time_min "tp"
+        float operation_time_min "tj"
+        bool setup_time_locked
+        bool operation_time_locked
+        bool is_coop
+        string coop_type
+        float coop_price
+        float coop_min_price
+        int coop_days
+        datetime deleted_at
+        int version
+    }
+
+    material_inputs {
+        int id PK
+        int part_id FK
+        int seq "ordering"
+        string category "round_bar|sheet|tube"
+        float diameter
+        float length
+        float width
+        float height
+        float wall_thickness
+        float weight_kg
+        float price_per_kg
+        float stock_cost "calculated"
+        string parsed_from "AI input"
+        int material_item_id FK
+        datetime deleted_at
+        int version
+    }
+
+    material_operation_link {
+        int material_input_id FK
+        int operation_id FK
+    }
+
+    %% === PRICING ===
+    batch_sets {
+        int id PK
+        string name UK
+        int part_id FK
+        bool is_current "active set"
+        datetime created_at
+        datetime deleted_at
+        int version
+    }
+
+    batches {
+        int id PK
+        string batch_number UK "8-digit: 30XXXXXX"
+        int part_id FK
+        int batch_set_id FK
+        int quantity "1|10|100|500|1000"
+        float unit_time_min
+        float material_cost
+        float machining_cost
+        float setup_cost
+        float overhead_cost "ADR-016"
+        float margin_cost "ADR-016"
+        float coop_cost
+        float unit_cost
+        float total_cost
+        bool is_frozen "immutable"
+        datetime frozen_at
+        int frozen_by_id FK
+        json snapshot_data "ADR-012"
+        float unit_price_frozen
+        float total_price_frozen
+        datetime deleted_at
+        int version
+    }
+
+    %% === WORK CENTERS ===
+    work_centers {
+        int id PK
+        string number UK "machine code"
+        string name
+        string type "lathe|mill|saw|grinder"
+        float hourly_rate_amortization
+        float hourly_rate_labor
+        float hourly_rate_tools
+        float hourly_rate_overhead
+        float setup_rate
+        bool is_active
+        datetime deleted_at
+        int version
+    }
+
+    %% === MATERIALS ===
+    material_groups {
+        int id PK
+        string name UK "Steel|Aluminum"
+        string category
+        datetime deleted_at
+    }
+
+    material_items {
+        int id PK
+        string material_number UK "7-digit: 2XXXXXX"
+        int group_id FK
+        string name
+        float density "kg/dm3"
+        float price_per_kg
+        int price_category_id FK
+        datetime deleted_at
+    }
+
+    material_price_categories {
+        int id PK
+        string name UK
+        string description
+        datetime deleted_at
+    }
+
+    material_price_tiers {
+        int id PK
+        int category_id FK
+        float min_weight_kg
+        float max_weight_kg
+        float price_per_kg
+    }
+
+    material_norms {
+        int id PK
+        string norm_designation UK "CSN 11 523"
+        int group_id FK
+        string description
+        datetime deleted_at
+    }
+
+    %% === TECH DATA ===
+    cutting_conditions {
+        int id PK
+        string material_type
+        string operation_type
+        float feed_rate
+        float cutting_speed
+        float depth_of_cut
+    }
+
+    features {
+        int id PK
+        int operation_id FK
+        string name "chamfer|thread|bore"
+        string type
+        float time_min
+        json parameters
+        datetime deleted_at
+    }
+
+    system_config {
+        int id PK
+        string key UK
+        string value
+        string description
+        datetime deleted_at
+    }
+
+    %% === RELATIONSHIPS ===
+    users ||--o{ parts : "creates/updates"
+    users ||--o{ batches : "freezes"
+
+    parts ||--o{ operations : "has"
+    parts ||--o{ material_inputs : "has"
+    parts ||--o{ batch_sets : "has"
+    parts ||--o{ batches : "priced by"
+
+    operations ||--o{ features : "has steps"
+    operations }o--|| work_centers : "uses"
+    operations }o--o{ material_inputs : "linked M:N"
+
+    material_inputs }o--|| material_items : "references"
+
+    batch_sets ||--o{ batches : "contains"
+
+    material_groups ||--o{ material_items : "contains"
+    material_groups ||--o{ material_norms : "has norms"
+
+    material_price_categories ||--o{ material_price_tiers : "defines"
+    material_items }o--|| material_price_categories : "uses"
+                </pre>
+            </div>
+
+            <h3>Database Statistics</h3>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>Core Tables (6)</h4>
+                    <ul>
+                        <li><code>users</code> - User accounts</li>
+                        <li><code>parts</code> - Manufacturing parts</li>
+                        <li><code>operations</code> - Production operations</li>
+                        <li><code>material_inputs</code> - Raw materials</li>
+                        <li><code>batches</code> - Price calculations</li>
+                        <li><code>batch_sets</code> - Price snapshots</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>Reference Tables (5)</h4>
+                    <ul>
+                        <li><code>work_centers</code> - Machines</li>
+                        <li><code>material_groups</code> - Material categories</li>
+                        <li><code>material_items</code> - Material catalog</li>
+                        <li><code>material_norms</code> - CSN/EN standards</li>
+                        <li><code>cutting_conditions</code> - Tech params</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>Support Tables (4)</h4>
+                    <ul>
+                        <li><code>features</code> - Operation steps</li>
+                        <li><code>material_price_categories</code> - Pricing tiers</li>
+                        <li><code>material_price_tiers</code> - Weight-based prices</li>
+                        <li><code>system_config</code> - App settings</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- TRANSACTIONS -->
+        <!-- ============================================================== -->
+        <section id="transactions" class="page-break">
+            <h2>2. Transaction Patterns</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+sequenceDiagram
+    participant C as Client (Vue)
+    participant A as API (FastAPI)
+    participant S as Service Layer
+    participant D as Database (SQLite)
+
+    Note over C,D: Standard CRUD Transaction
+
+    C->>A: PUT /api/parts/123 {data, version: 5}
+    A->>A: Pydantic Validation
+    A->>S: update_part(id, data)
+    S->>D: BEGIN TRANSACTION
+
+    S->>D: SELECT * FROM parts WHERE id=123
+    D-->>S: Part (version=5)
+
+    alt Version Match
+        S->>D: UPDATE parts SET ... version=6 WHERE id=123 AND version=5
+        D-->>S: rowcount=1
+        S->>D: COMMIT
+        S-->>A: Updated Part
+        A-->>C: 200 OK {part, version: 6}
+    else Version Mismatch (Conflict)
+        S->>D: UPDATE parts SET ... WHERE id=123 AND version=5
+        D-->>S: rowcount=0
+        S->>D: ROLLBACK
+        S-->>A: Raise HTTPException
+        A-->>C: 409 Conflict "Data changed by another user"
+    end
+                </pre>
+            </div>
+
+            <h3>Transaction Types</h3>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart LR
+    subgraph CRUD["Standard CRUD"]
+        C1[Create] --> V1[Validate]
+        V1 --> I1[Insert]
+        I1 --> CM1[Commit]
+    end
+
+    subgraph BATCH["Batch Operations"]
+        B1[Start Tx] --> L1[Loop Items]
+        L1 --> U1[Update Each]
+        U1 --> L1
+        L1 --> CM2[Commit All]
+    end
+
+    subgraph FREEZE["Price Freeze (ADR-012)"]
+        F1[Load Part+Ops+Mat] --> C2[Calculate Prices]
+        C2 --> S1[Create Snapshot JSON]
+        S1 --> W1[Write Batch is_frozen=true]
+        W1 --> CM3[Commit]
+    end
+
+    subgraph CASCADE["Cascade Delete"]
+        D1[Delete Part] --> D2[Cascade Operations]
+        D2 --> D3[Cascade MaterialInputs]
+        D3 --> D4[Cascade Batches]
+        D4 --> CM4[Commit]
+    end
+
+    classDef tx fill:#d4edda,stroke:#28a745,color:#155724
+    class C1,V1,I1,CM1,B1,L1,U1,CM2,F1,C2,S1,W1,CM3,D1,D2,D3,D4,CM4 tx
+                </pre>
+            </div>
+
+            <h3>Error Handling Pattern</h3>
+            <pre class="code-block">
+<span class="keyword">try</span>:
+    db.add(entity)
+    <span class="keyword">await</span> db.commit()
+<span class="keyword">except</span> IntegrityError:
+    <span class="keyword">await</span> db.rollback()
+    <span class="keyword">raise</span> HTTPException(<span class="string">409</span>, <span class="string">"Duplicate entry"</span>)
+<span class="keyword">except</span> SQLAlchemyError <span class="keyword">as</span> e:
+    <span class="keyword">await</span> db.rollback()
+    logger.error(<span class="string">f"DB error: {e}"</span>, exc_info=<span class="keyword">True</span>)
+    <span class="keyword">raise</span> HTTPException(<span class="string">500</span>, <span class="string">"Database error"</span>)
+            </pre>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Error Type</th>
+                        <th>HTTP Status</th>
+                        <th>Action</th>
+                        <th>User Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>IntegrityError</code></td>
+                        <td><span class="badge badge-yellow">409</span></td>
+                        <td>Rollback</td>
+                        <td>Duplicate entry / FK violation</td>
+                    </tr>
+                    <tr>
+                        <td><code>Version mismatch</code></td>
+                        <td><span class="badge badge-yellow">409</span></td>
+                        <td>Rollback</td>
+                        <td>Data changed by another user</td>
+                    </tr>
+                    <tr>
+                        <td><code>ValidationError</code></td>
+                        <td><span class="badge badge-red">422</span></td>
+                        <td>No DB call</td>
+                        <td>Invalid input data</td>
+                    </tr>
+                    <tr>
+                        <td><code>SQLAlchemyError</code></td>
+                        <td><span class="badge badge-red">500</span></td>
+                        <td>Rollback + Log</td>
+                        <td>Database error (internal)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- SECURITY -->
+        <!-- ============================================================== -->
+        <section id="security" class="page-break">
+            <h2>3. Security Architecture</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph CLIENT["Client (Browser)"]
+        LOGIN[Login Form]
+        COOKIE[HttpOnly Cookie]
+        VUE[Vue App]
+    end
+
+    subgraph API["FastAPI Backend"]
+        AUTH["/api/auth/login"]
+        GUARD[Dependency: get_current_user]
+        ROUTES[Protected Routes]
+        RBAC[Role Check]
+    end
+
+    subgraph SECURITY["Security Layer"]
+        JWT[JWT Token]
+        BCRYPT[bcrypt Hash]
+        RATE[Rate Limiter]
+    end
+
+    subgraph DB["Database"]
+        USERS[(users table)]
+    end
+
+    LOGIN -->|username + password| AUTH
+    AUTH -->|verify| BCRYPT
+    BCRYPT -->|check| USERS
+    USERS -->|user data| AUTH
+    AUTH -->|create| JWT
+    JWT -->|set HttpOnly| COOKIE
+
+    VUE -->|request + cookie| GUARD
+    GUARD -->|validate| JWT
+    GUARD -->|load user| USERS
+    GUARD -->|inject user| ROUTES
+    ROUTES -->|check| RBAC
+    RATE -.->|limit| AUTH
+
+    classDef secure fill:#22c55e,stroke:#16a34a,color:white
+    classDef danger fill:#ef4444,stroke:#dc2626,color:white
+    class COOKIE,JWT,BCRYPT,GUARD,RBAC secure
+    class RATE danger
+                </pre>
+            </div>
+
+            <h3>Authentication Flow</h3>
+            <div class="diagram-container">
+                <pre class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant A as API
+    participant DB as Database
+
+    U->>B: Enter credentials
+    B->>A: POST /api/auth/login {username, password}
+
+    A->>A: Rate limit check (5/min)
+    A->>DB: SELECT * FROM users WHERE username=?
+    DB-->>A: User record
+
+    A->>A: bcrypt.verify(password, hashed_password)
+
+    alt Valid credentials
+        A->>A: Create JWT {sub: username, role: admin, exp: +60min}
+        A->>B: Set-Cookie: access_token=JWT; HttpOnly; Secure; SameSite=Strict
+        A-->>B: 200 {status: ok, username, role}
+        B-->>U: Redirect to Dashboard
+    else Invalid credentials
+        A-->>B: 401 Unauthorized
+        B-->>U: Show error
+    end
+                </pre>
+            </div>
+
+            <h3>Role-Based Access Control (RBAC)</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Parts</th>
+                        <th>Operations</th>
+                        <th>Pricing</th>
+                        <th>Users</th>
+                        <th>Config</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-red">Admin</span></td>
+                        <td>CRUD + Delete</td>
+                        <td>CRUD + Delete</td>
+                        <td>Freeze/Unfreeze</td>
+                        <td>CRUD</td>
+                        <td>Full access</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Operator</span></td>
+                        <td>CRUD</td>
+                        <td>CRUD</td>
+                        <td>View + Freeze</td>
+                        <td>View self</td>
+                        <td>View</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-purple">Viewer</span></td>
+                        <td>View only</td>
+                        <td>View only</td>
+                        <td>View only</td>
+                        <td>View self</td>
+                        <td>None</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Security Features</h3>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>XSS Protection</h4>
+                    <ul>
+                        <li><code>HttpOnly</code> cookie - JS cannot read</li>
+                        <li>CSP headers (Content-Security-Policy)</li>
+                        <li>Vue auto-escapes templates</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>CSRF Protection</h4>
+                    <ul>
+                        <li><code>SameSite=Strict</code> cookie</li>
+                        <li>Origin header validation</li>
+                        <li>No cross-origin requests allowed</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>Rate Limiting</h4>
+                    <ul>
+                        <li>Login: <code>5 requests/minute</code></li>
+                        <li>API: <code>100 requests/minute</code></li>
+                        <li>slowapi + Redis backend</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>Password Security</h4>
+                    <ul>
+                        <li><code>bcrypt</code> hashing (cost=12)</li>
+                        <li>Min 8 characters required</li>
+                        <li>No plaintext storage ever</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- DATA CONSISTENCY -->
+        <!-- ============================================================== -->
+        <section id="consistency" class="page-break">
+            <h2>4. Data Consistency & Integrity</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph VALIDATION["Input Validation Layer"]
+        P1[Pydantic Schema]
+        P2[Field Validators]
+        P3[Type Coercion]
+    end
+
+    subgraph BUSINESS["Business Logic Layer"]
+        B1[Service Functions]
+        B2[Calculations]
+        B3[State Machines]
+    end
+
+    subgraph DB_LAYER["Database Layer"]
+        D1[SQLAlchemy Models]
+        D2[FK Constraints]
+        D3[Unique Constraints]
+        D4[Check Constraints]
+    end
+
+    subgraph CONSISTENCY["Consistency Mechanisms"]
+        C1[Optimistic Locking]
+        C2[Soft Delete]
+        C3[Audit Trail]
+        C4[Immutable Snapshots]
+    end
+
+    P1 --> P2 --> P3
+    P3 --> B1
+    B1 --> B2 --> B3
+    B3 --> D1
+    D1 --> D2 & D3 & D4
+
+    C1 -.-> D1
+    C2 -.-> D1
+    C3 -.-> D1
+    C4 -.-> D1
+
+    classDef valid fill:#22c55e,stroke:#16a34a,color:white
+    classDef consist fill:#3b82f6,stroke:#2563eb,color:white
+    class P1,P2,P3 valid
+    class C1,C2,C3,C4 consist
+                </pre>
+            </div>
+
+            <h3>Optimistic Locking (ADR-008)</h3>
+            <div class="diagram-container">
+                <pre class="mermaid">
+sequenceDiagram
+    participant U1 as User A
+    participant U2 as User B
+    participant API as API
+    participant DB as Database
+
+    Note over U1,DB: Both users load same Part (version=5)
+
+    U1->>API: GET /parts/123
+    API->>DB: SELECT * FROM parts WHERE id=123
+    DB-->>API: {id:123, name:"Widget", version:5}
+    API-->>U1: Part (version=5)
+
+    U2->>API: GET /parts/123
+    API-->>U2: Part (version=5)
+
+    Note over U1,DB: User A saves first
+
+    U1->>API: PUT /parts/123 {name:"WidgetX", version:5}
+    API->>DB: UPDATE SET name='WidgetX', version=6 WHERE id=123 AND version=5
+    DB-->>API: rowcount=1 ✓
+    API-->>U1: 200 OK (version=6)
+
+    Note over U2,DB: User B tries to save with stale version
+
+    U2->>API: PUT /parts/123 {name:"WidgetY", version:5}
+    API->>DB: UPDATE SET name='WidgetY', version=6 WHERE id=123 AND version=5
+    DB-->>API: rowcount=0 ✗
+    API-->>U2: 409 Conflict "Data changed by another user"
+                </pre>
+            </div>
+
+            <h3>Pydantic Validation Examples</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Constraint</th>
+                        <th>Example</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>part_number</code></td>
+                        <td>min_length=8, max_length=8</td>
+                        <td><code>"10123456"</code></td>
+                        <td>String should have at most 8 characters</td>
+                    </tr>
+                    <tr>
+                        <td><code>quantity</code></td>
+                        <td>gt=0 (greater than zero)</td>
+                        <td><code>100</code></td>
+                        <td>Input should be greater than 0</td>
+                    </tr>
+                    <tr>
+                        <td><code>revision</code></td>
+                        <td>pattern=^[A-Z]{1,2}$</td>
+                        <td><code>"A"</code>, <code>"AB"</code></td>
+                        <td>String should match pattern</td>
+                    </tr>
+                    <tr>
+                        <td><code>price</code></td>
+                        <td>ge=0 (greater or equal)</td>
+                        <td><code>45.50</code></td>
+                        <td>Input should be >= 0</td>
+                    </tr>
+                    <tr>
+                        <td><code>email</code></td>
+                        <td>EmailStr (Pydantic built-in)</td>
+                        <td><code>"user@example.com"</code></td>
+                        <td>Invalid email format</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Database Constraints</h3>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>Foreign Keys</h4>
+                    <ul>
+                        <li><code>operations.part_id</code> → parts.id</li>
+                        <li><code>batches.frozen_by_id</code> → users.id</li>
+                        <li><code>material_inputs.material_item_id</code> → material_items.id</li>
+                        <li>ON DELETE CASCADE for child records</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>Unique Constraints</h4>
+                    <ul>
+                        <li><code>users.username</code> - unique login</li>
+                        <li><code>parts.part_number</code> - unique 8-digit</li>
+                        <li><code>batch_sets.name</code> - unique per part</li>
+                        <li><code>work_centers.number</code> - unique code</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h4>Indexes</h4>
+                    <ul>
+                        <li><code>parts.deleted_at</code> - soft delete filter</li>
+                        <li><code>batches.is_frozen</code> - frozen queries</li>
+                        <li><code>operations.part_id</code> - FK lookup</li>
+                        <li>All <code>*_number</code> columns indexed</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- AUDIT TRAIL -->
+        <!-- ============================================================== -->
+        <section id="audit" class="page-break">
+            <h2>5. Audit Trail & Soft Delete</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+classDiagram
+    class AuditMixin {
+        +datetime created_at
+        +datetime updated_at
+        +string created_by
+        +string updated_by
+        +datetime deleted_at
+        +string deleted_by
+        +int version
+    }
+
+    class Part {
+        +int id
+        +string part_number
+        +string name
+        ...
+    }
+
+    class Operation {
+        +int id
+        +int part_id
+        +string name
+        ...
+    }
+
+    class Batch {
+        +int id
+        +int part_id
+        +bool is_frozen
+        +json snapshot_data
+        ...
+    }
+
+    AuditMixin <|-- Part : extends
+    AuditMixin <|-- Operation : extends
+    AuditMixin <|-- Batch : extends
+
+    note for AuditMixin "All entities inherit\naudit fields via mixin"
+                </pre>
+            </div>
+
+            <h3>Soft Delete Pattern</h3>
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart LR
+    subgraph ACTIVE["Active Records"]
+        A1[Part A<br/>deleted_at: NULL]
+        A2[Part B<br/>deleted_at: NULL]
+    end
+
+    subgraph DELETED["Soft Deleted"]
+        D1[Part C<br/>deleted_at: 2026-01-29]
+        D2[Part D<br/>deleted_at: 2026-01-28]
+    end
+
+    subgraph QUERIES["Query Patterns"]
+        Q1["SELECT * FROM parts<br/>WHERE deleted_at IS NULL"]
+        Q2["SELECT * FROM parts<br/>(include deleted)"]
+    end
+
+    Q1 --> A1 & A2
+    Q2 --> A1 & A2 & D1 & D2
+
+    classDef active fill:#22c55e,stroke:#16a34a,color:white
+    classDef deleted fill:#6b7280,stroke:#4b5563,color:white
+    class A1,A2 active
+    class D1,D2 deleted
+                </pre>
+            </div>
+
+            <h3>Immutable Snapshots (ADR-012)</h3>
+            <pre class="code-block">
+<span class="comment"># When batch is frozen, snapshot contains:</span>
+snapshot_data = {
+    <span class="string">"frozen_at"</span>: <span class="string">"2026-01-29T10:00:00Z"</span>,
+    <span class="string">"frozen_by"</span>: <span class="string">"admin"</span>,
+    <span class="string">"part"</span>: {
+        <span class="string">"part_number"</span>: <span class="string">"10123456"</span>,
+        <span class="string">"revision"</span>: <span class="string">"A"</span>,
+        <span class="string">"name"</span>: <span class="string">"Widget Assembly"</span>
+    },
+    <span class="string">"material"</span>: {
+        <span class="string">"name"</span>: <span class="string">"Steel 11 523"</span>,
+        <span class="string">"weight_kg"</span>: <span class="string">2.5</span>,
+        <span class="string">"price_per_kg"</span>: <span class="string">45.00</span>
+    },
+    <span class="string">"operations"</span>: [
+        {<span class="string">"seq"</span>: <span class="string">10</span>, <span class="string">"name"</span>: <span class="string">"Turning"</span>, <span class="string">"time_min"</span>: <span class="string">15.5</span>}
+    ],
+    <span class="string">"costs"</span>: {
+        <span class="string">"material"</span>: <span class="string">112.50</span>,
+        <span class="string">"machining"</span>: <span class="string">85.00</span>,
+        <span class="string">"setup"</span>: <span class="string">25.00</span>,
+        <span class="string">"total"</span>: <span class="string">222.50</span>
+    }
+}
+            </pre>
+
+            <h3>Data Lifecycle States</h3>
+            <div class="diagram-container">
+                <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Draft: Create Part
+
+    Draft --> Active: Complete setup
+    Draft --> Deleted: Soft delete
+
+    Active --> Active: Update (version++)
+    Active --> Frozen: Freeze batch
+    Active --> Obsolete: New revision
+    Active --> Deleted: Soft delete
+
+    Frozen --> Frozen: Immutable
+    Frozen --> Active: Unfreeze (admin)
+
+    Obsolete --> Obsolete: Read-only
+    Obsolete --> Deleted: Soft delete
+
+    Deleted --> Active: Restore (admin)
+    Deleted --> [*]: Hard delete (never)
+
+    note right of Frozen: Snapshot preserved
+    note right of Deleted: deleted_at set
+                </pre>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Auto-set</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>created_at</code></td>
+                        <td>datetime</td>
+                        <td>On INSERT</td>
+                        <td>Record creation timestamp</td>
+                    </tr>
+                    <tr>
+                        <td><code>updated_at</code></td>
+                        <td>datetime</td>
+                        <td>On UPDATE</td>
+                        <td>Last modification timestamp</td>
+                    </tr>
+                    <tr>
+                        <td><code>created_by</code></td>
+                        <td>string</td>
+                        <td>From JWT</td>
+                        <td>Username who created</td>
+                    </tr>
+                    <tr>
+                        <td><code>updated_by</code></td>
+                        <td>string</td>
+                        <td>From JWT</td>
+                        <td>Username who last modified</td>
+                    </tr>
+                    <tr>
+                        <td><code>deleted_at</code></td>
+                        <td>datetime</td>
+                        <td>On "delete"</td>
+                        <td>Soft delete marker (NULL = active)</td>
+                    </tr>
+                    <tr>
+                        <td><code>deleted_by</code></td>
+                        <td>string</td>
+                        <td>From JWT</td>
+                        <td>Username who deleted</td>
+                    </tr>
+                    <tr>
+                        <td><code>version</code></td>
+                        <td>int</td>
+                        <td>On UPDATE</td>
+                        <td>Optimistic locking counter</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <footer>
+            <p>GESTIMA Technical Architecture | Generated 2026-01-29</p>
+            <p>Database: SQLite + WAL | ORM: SQLAlchemy 2.0 Async | API: FastAPI | Auth: JWT + HttpOnly</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            sequence: {
+                diagramMarginX: 50,
+                diagramMarginY: 10,
+                actorMargin: 50,
+                width: 150,
+                height: 65,
+                boxMargin: 10,
+                boxTextMargin: 5,
+                noteMargin: 10,
+                messageMargin: 35
+            }
+        });
+    </script>
+</body>
+</html>

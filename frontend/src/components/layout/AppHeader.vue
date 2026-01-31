@@ -12,6 +12,17 @@
 
       <!-- Right: Controls -->
       <div class="header-controls">
+        <!-- Density Toggle -->
+        <button
+          class="control-btn density-toggle"
+          :class="{ 'is-compact': ui.isCompactDensity }"
+          @click="ui.toggleDensity()"
+          :title="ui.isCompactDensity ? 'Přepnout na komfortní zobrazení' : 'Přepnout na kompaktní zobrazení'"
+        >
+          <span v-if="ui.isCompactDensity">📐</span>
+          <span v-else>📏</span>
+        </button>
+
         <!-- Search -->
         <div class="search-wrapper">
           <button
@@ -72,9 +83,9 @@
             </svg>
           </button>
 
-          <!-- Dropdown Menu -->
-          <Transition name="menu-fade">
-            <div v-if="showMenu" class="menu-dropdown">
+          <!-- Drawer Menu -->
+          <Transition name="menu-slide">
+            <div v-if="showMenu" class="menu-drawer">
               <div class="menu-section">
                 <div class="menu-section-title">Navigace</div>
                 <router-link
@@ -160,16 +171,176 @@
     </div>
 
     <!-- Click outside to close -->
-    <div
-      v-if="showMenu || showSearch || showFavorites"
-      class="backdrop"
-      @click="closeAll"
-    ></div>
+    <Transition name="backdrop-fade">
+      <div
+        v-if="showMenu || showSearch || showFavorites"
+        class="backdrop"
+        @click="closeAll"
+      ></div>
+    </Transition>
+
+    <!-- Windows Toolbar (only on /windows route) -->
+    <div v-if="isWindowsRoute" class="header-windows-toolbar">
+      <div class="toolbar-container">
+        <!-- Left: Module + Layout dropdowns -->
+        <div class="toolbar-left">
+          <!-- Module Dropdown -->
+          <div class="dropdown-wrapper">
+            <button
+              class="toolbar-btn toolbar-dropdown"
+              :class="{ 'is-open': showModuleDropdown }"
+              @click="toggleModuleDropdown"
+            >
+              <span class="btn-icon">➕</span>
+              <span class="btn-label">Module</span>
+              <span class="btn-arrow">▼</span>
+            </button>
+            <Transition name="dropdown-fade">
+              <div v-if="showModuleDropdown" class="dropdown-menu">
+                <button
+                  v-for="mod in windowModules"
+                  :key="mod.value"
+                  class="dropdown-item"
+                  @click="openWindowFromToolbar(mod.value, mod.label, mod.icon)"
+                >
+                  <span class="item-icon">{{ mod.icon }}</span>
+                  <span class="item-label">{{ mod.label }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Layout Dropdown -->
+          <div class="dropdown-wrapper">
+            <button
+              class="toolbar-btn toolbar-dropdown"
+              :class="{ 'is-open': showLayoutDropdown }"
+              @click="toggleLayoutDropdown"
+            >
+              <span class="btn-icon">⭐</span>
+              <span class="btn-label">{{ currentLayoutName }}</span>
+              <span class="btn-arrow">▼</span>
+            </button>
+            <Transition name="dropdown-fade">
+              <div v-if="showLayoutDropdown" class="dropdown-menu">
+                <!-- Favorite Layouts -->
+                <template v-if="windowsStore.favoriteViews.length > 0">
+                  <div class="dropdown-section-title">⭐ Favorites</div>
+                  <button
+                    v-for="view in windowsStore.favoriteViews"
+                    :key="view.id"
+                    class="dropdown-item"
+                    :class="{ 'is-active': windowsStore.currentViewId === view.id }"
+                    @click="loadLayout(view.id)"
+                  >
+                    <span class="item-icon">{{ windowsStore.defaultLayoutId === view.id ? '🏠' : '⭐' }}</span>
+                    <span class="item-label">{{ view.name }}</span>
+                  </button>
+                  <div class="dropdown-divider"></div>
+                </template>
+
+                <!-- All Layouts -->
+                <div class="dropdown-section-title">All Layouts</div>
+                <button
+                  v-for="view in windowsStore.savedViews"
+                  :key="view.id"
+                  class="dropdown-item"
+                  :class="{ 'is-active': windowsStore.currentViewId === view.id }"
+                  @click="loadLayout(view.id)"
+                >
+                  <span class="item-icon">{{ windowsStore.defaultLayoutId === view.id ? '🏠' : '📐' }}</span>
+                  <span class="item-label">{{ view.name }}</span>
+                  <span class="item-actions">
+                    <button
+                      class="action-btn"
+                      :title="view.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      @click.stop="windowsStore.toggleFavoriteView(view.id)"
+                    >
+                      {{ view.favorite ? '⭐' : '☆' }}
+                    </button>
+                    <button
+                      class="action-btn"
+                      :title="windowsStore.defaultLayoutId === view.id ? 'Unset default' : 'Set as default'"
+                      @click.stop="toggleDefaultLayout(view.id)"
+                    >
+                      {{ windowsStore.defaultLayoutId === view.id ? '🏠' : '🏡' }}
+                    </button>
+                    <button
+                      class="action-btn action-danger"
+                      title="Delete"
+                      @click.stop="deleteLayout(view.id)"
+                    >
+                      🗑️
+                    </button>
+                  </span>
+                </button>
+
+                <template v-if="windowsStore.savedViews.length === 0">
+                  <div class="dropdown-empty">No saved layouts</div>
+                </template>
+              </div>
+            </Transition>
+          </div>
+        </div>
+
+        <!-- Right: Action buttons -->
+        <div class="toolbar-right">
+          <!-- Save Dropdown -->
+          <div class="dropdown-wrapper">
+            <button
+              class="toolbar-btn toolbar-dropdown"
+              :class="{ 'is-open': showSaveDropdown }"
+              @click="toggleSaveDropdown"
+            >
+              <span class="btn-icon">💾</span>
+              <span class="btn-label-compact">Save</span>
+              <span class="btn-arrow">▼</span>
+            </button>
+            <Transition name="dropdown-fade">
+              <div v-if="showSaveDropdown" class="dropdown-menu">
+                <button
+                  class="dropdown-item"
+                  :disabled="!windowsStore.currentViewId"
+                  @click="saveCurrentLayout"
+                >
+                  <span class="item-icon">💾</span>
+                  <span class="item-label">Uložit aktuální</span>
+                </button>
+                <button
+                  class="dropdown-item"
+                  @click="saveLayoutAs"
+                >
+                  <span class="item-icon">📝</span>
+                  <span class="item-label">Uložit jako...</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <button
+            class="toolbar-btn"
+            title="Arrange windows (grid)"
+            @click="arrangeWindows('grid')"
+          >
+            <span class="btn-icon">🔲</span>
+            <span class="btn-label-compact">Arrange</span>
+          </button>
+          <button
+            class="toolbar-btn toolbar-danger"
+            title="Close all windows"
+            @click="closeAllWindows"
+          >
+            <span class="btn-icon">❌</span>
+            <span class="btn-label-compact">Close All</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -185,21 +356,21 @@ const windowsStore = useWindowsStore()
 const showMenu = ref(false)
 const showSearch = ref(false)
 const showFavorites = ref(false)
+const showModuleDropdown = ref(false)
+const showLayoutDropdown = ref(false)
+const showSaveDropdown = ref(false)
 const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
 
 // Navigation items
 const navItems = computed(() => [
   { to: '/', icon: '📊', label: 'Dashboard' },
-  { to: '/parts', icon: '📦', label: 'Díly' },
-  { to: '/pricing/batch-sets', icon: '💰', label: 'Sady cen' },
-  { to: '/work-centers', icon: '🏭', label: 'Pracoviště' },
   { to: '/windows', icon: '🪟', label: 'Windows' },
 ])
 
 // Windows modules (available only on /windows route)
 const windowModules = [
-  { value: 'parts-list' as WindowModule, label: 'Parts List', icon: '📦' },
+  { value: 'part-main' as WindowModule, label: 'Part Main', icon: '📦' },
   { value: 'part-pricing' as WindowModule, label: 'Pricing', icon: '💰' },
   { value: 'part-operations' as WindowModule, label: 'Operations', icon: '⚙️' },
   { value: 'part-material' as WindowModule, label: 'Material', icon: '🧱' },
@@ -208,6 +379,13 @@ const windowModules = [
 
 // Check if on Windows route
 const isWindowsRoute = computed(() => route.path === '/windows')
+
+// Current layout name
+const currentLayoutName = computed(() => {
+  if (!windowsStore.currentViewId) return 'My Layout'
+  const view = windowsStore.savedViews.find(v => v.id === windowsStore.currentViewId)
+  return view ? view.name : 'My Layout'
+})
 
 // Check if route is active
 function isActive(path: string): boolean {
@@ -242,16 +420,39 @@ function toggleFavorites() {
   ui.showInfo('Oblíbené - připravujeme')
 }
 
+function toggleModuleDropdown() {
+  showModuleDropdown.value = !showModuleDropdown.value
+  showLayoutDropdown.value = false
+}
+
+function toggleLayoutDropdown() {
+  showLayoutDropdown.value = !showLayoutDropdown.value
+  showModuleDropdown.value = false
+  showSaveDropdown.value = false
+}
+
+function toggleSaveDropdown() {
+  showSaveDropdown.value = !showSaveDropdown.value
+  showModuleDropdown.value = false
+  showLayoutDropdown.value = false
+}
+
 function closeAll() {
   showMenu.value = false
   showSearch.value = false
   showFavorites.value = false
+  showModuleDropdown.value = false
+  showLayoutDropdown.value = false
+  showSaveDropdown.value = false
 }
 
 // Search
 function performSearch() {
   if (searchQuery.value.trim()) {
-    router.push({ path: '/parts', query: { search: searchQuery.value } })
+    // Navigate to windows and open part-main with search query
+    router.push('/windows')
+    // TODO: Pass search query to part-main module
+    // This would require updating PartMainModule to accept initial search query
     showSearch.value = false
     searchQuery.value = ''
   }
@@ -275,6 +476,11 @@ function openWindowModule(module: WindowModule, label: string, icon: string) {
   showMenu.value = false
 }
 
+function openWindowFromToolbar(module: WindowModule, label: string, icon: string) {
+  windowsStore.openWindow(module, `${icon} ${label}`)
+  showModuleDropdown.value = false
+}
+
 function arrangeWindows(mode: 'grid' | 'horizontal' | 'vertical') {
   windowsStore.arrangeWindows(mode)
   showMenu.value = false
@@ -285,6 +491,67 @@ function closeAllWindows() {
     windowsStore.closeAllWindows()
   }
   showMenu.value = false
+}
+
+// Layout management
+function saveLayout() {
+  const name = prompt('Název layoutu:', `Layout ${windowsStore.savedViews.length + 1}`)
+  if (name && name.trim()) {
+    windowsStore.saveCurrentView(name.trim())
+    ui.showSuccess(`Layout "${name}" uložen`)
+  }
+}
+
+function saveCurrentLayout() {
+  if (!windowsStore.currentViewId) return
+
+  const currentView = windowsStore.savedViews.find(v => v.id === windowsStore.currentViewId)
+  if (!currentView) return
+
+  // Update current view with current window state
+  currentView.windows = JSON.parse(JSON.stringify(windowsStore.windows))
+  currentView.updatedAt = new Date().toISOString()
+
+  showSaveDropdown.value = false
+  ui.showSuccess(`Layout "${currentView.name}" aktualizován`)
+}
+
+function saveLayoutAs() {
+  const currentView = windowsStore.savedViews.find(v => v.id === windowsStore.currentViewId)
+  const defaultName = currentView
+    ? `${currentView.name} (kopie)`
+    : `Layout ${windowsStore.savedViews.length + 1}`
+
+  const name = prompt('Název layoutu:', defaultName)
+  if (name && name.trim()) {
+    windowsStore.saveCurrentView(name.trim())
+    showSaveDropdown.value = false
+    ui.showSuccess(`Layout "${name}" uložen`)
+  }
+}
+
+function loadLayout(viewId: string) {
+  windowsStore.loadView(viewId)
+  showLayoutDropdown.value = false
+  ui.showSuccess('Layout načten')
+}
+
+function deleteLayout(viewId: string) {
+  const view = windowsStore.savedViews.find(v => v.id === viewId)
+  if (view && confirm(`Smazat layout "${view.name}"?`)) {
+    windowsStore.deleteView(viewId)
+    ui.showSuccess('Layout smazán')
+  }
+}
+
+function toggleDefaultLayout(viewId: string) {
+  windowsStore.setDefaultLayout(viewId === windowsStore.defaultLayoutId ? null : viewId)
+  const view = windowsStore.savedViews.find(v => v.id === viewId)
+  if (windowsStore.defaultLayoutId === viewId && view) {
+    ui.showSuccess(`"${view.name}" nastaven jako výchozí`)
+  } else {
+    ui.showSuccess('Výchozí layout zrušen')
+  }
 }
 
 // Keyboard shortcut (Ctrl+K)
@@ -298,10 +565,30 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-// Register keyboard listener
+// Click outside to close dropdowns
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement
+
+  // Check if click is outside dropdown wrappers
+  if (!target.closest('.dropdown-wrapper') &&
+      !target.closest('.menu-wrapper') &&
+      !target.closest('.search-wrapper')) {
+    closeAll()
+  }
+}
+
+// Register keyboard and click listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('click', handleClickOutside)
 }
+
+// Body scroll lock when drawer is open
+watch(showMenu, (isOpen) => {
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+  }
+})
 </script>
 
 <style scoped>
@@ -310,7 +597,7 @@ if (typeof window !== 'undefined') {
   border-bottom: 1px solid var(--border-color, #e5e7eb);
   padding: 0.5rem 2rem;
   position: relative;
-  z-index: 100;
+  z-index: 10001;
 }
 
 .header-container {
@@ -385,6 +672,16 @@ if (typeof window !== 'undefined') {
   color: var(--text-primary, #111);
 }
 
+.density-toggle.is-compact {
+  background: var(--color-success, #059669);
+  color: white;
+}
+
+.density-toggle.is-compact:hover {
+  background: var(--color-success-hover, #047857);
+  color: white;
+}
+
 .control-btn .icon {
   width: 20px;
   height: 20px;
@@ -457,22 +754,23 @@ if (typeof window !== 'undefined') {
   color: var(--text-muted, #9ca3af);
 }
 
-/* Menu Dropdown */
+/* Menu Drawer */
 .menu-wrapper {
   position: relative;
 }
 
-.menu-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
+.menu-drawer {
+  position: fixed;
+  top: 0;
   right: 0;
-  width: 240px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  padding: 0.5rem;
-  z-index: 200;
+  height: 100vh;
+  width: 280px;
+  background: var(--bg-surface, #141414);
+  border-left: 1px solid var(--border-default, #262626);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+  padding: 0.75rem 0.5rem;
+  overflow-y: auto;
+  z-index: 10000;
 }
 
 .menu-section {
@@ -480,8 +778,8 @@ if (typeof window !== 'undefined') {
 }
 
 .menu-section-title {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.65rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -491,12 +789,12 @@ if (typeof window !== 'undefined') {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: 8px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 6px;
   text-decoration: none;
   color: var(--text-primary, #111);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.1s ease;
   border: none;
@@ -524,36 +822,250 @@ if (typeof window !== 'undefined') {
 }
 
 .menu-icon {
-  font-size: 1rem;
-  width: 20px;
+  font-size: 0.9rem;
+  width: 18px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .menu-label {
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-divider {
   height: 1px;
   background: var(--border-color, #e5e7eb);
-  margin: 0.25rem 0.5rem;
+  margin: 0.375rem 0.5rem;
 }
 
 /* Backdrop */
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 99;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
 }
 
 /* Transitions */
-.menu-fade-enter-active,
-.menu-fade-leave-active {
-  transition: all 0.15s ease;
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition: transform 0.3s ease-out;
 }
 
-.menu-fade-enter-from,
-.menu-fade-leave-to {
+.menu-slide-enter-from,
+.menu-slide-leave-to {
+  transform: translateX(100%);
+}
+
+.backdrop-fade-enter-active,
+.backdrop-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.backdrop-fade-enter-from,
+.backdrop-fade-leave-to {
+  opacity: 0;
+}
+
+/* Windows Toolbar */
+.header-windows-toolbar {
+  background: var(--bg-surface, #fff);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  padding: 0.25rem 2rem;
+}
+
+.toolbar-container {
+  width: 95%;
+  min-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-primary, #111);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-secondary, #fff);
+  border-color: var(--text-muted, #9ca3af);
+}
+
+.toolbar-btn.is-open {
+  background: var(--accent-red, #dc2626);
+  color: white;
+  border-color: var(--accent-red, #dc2626);
+}
+
+.toolbar-btn-danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.toolbar-dropdown {
+  min-width: 100px;
+}
+
+.btn-icon {
+  font-size: 0.75rem;
+}
+
+.btn-label {
+  flex: 1;
+  text-align: left;
+  font-size: 0.75rem;
+}
+
+.btn-label-compact {
+  font-size: 0.6875rem;
+}
+
+.btn-arrow {
+  font-size: 0.5rem;
+  opacity: 0.6;
+}
+
+/* Dropdown Menu */
+.dropdown-wrapper {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem;
+  z-index: 200;
+}
+
+.dropdown-section-title {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--text-primary, #111);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-primary, #f3f4f6);
+}
+
+.dropdown-item.is-active {
+  background: var(--accent-subtle, #fee2e2);
+  color: var(--accent-red, #dc2626);
+  font-weight: 500;
+}
+
+.item-icon {
+  font-size: 0.9rem;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.item-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.action-btn {
+  padding: 0.125rem 0.25rem;
+  font-size: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.action-btn:hover {
+  opacity: 1;
+}
+
+.action-danger:hover {
+  color: #dc2626;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color, #e5e7eb);
+  margin: 0.25rem 0;
+}
+
+.dropdown-empty {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Dropdown Transition */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
   opacity: 0;
   transform: translateY(-8px);
 }

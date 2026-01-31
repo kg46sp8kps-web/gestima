@@ -11,7 +11,7 @@ const store = useWindowsStore()
 
 // Available modules
 const modules: Array<{ value: WindowModule; label: string; icon: string }> = [
-  { value: 'parts-list', label: 'Parts List', icon: '📦' },
+  { value: 'part-main', label: 'Part Main', icon: '📦' },
   { value: 'part-pricing', label: 'Pricing', icon: '💰' },
   { value: 'part-operations', label: 'Operations', icon: '⚙️' },
   { value: 'part-material', label: 'Material', icon: '🧱' },

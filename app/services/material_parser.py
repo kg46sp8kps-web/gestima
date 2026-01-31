@@ -9,6 +9,7 @@ Parsuje materiálové popisy typu "D20 1.4301 100mm" a rozpozná:
 Výstup: ParseResult s confidence score + navržený MaterialGroup/PriceCategory/MaterialItem
 """
 
+import logging
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 import re
@@ -18,6 +19,8 @@ from sqlalchemy import select, or_
 from app.models.enums import StockShape
 from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialItem
 from app.models.material_norm import MaterialNorm
+
+logger = logging.getLogger(__name__)
 
 
 class ParseResult(BaseModel):
@@ -356,7 +359,7 @@ class MaterialParserService:
             if not code.startswith('D') and not code.startswith('Ø') and not code.startswith('O'):
                 potential_codes.append(code)
 
-        print(f"🔍 _extract_material: potential codes found: {potential_codes}")
+        logger.debug(f"_extract_material: potential codes found: {potential_codes}")
 
         # Try to find these codes in MaterialNorm DB
         for code in potential_codes:
@@ -375,7 +378,7 @@ class MaterialParserService:
             norm = result.scalar_one_or_none()
 
             if norm:
-                print(f"🔍 _extract_material: DB match found for '{code}' → MaterialNorm ID {norm.id}")
+                logger.debug(f"_extract_material: DB match found for '{code}' → MaterialNorm ID {norm.id}")
                 # Return with category from MaterialGroup
                 # (category is not needed anymore, _find_material_group will handle it)
                 return {
@@ -383,7 +386,7 @@ class MaterialParserService:
                     "category": "unknown"  # Will be resolved via _find_material_group
                 }
 
-        print(f"🔍 _extract_material: no material code found")
+        logger.debug(f"_extract_material: no material code found")
         return None
 
     def _extract_length(
@@ -426,12 +429,12 @@ class MaterialParserService:
             cleaned_text = re.sub(re.escape(material_norm), " ", cleaned_text, flags=re.IGNORECASE)
 
         # Debug log
-        print(f"🔍 _extract_length: original='{text}', cleaned='{cleaned_text}'")
+        logger.debug(f"_extract_length: original='{text}', cleaned='{cleaned_text}'")
 
         # Find all numbers in cleaned text
         # Note: Don't use \b at end - "100mm" has no word boundary between "100" and "mm"
         all_numbers = list(re.finditer(r"(?<!\d)(\d+(?:\.\d+)?)", cleaned_text))
-        print(f"🔍 _extract_length: found numbers: {[m.group(1) for m in all_numbers]}")
+        logger.debug(f"_extract_length: found numbers: {[m.group(1) for m in all_numbers]}")
 
         if not all_numbers:
             return None
@@ -448,29 +451,29 @@ class MaterialParserService:
 
             # Skip very small numbers (< 10mm is unlikely to be length)
             if value < 10.0:
-                print(f"🔍 _extract_length: skipping {value} (too small for length)")
+                logger.debug(f"_extract_length: skipping {value} (too small for length)")
                 continue
 
             # If material was NOT found, filter out potential material codes
             if material_norm is None:
                 # 5-digit numbers are likely ČSN codes (11xxx, 12xxx, 17xxx)
                 if num_digits == 5 and 10000 <= value < 100000:
-                    print(f"🔍 _extract_length: skipping {value} (likely ČSN material code)")
+                    logger.debug(f"_extract_length: skipping {value} (likely ČSN material code)")
                     continue
 
                 # 4-digit numbers in 6xxx, 7xxx range are likely aluminum codes
                 if num_digits == 4 and (6000 <= value < 8000):
-                    print(f"🔍 _extract_length: skipping {value} (likely aluminum code)")
+                    logger.debug(f"_extract_length: skipping {value} (likely aluminum code)")
                     continue
 
             candidate_numbers.append(value)
 
-        print(f"🔍 _extract_length: candidate lengths after filtering: {candidate_numbers}")
+        logger.debug(f"_extract_length: candidate lengths after filtering: {candidate_numbers}")
 
         # Take the LAST candidate (length is typically at the end of user input)
         if candidate_numbers:
             length = candidate_numbers[-1]
-            print(f"🔍 _extract_length: returning length={length} (last candidate)")
+            logger.debug(f"_extract_length: returning length={length} (last candidate)")
             return length
 
         return None
@@ -567,7 +570,7 @@ class MaterialParserService:
 
         keywords = shape_keywords.get(shape, [])
         if not keywords:
-            print(f"🔍 _find_price_category: No keywords for shape {shape}")
+            logger.debug(f"_find_price_category: No keywords for shape {shape}")
             return None
 
         # Query DB
@@ -575,7 +578,7 @@ class MaterialParserService:
             MaterialPriceCategory.code.ilike(f"%{kw}%") for kw in keywords
         ]
 
-        print(f"🔍 _find_price_category: Looking for material_group_id={material_group_id}, shape={shape}, keywords={keywords}")
+        logger.debug(f"_find_price_category: Looking for material_group_id={material_group_id}, shape={shape}, keywords={keywords}")
 
         result = await self.db.execute(
             select(MaterialPriceCategory)
@@ -589,9 +592,9 @@ class MaterialParserService:
 
         category = result.scalar_one_or_none()
         if category:
-            print(f"🔍 _find_price_category: Found category: {category.code} ({category.name})")
+            logger.debug(f"_find_price_category: Found category: {category.code} ({category.name})")
         else:
-            print(f"🔍 _find_price_category: NO CATEGORY FOUND for material_group_id={material_group_id}, shape={shape}")
+            logger.debug(f"_find_price_category: NO CATEGORY FOUND for material_group_id={material_group_id}, shape={shape}")
 
         return category
 

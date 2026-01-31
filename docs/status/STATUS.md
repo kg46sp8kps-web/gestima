@@ -17,11 +17,15 @@
   - Search icon (Ctrl+K) with dropdown
   - Favorites icon (placeholder)
   - User badge (username + role)
-  - Hamburger dropdown: Dashboard, Díly, Sady cen, Pracoviště, Windows, Nastavení, Master Data (admin), Logout
+  - Hamburger dropdown: Dashboard, Díly, Sady cen, Windows, Nastavení, Master Data (admin), Logout
 - ✅ **AppFooter.vue** - 3-column layout
   - "Be lazy. It's way better than talking to people." motto
   - Original branding from Alpine.js era
 - ✅ **WindowsView.vue** - Fixed to work within global chrome (header visible)
+- ✅ **Work Centers → Admin Console** - Moved from standalone nav to Master Data tab
+  - Inline modal editing (consistent with other admin tabs)
+  - Admin-only access (`/admin/work-centers/*` routes)
+  - Removed from main navigation (accessible via Master Data > Tab 3)
 
 ### Impact
 - ❌ BEFORE: User TRAPPED after leaving Dashboard (no navigation)
@@ -206,10 +210,10 @@
 - ✅ PartsListView
 - ✅ PartCreateView
 - ✅ PartDetailView (4 tabs with inline modules) ⭐
-- ✅ WorkCentersListView
-- ✅ WorkCenterEditView
+- ✅ WorkCentersListView (legacy - kept for direct access)
+- ✅ WorkCenterEditView (legacy - kept for direct access)
 - ✅ BatchSetsListView
-- ✅ MasterDataView (admin)
+- ✅ MasterDataView (admin - includes Work Centers as Tab 3) ⭐
 - ✅ SettingsView
 - ✅ WindowsView (floating windows) ⭐ NEW
 
@@ -217,11 +221,10 @@
 - ✅ `/parts` - Parts list
 - ✅ `/parts/new` - Create part
 - ✅ `/parts/:partNumber` - Part detail
-- ✅ `/work-centers` - Work centers list
-- ✅ `/work-centers/new` - Create work center
-- ✅ `/work-centers/:workCenterNumber` - Edit work center
+- ✅ `/admin/work-centers/new` - Create work center (admin-only) ⭐
+- ✅ `/admin/work-centers/:workCenterNumber` - Edit work center (admin-only) ⭐
 - ✅ `/pricing/batch-sets` - Batch sets list
-- ✅ `/admin/master-data` - Admin master data
+- ✅ `/admin/master-data` - Admin master data (Work Centers Tab 3 uses inline modal) ⭐
 - ✅ `/settings` - Settings
 - ✅ `/windows` - Floating windows (NEW)
 
@@ -246,11 +249,11 @@ src/
 │   ├── auth/ (1 view) - Login
 │   ├── dashboard/ (1 view) - Dashboard
 │   ├── parts/ (3 views) - List, Create, Detail
-│   ├── workCenters/ (2 views) - List, Edit
+│   ├── workCenters/ (2 views) - List, Edit (legacy, direct access only)
 │   ├── pricing/ (1 view) - BatchSets List
 │   ├── workspace/ (1 view + 5 modules)
 │   ├── windows/ (1 view) - Floating Windows ⭐ NEW
-│   ├── admin/ (1 view) - MasterData
+│   ├── admin/ (1 view) - MasterData (4 tabs: Norms, Groups, Categories, Work Centers) ⭐
 │   └── settings/ (1 view) - Settings
 ├── components/
 │   ├── ui/ (8 components) - DataTable, FormTabs, Modal, etc.
@@ -282,14 +285,16 @@ Total: 13 views, 19 routes, 7 stores, 17+ components
 - Operations module (inline editing, add/delete, work centers)
 - Material module (parser, stock cost calculation)
 - Pricing module (batches, sets, cost breakdown)
-- Work Centers (list, create/edit)
+- **Admin Master Data Console** (4 tabs: Material Norms, Groups, Price Categories, Work Centers) ⭐
+  - Inline modal editing for all tabs (consistent UX)
+  - Admin-only access control
+  - Work Centers integrated into admin console
 - Settings (user preferences)
 - **Floating Windows** (drag, resize, snap, save/load views) ⭐ NEW
 - DataTable component (sorting, pagination, formatting)
 - FormTabs component (horizontal/vertical, badges)
 
 ### ⏳ Placeholder/TODO
-- Admin master data (placeholder, needs implementation)
 - Batch set detail view (route exists, view TODO)
 - Part pricing standalone view (route TODO)
 
@@ -364,11 +369,27 @@ None. All TypeScript errors resolved, build passing.
 
 ## 📚 Documentation
 
-- ✅ [VUE-MIGRATION.md](VUE-MIGRATION.md) - Complete migration guide
-- ✅ [CHANGELOG.md](../CHANGELOG.md) - Version history
-- ✅ [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
-- ✅ [UI-GUIDE.md](UI-GUIDE.md) - UI patterns and components
-- ✅ [CLAUDE.md](../CLAUDE.md) - AI assistant rules
+### 📖 Active Documentation
+
+| Dokument | Status | Účel |
+|----------|--------|------|
+| **[ULTIMATE-ROADMAP-TO-BETA.md](ULTIMATE-ROADMAP-TO-BETA.md)** | ✅ ACTIVE | **SINGLE SOURCE OF TRUTH** - Road to BETA (M0 ✅, M1 ✅, M2 🔄, M3 ⏳) |
+| **[STATUS.md](STATUS.md)** | ✅ ACTIVE | Historie (co JE hotovo) - tento soubor |
+| **[BACKLOG.md](BACKLOG.md)** | ✅ ACTIVE | Items na později (post-BETA) |
+| **[VISION.md](VISION.md)** | ✅ ACTIVE | Dlouhodobá vize (1 rok roadmap) |
+| **[DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)** | ✅ ACTIVE | **BIBLE!** Design tokens + Vue components + patterns |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)** | ✅ ACTIVE | System architecture overview |
+| **[VUE-MIGRATION.md](VUE-MIGRATION.md)** | ✅ ACTIVE | Vue SPA migration guide (Phase 1-4) |
+| **[../CLAUDE.md](../CLAUDE.md)** | ✅ ACTIVE | AI assistant rules (workflow, anti-patterns) |
+| **[../CHANGELOG.md](../CHANGELOG.md)** | ✅ ACTIVE | Version history |
+
+### 🗄️ Archives
+
+| Folder | Purpose |
+|--------|---------|
+| **[archive/](archive/)** | Legacy docs (Alpine.js, old roadmaps) - see [archive/README.md](archive/README.md) |
+| **[audits/](audits/)** | Audit reports (security, performance) - historical reference |
+| **[sprints/](sprints/)** | Sprint reports - historical reference |
 
 ---
 

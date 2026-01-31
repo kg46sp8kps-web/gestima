@@ -7,11 +7,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export type WindowModule =
-  | 'parts-list'
+  | 'part-main'
   | 'part-pricing'
   | 'part-operations'
   | 'part-material'
   | 'batch-sets'
+
+export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
 
 export interface WindowState {
   id: string
@@ -24,6 +26,7 @@ export interface WindowState {
   zIndex: number
   minimized: boolean
   maximized: boolean
+  linkingGroup: LinkingGroup // Color-based context linking
 }
 
 export interface SavedView {
@@ -43,6 +46,7 @@ export const useWindowsStore = defineStore('windows', () => {
   const windows = ref<WindowState[]>([])
   const savedViews = ref<SavedView[]>([])
   const currentViewId = ref<string | null>(null)
+  const defaultLayoutId = ref<string | null>(null)
 
   // Getters
   const openWindows = computed(() => windows.value.filter(w => !w.minimized))
@@ -51,15 +55,7 @@ export const useWindowsStore = defineStore('windows', () => {
 
   // Actions
   function openWindow(module: WindowModule, title: string) {
-    // Check if window already open
-    const existing = windows.value.find(w => w.module === module)
-    if (existing) {
-      // Bring to front
-      existing.zIndex = nextZIndex++
-      if (existing.minimized) existing.minimized = false
-      return
-    }
-
+    // Allow multiple windows of the same type (for comparison workflows)
     // Find free space (no overlapping)
     const defaultWidth = 800
     const defaultHeight = 600
@@ -81,7 +77,8 @@ export const useWindowsStore = defineStore('windows', () => {
         height: defaultHeight,
         zIndex: nextZIndex++,
         minimized: false,
-        maximized: false
+        maximized: false,
+        linkingGroup: null
       }
 
       windows.value.push(newWindow)
@@ -101,10 +98,18 @@ export const useWindowsStore = defineStore('windows', () => {
       height: defaultHeight,
       zIndex: nextZIndex++,
       minimized: false,
-      maximized: false
+      maximized: false,
+      linkingGroup: null // Default: unlinked
     }
 
     windows.value.push(newWindow)
+  }
+
+  function setWindowLinkingGroup(id: string, group: LinkingGroup) {
+    const win = windows.value.find(w => w.id === id)
+    if (win) {
+      win.linkingGroup = group
+    }
   }
 
   // Find free position (no overlapping with existing windows)
@@ -284,6 +289,11 @@ export const useWindowsStore = defineStore('windows', () => {
     }
   }
 
+  function setDefaultLayout(viewId: string | null) {
+    defaultLayoutId.value = viewId
+    saveToStorage()
+  }
+
   function closeAllWindows() {
     windows.value = []
   }
@@ -295,7 +305,9 @@ export const useWindowsStore = defineStore('windows', () => {
       if (stored) {
         const data = JSON.parse(stored)
         savedViews.value = data.savedViews || []
+        defaultLayoutId.value = data.defaultLayoutId || null
         // Don't restore windows on load - start clean
+        // WindowsView will auto-load default layout on mount if set
       }
     } catch (error) {
       console.error('Failed to load windows from storage:', error)
@@ -305,7 +317,8 @@ export const useWindowsStore = defineStore('windows', () => {
   function saveToStorage() {
     try {
       const data = {
-        savedViews: savedViews.value
+        savedViews: savedViews.value,
+        defaultLayoutId: defaultLayoutId.value
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (error) {
@@ -328,6 +341,7 @@ export const useWindowsStore = defineStore('windows', () => {
     windows,
     savedViews,
     currentViewId,
+    defaultLayoutId,
 
     // Getters
     openWindows,
@@ -343,11 +357,13 @@ export const useWindowsStore = defineStore('windows', () => {
     bringToFront,
     updateWindowPosition,
     updateWindowSize,
+    setWindowLinkingGroup,
     arrangeWindows,
     saveCurrentView,
     loadView,
     deleteView,
     toggleFavoriteView,
+    setDefaultLayout,
     closeAllWindows
   }
 })

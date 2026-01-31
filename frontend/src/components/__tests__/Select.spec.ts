@@ -56,9 +56,9 @@ describe('Select Component', () => {
       const options = wrapper.findAll('option')
       // No placeholder, so 3 options
       expect(options).toHaveLength(3)
-      expect(options[0].text()).toBe('Option 1')
-      expect(options[1].text()).toBe('Option 2')
-      expect(options[2].text()).toBe('Option 3')
+      expect(options[0]!.text()).toBe('Option 1')
+      expect(options[1]!.text()).toBe('Option 2')
+      expect(options[2]!.text()).toBe('Option 3')
     })
 
     it('should render placeholder option', () => {
@@ -69,9 +69,9 @@ describe('Select Component', () => {
       const options = wrapper.findAll('option')
       // Placeholder + 3 options
       expect(options).toHaveLength(4)
-      expect(options[0].text()).toBe('Select...')
-      expect(options[0].attributes('value')).toBe('')
-      expect(options[0].attributes('disabled')).toBeDefined()
+      expect(options[0]!.text()).toBe('Select...')
+      expect(options[0]!.attributes('value')).toBe('')
+      expect(options[0]!.attributes('disabled')).toBeDefined()
     })
   })
 
@@ -147,9 +147,9 @@ describe('Select Component', () => {
       })
 
       const options = wrapper.findAll('option')
-      expect(options[0].attributes('value')).toBe('1')
-      expect(options[1].attributes('value')).toBe('2')
-      expect(options[2].attributes('value')).toBe('3')
+      expect(options[0]!.attributes('value')).toBe('1')
+      expect(options[1]!.attributes('value')).toBe('2')
+      expect(options[2]!.attributes('value')).toBe('3')
     })
 
     it('should render options with string values', () => {
@@ -163,8 +163,8 @@ describe('Select Component', () => {
       })
 
       const options = wrapper.findAll('option')
-      expect(options[0].attributes('value')).toBe('red')
-      expect(options[1].attributes('value')).toBe('blue')
+      expect(options[0]!.attributes('value')).toBe('red')
+      expect(options[1]!.attributes('value')).toBe('blue')
     })
 
     it('should handle empty options array', () => {
@@ -337,7 +337,7 @@ describe('Select Component', () => {
         props: { modelValue: '', options: mockOptions, placeholder: 'Choose one...' }
       })
 
-      const firstOption = wrapper.findAll('option')[0]
+      const firstOption = wrapper.findAll('option')[0]!
       expect(firstOption.text()).toBe('Choose one...')
       expect(firstOption.attributes('disabled')).toBeDefined()
       expect(firstOption.attributes('value')).toBe('')
@@ -376,7 +376,7 @@ describe('Select Component', () => {
       const container = wrapper.find('.select-container')
       const arrow = wrapper.find('.select-arrow')
 
-      expect(container.element.style.position).toBe('') // Set via CSS
+      expect((container.element as HTMLElement).style.position).toBe('') // Set via CSS
       expect(arrow.exists()).toBe(true)
     })
   })
@@ -400,7 +400,7 @@ describe('Select Component', () => {
 
       expect(wrapper.find('.select-label').text()).toContain('Select option')
       expect(wrapper.find('.select-required').exists()).toBe(true)
-      expect(wrapper.findAll('option')[0].text()).toBe('Choose...')
+      expect(wrapper.findAll('option')[0]!.text()).toBe('Choose...')
       expect(wrapper.find('select').element.value).toBe('2')
       expect(wrapper.find('.select-hint').text()).toBe('Select your choice')
     })

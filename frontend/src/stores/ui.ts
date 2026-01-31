@@ -12,6 +12,7 @@ import { ref, computed } from 'vue'
 // ============================================================================
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
+export type DensityLevel = 'compact' | 'comfortable'
 
 export interface Toast {
   id: number
@@ -33,11 +34,25 @@ export const useUiStore = defineStore('ui', () => {
   const toasts = ref<Toast[]>([])
   let toastIdCounter = 0
 
+  // Density setting with localStorage persistence
+  const DENSITY_STORAGE_KEY = 'gestima-density'
+  const getInitialDensity = (): DensityLevel => {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(DENSITY_STORAGE_KEY)
+      if (stored === 'compact' || stored === 'comfortable') {
+        return stored
+      }
+    }
+    return 'compact' // Default = ultra-compact
+  }
+  const density = ref<DensityLevel>(getInitialDensity())
+
   // ============================================================================
   // GETTERS
   // ============================================================================
 
   const isLoading = computed(() => loadingCounter.value > 0)
+  const isCompactDensity = computed(() => density.value === 'compact')
 
   // ============================================================================
   // ACTIONS - Loading
@@ -134,6 +149,45 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   // ============================================================================
+  // ACTIONS - Density
+  // ============================================================================
+
+  /**
+   * Set density level and persist to localStorage
+   * Also updates the HTML data attribute for CSS
+   */
+  function setDensity(level: DensityLevel): void {
+    density.value = level
+
+    // Persist to localStorage
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DENSITY_STORAGE_KEY, level)
+    }
+
+    // Update HTML attribute for CSS
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.density = level
+    }
+  }
+
+  /**
+   * Toggle between compact and comfortable density
+   */
+  function toggleDensity(): void {
+    setDensity(density.value === 'compact' ? 'comfortable' : 'compact')
+  }
+
+  /**
+   * Initialize density on app startup
+   * Should be called in App.vue or main.ts
+   */
+  function initDensity(): void {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.density = density.value
+    }
+  }
+
+  // ============================================================================
   // RETURN
   // ============================================================================
 
@@ -141,9 +195,11 @@ export const useUiStore = defineStore('ui', () => {
     // State
     loadingCounter,
     toasts,
+    density,
 
     // Getters
     isLoading,
+    isCompactDensity,
 
     // Actions
     startLoading,
@@ -152,6 +208,9 @@ export const useUiStore = defineStore('ui', () => {
     showToast,
     removeToast,
     clearToasts,
+    setDensity,
+    toggleDensity,
+    initDensity,
 
     // Convenience
     showSuccess,

@@ -9,6 +9,8 @@ from sqlalchemy import select
 from app.models.batch import Batch
 from app.models.part import Part
 from app.models.material import MaterialGroup, MaterialItem, MaterialPriceCategory, MaterialPriceTier
+from app.models.material_input import MaterialInput  # ADR-024
+from app.models.enums import StockShape  # ADR-024
 from app.models import User, UserRole
 from app.routers.batches_router import freeze_batch, clone_batch, delete_batch
 
@@ -93,11 +95,16 @@ async def sample_materials(db_session):
 
 @pytest_asyncio.fixture
 async def sample_part(db_session, sample_materials):
-    """Create a sample part for testing"""
-    _, item = sample_materials
+    """Create a sample part for testing (ADR-024: uses MaterialInput instead of Part.material_item_id)"""
+    group, item = sample_materials
+
+    # Get price_category from item
+    price_category_id = item.price_category_id
+
+    # Create Part (ADR-024: no material fields on Part anymore)
     part = Part(
-        part_number="TEST-SNAPSHOT-001",
-        material_item_id=item.id,
+        part_number="10000099",  # ADR-017: 8-digit number
+        name="Test Snapshot Part",
         length=100.0,
         created_by="test",
         updated_by="test"
@@ -105,6 +112,22 @@ async def sample_part(db_session, sample_materials):
     db_session.add(part)
     await db_session.commit()
     await db_session.refresh(part)
+
+    # Create MaterialInput (ADR-024: material data is here now)
+    material_input = MaterialInput(
+        part_id=part.id,
+        seq=1,
+        price_category_id=price_category_id,
+        material_item_id=item.id,
+        stock_shape=StockShape.ROUND_BAR,
+        stock_diameter=50.0,
+        stock_length=100.0,
+        quantity=1,
+        created_by="test"
+    )
+    db_session.add(material_input)
+    await db_session.commit()
+
     return part
 
 
@@ -229,17 +252,16 @@ async def test_frozen_batch_soft_delete(db_session, sample_batch, mock_admin):
     """Test smazání frozen batche - soft delete (ADR-012)"""
     # Zmrazit batch
     await freeze_batch(sample_batch.batch_number, db_session, mock_admin)
+    batch_id = sample_batch.id  # Keep ID for verification query
 
-    # Pokusit se smazat frozen batch
-    result = await delete_batch(sample_batch.batch_number, db_session, mock_admin)
-
-    assert "soft delete" in result["message"].lower()
+    # Smazat frozen batch (returns None = 204 No Content)
+    await delete_batch(sample_batch.batch_number, db_session, mock_admin)
 
     # Zkontrolovat, že batch má deleted_at (soft delete)
-    query_result = await db_session.execute(select(Batch).where(Batch.id == sample_batch.id))
+    query_result = await db_session.execute(select(Batch).where(Batch.id == batch_id))
     deleted_batch = query_result.scalar_one_or_none()
-    assert deleted_batch is not None  # Stále existuje
-    assert deleted_batch.deleted_at is not None  # Soft delete
+    assert deleted_batch is not None  # Stále existuje (soft delete)
+    assert deleted_batch.deleted_at is not None  # Soft delete timestamp set
     assert deleted_batch.deleted_by == "admin"
 
 
@@ -249,11 +271,8 @@ async def test_unfrozen_batch_hard_delete(db_session, sample_batch, mock_admin):
     batch_number = sample_batch.batch_number
     batch_id = sample_batch.id  # Keep ID for verification query
 
-    # Smazat nezmrazený batch
-    result = await delete_batch(batch_number, db_session, mock_admin)
-
-    assert "dávka smazána" in result["message"].lower()
-    assert "soft" not in result["message"].lower()
+    # Smazat nezmrazený batch (returns None = 204 No Content)
+    await delete_batch(batch_number, db_session, mock_admin)
 
     # Zkontrolovat, že batch už neexistuje (hard delete)
     query_result = await db_session.execute(select(Batch).where(Batch.id == batch_id))

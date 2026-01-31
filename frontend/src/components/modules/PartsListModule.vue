@@ -8,13 +8,17 @@
 
 import { ref, onMounted, computed } from 'vue'
 import { usePartsStore } from '@/stores/parts'
+import { useWindowContextStore } from '@/stores/windowContext'
+import type { LinkingGroup } from '@/stores/windows'
 
 interface Props {
   standalone?: boolean
+  linkingGroup?: LinkingGroup
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  standalone: false
+  standalone: false,
+  linkingGroup: null
 })
 
 const emit = defineEmits<{
@@ -22,6 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const partsStore = usePartsStore()
+const contextStore = useWindowContextStore()
 
 // Computed
 const parts = computed(() => partsStore.parts)
@@ -37,6 +42,14 @@ onMounted(async () => {
 
 function selectPart(partNumber: string) {
   emit('select-part', partNumber)
+
+  // Update window context if linked
+  if (props.linkingGroup) {
+    const part = parts.value.find(p => p.part_number === partNumber)
+    if (part) {
+      contextStore.setContext(props.linkingGroup, part.id, part.part_number)
+    }
+  }
 }
 
 // Format date

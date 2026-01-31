@@ -25,6 +25,46 @@ vi.mock('@/api/operations', () => ({
   }
 }))
 
+// Helper to create valid Operation mock
+function createMockOperation(overrides: Partial<Operation> = {}): Operation {
+  return {
+    id: 1,
+    part_id: 100,
+    seq: 10,
+    name: 'OP10 - Soustružení',
+    type: 'turning',
+    icon: '🔄',
+    work_center_id: 1,
+    cutting_mode: 'mid',
+    setup_time_min: 15,
+    operation_time_min: 5,
+    setup_time_locked: false,
+    operation_time_locked: false,
+    is_coop: false,
+    coop_type: null,
+    coop_price: 0,
+    coop_min_price: 0,
+    coop_days: 0,
+    version: 1,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    ...overrides
+  }
+}
+
+// Helper to create valid WorkCenter mock
+function createMockWorkCenter(overrides: Partial<WorkCenter> = {}): WorkCenter {
+  return {
+    id: 1,
+    number: 'WC-001',
+    name: 'Soustruh 1',
+    type: 'lathe',
+    hourly_rate: 1200,
+    is_active: true,
+    ...overrides
+  }
+}
+
 describe('Operations Store', () => {
   let uiStore: ReturnType<typeof useUiStore>
 
@@ -62,28 +102,8 @@ describe('Operations Store', () => {
 
   describe('Load Work Centers', () => {
     const mockWorkCenters: WorkCenter[] = [
-      {
-        id: 1,
-        work_center_number: 'WC-001',
-        name: 'Soustruh 1',
-        type: 'lathe',
-        hourly_rate: 1200,
-        is_active: true,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      },
-      {
-        id: 2,
-        work_center_number: 'WC-002',
-        name: 'Fréza 1',
-        type: 'mill',
-        hourly_rate: 1500,
-        is_active: true,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      }
+      createMockWorkCenter({ id: 1, number: 'WC-001', name: 'Soustruh 1', type: 'lathe' }),
+      createMockWorkCenter({ id: 2, number: 'WC-002', name: 'Fréza 1', type: 'mill', hourly_rate: 1500 })
     ]
 
     it('should load work centers successfully', async () => {
@@ -109,12 +129,12 @@ describe('Operations Store', () => {
     it('should filter active work centers', () => {
       const store = useOperationsStore()
       store.workCenters = [
-        { ...mockWorkCenters[0], is_active: true },
-        { ...mockWorkCenters[1], is_active: false }
+        createMockWorkCenter({ id: 1, is_active: true }),
+        createMockWorkCenter({ id: 2, is_active: false })
       ]
 
       expect(store.activeWorkCenters).toHaveLength(1)
-      expect(store.activeWorkCenters[0].name).toBe('Soustruh 1')
+      expect(store.activeWorkCenters[0]!.name).toBe('Soustruh 1')
     })
   })
 
@@ -124,38 +144,8 @@ describe('Operations Store', () => {
 
   describe('Load Operations', () => {
     const mockOperations: Operation[] = [
-      {
-        id: 1,
-        part_id: 100,
-        work_center_id: 1,
-        seq: 10,
-        name: 'OP10 - Soustružení',
-        type: 'turning',
-        icon: '🔄',
-        setup_time_min: 15,
-        operation_time_min: 5,
-        is_coop: false,
-        coop_price: 0,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      },
-      {
-        id: 2,
-        part_id: 100,
-        work_center_id: 2,
-        seq: 20,
-        name: 'OP20 - Frézování',
-        type: 'milling',
-        icon: '⚙️',
-        setup_time_min: 20,
-        operation_time_min: 10,
-        is_coop: false,
-        coop_price: 0,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      }
+      createMockOperation({ id: 1, seq: 10, name: 'OP10 - Soustružení' }),
+      createMockOperation({ id: 2, seq: 20, name: 'OP20 - Frézování', type: 'milling', icon: '⚙️', work_center_id: 2, setup_time_min: 20, operation_time_min: 10 })
     ]
 
     it('should load operations successfully', async () => {
@@ -210,46 +200,16 @@ describe('Operations Store', () => {
 
   describe('Computed Properties', () => {
     const mockOperations: Operation[] = [
-      {
-        id: 1,
-        part_id: 100,
-        work_center_id: 1,
-        seq: 20,
-        name: 'OP20',
-        type: 'turning',
-        icon: '🔄',
-        setup_time_min: 10,
-        operation_time_min: 5,
-        is_coop: false,
-        coop_price: 0,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      },
-      {
-        id: 2,
-        part_id: 100,
-        work_center_id: 2,
-        seq: 10,
-        name: 'OP10',
-        type: 'milling',
-        icon: '⚙️',
-        setup_time_min: 15,
-        operation_time_min: 8,
-        is_coop: true,
-        coop_price: 500,
-        version: 1,
-        created_at: '2026-01-01T00:00:00Z',
-        created_by: 1
-      }
+      createMockOperation({ id: 1, seq: 20, setup_time_min: 10, operation_time_min: 5, is_coop: false }),
+      createMockOperation({ id: 2, seq: 10, setup_time_min: 15, operation_time_min: 8, is_coop: true, coop_price: 500 })
     ]
 
     it('should sort operations by sequence', () => {
       const store = useOperationsStore()
       store.operations = mockOperations
 
-      expect(store.sortedOperations[0].seq).toBe(10)
-      expect(store.sortedOperations[1].seq).toBe(20)
+      expect(store.sortedOperations[0]!.seq).toBe(10)
+      expect(store.sortedOperations[1]!.seq).toBe(20)
     })
 
     it('should filter internal operations', () => {
@@ -257,7 +217,7 @@ describe('Operations Store', () => {
       store.operations = mockOperations
 
       expect(store.internalOperations).toHaveLength(1)
-      expect(store.internalOperations[0].is_coop).toBe(false)
+      expect(store.internalOperations[0]!.is_coop).toBe(false)
     })
 
     it('should filter cooperation operations', () => {
@@ -265,7 +225,7 @@ describe('Operations Store', () => {
       store.operations = mockOperations
 
       expect(store.coopOperations).toHaveLength(1)
-      expect(store.coopOperations[0].is_coop).toBe(true)
+      expect(store.coopOperations[0]!.is_coop).toBe(true)
     })
 
     it('should calculate total setup time', () => {
@@ -290,22 +250,15 @@ describe('Operations Store', () => {
   describe('Add Operation', () => {
     it('should add operation successfully', async () => {
       const store = useOperationsStore()
-      const newOp: Operation = {
+      const newOp = createMockOperation({
         id: 10,
-        part_id: 100,
         work_center_id: null,
-        seq: 10,
         name: 'OP10',
         type: 'generic',
         icon: '🔧',
         setup_time_min: 0,
-        operation_time_min: 0,
-        is_coop: false,
-        coop_price: 0,
-        version: 1,
-        created_at: '2026-01-29T00:00:00Z',
-        created_by: 1
-      }
+        operation_time_min: 0
+      })
       ;(operationsApi.create as Mock).mockResolvedValue(newOp)
 
       const result = await store.addOperation(100)
@@ -322,61 +275,18 @@ describe('Operations Store', () => {
       expect(store.operations).toHaveLength(1)
       expect(store.operations[0]).toEqual(newOp)
       expect(store.expandedOps[10]).toBe(true)
-      expect(uiStore.toasts[0].type).toBe('success')
+      expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
     it('should calculate next sequence from existing operations', async () => {
       const store = useOperationsStore()
       store.operations = [
-        {
-          id: 1,
-          part_id: 100,
-          work_center_id: 1,
-          seq: 10,
-          name: 'OP10',
-          type: 'turning',
-          icon: '🔄',
-          setup_time_min: 0,
-          operation_time_min: 0,
-          is_coop: false,
-          coop_price: 0,
-          version: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          created_by: 1
-        },
-        {
-          id: 2,
-          part_id: 100,
-          work_center_id: 2,
-          seq: 20,
-          name: 'OP20',
-          type: 'milling',
-          icon: '⚙️',
-          setup_time_min: 0,
-          operation_time_min: 0,
-          is_coop: false,
-          coop_price: 0,
-          version: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          created_by: 1
-        }
+        createMockOperation({ id: 1, seq: 10 }),
+        createMockOperation({ id: 2, seq: 20 })
       ]
-      ;(operationsApi.create as Mock).mockResolvedValue({
-        id: 3,
-        part_id: 100,
-        work_center_id: null,
-        seq: 30,
-        name: 'OP30',
-        type: 'generic',
-        icon: '🔧',
-        setup_time_min: 0,
-        operation_time_min: 0,
-        is_coop: false,
-        coop_price: 0,
-        version: 1,
-        created_at: '2026-01-29T00:00:00Z',
-        created_by: 1
-      })
+      ;(operationsApi.create as Mock).mockResolvedValue(
+        createMockOperation({ id: 3, seq: 30, name: 'OP30', type: 'generic', icon: '🔧' })
+      )
 
       await store.addOperation(100)
 
@@ -392,7 +302,7 @@ describe('Operations Store', () => {
       const result = await store.addOperation(100)
 
       expect(result).toBeNull()
-      expect(uiStore.toasts[0].type).toBe('error')
+      expect(uiStore.toasts[0]!.type).toBe('error')
     })
   })
 
@@ -401,22 +311,7 @@ describe('Operations Store', () => {
   // ==========================================================================
 
   describe('Update Operation', () => {
-    const existingOp: Operation = {
-      id: 1,
-      part_id: 100,
-      work_center_id: 1,
-      seq: 10,
-      name: 'OP10',
-      type: 'turning',
-      icon: '🔄',
-      setup_time_min: 10,
-      operation_time_min: 5,
-      is_coop: false,
-      coop_price: 0,
-      version: 1,
-      created_at: '2026-01-01T00:00:00Z',
-      created_by: 1
-    }
+    const existingOp = createMockOperation({ setup_time_min: 10, operation_time_min: 5 })
 
     it('should update operation successfully', async () => {
       const store = useOperationsStore()
@@ -431,7 +326,7 @@ describe('Operations Store', () => {
         setup_time_min: 20,
         version: 1
       })
-      expect(store.operations[0].setup_time_min).toBe(20)
+      expect(store.operations[0]!.setup_time_min).toBe(20)
     })
 
     it('should handle version conflict (409)', async () => {
@@ -442,8 +337,8 @@ describe('Operations Store', () => {
 
       await store.updateOperation(1, { setup_time_min: 20 })
 
-      expect(uiStore.toasts[0].type).toBe('warning')
-      expect(uiStore.toasts[0].message).toContain('Konflikt')
+      expect(uiStore.toasts[0]!.type).toBe('warning')
+      expect(uiStore.toasts[0]!.message).toContain('Konflikt')
     })
 
     it('should handle operation not found', async () => {
@@ -452,7 +347,7 @@ describe('Operations Store', () => {
       const result = await store.updateOperation(999, { setup_time_min: 20 })
 
       expect(result).toBeNull()
-      expect(uiStore.toasts[0].message).toContain('nenalezena')
+      expect(uiStore.toasts[0]!.message).toContain('nenalezena')
     })
   })
 
@@ -463,24 +358,7 @@ describe('Operations Store', () => {
   describe('Delete Operation', () => {
     it('should delete operation successfully', async () => {
       const store = useOperationsStore()
-      store.operations = [
-        {
-          id: 1,
-          part_id: 100,
-          work_center_id: 1,
-          seq: 10,
-          name: 'OP10',
-          type: 'turning',
-          icon: '🔄',
-          setup_time_min: 10,
-          operation_time_min: 5,
-          is_coop: false,
-          coop_price: 0,
-          version: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          created_by: 1
-        }
-      ]
+      store.operations = [createMockOperation()]
       store.expandedOps = { 1: true }
       ;(operationsApi.delete as Mock).mockResolvedValue(undefined)
 
@@ -490,7 +368,7 @@ describe('Operations Store', () => {
       expect(result).toBe(true)
       expect(store.operations).toHaveLength(0)
       expect(store.expandedOps[1]).toBeUndefined()
-      expect(uiStore.toasts[0].type).toBe('success')
+      expect(uiStore.toasts[0]!.type).toBe('success')
     })
 
     it('should handle delete error', async () => {
@@ -500,7 +378,7 @@ describe('Operations Store', () => {
       const result = await store.deleteOperation(1)
 
       expect(result).toBe(false)
-      expect(uiStore.toasts[0].type).toBe('error')
+      expect(uiStore.toasts[0]!.type).toBe('error')
     })
   })
 
@@ -521,19 +399,7 @@ describe('Operations Store', () => {
 
     it('should get work center name', () => {
       const store = useOperationsStore()
-      store.workCenters = [
-        {
-          id: 1,
-          work_center_number: 'WC-001',
-          name: 'Soustruh 1',
-          type: 'lathe',
-          hourly_rate: 1200,
-          is_active: true,
-          version: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          created_by: 1
-        }
-      ]
+      store.workCenters = [createMockWorkCenter()]
 
       expect(store.getWorkCenterName(1)).toBe('Soustruh 1')
       expect(store.getWorkCenterName(999)).toBe('-')
@@ -542,24 +408,7 @@ describe('Operations Store', () => {
 
     it('should clear operations', () => {
       const store = useOperationsStore()
-      store.operations = [
-        {
-          id: 1,
-          part_id: 100,
-          work_center_id: 1,
-          seq: 10,
-          name: 'OP10',
-          type: 'turning',
-          icon: '🔄',
-          setup_time_min: 10,
-          operation_time_min: 5,
-          is_coop: false,
-          coop_price: 0,
-          version: 1,
-          created_at: '2026-01-01T00:00:00Z',
-          created_by: 1
-        }
-      ]
+      store.operations = [createMockOperation()]
       store.expandedOps = { 1: true }
       store.error = 'Some error'
 

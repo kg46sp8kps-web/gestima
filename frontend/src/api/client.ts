@@ -42,7 +42,7 @@ export class ValidationErrorClass extends ApiErrorClass {
   }
 }
 
-// Create axios instance
+// Create axios instance for regular API routes
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true, // CRITICAL: HttpOnly cookies
@@ -53,79 +53,95 @@ export const apiClient = axios.create({
   }
 })
 
-// Request interceptor
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Log request in dev
-    if (import.meta.env.DEV) {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
-    }
-    return config
-  },
-  (error) => {
-    console.error('[API] Request error:', error)
-    return Promise.reject(error)
+// Create axios instance for admin routes (different base path)
+export const adminClient = axios.create({
+  baseURL: '/admin/api',
+  withCredentials: true,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
   }
-)
+})
 
-// Response interceptor
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // Log response in dev
-    if (import.meta.env.DEV) {
-      console.log(`[API] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`)
-    }
-    return response
-  },
-  (error: AxiosError) => {
-    // Network error
-    if (!error.response) {
-      console.error('[API] Network error:', error.message)
-      return Promise.reject(new ApiErrorClass('Chyba připojení k serveru', 0))
-    }
-
-    const { status, data } = error.response
-
-    // Log error in dev
-    if (import.meta.env.DEV) {
-      console.error(`[API] Error ${status}:`, data)
-    }
-
-    // Handle specific status codes
-    switch (status) {
-      case 401:
-        // Unauthorized - will be handled by router guard
-        console.warn('[API] Unauthorized - redirecting to login')
-        break
-
-      case 403:
-        console.warn('[API] Forbidden - insufficient permissions')
-        break
-
-      case 404:
-        console.warn('[API] Not found')
-        break
-
-      case 409:
-        // Optimistic lock conflict
-        throw new OptimisticLockErrorClass(data)
-
-      case 422:
-        // Validation error
-        throw new ValidationErrorClass(data)
-
-      case 500:
-        console.error('[API] Server error')
-        break
-    }
-
-    // Throw standardized error
-    throw new ApiErrorClass(
-      (data as any)?.detail || 'Unknown error',
-      status,
-      data
-    )
+// Shared interceptor logic
+const requestInterceptor = (config: InternalAxiosRequestConfig) => {
+  // Log request in dev
+  if (import.meta.env.DEV) {
+    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
   }
-)
+  return config
+}
+
+const requestErrorInterceptor = (error: any) => {
+  console.error('[API] Request error:', error)
+  return Promise.reject(error)
+}
+
+const responseInterceptor = (response: AxiosResponse) => {
+  // Log response in dev
+  if (import.meta.env.DEV) {
+    console.log(`[API] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`)
+  }
+  return response
+}
+
+const responseErrorInterceptor = (error: AxiosError) => {
+  // Network error
+  if (!error.response) {
+    console.error('[API] Network error:', error.message)
+    return Promise.reject(new ApiErrorClass('Chyba připojení k serveru', 0))
+  }
+
+  const { status, data } = error.response
+
+  // Log error in dev
+  if (import.meta.env.DEV) {
+    console.error(`[API] Error ${status}:`, data)
+  }
+
+  // Handle specific status codes
+  switch (status) {
+    case 401:
+      // Unauthorized - will be handled by router guard
+      console.warn('[API] Unauthorized - redirecting to login')
+      break
+
+    case 403:
+      console.warn('[API] Forbidden - insufficient permissions')
+      break
+
+    case 404:
+      console.warn('[API] Not found')
+      break
+
+    case 409:
+      // Optimistic lock conflict
+      throw new OptimisticLockErrorClass(data)
+
+    case 422:
+      // Validation error
+      throw new ValidationErrorClass(data)
+
+    case 500:
+      console.error('[API] Server error')
+      break
+  }
+
+  // Throw standardized error
+  throw new ApiErrorClass(
+    (data as any)?.detail || 'Unknown error',
+    status,
+    data
+  )
+}
+
+// Apply interceptors to apiClient
+apiClient.interceptors.request.use(requestInterceptor, requestErrorInterceptor)
+apiClient.interceptors.response.use(responseInterceptor, responseErrorInterceptor)
+
+// Apply interceptors to adminClient
+adminClient.interceptors.request.use(requestInterceptor, requestErrorInterceptor)
+adminClient.interceptors.response.use(responseInterceptor, responseErrorInterceptor)
 
 export default apiClient

@@ -272,10 +272,10 @@ print("✅ Database schema initialized")
         if result.returncode != 0:
             sys.exit(1)
 
-        # Seed machines
-        print("✓ Seeding machines...")
+        # Seed work centers (ADR-021: machines → work_centers)
+        print("✓ Seeding work centers...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_machines.py"
+            str(VENV_PYTHON), "scripts/seed_work_centers.py"
         ])
 
         if result.returncode != 0:

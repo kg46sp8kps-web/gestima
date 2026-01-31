@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -28,6 +28,7 @@ from app.routers import (
     pricing_router,
     materials_router,
     material_inputs_router,  # ADR-024
+    partners_router,
     work_centers_router,
     config_router,
     data_router,
@@ -159,6 +160,12 @@ if settings.CORS_ORIGINS:
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+# Mount Vue SPA assets
+frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="vue-assets")
+    logger.info(f"✅ Vue SPA assets mounted: {frontend_dist / 'assets'}")
+
 templates = Jinja2Templates(directory="app/templates")
 
 # Favicon route (zabrání 404 chybám)
@@ -176,17 +183,19 @@ app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"
 app.include_router(pricing_router.router, prefix="/api/pricing", tags=["Pricing"])
 app.include_router(materials_router.router, prefix="/api/materials", tags=["Materials"])
 app.include_router(material_inputs_router.router)  # ADR-024: prefix already in router
+app.include_router(partners_router.router, prefix="/api/partners", tags=["Partners"])
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
 app.include_router(admin_router.router, prefix="/admin", tags=["Admin"])
-app.include_router(pages_router.router, tags=["Pages"])
+# pages_router disabled - Vue SPA handles all frontend routes
+# app.include_router(pages_router.router, tags=["Pages"])
 
 
 # ============================================================================
-# HEALTH CHECK
+# HEALTH CHECK (must be before catch-all route)
 # ============================================================================
 
 @app.get("/health", tags=["Health"])
@@ -393,3 +402,36 @@ async def global_exception_handler(request: Request, exc: Exception):
             status_code=500,
             content={"detail": "Internal server error"}
         )
+
+
+# ============================================================================
+# VUE SPA CATCH-ALL ROUTE (MUST BE ABSOLUTE LAST!)
+# ============================================================================
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_vue_spa(full_path: str):
+    """
+    SPA catch-all route - serves Vue index.html for all non-API routes.
+
+    MUST BE LAST! All API routes are handled by routers above.
+    Exceptions:
+    - /api/* → API routes (handled by routers)
+    - /static/* → Jinja2 assets (handled by StaticFiles)
+    - /assets/* → Vue assets (handled by StaticFiles)
+    - /health, /docs, /redoc → FastAPI built-ins
+    """
+    # API routes should never reach here (handled by routers)
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    # Serve Vue SPA index.html for all other routes
+    frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+    index_path = frontend_dist / "index.html"
+
+    if not index_path.exists():
+        raise HTTPException(
+            status_code=503,
+            detail="Vue SPA not built. Run: cd frontend && npm run build"
+        )
+
+    return FileResponse(index_path)

@@ -16,7 +16,9 @@ import type {
   OperationCreate,
   OperationUpdate,
   ChangeModeRequest,
-  WorkCenter
+  WorkCenter,
+  WorkCenterCreate,
+  WorkCenterUpdate
 } from '@/types'
 
 export const operationsApi = {
@@ -92,10 +94,33 @@ export const workCentersApi = {
   },
 
   /**
-   * Get single work center
+   * Get single work center by number
    */
-  async get(workCenterId: number): Promise<WorkCenter> {
-    const { data } = await apiClient.get<WorkCenter>(`/work-centers/${workCenterId}`)
+  async get(workCenterNumber: string): Promise<WorkCenter> {
+    const { data } = await apiClient.get<WorkCenter>(`/work-centers/${workCenterNumber}`)
     return data
+  },
+
+  /**
+   * Create new work center
+   */
+  async create(workCenter: WorkCenterCreate): Promise<WorkCenter> {
+    const { data } = await apiClient.post<WorkCenter>('/work-centers/', workCenter)
+    return data
+  },
+
+  /**
+   * Update work center by number
+   */
+  async update(workCenterNumber: string, workCenter: WorkCenterUpdate): Promise<WorkCenter> {
+    const { data } = await apiClient.put<WorkCenter>(`/work-centers/${workCenterNumber}`, workCenter)
+    return data
+  },
+
+  /**
+   * Delete work center by number
+   */
+  async delete(workCenterNumber: string): Promise<void> {
+    await apiClient.delete(`/work-centers/${workCenterNumber}`)
   }
 }

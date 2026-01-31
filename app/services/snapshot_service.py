@@ -27,7 +27,7 @@ async def create_batch_snapshot(
     - metadata (material_code, material_price_per_kg, part_number)
 
     Args:
-        batch: Batch instance (s loaded part.material_item.group + price_category)
+        batch: Batch instance (s loaded part.material_inputs[0] → price_category, material_item - ADR-024)
         username: Uživatel provádějící freeze
         db: AsyncSession
 
@@ -59,12 +59,15 @@ async def create_batch_snapshot(
         raise ValueError(f"Failed to load batch data for snapshot: {e}")
 
     part = batch.part
-    material_item = part.material_item if hasattr(part, 'material_item') else None
+
+    # ADR-024: Get material data from first MaterialInput
+    material_input = part.material_inputs[0] if part.material_inputs else None
+    material_item = material_input.material_item if material_input and hasattr(material_input, 'material_item') else None
     material_group = material_item.group if material_item and hasattr(material_item, 'group') else None
 
     # ADR-014: Získat price_per_kg který byl použit pro výpočet batche
     material_price_per_kg = None
-    if material_item:
+    if material_input:  # Check material_input instead of material_item (ADR-024)
         try:
             from app.services.price_calculator import calculate_stock_cost_from_part
             # Vypočítat stock cost s quantity batche pro získání správného tier price

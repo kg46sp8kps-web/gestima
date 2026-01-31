@@ -2,7 +2,9 @@
 Tests for Batch Recalculation (P0-CRITICAL: Batch costs calculation)
 
 Verifies that batches are automatically recalculated with correct costs
-based on Part material + Operations + Machines.
+based on Part material_inputs + Operations + WorkCenters.
+
+ADR-024: MaterialInput refactor - material data moved from Part to MaterialInput
 """
 
 import pytest
@@ -14,6 +16,7 @@ from app.models.operation import Operation
 from app.models.work_center import WorkCenter
 from app.models.enums import WorkCenterType
 from app.models.material import MaterialGroup, MaterialItem, MaterialPriceCategory, MaterialPriceTier
+from app.models.material_input import MaterialInput  # ADR-024
 from app.models.enums import StockShape
 from app.services.batch_service import recalculate_batch_costs
 
@@ -35,6 +38,7 @@ async def test_recalculate_batch_costs_basic(db_session):
     category = MaterialPriceCategory(
         code="OCEL-KRUH",
         name="Ocel kruhová",
+        material_group_id=group.id,  # Link to group for density
         created_by="test"
     )
     db_session.add(category)
@@ -51,8 +55,8 @@ async def test_recalculate_batch_costs_basic(db_session):
     await db_session.flush()
 
     material_item = MaterialItem(
-     material_number="2000004",  # ADR-017
-     code="11523",
+        material_number="2000004",  # ADR-017
+        code="11523",
         name="11523",
         shape=StockShape.ROUND_BAR,
         diameter=30.0,  # mm
@@ -63,17 +67,29 @@ async def test_recalculate_batch_costs_basic(db_session):
     db_session.add(material_item)
     await db_session.flush()
 
-    # 2. Setup Part (tyč Ø30 × 100mm)
+    # 2. Setup Part (ADR-024: no material fields on Part anymore)
     part = Part(
         part_number="10000050",  # ADR-017: 8-digit number
         name="Test díl",
-        material_item_id=material_item.id,
-        length=100.0,  # mm
-        stock_diameter=30.0,
-        stock_length=100.0,
+        length=100.0,  # mm - délka dílu (ne polotovaru!)
         created_by="test"
     )
     db_session.add(part)
+    await db_session.flush()
+
+    # 2b. Setup MaterialInput (ADR-024: material data is here now)
+    material_input = MaterialInput(
+        part_id=part.id,
+        seq=1,
+        price_category_id=category.id,
+        material_item_id=material_item.id,
+        stock_shape=StockShape.ROUND_BAR,
+        stock_diameter=30.0,
+        stock_length=100.0,
+        quantity=1,
+        created_by="test"
+    )
+    db_session.add(material_input)
     await db_session.flush()
 
     # 3. Setup WorkCenter
@@ -109,8 +125,8 @@ async def test_recalculate_batch_costs_basic(db_session):
 
     # 5. Create Batch (quantity=10)
     batch = Batch(
-     batch_number="3000002",  # ADR-017
-     part_id=part.id,
+        batch_number="3000002",  # ADR-017
+        part_id=part.id,
         quantity=10,
         created_by="test"
     )
@@ -158,9 +174,9 @@ async def test_recalculate_batch_costs_basic(db_session):
 
 @pytest.mark.asyncio
 async def test_recalculate_batch_no_material(db_session):
-    """Test batch recalculation when Part has no material_item"""
+    """Test batch recalculation when Part has no material_inputs (ADR-024)"""
 
-    # Setup Part without material
+    # Setup Part without material_inputs
     part = Part(
         part_number="1000051",  # ADR-017
         name="Test díl bez materiálu",
@@ -171,8 +187,8 @@ async def test_recalculate_batch_no_material(db_session):
 
     # Create Batch
     batch = Batch(
-     batch_number="3000003",  # ADR-017
-     part_id=part.id,
+        batch_number="3000003",  # ADR-017
+        part_id=part.id,
         quantity=1,
         created_by="test"
     )
@@ -217,8 +233,8 @@ async def test_recalculate_batch_with_coop(db_session):
 
     # Create Batch (quantity=3)
     batch = Batch(
-     batch_number="3000004",  # ADR-017
-     part_id=part.id,
+        batch_number="3000004",  # ADR-017
+        part_id=part.id,
         quantity=3,
         created_by="test"
     )

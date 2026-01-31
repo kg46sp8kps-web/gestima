@@ -27,6 +27,7 @@ from app.models.material_input import (
 from app.models.operation import Operation
 from app.models.part import Part
 from app.models.enums import UserRole
+from app.models.user import User
 
 router = APIRouter(prefix="/api/material-inputs", tags=["material-inputs"])
 
@@ -39,7 +40,7 @@ router = APIRouter(prefix="/api/material-inputs", tags=["material-inputs"])
 async def list_material_inputs(
     part_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.VIEWER))
+    current_user: User = Depends(require_role([UserRole.VIEWER]))
 ):
     """Seznam materiálových vstupů pro díl (seřazeno podle seq)"""
 
@@ -62,7 +63,7 @@ async def list_material_inputs(
 async def get_material_input(
     material_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.VIEWER))
+    current_user: User = Depends(require_role([UserRole.VIEWER]))
 ):
     """Detail materiálového vstupu"""
 
@@ -91,7 +92,7 @@ async def get_material_input(
 async def create_material_input(
     data: MaterialInputCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.OPERATOR))
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
 ):
     """Vytvoření nového materiálového vstupu"""
 
@@ -113,8 +114,8 @@ async def create_material_input(
     # Create MaterialInput
     material = MaterialInput(
         **data.model_dump(),
-        created_by=current_user["id"],
-        updated_by=current_user["id"]
+        created_by=current_user.username,
+        updated_by=current_user.username
     )
 
     db.add(material)
@@ -129,7 +130,7 @@ async def update_material_input(
     material_id: int,
     data: MaterialInputUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.OPERATOR))
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
 ):
     """Aktualizace materiálového vstupu (optimistic locking)"""
 
@@ -159,7 +160,7 @@ async def update_material_input(
 
     # Update fields
     update_data = data.model_dump(exclude_unset=True, exclude={"version"})
-    update_data["updated_by"] = current_user["id"]
+    update_data["updated_by"] = current_user.username
     update_data["version"] = material.version + 1
 
     result = await db.execute(
@@ -191,9 +192,11 @@ async def update_material_input(
 async def delete_material_input(
     material_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.OPERATOR))
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
 ):
     """Smazání materiálového vstupu (soft delete)"""
+
+    from datetime import datetime as dt
 
     result = await db.execute(
         update(MaterialInput)
@@ -203,7 +206,10 @@ async def delete_material_input(
                 MaterialInput.deleted_at.is_(None)
             )
         )
-        .values(deleted_at=db.bind.dialect.current_timestamp())
+        .values(
+            deleted_at=dt.utcnow(),
+            deleted_by=current_user.username
+        )
         .returning(MaterialInput.id)
     )
 
@@ -226,7 +232,7 @@ async def link_material_to_operation(
     operation_id: int,
     request: Optional[MaterialOperationLinkRequest] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.OPERATOR))
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
 ):
     """Přiřadit materiál k operaci (M:N vztah)"""
 
@@ -295,7 +301,7 @@ async def unlink_material_from_operation(
     material_id: int,
     operation_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.OPERATOR))
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
 ):
     """Odebrat vazbu materiál → operace"""
 
@@ -321,7 +327,7 @@ async def unlink_material_from_operation(
 async def get_operation_materials(
     operation_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(UserRole.VIEWER))
+    current_user: User = Depends(require_role([UserRole.VIEWER]))
 ):
     """Materiály spotřebované v operaci"""
 

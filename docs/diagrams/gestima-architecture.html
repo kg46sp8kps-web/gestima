@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESTIMA - Architecture Overview</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo .red { color: #e94560; }
+        .logo .dark { color: #fff; }
+
+        .version {
+            display: inline-block;
+            background: #e94560;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 1rem;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+        }
+
+        .date {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        h2 {
+            color: #e94560;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(233, 69, 96, 0.3);
+        }
+
+        h3 {
+            color: #fff;
+            font-size: 1.3rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .diagram-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Status Summary Cards */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .status-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid;
+        }
+
+        .status-card.complete {
+            border-color: #28a745;
+        }
+
+        .status-card.backend {
+            border-color: #ffc107;
+        }
+
+        .status-card.planned {
+            border-color: #007bff;
+        }
+
+        .status-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-card.complete h4 { color: #28a745; }
+        .status-card.backend h4 { color: #ffc107; }
+        .status-card.planned h4 { color: #007bff; }
+
+        .status-card .count {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+
+        .status-card ul {
+            list-style: none;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .status-card li {
+            padding: 0.25rem 0;
+        }
+
+        /* Module Table */
+        .module-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .module-table th,
+        .module-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .module-table th {
+            background: rgba(255,255,255,0.05);
+            color: #e94560;
+            font-weight: 600;
+        }
+
+        .module-table tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-complete { background: #28a745; color: white; }
+        .badge-backend { background: #ffc107; color: #333; }
+        .badge-planned { background: #007bff; color: white; }
+        .badge-todo { background: #6c757d; color: white; }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                color: #333;
+                padding: 1rem;
+            }
+
+            header, section {
+                background: white;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+
+            .logo .red { color: #e94560; }
+            .logo .dark { color: #333; }
+
+            h2 { color: #e94560; }
+
+            .status-card {
+                background: #f8f9fa;
+            }
+
+            .module-table th {
+                background: #f8f9fa;
+            }
+        }
+
+        /* Page break hints for print */
+        .page-break {
+            page-break-before: always;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="red">GESTIMA</span>
+                <span class="version">v1.10.1</span>
+            </div>
+            <div class="subtitle">Module Development Status & Architecture</div>
+            <div class="date">2026-01-29 | CNC Cost Calculator to Full ERP/MES</div>
+        </header>
+
+        <!-- STATUS SUMMARY -->
+        <section>
+            <h2>1. Development Status Summary</h2>
+
+            <div class="status-grid">
+                <div class="status-card complete">
+                    <h4>KOMPLETNI (FE + BE + Tests)</h4>
+                    <div class="count">8</div>
+                    <ul>
+                        <li>Auth (Login, JWT, Roles)</li>
+                        <li>Parts (List, Create, Detail)</li>
+                        <li>Batch Sets (Pricing)</li>
+                        <li>Work Centers</li>
+                        <li>Windows UI</li>
+                        <li>Settings</li>
+                        <li>PartPricing Module</li>
+                        <li>PartOperations Module</li>
+                    </ul>
+                </div>
+
+                <div class="status-card backend">
+                    <h4>BACKEND READY (API done, FE TODO)</h4>
+                    <div class="count">6</div>
+                    <ul>
+                        <li>Materials (15 endpoints)</li>
+                        <li>MaterialInputs (8 endpoints)</li>
+                        <li>Features (6 endpoints)</li>
+                        <li>Admin Master Data</li>
+                        <li>Cutting Conditions</li>
+                        <li>Material Norms</li>
+                    </ul>
+                </div>
+
+                <div class="status-card planned">
+                    <h4>PLANOVANO (Roadmap)</h4>
+                    <div class="count">12+</div>
+                    <ul>
+                        <li>v2.0: Customers, Quotes, Orders</li>
+                        <li>v3.0: Drawings, BOM, ECN/ECO</li>
+                        <li>v4.0: WorkOrders, Scheduling, MES</li>
+                        <li>v5.0: Tool Library, Tech Sheets</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE STATUS DIAGRAM -->
+        <section>
+            <h2>2. Module Status Flow</h2>
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph COMPLETE["KOMPLETNI - Vue + FastAPI + Testy"]
+        direction LR
+        AUTH["AUTH<br/>Login, JWT<br/>87 tests"]
+        PARTS["PARTS<br/>List/Create/Detail<br/>43 tests"]
+        BATCHES["BATCH SETS<br/>Pricing calc"]
+        WC["WORK CENTERS<br/>7 endpoints"]
+        WIN["WINDOWS UI<br/>Drag/Resize"]
+        SET["SETTINGS<br/>Preferences"]
+    end
+
+    subgraph MODULES["PART DETAIL MODULY"]
+        direction LR
+        PRICING["PartPricing<br/>Cost breakdown"]
+        OPS["PartOperations<br/>CRUD + Machines"]
+        MAT["PartMaterial<br/>AI Parser"]
+    end
+
+    subgraph BACKEND["BACKEND READY - Frontend TODO"]
+        direction LR
+        MATERIALS["MATERIALS<br/>15 endpoints"]
+        MATINP["MATERIAL INPUTS<br/>8 endpoints"]
+        FEAT["FEATURES<br/>6 endpoints"]
+        ADMIN["ADMIN<br/>Master Data"]
+    end
+
+    subgraph PLANNED["PLANOVANO v2.0-v5.0"]
+        direction LR
+        Q["QUOTES"]
+        O["ORDERS"]
+        PLM["PLM/BOM"]
+        MES["MES"]
+    end
+
+    PARTS --> MODULES
+    MAT -.->|API connect| MATINP
+
+    classDef complete fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724
+    classDef backend fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404
+    classDef planned fill:#cce5ff,stroke:#007bff,stroke-width:2px,color:#004085
+    classDef module fill:#e9ecef,stroke:#6c757d,stroke-width:2px,color:#495057
+
+    class AUTH,PARTS,BATCHES,WC,WIN,SET complete
+    class PRICING,OPS,MAT module
+    class MATERIALS,MATINP,FEAT,ADMIN backend
+    class Q,O,PLM,MES planned
+                </pre>
+            </div>
+        </section>
+
+        <!-- DETAILED MODULE TABLE -->
+        <section class="page-break">
+            <h2>3. Detailed Module List</h2>
+
+            <table class="module-table">
+                <thead>
+                    <tr>
+                        <th>Modul</th>
+                        <th>Backend</th>
+                        <th>Frontend</th>
+                        <th>Testy</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Authentication</strong></td>
+                        <td>auth_router.py (JWT)</td>
+                        <td>LoginView, auth.store</td>
+                        <td>87 tests</td>
+                        <td><span class="badge badge-complete">Kompletni</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Parts</strong></td>
+                        <td>parts_router.py (CRUD)</td>
+                        <td>List/Create/Detail Views</td>
+                        <td>43 tests</td>
+                        <td><span class="badge badge-complete">Kompletni</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Operations</strong></td>
+                        <td>operations_router.py</td>
+                        <td>PartOperationsModule</td>
+                        <td>28 tests</td>
+                        <td><span class="badge badge-complete">Kompletni</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Batches/Pricing</strong></td>
+                        <td>batches_router.py, pricing_router.py</td>
+                        <td>BatchSetsModule, PartPricingModule</td>
+                        <td>Yes</td>
+                        <td><span class="badge badge-complete">Kompletni</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Work Centers</strong></td>
+                        <td>work_centers_router.py (7 endpts)</td>
+                        <td>List/Edit Views</td>
+                        <td>Yes</td>
+                        <td><span class="badge badge-complete">Kompletni</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Windows UI</strong></td>
+                        <td>N/A (client-side)</td>
+                        <td>FloatingWindow, WindowManager</td>
+                        <td>Yes</td>
+                        <td><span class="badge badge-complete">Kompletni</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Materials</strong></td>
+                        <td>materials_router.py (15 endpts)</td>
+                        <td>materials.store (placeholder UI)</td>
+                        <td>Partial</td>
+                        <td><span class="badge badge-backend">Backend Ready</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Material Inputs</strong></td>
+                        <td>material_inputs_router.py (8 endpts)</td>
+                        <td>PartMaterialModule (needs API)</td>
+                        <td>Partial</td>
+                        <td><span class="badge badge-backend">Backend Ready</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Features</strong></td>
+                        <td>features_router.py (6 endpts)</td>
+                        <td>Placeholder</td>
+                        <td>No</td>
+                        <td><span class="badge badge-backend">Backend Ready</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admin/Master Data</strong></td>
+                        <td>admin_router.py (10 endpts)</td>
+                        <td>MasterDataView (placeholder)</td>
+                        <td>No</td>
+                        <td><span class="badge badge-backend">Backend Ready</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Customers</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v2.0 Q1</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Quotes</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v2.0 Q1</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Orders</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v2.0 Q1</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Drawings/PLM</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v3.0 Q2</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>BOM</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v3.0 Q2</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Work Orders/MES</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v4.0 Q3</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Technology DB</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="badge badge-planned">v5.0 Q4</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ERD DIAGRAM -->
+        <section class="page-break">
+            <h2>4. Entity Relationship Diagram</h2>
+            <div class="diagram-container">
+                <pre class="mermaid">
+erDiagram
+    USER ||--o{ PART : "creates"
+    USER ||--o{ BATCH_SET : "creates"
+    USER {
+        int id PK
+        string username
+        string role
+    }
+
+    PART ||--o{ OPERATION : "has"
+    PART ||--o{ MATERIAL_INPUT : "has"
+    PART {
+        int id PK
+        string part_number
+        string revision
+        int version
+    }
+
+    OPERATION }o--|| MACHINE : "uses"
+    OPERATION }o--o{ MATERIAL_INPUT : "M:N link"
+    OPERATION {
+        int id PK
+        int part_id FK
+        int machine_id FK
+        string type
+        float setup_time
+        float op_time
+    }
+
+    MATERIAL_INPUT {
+        int id PK
+        int part_id FK
+        string category
+        float stock_cost
+    }
+
+    MACHINE ||--o{ WORK_CENTER : "assigned"
+    MACHINE {
+        int id PK
+        string name
+        string type
+        float hourly_rate
+    }
+
+    WORK_CENTER {
+        int id PK
+        string number
+        int machine_id FK
+    }
+
+    BATCH_SET ||--o{ BATCH : "contains"
+    BATCH_SET {
+        int id PK
+        string name
+        bool is_current
+    }
+
+    BATCH }o--|| PART : "prices"
+    BATCH {
+        int id PK
+        int part_id FK
+        int quantity
+        float total_cost
+        bool is_frozen
+    }
+
+    MATERIAL_GROUP ||--o{ MATERIAL_ITEM : "contains"
+    MATERIAL_GROUP {
+        int id PK
+        string name
+    }
+
+    MATERIAL_ITEM {
+        int id PK
+        float price_per_kg
+        float density
+    }
+
+    FEATURE }o--|| OPERATION : "step"
+    FEATURE {
+        int id PK
+        int operation_id FK
+        string name
+        float time_min
+    }
+                </pre>
+            </div>
+        </section>
+
+        <!-- ROADMAP -->
+        <section class="page-break">
+            <h2>5. Development Roadmap 2026</h2>
+            <div class="diagram-container">
+                <pre class="mermaid">
+gantt
+    title GESTIMA Roadmap 2026
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b
+
+    section v1.x Done
+    Vue SPA + Tests     :done, v1, 2026-01-01, 2026-01-29
+
+    section v2.0 Quotes
+    Customers           :v2a, 2026-02-01, 5d
+    Quotes + PDF        :v2b, after v2a, 10d
+    Orders              :v2c, after v2b, 10d
+
+    section v3.0 PLM
+    Drawings + MinIO    :v3a, 2026-04-01, 14d
+    BOM                 :v3b, after v3a, 10d
+    ECN/ECO             :v3c, after v3b, 10d
+
+    section v4.0 MES
+    Work Orders         :v4a, 2026-07-01, 14d
+    Scheduling          :v4b, after v4a, 14d
+    Shop Floor UI       :v4c, after v4b, 14d
+
+    section v5.0 Tech
+    Tool Library        :v5a, 2026-10-01, 14d
+    Analytics           :v5b, after v5a, 14d
+                </pre>
+            </div>
+
+            <h3>Version Milestones</h3>
+            <table class="module-table">
+                <thead>
+                    <tr>
+                        <th>Verze</th>
+                        <th>Nazev</th>
+                        <th>Hlavni features</th>
+                        <th>Termin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-complete">v1.10</span></td>
+                        <td>Costing + Vue SPA</td>
+                        <td>Parts, Operations, Pricing, Windows UI, 286 tests</td>
+                        <td>Done</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-planned">v2.0</span></td>
+                        <td>Quotes & Orders</td>
+                        <td>Customers, Quote workflow, PDF export, Orders</td>
+                        <td>Q1 2026</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-planned">v3.0</span></td>
+                        <td>PLM</td>
+                        <td>Drawings, Revisions, BOM, ECN/ECO</td>
+                        <td>Q2 2026</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-planned">v4.0</span></td>
+                        <td>MES</td>
+                        <td>Work Orders, Scheduling, Shop Floor, Tablets</td>
+                        <td>Q3 2026</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-planned">v5.0</span></td>
+                        <td>Technology DB</td>
+                        <td>Tool Library, Tech Sheets, Analytics</td>
+                        <td>Q4 2026</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- TECH STACK -->
+        <section>
+            <h2>6. Technology Stack</h2>
+            <div class="status-grid">
+                <div class="status-card complete">
+                    <h4>Backend</h4>
+                    <ul>
+                        <li><strong>FastAPI</strong> - REST API</li>
+                        <li><strong>SQLAlchemy 2.0</strong> - Async ORM</li>
+                        <li><strong>Pydantic v2</strong> - Validation</li>
+                        <li><strong>SQLite + WAL</strong> - Database</li>
+                        <li><strong>pytest</strong> - Testing</li>
+                    </ul>
+                </div>
+                <div class="status-card complete">
+                    <h4>Frontend</h4>
+                    <ul>
+                        <li><strong>Vue 3</strong> - SPA Framework</li>
+                        <li><strong>TypeScript</strong> - Type Safety</li>
+                        <li><strong>Pinia</strong> - State Management</li>
+                        <li><strong>Vue Router</strong> - Navigation</li>
+                        <li><strong>Vitest</strong> - Unit Tests</li>
+                    </ul>
+                </div>
+                <div class="status-card backend">
+                    <h4>Infrastructure</h4>
+                    <ul>
+                        <li><strong>Vite</strong> - Build Tool</li>
+                        <li><strong>Alembic</strong> - Migrations</li>
+                        <li><strong>MinIO</strong> - File Storage (v3.0)</li>
+                        <li><strong>Capacitor</strong> - Mobile (v4.0)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>GESTIMA Architecture Overview | Generated 2026-01-29</p>
+            <p>From CNC Cost Calculator to Full ERP/MES Platform</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            gantt: {
+                titleTopMargin: 25,
+                barHeight: 20,
+                barGap: 4,
+                topPadding: 50,
+                leftPadding: 75,
+                gridLineStartPadding: 35,
+                fontSize: 11,
+                sectionFontSize: 14,
+                numberSectionStyles: 4
+            }
+        });
+    </script>
+</body>
+</html>

@@ -126,7 +126,7 @@ describe('UI Store', () => {
         type: 'info',
         duration: 3000
       })
-      expect(store.toasts[0].id).toBeGreaterThan(0)
+      expect(store.toasts[0]!.id).toBeGreaterThan(0)
     })
 
     it('should auto-remove toast after duration', () => {
@@ -160,7 +160,7 @@ describe('UI Store', () => {
 
       expect(store.toasts).toHaveLength(3)
 
-      const toastId = store.toasts[1].id
+      const toastId = store.toasts[1]!.id
       store.removeToast(toastId)
 
       expect(store.toasts).toHaveLength(2)
@@ -266,7 +266,7 @@ describe('UI Store', () => {
 
       store.showSuccess('Fast success', 1000)
 
-      expect(store.toasts[0].duration).toBe(1000)
+      expect(store.toasts[0]!.duration).toBe(1000)
     })
   })
 

@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESTIMA + Helios - Roadmap nahrazení Infor CloudSuite</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --warning: #ea580c;
+            --danger: #dc2626;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: var(--gray-800);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: white;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                font-size: 11pt;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--primary-dark);
+            border-bottom: 4px solid var(--primary);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--primary);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary);
+            padding-left: 1rem;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            color: var(--gray-800);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 2rem;
+            background: var(--gray-100);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--gray-600);
+            letter-spacing: 0.05em;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        /* Diagrams */
+        .diagram {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        .diagram-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .diagram pre {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            white-space: pre;
+            margin: 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            border: 1px solid var(--gray-300);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--gray-100);
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        tr:nth-child(even) {
+            background: var(--gray-100);
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-done {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .badge-planned {
+            background: #dbeafe;
+            color: var(--primary);
+        }
+
+        .badge-missing {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .badge-critical {
+            background: var(--danger);
+            color: white;
+        }
+
+        .badge-high {
+            background: var(--warning);
+            color: white;
+        }
+
+        .badge-medium {
+            background: #fbbf24;
+            color: var(--gray-800);
+        }
+
+        /* Cards */
+        .card {
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .card-header {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            color: var(--gray-600);
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Highlights */
+        .highlight {
+            background: linear-gradient(120deg, #fef3c7 0%, #fef3c7 100%);
+            padding: 0.1rem 0.3rem;
+            border-radius: 2px;
+        }
+
+        .callout {
+            border-left: 4px solid var(--primary);
+            background: var(--gray-100);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .callout-warning {
+            border-left-color: var(--warning);
+            background: #fff7ed;
+        }
+
+        .callout-danger {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .callout-success {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+
+        /* Section dividers */
+        hr {
+            border: none;
+            border-top: 2px solid var(--gray-200);
+            margin: 2rem 0;
+        }
+
+        /* Print button */
+        .print-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .print-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--gray-300);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px var(--primary);
+        }
+
+        .timeline-item.done::before {
+            background: var(--success);
+            box-shadow: 0 0 0 3px var(--success);
+        }
+
+        .timeline-date {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Account flow diagram */
+        .account-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-family: monospace;
+        }
+
+        .account-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .account-box {
+            background: white;
+            border: 2px solid var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .account-box.highlight-box {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .arrow {
+            color: var(--gray-600);
+            font-size: 1.5rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--gray-200);
+            text-align: center;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Tisk</button>
+
+<h1>GESTIMA + Helios/Pohoda</h1>
+<p class="subtitle">Strategická analýza nahrazení Infor CloudSuite</p>
+
+<!-- ============================================================ -->
+<!-- EXECUTIVE SUMMARY PRO VEDENÍ -->
+<!-- ============================================================ -->
+
+<div style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+    <h2 style="color: white; border: none; margin: 0 0 1rem 0; padding: 0;">📊 Executive Summary</h2>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold;">~225h</div>
+            <div style="font-size: 0.875rem; opacity: 0.8;">Dodatečný vývoj<br>(6 týdnů)</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold;">Q4 2026</div>
+            <div style="font-size: 0.875rem; opacity: 0.8;">Plná integrace<br>s Heliosem</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold;">70-80%</div>
+            <div style="font-size: 0.875rem; opacity: 0.8;">Úspora TCO<br>vs. Infor</div>
+        </div>
+    </div>
+
+    <p style="margin: 0; line-height: 1.8;">
+        <strong>Návrh:</strong> Nahradit monolitický Infor CloudSuite kombinací <strong>GESTIMA</strong> (custom MES/TPV)
+        + <strong>Helios</strong> (účetnictví). GESTIMA pokryje výrobní specifika na míru, Helios zajistí
+        legislativní compliance a auditované účetnictví. Výsledek: nižší TCO, vyšší flexibilita,
+        nezávislost na jednom vendorovi.
+    </p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PROČ TATO STRATEGIE - PRO VEDENÍ -->
+<!-- ============================================================ -->
+
+<h2>Proč GESTIMA + Helios místo Inforu?</h2>
+
+<div class="grid-2">
+    <div class="card" style="border-left: 4px solid var(--success);">
+        <div class="card-header" style="color: var(--success);">✅ Výhody této strategie</div>
+        <div class="card-body">
+            <ul>
+                <li><strong>Účetnictví od specialistů</strong> - Helios/Pohoda jsou auditované, legislativně aktuální, nemusíme řešit novely zákonů</li>
+                <li><strong>MES na míru</strong> - GESTIMA přesně podle našich procesů, ne kompromisy all-in-one</li>
+                <li><strong>Nižší TCO</strong> - Helios: ~50-150k/rok vs. Infor: 500k-2M/rok</li>
+                <li><strong>Nezávislost</strong> - Můžeme vyměnit Helios za Pohodu nebo jiný systém</li>
+                <li><strong>Vlastnictví kódu</strong> - GESTIMA je naše, žádné vendor lock-in</li>
+                <li><strong>Rychlé změny</strong> - Nová feature za dny, ne měsíce čekání na vendor</li>
+            </ul>
+        </div>
+    </div>
+    <div class="card" style="border-left: 4px solid var(--danger);">
+        <div class="card-header" style="color: var(--danger);">⚠️ Rizika a mitigace</div>
+        <div class="card-body">
+            <ul>
+                <li><strong>Integrace</strong> - Nutná sync layer → řešení: ISDOC standard, osvědčený formát</li>
+                <li><strong>Údržba GESTIMA</strong> - Interní kapacita → řešení: modulární architektura, dokumentace</li>
+                <li><strong>Migrace dat</strong> - Z Inforu do dvou systémů → řešení: fázovaný přechod</li>
+                <li><strong>Školení</strong> - Dva systémy místo jednoho → řešení: jasné rozdělení rolí (účtárna vs. výroba)</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<h3>TCO srovnání (5 let)</h3>
+
+<table>
+    <tr>
+        <th>Položka</th>
+        <th>Infor CloudSuite</th>
+        <th>GESTIMA + Helios</th>
+        <th>Úspora</th>
+    </tr>
+    <tr>
+        <td>Roční licence</td>
+        <td>500k - 2M Kč</td>
+        <td>50-150k Kč (Helios)</td>
+        <td style="color: var(--success); font-weight: bold;">90%</td>
+    </tr>
+    <tr>
+        <td>Implementace (jednorázově)</td>
+        <td>1-5M Kč</td>
+        <td>~500k Kč (225h × sazba)</td>
+        <td style="color: var(--success); font-weight: bold;">70-90%</td>
+    </tr>
+    <tr>
+        <td>Customizace</td>
+        <td>100-500k/změna, měsíce čekání</td>
+        <td>Interní, dny</td>
+        <td style="color: var(--success); font-weight: bold;">∞ flexibilita</td>
+    </tr>
+    <tr>
+        <td>Konzultanti/podpora</td>
+        <td>200-500k Kč/rok</td>
+        <td>~50k Kč/rok (Helios)</td>
+        <td style="color: var(--success); font-weight: bold;">75-90%</td>
+    </tr>
+    <tr>
+        <td>Vendor lock-in riziko</td>
+        <td>VYSOKÉ (proprietární)</td>
+        <td>NÍZKÉ (ISDOC, SQL)</td>
+        <td style="color: var(--success); font-weight: bold;">Strategické</td>
+    </tr>
+    <tr style="background: #f0fdf4; font-weight: bold;">
+        <td>TCO 5 let (odhad)</td>
+        <td>5-15M Kč</td>
+        <td>1-2M Kč</td>
+        <td style="color: var(--success);">70-85%</td>
+    </tr>
+</table>
+
+<div class="callout callout-success">
+    <strong>Klíčový argument:</strong> Helios/Pohoda jsou na účetnictví LEPŠÍ než Infor - jsou to české firmy,
+    které žijí z české legislativy. Každá novela zákona je v systému dřív než ji parlament schválí.
+    U Inforu čekáte na globální release.
+</div>
+
+<!-- ============================================================ -->
+<!-- FAQ PRO VEDENÍ -->
+<!-- ============================================================ -->
+
+<h2>Očekávané otázky vedení</h2>
+
+<div class="card" style="margin-bottom: 1rem;">
+    <div class="card-header">❓ "Proč nepoužijeme jen Helios i na výrobu?"</div>
+    <div class="card-body">
+        <p><strong>Odpověď:</strong> Helios má výrobní modul, ale je generický. Pro zakázkovou CNC výrobu potřebujeme:</p>
+        <ul>
+            <li>Kalkulace s technologickými parametry (řezné podmínky, časy operací)</li>
+            <li>Tablet UI pro operátory na dílně</li>
+            <li>Real-time tracking práce a materiálu</li>
+            <li>Integraci s CAM systémy (budoucnost)</li>
+        </ul>
+        <p>GESTIMA toto řeší přesně podle našich procesů. Helios by vyžadoval drahé customizace a stejně by to nebylo ideální.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 1rem;">
+    <div class="card-header">❓ "Jak zajistíme, že účetní transakce budou správně?"</div>
+    <div class="card-body">
+        <p><strong>Odpověď:</strong> GESTIMA generuje podklady (spotřeba materiálu, odpracované hodiny, dokončená výroba),
+        ale <strong>účtování provádí Helios</strong>. Účetní pracuje v Heliošu jako dosud. GESTIMA pouze automatizuje
+        sběr dat z výroby.</p>
+        <p>Tok: <code>Operátor odvede práci → GESTIMA → XML/ISDOC → Helios → účetní zápis</code></p>
+        <p>Účetní má plnou kontrolu nad finálním zaúčtováním.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 1rem;">
+    <div class="card-header">❓ "Co když GESTIMA přestane fungovat / kdo to bude udržovat?"</div>
+    <div class="card-body">
+        <p><strong>Odpověď:</strong> </p>
+        <ul>
+            <li><strong>Kód je náš</strong> - není vendor lock-in, můžeme najmout kohokoli</li>
+            <li><strong>Moderní stack</strong> - Python/FastAPI/Vue = běžné technologie, spousta vývojářů na trhu</li>
+            <li><strong>Dokumentace</strong> - ADR, CLAUDE.md, testy = kdokoli může převzít</li>
+            <li><strong>Oddělení</strong> - i kdyby GESTIMA spadla, Helios běží nezávisle (účetnictví funguje)</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 1rem;">
+    <div class="card-header">❓ "Máme zkušenosti s Inforem, proč měnit?"</div>
+    <div class="card-body">
+        <p><strong>Odpověď:</strong> Právě proto, že znáte Infor, víte:</p>
+        <ul>
+            <li>Kolik stojí každá změna (konzultanti, change requesty)</li>
+            <li>Jak dlouho trvá dostat novou feature</li>
+            <li>Jak složité je vyškolit nového člověka na tak komplexní systém</li>
+            <li>Kolik platíte za moduly, které nepoužíváte</li>
+        </ul>
+        <p>GESTIMA + Helios = platíte jen za to, co potřebujete, a máte kontrolu nad změnami.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 1rem;">
+    <div class="card-header">❓ "Jak dlouho bude trvat migrace?"</div>
+    <div class="card-body">
+        <p><strong>Odpověď:</strong> Fázovaný přechod:</p>
+        <ol>
+            <li><strong>Q1-Q2 2026:</strong> Helios běží paralelně (účetnictví), Infor ještě pro výrobu</li>
+            <li><strong>Q3 2026:</strong> GESTIMA MES nahrazuje Infor výrobu</li>
+            <li><strong>Q4 2026:</strong> Plná integrace, Infor vypnout</li>
+        </ol>
+        <p>Riziko minimalizováno paralelním provozem. Účetnictví migruje první (nejméně riziková část).</p>
+    </div>
+</div>
+
+<hr>
+
+<div class="meta">
+    <div class="meta-item">
+        <span class="meta-label">Dokument</span>
+        <span class="meta-value">Strategická analýza</span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Datum</span>
+        <span class="meta-value">Leden 2026</span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Skladové účetnictví</span>
+        <span class="meta-value">Způsob A (průběžné)</span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Horizon</span>
+        <span class="meta-value">Q1 2026 – Q1 2027</span>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Rozdělení odpovědnosti</h2>
+
+<div class="diagram">
+    <div class="diagram-title">Architektura: GESTIMA + Helios místo Inforu</div>
+    <pre>
+┌─────────────────────────────────────────────────────────────────────┐
+│                    INFOR CLOUDSUITE (nahrazujeme)                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐  │
+│  │       GESTIMA               │  │    HELIOS / POHODA          │  │
+│  │   (výroba + technologie)    │  │      (finance + právo)      │  │
+│  │                             │  │                             │  │
+│  │  ✅ Kalkulace (v1.x)        │  │  • Účetnictví               │  │
+│  │  ✅ Díly + Operace          │  │  • Fakturace                │  │
+│  │  📋 Nabídky/Zakázky (v2.0)  │  │  • DPH + daně               │  │
+│  │  📐 PLM/Výkresy (v3.0)      │  │  • Banka + pokladna         │  │
+│  │  🏭 MES/Výroba (v4.0)       │  │  • Mzdy (volitelně)         │  │
+│  │  🔧 Tech DB (v5.0)          │  │  • Majetek                  │  │
+│  │  📦 Sklad (v2.2)            │  │  • Výkazy (rozvaha, VZZ)    │  │
+│  │  📊 Reporting (v6.0+)       │  │                             │  │
+│  └──────────────┬──────────────┘  └──────────────┬──────────────┘  │
+│                 │                                │                  │
+│                 └────────────┬───────────────────┘                  │
+│                              │                                      │
+│                    ┌─────────▼─────────┐                           │
+│                    │    INTEGRACE      │                           │
+│                    │  (XML/API/ISDOC)  │                           │
+│                    └───────────────────┘                           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+    </pre>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">🏭 GESTIMA řeší</div>
+        <div class="card-body">
+            <ul>
+                <li>Technickou přípravu výroby (TPV)</li>
+                <li>Kalkulace a nabídky</li>
+                <li>Řízení výroby (MES)</li>
+                <li>Technologickou dokumentaci</li>
+                <li>Odvody práce a materiálu</li>
+                <li>Operativní skladovou evidenci</li>
+            </ul>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">📊 Helios/Pohoda řeší</div>
+        <div class="card-body">
+            <ul>
+                <li>Podvojné účetnictví</li>
+                <li>Fakturace (vydané i přijaté)</li>
+                <li>DPH a daňová přiznání</li>
+                <li>Mzdy a personalistika</li>
+                <li>Bankovní operace</li>
+                <li>Zákonné výkazy</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="page-break">2. Quote → Order vztah (opravený model)</h2>
+
+<div class="callout">
+    <strong>Klíčové:</strong> Quote:Order NENÍ 1:1. Order může vzniknout bez Quote,
+    a z jedné Quote může být více Orders (částečné dodávky).
+</div>
+
+<div class="diagram">
+    <div class="diagram-title">Datový model: Quote → Order (M:N přes položky)</div>
+    <pre>
+┌─────────────┐          ┌─────────────────┐
+│   QUOTE     │    1:N   │   QUOTE_ITEM    │
+│             ├──────────┤                 │
+│ status      │          │ part_id         │
+│ valid_until │          │ quantity        │
+└──────┬──────┘          │ unit_price      │
+       │                 │ ordered_qty ◄───┼── kolik už objednáno
+       │                 │ remaining_qty   │
+       │                 └────────┬────────┘
+       │                          │
+       │ 0:N                      │ M:N (částečné objednávky!)
+       │ (Order MŮŽE              │
+       │  být bez Quote)          │
+       ▼                          ▼
+┌─────────────┐          ┌─────────────────┐
+│   ORDER     │    1:N   │   ORDER_ITEM    │
+│             ├──────────┤                 │
+│ quote_id?   │ NULLABLE │ quote_item_id?  │ ← NULLABLE!
+│ customer_id │          │ part_id         │
+│ source      │          │ quantity        │
+└─────────────┘          │ delivery_date   │
+                         └─────────────────┘
+    </pre>
+</div>
+
+<h3>Typy vzniku zakázky (Order.source)</h3>
+<table>
+    <tr>
+        <th>Source</th>
+        <th>Popis</th>
+        <th>Quote?</th>
+    </tr>
+    <tr>
+        <td><code>FROM_QUOTE</code></td>
+        <td>Z nabídky (částečná nebo celá)</td>
+        <td>✅ Ano</td>
+    </tr>
+    <tr>
+        <td><code>REPEAT_ORDER</code></td>
+        <td>Opakovaná zakázka ("to samé co minule")</td>
+        <td>❌ Ne</td>
+    </tr>
+    <tr>
+        <td><code>INTERNAL</code></td>
+        <td>Interní výroba (náhradní díly, prototypy)</td>
+        <td>❌ Ne</td>
+    </tr>
+    <tr>
+        <td><code>BLANKET_RELEASE</code></td>
+        <td>Odvolávka z rámcové smlouvy</td>
+        <td>❌ Ne</td>
+    </tr>
+</table>
+
+<h3>Scénáře které musí fungovat</h3>
+<ul>
+    <li><strong>Quote 100ks → Order 30ks → Order 30ks → Order 40ks</strong> (3 dodávky z 1 nabídky)</li>
+    <li><strong>Quote 100ks → Order 50ks</strong> (zbytek expiruje)</li>
+    <li><strong>Order bez Quote</strong> (zákazník volá "potřebuju to samé co minule")</li>
+    <li><strong>Rámcová smlouva → měsíční odvolávky</strong></li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 class="page-break">3. Způsob A - Skladové účetnictví</h2>
+
+<div class="callout callout-success">
+    <strong>Váš případ:</strong> Způsob A (průběžné účtování) - každý pohyb materiálu = účetní zápis.
+    Nutné pro výrobní firmu s evidencí nedokončené výroby (WIP).
+</div>
+
+<div class="diagram">
+    <div class="diagram-title">Způsob A - Účetní tok při nákupu a spotřebě materiálu</div>
+    <pre>
+PŘÍJEM MATERIÁLU NA SKLAD:
+══════════════════════════
+    Faktura od dodavatele
+           │
+           ▼
+    ┌─────────────────────────────────────┐
+    │  MD 112 (Materiál na skladě)        │
+    │  D  321 (Dodavatelé)                │
+    └─────────────────────────────────────┘
+           │
+           ▼
+    Materiál je na skladě, má hodnotu v účetnictví
+
+
+VÝDEJ DO VÝROBY:
+════════════════
+    Výdejka na zakázku (Work Order)
+           │
+           ▼
+    ┌─────────────────────────────────────┐
+    │  MD 501 (Spotřeba materiálu)        │
+    │  D  112 (Materiál na skladě)        │
+    └─────────────────────────────────────┘
+           │
+           ▼
+    Materiál jde do nákladů (→ součást WIP)
+    </pre>
+</div>
+
+<h3>Proč Způsob A pro výrobu?</h3>
+<table>
+    <tr>
+        <th>Aspekt</th>
+        <th>Způsob A (váš)</th>
+        <th>Způsob B</th>
+    </tr>
+    <tr>
+        <td>Kdy účtuji pohyb?</td>
+        <td>Ihned při každém pohybu</td>
+        <td>Až na konci období (rok)</td>
+    </tr>
+    <tr>
+        <td>Hodnota skladu</td>
+        <td>Kdykoli přesná</td>
+        <td>Pouze po roční uzávěrce</td>
+    </tr>
+    <tr>
+        <td>WIP (nedokončená výroba)</td>
+        <td>✅ Lze sledovat průběžně</td>
+        <td>❌ Noční můra</td>
+    </tr>
+    <tr>
+        <td>Vhodné pro</td>
+        <td>Výrobní firmy</td>
+        <td>Obchodní firmy</td>
+    </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="page-break">4. Kalkulační vzorec (český standard)</h2>
+
+<div class="diagram">
+    <div class="diagram-title">Struktura vlastních nákladů výroby</div>
+    <pre>
+  1. Přímý materiál                    ← MES: spotřeba na zakázku
+  2. + Přímé mzdy                      ← MES: odpracované hodiny × sazba
+  3. + Ostatní přímé náklady           ← kooperace, energie přímo
+  ────────────────────────────────────────────────────────────────
+  = PŘÍMÉ NÁKLADY
+
+  4. + Výrobní režie                   ← rozvrhová základna (% nebo Kč/hod)
+  ────────────────────────────────────────────────────────────────
+  = VLASTNÍ NÁKLADY VÝROBY             ← TOTO JDE DO WIP (účet 121)!
+
+  5. + Správní režie
+  6. + Zásobovací režie
+  ────────────────────────────────────────────────────────────────
+  = ÚPLNÉ VLASTNÍ NÁKLADY
+
+  7. + Zisk (marže)
+  ────────────────────────────────────────────────────────────────
+  = PRODEJNÍ CENA
+
+  8. + DPH
+  ────────────────────────────────────────────────────────────────
+  = PRODEJNÍ CENA vč. DPH
+    </pre>
+</div>
+
+<h3>Rozvrhové základny pro režie</h3>
+<table>
+    <tr>
+        <th>Typ režie</th>
+        <th>Možné základny</th>
+        <th>Příklad</th>
+    </tr>
+    <tr>
+        <td>Výrobní režie</td>
+        <td>Přímé mzdy, strojové hodiny</td>
+        <td>150% z přímých mezd</td>
+    </tr>
+    <tr>
+        <td>Správní režie</td>
+        <td>Vlastní náklady výroby</td>
+        <td>12% z VNV</td>
+    </tr>
+    <tr>
+        <td>Odbytová režie</td>
+        <td>Úplné vlastní náklady</td>
+        <td>5% z ÚVN</td>
+    </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="page-break">5. Účetní tok nedokončené výroby (WIP)</h2>
+
+<div class="diagram">
+    <div class="diagram-title">Kompletní účetní tok: Materiál → WIP → Výrobek → Prodej</div>
+    <pre>
+Materiál na skladě (112)
+        │
+        │ výdej do výroby
+        ▼
+  ┌─────────────────────────┐
+  │ MD 501 / D 112          │  Spotřeba materiálu
+  └───────────┬─────────────┘
+              │
+Mzdy (521)    │
+        │     │
+        ▼     │
+  ┌───────────┴─────────────┐
+  │ MD 521 / D 331          │  Mzdové náklady
+  └───────────┬─────────────┘
+              │
+Režie (5xx)   │     AGREGACE do WIP
+        │     │     (na konci měsíce
+        ▼     │      nebo průběžně)
+  ┌───────────┴─────────────┐
+  │ MD 5xx / D 3xx          │  Režijní náklady
+  └───────────┬─────────────┘
+              │
+              ▼
+    ┌─────────────────────────┐
+    │   NEDOKONČENÁ VÝROBA    │
+    │        (účet 121)       │
+    │                         │
+    │   MD 121 / D 581        │  Změna stavu NV
+    └───────────┬─────────────┘
+                │
+                │ dokončení výrobní zakázky
+                ▼
+    ┌─────────────────────────┐
+    │      VÝROBKY            │
+    │     (účet 123)          │
+    │                         │
+    │   MD 123 / D 583        │  Změna stavu výrobků
+    └───────────┬─────────────┘
+                │
+                │ expedice / prodej
+                ▼
+    ┌─────────────────────────┐
+    │   NÁKLADY NA PRODANÉ    │
+    │      (účet 583)         │
+    │                         │
+    │   MD 583 / D 123        │  Úbytek výrobků
+    └─────────────────────────┘
+    </pre>
+</div>
+
+<h3>Používané účty</h3>
+<table>
+    <tr>
+        <th>Účet</th>
+        <th>Název</th>
+        <th>Typ</th>
+        <th>Kdy použít</th>
+    </tr>
+    <tr>
+        <td><strong>112</strong></td>
+        <td>Materiál na skladě</td>
+        <td>Rozvaha (aktiva)</td>
+        <td>Příjem/výdej materiálu</td>
+    </tr>
+    <tr>
+        <td><strong>121</strong></td>
+        <td>Nedokončená výroba</td>
+        <td>Rozvaha (aktiva)</td>
+        <td>WIP - rozpracované zakázky</td>
+    </tr>
+    <tr>
+        <td><strong>123</strong></td>
+        <td>Výrobky</td>
+        <td>Rozvaha (aktiva)</td>
+        <td>Hotové výrobky na skladě</td>
+    </tr>
+    <tr>
+        <td><strong>501</strong></td>
+        <td>Spotřeba materiálu</td>
+        <td>Výsledovka (N)</td>
+        <td>Výdej materiálu do výroby</td>
+    </tr>
+    <tr>
+        <td><strong>549</strong></td>
+        <td>Manka a škody</td>
+        <td>Výsledovka (N)</td>
+        <td>Zmetky, odpady</td>
+    </tr>
+    <tr>
+        <td><strong>581</strong></td>
+        <td>Změna stavu NV</td>
+        <td>Výsledovka (N/-)</td>
+        <td>Nárůst/pokles WIP</td>
+    </tr>
+    <tr>
+        <td><strong>583</strong></td>
+        <td>Změna stavu výrobků</td>
+        <td>Výsledovka (N/-)</td>
+        <td>Příjem/výdej výrobků</td>
+    </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="page-break">6. Povinné integrační body GESTIMA → Helios</h2>
+
+<div class="callout callout-danger">
+    <strong>KRITICKÉ:</strong> Tyto transakce MUSÍ téct z MES do účetního systému.
+    Bez nich nelze správně vést účetnictví.
+</div>
+
+<div class="diagram">
+    <div class="diagram-title">Integrační toky a jejich frekvence</div>
+    <pre>
+GESTIMA (MES)                                      HELIOS/POHODA
+═══════════════                                    ═══════════════
+
+┌─────────────────┐                               ┌─────────────────┐
+│ Výdej materiálu │ ──────── DENNĚ ─────────────► │ MD 501 / D 112  │
+│ do výroby       │        (POVINNÉ!)             │ Spotřeba mat.   │
+└─────────────────┘                               └─────────────────┘
+
+┌─────────────────┐                               ┌─────────────────┐
+│ Odpracované     │ ──────── TÝDNĚ ─────────────► │ Mzdové podklady │
+│ hodiny          │                               │ → výpočet mezd  │
+└─────────────────┘                               └─────────────────┘
+
+┌─────────────────┐                               ┌─────────────────┐
+│ Změna stavu WIP │ ──────── MĚSÍČNĚ ───────────► │ MD 121 / D 581  │
+│ (nedokončená v.)│        (minimum!)             │ Změna stavu NV  │
+└─────────────────┘                               └─────────────────┘
+
+┌─────────────────┐                               ┌─────────────────┐
+│ Dokončení       │ ──────── DENNĚ ─────────────► │ MD 123 / D 583  │
+│ výroby          │                               │ Příjem výrobků  │
+└─────────────────┘                               └─────────────────┘
+
+┌─────────────────┐                               ┌─────────────────┐
+│ Zmetky / odpady │ ──────── IHNED ─────────────► │ MD 549 / D 121  │
+│                 │                               │ Manka, škody    │
+└─────────────────┘                               └─────────────────┘
+
+┌─────────────────┐                               ┌─────────────────┐
+│ Expedice        │ ──────── IHNED ─────────────► │ Dodací list     │
+│ zákazníkovi     │                               │ → Faktura (ISDOC)│
+└─────────────────┘                               └─────────────────┘
+    </pre>
+</div>
+
+<h3>Co může zůstat pouze v MES</h3>
+<div class="card">
+    <div class="card-body">
+        <ul>
+            <li>✅ Časy operací (skutečné vs plánované) - pro OEE</li>
+            <li>✅ Vytížení strojů - kapacitní plánování</li>
+            <li>✅ Kvalitativní měření - SPC, statistika</li>
+            <li>✅ Rozpracovanost zakázky - % dokončení</li>
+            <li>✅ Kdo na čem pracuje - real-time přehled</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="page-break">7. GAP analýza - Co chybí pro nahrazení Inforu</h2>
+
+<table>
+    <tr>
+        <th>Oblast</th>
+        <th>Modul</th>
+        <th>Status</th>
+        <th>Popis</th>
+        <th>Priorita</th>
+    </tr>
+    <tr>
+        <td rowspan="3"><strong>NÁKUP</strong></td>
+        <td>Supplier</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Dodavatelé - kontakty, podmínky, historie</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td>Purchase Order</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Objednávky na dodavatele</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td>Goods Receipt</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Příjemky materiálu</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td rowspan="2"><strong>SKLAD</strong></td>
+        <td>Inventory</td>
+        <td><span class="badge badge-planned">v6.0</span></td>
+        <td>Skladové karty, stavy, pohyby</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td>Stock Movement</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Evidence pohybů (příjem/výdej/převod)</td>
+        <td><span class="badge badge-high">HIGH</span></td>
+    </tr>
+    <tr>
+        <td rowspan="2"><strong>EXPEDICE</strong></td>
+        <td>Delivery Note</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Dodací listy - podklad pro fakturu</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td>Shipment</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Balení, tracking</td>
+        <td><span class="badge badge-medium">MEDIUM</span></td>
+    </tr>
+    <tr>
+        <td rowspan="2"><strong>VÝROBA</strong></td>
+        <td>Material Issue</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Výdej materiálu na zakázku → účet 501</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td>Labor Ticket</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Odvody práce → mzdové podklady</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td><strong>INTEGRACE</strong></td>
+        <td>Helios Sync</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>ISDOC XML, sync layer</td>
+        <td><span class="badge badge-critical">CRITICAL</span></td>
+    </tr>
+    <tr>
+        <td><strong>HR</strong></td>
+        <td>Employees</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Zaměstnanci pro MES přihlášení</td>
+        <td><span class="badge badge-high">HIGH</span></td>
+    </tr>
+    <tr>
+        <td rowspan="2"><strong>KVALITA</strong></td>
+        <td>QA/QC</td>
+        <td><span class="badge badge-planned">v6.0</span></td>
+        <td>Kontrolní plány, měření</td>
+        <td><span class="badge badge-medium">MEDIUM</span></td>
+    </tr>
+    <tr>
+        <td>NCR</td>
+        <td><span class="badge badge-missing">CHYBÍ</span></td>
+        <td>Neshody, reklamace</td>
+        <td><span class="badge badge-medium">MEDIUM</span></td>
+    </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="page-break">8. ERD - Kompletní datový model</h2>
+
+<div class="diagram">
+    <div class="diagram-title">Entity Relationship Diagram - GESTIMA Full ERP</div>
+    <pre>
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         GESTIMA - COMPLETE ERP MODEL                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  MASTER DATA (číselníky)                                                        │
+│  ════════════════════════                                                       │
+│                                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   CUSTOMER   │  │   SUPPLIER   │  │   EMPLOYEE   │  │   MACHINE    │        │
+│  │   (v2.0) ✓   │  │   ❌ CHYBÍ   │  │   ❌ CHYBÍ   │  │   (v1.x) ✓   │        │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤  ├──────────────┤        │
+│  │ payment_terms│  │ payment_terms│  │ hourly_rate  │  │ hourly_rate  │        │
+│  │ credit_limit │  │ lead_time    │  │ skills[]     │  │ overhead_rate│        │
+│  │ price_list_id│  │ rating       │  │ shift_id     │  │ cost_center  │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘        │
+│         │                 │                 │                 │                │
+│         │                 │                 │                 │                │
+│  NÁKUP  │          ┌──────┴───────┐        │          VÝROBA │                │
+│  ═══════│══════════│══════════════│════════│═════════════════│════════════    │
+│         │          │              │        │                 │                │
+│         │          ▼              │        │                 ▼                │
+│         │   ┌──────────────┐     │        │          ┌──────────────┐        │
+│         │   │   PURCHASE   │     │        │          │  WORK_ORDER  │        │
+│         │   │   ORDER      │     │        │          │   (v4.0)     │        │
+│         │   │   ❌ CHYBÍ   │     │        │          ├──────────────┤        │
+│         │   ├──────────────┤     │        │          │ order_item_id│        │
+│         │   │ supplier_id  │     │        │          │ quantity     │        │
+│         │   │ status       │     │        │          │ wip_value    │        │
+│         │   └──────┬───────┘     │        │          └──────┬───────┘        │
+│         │          │             │        │                 │                │
+│         │          ▼             │        │    ┌────────────┼────────────┐   │
+│         │   ┌──────────────┐     │        │    │            │            │   │
+│         │   │ GOODS_RECEIPT│     │        │    ▼            ▼            ▼   │
+│         │   │   ❌ CHYBÍ   │     │        │ ┌────────┐ ┌────────┐ ┌────────┐│
+│         │   └──────┬───────┘     │        │ │MATERIAL│ │ LABOR  │ │   WO   ││
+│         │          │             │        │ │ ISSUE  │ │ TICKET │ │OPERATIO││
+│         │          ▼             │        │ │❌CHYBÍ │ │❌CHYBÍ │ │(v4.0)  ││
+│         │   ┌──────────────┐     │        │ └────────┘ └────────┘ └────────┘│
+│         │   │  INVENTORY   │◄────┼────────┼──────┘                          │
+│         │   │  TRANSACTION │     │        │                                 │
+│         │   │   ❌ CHYBÍ   │     │        │                                 │
+│         │   └──────┬───────┘     │        │                                 │
+│         │          │             │        │                                 │
+│  PRODEJ │          │             │        │                                 │
+│  ═══════│══════════│═════════════│════════│═════════════════════════════    │
+│         │          │             │        │                                 │
+│         ▼          ▼             │        │                                 │
+│  ┌──────────────┐  ┌──────────────┐       │                                 │
+│  │    QUOTE     │  │  WAREHOUSE   │       │                                 │
+│  │   (v2.0) ✓   │  │   ❌ CHYBÍ   │       │                                 │
+│  └──────┬───────┘  └──────────────┘       │                                 │
+│         │                                 │                                 │
+│         ▼                                 │                                 │
+│  ┌──────────────┐                         │                                 │
+│  │    ORDER     │◄────────────────────────┘                                 │
+│  │   (v2.0) ✓   │                                                           │
+│  └──────┬───────┘                                                           │
+│         │                                                                   │
+│         ▼                                                                   │
+│  ┌──────────────┐      ┌──────────────┐                                     │
+│  │   SHIPMENT   │──────│   INVOICE    │                                     │
+│  │   ❌ CHYBÍ   │      │   (Helios)   │                                     │
+│  └──────────────┘      └──────────────┘                                     │
+│                                                                             │
+│  LEGENDA:  ✅ Hotovo  📋 Plánováno  ❌ CHYBÍ                                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="page-break">9. Integrační architektura GESTIMA ↔ Helios</h2>
+
+<div class="diagram">
+    <div class="diagram-title">Obousměrná synchronizace</div>
+    <pre>
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         INTEGRAČNÍ ARCHITEKTURA                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  GESTIMA                    SYNC LAYER                 HELIOS                   │
+│  ═══════                    ══════════                 ══════                   │
+│                                                                                 │
+│                        ┌─────────────────┐                                      │
+│                        │  MESSAGE QUEUE  │                                      │
+│                        │  (nebo polling) │                                      │
+│                        └────────┬────────┘                                      │
+│                                 │                                               │
+│  OUTBOUND (GESTIMA → HELIOS)    │                                               │
+│  ═══════════════════════════    │                                               │
+│                                 │                                               │
+│  MaterialIssue ────────────────►├───────────────────► MD 501 / D 112           │
+│  (výdej materiálu)              │                     (spotřeba)               │
+│                                 │                                               │
+│  LaborTicket ──────────────────►├───────────────────► Mzdové podklady          │
+│  (odpracované hodiny)           │                                               │
+│                                 │                                               │
+│  WIP Change ───────────────────►├───────────────────► MD 121 / D 581           │
+│  (změna nedokončené výroby)     │                     (změna NV)               │
+│                                 │                                               │
+│  WO Completion ────────────────►├───────────────────► MD 123 / D 583           │
+│  (dokončení výroby)             │                     (příjem výrobků)         │
+│                                 │                                               │
+│  Scrap ────────────────────────►├───────────────────► MD 549 / D 121           │
+│  (zmetky)                       │                     (odpis)                  │
+│                                 │                                               │
+│  Shipment ─────────────────────►├───────────────────► Faktura vydaná           │
+│  (expedice)                     │                     (ISDOC XML)              │
+│                                 │                                               │
+│                                 │                                               │
+│  INBOUND (HELIOS → GESTIMA)     │                                               │
+│  ═══════════════════════════    │                                               │
+│                                 │                                               │
+│  Inventory ◄───────────────────►├◄──────────────────  Příjem materiálu         │
+│  (aktualizace stavu)            │                     (z PO)                   │
+│                                 │                                               │
+│  Order.payment_status ◄────────►├◄──────────────────  Bankovní výpis           │
+│  (zaplaceno?)                   │                     (platby)                 │
+│                                 │                                               │
+│  MaterialItem.cost ◄───────────►├◄──────────────────  Ocenění zásob            │
+│  (standard cost)                │                     (FIFO/průměr)            │
+│                                 │                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+</div>
+
+<h3>Formát integrace: ISDOC</h3>
+<div class="card">
+    <div class="card-header">📄 ISDOC (Information System Document)</div>
+    <div class="card-body">
+        <p>Český standard pro elektronickou výměnu dokladů (faktury, dodací listy).</p>
+        <ul>
+            <li><strong>Formát:</strong> XML podle specifikace ISDOC 6.0</li>
+            <li><strong>Podporuje:</strong> Helios, Pohoda, Money S3, ABRA, ...</li>
+            <li><strong>Výhoda:</strong> Není potřeba custom API pro každý systém</li>
+        </ul>
+        <p style="margin-top: 1rem;"><strong>⚠️ Omezení:</strong> ISDOC je <em>dávkový</em> přenos (soubor). Pro real-time sync cen a stavů je nutné API nebo shared database view.</p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DETAILNÍ INTEGRAČNÍ SCÉNÁŘE -->
+<!-- ============================================================ -->
+
+<h2 class="page-break">10. Detailní integrační scénáře</h2>
+
+<div class="callout callout-danger">
+    <strong>KRITICKÉ PRO VEDENÍ:</strong> Tato sekce obsahuje konkrétní příklady a výpočty,
+    které musí být vyřešeny při integraci GESTIMA + Helios. Bez jejich vyjasnění nelze systémy propojit.
+</div>
+
+<!-- 10.1 Oceňování zásob -->
+<h3>10.1 Oceňování zásob - FIFO vs Vážený průměr</h3>
+
+<div class="callout callout-warning">
+    <strong>Rozhodnutí před migrací:</strong> Metodu oceňování nelze měnit bez přepočtu celého skladu a daňových dopadů!
+</div>
+
+<div class="card">
+    <div class="card-header">📊 Příklad: Vliv metody na cenu výdeje</div>
+    <div class="card-body">
+        <table>
+            <tr>
+                <th>Pohyb</th>
+                <th>Operace</th>
+                <th>Množství</th>
+                <th>Cena/kg</th>
+                <th>Hodnota</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>Nákup</td>
+                <td>100 kg</td>
+                <td>100 Kč</td>
+                <td>10 000 Kč</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Výdej do výroby</td>
+                <td>60 kg</td>
+                <td>100 Kč</td>
+                <td>6 000 Kč</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Nákup</td>
+                <td>200 kg</td>
+                <td>80 Kč</td>
+                <td>16 000 Kč</td>
+            </tr>
+            <tr style="background: #fef3c7;">
+                <td>4</td>
+                <td>Výdej do výroby</td>
+                <td>60 kg</td>
+                <td><strong>???</strong></td>
+                <td><strong>???</strong></td>
+            </tr>
+        </table>
+
+        <p style="margin-top: 1rem;">Po pohybu 3 je na skladě: 40 kg @ 100 Kč + 200 kg @ 80 Kč = <strong>240 kg, hodnota 20 000 Kč</strong></p>
+
+        <div class="grid-2" style="margin-top: 1rem;">
+            <div style="background: #dbeafe; padding: 1rem; border-radius: 8px;">
+                <strong>FIFO (First In, First Out):</strong>
+                <ul style="margin: 0.5rem 0;">
+                    <li>Výdej 40 kg @ 100 Kč = 4 000 Kč</li>
+                    <li>Výdej 20 kg @ 80 Kč = 1 600 Kč</li>
+                </ul>
+                <strong>Celkem: 60 kg za 5 600 Kč (93,33 Kč/kg)</strong>
+            </div>
+            <div style="background: #dcfce7; padding: 1rem; border-radius: 8px;">
+                <strong>Vážený průměr:</strong>
+                <ul style="margin: 0.5rem 0;">
+                    <li>Průměr: 20 000 / 240 = 83,33 Kč/kg</li>
+                    <li>Výdej 60 kg @ 83,33 Kč</li>
+                </ul>
+                <strong>Celkem: 60 kg za 5 000 Kč (83,33 Kč/kg)</strong>
+            </div>
+        </div>
+
+        <p style="margin-top: 1rem; color: var(--danger);"><strong>Rozdíl: 600 Kč na jednom výdeji!</strong> U stovek výdejů měsíčně = významný dopad na WIP, zisk, daně.</p>
+    </div>
+</div>
+
+<h4>Kdo počítá cenu výdeje?</h4>
+<table>
+    <tr>
+        <th>Varianta</th>
+        <th>Popis</th>
+        <th>Výhody</th>
+        <th>Nevýhody</th>
+    </tr>
+    <tr>
+        <td><strong>A: Helios počítá</strong></td>
+        <td>GESTIMA pošle jen množství, Helios vrátí hodnotu</td>
+        <td>Jeden zdroj pravdy pro ceny</td>
+        <td>Synchronní závislost, pomalejší</td>
+    </tr>
+    <tr>
+        <td><strong>B: GESTIMA počítá</strong></td>
+        <td>GESTIMA má kopii FIFO vrstev/průměrů</td>
+        <td>Real-time pro výrobu</td>
+        <td>Riziko rozjezdu mezi systémy</td>
+    </tr>
+    <tr style="background: #f0fdf4;">
+        <td><strong>C: Hybrid (doporučeno)</strong></td>
+        <td>Helios = master, GESTIMA = read-only kopie (sync 1x denně)</td>
+        <td>Kompromis rychlost/přesnost</td>
+        <td>Nutná měsíční reconciliace</td>
+    </tr>
+</table>
+
+<!-- 10.2 Master data ownership -->
+<h3>10.2 Vlastnictví dat (kdo je master?)</h3>
+
+<table>
+    <tr>
+        <th>Data</th>
+        <th>Vytváří</th>
+        <th>Upravuje</th>
+        <th>Čte</th>
+        <th>Poznámka</th>
+    </tr>
+    <tr>
+        <td>Zákazník</td>
+        <td>Helios</td>
+        <td>Helios</td>
+        <td>Oba</td>
+        <td>DIČ, platební podmínky, kredit</td>
+    </tr>
+    <tr>
+        <td>Dodavatel</td>
+        <td>Helios</td>
+        <td>Helios</td>
+        <td>Oba</td>
+        <td>DIČ, lead time, hodnocení</td>
+    </tr>
+    <tr>
+        <td>Materiál (master)</td>
+        <td>GESTIMA</td>
+        <td>GESTIMA</td>
+        <td>Oba</td>
+        <td>Technické parametry</td>
+    </tr>
+    <tr>
+        <td>Materiál (cena)</td>
+        <td>Helios</td>
+        <td>Helios</td>
+        <td>Oba</td>
+        <td>Nákupní ceny, ocenění</td>
+    </tr>
+    <tr>
+        <td>Kusovník (BOM)</td>
+        <td>GESTIMA</td>
+        <td>GESTIMA</td>
+        <td>Oba</td>
+        <td>Technologická struktura</td>
+    </tr>
+    <tr>
+        <td>Postup (routing)</td>
+        <td>GESTIMA</td>
+        <td>GESTIMA</td>
+        <td>GESTIMA</td>
+        <td>Helios nepotřebuje</td>
+    </tr>
+    <tr>
+        <td>Středisko (CC)</td>
+        <td>Helios</td>
+        <td>Helios</td>
+        <td>Oba</td>
+        <td>Účetní struktura</td>
+    </tr>
+    <tr>
+        <td>Zakázka prodejní</td>
+        <td>Helios</td>
+        <td>Helios</td>
+        <td>Oba</td>
+        <td>GESTIMA plánuje výrobu</td>
+    </tr>
+    <tr>
+        <td>Objednávka nákupní</td>
+        <td>Helios</td>
+        <td>Helios</td>
+        <td>Oba</td>
+        <td>GESTIMA sleduje dodávky</td>
+    </tr>
+    <tr>
+        <td>Výrobní příkaz</td>
+        <td>GESTIMA</td>
+        <td>GESTIMA</td>
+        <td>Oba</td>
+        <td>Helios pro WIP účtování</td>
+    </tr>
+    <tr>
+        <td>Skladový pohyb</td>
+        <td>GESTIMA</td>
+        <td>—</td>
+        <td>Oba</td>
+        <td>Nemaže se, jen storno</td>
+    </tr>
+    <tr>
+        <td>Účetní doklad</td>
+        <td>Helios</td>
+        <td>—</td>
+        <td>Helios</td>
+        <td>GESTIMA nevidí</td>
+    </tr>
+</table>
+
+<!-- 10.3 Nákupní proces -->
+<h3>10.3 Nákupní proces - 3-way matching</h3>
+
+<div class="diagram">
+    <div class="diagram-title">Tok: Objednávka → Příjem → Faktura</div>
+    <pre>
+GESTIMA                              HELIOS                           DODAVATEL
+═══════                              ══════                           ═════════
+
+┌──────────────┐
+│ MRP: Potřeba │
+│ 100 kg oceli │
+└──────┬───────┘
+       │ požadavek
+       ▼
+                                ┌──────────────┐
+                                │ Objednávka   │─────────────────────► Objednávka
+                                │ PO-2024-001  │                       odeslána
+                                │ 100 kg @ 100 │
+                                └──────┬───────┘
+                                       │
+       ┌───────────────────────────────┘
+       │ potvrzení dodávky
+       ▼
+┌──────────────┐
+│ Příjem zboží │◄─────────────────────────────────────────────────── Dodávka
+│ 95 kg přijato│                                                      95 kg
+│ (QC passed)  │
+└──────┬───────┘
+       │ GRN qty
+       ▼
+                                ┌──────────────┐
+                                │ GRNI účtování│
+                                │ MD 111 @ 9500│ ← Materiál na cestě
+                                │ DAL 389      │ ← Dohadné pasivní
+                                └──────────────┘
+                                       │
+                                       │
+                                ┌──────────────┐
+                                │ Faktura      │◄──────────────────── Faktura
+                                │ 95 kg @ 102  │                       9 690 Kč
+                                │ = 9 690 Kč   │
+                                └──────┬───────┘
+                                       │
+                                       ▼
+                                ┌──────────────┐
+                                │ 3-way match: │
+                                │ PO: 100 @ 100│
+                                │ GRN: 95 kg   │
+                                │ INV: 95 @ 102│
+                                └──────┬───────┘
+                                       │
+                                       ▼
+                                ┌──────────────────────────────────┐
+                                │ Účtování:                        │
+                                │ MD 112 @ 9 500 (materiál)        │
+                                │ MD 548 @ 190 (cenový rozdíl)     │
+                                │ MD 343 @ DPH                     │
+                                │ DAL 389 @ 9 500 (clearing GRNI)  │
+                                │ DAL 321 @ faktura                │
+                                └──────────────────────────────────┘
+    </pre>
+</div>
+
+<div class="callout callout-warning">
+    <strong>Kritické rozhodnutí:</strong> Kde vzniká příjemka?
+    <ul>
+        <li><strong>Varianta A:</strong> GESTIMA (fyzický příjem) → Helios (účetní příjem)</li>
+        <li><strong>Varianta B:</strong> Helios (vše) ← GESTIMA jen sleduje dostupnost</li>
+    </ul>
+    Doporučení: <strong>Varianta A</strong> - účetní potřebuje párovat fakturu v Heliosu, ale fyzický příjem + QC je v GESTIMA.
+</div>
+
+<!-- 10.4 Zálohy -->
+<h3>10.4 Zálohy - DPH specifika (české právo)</h3>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">💰 Přijatá záloha od zákazníka</div>
+        <div class="card-body">
+            <p><strong>Zdanitelné plnění = v okamžiku přijetí platby!</strong></p>
+            <pre style="background: var(--gray-100); padding: 1rem; font-size: 0.85rem;">
+Přijetí zálohy 121 000 Kč (vč. DPH):
+  MD 221 - Banka         121 000
+  DAL 324 - Přijaté zál. 100 000
+  DAL 343 - DPH           21 000
+
+Vyúčtovací faktura 200 000 + DPH:
+  MD 311 - Odběratel     121 000
+  MD 324 - Clearing zál. 100 000
+  MD 343 - DPH (zbytek)   21 000
+  DAL 604 - Tržby        200 000
+  DAL 343 - DPH celk.     42 000
+            </pre>
+            <p style="color: var(--danger);"><strong>GESTIMA nevidí!</strong> Čistě Helios.</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">💳 Poskytnutá záloha dodavateli</div>
+        <div class="card-body">
+            <p><strong>DPH nárok vzniká při platbě (od 2019)!</strong></p>
+            <pre style="background: var(--gray-100); padding: 1rem; font-size: 0.85rem;">
+Platba zálohy 60 500 Kč (vč. DPH):
+  MD 314 - Poskytnuté zál. 50 000
+  MD 343 - DPH             10 500
+  DAL 221 - Banka          60 500
+
+Finální faktura 100 000 + DPH:
+  MD 112 - Materiál       100 000
+  MD 343 - DPH (zbytek)    10 500
+  DAL 321 - Dodavatel      60 500
+  DAL 314 - Clearing zál.  50 000
+            </pre>
+            <p style="color: var(--danger);"><strong>GESTIMA nevidí!</strong> Čistě Helios.</p>
+        </div>
+    </div>
+</div>
+
+<!-- 10.5 Reverse charge -->
+<h3>10.5 Reverse charge (přenesení daňové povinnosti)</h3>
+
+<div class="card">
+    <div class="card-body">
+        <p><strong>Kdy se použije:</strong> Stavební práce, dodání zlata, šrotu, emisních povolenek, některých komodit.</p>
+        <p><strong>Princip:</strong> Dodavatel fakturuje BEZ DPH, odběratel sám přiznává DPH (na vstupu i výstupu).</p>
+        <pre style="background: var(--gray-100); padding: 1rem; font-size: 0.85rem;">
+Faktura za stavební práce 100 000 Kč (bez DPH):
+  MD 511 - Opravy        100 000
+  MD 343.01 - DPH vstup   21 000  ← sami přiznáváme
+  DAL 321 - Dodavatel    100 000
+  DAL 343.02 - DPH výstup 21 000  ← sami přiznáváme
+
+→ Čistý efekt na DPH = 0, ale MUSÍ být v Kontrolním hlášení!
+        </pre>
+        <p><strong>Integrace:</strong> GESTIMA musí flagovat materiály/služby které podléhají reverse charge → Helios správně zaúčtuje.</p>
+    </div>
+</div>
+
+<!-- 10.6 WIP -->
+<h3>10.6 WIP (nedokončená výroba) - výpočet a účtování</h3>
+
+<div class="diagram">
+    <div class="diagram-title">Kalkulační vzorec pro WIP</div>
+    <pre>
+WIP na zakázce = Spotřebovaný materiál
+               + Přímé mzdy (hodiny × sazba)
+               + Výrobní režie (hodiny × režijní sazba)
+
+PŘÍKLAD:
+═══════
+Zakázka WO-2024-001 (100 ks, 50% dokončeno):
+
+Materiál vydaný:     50 kg @ 100 Kč =   5 000 Kč
+Práce:               20 hod @ 250 Kč =  5 000 Kč
+Výrobní režie:       20 hod @ 150 Kč =  3 000 Kč
+─────────────────────────────────────────────────
+WIP hodnota:                          13 000 Kč
+
+ÚČTOVÁNÍ (měsíční):
+═══════════════════
+Nárůst WIP oproti minulému měsíci:
+  MD 121 - Nedokončená výroba
+  DAL 611 - Změna stavu NV
+
+Dokončení (výrobky na sklad):
+  MD 123 - Výrobky
+  DAL 121 - Nedokončená výroba
+    </pre>
+</div>
+
+<div class="callout">
+    <strong>Kde se WIP počítá?</strong>
+    <ul>
+        <li><strong>GESTIMA:</strong> Zná % dokončení, spotřebu materiálu, odpracované hodiny</li>
+        <li><strong>Helios:</strong> Zná ceny materiálu, mzdové sazby, režijní sazby</li>
+        <li><strong>Řešení:</strong> GESTIMA počítá WIP pomocí cen synchronizovaných z Heliosu. Měsíčně reconciliace s účtem 121.</li>
+    </ul>
+</div>
+
+<!-- 10.7 Inventura -->
+<h3>10.7 Inventura - zákonná povinnost</h3>
+
+<table>
+    <tr>
+        <th>Krok</th>
+        <th>GESTIMA</th>
+        <th>Helios</th>
+    </tr>
+    <tr>
+        <td>1. Příprava</td>
+        <td>Zmrazit sklad, tisknout inventurní soupisy</td>
+        <td>—</td>
+    </tr>
+    <tr>
+        <td>2. Fyzické počítání</td>
+        <td>Zadat skutečné stavy</td>
+        <td>—</td>
+    </tr>
+    <tr>
+        <td>3. Vyhodnocení</td>
+        <td>Rozdíly: systém vs skutečnost</td>
+        <td>—</td>
+    </tr>
+    <tr>
+        <td>4. Schválení</td>
+        <td>—</td>
+        <td>Účetní schválí odpisy</td>
+    </tr>
+    <tr>
+        <td>5. Zaúčtování</td>
+        <td>—</td>
+        <td>MD 549/DAL 112 (manko)<br>MD 112/DAL 648 (přebytek)</td>
+    </tr>
+    <tr>
+        <td>6. Aktualizace</td>
+        <td>Synchronizace stavů</td>
+        <td>Synchronizace stavů</td>
+    </tr>
+</table>
+
+<p><strong>Zákon o účetnictví §29, §30:</strong> Inventarizace majetku a závazků minimálně 1x ročně, nejpozději k datu účetní závěrky.</p>
+
+<!-- 10.8 Reconciliace -->
+<h3>10.8 Reconciliace - jak ověřit že systémy sedí</h3>
+
+<table>
+    <tr>
+        <th>Report</th>
+        <th>Frekvence</th>
+        <th>Co porovnává</th>
+        <th>Tolerovaný rozdíl</th>
+    </tr>
+    <tr>
+        <td>Stav skladu</td>
+        <td>Denně</td>
+        <td>GESTIMA qty vs Helios qty</td>
+        <td>0 (musí sedět!)</td>
+    </tr>
+    <tr>
+        <td>Hodnota skladu</td>
+        <td>Týdně</td>
+        <td>GESTIMA value vs Helios účet 112</td>
+        <td>< 0,1%</td>
+    </tr>
+    <tr>
+        <td>WIP hodnota</td>
+        <td>Měsíčně</td>
+        <td>GESTIMA WIP vs Helios účet 121</td>
+        <td>< 1%</td>
+    </tr>
+    <tr>
+        <td>Materiálové rozdíly</td>
+        <td>Měsíčně</td>
+        <td>Plánovaná vs skutečná spotřeba</td>
+        <td>Dle norem</td>
+    </tr>
+</table>
+
+<div class="callout callout-danger">
+    <strong>Pokud reconciliace nesedí:</strong>
+    <ol>
+        <li>STOP další transakce v oblasti rozdílu</li>
+        <li>Identifikovat problémovou transakci</li>
+        <li>Opravit v JEDNOM systému (dle master ownership)</li>
+        <li>Re-sync druhého systému</li>
+        <li>Dokumentovat pro audit</li>
+    </ol>
+</div>
+
+<!-- 10.9 Error handling -->
+<h3>10.9 Chybové stavy - co se může pokazit</h3>
+
+<table>
+    <tr>
+        <th>Chyba</th>
+        <th>Příčina</th>
+        <th>Dopad</th>
+        <th>Řešení</th>
+    </tr>
+    <tr>
+        <td>Záporný stav skladu</td>
+        <td>Výdej před příjmem</td>
+        <td>Nelze ocenit výdej</td>
+        <td>Blokovat nebo flag + ruční oprava</td>
+    </tr>
+    <tr>
+        <td>Chybějící středisko</td>
+        <td>GESTIMA použila CC které Helios nezná</td>
+        <td>Transakce odmítnuta</td>
+        <td>Validace před odesláním</td>
+    </tr>
+    <tr>
+        <td>Rozdílný kurz</td>
+        <td>Kurz změněn během batch</td>
+        <td>Rozdíl v hodnotách</td>
+        <td>Snapshot kurzu na začátku batch</td>
+    </tr>
+    <tr>
+        <td>Duplicitní doklad</td>
+        <td>Retry po timeout</td>
+        <td>Dvojí zaúčtování</td>
+        <td>Idempotency key</td>
+    </tr>
+    <tr>
+        <td>Uzavřené období</td>
+        <td>Transakce po měsíční uzávěrce</td>
+        <td>Nelze zaúčtovat</td>
+        <td>Účtovat do dalšího období + dohadné</td>
+    </tr>
+</table>
+
+<!-- 10.10 Číselné řady -->
+<h3>10.10 Číselné řady dokladů</h3>
+
+<div class="callout callout-warning">
+    <strong>Zákonný požadavek:</strong> Doklady musí být číslovány bez přerušení řady!
+</div>
+
+<table>
+    <tr>
+        <th>Doklad</th>
+        <th>Systém</th>
+        <th>Formát</th>
+        <th>Příklad</th>
+    </tr>
+    <tr>
+        <td>Příjemka</td>
+        <td>GESTIMA</td>
+        <td>PRJ-RRRR-NNNNNN</td>
+        <td>PRJ-2024-000123</td>
+    </tr>
+    <tr>
+        <td>Výdejka</td>
+        <td>GESTIMA</td>
+        <td>VYD-RRRR-NNNNNN</td>
+        <td>VYD-2024-000456</td>
+    </tr>
+    <tr>
+        <td>Výrobní příkaz</td>
+        <td>GESTIMA</td>
+        <td>WO-RRRR-NNNNNN</td>
+        <td>WO-2024-001234</td>
+    </tr>
+    <tr>
+        <td>Faktura vydaná</td>
+        <td>Helios</td>
+        <td>FV-RRRR-NNNNNN</td>
+        <td>FV-2024-005678</td>
+    </tr>
+    <tr>
+        <td>Objednávka</td>
+        <td>Helios</td>
+        <td>PO-RRRR-NNNNNN</td>
+        <td>PO-2024-000789</td>
+    </tr>
+</table>
+
+<p><strong>Pravidlo:</strong> Každý systém má vlastní prefix → nemůže dojít ke kolizi.</p>
+
+<!-- ============================================================ -->
+<h2 class="page-break">11. Aktualizovaná ROADMAP</h2>
+
+<div class="timeline">
+    <div class="timeline-item done">
+        <div class="timeline-date">✅ Q4 2025 - HOTOVO</div>
+        <h3>v1.x: Costing Module</h3>
+        <p>Kalkulace, díly, operace, materiály, stroje, dávky, snapshoty.</p>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">📋 Q1 2026</div>
+        <h3>v2.0: Sales Module (~30h)</h3>
+        <ul>
+            <li>Customer (rozšířit: payment_terms, credit_limit)</li>
+            <li>Quote (workflow, PDF export)</li>
+            <li>Order (source: FROM_QUOTE | REPEAT | INTERNAL | BLANKET)</li>
+            <li>Partial ordering (M:N Quote↔Order)</li>
+        </ul>
+
+        <h3>v2.1: Purchase Module (~40h) <span class="badge badge-missing">NOVÉ!</span></h3>
+        <ul>
+            <li>Supplier (zrcadlo Customer)</li>
+            <li>Purchase Order (workflow: DRAFT→SENT→PARTIAL→CLOSED)</li>
+            <li>PO Item (qty_ordered, qty_received)</li>
+        </ul>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">📋 Q2 2026</div>
+        <h3>v2.2: Inventory Foundation (~50h) <span class="badge badge-missing">PŘESUNUTO!</span></h3>
+        <ul>
+            <li>Warehouse (typ: OWNED - způsob A)</li>
+            <li>Location (bin management)</li>
+            <li>InventoryTransaction (IN/OUT/ADJ/TRANSFER)</li>
+            <li>StockCard (qty, avg_cost, FIFO layers)</li>
+            <li>GoodsReceipt (z PO, kontrola kvality)</li>
+        </ul>
+
+        <h3>v3.0: PLM & Drawings (~44h)</h3>
+        <ul>
+            <li>MinIO/S3 storage</li>
+            <li>Drawing, DrawingVersion</li>
+            <li>Part.revision, BOM (single-level)</li>
+            <li>ECN/ECO workflow</li>
+        </ul>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">📋 Q3 2026</div>
+        <h3>v4.0: MES (~61h)</h3>
+        <ul>
+            <li>WorkOrder (from Order)</li>
+            <li>WOOperation (routing)</li>
+            <li>WorkCenter, Shop floor tracking</li>
+            <li>Tablet UI</li>
+        </ul>
+
+        <h3>v4.1: Material Tracking (~30h) <span class="badge badge-missing">NOVÉ!</span></h3>
+        <ul>
+            <li>MaterialIssue (WO → spotřeba → 501)</li>
+            <li>LaborTicket (WO → hodiny → mzdy)</li>
+            <li>WIP calculation, Scrap tracking</li>
+        </ul>
+
+        <h3>v4.2: Expedice (~25h) <span class="badge badge-missing">NOVÉ!</span></h3>
+        <ul>
+            <li>Shipment (from Order)</li>
+            <li>DeliveryNote (→ ISDOC faktura)</li>
+        </ul>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">📋 Q4 2026</div>
+        <h3>v5.0: Tech DB (~35h)</h3>
+        <ul>
+            <li>Editable Materials, Cutting Conditions</li>
+            <li>Tool Library</li>
+            <li>Technology Sheets</li>
+        </ul>
+
+        <h3>v5.1: Helios Integration (~60h) <span class="badge badge-critical">KRITICKÉ!</span></h3>
+        <ul>
+            <li>Sync layer architecture</li>
+            <li>OUTBOUND: 501, 581, 583, 549, ISDOC</li>
+            <li>INBOUND: příjemky, platby, ocenění</li>
+            <li>Reconciliation reports</li>
+        </ul>
+
+        <h3>v5.2: Costing Enhancement (~20h)</h3>
+        <ul>
+            <li>Full kalkulační vzorec</li>
+            <li>Overhead allocation</li>
+            <li>Variance analysis</li>
+        </ul>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">📋 Q1 2027</div>
+        <h3>v6.0: QA/QC (~40h)</h3>
+        <ul>
+            <li>Inspection plans, Measurements</li>
+            <li>NCR, Customer complaints</li>
+        </ul>
+
+        <h3>v6.1: Maintenance (~30h)</h3>
+        <ul>
+            <li>Preventive maintenance</li>
+            <li>Downtime tracking</li>
+        </ul>
+    </div>
+</div>
+
+<hr>
+
+<h3>Shrnutí effort navíc (vs. původní VISION)</h3>
+<table>
+    <tr>
+        <th>Modul</th>
+        <th>Effort</th>
+        <th>Poznámka</th>
+    </tr>
+    <tr>
+        <td>v2.1 Purchase</td>
+        <td>+40h</td>
+        <td>Supplier, PO</td>
+    </tr>
+    <tr>
+        <td>v2.2 Inventory</td>
+        <td>+50h</td>
+        <td>Přesun z v6, rozšíření</td>
+    </tr>
+    <tr>
+        <td>v4.1 Material Tracking</td>
+        <td>+30h</td>
+        <td>Issue, Labor, WIP</td>
+    </tr>
+    <tr>
+        <td>v4.2 Expedice</td>
+        <td>+25h</td>
+        <td>Shipment, DN</td>
+    </tr>
+    <tr>
+        <td>v5.1 Helios Integration</td>
+        <td>+60h</td>
+        <td>ISDOC, sync layer</td>
+    </tr>
+    <tr>
+        <td>v5.2 Costing</td>
+        <td>+20h</td>
+        <td>Kalkulační vzorec</td>
+    </tr>
+    <tr style="font-weight: bold; background: #fef3c7;">
+        <td>CELKEM NAVÍC</td>
+        <td>+225h</td>
+        <td>~6 týdnů full-time</td>
+    </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="page-break">12. Shrnutí - Co musíte mít</h2>
+
+<div class="grid-2">
+    <div class="card" style="border-color: var(--danger);">
+        <div class="card-header">🔴 CRITICAL (bez tohoto nejede)</div>
+        <div class="card-body">
+            <ul>
+                <li><strong>Nákup:</strong> Supplier, PO, GoodsReceipt</li>
+                <li><strong>Sklad:</strong> Inventory (způsob A)</li>
+                <li><strong>Expedice:</strong> Shipment, DeliveryNote</li>
+                <li><strong>Účetní toky:</strong> MaterialIssue, LaborTicket, WIP</li>
+                <li><strong>Integrace:</strong> ISDOC XML, sync layer</li>
+            </ul>
+        </div>
+    </div>
+    <div class="card" style="border-color: var(--warning);">
+        <div class="card-header">🟡 HIGH (nutné pro provoz)</div>
+        <div class="card-body">
+            <ul>
+                <li><strong>Kalkulace:</strong> Rozšířený vzorec, režie</li>
+                <li><strong>HR:</strong> Employees pro MES</li>
+                <li><strong>Reporting:</strong> WIP report, variance</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="callout callout-warning">
+    <strong>Důležité rozhodnutí:</strong> Před migrací z Inforu potvrďte metodu oceňování zásob
+    (FIFO vs. vážený průměr) - změna vyžaduje přepočet celého skladu a má daňové dopady!
+</div>
+
+<!-- ============================================================ -->
+<h2 class="page-break">13. Doporučení a další kroky</h2>
+
+<div style="background: linear-gradient(135deg, #065f46 0%, #16a34a 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+    <h3 style="color: white; margin-top: 0;">✅ Doporučení pro vedení</h3>
+    <ol style="line-height: 2;">
+        <li><strong>Schválit strategii GESTIMA + Helios</strong> - nižší TCO, vyšší flexibilita, legislativní jistota</li>
+        <li><strong>Zahájit výběr Helios vs. Pohoda</strong> - dle velikosti firmy a požadavků na reporting</li>
+        <li><strong>Alokovat zdroje na GESTIMA vývoj</strong> - 225h dodatečného vývoje (~6 týdnů)</li>
+        <li><strong>Naplánovat paralelní provoz</strong> - minimalizace rizika při přechodu</li>
+    </ol>
+</div>
+
+<h3>Navrhovaný harmonogram rozhodnutí</h3>
+
+<table>
+    <tr>
+        <th>Kdy</th>
+        <th>Co</th>
+        <th>Kdo rozhoduje</th>
+    </tr>
+    <tr>
+        <td><strong>Únor 2026</strong></td>
+        <td>GO/NO-GO pro strategii GESTIMA + Helios</td>
+        <td>Vedení</td>
+    </tr>
+    <tr>
+        <td><strong>Březen 2026</strong></td>
+        <td>Výběr: Helios Orange / Pohoda / jiný</td>
+        <td>Finance + IT</td>
+    </tr>
+    <tr>
+        <td><strong>Duben 2026</strong></td>
+        <td>Podpis smlouvy s dodavatelem účetního SW</td>
+        <td>Vedení</td>
+    </tr>
+    <tr>
+        <td><strong>Q2 2026</strong></td>
+        <td>Migrace účetnictví do Heliosu (paralelní provoz)</td>
+        <td>Finance</td>
+    </tr>
+    <tr>
+        <td><strong>Q3 2026</strong></td>
+        <td>GESTIMA MES nasazení (paralelní s Inforem)</td>
+        <td>Výroba + IT</td>
+    </tr>
+    <tr>
+        <td><strong>Q4 2026</strong></td>
+        <td>Vypnutí Inforu, full production</td>
+        <td>Vedení</td>
+    </tr>
+</table>
+
+<h3>Kritéria úspěchu (měřitelné)</h3>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">📊 Finanční</div>
+        <div class="card-body">
+            <ul>
+                <li>TCO sníženo o min. 50% do 2 let</li>
+                <li>Žádné penále za předčasné ukončení Inforu</li>
+                <li>ROI integrace do 18 měsíců</li>
+            </ul>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">⚙️ Provozní</div>
+        <div class="card-body">
+            <ul>
+                <li>Účetní uzávěrka bez zpoždění</li>
+                <li>Výrobní data v reálném čase</li>
+                <li>Nulový výpadek při migraci</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="callout" style="background: #eff6ff; border-color: var(--primary);">
+    <strong>Závěr:</strong> Kombinace GESTIMA + Helios představuje strategicky výhodnou alternativu k Infor CloudSuite.
+    Zachováváme plnou kontrolu nad výrobním systémem, získáváme auditované české účetnictví, a výrazně
+    snižujeme náklady. Klíčem k úspěchu je fázovaná migrace a jasné rozdělení odpovědností mezi systémy.
+</div>
+
+<hr>
+
+<footer>
+    <p><strong>GESTIMA ERP Roadmap</strong> | Verze 1.0 | Leden 2026</p>
+    <p>Dokument vygenerován pro strategické plánování nahrazení Infor CloudSuite</p>
+</footer>
+
+</body>
+</html>

@@ -33,67 +33,33 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Parts
+  // Work Centers (Admin only - accessed via /admin/master-data)
   {
-    path: '/parts',
-    name: 'parts-list',
-    component: () => import('@/views/parts/PartsListView.vue'),
-    meta: {
-      title: 'Díly'
-    }
-  },
-  {
-    path: '/parts/new',
-    name: 'part-create',
-    component: () => import('@/views/parts/PartCreateView.vue'),
-    meta: {
-      title: 'Nový díl',
-      requiresOperator: true
-    }
-  },
-  {
-    path: '/parts/:partNumber',
-    name: 'part-detail',
-    component: () => import('@/views/parts/PartDetailView.vue'),
-    meta: {
-      title: 'Detail dílu'
-    }
-  },
-
-  // Work Centers
-  {
-    path: '/work-centers',
-    name: 'work-centers-list',
-    component: () => import('@/views/workCenters/WorkCentersListView.vue'),
-    meta: {
-      title: 'Pracoviště'
-    }
-  },
-  {
-    path: '/work-centers/new',
+    path: '/admin/work-centers/new',
     name: 'work-center-create',
     component: () => import('@/views/workCenters/WorkCenterEditView.vue'),
     meta: {
       title: 'Nové pracoviště',
-      requiresOperator: true
+      requiresAdmin: true
     }
   },
   {
-    path: '/work-centers/:workCenterNumber',
+    path: '/admin/work-centers/:workCenterNumber',
     name: 'work-center-edit',
     component: () => import('@/views/workCenters/WorkCenterEditView.vue'),
     meta: {
-      title: 'Úprava pracoviště'
+      title: 'Úprava pracoviště',
+      requiresAdmin: true
     }
   },
 
-  // Pricing / Batch Sets
+  // Partners
   {
-    path: '/pricing/batch-sets',
-    name: 'batch-sets-list',
-    component: () => import('@/views/pricing/BatchSetsListView.vue'),
+    path: '/partners',
+    name: 'partners',
+    component: () => import('@/views/partners/PartnersView.vue'),
     meta: {
-      title: 'Cenové sady'
+      title: 'Partneři'
     }
   },
 

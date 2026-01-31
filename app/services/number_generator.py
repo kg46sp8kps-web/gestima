@@ -30,6 +30,8 @@ from app.models.material import MaterialItem
 from app.models.batch import Batch
 from app.models.batch_set import BatchSet
 from app.models.work_center import WorkCenter
+from app.models.partner import Partner
+from app.models.quote import Quote
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +53,12 @@ class NumberGenerator:
     BATCH_MAX = 30999999
     BATCH_SET_MIN = 35000000  # ADR-022: BatchSets (pricing domain)
     BATCH_SET_MAX = 35999999
+    PARTNER_MIN = 70000000  # Partners (customers & suppliers)
+    PARTNER_MAX = 70999999
     WORK_CENTER_MIN = 80000001  # Sequential, not random (ADR-021)
     WORK_CENTER_MAX = 80999999
+    QUOTE_MIN = 85000000  # Quotes (customer quotations)
+    QUOTE_MAX = 85999999
 
     # Safety limits
     MAX_RETRIES = 10
@@ -354,6 +360,66 @@ class NumberGenerator:
             f"{NumberGenerator.MAX_RETRIES} attempts"
         )
 
+    @staticmethod
+    async def generate_partner_numbers_batch(
+        db: AsyncSession,
+        count: int
+    ) -> List[str]:
+        """
+        Generate multiple unique 8-digit partner numbers at once.
+
+        Format: 70XXXXXX (70000000-70999999)
+        """
+        if count <= 0:
+            return []
+
+        if count > NumberGenerator.MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Cannot generate more than {NumberGenerator.MAX_BATCH_SIZE} "
+                f"numbers per batch"
+            )
+
+        for attempt in range(NumberGenerator.MAX_RETRIES):
+            multiplier = await NumberGenerator._calculate_buffer_multiplier(
+                db, Partner, NumberGenerator.CAPACITY
+            )
+            buffer_size = int(count * multiplier)
+
+            candidates = set()
+            max_iterations = buffer_size * 10
+            iterations = 0
+            while len(candidates) < buffer_size and iterations < max_iterations:
+                number = str(random.randint(
+                    NumberGenerator.PARTNER_MIN,
+                    NumberGenerator.PARTNER_MAX
+                ))
+                candidates.add(number)
+                iterations += 1
+
+            result = await db.execute(
+                select(Partner.partner_number).where(
+                    Partner.partner_number.in_(candidates)
+                )
+            )
+            existing = {row[0] for row in result}
+            available = list(candidates - existing)
+
+            if len(available) >= count:
+                logger.debug(
+                    f"Generated {count} partner numbers on attempt {attempt + 1}"
+                )
+                return available[:count]
+
+            logger.warning(
+                f"Attempt {attempt + 1}: Only {len(available)}/{count} unique "
+                f"partner numbers generated"
+            )
+
+        raise NumberGenerationError(
+            f"Failed to generate {count} unique partner numbers after "
+            f"{NumberGenerator.MAX_RETRIES} attempts"
+        )
+
     # Convenience methods for single number generation
 
     @staticmethod
@@ -378,6 +444,12 @@ class NumberGenerator:
     async def generate_batch_set_number(db: AsyncSession) -> str:
         """Generate a single unique batch set number (delegates to batch)"""
         numbers = await NumberGenerator.generate_batch_set_numbers_batch(db, 1)
+        return numbers[0]
+
+    @staticmethod
+    async def generate_partner_number(db: AsyncSession) -> str:
+        """Generate a single unique partner number (delegates to batch)"""
+        numbers = await NumberGenerator.generate_partner_numbers_batch(db, 1)
         return numbers[0]
 
     # =========================================================================
@@ -419,3 +491,69 @@ class NumberGenerator:
 
         logger.debug(f"Generated work center number: {next_num}")
         return str(next_num)
+
+    @staticmethod
+    async def generate_quote_numbers_batch(
+        db: AsyncSession,
+        count: int
+    ) -> List[str]:
+        """
+        Generate multiple unique 8-digit quote numbers at once.
+
+        Format: 85XXXXXX (85000000-85999999)
+        """
+        if count <= 0:
+            return []
+
+        if count > NumberGenerator.MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Cannot generate more than {NumberGenerator.MAX_BATCH_SIZE} "
+                f"numbers per batch"
+            )
+
+        for attempt in range(NumberGenerator.MAX_RETRIES):
+            multiplier = await NumberGenerator._calculate_buffer_multiplier(
+                db, Quote, NumberGenerator.CAPACITY
+            )
+            buffer_size = int(count * multiplier)
+
+            candidates = set()
+            max_iterations = buffer_size * 10
+            iterations = 0
+            while len(candidates) < buffer_size and iterations < max_iterations:
+                number = str(random.randint(
+                    NumberGenerator.QUOTE_MIN,
+                    NumberGenerator.QUOTE_MAX
+                ))
+                candidates.add(number)
+                iterations += 1
+
+            result = await db.execute(
+                select(Quote.quote_number).where(
+                    Quote.quote_number.in_(candidates)
+                )
+            )
+            existing = {row[0] for row in result}
+            available = list(candidates - existing)
+
+            if len(available) >= count:
+                logger.debug(
+                    f"Generated {count} quote numbers on attempt {attempt + 1}"
+                )
+                return available[:count]
+
+            logger.warning(
+                f"Attempt {attempt + 1}: Only {len(available)}/{count} unique "
+                f"quote numbers generated"
+            )
+
+        raise NumberGenerationError(
+            f"Failed to generate {count} unique quote numbers after "
+            f"{NumberGenerator.MAX_RETRIES} attempts"
+        )
+
+    @staticmethod
+    async def generate_quote_number(db: AsyncSession) -> str:
+        """Generate a single unique quote number (delegates to batch)"""
+        numbers = await NumberGenerator.generate_quote_numbers_batch(db, 1)
+        return numbers[0]

@@ -1,88 +1,119 @@
 /**
  * Batches Store - Manages batches and batch sets for pricing
+ * MULTI-CONTEXT PATTERN: Supports per-linkingGroup contexts for multi-window workflow
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { Batch, BatchCreate, BatchSet, BatchSetListItem, BatchSetWithBatches } from '@/types/batch'
 import * as batchesApi from '@/api/batches'
 import { useUiStore } from './ui'
+import type { LinkingGroup } from './windows'
+
+/**
+ * Per-window context state
+ */
+interface BatchesContext {
+  currentPartId: number | null
+  batches: Batch[]
+  batchSets: BatchSetListItem[]
+  selectedSetId: number | null
+  loading: boolean
+  batchesLoading: boolean
+  setsLoading: boolean
+}
 
 export const useBatchesStore = defineStore('batches', () => {
   const ui = useUiStore()
 
   // ==========================================================================
-  // State
+  // State - Multi-context pattern
   // ==========================================================================
 
-  // Current part context
-  const currentPartId = ref<number | null>(null)
+  const contexts = ref<Map<string, BatchesContext>>(new Map())
 
-  // Batches for current part
-  const batches = ref<Batch[]>([])
-
-  // Batch sets for current part
-  const batchSets = ref<BatchSetListItem[]>([])
-
-  // Selected batch set (null = loose batches)
-  const selectedSetId = ref<number | null>(null)
-
-  // Loading states
-  const loading = ref(false)
-  const batchesLoading = ref(false)
-  const setsLoading = ref(false)
+  /**
+   * Get or create context for a linking group
+   */
+  function getOrCreateContext(linkingGroup: LinkingGroup): BatchesContext {
+    const key = linkingGroup || 'unlinked'
+    if (!contexts.value.has(key)) {
+      contexts.value.set(key, {
+        currentPartId: null,
+        batches: [],
+        batchSets: [],
+        selectedSetId: null,
+        loading: false,
+        batchesLoading: false,
+        setsLoading: false
+      })
+    }
+    return contexts.value.get(key)!
+  }
 
   // ==========================================================================
-  // Computed
+  // Getters - Per-context
   // ==========================================================================
 
   /**
-   * Batches displayed based on selected set
+   * Get batches displayed based on selected set
    */
-  const displayedBatches = computed(() => {
-    if (selectedSetId.value === null) {
+  function getDisplayedBatches(linkingGroup: LinkingGroup): Batch[] {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (ctx.selectedSetId === null) {
       // Show loose batches (not in any set)
-      return batches.value.filter(b => !b.batch_set_id)
+      return ctx.batches.filter(b => !b.batch_set_id)
     } else {
       // Show batches from selected set
-      return batches.value.filter(b => b.batch_set_id === selectedSetId.value)
+      return ctx.batches.filter(b => b.batch_set_id === ctx.selectedSetId)
     }
-  })
+  }
 
   /**
-   * Loose batches (not in any set, not frozen)
+   * Get loose batches (not in any set, not frozen)
    */
-  const looseBatches = computed(() =>
-    batches.value.filter(b => !b.batch_set_id && !b.is_frozen)
-  )
+  function getLooseBatches(linkingGroup: LinkingGroup): Batch[] {
+    const ctx = getOrCreateContext(linkingGroup)
+    return ctx.batches.filter(b => !b.batch_set_id && !b.is_frozen)
+  }
 
   /**
-   * Count of loose batches
+   * Get count of loose batches
    */
-  const looseBatchCount = computed(() => looseBatches.value.length)
+  function getLooseBatchCount(linkingGroup: LinkingGroup): number {
+    return getLooseBatches(linkingGroup).length
+  }
 
   /**
-   * Frozen batches
+   * Get frozen batches
    */
-  const frozenBatches = computed(() =>
-    batches.value.filter(b => b.is_frozen)
-  )
+  function getFrozenBatches(linkingGroup: LinkingGroup): Batch[] {
+    const ctx = getOrCreateContext(linkingGroup)
+    return ctx.batches.filter(b => b.is_frozen)
+  }
 
   /**
-   * Selected batch set object
+   * Get selected batch set object
    */
-  const selectedSet = computed(() =>
-    selectedSetId.value !== null
-      ? batchSets.value.find(s => s.id === selectedSetId.value) || null
-      : null
-  )
+  function getSelectedSet(linkingGroup: LinkingGroup): BatchSetListItem | null {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (ctx.selectedSetId === null) return null
+    return ctx.batchSets.find(s => s.id === ctx.selectedSetId) || null
+  }
 
   /**
-   * Total cost of displayed batches
+   * Get total cost of displayed batches
    */
-  const displayedTotalCost = computed(() =>
-    displayedBatches.value.reduce((sum, b) => sum + b.total_cost, 0)
-  )
+  function getDisplayedTotalCost(linkingGroup: LinkingGroup): number {
+    return getDisplayedBatches(linkingGroup).reduce((sum, b) => sum + b.total_cost, 0)
+  }
+
+  /**
+   * Get context state (for direct access in components)
+   */
+  function getContext(linkingGroup: LinkingGroup): BatchesContext {
+    return getOrCreateContext(linkingGroup)
+  }
 
   // ==========================================================================
   // Actions - Loading
@@ -91,64 +122,68 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Set current part and load all data
    */
-  async function setPartContext(partId: number): Promise<void> {
-    if (currentPartId.value === partId) return
+  async function setPartContext(partId: number, linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (ctx.currentPartId === partId) return
 
-    currentPartId.value = partId
-    selectedSetId.value = null // Reset to loose batches
-    await loadAll()
+    ctx.currentPartId = partId
+    ctx.selectedSetId = null // Reset to loose batches
+    await loadAll(linkingGroup)
   }
 
   /**
    * Load all data for current part
    */
-  async function loadAll(): Promise<void> {
-    if (!currentPartId.value) return
+  async function loadAll(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) return
 
-    loading.value = true
+    ctx.loading = true
     try {
       await Promise.all([
-        loadBatches(),
-        loadBatchSets()
+        loadBatches(linkingGroup),
+        loadBatchSets(linkingGroup)
       ])
     } finally {
-      loading.value = false
+      ctx.loading = false
     }
   }
 
   /**
    * Load batches for current part
    */
-  async function loadBatches(): Promise<void> {
-    if (!currentPartId.value) return
+  async function loadBatches(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) return
 
-    batchesLoading.value = true
+    ctx.batchesLoading = true
     try {
-      const data = await batchesApi.getBatchesForPart(currentPartId.value)
+      const data = await batchesApi.getBatchesForPart(ctx.currentPartId)
       // Sort by quantity
-      batches.value = data.sort((a, b) => a.quantity - b.quantity)
+      ctx.batches = data.sort((a, b) => a.quantity - b.quantity)
     } catch (error: any) {
       ui.showError(error.message || 'Chyba při načítání dávek')
       throw error
     } finally {
-      batchesLoading.value = false
+      ctx.batchesLoading = false
     }
   }
 
   /**
    * Load batch sets for current part
    */
-  async function loadBatchSets(): Promise<void> {
-    if (!currentPartId.value) return
+  async function loadBatchSets(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) return
 
-    setsLoading.value = true
+    ctx.setsLoading = true
     try {
-      batchSets.value = await batchesApi.getBatchSetsForPart(currentPartId.value)
+      ctx.batchSets = await batchesApi.getBatchSetsForPart(ctx.currentPartId)
     } catch (error: any) {
       ui.showError(error.message || 'Chyba při načítání sad cen')
       throw error
     } finally {
-      setsLoading.value = false
+      ctx.setsLoading = false
     }
   }
 
@@ -159,29 +194,30 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Create new batch
    */
-  async function createBatch(quantity: number): Promise<Batch> {
-    if (!currentPartId.value) {
+  async function createBatch(quantity: number, linkingGroup: LinkingGroup): Promise<Batch> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) {
       throw new Error('No part selected')
     }
 
     const data: BatchCreate = {
-      part_id: currentPartId.value,
+      part_id: ctx.currentPartId,
       quantity
     }
 
     // If a set is selected, add to that set
-    if (selectedSetId.value !== null) {
-      const newBatch = await batchesApi.addBatchToSet(selectedSetId.value, data)
-      batches.value.push(newBatch)
-      batches.value.sort((a, b) => a.quantity - b.quantity)
+    if (ctx.selectedSetId !== null) {
+      const newBatch = await batchesApi.addBatchToSet(ctx.selectedSetId, data)
+      ctx.batches.push(newBatch)
+      ctx.batches.sort((a, b) => a.quantity - b.quantity)
       ui.showSuccess('Dávka přidána do sady')
       return newBatch
     }
 
     // Otherwise create loose batch
     const newBatch = await batchesApi.createBatch(data)
-    batches.value.push(newBatch)
-    batches.value.sort((a, b) => a.quantity - b.quantity)
+    ctx.batches.push(newBatch)
+    ctx.batches.sort((a, b) => a.quantity - b.quantity)
     ui.showSuccess('Dávka vytvořena')
     return newBatch
   }
@@ -189,25 +225,27 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Delete batch
    */
-  async function deleteBatch(batch: Batch): Promise<void> {
+  async function deleteBatch(batch: Batch, linkingGroup: LinkingGroup): Promise<void> {
     if (batch.is_frozen) {
       ui.showWarning('Nelze smazat zmrazenou dávku')
       return
     }
 
+    const ctx = getOrCreateContext(linkingGroup)
     await batchesApi.deleteBatch(batch.batch_number)
-    batches.value = batches.value.filter(b => b.id !== batch.id)
+    ctx.batches = ctx.batches.filter(b => b.id !== batch.id)
     ui.showSuccess('Dávka smazána')
   }
 
   /**
    * Freeze single batch
    */
-  async function freezeBatch(batch: Batch): Promise<Batch> {
+  async function freezeBatch(batch: Batch, linkingGroup: LinkingGroup): Promise<Batch> {
+    const ctx = getOrCreateContext(linkingGroup)
     const frozen = await batchesApi.freezeBatch(batch.batch_number)
-    const index = batches.value.findIndex(b => b.id === batch.id)
+    const index = ctx.batches.findIndex(b => b.id === batch.id)
     if (index !== -1) {
-      batches.value[index] = frozen
+      ctx.batches[index] = frozen
     }
     ui.showSuccess('Dávka zmrazena')
     return frozen
@@ -216,10 +254,11 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Clone batch
    */
-  async function cloneBatch(batch: Batch): Promise<Batch> {
+  async function cloneBatch(batch: Batch, linkingGroup: LinkingGroup): Promise<Batch> {
+    const ctx = getOrCreateContext(linkingGroup)
     const cloned = await batchesApi.cloneBatch(batch.batch_number)
-    batches.value.push(cloned)
-    batches.value.sort((a, b) => a.quantity - b.quantity)
+    ctx.batches.push(cloned)
+    ctx.batches.sort((a, b) => a.quantity - b.quantity)
     ui.showSuccess(`Dávka duplikována: ${cloned.batch_number}`)
     return cloned
   }
@@ -227,11 +266,12 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Recalculate all batches for current part
    */
-  async function recalculateBatches(): Promise<void> {
-    if (!currentPartId.value) return
+  async function recalculateBatches(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) return
 
-    await batchesApi.recalculateBatchesForPart(currentPartId.value)
-    await loadBatches()
+    await batchesApi.recalculateBatchesForPart(ctx.currentPartId)
+    await loadBatches(linkingGroup)
     ui.showSuccess('Dávky přepočítány')
   }
 
@@ -242,24 +282,26 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Select batch set (null = loose batches)
    */
-  function selectSet(setId: number | null): void {
-    selectedSetId.value = setId
+  function selectSet(setId: number | null, linkingGroup: LinkingGroup): void {
+    const ctx = getOrCreateContext(linkingGroup)
+    ctx.selectedSetId = setId
   }
 
   /**
    * Create new batch set
    */
-  async function createBatchSet(name?: string): Promise<BatchSet> {
-    if (!currentPartId.value) {
+  async function createBatchSet(name: string | undefined, linkingGroup: LinkingGroup): Promise<BatchSet> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) {
       throw new Error('No part selected')
     }
 
     const newSet = await batchesApi.createBatchSet({
-      part_id: currentPartId.value,
+      part_id: ctx.currentPartId,
       name
     })
-    await loadBatchSets()
-    selectedSetId.value = newSet.id
+    await loadBatchSets(linkingGroup)
+    ctx.selectedSetId = newSet.id
     ui.showSuccess('Sada cen vytvořena')
     return newSet
   }
@@ -267,50 +309,54 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Delete batch set
    */
-  async function deleteBatchSet(setId: number): Promise<void> {
+  async function deleteBatchSet(setId: number, linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
     await batchesApi.deleteBatchSet(setId)
-    batchSets.value = batchSets.value.filter(s => s.id !== setId)
-    if (selectedSetId.value === setId) {
-      selectedSetId.value = null
+    ctx.batchSets = ctx.batchSets.filter(s => s.id !== setId)
+    if (ctx.selectedSetId === setId) {
+      ctx.selectedSetId = null
     }
-    await loadBatches() // Reload batches as they may have been deleted
+    await loadBatches(linkingGroup) // Reload batches as they may have been deleted
     ui.showSuccess('Sada smazána')
   }
 
   /**
    * Freeze selected batch set
    */
-  async function freezeSelectedSet(): Promise<void> {
-    if (selectedSetId.value === null) {
+  async function freezeSelectedSet(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (ctx.selectedSetId === null) {
       ui.showWarning('Není vybrána žádná sada')
       return
     }
 
-    const set = selectedSet.value
+    const set = getSelectedSet(linkingGroup)
     if (set?.status === 'frozen') {
       ui.showInfo('Sada je již zmrazena')
       return
     }
 
-    await batchesApi.freezeBatchSet(selectedSetId.value)
-    await loadAll()
+    await batchesApi.freezeBatchSet(ctx.selectedSetId)
+    await loadAll(linkingGroup)
     ui.showSuccess('Sada zmrazena')
   }
 
   /**
    * Freeze loose batches as a new set
    */
-  async function freezeLooseBatchesAsSet(): Promise<BatchSetWithBatches | null> {
-    if (!currentPartId.value) return null
+  async function freezeLooseBatchesAsSet(linkingGroup: LinkingGroup): Promise<BatchSetWithBatches | null> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartId) return null
 
-    if (looseBatches.value.length === 0) {
+    const looseBatches = getLooseBatches(linkingGroup)
+    if (looseBatches.length === 0) {
       ui.showInfo('Žádné volné dávky k zmrazení')
       return null
     }
 
-    const newSet = await batchesApi.freezeLooseBatchesAsSet(currentPartId.value)
-    await loadAll()
-    selectedSetId.value = newSet.id
+    const newSet = await batchesApi.freezeLooseBatchesAsSet(ctx.currentPartId)
+    await loadAll(linkingGroup)
+    ctx.selectedSetId = newSet.id
     ui.showSuccess(`Vytvořena zmrazená sada "${newSet.name}"`)
     return newSet
   }
@@ -318,10 +364,11 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Clone batch set
    */
-  async function cloneBatchSet(setId: number): Promise<BatchSet> {
+  async function cloneBatchSet(setId: number, linkingGroup: LinkingGroup): Promise<BatchSet> {
+    const ctx = getOrCreateContext(linkingGroup)
     const cloned = await batchesApi.cloneBatchSet(setId)
-    await loadAll()
-    selectedSetId.value = cloned.id
+    await loadAll(linkingGroup)
+    ctx.selectedSetId = cloned.id
     ui.showSuccess(`Sada duplikována: ${cloned.name}`)
     return cloned
   }
@@ -329,14 +376,15 @@ export const useBatchesStore = defineStore('batches', () => {
   /**
    * Recalculate selected batch set
    */
-  async function recalculateSelectedSet(): Promise<void> {
-    if (selectedSetId.value === null) {
+  async function recalculateSelectedSet(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (ctx.selectedSetId === null) {
       ui.showWarning('Není vybrána žádná sada')
       return
     }
 
-    await batchesApi.recalculateBatchSet(selectedSetId.value)
-    await loadBatches()
+    await batchesApi.recalculateBatchSet(ctx.selectedSetId)
+    await loadBatches(linkingGroup)
     ui.showSuccess('Sada přepočítána')
   }
 
@@ -344,14 +392,19 @@ export const useBatchesStore = defineStore('batches', () => {
   // Reset
   // ==========================================================================
 
-  function reset(): void {
-    currentPartId.value = null
-    batches.value = []
-    batchSets.value = []
-    selectedSetId.value = null
-    loading.value = false
-    batchesLoading.value = false
-    setsLoading.value = false
+  /**
+   * Reset context for a linking group
+   */
+  function reset(linkingGroup: LinkingGroup): void {
+    const key = linkingGroup || 'unlinked'
+    contexts.value.delete(key)
+  }
+
+  /**
+   * Reset all contexts
+   */
+  function resetAll(): void {
+    contexts.value.clear()
   }
 
   // ==========================================================================
@@ -359,22 +412,14 @@ export const useBatchesStore = defineStore('batches', () => {
   // ==========================================================================
 
   return {
-    // State
-    currentPartId,
-    batches,
-    batchSets,
-    selectedSetId,
-    loading,
-    batchesLoading,
-    setsLoading,
-
-    // Computed
-    displayedBatches,
-    looseBatches,
-    looseBatchCount,
-    frozenBatches,
-    selectedSet,
-    displayedTotalCost,
+    // Getters (per-context)
+    getContext,
+    getDisplayedBatches,
+    getLooseBatches,
+    getLooseBatchCount,
+    getFrozenBatches,
+    getSelectedSet,
+    getDisplayedTotalCost,
 
     // Actions - Loading
     setPartContext,
@@ -399,6 +444,7 @@ export const useBatchesStore = defineStore('batches', () => {
     recalculateSelectedSet,
 
     // Reset
-    reset
+    reset,
+    resetAll
   }
 })

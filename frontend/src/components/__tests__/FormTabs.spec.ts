@@ -26,9 +26,9 @@ describe('FormTabs Component', () => {
 
       const buttons = wrapper.findAll('.tab-button')
       expect(buttons).toHaveLength(3)
-      expect(buttons[0].text()).toBe('Tab 1')
-      expect(buttons[1].text()).toBe('Tab 2')
-      expect(buttons[2].text()).toBe('Tab 3')
+      expect(buttons[0]!.text()).toBe('Tab 1')
+      expect(buttons[1]!.text()).toBe('Tab 2')
+      expect(buttons[2]!.text()).toBe('Tab 3')
     })
 
     it('should mark active tab', () => {
@@ -40,9 +40,9 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      expect(buttons[0].classes()).not.toContain('active')
-      expect(buttons[1].classes()).toContain('active')
-      expect(buttons[2].classes()).not.toContain('active')
+      expect(buttons[0]!.classes()).not.toContain('active')
+      expect(buttons[1]!.classes()).toContain('active')
+      expect(buttons[2]!.classes()).not.toContain('active')
     })
 
     it('should render tab content slots', () => {
@@ -84,9 +84,9 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      expect(buttons[0].find('.tab-label').text()).toBe('Basic')
-      expect(buttons[1].find('.tab-label').text()).toBe('Advanced')
-      expect(buttons[2].find('.tab-label').text()).toBe('Disabled')
+      expect(buttons[0]!.find('.tab-label').text()).toBe('Basic')
+      expect(buttons[1]!.find('.tab-label').text()).toBe('Advanced')
+      expect(buttons[2]!.find('.tab-label').text()).toBe('Disabled')
     })
 
     it('should render tab icons', () => {
@@ -98,9 +98,9 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      expect(buttons[0].find('.tab-icon').text()).toBe('📝')
-      expect(buttons[1].find('.tab-icon').text()).toBe('⚙️')
-      expect(buttons[2].find('.tab-icon').text()).toBe('🔒')
+      expect(buttons[0]!.find('.tab-icon').text()).toBe('📝')
+      expect(buttons[1]!.find('.tab-icon').text()).toBe('⚙️')
+      expect(buttons[2]!.find('.tab-icon').text()).toBe('🔒')
     })
 
     it('should render tab badges', () => {
@@ -112,10 +112,10 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      expect(buttons[0].find('.tab-badge').exists()).toBe(false)
-      expect(buttons[1].find('.tab-badge').exists()).toBe(true)
-      expect(buttons[1].find('.tab-badge').text()).toBe('5')
-      expect(buttons[2].find('.tab-badge').exists()).toBe(false)
+      expect(buttons[0]!.find('.tab-badge').exists()).toBe(false)
+      expect(buttons[1]!.find('.tab-badge').exists()).toBe(true)
+      expect(buttons[1]!.find('.tab-badge').text()).toBe('5')
+      expect(buttons[2]!.find('.tab-badge').exists()).toBe(false)
     })
 
     it('should disable tabs with disabled=true', () => {
@@ -127,10 +127,10 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      expect(buttons[0].attributes('disabled')).toBeUndefined()
-      expect(buttons[1].attributes('disabled')).toBeUndefined()
-      expect(buttons[2].attributes('disabled')).toBeDefined()
-      expect(buttons[2].classes()).toContain('disabled')
+      expect(buttons[0]!.attributes('disabled')).toBeUndefined()
+      expect(buttons[1]!.attributes('disabled')).toBeUndefined()
+      expect(buttons[2]!.attributes('disabled')).toBeDefined()
+      expect(buttons[2]!.classes()).toContain('disabled')
     })
   })
 
@@ -150,7 +150,7 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      await buttons[1].trigger('click')
+      await buttons[1]!.trigger('click')
 
       expect(wrapper.emitted('update:modelValue')).toBeTruthy()
       expect(wrapper.emitted('update:modelValue')![0]).toEqual([1])
@@ -165,7 +165,7 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      await buttons[1].trigger('click')
+      await buttons[1]!.trigger('click')
 
       expect(wrapper.emitted('tab-change')).toBeTruthy()
       expect(wrapper.emitted('tab-change')![0]).toEqual([1, 'Tab 2'])
@@ -180,7 +180,7 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      await buttons[0].trigger('click')
+      await buttons[0]!.trigger('click')
 
       expect(wrapper.emitted('update:modelValue')).toBeFalsy()
       expect(wrapper.emitted('tab-change')).toBeFalsy()
@@ -200,7 +200,7 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      await buttons[1].trigger('click')
+      await buttons[1]!.trigger('click')
 
       expect(wrapper.emitted('update:modelValue')).toBeFalsy()
       expect(wrapper.emitted('tab-change')).toBeFalsy()
@@ -226,8 +226,8 @@ describe('FormTabs Component', () => {
       await wrapper.setProps({ modelValue: 1 })
 
       const panels = wrapper.findAll('.tab-panel')
-      expect(panels[1].classes()).toContain('active')
-      expect(panels[0].classes()).not.toContain('active')
+      expect(panels[1]!.classes()).toContain('active')
+      expect(panels[0]!.classes()).not.toContain('active')
     })
   })
 
@@ -320,9 +320,9 @@ describe('FormTabs Component', () => {
       })
 
       const buttons = wrapper.findAll('.tab-button')
-      expect(buttons[0].attributes('role')).toBe('tab')
-      expect(buttons[0].attributes('aria-selected')).toBe('true')
-      expect(buttons[1].attributes('aria-selected')).toBe('false')
+      expect(buttons[0]!.attributes('role')).toBe('tab')
+      expect(buttons[0]!.attributes('aria-selected')).toBe('true')
+      expect(buttons[1]!.attributes('aria-selected')).toBe('false')
     })
 
     it('should set correct ARIA attributes on panels', () => {
@@ -338,8 +338,8 @@ describe('FormTabs Component', () => {
       })
 
       const panels = wrapper.findAll('.tab-panel')
-      expect(panels[0].attributes('role')).toBe('tabpanel')
-      expect(panels[0].attributes('aria-hidden')).toBe('false')
+      expect(panels[0]!.attributes('role')).toBe('tabpanel')
+      expect(panels[0]!.attributes('aria-hidden')).toBe('false')
     })
   })
 })

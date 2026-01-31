@@ -1,0 +1,111 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f4f8', 'primaryTextColor': '#1a1a2e', 'primaryBorderColor': '#16213e', 'lineColor': '#0f3460', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#fff'}}}%%
+
+erDiagram
+    USER ||--o{ PART : "creates/updates"
+    USER ||--o{ BATCH_SET : "creates/updates"
+    USER {
+        int id PK
+        string username
+        string role "admin|operator|viewer"
+        datetime created_at
+    }
+
+    PART ||--o{ OPERATION : "has"
+    PART ||--o{ MATERIAL_INPUT : "has"
+    PART {
+        int id PK
+        string part_number UK "7-digit"
+        string name
+        string revision "A/B/C"
+        int version "optimistic lock"
+        int created_by FK
+    }
+
+    OPERATION }o--|| MACHINE : "uses"
+    OPERATION }o--o{ MATERIAL_INPUT : "linked via M:N"
+    OPERATION {
+        int id PK
+        int part_id FK
+        int machine_id FK
+        string type "turning|milling|cutting"
+        int seq "sequence order"
+        float setup_time_min "tp"
+        float operation_time_min "tj"
+    }
+
+    MATERIAL_INPUT {
+        int id PK
+        int part_id FK
+        string category "round_bar|sheet|tube"
+        float diameter
+        float length
+        float stock_cost
+        string parsed_from "AI parser input"
+    }
+
+    MACHINE ||--o{ WORK_CENTER : "assigned to"
+    MACHINE {
+        int id PK
+        string name
+        string type "lathe|mill|saw|grinder"
+        float hourly_rate
+        float setup_rate
+    }
+
+    WORK_CENTER {
+        int id PK
+        string number UK
+        int machine_id FK
+        string name
+        boolean is_active
+    }
+
+    BATCH_SET ||--o{ BATCH : "contains"
+    BATCH_SET {
+        int id PK
+        string name
+        boolean is_current
+        datetime created_at
+    }
+
+    BATCH }o--|| PART : "prices for"
+    BATCH {
+        int id PK
+        int part_id FK
+        int batch_set_id FK
+        int quantity "1|10|100|500|1000"
+        float total_cost
+        boolean is_frozen
+        json price_snapshot
+    }
+
+    MATERIAL_GROUP ||--o{ MATERIAL_ITEM : "contains"
+    MATERIAL_GROUP {
+        int id PK
+        string name "Steel|Aluminum|Brass"
+        string category
+    }
+
+    MATERIAL_ITEM {
+        int id PK
+        int group_id FK
+        string name
+        float price_per_kg
+        float density
+    }
+
+    CUTTING_CONDITION {
+        int id PK
+        string material_type
+        string operation_type
+        float feed_rate
+        float cutting_speed
+    }
+
+    FEATURE }o--|| OPERATION : "step of"
+    FEATURE {
+        int id PK
+        int operation_id FK
+        string name "chamfer|thread|bore"
+        float time_min
+    }

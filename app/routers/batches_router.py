@@ -16,6 +16,7 @@ from app.models import User, UserRole
 from app.models.batch import Batch, BatchCreate, BatchResponse
 from app.models.part import Part
 from app.models.material import MaterialItem
+from app.models.material_input import MaterialInput  # ADR-024
 from app.services.snapshot_service import create_batch_snapshot
 from app.services.batch_service import recalculate_batch_costs
 

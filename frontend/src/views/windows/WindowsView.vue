@@ -3,13 +3,14 @@
  * WindowsView - Main view with floating windows
  */
 
+import { onMounted } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import FloatingWindow from '@/components/windows/FloatingWindow.vue'
 
 // Module components (lazy loaded)
 import { defineAsyncComponent } from 'vue'
 
-const PartsListModule = defineAsyncComponent(() => import('@/components/modules/PartsListModule.vue'))
+const PartMainModule = defineAsyncComponent(() => import('@/components/modules/PartMainModule.vue'))
 const PartPricingModule = defineAsyncComponent(() => import('@/components/modules/PartPricingModule.vue'))
 const PartOperationsModule = defineAsyncComponent(() => import('@/components/modules/PartOperationsModule.vue'))
 const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
@@ -20,7 +21,7 @@ const store = useWindowsStore()
 // Get component for module
 function getModuleComponent(module: string) {
   switch (module) {
-    case 'parts-list': return PartsListModule
+    case 'part-main': return PartMainModule
     case 'part-pricing': return PartPricingModule
     case 'part-operations': return PartOperationsModule
     case 'part-material': return PartMaterialModule
@@ -28,6 +29,16 @@ function getModuleComponent(module: string) {
     default: return null
   }
 }
+
+// Auto-load default layout on mount
+onMounted(() => {
+  if (store.defaultLayoutId) {
+    const defaultView = store.savedViews.find(v => v.id === store.defaultLayoutId)
+    if (defaultView) {
+      store.loadView(store.defaultLayoutId)
+    }
+  }
+})
 </script>
 
 <template>
@@ -40,7 +51,10 @@ function getModuleComponent(module: string) {
         :window="win"
         v-show="!win.minimized"
       >
-        <component :is="getModuleComponent(win.module)" />
+        <component
+          :is="getModuleComponent(win.module)"
+          :linkingGroup="win.linkingGroup"
+        />
       </FloatingWindow>
     </div>
 

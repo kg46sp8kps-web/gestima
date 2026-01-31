@@ -1,15 +1,16 @@
 /**
  * Materials Store - Material data for PartMaterialModule
+ * MULTI-CONTEXT PATTERN: Supports per-linkingGroup contexts for multi-window workflow
  *
  * ADR-024: MaterialInput refactor (v1.8.0)
  *
  * Manages:
- * - Price categories (for dropdown + filtering)
- * - Material groups (for density calculations)
- * - MaterialInput CRUD (Part → N MaterialInputs)
- * - M:N linking MaterialInput ↔ Operation
- * - Stock cost calculation
- * - Material parser (AI-powered quick input)
+ * - Price categories (for dropdown + filtering) - GLOBAL
+ * - Material groups (for density calculations) - GLOBAL
+ * - Material parser (AI-powered quick input) - GLOBAL
+ * - MaterialInput CRUD (Part → N MaterialInputs) - PER-CONTEXT
+ * - M:N linking MaterialInput ↔ Operation - PER-CONTEXT
+ * - Stock cost calculation - PER-CONTEXT
  */
 
 import { defineStore } from 'pinia'
@@ -28,36 +29,70 @@ import type {
 import * as materialsApi from '@/api/materials'
 import * as materialInputsApi from '@/api/materialInputs'
 import { useUiStore } from './ui'
+import type { LinkingGroup } from './windows'
+
+/**
+ * Per-window context state
+ */
+interface MaterialsContext {
+  currentPartId: number | null
+  currentPartNumber: string | null
+  materialInputs: MaterialInputWithOperations[]
+  stockCost: StockCost | null
+  loadingInputs: boolean
+  loadingStockCost: boolean
+}
 
 export const useMaterialsStore = defineStore('materials', () => {
   const ui = useUiStore()
 
   // ==========================================================================
-  // State
+  // State - Multi-context pattern
   // ==========================================================================
 
-  // Reference data (loaded once)
+  const contexts = ref<Map<string, MaterialsContext>>(new Map())
+
+  /**
+   * Get or create context for a linking group
+   */
+  function getOrCreateContext(linkingGroup: LinkingGroup): MaterialsContext {
+    const key = linkingGroup || 'unlinked'
+    if (!contexts.value.has(key)) {
+      contexts.value.set(key, {
+        currentPartId: null,
+        currentPartNumber: null,
+        materialInputs: [],
+        stockCost: null,
+        loadingInputs: false,
+        loadingStockCost: false
+      })
+    }
+    return contexts.value.get(key)!
+  }
+
+  /**
+   * Get context (for direct access in components)
+   */
+  function getContext(linkingGroup: LinkingGroup): MaterialsContext {
+    return getOrCreateContext(linkingGroup)
+  }
+
+  // ==========================================================================
+  // State - Global (shared across all windows)
+  // ==========================================================================
+
+  // Reference data (loaded once, shared across all windows)
   const priceCategories = ref<MaterialPriceCategory[]>([])
   const materialGroups = ref<MaterialGroup[]>([])
   const referenceDataLoaded = ref(false)
 
-  // MaterialInput data (ADR-024)
-  const materialInputs = ref<MaterialInputWithOperations[]>([])
-  const currentPartId = ref<number | null>(null)
-  const currentPartNumber = ref<string | null>(null)
-
-  // Stock cost (total for all material inputs)
-  const stockCost = ref<StockCost | null>(null)
-
-  // Parser state
+  // Parser state (shared across all windows)
   const parseResult = ref<MaterialParseResult | null>(null)
   const parsingMaterial = ref(false)
 
-  // Loading states
+  // Global loading states
   const loading = ref(false)
-  const loadingInputs = ref(false)
   const saving = ref(false)
-  const loadingStockCost = ref(false)
 
   // ==========================================================================
   // Computed
@@ -162,32 +197,34 @@ export const useMaterialsStore = defineStore('materials', () => {
   /**
    * Load material inputs for a part
    */
-  async function loadMaterialInputs(partId: number): Promise<void> {
-    currentPartId.value = partId
-    loadingInputs.value = true
+  async function loadMaterialInputs(partId: number, linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    ctx.currentPartId = partId
+    ctx.loadingInputs = true
 
     try {
-      materialInputs.value = await materialInputsApi.getMaterialInputs(partId)
+      ctx.materialInputs = await materialInputsApi.getMaterialInputs(partId)
     } catch (error: any) {
       ui.showError(error.message || 'Chyba při načítání materiálů')
-      materialInputs.value = []
+      ctx.materialInputs = []
       throw error
     } finally {
-      loadingInputs.value = false
+      ctx.loadingInputs = false
     }
   }
 
   /**
    * Create new material input
    */
-  async function createMaterialInput(data: MaterialInputCreate): Promise<MaterialInput> {
+  async function createMaterialInput(data: MaterialInputCreate, linkingGroup: LinkingGroup): Promise<MaterialInput> {
     saving.value = true
     try {
       const newMaterial = await materialInputsApi.createMaterialInput(data)
 
       // Reload list to get updated seq and relationships
-      if (currentPartId.value) {
-        await loadMaterialInputs(currentPartId.value)
+      const ctx = getOrCreateContext(linkingGroup)
+      if (ctx.currentPartId) {
+        await loadMaterialInputs(ctx.currentPartId, linkingGroup)
       }
 
       ui.showSuccess('Materiál vytvořen')
@@ -205,16 +242,19 @@ export const useMaterialsStore = defineStore('materials', () => {
    */
   async function updateMaterialInput(
     materialId: number,
-    data: MaterialInputUpdate
+    data: MaterialInputUpdate,
+    linkingGroup: LinkingGroup
   ): Promise<MaterialInput> {
     saving.value = true
     try {
       const updated = await materialInputsApi.updateMaterialInput(materialId, data)
 
-      // Update in local state
-      const index = materialInputs.value.findIndex(m => m.id === materialId)
+      // Update in local state (preserve operations from existing record)
+      const ctx = getOrCreateContext(linkingGroup)
+      const index = ctx.materialInputs.findIndex(m => m.id === materialId)
       if (index !== -1) {
-        materialInputs.value[index] = { ...materialInputs.value[index], ...updated }
+        const existing = ctx.materialInputs[index]!
+        ctx.materialInputs[index] = { ...existing, ...updated, operations: existing.operations }
       }
 
       return updated
@@ -222,8 +262,9 @@ export const useMaterialsStore = defineStore('materials', () => {
       if (error.response?.status === 409) {
         ui.showError('Data byla změněna jiným uživatelem. Načtěte znovu.')
         // Reload to get latest version
-        if (currentPartId.value) {
-          await loadMaterialInputs(currentPartId.value)
+        const ctx = getOrCreateContext(linkingGroup)
+        if (ctx.currentPartId) {
+          await loadMaterialInputs(ctx.currentPartId, linkingGroup)
         }
       } else {
         ui.showError(error.message || 'Chyba při ukládání materiálu')
@@ -237,13 +278,14 @@ export const useMaterialsStore = defineStore('materials', () => {
   /**
    * Delete material input
    */
-  async function deleteMaterialInput(materialId: number): Promise<void> {
+  async function deleteMaterialInput(materialId: number, linkingGroup: LinkingGroup): Promise<void> {
     saving.value = true
     try {
       await materialInputsApi.deleteMaterialInput(materialId)
 
       // Remove from local state
-      materialInputs.value = materialInputs.value.filter(m => m.id !== materialId)
+      const ctx = getOrCreateContext(linkingGroup)
+      ctx.materialInputs = ctx.materialInputs.filter(m => m.id !== materialId)
 
       ui.showSuccess('Materiál smazán')
     } catch (error: any) {
@@ -260,6 +302,7 @@ export const useMaterialsStore = defineStore('materials', () => {
   async function linkMaterialToOperation(
     materialId: number,
     operationId: number,
+    linkingGroup: LinkingGroup,
     consumedQuantity?: number
   ): Promise<void> {
     saving.value = true
@@ -267,8 +310,9 @@ export const useMaterialsStore = defineStore('materials', () => {
       await materialInputsApi.linkMaterialToOperation(materialId, operationId, consumedQuantity)
 
       // Reload to get updated relationships
-      if (currentPartId.value) {
-        await loadMaterialInputs(currentPartId.value)
+      const ctx = getOrCreateContext(linkingGroup)
+      if (ctx.currentPartId) {
+        await loadMaterialInputs(ctx.currentPartId, linkingGroup)
       }
 
       ui.showSuccess('Materiál přiřazen k operaci')
@@ -289,15 +333,17 @@ export const useMaterialsStore = defineStore('materials', () => {
    */
   async function unlinkMaterialFromOperation(
     materialId: number,
-    operationId: number
+    operationId: number,
+    linkingGroup: LinkingGroup
   ): Promise<void> {
     saving.value = true
     try {
       await materialInputsApi.unlinkMaterialFromOperation(materialId, operationId)
 
       // Reload to get updated relationships
-      if (currentPartId.value) {
-        await loadMaterialInputs(currentPartId.value)
+      const ctx = getOrCreateContext(linkingGroup)
+      if (ctx.currentPartId) {
+        await loadMaterialInputs(ctx.currentPartId, linkingGroup)
       }
 
       ui.showSuccess('Vazba odebrána')
@@ -316,38 +362,40 @@ export const useMaterialsStore = defineStore('materials', () => {
   /**
    * Set current part and load stock cost
    */
-  async function setPartContext(partNumber: string): Promise<void> {
-    if (currentPartNumber.value === partNumber) return
+  async function setPartContext(partNumber: string, linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (ctx.currentPartNumber === partNumber) return
 
-    currentPartNumber.value = partNumber
-    await loadStockCost()
+    ctx.currentPartNumber = partNumber
+    await loadStockCost(linkingGroup)
   }
 
   /**
    * Load stock cost for current part
    */
-  async function loadStockCost(): Promise<void> {
-    if (!currentPartNumber.value) {
-      stockCost.value = null
+  async function loadStockCost(linkingGroup: LinkingGroup): Promise<void> {
+    const ctx = getOrCreateContext(linkingGroup)
+    if (!ctx.currentPartNumber) {
+      ctx.stockCost = null
       return
     }
 
-    loadingStockCost.value = true
+    ctx.loadingStockCost = true
     try {
-      stockCost.value = await materialsApi.getStockCost(currentPartNumber.value)
+      ctx.stockCost = await materialsApi.getStockCost(ctx.currentPartNumber)
     } catch (error: any) {
       console.error('[materials] Stock cost error:', error)
-      stockCost.value = null
+      ctx.stockCost = null
     } finally {
-      loadingStockCost.value = false
+      ctx.loadingStockCost = false
     }
   }
 
   /**
    * Reload stock cost (after material changes)
    */
-  async function reloadStockCost(): Promise<void> {
-    await loadStockCost()
+  async function reloadStockCost(linkingGroup: LinkingGroup): Promise<void> {
+    await loadStockCost(linkingGroup)
   }
 
   // ==========================================================================
@@ -447,24 +495,26 @@ export const useMaterialsStore = defineStore('materials', () => {
   // Reset
   // ==========================================================================
 
-  function reset(): void {
-    currentPartId.value = null
-    currentPartNumber.value = null
-    materialInputs.value = []
-    stockCost.value = null
-    parseResult.value = null
-    parsingMaterial.value = false
-    loading.value = false
-    loadingInputs.value = false
-    saving.value = false
-    loadingStockCost.value = false
+  /**
+   * Reset context for a linking group
+   */
+  function reset(linkingGroup: LinkingGroup): void {
+    const key = linkingGroup || 'unlinked'
+    contexts.value.delete(key)
   }
 
+  /**
+   * Reset all contexts and global state
+   */
   function resetAll(): void {
-    reset()
+    contexts.value.clear()
     priceCategories.value = []
     materialGroups.value = []
     referenceDataLoaded.value = false
+    parseResult.value = null
+    parsingMaterial.value = false
+    loading.value = false
+    saving.value = false
   }
 
   // ==========================================================================
@@ -472,22 +522,19 @@ export const useMaterialsStore = defineStore('materials', () => {
   // ==========================================================================
 
   return {
-    // State
+    // State - Global
     priceCategories,
     materialGroups,
     referenceDataLoaded,
-    materialInputs,
-    currentPartId,
-    currentPartNumber,
-    stockCost,
     parseResult,
     parsingMaterial,
     loading,
-    loadingInputs,
     saving,
-    loadingStockCost,
 
-    // Computed
+    // Getters - Per-context
+    getContext,
+
+    // Computed - Global
     sortedCategories,
     getCategoryById,
     hasValidParseResult,

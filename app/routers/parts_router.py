@@ -14,6 +14,7 @@ from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse, PartFullResponse, StockCostResponse
 from app.models.material import MaterialItem, MaterialPriceCategory
+from app.models.material_input import MaterialInput
 from app.services.price_calculator import (
     calculate_stock_cost_from_part,
     calculate_part_price,
@@ -246,13 +247,12 @@ async def get_part_full(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Vrátí Part s eager-loaded MaterialPriceCategory + MaterialGroup (Migration 2026-01-26)"""
+    """Vrátí Part s eager-loaded MaterialInputs (ADR-024)"""
     result = await db.execute(
         select(Part)
         .options(
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category),
-            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group)
+            selectinload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).joinedload(MaterialPriceCategory.material_group),
         )
         .where(Part.part_number == part_number)
     )
@@ -260,56 +260,56 @@ async def get_part_full(
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    # Manual serialization to include nested objects (Migration 2026-01-26: + price_category + stock_shape)
+    # ADR-024: Material data is in material_inputs, not Part
+    def serialize_material_input(mi):
+        return {
+            "id": mi.id,
+            "seq": mi.seq,
+            "stock_shape": mi.stock_shape.value if mi.stock_shape else None,
+            "stock_diameter": mi.stock_diameter,
+            "stock_length": mi.stock_length,
+            "stock_width": mi.stock_width,
+            "stock_height": mi.stock_height,
+            "stock_wall_thickness": mi.stock_wall_thickness,
+            "quantity": mi.quantity,
+            "notes": mi.notes,
+            "price_category": {
+                "id": mi.price_category.id,
+                "code": mi.price_category.code,
+                "name": mi.price_category.name,
+                "material_group": {
+                    "id": mi.price_category.material_group.id,
+                    "code": mi.price_category.material_group.code,
+                    "name": mi.price_category.material_group.name,
+                    "density": mi.price_category.material_group.density,
+                } if mi.price_category.material_group else None
+            } if mi.price_category else None,
+            "material_item": {
+                "id": mi.material_item.id,
+                "code": mi.material_item.code,
+                "name": mi.material_item.name,
+                "shape": mi.material_item.shape.value if mi.material_item.shape else None,
+                "diameter": mi.material_item.diameter,
+                "group": {
+                    "id": mi.material_item.group.id,
+                    "code": mi.material_item.group.code,
+                    "name": mi.material_item.group.name,
+                    "density": mi.material_item.group.density,
+                } if mi.material_item.group else None
+            } if mi.material_item else None,
+        }
+
     return {
         "id": part.id,
         "part_number": part.part_number,
         "article_number": part.article_number,
         "name": part.name,
-        "material_item_id": part.material_item_id,
-        "price_category_id": part.price_category_id,
         "length": part.length,
         "notes": part.notes,
-        "stock_shape": part.stock_shape.value if part.stock_shape else None,
-        "stock_diameter": part.stock_diameter,
-        "stock_length": part.stock_length,
-        "stock_width": part.stock_width,
-        "stock_height": part.stock_height,
-        "stock_wall_thickness": part.stock_wall_thickness,
         "version": part.version,
         "created_at": part.created_at.isoformat(),
         "updated_at": part.updated_at.isoformat(),
-        "material_item": {
-            "id": part.material_item.id,
-            "code": part.material_item.code,
-            "name": part.material_item.name,
-            "shape": part.material_item.shape.value if part.material_item.shape else None,
-            "diameter": part.material_item.diameter,
-            "width": part.material_item.width,
-            "thickness": part.material_item.thickness,
-            "wall_thickness": part.material_item.wall_thickness,
-            "supplier": part.material_item.supplier,
-            "material_group_id": part.material_item.material_group_id,
-            "price_category_id": part.material_item.price_category_id,
-            "group": {
-                "id": part.material_item.group.id,
-                "code": part.material_item.group.code,
-                "name": part.material_item.group.name,
-                "density": part.material_item.group.density,
-            }
-        } if part.material_item else None,
-        "price_category": {
-            "id": part.price_category.id,
-            "code": part.price_category.code,
-            "name": part.price_category.name,
-            "material_group_id": part.price_category.material_group_id,
-            "material_group": {
-                "id": part.price_category.material_group.id,
-                "code": part.price_category.material_group.code,
-                "name": part.price_category.material_group.name,
-                "density": part.price_category.material_group.density,
-            } if part.price_category.material_group else None
-        } if part.price_category else None
+        "material_inputs": [serialize_material_input(mi) for mi in part.material_inputs] if part.material_inputs else [],
     }
 
 
@@ -325,12 +325,11 @@ async def get_stock_cost(
     result = await db.execute(
         select(Part)
         .options(
-            # Nové: Part.price_category.material_group + tiers
-            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.price_category).selectinload(MaterialPriceCategory.tiers),
-            # Fallback: Part.material_item.price_category + group + tiers
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).selectinload(MaterialPriceCategory.tiers)
+            # ADR-024: MaterialInput → price_category → material_group + tiers
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).joinedload(MaterialPriceCategory.material_group),
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).selectinload(MaterialPriceCategory.tiers),
+            # MaterialInput → material_item (optional) → group
+            selectinload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
         )
         .where(Part.part_number == part_number)
     )
@@ -338,8 +337,8 @@ async def get_stock_cost(
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    # Migration 2026-01-26: Part může mít price_category místo material_item
-    if not part.price_category and not part.material_item:
+    # ADR-024: Check material_inputs instead of old Part.price_category
+    if not part.material_inputs:
         return StockCostResponse(volume_mm3=0, weight_kg=0, price_per_kg=0, cost=0, density=0)
 
     cost = await calculate_stock_cost_from_part(part, quantity=1, db=db)
@@ -475,13 +474,11 @@ async def get_part_pricing(
         select(Part)
         .options(
             joinedload(Part.operations),
-            # Nová cesta (Migration 2026-01-26): Part.price_category
-            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.price_category).joinedload(MaterialPriceCategory.tiers),
-            # Fallback cesta: Part.material_item (pro staré parts)
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
+            # ADR-024: MaterialInput → price_category → material_group + tiers
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).joinedload(MaterialPriceCategory.material_group),
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).selectinload(MaterialPriceCategory.tiers),
+            # MaterialInput → material_item (optional) → group
+            selectinload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
         )
         .where(Part.part_number == part_number)
     )
@@ -497,7 +494,7 @@ async def get_part_pricing(
         import traceback
         logger.error(f"PRICING ERROR for part {part_number}, quantity {quantity}: {e}")
         logger.error(f"Stack trace:\n{traceback.format_exc()}")
-        logger.error(f"Part data: id={part.id}, material_item_id={part.material_item_id}, price_category_id={part.price_category_id}")
+        logger.error(f"Part data: id={part.id}, material_inputs={len(part.material_inputs) if part.material_inputs else 0}")
         raise HTTPException(status_code=500, detail=f"Pricing calculation failed: {str(e)}")
 
 
@@ -518,13 +515,11 @@ async def get_series_pricing(
         select(Part)
         .options(
             joinedload(Part.operations),
-            # Nová cesta (Migration 2026-01-26): Part.price_category
-            joinedload(Part.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.price_category).joinedload(MaterialPriceCategory.tiers),
-            # Fallback cesta: Part.material_item (pro staré parts)
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.material_group),
-            joinedload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.price_category).joinedload(MaterialPriceCategory.tiers)
+            # ADR-024: MaterialInput → price_category → material_group + tiers
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).joinedload(MaterialPriceCategory.material_group),
+            selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).selectinload(MaterialPriceCategory.tiers),
+            # MaterialInput → material_item (optional) → group
+            selectinload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
         )
         .where(Part.part_number == part_number)
     )

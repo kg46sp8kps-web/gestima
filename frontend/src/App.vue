@@ -3,17 +3,24 @@
  * GESTIMA Root Component
  * Global layout with AppHeader/AppFooter on all pages except login
  */
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useDarkMode } from '@/composables/useDarkMode'
+import { useUiStore } from '@/stores/ui'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const route = useRoute()
+const ui = useUiStore()
 
 // Initialize dark mode (will load from localStorage)
 const { isDark } = useDarkMode()
+
+// Initialize density on app start
+onMounted(() => {
+  ui.initDensity()
+})
 
 // Hide header/footer on login page
 const isLoginPage = computed(() => route.name === 'login')

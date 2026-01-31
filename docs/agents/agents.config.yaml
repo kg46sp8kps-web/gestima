@@ -1,0 +1,365 @@
+# GESTIMA Multi-Agent System Configuration
+# Version: 1.0
+# Last Updated: 2026-01-31
+
+---
+
+## Global Settings
+global:
+  api_provider: anthropic           # Only Anthropic supported for now
+  api_timeout: 300                  # seconds (5 minutes per agent)
+  max_parallel_agents: 5            # Never run more than 5 agents simultaneously
+  context_window_limit: 50000       # tokens per agent (safety limit)
+  retry_attempts: 3
+  retry_backoff: exponential        # 1s, 2s, 4s
+
+---
+
+## Agent Configuration
+
+### 0. Knowledge Manager (Librarian)
+librarian:
+  enabled: true
+  model: claude-3-5-haiku-20241022  # ⚡ Fast + cheap (keyword search)
+  temperature: 0.3                   # Low - deterministic search results
+  max_tokens: 2000                   # Output limit (search queries are short)
+
+  capabilities:
+    - read_files: true
+    - search_docs: true
+    - context_optimization: true
+    - cross_references: true
+
+  tools:
+    - Read (all .md files)
+    - Grep (full-text search)
+
+  notes: |
+    Fastest agent - just searching & indexing.
+    Doesn't need complex reasoning.
+    Budget: ~$0.01 per query
+
+---
+
+### 1. Manager Agent (Orchestrator)
+manager:
+  enabled: true
+  model: claude-3-5-sonnet-20241022  # 🧠 Smart orchestration
+  temperature: 0.7                   # Medium - needs creativity for task breakdown
+  max_tokens: 4000                   # Can write detailed plans
+
+  capabilities:
+    - parse_requirements: true
+    - task_breakdown: true
+    - agent_coordination: true
+    - conflict_resolution: true
+    - result_aggregation: true
+
+  tools:
+    - Task (launch other agents)
+    - Read (review agent outputs)
+    - Bash (final git operations)
+
+  notes: |
+    Orchestrator needs intelligence to:
+    - Understand complex requirements
+    - Break into smart subtasks
+    - Coordinate 5 agents
+    - Handle conflicts (Auditor blocks, etc.)
+    Budget: ~$0.05-0.15 per complex task
+
+---
+
+### 2. Backend Architect
+backend:
+  enabled: true
+  model: claude-3-5-sonnet-20241022  # ⚙️ Code generation
+  temperature: 0.2                   # Low - consistent code style
+  max_tokens: 8000                   # Longer code outputs
+
+  capabilities:
+    - fastapi_expertise: true
+    - sqlalchemy_expertise: true
+    - pydantic_expertise: true
+    - test_writing: true
+    - adr_creation: true
+
+  tools:
+    - Read, Edit, Write (Python code)
+    - Bash (pytest, alembic)
+    - Grep (pattern search)
+
+  context_focus:
+    - app/models/
+    - app/schemas/
+    - app/services/
+    - app/routers/
+    - tests/test_*.py
+
+  libraries:
+    - FastAPI
+    - SQLAlchemy 2.0 (async)
+    - Pydantic v2
+    - pytest
+
+  notes: |
+    Needs strong code generation capability.
+    Temperature LOW = consistent patterns.
+    Budget: ~$0.08-0.20 per endpoint
+
+---
+
+### 3. Frontend Engineer (Vue Expert)
+frontend:
+  enabled: true
+  model: claude-3-5-sonnet-20241022  # 🎨 Vue 3 expertise
+  temperature: 0.2                   # Low - consistent Vue patterns
+  max_tokens: 7000                   # Component code can be long
+
+  capabilities:
+    - vue3_expertise: true
+    - typescript_expertise: true
+    - pinia_expertise: true
+    - design_system_compliance: true
+    - component_testing: true
+
+  tools:
+    - Read, Edit, Write (Vue/TS code)
+    - Bash (npm, vitest)
+    - Grep (component patterns)
+
+  context_focus:
+    - frontend/src/components/
+    - frontend/src/stores/
+    - frontend/src/api/
+    - frontend/src/__tests__/
+
+  libraries:
+    - Vue 3 (Composition API)
+    - TypeScript
+    - Pinia
+    - Vitest
+    - Vite
+
+  notes: |
+    Needs Vue 3 + TS expertise.
+    Temperature LOW = reusable components.
+    Budget: ~$0.07-0.18 per component
+
+---
+
+### 4. QA & Testing Specialist
+qa:
+  enabled: true
+  model: claude-3-5-haiku-20241022   # 🧪 Test execution (doesn't need GPT4)
+  temperature: 0.1                   # Very low - deterministic test writing
+  max_tokens: 4000                   # Test code is straightforward
+
+  capabilities:
+    - pytest_expertise: true
+    - vitest_expertise: true
+    - performance_testing: true
+    - seed_validation: true
+    - regression_detection: true
+
+  tools:
+    - Read (test files, code to understand)
+    - Bash (pytest, vitest, profiling)
+    - Grep (test patterns)
+
+  notes: |
+    QA is about execution & verification, not generation.
+    Haiku is perfect - cheap + sufficient for test running.
+    Budget: ~$0.02-0.05 per test run
+
+---
+
+### 5. Code Reviewer & Auditor (Critical Oponent)
+auditor:
+  enabled: true
+  model: claude-opus-4-20250805      # 🔍 Most sophisticated (critical review!)
+  temperature: 0.5                   # Medium - needs nuance for ADR decisions
+  max_tokens: 6000                   # Detailed review commentary
+
+  capabilities:
+    - adr_validation: true
+    - anti_pattern_detection: true
+    - security_review: true
+    - vision_alignment: true
+    - blocking_power: true           # Can STOP deployment!
+
+  tools:
+    - Read (all files - must be comprehensive)
+    - Grep (anti-pattern detection)
+    - WRITE: ❌ NEVER! (read-only only!)
+
+  context_focus:
+    - docs/ADR/
+    - docs/VISION.md
+    - CLAUDE.md (rules + anti-patterns)
+    - Code changes from other agents
+
+  notes: |
+    AUDITOR = highest cost but CRITICAL role!
+    Opus needed for:
+    - Complex ADR interpretation
+    - Subtle anti-pattern detection
+    - VISION impact analysis
+    - Architectural judgment
+
+    READ-ONLY AGENT: Cannot execute bash/write code!
+    Budget: ~$0.15-0.30 per review (but prevents >$1000 mistakes!)
+
+---
+
+### 6. DevOps Manager (Deployment)
+devops:
+  enabled: true
+  model: claude-3-5-haiku-20241022   # 🚀 Git operations (doesn't need GPT4)
+  temperature: 0.1                   # Very low - deterministic git ops
+  max_tokens: 3000                   # Git commands are brief
+
+  capabilities:
+    - git_expertise: true
+    - ci_cd_expertise: true
+    - versioning_expertise: true
+    - deployment_planning: true
+
+  tools:
+    - Bash (git, npm build, deployment)
+    - Read (configs, CHANGELOG)
+    - Edit (version bumps, CHANGELOG)
+
+  git_safety:
+    - NEVER: --force, --hard, -f without explicit user consent
+    - ALWAYS: Verify with `git status` before commit
+    - ALWAYS: Check git log for commit message style
+    - ALWAYS: Wait for Auditor approval before git operations
+
+  notes: |
+    DevOps is about execution (git, build), not generation.
+    Haiku sufficient - cheap + fast.
+    GIT SAFETY = paramount (prevents data loss)!
+    Budget: ~$0.01-0.03 per PR creation
+
+---
+
+## Cost Analysis per Agent
+
+| Agent | Model | Cost/Token | Budget/Task | Notes |
+|-------|-------|-----------|-------------|-------|
+| Librarian | Haiku | $0.25/$1.25 | $0.01-0.02 | Fast search |
+| Manager | Sonnet | $3/$15 | $0.05-0.15 | Orchestration |
+| Backend | Sonnet | $3/$15 | $0.08-0.20 | Code generation |
+| Frontend | Sonnet | $3/$15 | $0.07-0.18 | Vue expertise |
+| QA | Haiku | $0.25/$1.25 | $0.02-0.05 | Test execution |
+| **Auditor** | **Opus** | **$15/$75** | **$0.15-0.30** | **Most expensive, most important!** |
+| DevOps | Haiku | $0.25/$1.25 | $0.01-0.03 | Git ops |
+
+**Total per complex task:** ~$0.40-0.95 (vs $7.50 single agent)
+
+---
+
+## Model Selection Rationale
+
+### Why Haiku for Librarian, QA, DevOps?
+- **Task:** Search, test execution, git operations
+- **Complexity:** Low (no code generation needed)
+- **Speed:** Critical (search must be instant)
+- **Cost:** 20x cheaper than Opus
+- **Result:** Perfect fit! ✅
+
+### Why Sonnet for Backend, Frontend, Manager?
+- **Task:** Code generation, orchestration
+- **Complexity:** Medium (creative thinking needed)
+- **Speed:** Good (1-2s response)
+- **Cost:** 5x cheaper than Opus, 10x more capable than Haiku
+- **Result:** Sweet spot! ✅
+
+### Why Opus for Auditor ONLY?
+- **Task:** Critical review, ADR interpretation, security
+- **Complexity:** High (nuanced architectural decisions)
+- **Consequence of error:** $1000+ technical debt
+- **Speed:** Not critical (review can wait 5 seconds)
+- **Cost:** Expensive but prevents disasters
+- **Result:** Best investment! ✅
+
+---
+
+## Environment Variables
+
+```bash
+# .env (add to your project)
+ANTHROPIC_API_KEY=<your-key>
+
+# Model overrides (optional)
+GESTIMA_MANAGER_MODEL=claude-opus-4-20250805     # Override default
+GESTIMA_AUDITOR_TEMP=0.6                          # Custom temperature
+GESTIMA_QA_RETRY_ATTEMPTS=5                       # Custom retry
+```
+
+---
+
+## Usage Example (Python)
+
+```python
+from gestima.agents import AgentPool
+
+# Initialize with config
+pool = AgentPool.from_config('docs/agents.config.yaml')
+
+# Or override specific models
+pool = AgentPool(
+    librarian_model='haiku',
+    auditor_model='opus',
+    timeout=300
+)
+
+# Launch agents
+result = await pool.execute_task(
+    request="Přidej export do Excelu",
+    agents=['backend', 'frontend', 'qa', 'auditor', 'devops'],
+    parallel=True
+)
+```
+
+---
+
+## Performance Targets
+
+| Metric | Target | Budget Impact |
+|--------|--------|----------------|
+| Librarian query | < 100ms | $0.001-0.005 |
+| Manager task breakdown | < 2s | $0.02-0.05 |
+| Backend endpoint | < 3s | $0.08-0.20 |
+| Frontend component | < 2s | $0.07-0.15 |
+| QA test run | < 5s | $0.02-0.05 |
+| Auditor review | < 5s | $0.15-0.30 |
+| DevOps PR creation | < 1s | $0.01-0.03 |
+
+---
+
+## Upgrade Path (Future)
+
+**When to upgrade models:**
+
+1. **Auditor → Claude 4 (when available)**
+   - If ADR complexity increases
+   - If VISION becomes more critical
+   - If security requirements increase
+
+2. **Backend/Frontend → Claude 4 (when available)**
+   - If code complexity increases (MES, v4.0)
+   - If performance optimization needed
+   - If new frameworks adopted
+
+3. **Librarian → Embedding Model (v2.0)**
+   - Switch to vector embeddings + semantic search
+   - Cost: $0.0001 per search (10x cheaper)
+   - Speed: <50ms
+
+---
+
+**Maintained by:** Development Team
+**Last Updated:** 2026-01-31
+**Status:** ✅ Ready for use

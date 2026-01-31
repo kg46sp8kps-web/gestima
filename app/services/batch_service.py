@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.batch import Batch
 from app.models.part import Part
 from app.models.operation import Operation
+from app.models.material_input import MaterialInput  # ADR-024
 # Machine model removed - replaced by WorkCenter (ADR-021)
 from app.models.material import MaterialItem, MaterialGroup, MaterialPriceCategory
 from app.services.price_calculator import (
@@ -26,7 +27,7 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
     Přepočítá všechny náklady batche podle aktuálního stavu Part + Operations + Machines.
 
     Postup:
-    1. Načte Part (s material_item + group + price_category)
+    1. Načte Part (s material_inputs → price_category, material_item - ADR-024)
     2. Vypočítá material cost (calculate_stock_cost_from_part)
     3. Načte Operations pro part
     4. Načte Machines pro operations
@@ -62,10 +63,10 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
         if not part:
             raise ValueError(f"Part {batch.part_id} not found")
 
-        # Migration 2026-01-26: Part může mít price_category místo material_item
-        if not part.price_category and not part.material_item:
+        # ADR-024: Check material_inputs instead of deprecated Part.price_category/material_item
+        if not part.material_inputs:
             logger.warning(
-                f"Part {part.id} has neither price_category nor material_item, setting material_cost=0"
+                f"Part {part.id} has no material_inputs, setting material_cost=0"
             )
             batch.material_cost = 0.0
             batch.material_weight_kg = None

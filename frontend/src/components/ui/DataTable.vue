@@ -425,7 +425,7 @@ const toggleAll = () => {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--density-font-base, var(--text-sm));
 }
 
 /* === HEADER === */
@@ -437,9 +437,10 @@ const toggleAll = () => {
 }
 
 .data-table th {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--density-cell-py, var(--space-3)) var(--density-cell-px, var(--space-4));
   text-align: left;
   font-weight: var(--font-semibold);
+  font-size: var(--density-font-sm, var(--text-xs));
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
@@ -497,7 +498,7 @@ const toggleAll = () => {
 }
 
 .data-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--density-cell-py, var(--space-3)) var(--density-cell-px, var(--space-4));
   border-bottom: 1px solid var(--border-default);
   color: var(--text-primary);
   vertical-align: middle;

@@ -4,29 +4,64 @@
  * Uživatelská nastavení a preference
  */
 
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useUiStore } from '@/stores/ui'
 import { useRouter } from 'vue-router'
+import { useDarkMode } from '@/composables/useDarkMode'
 
 const auth = useAuthStore()
+const uiStore = useUiStore()
 const router = useRouter()
+const { setTheme } = useDarkMode()
+
+const SETTINGS_KEY = 'gestima_settings'
 
 // Form state
 const form = ref({
-  theme: 'light',
+  theme: 'dark' as 'light' | 'dark',
   language: 'cs',
   notifications: true
 })
 
+// Load settings from localStorage
+function loadSettings() {
+  const saved = localStorage.getItem(SETTINGS_KEY)
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      form.value = { ...form.value, ...parsed }
+      // Apply theme via composable
+      setTheme(form.value.theme)
+    } catch (e) {
+      console.error('Failed to load settings:', e)
+    }
+  }
+}
+
 async function handleSave() {
-  // TODO: Save settings
-  console.log('Saving settings:', form.value)
+  try {
+    // Save to localStorage
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(form.value))
+
+    // Apply theme immediately
+    setTheme(form.value.theme)
+
+    uiStore.showSuccess('Nastavení uloženo')
+  } catch (error) {
+    uiStore.showError('Chyba při ukládání nastavení')
+  }
 }
 
 async function handleLogout() {
   await auth.logout()
   router.push({ name: 'login' })
 }
+
+// Load on mount
+onMounted(() => {
+  loadSettings()
+})
 </script>
 
 <template>

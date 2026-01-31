@@ -135,3 +135,11 @@ class WorkCenterType(str, Enum):
     QUALITY_CONTROL = "QUALITY_CONTROL"   # Kontrola
     MANUAL_ASSEMBLY = "MANUAL_ASSEMBLY"   # Mechanik/montáž
     EXTERNAL = "EXTERNAL"                 # Kooperace
+
+
+class QuoteStatus(str, Enum):
+    """Quote workflow status (ADR-VIS-002)"""
+    DRAFT = "draft"          # Can be edited
+    SENT = "sent"            # Sent to customer (read-only, snapshot created)
+    APPROVED = "approved"    # Customer accepted
+    REJECTED = "rejected"    # Customer declined

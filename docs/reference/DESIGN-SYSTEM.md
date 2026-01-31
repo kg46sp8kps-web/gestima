@@ -1,9 +1,9 @@
-# GESTIMA Design System v1.0
+# GESTIMA Design System v1.1
 
 **"Industrial Precision"** - Originální dark-first design pro výrobní kalkulace
 
-**Approved:** 2026-01-29
-**Status:** ✅ Production Ready
+**Approved:** 2026-01-31
+**Status:** ✅ Production Ready (+ Parametric Density System)
 
 ---
 
@@ -168,6 +168,92 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 ```
 
 **Fast, snappy** - not slow animations
+
+---
+
+## 📐 Density System (Parametric)
+
+GESTIMA supports **two density levels** for different screen sizes and user preferences.
+
+### Density Levels
+
+| Level | Target | Row Height | Font Base | Cell Padding |
+|-------|--------|------------|-----------|--------------|
+| `compact` | 27"+ monitors (2560x1440) | 28px | 12px | 6px/10px |
+| `comfortable` | Tablets, smaller screens | 42px | 15px | 12px/16px |
+
+### Density Tokens
+
+```css
+/* Cell padding */
+--density-cell-py: 0.375rem;     /* compact: 6px, comfortable: 12px */
+--density-cell-px: 0.625rem;     /* compact: 10px, comfortable: 16px */
+
+/* Row heights */
+--density-row-height: 28px;      /* compact: 28px, comfortable: 42px */
+
+/* Font sizes */
+--density-font-sm: 0.6875rem;    /* compact: 11px, comfortable: 14px */
+--density-font-base: 0.75rem;    /* compact: 12px, comfortable: 15px */
+--density-font-md: 0.8125rem;    /* compact: 13px, comfortable: 16px */
+
+/* Form elements */
+--density-input-py: 0.25rem;     /* compact: 4px, comfortable: 8px */
+--density-input-px: 0.5rem;      /* compact: 8px, comfortable: 12px */
+--density-btn-py: 0.25rem;       /* compact: 4px, comfortable: 8px */
+--density-btn-px: 0.5rem;        /* compact: 8px, comfortable: 12px */
+
+/* Layout */
+--density-module-padding: 0.5rem;           /* compact: 8px, comfortable: 16px */
+--density-section-gap: 0.5rem;              /* compact: 8px, comfortable: 16px */
+--density-window-min-width: 300px;          /* compact: 300px, comfortable: 400px */
+--density-window-content-padding: 0.375rem; /* compact: 6px, comfortable: 8px */
+```
+
+### Switching Density
+
+**Method 1: HTML Attribute**
+```html
+<html data-density="compact">
+<html data-density="comfortable">
+```
+
+**Method 2: JavaScript (Pinia Store)**
+```typescript
+import { useUiStore } from '@/stores/ui'
+
+const ui = useUiStore()
+ui.setDensity('compact')     // Set specific level
+ui.toggleDensity()           // Toggle between levels
+ui.isCompactDensity          // Check current state
+```
+
+**Method 3: User Toggle (AppHeader)**
+- 📐 = compact mode (Infor-style density)
+- 📏 = comfortable mode (original spacing)
+
+### Usage in Components
+
+```css
+/* Always provide fallback to base tokens */
+.my-component {
+  padding: var(--density-module-padding, var(--space-4));
+  font-size: var(--density-font-base, var(--text-sm));
+  gap: var(--density-section-gap, var(--space-4));
+}
+
+.my-table td {
+  padding: var(--density-cell-py, var(--space-3)) var(--density-cell-px, var(--space-4));
+}
+
+.my-button {
+  padding: var(--density-btn-py, var(--space-2)) var(--density-btn-px, var(--space-3));
+}
+```
+
+### Persistence
+
+User preference is saved in `localStorage` under key `gestima-density` and restored on app load via `ui.initDensity()` in App.vue.
 
 ---
 

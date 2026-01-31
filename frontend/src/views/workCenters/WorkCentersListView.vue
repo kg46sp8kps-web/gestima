@@ -26,10 +26,10 @@ const workCenters = computed(() => operationsStore.workCenters)
 
 // DataTable columns
 const columns: Column[] = [
-  { key: 'number', label: 'Číslo', sortable: true, width: '120px' },
+  { key: 'work_center_number', label: 'Číslo', sortable: true, width: '120px' },
   { key: 'name', label: 'Název', sortable: true },
-  { key: 'type', label: 'Typ', sortable: true, width: '150px' },
-  { key: 'hourly_rate', label: 'Hodinová sazba', format: 'currency', width: '150px' },
+  { key: 'work_center_type', label: 'Typ', sortable: true, width: '150px' },
+  { key: 'hourly_rate_total', label: 'Hodinová sazba', format: 'currency', width: '150px' },
   { key: 'is_active', label: 'Aktivní', format: 'boolean', width: '100px' }
 ]
 
@@ -41,7 +41,7 @@ async function loadWorkCenters() {
 function handleRowClick(wc: Record<string, unknown>) {
   router.push({
     name: 'work-center-edit',
-    params: { workCenterNumber: String(wc.number) }
+    params: { workCenterNumber: String(wc.work_center_number) }
   })
 }
 

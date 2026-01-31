@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#d4edda', 'secondaryColor': '#fff3cd', 'tertiaryColor': '#cce5ff'}}}%%
+
+flowchart TB
+    subgraph COMPLETE["<b>KOMPLETNI - Vue + FastAPI + Testy</b>"]
+        direction LR
+        AUTH["<b>AUTH</b><br/>Login View<br/>JWT + Roles<br/>87 tests"]
+        PARTS["<b>PARTS</b><br/>List/Create/Detail<br/>4 tabs<br/>43 tests"]
+        BATCHES["<b>BATCH SETS</b><br/>List View<br/>Pricing calc<br/>Snapshots"]
+        WORKCENTERS["<b>WORK CENTERS</b><br/>List/Edit<br/>7 API endpoints<br/>Machine link"]
+        WINDOWS["<b>WINDOWS UI</b><br/>Floating panels<br/>Drag/Resize/Snap<br/>Save/Load views"]
+        SETTINGS["<b>SETTINGS</b><br/>User prefs<br/>UI store"]
+    end
+
+    subgraph MODULES["<b>PART DETAIL MODULY</b>"]
+        direction LR
+        PRICING["<b>PartPricing</b><br/>Module<br/>Cost breakdown<br/>Batch display"]
+        OPERATIONS["<b>PartOperations</b><br/>Module<br/>CRUD ops<br/>Machine select"]
+        MATERIAL["<b>PartMaterial</b><br/>Module<br/>AI Parser<br/>Stock cost"]
+    end
+
+    subgraph BACKEND["<b>BACKEND READY - API hotove, Frontend TODO</b>"]
+        direction LR
+        MATERIALS["<b>MATERIALS</b><br/>15 API endpoints<br/>Groups + Items<br/>Admin UI TODO"]
+        MATINPUTS["<b>MATERIAL INPUTS</b><br/>8 API endpoints<br/>ADR-024<br/>Module propojeni TODO"]
+        FEATURES["<b>FEATURES</b><br/>6 API endpoints<br/>Geo steps<br/>UI placeholder"]
+        ADMIN["<b>ADMIN</b><br/>10 API endpoints<br/>Master Data<br/>Vue placeholder"]
+        CUTTING["<b>CUTTING COND.</b><br/>Model + Seed<br/>Read-only<br/>CRUD v5.0"]
+    end
+
+    subgraph PLANNED["<b>PLANOVANO - v2.0 az v5.0</b>"]
+        direction LR
+        QUOTES["<b>v2.0 QUOTES</b><br/>Customers<br/>Quote workflow<br/>PDF export"]
+        PLM["<b>v3.0 PLM</b><br/>Drawings<br/>BOM<br/>Revisions"]
+        MES["<b>v4.0 MES</b><br/>Work Orders<br/>Scheduling<br/>Shop Floor"]
+        TECHDB["<b>v5.0 TECH DB</b><br/>Tool Library<br/>Tech Sheets<br/>Analytics"]
+    end
+
+    PARTS --> MODULES
+    MODULES --> PRICING
+    MODULES --> OPERATIONS
+    MODULES --> MATERIAL
+
+    MATERIAL -.->|"needs API"| MATINPUTS
+    OPERATIONS -.->|"uses"| WORKCENTERS
+
+    classDef complete fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724
+    classDef backend fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404
+    classDef planned fill:#cce5ff,stroke:#007bff,stroke-width:2px,color:#004085
+    classDef module fill:#e2e3e5,stroke:#6c757d,stroke-width:2px,color:#383d41
+
+    class AUTH,PARTS,BATCHES,WORKCENTERS,WINDOWS,SETTINGS complete
+    class PRICING,OPERATIONS,MATERIAL module
+    class MATERIALS,MATINPUTS,FEATURES,ADMIN,CUTTING backend
+    class QUOTES,PLM,MES,TECHDB planned

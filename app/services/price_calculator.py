@@ -137,25 +137,26 @@ async def calculate_stock_cost_from_part(
     """
     result = MaterialCost()
 
-    # ADR-024: MaterialInput refactor - Part.material_inputs[0] obsahuje material data
-    price_category = None
-    material_group = None
-    stock_shape = part.stock_shape
+    # ADR-024: Get material data from first MaterialInput
+    if not part.material_inputs:
+        logger.warning(f"Part {part.id} has no material_inputs, returning zero cost")
+        return result
 
-    if part.price_category:
-        # Nové: Part → PriceCategory → MaterialGroup
-        price_category = part.price_category
-        material_group = price_category.material_group if price_category else None
-    elif part.material_item:
-        # Fallback: Part → MaterialItem → PriceCategory → MaterialGroup
-        item = part.material_item
-        price_category = item.price_category
-        material_group = item.group
-        if not stock_shape:
-            stock_shape = item.shape  # Použij item.shape pokud Part nemá stock_shape
+    # Use first material input for calculations (primary material)
+    material_input = part.material_inputs[0]
+
+    # Get price_category and material_group from MaterialInput
+    price_category = material_input.price_category
+    material_group = price_category.material_group if price_category else None
+
+    # Fallback: try to get material_group from material_item if price_category doesn't have one
+    if not material_group and material_input.material_item:
+        material_group = material_input.material_item.group
+
+    stock_shape = material_input.stock_shape
 
     if not price_category:
-        logger.error(f"Part {part.id} has no price_category (neither direct nor via material_item)")
+        logger.error(f"MaterialInput {material_input.id} has no price_category")
         return result
 
     if not material_group:
@@ -163,19 +164,19 @@ async def calculate_stock_cost_from_part(
         return result
 
     if not stock_shape:
-        logger.error(f"Part {part.id} has no stock_shape")
+        logger.error(f"MaterialInput {material_input.id} has no stock_shape")
         return result
 
     if db is None:
         logger.error("DB session required for dynamic price tier selection")
         return result
 
-    # Použij Part.stock_* pro geometrii
-    stock_diameter = part.stock_diameter or 0
-    stock_length = part.stock_length or 0
-    stock_width = part.stock_width or 0
-    stock_height = part.stock_height or 0
-    stock_wall_thickness = part.stock_wall_thickness or 0
+    # Use MaterialInput.stock_* for geometry (ADR-024)
+    stock_diameter = material_input.stock_diameter or 0
+    stock_length = material_input.stock_length or 0
+    stock_width = material_input.stock_width or 0
+    stock_height = material_input.stock_height or 0
+    stock_wall_thickness = material_input.stock_wall_thickness or 0
 
     # Výpočet objemu podle tvaru polotovaru (Migration 2026-01-26: stock_shape místo item.shape)
     volume_mm3 = 0

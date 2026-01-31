@@ -1,0 +1,39 @@
+# Archive - historical docs, not needed for development
+docs/archive/
+docs/audits/
+docs/sprints/
+docs/diagrams/
+
+# Large files that don't need AI reading
+*.html
+*.pdf
+*.png
+*.jpg
+*.svg
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment
+.env
+*.db
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+.coverage
+htmlcov/
+coverage/
+
+# Backups
+backups/

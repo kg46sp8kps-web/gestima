@@ -55,6 +55,43 @@ export function getShapeDimensionFields(shape: StockShape | null | undefined): {
 }
 
 // =============================================================================
+// Material Norm (conversion table: W.Nr | EN ISO | ČSN | AISI → MaterialGroup)
+// =============================================================================
+
+export interface MaterialNorm {
+  id: number
+  w_nr: string | null
+  en_iso: string | null
+  csn: string | null
+  aisi: string | null
+  material_group_id: number
+  material_group?: MaterialGroup | null
+  note: string | null
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MaterialNormCreate {
+  w_nr?: string | null
+  en_iso?: string | null
+  csn?: string | null
+  aisi?: string | null
+  material_group_id: number
+  note?: string | null
+}
+
+export interface MaterialNormUpdate {
+  w_nr?: string | null
+  en_iso?: string | null
+  csn?: string | null
+  aisi?: string | null
+  material_group_id?: number
+  note?: string | null
+  version: number
+}
+
+// =============================================================================
 // Material Group (for calculations: density, cutting conditions)
 // =============================================================================
 
@@ -66,6 +103,19 @@ export interface MaterialGroup {
   version: number
   created_at: string
   updated_at: string
+}
+
+export interface MaterialGroupCreate {
+  code: string
+  name: string
+  density: number
+}
+
+export interface MaterialGroupUpdate {
+  code?: string
+  name?: string
+  density?: number
+  version: number  // Required for optimistic locking
 }
 
 // =============================================================================
@@ -99,6 +149,33 @@ export interface MaterialPriceTier {
 
 export interface MaterialPriceCategoryWithTiers extends MaterialPriceCategory {
   tiers: MaterialPriceTier[]
+}
+
+export interface MaterialPriceCategoryCreate {
+  code: string
+  name: string
+  material_group_id: number | null
+}
+
+export interface MaterialPriceCategoryUpdate {
+  code?: string
+  name?: string
+  material_group_id?: number | null
+  version: number  // Required for optimistic locking
+}
+
+export interface MaterialPriceTierCreate {
+  price_category_id: number
+  min_weight: number
+  max_weight: number | null
+  price_per_kg: number
+}
+
+export interface MaterialPriceTierUpdate {
+  min_weight?: number
+  max_weight?: number | null
+  price_per_kg?: number
+  version: number  // Required for optimistic locking
 }
 
 // =============================================================================
