@@ -139,7 +139,7 @@ function formatDate(dateString: string) {
 }
 
 .empty-icon {
-  font-size: 4rem;
+  font-size: var(--text-3xl);
   margin-bottom: var(--space-4);
   opacity: 0.5;
 }

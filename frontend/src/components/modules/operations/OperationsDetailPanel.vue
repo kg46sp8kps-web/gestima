@@ -453,7 +453,7 @@ defineExpose({
 }
 
 .empty-icon {
-  font-size: 2rem;
+  font-size: var(--text-2xl);
 }
 
 .empty p {

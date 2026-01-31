@@ -141,7 +141,7 @@ function formatDate(dateString: string) {
 }
 
 .action-icon {
-  font-size: 2rem;
+  font-size: var(--text-2xl);
 }
 
 .action-label {

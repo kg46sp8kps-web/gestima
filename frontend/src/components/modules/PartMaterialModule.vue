@@ -189,7 +189,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 .link-icon {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
 }
 
 .badge-content {

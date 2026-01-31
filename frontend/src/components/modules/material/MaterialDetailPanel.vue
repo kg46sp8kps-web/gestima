@@ -634,7 +634,7 @@ async function executeDelete() {
 }
 
 .empty-icon {
-  font-size: 3rem;
+  font-size: var(--text-2xl);
   margin-bottom: var(--space-2);
   opacity: 0.5;
 }

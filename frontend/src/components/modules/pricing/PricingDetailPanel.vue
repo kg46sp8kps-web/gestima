@@ -396,7 +396,7 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .empty-icon {
-  font-size: 3rem;
+  font-size: var(--text-2xl);
 }
 
 .hint {
@@ -522,7 +522,7 @@ watch(displayedBatches, (newBatches) => {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--text-base);
   padding: var(--space-1);
   opacity: 0.7;
   transition: var(--transition-fast);
