@@ -45,11 +45,17 @@ const maxWorkCenterWidth = computed(() => {
   return Math.min(Math.max(maxName.length * 7 + 40, 180), 320)
 })
 
-// Time sums calculations (podle schváleného vzorce)
+// Time sums calculations (OPRAVENÝ VZOREC)
 const timeSums = computed(() => {
   const tp = props.operation.setup_time_min
-  const tj = props.operation.operation_time_min / (props.operation.machine_utilization_coefficient / 100)
-  const to = (tp + tj) * (props.operation.manning_coefficient / 100)
+
+  // Tj = strojní čas × (1 + (100 - Ke) / 100)
+  // Příklad: 10min × (1 + (100-90)/100) = 10 × 1.1 = 11min
+  const kePercent = (100 - props.operation.machine_utilization_coefficient) / 100
+  const tj = props.operation.operation_time_min * (1 + kePercent)
+
+  // To = čas obsluhy = Tj × (Ko / 100) - JEN ZE STROJNÍHO ČASU!
+  const to = tj * (props.operation.manning_coefficient / 100)
 
   return {
     tp: tp.toFixed(1),
@@ -113,6 +119,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
           step="0.1"
           min="0"
           :value="operation.setup_time_min"
+          @focus="($event.target as HTMLInputElement).select()"
           @input="handleTimeInput('setup_time_min', $event)"
           class="time-input"
           :disabled="operation.setup_time_locked"
@@ -128,6 +135,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
           step="0.01"
           min="0"
           :value="operation.operation_time_min"
+          @focus="($event.target as HTMLInputElement).select()"
           @input="handleTimeInput('operation_time_min', $event)"
           class="time-input"
           :disabled="operation.operation_time_locked"
@@ -137,29 +145,33 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 
       <!-- Coefficients (inline editable) -->
       <div class="coef-field" @click.stop>
-        <span class="coef-label">Plnění:</span>
+        <span class="coef-label">Ko:</span>
         <input
           type="number"
           step="5"
           min="0"
           max="200"
           :value="operation.manning_coefficient"
+          @focus="($event.target as HTMLInputElement).select()"
           @input="handleCoefficientInput('manning_coefficient', $event)"
           class="coef-input"
+          title="Koeficient obsluhy"
         />
         <span class="coef-unit">%</span>
       </div>
 
       <div class="coef-field" @click.stop>
-        <span class="coef-label">Využití:</span>
+        <span class="coef-label">Ke:</span>
         <input
           type="number"
           step="5"
           min="0"
           max="200"
           :value="operation.machine_utilization_coefficient"
+          @focus="($event.target as HTMLInputElement).select()"
           @input="handleCoefficientInput('machine_utilization_coefficient', $event)"
           class="coef-input"
+          title="Koeficient efektivity"
         />
         <span class="coef-unit">%</span>
       </div>
