@@ -149,38 +149,39 @@ async function executeDelete() {
 function handleDragStart(event: DragEvent, op: Operation) {
   draggedOpId.value = op.id
 
-  // Create custom drag ghost image
-  const ghostElement = document.createElement('div')
-  ghostElement.style.cssText = `
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-    background: var(--bg-surface);
-    border: 2px solid var(--color-primary);
-    border-radius: var(--radius-md);
-    padding: var(--space-2) var(--space-3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 9999;
-  `
-  ghostElement.textContent = `Operace ${op.seq}`
+  // Clone the entire operation card for realistic drag preview
+  const wrapper = event.currentTarget as HTMLElement
+  const opCard = wrapper.querySelector('.operation-card') as HTMLElement
 
-  document.body.appendChild(ghostElement)
+  if (opCard) {
+    const ghostElement = opCard.cloneNode(true) as HTMLElement
+    ghostElement.style.cssText = `
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+      width: ${opCard.offsetWidth}px;
+      opacity: 0.95;
+      transform: rotate(2deg);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+      z-index: 9999;
+    `
 
-  // Set custom drag image (offset from cursor)
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setDragImage(ghostElement, 50, 20)
+    document.body.appendChild(ghostElement)
+
+    // Set custom drag image (center on cursor)
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setDragImage(ghostElement, ghostElement.offsetWidth / 2, 25)
+    }
+
+    // Cleanup after browser copies the image
+    setTimeout(() => {
+      if (document.body.contains(ghostElement)) {
+        document.body.removeChild(ghostElement)
+      }
+    }, 0)
   }
-
-  // Remove ghost element after drag starts (browser already copied it)
-  setTimeout(() => {
-    document.body.removeChild(ghostElement)
-  }, 0)
 }
 
 function handleDragEnter(op: Operation) {
@@ -281,34 +282,44 @@ defineExpose({
 
     <!-- Operations List (drag & drop enabled) -->
     <div v-else class="operations-list">
-      <div
-        v-for="op in sortedOperations"
-        :key="op.id"
-        draggable="true"
-        @dragstart="handleDragStart($event, op)"
-        @dragenter="handleDragEnter(op)"
-        @dragleave="handleDragLeave"
-        @dragover="handleDragOver"
-        @dragend="handleDragEnd"
-        @drop="handleDrop($event, op)"
-        :class="{
-          'is-dragging': draggedOpId === op.id,
-          'drag-over': dragOverOpId === op.id
-        }"
-      >
-        <OperationRow
-          :operation="op"
-          :work-centers="activeWorkCenters"
-          :expanded="expandedOps[op.id] || false"
-          :saving="saving"
-          @toggle-expanded="toggleExpanded(op.id)"
-          @update-field="(field, value) => debouncedUpdateOperation(op, field, value)"
-          @update-work-center="(wcId) => onWorkCenterChange(op, wcId)"
-          @change-mode="(mode) => changeMode(op, mode)"
-          @toggle-coop="toggleCoop(op)"
-          @delete="confirmDelete(op)"
-        />
-      </div>
+      <template v-for="op in sortedOperations" :key="op.id">
+        <!-- Drop placeholder GAP (shows BEFORE target operation) -->
+        <div
+          v-if="dragOverOpId === op.id && draggedOpId !== op.id"
+          class="drop-placeholder"
+        >
+          <div class="placeholder-line"></div>
+          <span class="placeholder-text">Sem vložit</span>
+        </div>
+
+        <!-- Operation wrapper -->
+        <div
+          draggable="true"
+          @dragstart="handleDragStart($event, op)"
+          @dragenter="handleDragEnter(op)"
+          @dragleave="handleDragLeave"
+          @dragover="handleDragOver"
+          @dragend="handleDragEnd"
+          @drop="handleDrop($event, op)"
+          :class="{
+            'operation-wrapper': true,
+            'is-dragging': draggedOpId === op.id
+          }"
+        >
+          <OperationRow
+            :operation="op"
+            :work-centers="activeWorkCenters"
+            :expanded="expandedOps[op.id] || false"
+            :saving="saving"
+            @toggle-expanded="toggleExpanded(op.id)"
+            @update-field="(field, value) => debouncedUpdateOperation(op, field, value)"
+            @update-work-center="(wcId) => onWorkCenterChange(op, wcId)"
+            @change-mode="(mode) => changeMode(op, mode)"
+            @toggle-coop="toggleCoop(op)"
+            @delete="confirmDelete(op)"
+          />
+        </div>
+      </template>
     </div>
 
     <!-- Delete confirmation modal -->
@@ -424,24 +435,59 @@ defineExpose({
 }
 
 /* Drag & Drop styles */
-.operations-list > div {
+.operation-wrapper {
   cursor: grab;
-  transition: var(--transition-fast);
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.operations-list > div:active {
+.operation-wrapper:active {
   cursor: grabbing;
 }
 
-.operations-list > div.is-dragging {
-  opacity: 0.4;
-  transform: scale(0.98);
+.operation-wrapper.is-dragging {
+  opacity: 0.3;
+  transform: scale(0.95);
   cursor: grabbing;
 }
 
-.operations-list > div.drag-over {
-  border-top: 3px solid var(--color-primary);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
+/* Drop placeholder (gap visualization) */
+.drop-placeholder {
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  animation: slideIn 0.15s ease;
+}
+
+@keyframes slideIn {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: 60px;
+    opacity: 1;
+  }
+}
+
+.placeholder-line {
+  width: 100%;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 8px var(--color-primary);
+}
+
+.placeholder-text {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  background: var(--bg-surface);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-primary);
 }
 </style>
