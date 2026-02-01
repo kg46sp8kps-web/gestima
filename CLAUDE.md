@@ -22,7 +22,7 @@
 
 ---
 
-## 7 BLOCKING RULES
+## 8 BLOCKING RULES
 
 | # | Rule | Violation |
 |---|------|-----------|
@@ -33,6 +33,7 @@
 | 5 | **TRANSACTION** - try/except/rollback | L-008 |
 | 6 | **VALIDATION** - Pydantic Field() | L-009 |
 | 7 | **GENERIC-FIRST** - <300 LOC, reusable | L-036 |
+| 8 | **BUILDING BLOCKS** - reusable komponenty, 1× napsat N× použít | L-039 |
 
 **BANNED:** "mělo by být OK", "teď už to bude fungovat"
 
