@@ -28,6 +28,22 @@
 - ✅ **Backend consistency** - Added `unit_price` as computed field alias for `unit_cost`
 - ✅ **Quantity display** - Added quantity field to modal
 
+### Operations Module Improvements ✅
+- ✅ **VueDraggable integration** - Professional drag & drop solution
+  - Package: `vuedraggable@next` (Vue 3 compatible)
+  - Clean UX: Only dragged operation visible + gap (no ghost duplicates)
+  - 300ms smooth animation, vertical direction
+  - Auto-renumbering: 10-20-30 sequence after drop
+- ✅ **Coefficient fields** - Added manning & machine utilization
+  - Backend: `manning_coefficient`, `machine_utilization_coefficient`
+  - Frontend: Inline editable inputs with @focus select()
+  - Time calculations: Tp, Tj (with Ke), To (with Ko)
+- ✅ **Component refactoring** - Removed 120+ LOC custom drag handlers
+  - Before: 420 LOC with custom HTML5 Drag & Drop
+  - After: 373 LOC with VueDraggable (-11%)
+  - BUILDING BLOCKS pattern maintained (<500 LOC)
+- 📖 **Best practices documented** - See `docs/guides/VUEDRAGGABLE-GUIDE.md`
+
 ### Technical Improvements
 - 📁 **New file:** `frontend/src/constants/ui.ts` - UI timing constants
 - 🔧 **Backend:** `app/models/batch.py` - Added `unit_price` computed property

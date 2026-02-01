@@ -89,14 +89,8 @@ class CustomerMatch(BaseModel):
     match_confidence: float = 0.0
 
 
-class QuoteRequestReview(BaseModel):
-    """Complete review data (extraction + matching)"""
-    customer: CustomerMatch
-    items: List[PartMatch] = Field(..., description="All items with part+batch matching")
-    valid_until: Optional[date] = None
-    notes: Optional[str] = None
-
-    # Summary
+class ReviewSummary(BaseModel):
+    """Summary statistics for quote request review"""
     total_items: int = Field(0, description="Total number of items")
     unique_parts: int = Field(0, description="Number of unique parts")
     matched_parts: int = Field(0, description="Number of existing parts")
@@ -104,9 +98,30 @@ class QuoteRequestReview(BaseModel):
     missing_batches: int = Field(0, description="Number of items without batch match")
 
 
+class QuoteRequestReview(BaseModel):
+    """Complete review data (extraction + matching)"""
+    customer: CustomerMatch
+    items: List[PartMatch] = Field(..., description="All items with part+batch matching")
+    valid_until: Optional[date] = None
+    notes: Optional[str] = None
+    summary: ReviewSummary
+
+
 # =============================================================================
 # Quote Creation from Request
 # =============================================================================
+
+class PartnerCreateData(BaseModel):
+    """Partner data for creating new partner"""
+    company_name: str = Field(..., max_length=200)
+    contact_person: Optional[str] = Field(None, max_length=100)
+    email: Optional[str] = Field(None, max_length=100)
+    phone: Optional[str] = Field(None, max_length=50)
+    ico: Optional[str] = Field(None, max_length=20)
+    dic: Optional[str] = Field(None, max_length=20)
+    is_customer: bool = True
+    is_supplier: bool = False
+
 
 class QuoteFromRequestItem(BaseModel):
     """Item for creating quote from request"""
@@ -120,7 +135,7 @@ class QuoteFromRequestItem(BaseModel):
 class QuoteFromRequestCreate(BaseModel):
     """Create quote + parts + items from request"""
     partner_id: Optional[int] = Field(None, description="Existing partner ID or None (will create)")
-    partner_data: Optional[CustomerMatch] = Field(None, description="Partner data if creating new")
+    partner_data: Optional[PartnerCreateData] = Field(None, description="Partner data if creating new")
 
     items: List[QuoteFromRequestItem] = Field(..., min_length=1)
 

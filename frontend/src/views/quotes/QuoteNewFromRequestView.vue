@@ -41,13 +41,13 @@
 
       <!-- Info panel -->
       <div class="info-panel">
-        <h3>ℹ️ Jak to funguje?</h3>
+        <h3><Info :size="20" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
         <ul>
-          <li>📄 Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
-          <li>🤖 Claude Vision AI extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
-          <li>🔍 Systém hledá existující zákazníky a díly v databázi</li>
-          <li>💰 Automaticky přiřadí ceny z vhodných zamražených dávek</li>
-          <li>✅ Vy zkontrolujete, upravíte a potvrdíte → vytvoří se nabídka</li>
+          <li>Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
+          <li>Claude Vision AI extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
+          <li>Systém hledá existující zákazníky a díly v databázi</li>
+          <li>Automaticky přiřadí ceny z vhodných zamražených dávek</li>
+          <li>Vy zkontrolujete, upravíte a potvrdíte → vytvoří se nabídka</li>
         </ul>
         <p class="info-note">
           <strong>Bezpečnost:</strong> AI pouze navrhuje, vy máte finální kontrolu. Ceny jsou
@@ -60,7 +60,7 @@
     <div v-if="review && !quotesStore.loading" class="review-section">
       <!-- Summary stats -->
       <div class="summary-panel">
-        <h2>📊 Přehled poptávky</h2>
+        <h2><BarChart3 :size="20" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
         <div class="summary-grid">
           <div class="summary-item">
             <span class="summary-label">Celkem položek:</span>
@@ -87,7 +87,7 @@
 
       <!-- Customer section -->
       <div class="customer-section">
-        <h2>👤 Zákazník</h2>
+        <h2><User :size="20" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
         <div class="customer-info">
           <div class="form-row">
             <div class="form-field">
@@ -136,7 +136,7 @@
 
       <!-- Items table -->
       <div class="items-section">
-        <h2>📦 Položky nabídky</h2>
+        <h2><Package :size="20" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
         <div class="items-table-wrapper">
           <table class="items-table">
             <thead>
@@ -232,7 +232,7 @@
 
       <!-- Quote metadata -->
       <div class="metadata-section">
-        <h2>📝 Detaily nabídky</h2>
+        <h2><FileText :size="20" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
         <div class="form-row">
           <div class="form-field">
             <label>Název nabídky *</label>
@@ -240,7 +240,11 @@
           </div>
           <div class="form-field">
             <label>Platnost do</label>
-            <Input v-model="formData.valid_until" type="date" />
+            <input
+              v-model="formData.valid_until"
+              type="date"
+              class="form-input"
+            />
           </div>
         </div>
 
@@ -269,14 +273,16 @@
       <!-- Actions -->
       <div class="actions-section">
         <button class="btn" @click="handleBack">
-          ← Nahrát jiné PDF
+          <ArrowLeft :size="16" />
+          Nahrát jiné PDF
         </button>
         <button
           class="btn btn-primary"
           :disabled="!isFormValid || quotesStore.loading"
           @click="handleConfirm"
         >
-          ✓ Vytvořit nabídku
+          <Check :size="16" />
+          Vytvořit nabídku
         </button>
       </div>
     </div>
@@ -299,7 +305,14 @@ import {
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Info,
+  BarChart3,
+  User,
+  Package,
+  FileText,
+  Check,
+  ArrowLeft
 } from 'lucide-vue-next'
 import type { QuoteRequestReview, QuoteFromRequestCreate } from '@/types/quote'
 
@@ -341,7 +354,10 @@ function triggerFileSelect() {
 async function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    await uploadPDF(target.files[0])
+    const file = target.files[0]
+    if (file) {
+      await uploadPDF(file)
+    }
   }
 }
 
@@ -349,9 +365,9 @@ async function handleDrop(event: DragEvent) {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
     const file = event.dataTransfer.files[0]
-    if (file.type === 'application/pdf') {
+    if (file && file.type === 'application/pdf') {
       await uploadPDF(file)
-    } else {
+    } else if (file) {
       alert('Pouze PDF soubory jsou podporovány')
     }
   }
@@ -675,6 +691,7 @@ onMounted(() => {
   color: var(--palette-neutral-300);
 }
 
+.form-input,
 .form-textarea {
   width: 100%;
   padding: var(--space-3);
@@ -684,9 +701,13 @@ onMounted(() => {
   color: var(--palette-neutral-50);
   font-family: inherit;
   font-size: var(--font-size-base);
+}
+
+.form-textarea {
   resize: vertical;
 }
 
+.form-input:focus,
 .form-textarea:focus {
   outline: none;
   border-color: var(--palette-neutral-400);

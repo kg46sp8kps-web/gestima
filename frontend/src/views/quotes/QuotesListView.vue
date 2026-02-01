@@ -5,7 +5,8 @@
       <h1>Nabídky</h1>
       <div class="header-actions">
         <button class="btn" @click="handleCreateFromRequest">
-          🤖 Z poptávky (AI)
+          <Sparkles :size="16" />
+          Z poptávky (AI)
         </button>
         <button class="btn btn-primary" @click="handleCreate">+ Nová nabídka</button>
       </div>
@@ -212,7 +213,7 @@ import { useQuotesStore } from '@/stores/quotes'
 import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Quote, QuoteStatus } from '@/types/quote'
-import { FileEdit, Send, CheckCircle, XCircle, Edit, Copy, Trash2 } from 'lucide-vue-next'
+import { FileEdit, Send, CheckCircle, XCircle, Edit, Copy, Trash2, Sparkles } from 'lucide-vue-next'
 
 const router = useRouter()
 const quotesStore = useQuotesStore()

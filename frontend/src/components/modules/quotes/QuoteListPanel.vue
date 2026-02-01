@@ -2,8 +2,9 @@
 import { ref, computed, reactive } from 'vue'
 import { useQuotesStore } from '@/stores/quotes'
 import { usePartnersStore } from '@/stores/partners'
+import { useWindowsStore } from '@/stores/windows'
 import type { Quote, QuoteStatus, QuoteCreate } from '@/types/quote'
-import { Plus, ClipboardList, FileEdit, Send, CheckCircle, XCircle } from 'lucide-vue-next'
+import { Plus, ClipboardList, FileEdit, Send, CheckCircle, XCircle, Sparkles } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
 interface Props {
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 
 const quotesStore = useQuotesStore()
 const partnersStore = usePartnersStore()
+const windowsStore = useWindowsStore()
 const searchQuery = ref('')
 const activeTab = ref<QuoteStatus | 'all'>('all')
 const showCreateForm = ref(false)
@@ -88,6 +90,10 @@ function handleCreate() {
   showCreateForm.value = true
 }
 
+function handleCreateFromRequest() {
+  windowsStore.openWindow('quote-from-request', 'Nová nabídka z PDF (AI)')
+}
+
 async function createQuote() {
   try {
     const quote = await quotesStore.createQuote({
@@ -140,10 +146,15 @@ function formatCurrency(value: number): string {
     <!-- Header -->
     <div class="list-header">
       <h3>Nabídky</h3>
-      <button @click="handleCreate" class="btn-create">
-        <Plus :size="14" :stroke-width="2" />
-        Nová
-      </button>
+      <div class="header-buttons">
+        <button @click="handleCreateFromRequest" class="btn-create btn-ai" title="Z poptávky (AI)">
+          <Sparkles :size="14" :stroke-width="2" />
+        </button>
+        <button @click="handleCreate" class="btn-create">
+          <Plus :size="14" :stroke-width="2" />
+          Nová
+        </button>
+      </div>
     </div>
 
     <!-- Filter Tabs -->
@@ -356,6 +367,11 @@ function formatCurrency(value: number): string {
   color: var(--text-primary);
 }
 
+.header-buttons {
+  display: flex;
+  gap: var(--space-1);
+}
+
 .btn-create {
   display: flex;
   align-items: center;
@@ -373,6 +389,17 @@ function formatCurrency(value: number): string {
 
 .btn-create:hover {
   background: var(--palette-primary-hover);
+}
+
+.btn-ai {
+  padding: var(--space-1);
+  background: var(--palette-neutral-700);
+  color: var(--palette-accent-red);
+}
+
+.btn-ai:hover {
+  background: var(--palette-neutral-600);
+  color: var(--palette-accent-red);
 }
 
 .filter-tabs {

@@ -512,16 +512,20 @@ async def parse_quote_request_pdf(
             if m.batch_match and m.batch_match.status == "missing"
         )
 
+        from app.schemas.quote_request import ReviewSummary
+
         review = QuoteRequestReview(
             customer=customer_match,
             items=item_matches,
             valid_until=extraction.valid_until,
             notes=extraction.notes,
-            total_items=len(item_matches),
-            unique_parts=unique_parts,
-            matched_parts=matched_parts,
-            new_parts=new_parts,
-            missing_batches=missing_batches
+            summary=ReviewSummary(
+                total_items=len(item_matches),
+                unique_parts=unique_parts,
+                matched_parts=matched_parts,
+                new_parts=new_parts,
+                missing_batches=missing_batches
+            )
         )
 
         logger.info(
