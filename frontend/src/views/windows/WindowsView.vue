@@ -7,7 +7,6 @@ import { onMounted } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import FloatingWindow from '@/components/windows/FloatingWindow.vue'
 import Taskbar from '@/components/windows/Taskbar.vue'
-import WindowManager from '@/components/windows/WindowManager-new.vue'
 import { LayoutGrid } from 'lucide-vue-next'
 
 // Module components (lazy loaded)
@@ -52,9 +51,6 @@ onMounted(() => {
 
 <template>
   <div class="windows-view">
-    <!-- Window Manager Toolbar -->
-    <WindowManager />
-
     <!-- Floating Windows -->
     <div class="windows-container">
       <FloatingWindow
@@ -66,6 +62,7 @@ onMounted(() => {
         <component
           :is="getModuleComponent(win.module)"
           :linkingGroup="win.linkingGroup"
+          :windowTitle="win.title"
         />
       </FloatingWindow>
     </div>
@@ -85,18 +82,20 @@ onMounted(() => {
 <style scoped>
 .windows-view {
   width: 100%;
-  height: 100%;
   min-height: calc(100vh - 120px); /* Account for header + footer */
-  overflow: hidden;
+  overflow: auto; /* Allow scrolling */
   background: var(--bg-base);
   position: relative;
-  padding-top: 52px; /* Space for WindowManager toolbar */
+  margin: var(--space-4); /* Pevné hranice vlevo, vpravo, nahoře */
+  margin-bottom: 0; /* Footer bude fixní */
   padding-bottom: 40px; /* Space for taskbar */
 }
 
 .windows-container {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  min-height: 600px; /* Minimum height for windows */
+  width: 100%;
+  height: 100%;
 }
 
 /* Empty State */

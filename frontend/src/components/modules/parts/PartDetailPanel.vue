@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
-import { drawingsApi } from '@/api/drawings'
-import { useUiStore } from '@/stores/ui'
-import DragDropZone from '@/components/ui/DragDropZone.vue'
-import { Package, Settings, DollarSign, Trash2, FileText } from 'lucide-vue-next'
-
-const uiStore = useUiStore()
+import DrawingsManagementModal from './DrawingsManagementModal.vue'
+import { Package, Settings, DollarSign, FileText } from 'lucide-vue-next'
 
 interface Props {
   part: Part
@@ -19,71 +15,20 @@ const emit = defineEmits<{
   'open-material': []
   'open-operations': []
   'open-pricing': []
-  'open-drawing': []
+  'open-drawing': [drawingId?: number]
   'refresh': []
 }>()
 
-// Drawing state
-const uploadingDrawing = ref(false)
-const uploadError = ref<string | null>(null)
 
-const hasDrawing = computed(() => !!props.part.drawing_path)
-const drawingUrl = computed(() => {
-  if (!hasDrawing.value) return ''
-  return drawingsApi.getDrawingUrl(props.part.part_number)
-})
+// Drawings management modal
+const showDrawingsModal = ref(false)
 
-// Upload drawing
-async function handleDrawingUpload(file: File) {
-  uploadingDrawing.value = true
-  uploadError.value = null
-
-  try {
-    await drawingsApi.uploadToPart(props.part.part_number, file)
-    // Refresh part data to get updated drawing_path
-    emit('refresh')
-    uiStore.addToast({
-      type: 'success',
-      message: `Výkres nahrán: ${file.name}`
-    })
-  } catch (error: any) {
-    const errorMsg = error.message || 'Nepodařilo se nahrát výkres'
-    uploadError.value = errorMsg
-    uiStore.addToast({
-      type: 'error',
-      message: errorMsg
-    })
-  } finally {
-    uploadingDrawing.value = false
-  }
+function openDrawingsModal() {
+  showDrawingsModal.value = true
 }
 
-function handleDrawingError(message: string) {
-  uploadError.value = message
-}
-
-// Delete drawing
-async function handleDeleteDrawing() {
-  if (!confirm('Smazat výkres?')) return
-
-  try {
-    await drawingsApi.deleteDrawing(props.part.part_number)
-    emit('refresh')
-    uiStore.addToast({
-      type: 'success',
-      message: 'Výkres smazán'
-    })
-  } catch (error: any) {
-    uiStore.addToast({
-      type: 'error',
-      message: `Nepodařilo se smazat výkres: ${error.message}`
-    })
-  }
-}
-
-// Open drawing in floating window
-function handleOpenDrawing() {
-  emit('open-drawing')
+function handleOpenDrawing(drawingId?: number) {
+  emit('open-drawing', drawingId)
 }
 
 function formatDate(dateString: string) {
@@ -116,38 +61,7 @@ function formatDate(dateString: string) {
         <span class="header-value">{{ part.notes }}</span>
       </div>
       <div class="header-item">
-        <span class="part-number-badge">{{ part.part_number }}</span>
-      </div>
-    </div>
-
-    <!-- Drawing Section -->
-    <div class="drawing-section">
-      <h3 class="section-title">Výkres</h3>
-
-      <!-- No drawing - show upload zone -->
-      <div v-if="!hasDrawing">
-        <DragDropZone
-          :model-value="null"
-          accept="application/pdf"
-          :max-size="10 * 1024 * 1024"
-          label="Nahrajte PDF výkres"
-          :loading="uploadingDrawing"
-          @upload="handleDrawingUpload"
-          @error="handleDrawingError"
-        />
-        <p v-if="uploadError" class="upload-error">{{ uploadError }}</p>
-      </div>
-
-      <!-- Has drawing - show info + delete -->
-      <div v-else class="drawing-exists">
-        <p class="drawing-filename">
-          <FileText :size="16" style="display: inline; vertical-align: middle;" />
-          {{ part.part_number }}.pdf
-        </p>
-        <button class="btn-sm btn-danger" @click="handleDeleteDrawing">
-          <Trash2 :size="14" />
-          Smazat
-        </button>
+        <span class="article-number-badge">{{ part.article_number || part.part_number }}</span>
       </div>
     </div>
 
@@ -165,15 +79,19 @@ function formatDate(dateString: string) {
         <DollarSign :size="32" class="action-icon" />
         <span class="action-label">Ceny</span>
       </button>
-      <button
-        v-if="hasDrawing"
-        class="action-button"
-        @click="handleOpenDrawing"
-      >
+      <button class="action-button" @click="openDrawingsModal">
         <FileText :size="32" class="action-icon" />
-        <span class="action-label">Výkres</span>
+        <span class="action-label">Výkresy</span>
       </button>
     </div>
+
+    <!-- Drawings Management Modal -->
+    <DrawingsManagementModal
+      v-model="showDrawingsModal"
+      :part-number="part.part_number"
+      @refresh="emit('refresh')"
+      @open-drawing="handleOpenDrawing"
+    />
   </div>
 </template>
 
@@ -217,7 +135,7 @@ function formatDate(dateString: string) {
   color: var(--text-body);
 }
 
-.part-number-badge {
+.article-number-badge {
   padding: var(--space-1) var(--space-2);
   background: var(--color-primary);
   color: white;
@@ -262,39 +180,4 @@ function formatDate(dateString: string) {
   color: var(--text-body);
 }
 
-/* Drawing section */
-.drawing-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.section-title {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-}
-
-.upload-error {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  color: var(--color-danger);
-  background: rgba(244, 63, 94, 0.05);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-sm);
-}
-
-.drawing-preview-container {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-
-.drawing-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
 </style>

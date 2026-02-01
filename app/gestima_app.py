@@ -37,7 +37,8 @@ from app.routers import (
     admin_router,
     quotes_router,
     quote_items_router,
-    uploads_router
+    uploads_router,
+    drawings_router  # Multiple drawings per part support
 )
 from app.database import async_session, engine, close_db
 
@@ -188,6 +189,7 @@ async def favicon():
 
 app.include_router(auth_router.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
+app.include_router(drawings_router.router, tags=["Drawings"])  # Multiple drawings support (prefix in router)
 app.include_router(operations_router.router, prefix="/api/operations", tags=["Operations"])
 app.include_router(features_router.router, prefix="/api/features", tags=["Features"])
 app.include_router(batches_router.router, prefix="/api/batches", tags=["Batches"])

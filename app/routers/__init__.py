@@ -3,6 +3,7 @@
 from app.routers import (
     auth_router,
     parts_router,
+    drawings_router,  # Multiple drawings per part support
     operations_router,
     features_router,
     batches_router,

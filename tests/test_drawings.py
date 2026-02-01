@@ -403,6 +403,55 @@ async def test_cleanup_no_expired_files(drawing_service, valid_pdf_bytes):
 
 
 # ============================================================================
+# MULTIPLE DRAWINGS SUPPORT TESTS
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_calculate_file_hash(drawing_service, valid_pdf_bytes):
+    """Calculate SHA-256 hash of file"""
+    # Create test file
+    test_file = drawing_service.TEMP_DIR / "test_hash.pdf"
+    test_file.write_bytes(valid_pdf_bytes)
+
+    # Calculate hash
+    file_hash = await drawing_service.calculate_file_hash(test_file)
+
+    # Verify
+    assert len(file_hash) == 64
+    assert file_hash.isalnum()  # Only hex chars
+    assert file_hash.islower()  # Lowercase hex
+
+    # Same file should produce same hash
+    file_hash2 = await drawing_service.calculate_file_hash(test_file)
+    assert file_hash == file_hash2
+
+    # Cleanup
+    test_file.unlink()
+
+
+@pytest.mark.asyncio
+async def test_calculate_file_hash_different_content(drawing_service, valid_pdf_bytes):
+    """Different files produce different hashes"""
+    # Create two different files
+    file1 = drawing_service.TEMP_DIR / "file1.pdf"
+    file2 = drawing_service.TEMP_DIR / "file2.pdf"
+
+    file1.write_bytes(valid_pdf_bytes)
+    file2.write_bytes(valid_pdf_bytes + b"\nExtra content")
+
+    # Calculate hashes
+    hash1 = await drawing_service.calculate_file_hash(file1)
+    hash2 = await drawing_service.calculate_file_hash(file2)
+
+    # Verify different
+    assert hash1 != hash2
+
+    # Cleanup
+    file1.unlink()
+    file2.unlink()
+
+
+# ============================================================================
 # INTEGRATION TESTS (require test client + DB)
 # ============================================================================
 
@@ -411,7 +460,24 @@ async def test_cleanup_no_expired_files(drawing_service, valid_pdf_bytes):
 
 # TODO: Add integration tests with actual HTTP requests:
 # - POST /api/uploads/temp (temp upload)
-# - POST /api/parts/{part_number}/drawing (permanent upload)
-# - GET /api/parts/{part_number}/drawing (download)
-# - DELETE /api/parts/{part_number}/drawing (delete)
+# - POST /api/parts/{part_number}/drawing (permanent upload - DEPRECATED)
+# - GET /api/parts/{part_number}/drawing (download - DEPRECATED)
+# - DELETE /api/parts/{part_number}/drawing (delete - DEPRECATED)
 # - POST /api/parts with temp_drawing_id (create with drawing)
+
+# NEW MULTIPLE DRAWINGS ENDPOINTS:
+# - GET    /api/parts/{part_number}/drawings (list all drawings)
+# - POST   /api/parts/{part_number}/drawings (upload new drawing)
+# - PUT    /api/parts/{part_number}/drawings/{id}/primary (set as primary)
+# - DELETE /api/parts/{part_number}/drawings/{id} (soft delete)
+# - GET    /api/parts/{part_number}/drawings/{id} (download specific drawing)
+
+# Test scenarios for multiple drawings:
+# 1. Upload first drawing → auto-set is_primary=True
+# 2. Upload second drawing → first stays primary
+# 3. Set second drawing as primary → first loses primary flag
+# 4. Delete primary drawing → auto-promote oldest remaining
+# 5. Upload duplicate file (same hash) → HTTP 409
+# 6. List drawings → primary first in list
+# 7. Soft delete drawing → excluded from list
+# 8. Part delete → cascade delete all drawings

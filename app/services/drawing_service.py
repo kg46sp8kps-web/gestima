@@ -7,6 +7,7 @@ Security-focused service for handling PDF drawing uploads:
 - Temp file cleanup
 """
 
+import hashlib
 import logging
 import re
 import shutil
@@ -14,6 +15,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from fastapi import HTTPException, UploadFile
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -343,3 +346,281 @@ class DrawingService:
         except Exception as e:
             logger.error(f"Temp file cleanup failed: {e}", exc_info=True)
             return deleted_count
+
+    # ==================== MULTIPLE DRAWINGS SUPPORT ====================
+
+    async def calculate_file_hash(self, file_path: Path) -> str:
+        """
+        Calculate SHA-256 hash of file for deduplication.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            str: Hex digest of SHA-256 hash (64 characters)
+        """
+        sha256_hash = hashlib.sha256()
+        with file_path.open("rb") as f:
+            # Read file in chunks to avoid memory issues with large files
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
+    async def save_drawing_record(
+        self,
+        part_id: int,
+        file_path: str,
+        filename: str,
+        file_size: int,
+        file_hash: str,
+        is_primary: bool,
+        revision: str,
+        created_by: str,
+        db: AsyncSession
+    ) -> "Drawing":
+        """
+        Create Drawing record in database.
+
+        Transaction handling (L-008):
+        - Check duplicate hash (HTTP 409 if exists)
+        - If is_primary=True, unset others
+        - Create record
+        - Commit handled by caller
+
+        Args:
+            part_id: ID dílu
+            file_path: Relativní cesta k souboru
+            filename: Původní název souboru
+            file_size: Velikost v bytech
+            file_hash: SHA-256 hash
+            is_primary: Primární výkres?
+            revision: Revize výkresu
+            created_by: Username uživatele
+            db: Database session
+
+        Returns:
+            Drawing: Vytvořený záznam
+
+        Raises:
+            HTTPException 409: Duplicate hash (file already exists)
+            HTTPException 500: Database error
+        """
+        from app.models.drawing import Drawing
+
+        try:
+            # Check duplicate hash
+            result = await db.execute(
+                select(Drawing).where(
+                    Drawing.file_hash == file_hash,
+                    Drawing.deleted_at.is_(None)
+                )
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                logger.warning(f"Duplicate file hash detected: {file_hash}")
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Tento soubor již existuje (díl {existing.part_id}, výkres ID {existing.id})"
+                )
+
+            # If is_primary=True, unset others for this part
+            if is_primary:
+                await db.execute(
+                    update(Drawing)
+                    .where(
+                        Drawing.part_id == part_id,
+                        Drawing.deleted_at.is_(None)
+                    )
+                    .values(is_primary=False, updated_at=datetime.utcnow())
+                )
+                logger.info(f"Unset is_primary for all drawings of part_id={part_id}")
+
+            # Create new drawing record
+            drawing = Drawing(
+                part_id=part_id,
+                file_path=file_path,
+                filename=filename,
+                file_size=file_size,
+                file_hash=file_hash,
+                is_primary=is_primary,
+                revision=revision,
+                created_by=created_by,
+                updated_by=created_by
+            )
+            db.add(drawing)
+            await db.flush()  # Get ID without committing
+
+            logger.info(
+                f"Created drawing record: ID={drawing.id}, part_id={part_id}, "
+                f"filename='{filename}', primary={is_primary}, revision={revision}"
+            )
+
+            return drawing
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to create drawing record: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Chyba při vytváření záznamu výkresu")
+
+    async def set_primary_drawing(
+        self,
+        drawing_id: int,
+        db: AsyncSession
+    ) -> "Drawing":
+        """
+        Set drawing as primary, unset others for same part.
+
+        Transaction handling (L-008):
+        - Get drawing (404 if not found)
+        - Unset is_primary for all drawings in same part
+        - Set is_primary=True for this drawing
+        - Commit handled by caller
+
+        Args:
+            drawing_id: ID výkresu
+            db: Database session
+
+        Returns:
+            Drawing: Aktualizovaný výkres
+
+        Raises:
+            HTTPException 404: Drawing not found
+            HTTPException 400: Drawing is soft-deleted
+            HTTPException 500: Database error
+        """
+        from app.models.drawing import Drawing
+
+        try:
+            # Get drawing
+            result = await db.execute(
+                select(Drawing).where(Drawing.id == drawing_id)
+            )
+            drawing = result.scalar_one_or_none()
+
+            if not drawing:
+                raise HTTPException(status_code=404, detail="Výkres nebyl nalezen")
+
+            if drawing.deleted_at is not None:
+                raise HTTPException(status_code=400, detail="Nelze nastavit smazaný výkres jako primární")
+
+            # Already primary? No-op
+            if drawing.is_primary:
+                logger.debug(f"Drawing {drawing_id} is already primary")
+                return drawing
+
+            # Unset is_primary for all drawings in same part
+            await db.execute(
+                update(Drawing)
+                .where(
+                    Drawing.part_id == drawing.part_id,
+                    Drawing.deleted_at.is_(None)
+                )
+                .values(is_primary=False, updated_at=datetime.utcnow())
+            )
+
+            # Set this drawing as primary
+            drawing.is_primary = True
+            drawing.updated_at = datetime.utcnow()
+            drawing.version += 1
+
+            logger.info(
+                f"Set drawing {drawing_id} as primary (part_id={drawing.part_id}, "
+                f"filename='{drawing.filename}')"
+            )
+
+            return drawing
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to set primary drawing {drawing_id}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Chyba při nastavování primárního výkresu")
+
+    async def get_primary_drawing(
+        self,
+        part_id: int,
+        db: AsyncSession
+    ) -> Optional["Drawing"]:
+        """
+        Get primary drawing for part.
+
+        Args:
+            part_id: ID dílu
+            db: Database session
+
+        Returns:
+            Drawing | None: Primární výkres nebo None
+        """
+        from app.models.drawing import Drawing
+
+        try:
+            result = await db.execute(
+                select(Drawing)
+                .where(
+                    Drawing.part_id == part_id,
+                    Drawing.is_primary == True,
+                    Drawing.deleted_at.is_(None)
+                )
+                .order_by(Drawing.created_at.desc())
+                .limit(1)
+            )
+            return result.scalar_one_or_none()
+
+        except Exception as e:
+            logger.error(f"Failed to get primary drawing for part {part_id}: {e}", exc_info=True)
+            return None
+
+    async def auto_promote_primary(
+        self,
+        part_id: int,
+        db: AsyncSession
+    ) -> Optional["Drawing"]:
+        """
+        Auto-promote oldest non-deleted drawing to primary.
+        Called after primary drawing deletion.
+
+        Args:
+            part_id: ID dílu
+            db: Database session
+
+        Returns:
+            Drawing | None: Newly promoted drawing or None if no drawings left
+
+        Raises:
+            HTTPException 500: Database error
+        """
+        from app.models.drawing import Drawing
+
+        try:
+            # Find oldest non-deleted drawing
+            result = await db.execute(
+                select(Drawing)
+                .where(
+                    Drawing.part_id == part_id,
+                    Drawing.deleted_at.is_(None)
+                )
+                .order_by(Drawing.created_at.asc())
+                .limit(1)
+            )
+            drawing = result.scalar_one_or_none()
+
+            if not drawing:
+                logger.debug(f"No drawings left for part {part_id} after delete")
+                return None
+
+            # Promote to primary
+            drawing.is_primary = True
+            drawing.updated_at = datetime.utcnow()
+            drawing.version += 1
+
+            logger.info(
+                f"Auto-promoted drawing {drawing.id} to primary "
+                f"(part_id={part_id}, filename='{drawing.filename}')"
+            )
+
+            return drawing
+
+        except Exception as e:
+            logger.error(f"Failed to auto-promote primary for part {part_id}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Chyba při automatickém povýšení primárního výkresu")

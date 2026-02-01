@@ -21,10 +21,20 @@ import { FileText, AlertTriangle, Download } from 'lucide-vue-next'
 
 interface Props {
   linkingGroup?: LinkingGroup
+  windowTitle?: string // Window title (contains drawing ID if specific drawing)
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  linkingGroup: null
+  linkingGroup: null,
+  windowTitle: undefined
+})
+
+// Parse drawing ID from window title
+// Pattern: "Drawing #123 - PN001" where 123 is drawing_id
+const drawingIdFromTitle = computed(() => {
+  if (!props.windowTitle) return undefined
+  const match = props.windowTitle.match(/Drawing #(\d+)/)
+  return match && match[1] ? parseInt(match[1], 10) : undefined
 })
 
 const partsStore = usePartsStore()
@@ -48,7 +58,8 @@ const contextPartId = computed(() => {
 
 const drawingUrl = computed(() => {
   if (!currentPart.value?.part_number) return ''
-  return drawingsApi.getDrawingUrl(currentPart.value.part_number)
+  // If specific drawing ID is provided (parsed from title), use it; otherwise use primary
+  return drawingsApi.getDrawingUrl(currentPart.value.part_number, drawingIdFromTitle.value)
 })
 
 const hasDrawing = computed(() => !!currentPart.value?.drawing_path)
@@ -96,7 +107,7 @@ onMounted(async () => {
     <div v-else-if="!hasDrawing" class="empty-state">
       <AlertTriangle :size="64" class="empty-icon" />
       <p>No drawing available</p>
-      <p class="empty-hint">Part: {{ currentPart.part_number }}</p>
+      <p class="empty-hint">Part: {{ currentPart.article_number || currentPart.part_number }}</p>
     </div>
 
     <!-- Drawing viewer -->
@@ -104,7 +115,7 @@ onMounted(async () => {
       <!-- Toolbar -->
       <div class="drawing-toolbar">
         <div class="toolbar-info">
-          <span class="part-badge">{{ currentPart.part_number }}</span>
+          <span class="part-badge">{{ currentPart.article_number || currentPart.part_number }}</span>
           <span class="drawing-label">{{ currentPart.drawing_path || 'Drawing' }}</span>
         </div>
         <button class="btn-download" @click="handleDownload" title="Download PDF">
