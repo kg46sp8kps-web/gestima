@@ -227,6 +227,13 @@ async function handleDrop(event: DragEvent) {
     return
   }
 
+  if (draggedOpId.value === dragOverOpId.value) {
+    // Dropping on itself, no change
+    draggedOpId.value = null
+    dragOverOpId.value = null
+    return
+  }
+
   const draggedOp = operations.value.find(op => op.id === draggedOpId.value)
   if (!draggedOp) {
     draggedOpId.value = null
@@ -245,12 +252,21 @@ async function handleDrop(event: DragEvent) {
     return
   }
 
+  // Calculate insert position BEFORE removing
+  // Gap shows ABOVE dragOverOpId, so we insert BEFORE it
+  let insertIndex = targetIndex
+
+  // If dragged element is before target, adjust index
+  // (after removal, everything shifts left)
+  if (draggedIndex < targetIndex) {
+    insertIndex--
+  }
+
   // Remove from old position
   sorted.splice(draggedIndex, 1)
 
-  // Insert BEFORE target (gap shows ABOVE dragOverOpId)
-  const newTargetIndex = sorted.findIndex(op => op.id === dragOverOpId.value)
-  sorted.splice(newTargetIndex, 0, draggedOp)
+  // Insert at calculated position
+  sorted.splice(insertIndex, 0, draggedOp)
 
   // Renumber all operations 10-20-30...
   sorted.forEach((op, index) => {
