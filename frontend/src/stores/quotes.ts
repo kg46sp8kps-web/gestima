@@ -11,7 +11,9 @@ import type {
   QuoteUpdate,
   QuoteItemCreate,
   QuoteItemUpdate,
-  QuoteStatus
+  QuoteStatus,
+  QuoteRequestReview,
+  QuoteFromRequestCreate
 } from '@/types/quote'
 import * as quotesApi from '@/api/quotes'
 import { useUiStore } from './ui'
@@ -27,6 +29,10 @@ export const useQuotesStore = defineStore('quotes', () => {
   const searchQuery = ref('')
   const skip = ref(0)
   const limit = ref(50)
+
+  // AI Quote Request Parsing state
+  const aiParsing = ref(false)
+  const aiReview = ref<QuoteRequestReview | null>(null)
 
   // Computed - Filter by status
   const hasQuotes = computed(() => quotes.value.length > 0)
@@ -293,6 +299,55 @@ export const useQuotesStore = defineStore('quotes', () => {
     }
   }
 
+  // Actions - AI Quote Request Parsing (ADR-028)
+  async function parseQuoteRequestPDF(file: File) {
+    aiParsing.value = true
+    aiReview.value = null
+    try {
+      aiReview.value = await quotesApi.parseQuoteRequest(file)
+      ui.showSuccess('PDF úspěšně zpracováno AI')
+      return aiReview.value
+    } catch (error: any) {
+      // Handle specific error codes
+      if (error.response?.status === 413) {
+        ui.showError('PDF je příliš velké (max 10 MB)')
+      } else if (error.response?.status === 429) {
+        ui.showError('Překročen limit AI parsování (10/hod). Zkuste později.')
+      } else if (error.response?.status === 500) {
+        ui.showError('AI parsing selhal. Zkontrolujte kvalitu PDF.')
+      } else {
+        ui.showError(error.message || 'Chyba při parsování PDF')
+      }
+      throw error
+    } finally {
+      aiParsing.value = false
+    }
+  }
+
+  async function createQuoteFromParsedRequest(data: QuoteFromRequestCreate) {
+    loading.value = true
+    try {
+      const newQuote = await quotesApi.createQuoteFromRequest(data)
+      quotes.value.unshift(newQuote)
+      total.value++
+
+      // Clear AI state
+      aiReview.value = null
+
+      ui.showSuccess(`Nabídka ${newQuote.quote_number} vytvořena z poptávky`)
+      return newQuote
+    } catch (error: any) {
+      ui.showError(error.message || 'Chyba při vytváření nabídky z poptávky')
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function clearAiReview() {
+    aiReview.value = null
+  }
+
   // Pagination
   function setSearchQuery(query: string) {
     searchQuery.value = query
@@ -342,6 +397,8 @@ export const useQuotesStore = defineStore('quotes', () => {
     searchQuery,
     skip,
     limit,
+    aiParsing,
+    aiReview,
 
     // Computed
     hasQuotes,
@@ -370,6 +427,11 @@ export const useQuotesStore = defineStore('quotes', () => {
     addQuoteItem,
     updateQuoteItem,
     deleteQuoteItem,
+
+    // Actions - AI Quote Request Parsing
+    parseQuoteRequestPDF,
+    createQuoteFromParsedRequest,
+    clearAiReview,
 
     // Pagination
     setSearchQuery,

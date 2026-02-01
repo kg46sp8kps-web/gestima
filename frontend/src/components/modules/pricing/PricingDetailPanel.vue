@@ -7,7 +7,8 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useBatchesStore } from '@/stores/batches'
 import type { Batch } from '@/types/batch'
 import type { LinkingGroup } from '@/stores/windows'
-import { DollarSign, Trash2, Snowflake, RefreshCw, BarChart3 } from 'lucide-vue-next'
+import { DollarSign, Trash2, Snowflake, BarChart3 } from 'lucide-vue-next'
+import Tooltip from '@/components/ui/Tooltip.vue'
 
 interface Props {
   partId: number | null
@@ -66,6 +67,11 @@ const setOptions = computed(() => {
   return options
 })
 
+// Frozen sets count
+const frozenSetsCount = computed(() => {
+  return batchSets.value.filter(s => s.status === 'frozen').length
+})
+
 // Format price
 function formatPrice(value: number | null | undefined): string {
   if (value == null || isNaN(value)) return '0,00'
@@ -93,15 +99,16 @@ async function addBatchInline() {
   try {
     await batchesStore.createBatch(newQuantity.value, props.linkingGroup)
     newQuantity.value = 100 // Reset to default
-    // Keep focus on input for quick consecutive additions
-    await nextTick()
-    // Focus on ribbon input (the one in the main view)
-    await nextTick() // Double nextTick to ensure DOM is fully updated
-    ribbonInputRef.value?.focus()
   } catch (error) {
     // Error handled in store
   } finally {
     saving.value = false
+    // Keep focus and select content after save completes
+    await nextTick()
+    if (ribbonInputRef.value) {
+      ribbonInputRef.value.focus()
+      ribbonInputRef.value.select()
+    }
   }
 }
 
@@ -237,49 +244,54 @@ watch(displayedBatches, (newBatches) => {
             </select>
           </div>
 
-          <!-- Inline Add Batch (only for active set) -->
-          <div v-if="selectedSet === null || selectedSet.status === 'draft'" class="add-batch-inline">
-            <label class="add-label">Nová dávka (ks)</label>
-            <div class="add-input-row">
-              <input
-                ref="ribbonInputRef"
-                v-model.number="newQuantity"
-                type="number"
-                class="add-input"
-                min="1"
-                placeholder="100"
-                @keyup.enter="addBatchInline"
-                :disabled="!partId || saving"
-                v-select-on-focus
-              />
-              <button
-                class="add-btn"
-                @click="addBatchInline"
-                :disabled="!partId || saving || !newQuantity || newQuantity < 1"
-              >
-                +
-              </button>
+          <!-- Left side: Frozen Sets Count -->
+          <div class="panel-left">
+            <div class="sets-count">
+              <span class="sets-label">Sady:</span>
+              <span class="sets-value">{{ frozenSetsCount }}</span>
             </div>
           </div>
 
-          <!-- Actions (only for active set) -->
-          <div v-if="selectedSet === null || selectedSet.status === 'draft'" class="panel-actions">
-            <button
-              class="panel-btn"
-              @click="recalculateBatches"
-              :disabled="!partId || saving || displayedBatches.length === 0"
+          <!-- Right side: Add batch + Freeze button (always rendered to prevent layout shift) -->
+          <div class="panel-right">
+            <div
+              class="add-batch-inline"
+              :class="{ 'hidden-no-layout-shift': selectedSet !== null && selectedSet.status === 'frozen' }"
             >
-              <RefreshCw :size="14" />
-              Přepočítat
-            </button>
-            <button
-              class="panel-btn freeze-all"
-              @click="freezeActiveSet"
-              :disabled="!partId || saving || displayedBatches.length === 0"
+              <label class="add-label">Nová dávka (ks)</label>
+              <div class="add-input-row">
+                <input
+                  ref="ribbonInputRef"
+                  v-model.number="newQuantity"
+                  type="number"
+                  class="add-input"
+                  min="1"
+                  placeholder="100"
+                  @keyup.enter="addBatchInline"
+                  :disabled="!partId || saving"
+                  v-select-on-focus
+                />
+                <button
+                  class="add-btn"
+                  @click="addBatchInline"
+                  :disabled="!partId || saving || !newQuantity || newQuantity < 1"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <Tooltip
+              text="Zmrazit sadu"
+              :class="{ 'hidden-no-layout-shift': selectedSet !== null && selectedSet.status === 'frozen' }"
             >
-              <Snowflake :size="14" />
-              Zmrazit sadu
-            </button>
+              <button
+                class="freeze-btn"
+                @click="freezeActiveSet"
+                :disabled="!partId || saving || displayedBatches.length === 0"
+              >
+                <Snowflake :size="20" :stroke-width="2" class="freeze-icon" />
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -295,7 +307,7 @@ watch(displayedBatches, (newBatches) => {
               <th class="col-cost">Materiál</th>
               <th class="col-cost">Koop</th>
               <th class="col-breakdown">Rozklad nákladů</th>
-              <th class="col-cost">Cena práce</th>
+              <th class="col-cost">Práce</th>
               <th class="col-cost">Režie</th>
               <th class="col-cost">Marže</th>
               <th class="col-price">Cena/ks</th>
@@ -372,11 +384,15 @@ watch(displayedBatches, (newBatches) => {
               <h4>Ceny</h4>
               <div class="detail-row">
                 <span class="label">Cena za kus:</span>
-                <span class="value">{{ formatPrice(selectedBatch.unit_price) }} Kč</span>
+                <span class="value">{{ formatPrice(selectedBatch.unit_cost) }} Kč</span>
               </div>
               <div class="detail-row">
                 <span class="label">Celková cena:</span>
                 <span class="value">{{ formatPrice(selectedBatch.total_cost) }} Kč</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Množství:</span>
+                <span class="value">{{ selectedBatch.quantity }} ks</span>
               </div>
               <div class="detail-row">
                 <span class="label">Čas na kus:</span>
@@ -457,7 +473,7 @@ watch(displayedBatches, (newBatches) => {
   flex-direction: column;
   gap: var(--space-4);
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   padding: var(--space-4);
 }
 
@@ -594,15 +610,19 @@ watch(displayedBatches, (newBatches) => {
 
 /* Info Panel (top ribbon) */
 .info-panel {
-  background: var(--bg-raised);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-surface);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .panel-content {
   display: grid;
-  grid-template-columns: 200px 180px auto;
-  gap: var(--space-6);
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-4);
   align-items: center;
 }
 
@@ -637,12 +657,54 @@ watch(displayedBatches, (newBatches) => {
   background: var(--state-focus-bg);
 }
 
+/* Panel Left (Sets Count) */
+.panel-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.sets-count {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.sets-label {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+}
+
+.sets-value {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
+  color: var(--color-primary);
+}
+
+/* Panel Right (Add Batch + Freeze) */
+.panel-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* Hidden but maintains layout space (prevents grid shift) */
+.hidden-no-layout-shift {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Batches List */
 .batches-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .info-stats {
@@ -676,10 +738,6 @@ watch(displayedBatches, (newBatches) => {
   color: var(--palette-success);
 }
 
-.panel-actions {
-  display: flex;
-  gap: var(--space-2);
-}
 
 .panel-btn {
   display: inline-flex;
@@ -707,14 +765,36 @@ watch(displayedBatches, (newBatches) => {
   cursor: not-allowed;
 }
 
-.panel-btn.freeze-all {
-  background: rgba(5, 150, 105, 0.1);
-  border-color: var(--palette-success);
-  color: var(--palette-success);
+/* Freeze button (icon only) */
+.freeze-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
-.panel-btn.freeze-all:hover:not(:disabled) {
-  background: rgba(5, 150, 105, 0.2);
+.freeze-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.freeze-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.freeze-icon {
+  color: rgb(147, 197, 253);
+}
+
+.freeze-btn:hover:not(:disabled) .freeze-icon {
+  color: rgb(96, 165, 250);
 }
 
 /* Batches Table */
@@ -736,12 +816,16 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .batches-table th {
-  background: var(--bg-raised);
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
   font-weight: var(--font-semibold);
   font-size: var(--text-sm);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--border-default);
 }
 
 .batches-table tr:hover {

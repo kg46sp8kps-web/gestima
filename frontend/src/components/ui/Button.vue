@@ -48,7 +48,7 @@ const handleClick = (event: MouseEvent) => {
 </script>
 
 <style scoped>
-/* === BASE BUTTON === */
+/* === BASE BUTTON (Refined & Subtle) === */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -57,7 +57,7 @@ const handleClick = (event: MouseEvent) => {
   font-family: var(--font-sans);
   font-weight: var(--font-medium);
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
+  border: 1px solid transparent; /* Subtle borders */
   cursor: pointer;
   transition: var(--transition-fast);
   white-space: nowrap;
@@ -95,19 +95,22 @@ const handleClick = (event: MouseEvent) => {
 
 /* === VARIANTS === */
 
-/* Primary (RED!) */
+/* Primary (RED!) - Business & Professional */
 .btn-primary {
-  background: var(--color-primary);
+  background: var(--color-primary); /* Dark red #991b1b */
   color: white;
+  border-color: var(--color-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-hover); /* Logo red #E84545 */
+  border-color: var(--color-primary-hover);
 }
 
 .btn-primary:active:not(:disabled) {
   background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
   transform: translateY(1px);
 }
 

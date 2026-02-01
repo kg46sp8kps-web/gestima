@@ -66,8 +66,14 @@ const contextPartId = computed(() => {
 
 const drawingUrl = computed(() => {
   if (!currentPart.value?.part_number) return ''
-  // If specific drawing ID is provided (parsed from title), use it; otherwise use primary
-  return drawingsApi.getDrawingUrl(currentPart.value.part_number, drawingIdFromTitle.value)
+  let url = drawingsApi.getDrawingUrl(currentPart.value.part_number, drawingIdFromTitle.value)
+
+  // Cache-busting for primary drawing: append drawing_path to force iframe reload when primary changes
+  if (!drawingIdFromTitle.value && currentPart.value.drawing_path) {
+    url += `?v=${encodeURIComponent(currentPart.value.drawing_path)}`
+  }
+
+  return url
 })
 
 // Check if drawing exists:
@@ -87,11 +93,27 @@ function handleDownload() {
   window.open(drawingUrl.value, '_blank')
 }
 
+// Watch for updates to parts in store (e.g., after drawing upload)
+// This ensures currentPart is always in sync when partsStore refreshes
+watch(
+  () => partsStore.parts,
+  (parts) => {
+    if (currentPart.value) {
+      const updatedPart = parts.find(p => p.id === currentPart.value!.id)
+      if (updatedPart) {
+        currentPart.value = updatedPart
+      }
+    }
+  }
+)
+
 // Watch context changes and load part
 watch(contextPartId, async (newPartId) => {
   if (newPartId) {
-    // Fetch fresh parts to ensure drawing_path is synced
-    await partsStore.fetchParts()
+    // Only fetch if parts not loaded yet (prevents list refresh/scroll reset)
+    if (partsStore.parts.length === 0) {
+      await partsStore.fetchParts()
+    }
     const part = partsStore.parts.find(p => p.id === newPartId)
     if (part) {
       currentPart.value = part
@@ -102,7 +124,10 @@ watch(contextPartId, async (newPartId) => {
 // Watch part number from title (for standalone windows opened from modal)
 watch(partNumberFromTitle, async (partNumber) => {
   if (partNumber) {
-    await partsStore.fetchParts()
+    // Only fetch if parts not loaded yet (prevents list refresh/scroll reset)
+    if (partsStore.parts.length === 0) {
+      await partsStore.fetchParts()
+    }
     const part = partsStore.parts.find(p => p.part_number === partNumber)
     if (part) {
       currentPart.value = part
@@ -112,7 +137,10 @@ watch(partNumberFromTitle, async (partNumber) => {
 
 // Load parts on mount
 onMounted(async () => {
-  await partsStore.fetchParts()
+  // Only fetch if parts not loaded yet (prevents list refresh/scroll reset)
+  if (partsStore.parts.length === 0) {
+    await partsStore.fetchParts()
+  }
 
   // Priority 1: Load from title (standalone window from modal)
   if (partNumberFromTitle.value) {

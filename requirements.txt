@@ -27,6 +27,9 @@ passlib[bcrypt]>=1.7.4
 bcrypt==4.1.3
 slowapi>=0.1.9
 
+# === AI SERVICES ===
+anthropic>=0.39.0
+
 # === UTILS ===
 python-dotenv>=1.0.0
 httpx>=0.26.0

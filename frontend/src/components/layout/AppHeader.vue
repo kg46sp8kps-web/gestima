@@ -4,11 +4,13 @@
  * Menu vlevo, Search + 3 oblíbené layouty, Logo + GESTIMA vpravo
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useWindowsStore } from '@/stores/windows'
-import { Menu, X, Search, Star, Save, FolderOpen, FilePlus, Settings as SettingsIcon } from 'lucide-vue-next'
+import { Menu, X, Search, Save, FolderOpen, FilePlus, Settings as SettingsIcon, Package, DollarSign, Cog, Box, Layers, LayoutGrid, AlignHorizontalSpaceAround, AlignVerticalSpaceAround } from 'lucide-vue-next'
+import ManageLayoutsModal from '@/components/modals/ManageLayoutsModal.vue'
+import Tooltip from '@/components/ui/Tooltip.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -19,14 +21,36 @@ const showMenu = ref(false)
 const searchQuery = ref('')
 const showSaveDialog = ref(false)
 const saveLayoutName = ref('')
+const showManageLayoutsModal = ref(false)
+const showArrangeDropdown = ref(false)
 
-// Available modules for search
+// Custom module mapping for quick buttons
+const customQuickModules = ref<Record<number, { value: string; label: string } | null>>({
+  0: null, // Slot 0 = default Part Main
+  1: null, // Slot 1 = default Pricing
+  2: null, // Slot 2 = default Operations
+  3: null, // Slot 3 = default Material
+  4: null  // Slot 4 = default Batch Sets
+})
+
+const showModuleSelector = ref<number | null>(null) // Which slot's context menu is open
+
+// Available modules for search (with icons for context menu)
 const availableModules = [
-  { value: 'part-main', label: 'Part Main' },
-  { value: 'part-pricing', label: 'Pricing' },
-  { value: 'part-operations', label: 'Operations' },
-  { value: 'part-material', label: 'Material' },
-  { value: 'batch-sets', label: 'Batch Sets' }
+  { value: 'part-main', label: 'Part Main', icon: Package },
+  { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
+  { value: 'part-operations', label: 'Operations', icon: Cog },
+  { value: 'part-material', label: 'Material', icon: Box },
+  { value: 'batch-sets', label: 'Batch Sets', icon: Layers }
+]
+
+// Quick module buttons (fixed 5)
+const quickModules = [
+  { value: 'part-main', label: 'Part Main', icon: Package },
+  { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
+  { value: 'part-operations', label: 'Operations', icon: Cog },
+  { value: 'part-material', label: 'Material', icon: Box },
+  { value: 'batch-sets', label: 'Batch Sets', icon: Layers }
 ]
 
 // Filtered modules based on search
@@ -36,10 +60,36 @@ const filteredModules = computed(() => {
   return availableModules.filter(m => m.label.toLowerCase().includes(query))
 })
 
-// Top 3 favorite layouts
-const topFavorites = computed(() =>
-  windowsStore.favoriteViews.slice(0, 3)
-)
+// Top 3 favorite layouts (dynamic)
+const topFavorites = computed(() => windowsStore.favoriteViews.slice(0, 3))
+
+// Load custom module mapping from localStorage
+onMounted(() => {
+  const saved = localStorage.getItem('gestima_custom_quick_modules')
+  if (saved) {
+    customQuickModules.value = JSON.parse(saved)
+  }
+})
+
+// Save custom modules to localStorage
+function saveCustomModules() {
+  localStorage.setItem('gestima_custom_quick_modules', JSON.stringify(customQuickModules.value))
+}
+
+// Get effective module (custom or default)
+function getEffectiveModule(slotIndex: number) {
+  const custom = customQuickModules.value[slotIndex]
+  if (custom) {
+    // Find icon from availableModules
+    const moduleWithIcon = availableModules.find(m => m.value === custom.value)
+    return {
+      value: custom.value,
+      label: custom.label,
+      icon: moduleWithIcon?.icon || Package
+    }
+  }
+  return quickModules[slotIndex]
+}
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
@@ -60,14 +110,44 @@ function openModule(moduleValue: string, label: string) {
   searchQuery.value = ''
 }
 
-function loadFavoriteLayout(viewId: string) {
-  windowsStore.loadView(viewId)
+function openQuickModule(moduleValue: string, label: string) {
+  windowsStore.openWindow(moduleValue as any, label)
+}
+
+// Quick button handlers
+function handleQuickButtonClick(slotIndex: number) {
+  const module = getEffectiveModule(slotIndex)
+  windowsStore.openWindow(module.value as any, module.label)
+}
+
+function handleQuickButtonRightClick(event: MouseEvent, slotIndex: number) {
+  event.preventDefault() // Prevent browser context menu
+  showModuleSelector.value = slotIndex
+}
+
+function assignCustomModule(slotIndex: number, moduleValue: string, label: string) {
+  customQuickModules.value[slotIndex] = { value: moduleValue, label }
+  saveCustomModules()
+  showModuleSelector.value = null
+}
+
+function resetToDefault(slotIndex: number) {
+  customQuickModules.value[slotIndex] = null
+  saveCustomModules()
+  showModuleSelector.value = null
+}
+
+function closeModuleSelector() {
+  showModuleSelector.value = null
+}
+
+// Favorite actions
+function loadFavoriteLayout(layoutId: string) {
+  windowsStore.loadView(layoutId)
 }
 
 function handleNewLayout() {
-  if (confirm('Close all windows and start new layout?')) {
-    windowsStore.closeAllWindows()
-  }
+  windowsStore.closeAllWindows()
   closeMenu()
 }
 
@@ -91,40 +171,48 @@ function confirmSaveLayout() {
   saveLayoutName.value = ''
 }
 
-function handleLoadLayout() {
-  closeMenu()
-  router.push('/windows')
-}
-
 function handleManageLayouts() {
   closeMenu()
-  router.push('/settings')
+  showManageLayoutsModal.value = true
+}
+
+function toggleArrangeDropdown() {
+  showArrangeDropdown.value = !showArrangeDropdown.value
+}
+
+function arrangeWindows(mode: 'grid' | 'horizontal' | 'vertical') {
+  windowsStore.arrangeWindows(mode)
+  showArrangeDropdown.value = false
+}
+
+function closeAllWindows() {
+  windowsStore.closeAllWindows()
 }
 </script>
 
 <template>
   <header class="app-header">
     <div class="header-content">
-      <!-- Left: Menu Button -->
-      <button
-        class="menu-btn"
-        :class="{ 'is-open': showMenu }"
-        @click="toggleMenu"
-        title="Menu"
-      >
-        <Menu v-if="!showMenu" :size="20" />
-        <X v-if="showMenu" :size="20" />
-      </button>
+      <!-- Left: Menu Button + Search + Actions + Layouts -->
+      <div class="header-left">
+        <Tooltip text="Menu" :delay="750">
+          <button
+            class="menu-btn"
+            :class="{ 'is-open': showMenu }"
+            @click="toggleMenu"
+          >
+            <Menu v-if="!showMenu" :size="20" />
+            <X v-if="showMenu" :size="20" />
+          </button>
+        </Tooltip>
 
-      <!-- Center: Search + Favorite Layouts -->
-      <div class="header-center">
         <!-- Search for modules -->
         <div class="search-container" v-if="route.path === '/windows'">
           <Search :size="16" class="search-icon" />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search modules..."
+            placeholder="search modules"
             class="search-input"
           />
           <!-- Search results dropdown -->
@@ -140,30 +228,115 @@ function handleManageLayouts() {
           </div>
         </div>
 
-        <!-- Top 3 Favorite Layouts -->
+        <!-- Window Actions (Arrange + Close All) -->
+        <div class="window-actions" v-if="route.path === '/windows'">
+          <!-- Arrange Dropdown -->
+          <div class="action-wrapper">
+            <Tooltip text="Arrange windows" :delay="750">
+              <button
+                class="action-btn"
+                @click="toggleArrangeDropdown"
+              >
+                <LayoutGrid :size="16" />
+              </button>
+            </Tooltip>
+            <Transition name="dropdown-fade">
+              <div v-if="showArrangeDropdown" class="arrange-dropdown" @click.stop>
+                <button class="arrange-option" @click="arrangeWindows('grid')">
+                  <LayoutGrid :size="14" />
+                  <span>Grid</span>
+                </button>
+                <button class="arrange-option" @click="arrangeWindows('horizontal')">
+                  <AlignHorizontalSpaceAround :size="14" />
+                  <span>Horizontal</span>
+                </button>
+                <button class="arrange-option" @click="arrangeWindows('vertical')">
+                  <AlignVerticalSpaceAround :size="14" />
+                  <span>Vertical</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Close All -->
+          <Tooltip text="Close all windows" :delay="750">
+            <button
+              class="action-btn"
+              @click="closeAllWindows"
+            >
+              <X :size="16" />
+            </button>
+          </Tooltip>
+        </div>
+
+        <!-- Dynamic Favorite Layouts (max 3) -->
         <div class="favorite-layouts" v-if="route.path === '/windows' && topFavorites.length > 0">
-          <button
+          <Tooltip
             v-for="fav in topFavorites"
             :key="fav.id"
-            @click="loadFavoriteLayout(fav.id)"
-            class="favorite-btn"
-            :class="{ active: windowsStore.currentViewId === fav.id }"
-            :title="fav.name"
+            :text="fav.name"
+            :delay="750"
           >
-            <Star :size="14" :fill="windowsStore.currentViewId === fav.id ? 'currentColor' : 'none'" />
-            <span>{{ fav.name }}</span>
-          </button>
+            <button
+              class="favorite-btn"
+              :class="{ 'is-active': windowsStore.currentViewId === fav.id }"
+              @click="loadFavoriteLayout(fav.id)"
+            >
+              {{ fav.name }}
+            </button>
+          </Tooltip>
         </div>
       </div>
 
-      <!-- Right: Logo + GESTIMA -->
-      <router-link to="/" class="logo-link">
-        <img src="/logo.png" alt="KOVO RYBKA" class="logo-img" />
-        <div class="logo-text">
-          <span class="logo-red">GESTI</span><span class="logo-black">MA</span>
+      <!-- Center: GESTIMA -->
+      <div class="header-center">
+        <router-link to="/" class="logo-link">
+          <div class="logo-text">
+            <span class="logo-red">GESTI</span><span class="logo-black">MA</span>
+          </div>
+        </router-link>
+      </div>
+
+      <!-- Right: Quick Modules -->
+      <div class="header-right">
+        <!-- Quick Module Buttons (5 fixed) -->
+        <div class="quick-modules" v-if="route.path === '/windows'">
+          <div
+            v-for="(defaultMod, index) in quickModules"
+            :key="index"
+            class="quick-btn-wrapper"
+          >
+            <Tooltip :text="getEffectiveModule(index).label" :delay="750">
+              <button
+                class="quick-btn"
+                @click="handleQuickButtonClick(index)"
+                @contextmenu="handleQuickButtonRightClick($event, index)"
+              >
+                <component :is="getEffectiveModule(index).icon" :size="16" />
+              </button>
+            </Tooltip>
+
+            <!-- Context Menu for module selection -->
+            <Transition name="dropdown-fade">
+              <div v-if="showModuleSelector === index" class="module-selector" @click.stop>
+                <div class="selector-header">Choose Module</div>
+                <button
+                  v-for="mod in availableModules"
+                  :key="mod.value"
+                  class="selector-option"
+                  @click="assignCustomModule(index, mod.value, mod.label)"
+                >
+                  {{ mod.label }}
+                </button>
+                <div class="selector-divider"></div>
+                <button class="selector-reset" @click="resetToDefault(index)">
+                  Reset to Default
+                </button>
+              </div>
+            </Transition>
+          </div>
         </div>
-        <div class="version-badge">v1.11</div>
-      </router-link>
+      </div>
     </div>
 
     <!-- Side Menu Drawer -->
@@ -220,10 +393,6 @@ function handleManageLayouts() {
               <Save :size="18" />
               <span>Save Current</span>
             </button>
-            <button class="menu-item" @click="handleLoadLayout">
-              <FolderOpen :size="18" />
-              <span>Load Layout</span>
-            </button>
             <button class="menu-item" @click="handleManageLayouts">
               <SettingsIcon :size="18" />
               <span>Manage Layouts</span>
@@ -251,6 +420,9 @@ function handleManageLayouts() {
       <div v-if="showMenu" class="backdrop" @click="closeMenu"></div>
     </Transition>
 
+    <!-- Backdrop for module selector -->
+    <div v-if="showModuleSelector !== null" class="selector-backdrop" @click="closeModuleSelector"></div>
+
     <!-- Save Layout Dialog -->
     <Transition name="backdrop-fade">
       <div v-if="showSaveDialog" class="modal-overlay" @click="showSaveDialog = false">
@@ -270,6 +442,12 @@ function handleManageLayouts() {
         </div>
       </div>
     </Transition>
+
+    <!-- Manage Layouts Modal -->
+    <ManageLayoutsModal
+      :show="showManageLayoutsModal"
+      @close="showManageLayoutsModal = false"
+    />
   </header>
 </template>
 
@@ -279,6 +457,8 @@ function handleManageLayouts() {
   top: 0;
   left: 0;
   right: 0;
+  height: 56px; /* Fixed total height */
+  box-sizing: border-box; /* Border included in height */
   z-index: 10001;
   background: var(--bg-base);
   border-bottom: 1px solid var(--border-default);
@@ -288,17 +468,18 @@ function handleManageLayouts() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-6);
+  padding: 0 var(--space-6); /* ONLY horizontal padding - vertical centering via align-items */
   max-width: 100%;
+  height: 100%; /* Fill parent height */
   gap: var(--space-4);
 }
 
 .header-center {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  justify-content: flex-start;
 }
 
 /* Menu Button */
@@ -327,6 +508,130 @@ function handleManageLayouts() {
   color: white;
 }
 
+/* Header Left */
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Header Right */
+.header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* Quick Module Buttons */
+.quick-modules {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.quick-btn-wrapper {
+  position: relative;
+}
+
+.quick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.quick-btn:hover {
+  background: var(--state-hover);
+  border-color: var(--border-strong);
+  transform: scale(1.05);
+}
+
+.quick-btn:active {
+  transform: scale(0.95);
+}
+
+/* Module Selector (context menu) */
+.module-selector {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  padding: var(--space-1);
+  z-index: 10003;
+}
+
+.selector-header {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selector-option {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.selector-option:hover {
+  background: var(--state-hover);
+}
+
+.selector-divider {
+  height: 1px;
+  background: var(--border-default);
+  margin: var(--space-1) 0;
+}
+
+.selector-reset {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.selector-reset:hover {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.selector-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  background: transparent;
+}
+
 /* Logo */
 .logo-link {
   display: flex;
@@ -341,26 +646,17 @@ function handleManageLayouts() {
 }
 
 .logo-text {
-  font-size: var(--text-2xl);
+  font-size: calc(var(--text-2xl) * 2);
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 .logo-red {
-  color: var(--color-primary);
+  color: #E84545; /* Logo red */
 }
 
 .logo-black {
   color: var(--text-primary);
-}
-
-.version-badge {
-  font-size: var(--text-2xs);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
 }
 
 /* Menu Drawer */
@@ -502,7 +798,7 @@ function handleManageLayouts() {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 10001;
+  z-index: 50; /* BELOW windows (100+) but ABOVE page content */
 }
 
 /* Transitions */
@@ -550,6 +846,7 @@ function handleManageLayouts() {
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--text-sm);
+  text-align: center;
   transition: all var(--duration-fast) var(--ease-out);
 }
 
@@ -557,6 +854,11 @@ function handleManageLayouts() {
   outline: none;
   border-color: var(--primary-color);
   background: var(--bg-base);
+  text-align: left;
+}
+
+.search-input:not(:placeholder-shown) {
+  text-align: left;
 }
 
 .search-results {
@@ -590,7 +892,7 @@ function handleManageLayouts() {
   background: var(--state-hover);
 }
 
-/* Favorite Layouts */
+/* Dynamic Favorite Layouts */
 .favorite-layouts {
   display: flex;
   gap: var(--space-2);
@@ -599,7 +901,8 @@ function handleManageLayouts() {
 .favorite-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
+  min-width: 80px;
   padding: var(--space-2) var(--space-3);
   background: transparent;
   border: 1px solid var(--border-default);
@@ -616,7 +919,7 @@ function handleManageLayouts() {
   border-color: var(--border-strong);
 }
 
-.favorite-btn.active {
+.favorite-btn.is-active {
   background: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
@@ -699,5 +1002,81 @@ function handleManageLayouts() {
 
 .btn-secondary:hover {
   background: var(--state-hover);
+}
+
+/* Window Actions (Arrange + Close All) */
+.window-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.action-wrapper {
+  position: relative;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.action-btn:hover {
+  background: var(--state-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Arrange Dropdown */
+.arrange-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 140px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
+  z-index: 10003;
+}
+
+.arrange-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  text-align: left;
+}
+
+.arrange-option:hover {
+  background: var(--state-hover);
+}
+
+/* Dropdown Transition */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
 }
 </style>

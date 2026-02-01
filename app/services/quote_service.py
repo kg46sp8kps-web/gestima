@@ -6,11 +6,12 @@ Core responsibilities:
 - Workflow transitions (DRAFT → SENT → APPROVED/REJECTED)
 - Snapshot creation (ADR-VIS-002)
 - Edit lock enforcement
+- AI quote request: Part & Batch matching
 """
 
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -21,6 +22,7 @@ from app.models.batch import Batch
 from app.models.part import Part
 from app.models.partner import Partner
 from app.models.enums import QuoteStatus
+from app.schemas.quote_request import PartMatch, BatchMatch
 
 logger = logging.getLogger(__name__)
 
@@ -377,3 +379,205 @@ class QuoteService:
 
         logger.info(f"Cloned quote {original_quote.quote_number} → {new_quote_number}")
         return new_quote
+
+    # =========================================================================
+    # AI Quote Request: Part & Batch Matching
+    # =========================================================================
+
+    @staticmethod
+    async def find_best_batch(
+        part: Part,
+        requested_quantity: int,
+        db: AsyncSession
+    ) -> Tuple[Optional[Batch], str, List[str]]:
+        """
+        Find best frozen batch for requested quantity.
+
+        Matching rules:
+        1. EXACT MATCH preferred (batch.quantity == requested_quantity)
+        2. NEAREST LOWER batch (batch.quantity < requested_quantity, maximize batch.quantity)
+        3. If no lower batch found, return None
+
+        Args:
+            part: Part instance
+            requested_quantity: Requested quantity from quote request
+            db: Database session
+
+        Returns:
+            Tuple of (batch, status, warnings):
+            - batch: Best matching Batch or None
+            - status: "exact" | "lower" | "missing"
+            - warnings: List of warning messages
+        """
+        # Get all frozen batches for part
+        result = await db.execute(
+            select(Batch)
+            .join(BatchSet, Batch.batch_set_id == BatchSet.id)
+            .where(
+                Batch.part_id == part.id,
+                BatchSet.status == "frozen",
+                Batch.deleted_at.is_(None),
+                BatchSet.deleted_at.is_(None)
+            )
+            .order_by(Batch.quantity.asc())
+        )
+        frozen_batches = result.scalars().all()
+
+        if not frozen_batches:
+            logger.warning(f"No frozen batches for part {part.part_number}")
+            return None, "missing", [
+                f"🔴 Díl {part.part_number} nemá žádnou zmrazenou kalkulaci"
+            ]
+
+        # 1. Try exact match
+        exact_batch = next(
+            (b for b in frozen_batches if b.quantity == requested_quantity),
+            None
+        )
+        if exact_batch:
+            logger.debug(
+                f"Exact batch match: part={part.part_number}, "
+                f"qty={requested_quantity}, batch_id={exact_batch.id}"
+            )
+            return exact_batch, "exact", []
+
+        # 2. Try nearest LOWER batch
+        lower_batches = [b for b in frozen_batches if b.quantity < requested_quantity]
+        if lower_batches:
+            # Get highest lower batch
+            nearest_lower = max(lower_batches, key=lambda b: b.quantity)
+            warning = (
+                f"⚠️ Neexistuje dávka {requested_quantity} ks - "
+                f"použita dávka {nearest_lower.quantity} ks. "
+                f"Doporučujeme vytvořit přesnou dávku."
+            )
+            logger.debug(
+                f"Lower batch match: part={part.part_number}, "
+                f"requested={requested_quantity}, used={nearest_lower.quantity}"
+            )
+            return nearest_lower, "lower", [warning]
+
+        # 3. No suitable batch found
+        available = ", ".join([f"{b.quantity}ks" for b in frozen_batches])
+        warning = (
+            f"🔴 Nejnižší dostupná dávka je {frozen_batches[0].quantity} ks "
+            f"(požadováno {requested_quantity} ks). "
+            f"Dostupné dávky: {available}"
+        )
+        logger.warning(
+            f"No suitable batch: part={part.part_number}, "
+            f"requested={requested_quantity}, available={available}"
+        )
+        return None, "missing", [warning]
+
+    @staticmethod
+    async def match_part_by_article_number(
+        article_number: str,
+        db: AsyncSession
+    ) -> Optional[Part]:
+        """
+        Find existing part by article_number (exact match).
+
+        Args:
+            article_number: Article number from quote request
+            db: Database session
+
+        Returns:
+            Part or None if not found
+        """
+        result = await db.execute(
+            select(Part)
+            .where(
+                Part.article_number == article_number,
+                Part.deleted_at.is_(None)
+            )
+            .limit(1)
+        )
+        part = result.scalar_one_or_none()
+
+        if part:
+            logger.debug(f"Found existing part: {article_number} → {part.part_number}")
+        else:
+            logger.debug(f"Part not found: {article_number}")
+
+        return part
+
+    @staticmethod
+    async def match_item(
+        article_number: str,
+        name: str,
+        quantity: int,
+        notes: Optional[str],
+        db: AsyncSession
+    ) -> PartMatch:
+        """
+        Match single item (part + batch).
+
+        Process:
+        1. Match part by article_number
+        2. If part exists, find best batch for quantity
+        3. Return PartMatch with all info
+
+        Args:
+            article_number: Article number from PDF
+            name: Part name from PDF
+            quantity: Requested quantity
+            notes: Notes from PDF
+            db: Database session
+
+        Returns:
+            PartMatch with part + batch matching results
+        """
+        # Try to match part
+        part = await QuoteService.match_part_by_article_number(article_number, db)
+
+        if not part:
+            # Part doesn't exist - will be created
+            return PartMatch(
+                part_exists=False,
+                article_number=article_number,
+                name=name,
+                quantity=quantity,
+                notes=notes,
+                batch_match=BatchMatch(
+                    status="missing",
+                    unit_price=0.0,
+                    line_total=0.0,
+                    warnings=["🔴 Nový díl - bude vytvořen bez ceny"]
+                )
+            )
+
+        # Part exists - find best batch
+        batch, status, warnings = await QuoteService.find_best_batch(
+            part, quantity, db
+        )
+
+        # Calculate pricing
+        unit_price = 0.0
+        if batch:
+            # Use frozen price or fallback to unit_cost
+            unit_price = float(
+                batch.unit_price_frozen if batch.unit_price_frozen else batch.unit_cost
+            )
+
+        line_total = quantity * unit_price
+
+        batch_match = BatchMatch(
+            batch_id=batch.id if batch else None,
+            batch_quantity=batch.quantity if batch else None,
+            status=status,
+            unit_price=unit_price,
+            line_total=line_total,
+            warnings=warnings
+        )
+
+        return PartMatch(
+            part_id=part.id,
+            part_number=part.part_number,
+            part_exists=True,
+            article_number=article_number,
+            name=name,
+            quantity=quantity,
+            notes=notes,
+            batch_match=batch_match
+        )

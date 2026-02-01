@@ -1,9 +1,9 @@
-# GESTIMA Design System v1.5
+# GESTIMA Design System v1.6
 
-**"Industrial Precision"** - Originální dark-first design pro výrobní kalkulace
+**"Refined & Subtle"** - Dark-first design s jemným červeným akcentem
 
-**Approved:** 2026-01-31
-**Status:** ✅ Production Ready (+ Full Design Token Editor + Text Color Fix)
+**Approved:** 2026-02-01
+**Status:** ✅ Production Ready (Subtle borders + Logo red hover + Component Showcase)
 **Target Display:** 27" @ 2560x1440 (primary development display)
 
 ---
@@ -26,21 +26,26 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 
 **Principy:**
 - **Dark-first** - tmavý režim je default (dílna/továrna vibe)
+- **Refined & Subtle** - jemné borders (1px), nízký kontrast, červený akcent
 - **Ultra-compact** - optimized for 27"+ displays (12px base, 4pt grid)
 - **Density-aware** - parametric spacing for different screen sizes
 - **Originální** - ne generický Tailwind UI clone
 - **Precizní** - monospace pro čísla/data
 
+**Component Showcase:** Kompletní katalog všech UI komponent dostupný na `/showcase`
+
 ---
 
 ## 🎯 Color Palette
 
-### Default Palette (Red/Black/Pink)
+### Default Palette (Refined Red Accent)
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--palette-primary` | `#991b1b` | Save buttons, primary actions |
-| `--palette-primary-dark` | `#7f1d1d` | Hover states, darker variant |
+| `--palette-primary` | `#991b1b` | Buttons, primary actions (dark muted red) |
+| `--palette-primary-hover` | `#E84545` | Logo red - vibrant hover states |
+| `--palette-accent-red` | `#E84545` | Logo red - explicit use for accents |
+| `--palette-primary-dark` | `#7f1d1d` | Darker variant |
 | `--palette-secondary` | `#737373` | Neutral alternative buttons |
 | `--palette-danger` | `#f43f5e` | Delete, destructive actions (RŮŽOVÁ!) |
 | `--palette-danger-dark` | `#be123c` | Danger hover states |
@@ -78,13 +83,19 @@ GESTIMA design system je **parametrický** - změna palety → všechno se změn
 
 **DŮLEŽITÉ:** `--text-body` je pro BARVU textu, `--text-base` je pro VELIKOST písma (12px). Nepoužívejte `color: var(--text-base)` - to je chyba!
 
-### Borders
+### Borders (Refined & Subtle)
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | `--border-subtle` | `#1a1a1a` | Very subtle borders |
-| `--border-default` | `#262626` | Standard borders |
+| `--border-default` | `#2a2a2a` | Standard borders (subtle, less prominent) |
 | `--border-strong` | `#404040` | Emphasized borders |
+| `--border-width` | `1px` | Standard border width (refined style) |
+
+**Design Philosophy:**
+- **1px borders** - subtle, clean separation without heaviness
+- **Low contrast** (`#2a2a2a`) - refined, not harsh
+- **Red accent** - used sparingly for important UI elements
 
 ### Interactive States
 
@@ -346,6 +357,15 @@ import { Package, Settings, Trash2 } from 'lucide-vue-next'
 ```
 
 **Fast, snappy** - not slow animations
+
+### UI Timing Constants
+
+```typescript
+// frontend/src/constants/ui.ts
+export const TOOLTIP_DELAY_MS = 750
+```
+
+**Tooltip delay:** 750ms - jednotná hodnota pro celý systém
 
 ---
 
@@ -1730,13 +1750,37 @@ const open = ref(false);
 
 ## 📚 References
 
-- **Preview:** `/design-preview.html` (interactive demo)
+- **Component Showcase:** `/showcase` (live interactive catalog)
+- **Preview:** `/design-preview.html` (legacy interactive demo)
 - **Source:** `/frontend/src/assets/css/design-system.css`
-- **Approved:** 2026-01-29
-- **Version:** 2.0 (unified with implementation guide)
+- **Approved:** 2026-02-01
+- **Version:** 1.6 (Refined & Subtle design)
 
 ---
 
 **GESTIMA Design System - Complete Guide: Design Tokens + Vue Implementation**
 
 *"One source of truth for all design and implementation patterns"* ✨
+
+---
+
+## 🎨 Latest Updates (v1.6 - 2026-02-01)
+
+**Refined & Subtle Design:**
+- ✅ Borders změněny na **1px** (z 2px) - jemnější, méně výrazné
+- ✅ Border color **#2a2a2a** (z #404040) - subtilnější kontrast
+- ✅ Logo red hover **#E84545** přidán jako `--palette-primary-hover`
+- ✅ **Component Showcase** vytvořen - `/showcase` route
+- ✅ Zachována červená z loga (`#991b1b` primary + `#E84545` hover)
+
+**Component Showcase:**
+Kompletní katalog všech UI komponent s live preview:
+- Color Palette
+- Typography samples
+- Button variants (všechny states)
+- Input fields (error, disabled, readonly)
+- Form examples
+- Border system showcase
+- Data display (badges, tables)
+
+**Přístup:** Naviguj na `/showcase` v běžící aplikaci.

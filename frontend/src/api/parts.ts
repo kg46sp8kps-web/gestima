@@ -53,10 +53,25 @@ export async function getPartFull(partNumber: string): Promise<any> {
 }
 
 /**
- * Create new part
+ * Create new part (optionally copy from existing part)
  */
-export async function createPart(data: PartCreate): Promise<Part> {
-  const response = await apiClient.post<Part>('/parts/', data)
+export async function createPart(
+  data: PartCreate,
+  copyFrom?: {
+    sourcePartNumber: string
+    copyOperations: boolean
+    copyMaterial: boolean
+    copyBatches: boolean
+  }
+): Promise<Part> {
+  const params = copyFrom ? {
+    copy_from: copyFrom.sourcePartNumber,
+    copy_operations: copyFrom.copyOperations,
+    copy_material: copyFrom.copyMaterial,
+    copy_batches: copyFrom.copyBatches
+  } : {}
+
+  const response = await apiClient.post<Part>('/parts/', data, { params })
   return response.data
 }
 

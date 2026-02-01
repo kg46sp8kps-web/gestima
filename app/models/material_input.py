@@ -185,6 +185,9 @@ class OperationSummary(BaseModel):
 class MaterialInputWithOperationsResponse(MaterialInputResponse):
     """MaterialInput s eager-loaded operations"""
     operations: List[OperationSummary] = []
+    weight_kg: Optional[float] = Field(None, description="Hmotnost za kus v kg (kalkulováno)")
+    cost_per_piece: Optional[float] = Field(None, description="Cena za kus v Kč (kalkulováno)")
+    price_per_kg: Optional[float] = Field(None, description="Cena za kg z tieru (kalkulováno)")
 
 
 # ═══════════════════════════════════════════════════════════════

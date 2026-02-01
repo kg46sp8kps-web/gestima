@@ -161,3 +161,9 @@ class BatchResponse(BaseModel):
         if self.unit_cost > 0:
             return round((self.coop_cost / self.unit_cost) * 100, 1)
         return 0.0
+
+    @computed_field
+    @property
+    def unit_price(self) -> float:
+        """Alias pro unit_cost (pro kompatibilitu s frontendem)"""
+        return self.unit_cost

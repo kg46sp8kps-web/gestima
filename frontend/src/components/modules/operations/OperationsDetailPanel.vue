@@ -221,14 +221,17 @@ function handleDragOver(event: DragEvent, op: Operation) {
 async function handleDrop(event: DragEvent) {
   event.preventDefault()
 
+  console.log('🎯 DROP!', { draggedOpId: draggedOpId.value, dragOverOpId: dragOverOpId.value })
+
   if (!draggedOpId.value || !dragOverOpId.value) {
+    console.log('❌ Missing IDs')
     draggedOpId.value = null
     dragOverOpId.value = null
     return
   }
 
   if (draggedOpId.value === dragOverOpId.value) {
-    // Dropping on itself, no change
+    console.log('❌ Same operation')
     draggedOpId.value = null
     dragOverOpId.value = null
     return

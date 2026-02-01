@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     BACKUP_RETENTION_COUNT: int = 7  # Kolik záloh ponechat
     BACKUP_COMPRESS: bool = True  # Komprimovat gzip
 
+    # AI Services
+    ANTHROPIC_API_KEY: str = ""  # Claude API key for quote request parsing
+    AI_RATE_LIMIT: str = "10/hour"  # AI parsing rate limit (cost control)
+
     # Rate limiting
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_DEFAULT: str = "100/minute"  # Obecné API

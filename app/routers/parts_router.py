@@ -1,11 +1,13 @@
 """GESTIMA - Parts API router"""
 
+from __future__ import annotations
+
 import logging
 import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy import select, or_, func
@@ -20,6 +22,8 @@ from app.models import User, UserRole
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse, PartFullResponse, StockCostResponse
 from app.models.material import MaterialItem, MaterialPriceCategory
 from app.models.material_input import MaterialInput
+from app.models.operation import Operation
+from app.models.batch import Batch
 from app.services.price_calculator import (
     calculate_stock_cost_from_part,
     calculate_part_price,
@@ -39,6 +43,124 @@ DRAWINGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Drawing service (security-focused file operations)
 drawing_service = DrawingService()
+
+
+async def copy_part_relations(
+    db: AsyncSession,
+    source_part_number: str,
+    target_part: Part,
+    copy_operations: bool,
+    copy_material: bool,
+    copy_batches: bool,
+    current_user: User
+):
+    """
+    Copy relations from source part to newly created target part.
+
+    Args:
+        db: Database session
+        source_part_number: Source part number to copy from
+        target_part: Newly created target part
+        copy_operations: Whether to copy operations
+        copy_material: Whether to copy material_item_id
+        copy_batches: Whether to copy batches
+        current_user: Current user for audit trail
+    """
+    from app.services.number_generator import NumberGenerator
+
+    # Get source part
+    result = await db.execute(
+        select(Part).where(Part.part_number == source_part_number, Part.deleted_at.is_(None))
+    )
+    source_part = result.scalar_one_or_none()
+    if not source_part:
+        logger.warning(f"Source part {source_part_number} not found for copying")
+        return
+
+    # Copy material inputs if requested
+    if copy_material:
+        result = await db.execute(
+            select(MaterialInput).where(MaterialInput.part_id == source_part.id)
+        )
+        source_material_inputs = result.scalars().all()
+
+        for src_mat in source_material_inputs:
+            new_mat = MaterialInput(
+                part_id=target_part.id,
+                seq=src_mat.seq,
+                price_category_id=src_mat.price_category_id,
+                material_item_id=src_mat.material_item_id,
+                stock_shape=src_mat.stock_shape,
+                stock_diameter=src_mat.stock_diameter,
+                stock_length=src_mat.stock_length,
+                stock_width=src_mat.stock_width,
+                stock_height=src_mat.stock_height,
+                stock_wall_thickness=src_mat.stock_wall_thickness,
+                quantity=src_mat.quantity,
+                notes=src_mat.notes
+            )
+            set_audit(new_mat, current_user.username)
+            db.add(new_mat)
+
+    # Copy operations if requested
+    if copy_operations:
+        result = await db.execute(
+            select(Operation).where(Operation.part_id == source_part.id).order_by(Operation.seq)
+        )
+        source_operations = result.scalars().all()
+
+        # Renumber operations to clean 10, 20, 30... sequence
+        new_seq = 10
+        for src_op in source_operations:
+            # Operations use auto-increment ID, no custom number needed
+            new_op = Operation(
+                part_id=target_part.id,
+                seq=new_seq,  # Clean sequence: 10, 20, 30...
+                name=src_op.name,
+                type=src_op.type,
+                icon=src_op.icon,
+                work_center_id=src_op.work_center_id,
+                cutting_mode=src_op.cutting_mode,
+                setup_time_min=src_op.setup_time_min,
+                operation_time_min=src_op.operation_time_min,
+                setup_time_locked=src_op.setup_time_locked,
+                operation_time_locked=src_op.operation_time_locked,
+                manning_coefficient=src_op.manning_coefficient,
+                machine_utilization_coefficient=src_op.machine_utilization_coefficient,
+                is_coop=src_op.is_coop,
+                coop_type=src_op.coop_type,
+                coop_price=src_op.coop_price,
+                coop_min_price=src_op.coop_min_price,
+                coop_days=src_op.coop_days
+            )
+            set_audit(new_op, current_user.username)
+            db.add(new_op)
+            new_seq += 10  # Increment by 10 for next operation
+
+    # Copy batches if requested
+    if copy_batches:
+        result = await db.execute(
+            select(Batch).where(Batch.part_id == source_part.id)
+        )
+        source_batches = result.scalars().all()
+
+        for src_batch in source_batches:
+            # Generate new batch number
+            batch_number = await NumberGenerator.generate_batch_number(db)
+
+            new_batch = Batch(
+                batch_number=batch_number,
+                part_id=target_part.id,
+                quantity=src_batch.quantity,
+                is_default=src_batch.is_default,
+                # Don't copy frozen costs/prices - let them be recalculated
+                is_frozen=False
+            )
+            set_audit(new_batch, current_user.username)
+            db.add(new_batch)
+
+    # Commit the copied relations
+    await safe_commit(db, target_part, "kopírování relací dílu")
 
 
 @router.get("/", response_model=List[PartResponse])
@@ -132,6 +254,10 @@ async def get_part(
 @router.post("/", response_model=PartResponse)
 async def create_part(
     data: PartCreate,
+    copy_from: Optional[str] = None,  # Source part number to copy from
+    copy_operations: bool = False,
+    copy_material: bool = False,
+    copy_batches: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
@@ -181,6 +307,24 @@ async def create_part(
         "user": current_user.username,
         "has_drawing": bool(final_drawing_path)
     })
+
+    # Copy relations from source part if requested
+    if copy_from:
+        await copy_part_relations(
+            db=db,
+            source_part_number=copy_from,
+            target_part=part,
+            copy_operations=copy_operations,
+            copy_material=copy_material,
+            copy_batches=copy_batches,
+            current_user=current_user
+        )
+        logger.info(f"Copied relations from {copy_from} to {part.part_number}", extra={
+            "copy_operations": copy_operations,
+            "copy_material": copy_material,
+            "copy_batches": copy_batches
+        })
+
     return part
 
 
@@ -668,23 +812,25 @@ async def get_part_drawing(
     if not part.drawing_path:
         raise HTTPException(status_code=404, detail="Drawing not found for this part")
 
-    # SECURITY: Use DrawingService to get validated path
-    try:
-        drawing_path = drawing_service.get_drawing_path(part_number)
+    # Use drawing_path from DB (Phase B compatible - supports timestamped filenames)
+    drawing_path = Path(part.drawing_path)
 
-        return FileResponse(
-            path=str(drawing_path),
-            media_type="application/pdf",
-            filename=f"{part_number}_drawing.pdf",
-            headers={
-                "Content-Disposition": f'inline; filename="{part_number}_drawing.pdf"'
-            }
+    # Validate file exists on disk
+    if not drawing_path.exists():
+        logger.warning(f"Drawing file missing for part {part_number}: {part.drawing_path}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Drawing file not found: {part.drawing_path}"
         )
 
-    except HTTPException:
-        # DrawingService raises 404 if file not found
-        logger.warning(f"Drawing file missing for part {part_number}: {part.drawing_path}")
-        raise
+    return FileResponse(
+        path=str(drawing_path),
+        media_type="application/pdf",
+        filename=f"{part_number}_drawing.pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{part_number}_drawing.pdf"'
+        }
+    )
 
 
 @router.delete("/{part_number}/drawing", status_code=204)

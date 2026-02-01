@@ -116,3 +116,155 @@ export interface QuotesListResponse {
   skip: number
   limit: number
 }
+
+// ============================================================================
+// AI QUOTE REQUEST PARSING (ADR-028)
+// ============================================================================
+
+/**
+ * Customer extracted from PDF by AI
+ */
+export interface CustomerExtraction {
+  company_name: string
+  contact_person: string | null
+  email: string | null
+  phone: string | null
+  ico: string | null
+  confidence: number
+}
+
+/**
+ * Single item extracted from PDF by AI
+ */
+export interface ItemExtraction {
+  article_number: string
+  name: string
+  quantity: number
+  notes: string | null
+  confidence: number
+}
+
+/**
+ * Complete AI extraction result from PDF
+ */
+export interface QuoteRequestExtraction {
+  customer: CustomerExtraction
+  items: ItemExtraction[]
+  valid_until: string | null
+  notes: string | null
+}
+
+/**
+ * Customer match result (after DB lookup)
+ */
+export interface CustomerMatch {
+  // Extracted data
+  company_name: string
+  contact_person: string | null
+  email: string | null
+  phone: string | null
+  ico: string | null
+
+  // Match results
+  partner_id: number | null
+  partner_number: string | null
+  partner_exists: boolean
+  match_confidence: number
+}
+
+/**
+ * Batch match result for pricing
+ */
+export interface BatchMatch {
+  batch_id: number | null
+  batch_quantity: number | null
+  status: 'exact' | 'lower' | 'missing'
+  unit_price: number
+  line_total: number
+  warnings: string[]
+}
+
+/**
+ * Part match result (part + batch combined)
+ */
+export interface PartMatch {
+  // Part info
+  part_id: number | null
+  part_number: string | null
+  part_exists: boolean
+
+  // Extracted data
+  article_number: string
+  name: string
+  quantity: number
+  notes: string | null
+
+  // Batch matching
+  batch_match: BatchMatch | null
+}
+
+/**
+ * Complete quote request review (for UI verification)
+ */
+export interface QuoteRequestReview {
+  customer: CustomerMatch
+  items: PartMatch[]
+  valid_until: string | null
+  notes: string | null
+  summary: {
+    total_items: number
+    unique_parts: number
+    matched_parts: number
+    new_parts: number
+    missing_batches: number
+  }
+}
+
+/**
+ * Partner data for new partner creation
+ */
+export interface PartnerCreateData {
+  company_name: string
+  contact_person?: string | null
+  email?: string | null
+  phone?: string | null
+  ico?: string | null
+  dic?: string | null
+  is_customer: boolean
+  is_supplier: boolean
+}
+
+/**
+ * Item for quote creation from AI parsing
+ */
+export interface QuoteFromRequestItem {
+  // If part exists
+  part_id?: number | null
+
+  // If part doesn't exist (AI will create it)
+  article_number: string
+  name: string
+
+  // Common fields
+  quantity: number
+  notes?: string | null
+}
+
+/**
+ * Create quote from AI-parsed request
+ */
+export interface QuoteFromRequestCreate {
+  // Partner (existing or new)
+  partner_id?: number | null
+  partner_data?: PartnerCreateData
+
+  // Quote fields
+  title: string
+  valid_until?: string | null
+  notes?: string | null
+  discount_percent?: number
+  tax_percent?: number
+
+  // Items (parts + quantities)
+  items: QuoteFromRequestItem[]
+}

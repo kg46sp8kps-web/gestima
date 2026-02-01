@@ -33,17 +33,20 @@
 
             <!-- Data columns -->
             <th
-              v-for="col in visibleColumns"
+              v-for="(col, colIndex) in visibleColumns"
               :key="col.key"
               :class="[
                 `col-${col.key}`,
-                { sortable: col.sortable, sorted: sortKey === col.key }
+                {
+                  sortable: col.sortable,
+                  sorted: sortKey === col.key
+                }
               ]"
               :style="col.width ? { width: col.width } : {}"
               @click="col.sortable && handleSort(col.key)"
             >
               <div class="th-content">
-                <span>{{ col.label }}</span>
+                <span class="th-label">{{ col.label }}</span>
                 <span v-if="col.sortable" class="sort-icon">
                   <ArrowUp v-if="sortKey === col.key && sortDirection === 'asc'" :size="14" :stroke-width="2" />
                   <ArrowDown v-else-if="sortKey === col.key && sortDirection === 'desc'" :size="14" :stroke-width="2" />
@@ -157,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Spinner from './Spinner.vue';
 import { ArrowUp, ArrowDown, ArrowUpDown, Check, X, Inbox } from 'lucide-vue-next';
 
@@ -222,6 +225,7 @@ const emit = defineEmits<{
   'page-change': [page: number];
   'per-page-change': [perPage: number];
   'selection-change': [selected: unknown[]];
+  'update:columns': [columns: Column[]];
 }>();
 
 // === COMPUTED ===
@@ -448,15 +452,18 @@ const toggleAll = () => {
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
   user-select: none;
+  transition: var(--transition-fast);
 }
 
 .data-table th.sortable {
   cursor: pointer;
-  transition: var(--transition-fast);
+}
+
+.data-table th:hover {
+  background: var(--state-hover);
 }
 
 .data-table th.sortable:hover {
-  background: var(--state-hover);
   color: var(--text-primary);
 }
 
@@ -470,10 +477,15 @@ const toggleAll = () => {
   gap: var(--space-2);
 }
 
+.th-label {
+  flex: 1;
+}
+
 .sort-icon {
   opacity: 0.5;
   display: flex;
   align-items: center;
+  cursor: pointer;
 }
 
 .data-table th.sorted .sort-icon {

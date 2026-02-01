@@ -129,12 +129,12 @@ defineExpose({
   width: 100%;
 }
 
-/* === SELECT === */
+/* === SELECT (Refined & Subtle) === */
 .select {
   padding: var(--space-2) var(--space-3);
   padding-right: var(--space-8); /* Space for arrow */
   background: var(--bg-input);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-default); /* Subtle border */
   border-radius: var(--radius-md);
   color: var(--text-body);
   font-family: var(--font-sans);

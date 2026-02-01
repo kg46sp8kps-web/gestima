@@ -64,13 +64,21 @@ export const usePartsStore = defineStore('parts', () => {
     }
   }
 
-  async function createPart(data: PartCreate) {
+  async function createPart(
+    data: PartCreate,
+    copyFrom?: {
+      sourcePartNumber: string
+      copyOperations: boolean
+      copyMaterial: boolean
+      copyBatches: boolean
+    }
+  ) {
     loading.value = true
     try {
-      const newPart = await partsApi.createPart(data)
+      const newPart = await partsApi.createPart(data, copyFrom)
       parts.value.unshift(newPart)
       total.value++
-      ui.showSuccess('Díl vytvořen')
+      ui.showSuccess(copyFrom ? 'Díl zkopírován' : 'Díl vytvořen')
       return newPart
     } catch (error: any) {
       ui.showError(error.message || 'Chyba při vytváření dílu')

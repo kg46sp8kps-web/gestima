@@ -11,6 +11,7 @@ import { usePartsStore } from '@/stores/parts'
 import { useWindowsStore } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
+import { getPart } from '@/api/parts'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
 
@@ -123,12 +124,10 @@ function openDrawingWindow(drawingId?: number) {
 async function refreshPart() {
   if (!selectedPart.value) return
 
-  // Reload part data from API
-  await partsStore.fetchParts()
-  const updatedPart = partsStore.parts.find(p => p.id === selectedPart.value?.id)
-  if (updatedPart) {
-    selectedPart.value = updatedPart
-  }
+  // Reload only the selected part from API
+  // Don't update store to avoid triggering list re-render and scroll reset
+  const updatedPart = await getPart(selectedPart.value.part_number)
+  selectedPart.value = updatedPart
 }
 
 // Load parts on mount and auto-select if partNumber provided

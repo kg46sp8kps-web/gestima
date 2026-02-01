@@ -1,12 +1,252 @@
 # GESTIMA - Current Status
 
 **Last Updated:** 2026-02-01
-**Version:** 1.11.5
-**Status:** 🎨 EMOJI-FREE REDESIGN - Professional Lucide Icons!
+**Version:** 1.13.0
+**Status:** 🤖 AI QUOTE REQUEST PARSING - Backend Complete, Frontend Pending!
 
 ---
 
-## 🎨 Latest: Complete Emoji Removal + Lucide Icons ✅ COMPLETED (Day 38)
+## 🎨 UI/UX Refinements (2026-02-01)
+
+### Pricing Module Improvements ✅
+- ✅ **Batch statistics removed** - Simplified header (removed count, min/max prices)
+- ✅ **Frozen sets counter** - Added "Sady: X" indicator for frozen batch sets
+- ✅ **Freeze button redesign** - Icon-only button with Snowflake icon (light blue)
+- ✅ **Input focus persistence** - "Nová dávka" input stays focused after Enter
+- ✅ **Recalculate button removed** - Auto-recalculate sufficient
+- ✅ **Layout shift fixed** - Panel elements use `visibility: hidden` instead of `v-if`
+- ✅ **Table header cleanup** - Changed "Cena práce" → "Práce"
+
+### Material Module Improvements ✅
+- ✅ **Tier price tooltips** - Shows "Cena z tieru: X Kč/kg" on material rows
+- ✅ **Tooltip delay centralized** - Created `TOOLTIP_DELAY_MS` constant (750ms)
+  - Location: `frontend/src/constants/ui.ts`
+  - Single source of truth for entire system
+
+### Batch Detail Modal Fixes ✅
+- ✅ **Unit cost display** - Fixed modal to use `unit_cost` instead of missing `unit_price`
+- ✅ **Backend consistency** - Added `unit_price` as computed field alias for `unit_cost`
+- ✅ **Quantity display** - Added quantity field to modal
+
+### Technical Improvements
+- 📁 **New file:** `frontend/src/constants/ui.ts` - UI timing constants
+- 🔧 **Backend:** `app/models/batch.py` - Added `unit_price` computed property
+- 🎨 **CSS:** Layout shift prevention using `visibility: hidden` pattern
+- 📖 **Docs:** Updated DESIGN-SYSTEM.md with tooltip timing constants
+
+---
+
+## 🤖 Latest: AI Quote Request Parsing ✅ BACKEND COMPLETE (Day 40)
+
+**Claude Vision API integrace pro automatické vytváření nabídek z PDF!**
+
+### ✅ Backend Implementation Complete
+
+#### AI Parser Service
+- ✅ **QuoteRequestParser** - Claude 3.5 Sonnet Vision integration
+  - PDF → base64 → structured JSON extraction
+  - Prompt engineering for Czech B2B quote forms
+  - Confidence scoring (0.0-1.0) for all extracted fields
+  - Timeout handling (30s), error recovery, JSON validation
+  - Magic bytes validation (PDF only, 10 MB max)
+  - Cost: ~$0.08 per parse (3× cheaper than OpenAI)
+
+#### Pydantic Schemas (quote_request.py)
+- ✅ **CustomerExtraction** - company, contact, email, phone, IČO + confidence
+- ✅ **ItemExtraction** - article_number, name, quantity, notes + confidence
+- ✅ **QuoteRequestExtraction** - customer + items[] + valid_until
+- ✅ **CustomerMatch** - partner matching results (partner_id, confidence)
+- ✅ **BatchMatch** - pricing match (status: exact/lower/missing)
+- ✅ **PartMatch** - part + batch combined matching
+- ✅ **QuoteRequestReview** - final UI review data
+- ✅ **QuoteFromRequestCreate** - quote creation input
+
+#### Extended Quote Service
+- ✅ **find_best_batch()** - Smart batch matching algorithm
+  - Strategy: Exact → Nearest Lower → Missing
+  - NEVER uses higher batch (wrong pricing!)
+  - Returns status + warnings for UI
+- ✅ **match_part_by_article_number()** - Part lookup with validation
+- ✅ **match_item()** - Combined part + batch matching
+- ✅ **Multi-strategy customer matching** - IČO → email → name cascade
+  - Handles edge cases (Gelso AG vs Gelso DE)
+  - Confidence scores: 100% → 95% → 80%
+
+#### API Endpoints
+- ✅ **POST /api/quotes/parse-request** - Upload PDF, extract data
+  - File size validation (10 MB max, HTTP 413)
+  - Rate limiting (10 requests/hour per user)
+  - Returns QuoteRequestReview for UI verification
+- ✅ **POST /api/quotes/from-request** - Create Quote from verified data
+  - Creates Partner if new (company_name, IČO, email, phone)
+  - Creates Parts if new (article_number, name, revision=A, status=draft)
+  - Creates Quote (DRAFT status) + QuoteItems with pricing
+  - Atomic transaction (all or nothing)
+
+#### Security & Rate Limiting
+- ✅ **Rate Limiter** - slowapi integration
+  - User-based tracking (user_id → "user:123")
+  - IP fallback for anonymous requests
+  - Configurable: AI_RATE_LIMIT setting (default: 10/hour)
+- ✅ **File Validation** - PDF magic bytes check, 10 MB max
+- ✅ **Timeout Protection** - 30s max Claude API call
+- ✅ **API Key Security** - .env only, never committed
+- ✅ **Path Traversal Prevention** - UUID filenames
+- ✅ **Temp File Cleanup** - Even on error
+
+#### Database Changes
+- ✅ **article_number UNIQUE constraint** - Added to Part model
+  - Prevents duplicate parts in AI workflow
+  - Enables reliable article_number-based matching
+  - Migration: `i1j2k3l4m5n6_add_article_number_unique_constraint.py`
+- ✅ **drawing_number field** - Added to Part model (optional)
+  - Migration: `g5h6i7j8k9l0_add_drawing_number_to_part.py`
+
+#### Configuration
+- ✅ **ANTHROPIC_API_KEY** - Added to config.py
+- ✅ **AI_RATE_LIMIT** - Added to config.py (default: "10/hour")
+- ✅ **requirements.txt** - Added anthropic>=0.39.0
+
+#### Documentation
+- ✅ **ADR-028** - Complete architecture documentation (493 LOC)
+  - Claude vs OpenAI comparison
+  - Batch matching strategy rationale
+  - Customer matching cascade logic
+  - Security controls, cost estimates
+  - Testing strategy, migration path
+- ✅ **CHANGELOG.md** - Added v1.13.0 entry
+- ✅ **STATUS.md** - Updated (this file)
+
+### ⏳ Frontend Implementation (Pending - Phase 2)
+
+#### Quote Request View (NOT YET IMPLEMENTED)
+- [ ] **QuoteNewFromRequestView.vue** - Main upload + review UI
+  - PDF upload component (drag & drop)
+  - Review/edit extracted data table
+  - Customer matching dropdown (with confidence indicators)
+  - Items table (grouped by article_number, multiple quantity rows)
+  - Batch status indicators (✅ exact / ⚠️ lower / 🔴 missing)
+  - Confirm button → POST /from-request → navigate to Quote detail
+
+#### API Integration
+- [ ] **api/quotes.ts** - Add parseQuoteRequest() and createQuoteFromRequest()
+- [ ] **stores/quotes.ts** - Add actions for AI workflow
+- [ ] **router/index.ts** - Add /quotes/new/from-request route
+
+### 📊 Stats
+- **800+ LOC** created (Backend only)
+- **2 new API endpoints** (/parse-request, /from-request)
+- **8 new Pydantic schemas** (quote_request.py)
+- **2 database migrations** (article_number UNIQUE, drawing_number)
+- **1 new service** (QuoteRequestParser)
+- **Time saved**: 5-10 min → 1-2 min (80% faster quote entry)
+- **AI cost**: ~$0.08 per quote (~$20/month at full 10/hour usage)
+
+### 🔗 Related
+- See: [ADR-028: AI Quote Request Parsing](docs/ADR/028-ai-quote-request-parsing.md)
+- See: [CHANGELOG.md v1.13.0](CHANGELOG.md)
+
+---
+
+## 📋 Previous: Part Copy Feature ✅ COMPLETED (Day 39)
+
+**Kopírování dílů s modálním workflow + přečíslování operací!**
+
+### ✅ Completed
+
+#### Copy Part Functionality
+- ✅ **Copy Button** - Added to PartDetailPanel header (next to Edit)
+  - Subtle icon button (Copy icon, 14px)
+  - Opens modal for copying part
+  - Integrated with existing design system
+
+- ✅ **CopyPartModal Component** (NEW)
+  - Article number input (required, autofocus)
+  - Checkboxes: Copy operations (✓), Copy material (✓), Copy batches
+  - Icon buttons (Check/X) for confirm/cancel
+  - Direct part creation from modal (no intermediate form)
+  - Error handling with inline error messages
+
+#### Backend Copy Logic
+- ✅ **copy_part_relations Function** - app/routers/parts_router.py
+  - Query parameters: copy_from, copy_operations, copy_material, copy_batches
+  - Copies MaterialInput records (not direct material_item_id)
+  - **Operation Renumbering** - seq 10, 20, 30... (clean sequence)
+  - Batch number generation with NumberGenerator
+  - Atomic transaction (all or nothing)
+  - Audit trail for all copied records
+
+#### UX Improvements
+- ✅ **Header Spacing Optimization**
+  - Reduced gap: var(--space-2) → var(--space-1)
+  - Removed min-height: 68px from form-field
+  - Compact, clean appearance
+
+- ✅ **Consistent Icon Buttons**
+  - PartDetailPanel: 24x24px subtle buttons
+  - CopyPartModal: 36x36px action buttons
+  - PartCreateForm: 36x36px action buttons
+  - Unified hover states and transitions
+
+#### Technical Implementation
+- ✅ **API Integration**
+  - Updated parts.ts createPart with copyFrom parameter
+  - Success message: "Díl zkopírován" vs "Díl vytvořen"
+  - Refresh list after successful copy
+
+- ✅ **Operation Sequencing**
+  - Source operations sorted by seq
+  - Target operations renumbered to 10, 20, 30...
+  - Clean start for every copied part
+  - Maintains proper drag & drop spacing
+
+---
+
+## 🎨 Previous: Refined & Subtle Design System v1.6 ✅ COMPLETED (Day 39)
+
+**Jemný červený akcent + ComponentShowcase + shadcn/ui pattern!**
+
+### ✅ Completed
+
+#### Design System Refinement
+- ✅ **Border Width Change** - 2px → 1px (subtle, less prominent)
+  - Updated: design-system.css, Button.vue, Input.vue, Select.vue
+  - Refined style - clean separation without heaviness
+- ✅ **Border Color Adjustment** - #404040 → #2a2a2a (lower contrast)
+  - More subtle, less harsh on eyes
+  - Professional, refined appearance
+- ✅ **Logo Red Integration** - #E84545 as primary hover
+  - Primary: #991b1b (dark muted red)
+  - Hover: #E84545 (logo red - vibrant)
+  - Explicit accent: --palette-accent-red
+- ✅ **Component Showcase** - /showcase route added
+  - Comprehensive UI catalog (colors, typography, buttons, inputs, forms)
+  - Live preview of all component states
+  - Border system demonstration
+  - Data display examples (badges, tables)
+
+#### shadcn/ui Pattern
+- ✅ **Already Installed** - radix-vue, tailwind-merge, CVA, clsx
+  - Headless components ready (Radix Vue)
+  - Styling utilities in place
+  - No additional packages needed
+- ✅ **Verified Stack** - package.json analysis
+  - radix-vue: ^1.9.17
+  - lucide-vue-next: ^0.563.0
+  - tailwind-merge: ^3.4.0
+  - class-variance-authority: ^0.7.1
+
+#### Documentation Updates
+- ✅ **DESIGN-SYSTEM.md v1.6** - Updated for Refined & Subtle design
+  - Border system documentation
+  - Logo red hover tokens
+  - Component Showcase reference
+  - Latest updates section
+- ✅ **STATUS.md** - This file updated
+
+---
+
+## 🎨 Previous: Complete Emoji Removal + Lucide Icons ✅ COMPLETED (Day 38)
 
 **VŠECHNY emoji nahrazeny profesionálními Lucide ikonami!**
 

@@ -12,13 +12,14 @@
 
 /* === COLOR PALETTES === */
 
-/* DEFAULT PALETTE: Red/Black/Pink (approved 2026-01-29) */
+/* DEFAULT PALETTE: Business & Professional - Red Accent (2026-02-01) */
 :root, :root.dark-mode, :root[data-palette="default"] {
-  /* PRIMARY (Red - very muted) */
+  /* PRIMARY (Red - dark muted for buttons) */
   --palette-primary: #991b1b;
-  --palette-primary-hover: #7f1d1d;
-  --palette-primary-light: rgba(153, 27, 27, 0.15);
+  --palette-primary-hover: #E84545; /* Logo red - vibrant hover */
+  --palette-primary-light: rgba(232, 69, 69, 0.15); /* Logo red - transparent */
   --palette-primary-dark: #7f1d1d;
+  --palette-accent-red: #E84545; /* Logo red - explicit use for accents */
 
   /* SECONDARY (Grey - neutral alternative) */
   --palette-secondary: #737373;
@@ -58,10 +59,11 @@
   --text-tertiary: #737373;
   --text-disabled: #525252;
 
-  /* BORDERS */
+  /* BORDERS (Subtle & Refined) */
   --border-subtle: #1a1a1a;
-  --border-default: #262626;
+  --border-default: #2a2a2a; /* Subtle borders - less prominent */
   --border-strong: #404040;
+  --border-width: 1px; /* Refined style - 1px borders */
 
   /* INTERACTIVE STATES */
   --state-hover: #1f1f1f;
@@ -405,14 +407,14 @@
   --text-8xl: 6rem;       /* 96px */
 }
 
-/* === BORDER RADIUS (shadcn-inspired) === */
+/* === BORDER RADIUS (Business & Professional - less rounded) === */
 :root {
-  --radius: 0.5rem;      /* 8px - base radius */
-  --radius-sm: 0.25rem;  /* 4px */
-  --radius-md: 0.375rem; /* 6px */
-  --radius-lg: 0.5rem;   /* 8px */
-  --radius-xl: 0.75rem;  /* 12px */
-  --radius-2xl: 1rem;    /* 16px */
+  --radius: 0.25rem;      /* 4px - base radius (classic) */
+  --radius-sm: 0.125rem;  /* 2px */
+  --radius-md: 0.25rem;   /* 4px */
+  --radius-lg: 0.375rem;  /* 6px */
+  --radius-xl: 0.5rem;    /* 8px */
+  --radius-2xl: 0.75rem;  /* 12px */
   --radius-none: 0;
 }
 

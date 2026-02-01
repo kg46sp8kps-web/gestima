@@ -73,6 +73,14 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/quotes/new/from-request',
+    name: 'quote-new-from-request',
+    component: () => import('@/views/quotes/QuoteNewFromRequestView.vue'),
+    meta: {
+      title: 'Nová nabídka z poptávky (AI)'
+    }
+  },
+  {
     path: '/quotes/:quoteNumber',
     name: 'quote-detail',
     component: () => import('@/views/quotes/QuoteDetailView.vue'),
@@ -89,6 +97,16 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Kmenová data',
       requiresAdmin: true
+    }
+  },
+
+  // Component Showcase (Design System)
+  {
+    path: '/showcase',
+    name: 'component-showcase',
+    component: () => import('@/views/ComponentShowcase.vue'),
+    meta: {
+      title: 'Design System Showcase'
     }
   },
 

@@ -31,6 +31,7 @@ function createMockPart(overrides: Partial<Part> = {}): Part {
     drawing_path: null,
     name: 'Test Part',
     customer_revision: null,
+    drawing_number: null,
     material_item_id: null,
     price_category_id: null,
     length: 0,

@@ -8,11 +8,12 @@
 
 import { ref, computed, watch, onMounted } from 'vue'
 import { usePartsStore } from '@/stores/parts'
+import { useBatchesStore } from '@/stores/batches'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
-import type { Batch } from '@/types/batch'
+import type { Batch, BatchSet } from '@/types/batch'
 
 import PartListPanel from './parts/PartListPanel.vue'
 import PricingHeader from './pricing/PricingHeader.vue'
@@ -20,17 +21,20 @@ import PricingDetailPanel from './pricing/PricingDetailPanel.vue'
 
 interface Props {
   inline?: boolean
-  partId: number | null
-  partNumber: string
+  partId?: number | null
+  partNumber?: string
   linkingGroup?: LinkingGroup
 }
 
 const props = withDefaults(defineProps<Props>(), {
   inline: false,
+  partId: null,
+  partNumber: undefined,
   linkingGroup: null
 })
 
 const partsStore = usePartsStore()
+const batchesStore = useBatchesStore()
 const contextStore = useWindowContextStore()
 
 // State
@@ -40,6 +44,10 @@ const batches = ref<Batch[]>([])
 
 // Computed
 const isLinked = computed(() => props.linkingGroup !== null)
+const batchSets = computed(() => {
+  const ctx = batchesStore.getContext(props.linkingGroup)
+  return ctx.batchSets
+})
 
 // Resizable panel (only when NOT linked)
 const { panelWidth, isDragging, startResize } = useResizablePanel({
@@ -82,7 +90,10 @@ function handleBatchesUpdated(updatedBatches: Batch[]) {
 
 // Load parts on mount
 onMounted(async () => {
-  await partsStore.fetchParts()
+  // Only fetch if parts not loaded yet (prevents list refresh/scroll reset)
+  if (partsStore.parts.length === 0) {
+    await partsStore.fetchParts()
+  }
 
   // If partNumber prop provided, select it
   if (props.partNumber) {
@@ -147,7 +158,7 @@ watch(() => props.partNumber, (newPartNumber) => {
     <div class="right-panel" :class="{ 'full-width': isLinked }">
       <PricingHeader
         :part="selectedPart"
-        :batches="batches"
+        :batchSets="batchSets"
       />
       <PricingDetailPanel
         :partId="currentPartId"

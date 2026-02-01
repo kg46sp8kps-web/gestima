@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { Part } from '@/types/part'
+import { ref, watch } from 'vue'
+import type { Part, PartUpdate } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import DrawingsManagementModal from './DrawingsManagementModal.vue'
-import { Package, Settings, DollarSign, FileText } from 'lucide-vue-next'
+import CopyPartModal from './CopyPartModal.vue'
+import Input from '@/components/ui/Input.vue'
+import Button from '@/components/ui/Button.vue'
+import { updatePart } from '@/api/parts'
+import { Package, Settings, DollarSign, FileText, AlertTriangle, Check, X, Edit, Copy } from 'lucide-vue-next'
 
 interface Props {
   part: Part
@@ -23,6 +27,75 @@ const emit = defineEmits<{
 // Drawings management modal
 const showDrawingsModal = ref(false)
 
+// Copy part modal
+const showCopyModal = ref(false)
+
+// Edit mode
+const isEditMode = ref(false)
+
+// Form data for inline editing
+const formData = ref({
+  article_number: '',
+  drawing_number: '',
+  name: '',
+  customer_revision: ''
+})
+
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+// Initialize form data when part changes
+watch(() => props.part, (part) => {
+  if (part) {
+    formData.value = {
+      article_number: part.article_number || '',
+      drawing_number: part.drawing_number || '',
+      name: part.name || '',
+      customer_revision: part.customer_revision || ''
+    }
+  }
+}, { immediate: true })
+
+async function handleSave() {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const updateData: PartUpdate = {
+      article_number: formData.value.article_number || null,
+      drawing_number: formData.value.drawing_number || null,
+      name: formData.value.name,
+      customer_revision: formData.value.customer_revision || null,
+      version: props.part.version
+    }
+
+    await updatePart(props.part.part_number, updateData)
+    emit('refresh')
+    isEditMode.value = false // Exit edit mode after save
+  } catch (error: any) {
+    errorMessage.value = error.response?.data?.detail || 'Chyba při ukládání dílu'
+    console.error('Failed to update part:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function handleEdit() {
+  isEditMode.value = true
+}
+
+function handleCancel() {
+  // Reset form data to original values
+  formData.value = {
+    article_number: props.part.article_number || '',
+    drawing_number: props.part.drawing_number || '',
+    name: props.part.name || '',
+    customer_revision: props.part.customer_revision || ''
+  }
+  errorMessage.value = ''
+  isEditMode.value = false
+}
+
 function handleDrawingButtonClick() {
   // Check if part has any drawings
   if (props.part.drawing_path) {
@@ -40,6 +113,15 @@ function handleDrawingButtonRightClick(event: MouseEvent) {
   showDrawingsModal.value = true
 }
 
+function handleCopy() {
+  showCopyModal.value = true
+}
+
+function handleCopySuccess() {
+  // Modal handles the copy internally, just refresh the list
+  emit('refresh')
+}
+
 function handleOpenDrawing(drawingId?: number) {
   emit('open-drawing', drawingId)
   showDrawingsModal.value = false
@@ -54,28 +136,75 @@ function formatDate(dateString: string) {
   <div class="part-detail-panel">
     <!-- Compact Header -->
     <div class="part-header-compact">
-      <div class="header-item">
-        <span class="header-label">Artikl:</span>
-        <span class="header-value">{{ part.article_number || '—' }}</span>
+      <!-- View mode: Subtle buttons (bottom right) -->
+      <div v-if="!isEditMode" class="view-toolbar">
+        <button class="btn-edit" @click="handleCopy" title="Kopírovat díl">
+          <Copy :size="14" />
+        </button>
+        <button class="btn-edit" @click="handleEdit" title="Upravit díl">
+          <Edit :size="14" />
+        </button>
       </div>
-      <div class="header-item">
-        <span class="header-label">Výkres:</span>
-        <span class="header-value">{{ part.drawing_path || '—' }}</span>
+
+      <!-- Error message -->
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
       </div>
-      <div class="header-item">
-        <span class="header-label">Název:</span>
-        <span class="header-value">{{ part.name }}</span>
+
+      <!-- Fields - conditional: editable or read-only -->
+      <div class="form-field">
+        <label class="field-label">Artikl:</label>
+        <Input
+          v-if="isEditMode"
+          v-model="formData.article_number"
+          placeholder="Dodavatelské číslo"
+          :disabled="isLoading"
+        />
+        <span v-else class="field-value">{{ part.article_number || '—' }}</span>
       </div>
-      <div class="header-item">
-        <span class="header-label">Revize:</span>
-        <span class="header-value">{{ part.customer_revision || '—' }}</span>
+
+      <div class="form-field">
+        <label class="field-label">Číslo výkresu:</label>
+        <Input
+          v-if="isEditMode"
+          v-model="formData.drawing_number"
+          placeholder="Číslo výkresu"
+          :disabled="isLoading"
+        />
+        <span v-else class="field-value">{{ part.drawing_number || '—' }}</span>
       </div>
-      <div class="header-item full-width" v-if="part.notes">
-        <span class="header-label">Poznámky:</span>
-        <span class="header-value">{{ part.notes }}</span>
+
+      <div class="form-field">
+        <label class="field-label">Název:</label>
+        <Input
+          v-if="isEditMode"
+          v-model="formData.name"
+          placeholder="Název dílu"
+          :disabled="isLoading"
+        />
+        <span v-else class="field-value">{{ part.name || '—' }}</span>
       </div>
-      <div class="header-item">
-        <span class="article-number-badge">{{ part.article_number || part.part_number }}</span>
+
+      <div class="form-field">
+        <label class="field-label">Revize:</label>
+        <Input
+          v-if="isEditMode"
+          v-model="formData.customer_revision"
+          placeholder="Zákaznická revize"
+          :disabled="isLoading"
+        />
+        <span v-else class="field-value">{{ part.customer_revision || '—' }}</span>
+      </div>
+
+      <!-- Edit mode: Toolbar (bottom right) -->
+      <div v-if="isEditMode" class="edit-toolbar">
+        <AlertTriangle :size="20" class="warning-icon" />
+        <button class="btn-action btn-confirm" @click="handleSave" :disabled="isLoading" title="Potvrdit změny">
+          <Check :size="18" />
+        </button>
+        <button class="btn-action btn-cancel" @click="handleCancel" :disabled="isLoading" title="Zrušit změny">
+          <X :size="18" />
+        </button>
       </div>
     </div>
 
@@ -111,6 +240,14 @@ function formatDate(dateString: string) {
       @refresh="emit('refresh')"
       @open-drawing="handleOpenDrawing"
     />
+
+    <!-- Copy Part Modal -->
+    <CopyPartModal
+      v-model="showCopyModal"
+      :part-number="part.part_number"
+      :source-part="part"
+      @success="handleCopySuccess"
+    />
   </div>
 </template>
 
@@ -122,52 +259,136 @@ function formatDate(dateString: string) {
   gap: var(--space-6);
 }
 
-/* Compact Header Grid */
+/* Compact Header - Vertical Layout */
 .part-header-compact {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   padding: var(--space-3);
+  padding-bottom: calc(var(--space-3) + 32px); /* Extra space for toolbar */
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
+  position: relative;
 }
 
-.header-item {
+/* View mode toolbar (bottom right) */
+.view-toolbar {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
   display: flex;
+  align-items: center;
   gap: var(--space-2);
-  align-items: baseline;
+  z-index: 1;
 }
 
-.header-item.full-width {
-  grid-column: 1 / -1;
+/* Subtle edit button */
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: var(--transition-fast);
+  opacity: 0.5;
 }
 
-.header-label {
+.btn-edit:hover {
+  opacity: 1;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+/* Edit mode toolbar (bottom right) */
+.edit-toolbar {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  z-index: 1;
+}
+
+.warning-icon {
+  color: var(--color-warning);
+}
+
+/* Action buttons - same subtle style as edit button */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  opacity: 0.5;
+}
+
+.btn-action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-action:not(:disabled):hover {
+  opacity: 1;
+  background: var(--bg-hover);
+}
+
+.btn-confirm {
+  color: var(--color-success);
+}
+
+.btn-cancel {
+  color: var(--color-error);
+}
+
+/* Error message */
+.error-message {
+  padding: var(--space-3);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  color: var(--color-error-text);
+  font-size: var(--text-sm);
+}
+
+/* Form fields */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field-label {
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
-  white-space: nowrap;
 }
 
-.header-value {
+.field-value {
+  font-size: var(--text-base);
   color: var(--text-body);
-}
-
-.article-number-badge {
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  justify-self: end;
+  padding: var(--space-2) 0;
+  line-height: 1.5;
 }
 
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
+  transition: transform var(--transition-normal);
 }
 
 .action-button {

@@ -21,6 +21,7 @@ export interface PartBase {
   drawing_path: string | null
   name: string
   customer_revision: string | null
+  drawing_number: string | null
   notes: string
   material_item_id: number | null
   price_category_id: number | null
@@ -48,6 +49,7 @@ export interface PartCreate {
   drawing_path?: string | null
   name: string  // REQUIRED
   customer_revision?: string | null
+  drawing_number?: string | null
   notes?: string | null
 }
 

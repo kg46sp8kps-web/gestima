@@ -5,7 +5,7 @@ import type { PartCreate, Part } from '@/types/part'
 import { drawingsApi } from '@/api/drawings'
 import DragDropZone from '@/components/ui/DragDropZone.vue'
 import PDFPreview from '@/components/ui/PDFPreview.vue'
-import { Trash2, Save, X } from 'lucide-vue-next'
+import { Trash2, Check, X } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   'created': [part: Part]
@@ -13,12 +13,13 @@ const emit = defineEmits<{
 }>()
 
 const partsStore = usePartsStore()
+
 const formData = ref<PartCreate>({
   article_number: '',
   drawing_path: '',
   name: '',
   customer_revision: '',
-  notes: ''
+  drawing_number: ''
 })
 
 // Temp drawing upload state
@@ -76,7 +77,7 @@ async function handleSubmit() {
       drawing_path: '',
       name: '',
       customer_revision: '',
-      notes: ''
+      drawing_number: ''
     }
     tempDrawingFile.value = null
     tempDrawingId.value = null
@@ -96,7 +97,7 @@ function handleCancel() {
     drawing_path: '',
     name: '',
     customer_revision: '',
-    notes: ''
+    drawing_number: ''
   }
   tempDrawingFile.value = null
   tempDrawingId.value = null
@@ -112,31 +113,26 @@ function handleCancel() {
     <form @submit.prevent="handleSubmit">
       <!-- Part number auto-generated (10XXXXXX) -->
 
-      <div class="form-grid">
+      <div class="form-fields">
         <div class="form-field">
-          <label>Artikl *</label>
-          <input v-model="formData.article_number" required placeholder="Číslo výrobku" />
+          <label class="field-label">Artikl *</label>
+          <input v-model="formData.article_number" required placeholder="Dodavatelské číslo" class="field-input" />
         </div>
 
         <div class="form-field">
-          <label>Výkres</label>
-          <input v-model="formData.drawing_path" placeholder="Cesta k výkresu" />
+          <label class="field-label">Číslo výkresu</label>
+          <input v-model="formData.drawing_number" placeholder="Číslo výkresu" class="field-input" />
         </div>
 
         <div class="form-field">
-          <label>Název *</label>
-          <input v-model="formData.name" required placeholder="Název dílu" />
+          <label class="field-label">Název *</label>
+          <input v-model="formData.name" required placeholder="Název dílu" class="field-input" />
         </div>
 
         <div class="form-field">
-          <label>Revize</label>
-          <input v-model="formData.customer_revision" placeholder="Revize výkresu" />
+          <label class="field-label">Revize</label>
+          <input v-model="formData.customer_revision" placeholder="Zákaznická revize" class="field-input" />
         </div>
-      </div>
-
-      <div class="form-field">
-        <label>Poznámky</label>
-        <textarea v-model="formData.notes" rows="2" placeholder="Volitelné poznámky"></textarea>
       </div>
 
       <!-- Drawing upload (temp) -->
@@ -176,13 +172,11 @@ function handleCancel() {
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn-primary">
-          <Save :size="16" />
-          Vytvořit
+        <button type="button" @click="handleCancel" class="btn-icon btn-cancel" title="Zrušit">
+          <X :size="20" />
         </button>
-        <button type="button" @click="handleCancel" class="btn-secondary">
-          <X :size="16" />
-          Zrušit
+        <button type="submit" class="btn-icon btn-confirm" title="Vytvořit díl">
+          <Check :size="20" />
         </button>
       </div>
     </form>
@@ -193,14 +187,8 @@ function handleCancel() {
 .part-create-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-width: 800px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  gap: var(--space-6);
+  max-width: 600px;
 }
 
 .part-create-form h2 {
@@ -210,44 +198,84 @@ function handleCancel() {
   color: var(--text-primary);
 }
 
+/* Vertical form fields */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
-.form-field label {
+.field-label {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: var(--text-body);
+  color: var(--text-secondary);
 }
 
-.form-field input,
-.form-field textarea {
+.field-input {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   background: var(--bg-input);
   color: var(--text-body);
+  transition: var(--transition-fast);
 }
 
-.form-field input:focus,
-.form-field textarea:focus {
+.field-input:focus {
   outline: none;
   background: var(--state-focus-bg);
   border-color: var(--state-focus-border);
 }
 
-.form-field textarea {
-  resize: vertical;
-  font-family: inherit;
-}
-
 .form-actions {
   display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+/* Icon buttons - same as modal */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-icon.btn-confirm {
+  color: var(--color-success);
+}
+
+.btn-icon.btn-confirm:hover {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.btn-icon.btn-cancel {
+  color: var(--color-error);
+}
+
+.btn-icon.btn-cancel:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Drawing field */

@@ -4,6 +4,9 @@
     <header class="page-header">
       <h1>Nabídky</h1>
       <div class="header-actions">
+        <button class="btn" @click="handleCreateFromRequest">
+          🤖 Z poptávky (AI)
+        </button>
         <button class="btn btn-primary" @click="handleCreate">+ Nová nabídka</button>
       </div>
     </header>
@@ -255,6 +258,10 @@ function getStatusLabel(status: QuoteStatus): string {
 function handleCreate() {
   // TODO: Open create modal or navigate to create view
   router.push({ name: 'quote-create' })
+}
+
+function handleCreateFromRequest() {
+  router.push({ name: 'quote-new-from-request' })
 }
 
 function handleRowClick(row: Record<string, unknown>) {

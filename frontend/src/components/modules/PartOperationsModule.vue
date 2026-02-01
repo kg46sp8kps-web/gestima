@@ -19,13 +19,15 @@ import OperationsDetailPanel from './operations/OperationsDetailPanel.vue'
 
 interface Props {
   inline?: boolean
-  partId: number | null
-  partNumber: string
+  partId?: number | null
+  partNumber?: string
   linkingGroup?: LinkingGroup
 }
 
 const props = withDefaults(defineProps<Props>(), {
   inline: false,
+  partId: null,
+  partNumber: undefined,
   linkingGroup: null
 })
 
@@ -77,7 +79,10 @@ function handleSelectPart(part: Part) {
 
 // Load parts on mount
 onMounted(async () => {
-  await partsStore.fetchParts()
+  // Only fetch if parts not loaded yet (prevents list refresh/scroll reset)
+  if (partsStore.parts.length === 0) {
+    await partsStore.fetchParts()
+  }
 
   // If partNumber prop provided, select it
   if (props.partNumber) {

@@ -15,7 +15,9 @@ import type {
   MaterialInput,
   MaterialInputWithOperations,
   MaterialInputCreate,
-  MaterialInputUpdate
+  MaterialInputUpdate,
+  MaterialSummary,
+  StockShape
 } from '@/types/material'
 
 // =============================================================================
@@ -121,4 +123,28 @@ export async function reorderMaterialInputs(
   for (const { id, seq, version } of materialInputs) {
     await updateMaterialInput(id, { seq, version })
   }
+}
+
+// =============================================================================
+// Calculations
+// =============================================================================
+
+/**
+ * Calculate material cost summary with price tier details
+ */
+export async function calculateMaterialSummary(data: {
+  price_category_id: number
+  stock_shape: StockShape
+  stock_diameter?: number | null
+  stock_length?: number | null
+  stock_width?: number | null
+  stock_height?: number | null
+  stock_wall_thickness?: number | null
+  quantity: number
+}): Promise<MaterialSummary> {
+  const response = await apiClient.post<MaterialSummary>(
+    '/material-inputs/calculate-summary',
+    data
+  )
+  return response.data
 }

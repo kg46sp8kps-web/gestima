@@ -31,6 +31,7 @@ const defaultColumns: Column[] = [
   { key: 'name', label: 'Název', sortable: true, visible: true, format: 'text' },
   { key: 'revision', label: 'Revize', sortable: false, visible: true, format: 'text' },
   { key: 'customer_revision', label: 'Zák. revize', sortable: false, visible: true, format: 'text' },
+  { key: 'drawing_number', label: 'Číslo výkresu', sortable: false, visible: false, format: 'text' },
   { key: 'status', label: 'Status', sortable: false, visible: true, format: 'text' },
   { key: 'length', label: 'Délka', sortable: false, visible: true, format: 'number' },
   { key: 'notes', label: 'Poznámky', sortable: false, visible: true, format: 'text' },
@@ -103,6 +104,17 @@ function handleCreate() {
 
 function handleColumnsUpdate(updatedColumns: Column[]) {
   columns.value = updatedColumns
+
+  // Save to localStorage (visibility + order)
+  const visibility = updatedColumns.reduce((acc, col) => {
+    acc[col.key] = col.visible ?? true
+    return acc
+  }, {} as Record<string, boolean>)
+
+  const order = updatedColumns.map(col => col.key)
+
+  localStorage.setItem('partListColumns', JSON.stringify(visibility))
+  localStorage.setItem('partListColumns_order', JSON.stringify(order))
 }
 
 onMounted(async () => {
@@ -157,6 +169,7 @@ defineExpose({
         emptyText="Žádné díly"
         @row-click="handleRowClick"
         @sort="handleSort"
+        @update:columns="handleColumnsUpdate"
       >
         <!-- Custom cell for article_number (bold + colored) -->
         <template #cell-article_number="{ value }">

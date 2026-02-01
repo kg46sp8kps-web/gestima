@@ -11,7 +11,9 @@ import type {
   QuoteItemCreate,
   QuoteItemUpdate,
   QuotesListResponse,
-  QuoteStatus
+  QuoteStatus,
+  QuoteRequestReview,
+  QuoteFromRequestCreate
 } from '@/types/quote'
 
 /**
@@ -161,5 +163,59 @@ export async function deleteQuoteItem(
   const response = await apiClient.delete<{ message: string; version: number }>(
     `/quote_items/${itemId}`
   )
+  return response.data
+}
+
+// ============================================================================
+// AI QUOTE REQUEST PARSING (ADR-028)
+// ============================================================================
+
+/**
+ * Parse PDF quote request with Claude Vision AI
+ *
+ * Rate limit: 10 requests/hour per user
+ * Max file size: 10 MB
+ *
+ * @param file - PDF file to parse
+ * @returns QuoteRequestReview - extracted data + matching results for UI verification
+ * @throws 413 - File too large (>10 MB)
+ * @throws 429 - Rate limit exceeded (10/hour)
+ * @throws 500 - AI parsing failed
+ */
+export async function parseQuoteRequest(file: File): Promise<QuoteRequestReview> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await apiClient.post<QuoteRequestReview>(
+    '/quotes/parse-request',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      // 60 seconds timeout (Claude API can take 30s + processing)
+      timeout: 60000
+    }
+  )
+
+  return response.data
+}
+
+/**
+ * Create quote from AI-parsed request (after user verification)
+ *
+ * This endpoint:
+ * - Creates Partner if new (partner_data provided)
+ * - Creates missing Parts (article_number + name, status=draft, revision=A)
+ * - Creates Quote (DRAFT status)
+ * - Creates QuoteItems (with pricing from matched batches)
+ *
+ * @param data - Verified quote request data
+ * @returns Created Quote
+ */
+export async function createQuoteFromRequest(
+  data: QuoteFromRequestCreate
+): Promise<Quote> {
+  const response = await apiClient.post<Quote>('/quotes/from-request', data)
   return response.data
 }

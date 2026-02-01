@@ -254,17 +254,12 @@ export async function getStockCost(partNumber: string): Promise<StockCost> {
  * Example: "KR D30 L100 ocel" → { shape: 'round_bar', diameter: 30, length: 100 }
  */
 export async function parseMaterialDescription(description: string): Promise<MaterialParseResult> {
-  // Backend expects form data, not JSON body
-  const formData = new URLSearchParams()
-  formData.append('description', description)
-
+  // Backend expects query parameter
   const response = await apiClient.post<MaterialParseResult>(
     '/materials/parse',
-    formData,
+    null,
     {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+      params: { description }
     }
   )
   return response.data

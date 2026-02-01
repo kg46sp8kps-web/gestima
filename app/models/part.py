@@ -24,12 +24,13 @@ class Part(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     part_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 10XXXXXX
-    article_number = Column(String(50), nullable=False, index=True)  # Dodavatelské číslo (REQUIRED)
+    article_number = Column(String(50), unique=True, nullable=False, index=True)  # Dodavatelské číslo (REQUIRED, UNIQUE)
     name = Column(String(200), nullable=True)
 
     # ADR-024: Revize (v1.8.0 - MaterialInput refactor)
     revision = Column(String(2), default="A", nullable=False)  # Interní revize (A-Z)
     customer_revision = Column(String(50), nullable=True)      # Zákaznická revize (zobrazená na výkresu)
+    drawing_number = Column(String(50), nullable=True)         # Číslo výkresu (zobrazené v hlavičce)
     status = Column(String(20), default="active", nullable=False)  # Lifecycle status (validated by Pydantic)
 
     # Rozměry dílu (ne polotovaru!)
@@ -78,6 +79,7 @@ class PartBase(BaseModel):
     name: str = Field("", max_length=200, description="Název dílu")
     revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize (A-Z)")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
+    drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     status: PartStatus = Field(PartStatus.DRAFT, description="Status dílu")
     length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
     notes: str = Field("", max_length=500, description="Poznámky")
@@ -90,6 +92,7 @@ class PartCreate(BaseModel):
     temp_drawing_id: Optional[str] = Field(None, description="UUID temp file to move to permanent storage")
     name: str = Field(..., max_length=200, description="Název dílu (REQUIRED)")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
+    drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
 
@@ -99,6 +102,7 @@ class PartUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
     revision: Optional[str] = Field(None, min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$")
     customer_revision: Optional[str] = Field(None, max_length=50)
+    drawing_number: Optional[str] = Field(None, max_length=50)
     status: Optional[PartStatus] = None
     length: Optional[float] = Field(None, ge=0)
     notes: Optional[str] = Field(None, max_length=500)

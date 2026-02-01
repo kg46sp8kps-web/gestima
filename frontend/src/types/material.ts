@@ -222,6 +222,29 @@ export interface StockCost {
 }
 
 // =============================================================================
+// Material Summary (cost calculation with price tier details)
+// =============================================================================
+
+export interface MaterialSummary {
+  weight_kg: number
+  total_weight_kg: number
+  price_category: {
+    code: string
+    name: string
+  }
+  price_tier: {
+    min_weight: number
+    max_weight: number | null
+    price_per_kg: number
+  } | null
+  price_per_kg: number
+  cost_per_piece: number
+  total_cost: number
+  tier_range: string
+  tier_id: number | null  // ID of selected tier for highlighting
+}
+
+// =============================================================================
 // Material Parse Result (from AI parser)
 // =============================================================================
 
@@ -269,6 +292,9 @@ export interface MaterialInputWithOperations extends MaterialInput {
     name: string
     type: string
   }>
+  weight_kg?: number | null
+  cost_per_piece?: number | null
+  price_per_kg?: number | null
 }
 
 export interface MaterialInputCreate {

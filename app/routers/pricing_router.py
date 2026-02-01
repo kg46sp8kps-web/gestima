@@ -656,12 +656,15 @@ async def freeze_loose_batches_as_set(
 
     # Flush to get batch_set.id
     await db.flush()
+    await db.refresh(batch_set)
 
     now = datetime.utcnow()
 
     try:
         # Assign all loose batches to the set and freeze them
         for batch in loose_batches:
+            # Refresh batch to ensure relations are loaded after flush
+            await db.refresh(batch, ['part'])
             snapshot = await create_batch_snapshot(batch, current_user.username, db)
             batch.batch_set_id = batch_set.id
             batch.is_frozen = True

@@ -1,39 +1,22 @@
 <script setup lang="ts">
 /**
  * Pricing Header Component
- * Displays part info and batch pricing summary
+ * Displays part info and batch sets count
  */
 import { computed } from 'vue'
 import type { Part } from '@/types/part'
-import type { Batch } from '@/types/batch'
+import type { BatchSet } from '@/types/batch'
 
 interface Props {
   part: Part | null
-  batches: Batch[]
+  batchSets: BatchSet[]
 }
 
 const props = defineProps<Props>()
 
-const batchesCount = computed(() => props.batches.length)
-
-const minUnitPrice = computed(() => {
-  if (props.batches.length === 0) return null
-  return Math.min(...props.batches.map(b => b.unit_price))
+const frozenSetsCount = computed(() => {
+  return props.batchSets.filter(s => s.status === 'frozen').length
 })
-
-const maxUnitPrice = computed(() => {
-  if (props.batches.length === 0) return null
-  return Math.max(...props.batches.map(b => b.unit_price))
-})
-
-const defaultBatch = computed(() => {
-  return props.batches.find(b => b.is_default) || null
-})
-
-function formatCurrency(amount: number | null): string {
-  if (amount === null) return '-'
-  return amount.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 </script>
 
 <template>
@@ -46,34 +29,14 @@ function formatCurrency(amount: number | null): string {
     <div v-else class="part-info">
       <h2 class="placeholder">Vyberte díl</h2>
     </div>
-
-    <!-- Batch Summary -->
-    <div v-if="batchesCount > 0" class="batch-summary">
-      <div class="summary-stat">
-        <span class="stat-label">Počet dávek:</span>
-        <span class="stat-value">{{ batchesCount }}</span>
-      </div>
-      <div v-if="minUnitPrice !== null" class="summary-stat">
-        <span class="stat-label">Min. cena/ks:</span>
-        <span class="stat-value">{{ formatCurrency(minUnitPrice) }} Kč</span>
-      </div>
-      <div v-if="maxUnitPrice !== null" class="summary-stat">
-        <span class="stat-label">Max. cena/ks:</span>
-        <span class="stat-value">{{ formatCurrency(maxUnitPrice) }} Kč</span>
-      </div>
-      <div v-if="defaultBatch" class="summary-stat">
-        <span class="stat-label">Výchozí:</span>
-        <span class="stat-value">{{ defaultBatch.quantity }} ks</span>
-      </div>
-    </div>
-    <div v-else class="empty-summary">
-      <span class="empty-text">Žádné cenové dávky</span>
-    </div>
   </div>
 </template>
 
 <style scoped>
 .pricing-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -106,40 +69,5 @@ function formatCurrency(amount: number | null): string {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-}
-
-.batch-summary {
-  display: flex;
-  gap: var(--space-4);
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
-}
-
-.summary-stat {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.stat-label {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-
-.stat-value {
-  font-weight: var(--font-semibold);
-  font-size: var(--text-base);
-  color: var(--text-primary);
-}
-
-.empty-summary {
-  display: flex;
-  align-items: center;
-}
-
-.empty-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
 }
 </style>
