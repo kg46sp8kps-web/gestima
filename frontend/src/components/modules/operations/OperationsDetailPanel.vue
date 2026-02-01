@@ -169,10 +169,15 @@ function handleDragStart(event: DragEvent, op: Operation) {
 
     document.body.appendChild(ghostElement)
 
-    // Set custom drag image (center on cursor)
+    // Calculate offset from mouse to element (keep grab position)
+    const rect = opCard.getBoundingClientRect()
+    const offsetX = event.clientX - rect.left
+    const offsetY = event.clientY - rect.top
+
+    // Set custom drag image at EXACT grab position
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setDragImage(ghostElement, ghostElement.offsetWidth / 2, 25)
+      event.dataTransfer.setDragImage(ghostElement, offsetX, offsetY)
     }
 
     // Cleanup after browser copies the image
@@ -184,14 +189,21 @@ function handleDragStart(event: DragEvent, op: Operation) {
   }
 }
 
-function handleDragEnter(op: Operation) {
+function handleDragEnter(event: DragEvent, op: Operation) {
+  event.preventDefault()
   if (draggedOpId.value && draggedOpId.value !== op.id) {
     dragOverOpId.value = op.id
   }
 }
 
-function handleDragLeave() {
-  dragOverOpId.value = null
+function handleDragLeave(event: DragEvent) {
+  // Only clear if we're really leaving (not entering child element)
+  const relatedTarget = event.relatedTarget as HTMLElement
+  const currentTarget = event.currentTarget as HTMLElement
+
+  if (!currentTarget.contains(relatedTarget)) {
+    dragOverOpId.value = null
+  }
 }
 
 function handleDragEnd() {
@@ -296,8 +308,8 @@ defineExpose({
         <div
           draggable="true"
           @dragstart="handleDragStart($event, op)"
-          @dragenter="handleDragEnter(op)"
-          @dragleave="handleDragLeave"
+          @dragenter="handleDragEnter($event, op)"
+          @dragleave="handleDragLeave($event)"
           @dragover="handleDragOver"
           @dragend="handleDragEnd"
           @drop="handleDrop($event, op)"
@@ -452,24 +464,31 @@ defineExpose({
 
 /* Drop placeholder (gap visualization) */
 .drop-placeholder {
-  height: 60px;
+  height: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  margin: var(--space-2) 0;
-  animation: slideIn 0.15s ease;
+  margin: var(--space-3) 0;
+  padding: var(--space-4) 0;
+  animation: slideIn 0.2s ease-out;
 }
 
 @keyframes slideIn {
   from {
     height: 0;
+    margin: 0;
+    padding: 0;
     opacity: 0;
+    transform: scaleY(0);
   }
   to {
-    height: 60px;
+    height: 80px;
+    margin: var(--space-3) 0;
+    padding: var(--space-4) 0;
     opacity: 1;
+    transform: scaleY(1);
   }
 }
 
