@@ -146,8 +146,41 @@ async function executeDelete() {
 }
 
 // Drag & Drop handlers (HTML5 API)
-function handleDragStart(op: Operation) {
+function handleDragStart(event: DragEvent, op: Operation) {
   draggedOpId.value = op.id
+
+  // Create custom drag ghost image
+  const ghostElement = document.createElement('div')
+  ghostElement.style.cssText = `
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+    background: var(--bg-surface);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 9999;
+  `
+  ghostElement.textContent = `Operace ${op.seq}`
+
+  document.body.appendChild(ghostElement)
+
+  // Set custom drag image (offset from cursor)
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setDragImage(ghostElement, 50, 20)
+  }
+
+  // Remove ghost element after drag starts (browser already copied it)
+  setTimeout(() => {
+    document.body.removeChild(ghostElement)
+  }, 0)
 }
 
 function handleDragEnter(op: Operation) {
@@ -252,7 +285,7 @@ defineExpose({
         v-for="op in sortedOperations"
         :key="op.id"
         draggable="true"
-        @dragstart="handleDragStart(op)"
+        @dragstart="handleDragStart($event, op)"
         @dragenter="handleDragEnter(op)"
         @dragleave="handleDragLeave"
         @dragover="handleDragOver"
