@@ -10,6 +10,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useMaterialsStore } from '@/stores/materials'
+import { useResizablePanel } from '@/composables/useResizablePanel'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
 
@@ -39,6 +40,14 @@ const listPanelRef = ref<InstanceType<typeof PartListPanel> | null>(null)
 
 // Computed
 const isLinked = computed(() => props.linkingGroup !== null)
+
+// Resizable panel (only when NOT linked)
+const { panelWidth, isDragging, startResize } = useResizablePanel({
+  storageKey: 'partMaterialPanelWidth',
+  defaultWidth: 320,
+  minWidth: 250,
+  maxWidth: 600
+})
 
 // Computed: Get partId from window context (direct property access for fine-grained reactivity)
 const contextPartId = computed(() => {
@@ -115,13 +124,21 @@ watch(() => props.partNumber, (newPartNumber) => {
 <template>
   <div class="split-layout">
     <!-- LEFT PANEL: Only visible when standalone (not linked) -->
-    <div v-if="!isLinked" class="left-panel">
+    <div v-if="!isLinked" class="left-panel" :style="{ width: `${panelWidth}px` }">
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
         @select-part="handleSelectPart"
       />
     </div>
+
+    <!-- RESIZE HANDLE: Only visible when left panel is shown -->
+    <div
+      v-if="!isLinked"
+      class="resize-handle"
+      :class="{ dragging: isDragging }"
+      @mousedown="startResize"
+    ></div>
 
     <!-- RIGHT PANEL: Header + Detail (full width when linked) -->
     <div class="right-panel" :class="{ 'full-width': isLinked }">
@@ -148,11 +165,37 @@ watch(() => props.partNumber, (newPartNumber) => {
 
 /* === LEFT PANEL === */
 .left-panel {
-  width: 320px;
-  min-width: 320px;
+  flex-shrink: 0;
+  /* width set via :style binding */
   padding: var(--space-3);
   height: 100%;
-  border-right: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+/* === RESIZE HANDLE === */
+.resize-handle {
+  width: 4px;
+  background: var(--border-default);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--color-primary);
+}
+
+/* Wider hit area for easier dragging */
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+  cursor: col-resize;
 }
 
 /* === RIGHT PANEL === */
