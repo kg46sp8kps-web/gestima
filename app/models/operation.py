@@ -23,7 +23,7 @@ class Operation(Base, AuditMixin):
     
     name = Column(String(200), default="")
     type = Column(String(50), default="turning")
-    icon = Column(String(10), default="🔄")
+    icon = Column(String(10), default="settings")
     
     work_center_id = Column(Integer, ForeignKey("work_centers.id", ondelete="SET NULL"), nullable=True)
     cutting_mode = Column(String(10), default="mid")
@@ -33,7 +33,10 @@ class Operation(Base, AuditMixin):
     
     setup_time_locked = Column(Boolean, default=False)
     operation_time_locked = Column(Boolean, default=False)
-    
+
+    manning_coefficient = Column(Float, default=100.0)  # Koeficient plnění v %
+    machine_utilization_coefficient = Column(Float, default=100.0)  # Koeficient využití strojů v %
+
     is_coop = Column(Boolean, default=False)
     coop_type = Column(String(50), nullable=True)
     coop_price = Column(Float, default=0.0)
@@ -58,11 +61,13 @@ class OperationBase(BaseModel):
     seq: int = Field(10, ge=1, description="Pořadí operace")
     name: str = Field("", max_length=200, description="Název operace")
     type: str = Field("turning", max_length=50, description="Typ operace")
-    icon: str = Field("🔄", max_length=10, description="Ikona operace")
+    icon: str = Field("settings", max_length=10, description="Ikona operace")
     work_center_id: Optional[int] = Field(None, gt=0, description="ID pracoviště")
     cutting_mode: str = Field("mid", max_length=10, description="Režim obrábění")
     setup_time_min: float = Field(30.0, ge=0, description="Čas seřízení v minutách")
     operation_time_min: float = Field(0.0, ge=0, description="Čas operace v minutách")
+    manning_coefficient: float = Field(100.0, ge=0, le=200, description="Koeficient plnění v %")
+    machine_utilization_coefficient: float = Field(100.0, ge=0, le=200, description="Koeficient využití strojů v %")
     is_coop: bool = False
     coop_type: Optional[str] = Field(None, max_length=50, description="Typ kooperace")
     coop_price: float = Field(0.0, ge=0, description="Cena kooperace za kus")
@@ -85,6 +90,8 @@ class OperationUpdate(BaseModel):
     operation_time_min: Optional[float] = Field(None, ge=0)
     setup_time_locked: Optional[bool] = None
     operation_time_locked: Optional[bool] = None
+    manning_coefficient: Optional[float] = Field(None, ge=0, le=200)
+    machine_utilization_coefficient: Optional[float] = Field(None, ge=0, le=200)
     is_coop: Optional[bool] = None
     coop_type: Optional[str] = Field(None, max_length=50)
     coop_price: Optional[float] = Field(None, ge=0)

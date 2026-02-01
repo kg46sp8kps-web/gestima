@@ -51,6 +51,8 @@ function createMockOperation(overrides: Partial<Operation> = {}): Operation {
     operation_time_min: 5,
     setup_time_locked: false,
     operation_time_locked: false,
+    manning_coefficient: 100,
+    machine_utilization_coefficient: 100,
     is_coop: false,
     coop_type: null,
     coop_price: 0,

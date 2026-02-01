@@ -30,6 +30,8 @@ export interface Operation {
   operation_time_min: number;
   setup_time_locked: boolean;
   operation_time_locked: boolean;
+  manning_coefficient: number;
+  machine_utilization_coefficient: number;
   is_coop: boolean;
   coop_type: string | null;
   coop_price: number;
@@ -70,6 +72,8 @@ export interface OperationUpdate {
   operation_time_min?: number;
   setup_time_locked?: boolean;
   operation_time_locked?: boolean;
+  manning_coefficient?: number;
+  machine_utilization_coefficient?: number;
   is_coop?: boolean;
   coop_type?: string | null;
   coop_price?: number;
