@@ -46,7 +46,7 @@ const { panelWidth, isDragging, startResize } = useResizablePanel({
   storageKey: 'partPricingPanelWidth',
   defaultWidth: 320,
   minWidth: 250,
-  maxWidth: 600
+  maxWidth: 1000
 })
 
 // Computed: Get partId from window context (direct property access for fine-grained reactivity)

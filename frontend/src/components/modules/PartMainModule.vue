@@ -46,7 +46,7 @@ const { panelWidth, isDragging, startResize } = useResizablePanel({
   storageKey: 'partMainPanelWidth',
   defaultWidth: 320,
   minWidth: 250,
-  maxWidth: 600
+  maxWidth: 1000
 })
 
 // Handlers
