@@ -18,7 +18,7 @@ defineProps<Props>()
   <div class="operations-header">
     <div v-if="part" class="part-info">
       <h2>{{ part.name }}</h2>
-      <span class="part-badge">{{ part.part_number }}</span>
+      <span class="part-badge">{{ part.article_number || part.part_number }}</span>
     </div>
     <div v-else class="part-info">
       <h2 class="placeholder">Vyberte díl</h2>

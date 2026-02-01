@@ -7,15 +7,14 @@ from app.models.part import PartCreate
 
 @pytest.mark.system
 def test_part_create_minimal():
-    """Vytvoření dílu s minimálními daty (ADR-011: Material Hierarchy)"""
+    """Vytvoření dílu s minimálními daty (ADR-024: article_number REQUIRED)"""
     part = PartCreate(
-        part_number="10000001",
-        material_item_id=1  # FK na MaterialItem (required)
+        article_number="ART-TEST-001",  # REQUIRED field
+        name="Test díl"  # REQUIRED field
     )
 
-    assert part.part_number == "10000001"  # ADR-017: 8-digit number
-    assert part.material_item_id == 1
-    assert part.length == 0.0  # default
+    assert part.article_number == "ART-TEST-001"
+    assert part.name == "Test díl"
 
 
 @pytest.mark.system

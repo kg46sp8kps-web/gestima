@@ -307,7 +307,7 @@ partsStore.fetchParts()
                 <tbody>
                   <tr v-for="item in quote.items" :key="item.id">
                     <td>{{ item.seq }}</td>
-                    <td>{{ item.part_number }}</td>
+                    <td>{{ item.article_number || item.part_number }}</td>
                     <td>{{ item.part_name }}</td>
                     <td>{{ item.quantity }}</td>
                     <td>{{ formatCurrency(item.unit_price) }}</td>
@@ -394,7 +394,7 @@ partsStore.fetchParts()
                   :key="part.id"
                   :value="part.id"
                 >
-                  {{ part.part_number }} - {{ part.name }}
+                  {{ part.article_number || part.part_number }} - {{ part.name }}
                 </option>
               </select>
             </div>

@@ -47,7 +47,7 @@ function handleSelectPart(part: Part) {
 
   // Update window context
   if (props.linkingGroup) {
-    contextStore.setContext(props.linkingGroup, part.id, part.part_number)
+    contextStore.setContext(props.linkingGroup, part.id, part.part_number, part.article_number)
   }
 
   emit('select-part', part.part_number)
@@ -65,7 +65,7 @@ function handleCreated(part: Part) {
   listPanelRef.value?.setSelection(part.id)
 
   if (props.linkingGroup) {
-    contextStore.setContext(props.linkingGroup, part.id, part.part_number)
+    contextStore.setContext(props.linkingGroup, part.id, part.part_number, part.article_number)
   }
 
   emit('select-part', part.part_number)
@@ -97,11 +97,18 @@ function openPricingWindow() {
   windowsStore.openWindow('part-pricing', title, props.linkingGroup || null)
 }
 
-function openDrawingWindow() {
+function openDrawingWindow(drawingId?: number) {
   if (!selectedPart.value) return
 
-  const title = `Drawing - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-drawing', title, props.linkingGroup || null)
+  // For specific drawing ID, open without linking group (standalone window)
+  // For primary drawing, use linking group (context-aware)
+  const title = drawingId
+    ? `Drawing #${drawingId} - ${selectedPart.value.part_number}`
+    : `Drawing - ${selectedPart.value.part_number}`
+
+  // NOTE: drawingId is parsed from title in PartDrawingWindow
+  // Pattern: "Drawing #123 - ..." where 123 is drawing_id
+  windowsStore.openWindow('part-drawing', title, drawingId ? null : (props.linkingGroup || null))
 }
 
 async function refreshPart() {

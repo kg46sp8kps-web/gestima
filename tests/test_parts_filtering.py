@@ -8,12 +8,11 @@ from app.models.part import Part
 
 @pytest.mark.asyncio
 async def test_create_part_with_article_number(db_session):
-    """Test creating part with article_number field"""
+    """Test creating part with article_number field (REQUIRED)"""
     part = Part(
         part_number="P-001",
         article_number="ART-12345",
         name="Test díl",
-        material_item_id=db_session.test_material_item.id,
         length=100.0,
         created_by="test"
     )
@@ -27,12 +26,13 @@ async def test_create_part_with_article_number(db_session):
 
 
 @pytest.mark.asyncio
-async def test_part_article_number_optional(db_session):
-    """Test that article_number is optional"""
+async def test_part_article_number_required(db_session):
+    """Test that article_number is REQUIRED (ADR-024 update)"""
+    # Create part WITH article_number - should succeed
     part = Part(
         part_number="P-002",
-        name="Díl bez article",
-        material_item_id=db_session.test_material_item.id,
+        article_number="ART-REQUIRED",
+        name="Díl s article",
         created_by="test"
     )
     db_session.add(part)
@@ -40,7 +40,21 @@ async def test_part_article_number_optional(db_session):
     await db_session.refresh(part)
 
     assert part.id is not None
-    assert part.article_number is None
+    assert part.article_number == "ART-REQUIRED"
+
+    # Try to create part WITHOUT article_number - should fail
+    import pytest as pt
+    from sqlalchemy.exc import IntegrityError
+
+    part_no_article = Part(
+        part_number="P-003",
+        name="Díl bez article",
+        created_by="test"
+    )
+    db_session.add(part_no_article)
+
+    with pt.raises(IntegrityError):
+        await db_session.commit()
 
 
 @pytest.mark.asyncio
@@ -50,8 +64,8 @@ async def test_search_by_id(db_session):
     for i in range(1, 4):
         part = Part(
             part_number=f"P-{i:03d}",
+            article_number=f"ART-{i:03d}",
             name=f"Díl {i}",
-            material_item_id=db_session.test_material_item.id,
             created_by="test"
         )
         db_session.add(part)
@@ -70,15 +84,15 @@ async def test_search_by_part_number(db_session):
     """Test filtering parts by part_number (ILIKE)"""
     # Create test parts
     parts_data = [
-        ("P-100", "Hřídel"),
-        ("P-200", "Pouzdro"),
-        ("PR-100", "Příruba")
+        ("P-100", "ART-100", "Hřídel"),
+        ("P-200", "ART-200", "Pouzdro"),
+        ("PR-100", "ART-PR100", "Příruba")
     ]
-    for pn, name in parts_data:
+    for pn, art, name in parts_data:
         part = Part(
             part_number=pn,
+            article_number=art,
             name=name,
-            material_item_id=db_session.test_material_item.id,
             created_by="test"
         )
         db_session.add(part)
@@ -108,7 +122,6 @@ async def test_search_by_article_number(db_session):
             part_number=pn,
             article_number=art,
             name=name,
-            material_item_id=db_session.test_material_item.id,
             created_by="test"
         )
         db_session.add(part)
@@ -129,15 +142,15 @@ async def test_search_by_name(db_session):
     """Test filtering parts by name (ILIKE)"""
     # Create test parts
     parts_data = [
-        ("P-001", "Hřídel vstupní"),
-        ("P-002", "Hřídel výstupní"),
-        ("P-003", "Pouzdro")
+        ("P-001", "ART-H1", "Hřídel vstupní"),
+        ("P-002", "ART-H2", "Hřídel výstupní"),
+        ("P-003", "ART-P1", "Pouzdro")
     ]
-    for pn, name in parts_data:
+    for pn, art, name in parts_data:
         part = Part(
             part_number=pn,
+            article_number=art,
             name=name,
-            material_item_id=db_session.test_material_item.id,
             created_by="test"
         )
         db_session.add(part)
@@ -169,7 +182,6 @@ async def test_multi_field_search(db_session):
             part_number=pn,
             article_number=art,
             name=name,
-            material_item_id=db_session.test_material_item.id,
             created_by="test"
         )
         db_session.add(part)
@@ -196,7 +208,7 @@ async def test_part_duplicate_check(db_session):
     """Test that duplicate part_number is prevented"""
     part1 = Part(
         part_number="DUP-001",
-        material_item_id=db_session.test_material_item.id,
+        article_number="ART-DUP-001",
         created_by="test"
     )
     db_session.add(part1)
@@ -205,7 +217,7 @@ async def test_part_duplicate_check(db_session):
     # Try to create duplicate
     part2 = Part(
         part_number="DUP-001",  # Same part_number
-        material_item_id=db_session.test_material_item.id,
+        article_number="ART-DUP-002",
         created_by="test"
     )
     db_session.add(part2)
@@ -221,7 +233,7 @@ async def test_empty_search_returns_all(db_session):
     for i in range(1, 6):
         part = Part(
             part_number=f"P-{i:03d}",
-            material_item_id=db_session.test_material_item.id,
+            article_number=f"ART-{i:03d}",
             created_by="test"
         )
         db_session.add(part)
@@ -241,7 +253,7 @@ async def test_pagination(db_session):
     for i in range(1, 11):
         part = Part(
             part_number=f"P-{i:03d}",
-            material_item_id=db_session.test_material_item.id,
+            article_number=f"ART-{i:03d}",
             created_by="test"
         )
         db_session.add(part)

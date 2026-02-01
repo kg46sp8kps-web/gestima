@@ -12,14 +12,15 @@ import type { LinkingGroup } from './windows'
 export interface PartContext {
   partId: number | null
   partNumber: string | null
+  articleNumber: string | null
 }
 
 export const useWindowContextStore = defineStore('windowContext', () => {
   // State - separate refs for each color group to prevent cross-triggering
-  const redContext = ref<PartContext>({ partId: null, partNumber: null })
-  const blueContext = ref<PartContext>({ partId: null, partNumber: null })
-  const greenContext = ref<PartContext>({ partId: null, partNumber: null })
-  const yellowContext = ref<PartContext>({ partId: null, partNumber: null })
+  const redContext = ref<PartContext>({ partId: null, partNumber: null, articleNumber: null })
+  const blueContext = ref<PartContext>({ partId: null, partNumber: null, articleNumber: null })
+  const greenContext = ref<PartContext>({ partId: null, partNumber: null, articleNumber: null })
+  const yellowContext = ref<PartContext>({ partId: null, partNumber: null, articleNumber: null })
 
   // Get the ref for a specific color group
   function getContextRef(group: LinkingGroup): Ref<PartContext> {
@@ -28,17 +29,18 @@ export const useWindowContextStore = defineStore('windowContext', () => {
       case 'blue': return blueContext
       case 'green': return greenContext
       case 'yellow': return yellowContext
-      default: return ref({ partId: null, partNumber: null })
+      default: return ref({ partId: null, partNumber: null, articleNumber: null })
     }
   }
 
   // Actions
-  function setContext(group: LinkingGroup, partId: number, partNumber: string) {
+  function setContext(group: LinkingGroup, partId: number, partNumber: string, articleNumber?: string | null) {
     if (!group) return // Unlinked windows don't update context
 
     const contextRef = getContextRef(group)
     contextRef.value.partId = partId
     contextRef.value.partNumber = partNumber
+    contextRef.value.articleNumber = articleNumber ?? null
   }
 
   function clearContext(group: LinkingGroup) {
@@ -47,10 +49,11 @@ export const useWindowContextStore = defineStore('windowContext', () => {
     const contextRef = getContextRef(group)
     contextRef.value.partId = null
     contextRef.value.partNumber = null
+    contextRef.value.articleNumber = null
   }
 
   function getContext(group: LinkingGroup): PartContext {
-    if (!group) return { partId: null, partNumber: null }
+    if (!group) return { partId: null, partNumber: null, articleNumber: null }
 
     const contextRef = getContextRef(group)
     return contextRef.value

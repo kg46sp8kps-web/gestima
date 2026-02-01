@@ -42,6 +42,7 @@ export interface QuoteItem {
   seq: number
   part_id: number | null
   part_number: string
+  article_number?: string | null
   part_name: string
   quantity: number
   unit_price: number

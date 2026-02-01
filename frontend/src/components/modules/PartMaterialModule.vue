@@ -12,7 +12,6 @@ import { useWindowContextStore } from '@/stores/windowContext'
 import { useMaterialsStore } from '@/stores/materials'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
-import { Link } from 'lucide-vue-next'
 
 import PartListPanel from './parts/PartListPanel.vue'
 import MaterialHeader from './material/MaterialHeader.vue'
@@ -65,7 +64,7 @@ function handleSelectPart(part: Part) {
 
   // Update window context
   if (props.linkingGroup) {
-    contextStore.setContext(props.linkingGroup, part.id, part.part_number)
+    contextStore.setContext(props.linkingGroup, part.id, part.part_number, part.article_number)
   }
 }
 
@@ -115,7 +114,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 
 <template>
   <div class="split-layout">
-    <!-- LEFT PANEL: Collapsed badge when linked, full list when standalone -->
+    <!-- LEFT PANEL: Only visible when standalone (not linked) -->
     <div v-if="!isLinked" class="left-panel">
       <PartListPanel
         ref="listPanelRef"
@@ -123,20 +122,9 @@ watch(() => props.partNumber, (newPartNumber) => {
         @select-part="handleSelectPart"
       />
     </div>
-    <div v-else class="left-panel-linked">
-      <div class="linked-badge">
-        <span class="link-icon">
-          <Link :size="20" />
-        </span>
-        <div class="badge-content">
-          <span class="badge-label">Linked to</span>
-          <span class="badge-value">{{ selectedPart?.part_number || '-' }}</span>
-        </div>
-      </div>
-    </div>
 
-    <!-- RIGHT PANEL: Header + Detail -->
-    <div class="right-panel">
+    <!-- RIGHT PANEL: Header + Detail (full width when linked) -->
+    <div class="right-panel" :class="{ 'full-width': isLinked }">
       <MaterialHeader
         :part="selectedPart"
         :materialInputs="materialInputs"
@@ -167,52 +155,6 @@ watch(() => props.partNumber, (newPartNumber) => {
   border-right: 1px solid var(--border-default);
 }
 
-/* === LEFT PANEL LINKED (collapsed badge) === */
-.left-panel-linked {
-  width: 80px;
-  min-width: 80px;
-  padding: var(--space-3);
-  height: 100%;
-  border-right: 1px solid var(--border-default);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.linked-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--palette-primary);
-  color: white;
-  border-radius: var(--radius-lg);
-  text-align: center;
-}
-
-.link-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.badge-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.badge-label {
-  font-size: var(--text-xs);
-  opacity: 0.8;
-}
-
-.badge-value {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-}
-
 /* === RIGHT PANEL === */
 .right-panel {
   flex: 1;
@@ -220,5 +162,9 @@ watch(() => props.partNumber, (newPartNumber) => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+.right-panel.full-width {
+  width: 100%;
 }
 </style>

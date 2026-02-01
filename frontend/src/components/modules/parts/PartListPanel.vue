@@ -3,7 +3,11 @@ import { ref, computed, onMounted } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
+import type { Column } from '@/components/ui/DataTable.vue'
 import { Plus, Package } from 'lucide-vue-next'
+
+import DataTable from '@/components/ui/DataTable.vue'
+import ColumnChooser from '@/components/ui/ColumnChooser.vue'
 
 interface Props {
   linkingGroup?: LinkingGroup
@@ -18,42 +22,87 @@ const emit = defineEmits<{
 const partsStore = usePartsStore()
 const searchQuery = ref('')
 const selectedPartId = ref<number | null>(null)
+const sortKey = ref('article_number')
+const sortDirection = ref<'asc' | 'desc'>('asc')
 
+// Column definitions - explicitly typed to satisfy TypeScript
+const defaultColumns: Column[] = [
+  { key: 'article_number', label: 'ARTIKL', sortable: true, visible: true, format: 'text' },
+  { key: 'name', label: 'Název', sortable: true, visible: true, format: 'text' },
+  { key: 'revision', label: 'Revize', sortable: false, visible: true, format: 'text' },
+  { key: 'customer_revision', label: 'Zák. revize', sortable: false, visible: true, format: 'text' },
+  { key: 'status', label: 'Status', sortable: false, visible: true, format: 'text' },
+  { key: 'length', label: 'Délka', sortable: false, visible: true, format: 'number' },
+  { key: 'notes', label: 'Poznámky', sortable: false, visible: true, format: 'text' },
+  { key: 'created_at', label: 'Vytvořeno', sortable: true, visible: true, format: 'date' }
+]
+const columns = ref<Column[]>(defaultColumns)
+
+// Filter and sort parts
 const filteredParts = computed(() => {
   let list = [...partsStore.parts]
-
-  // Sort by part_number (numeric if possible)
-  list.sort((a, b) => {
-    const aNum = parseInt(a.part_number)
-    const bNum = parseInt(b.part_number)
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      return aNum - bNum
-    }
-    return a.part_number.localeCompare(b.part_number)
-  })
 
   // Filter by search query
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
     list = list.filter(p =>
-      p.part_number.toLowerCase().includes(query) ||
-      p.name.toLowerCase().includes(query)
+      (p.article_number && p.article_number.toLowerCase().includes(query)) ||
+      p.name.toLowerCase().includes(query) ||
+      (p.notes && p.notes.toLowerCase().includes(query))
     )
   }
+
+  // Sort
+  list.sort((a, b) => {
+    let aVal: any = a[sortKey.value as keyof Part]
+    let bVal: any = b[sortKey.value as keyof Part]
+
+    // Handle null/undefined
+    if (aVal === null || aVal === undefined) return 1
+    if (bVal === null || bVal === undefined) return -1
+
+    // Numeric sort for article_number if numeric
+    if (sortKey.value === 'article_number') {
+      const aNum = parseInt(String(aVal))
+      const bNum = parseInt(String(bVal))
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return sortDirection.value === 'asc' ? aNum - bNum : bNum - aNum
+      }
+    }
+
+    // String comparison
+    const comparison = String(aVal).localeCompare(String(bVal))
+    return sortDirection.value === 'asc' ? comparison : -comparison
+  })
 
   return list
 })
 
 const isLoading = computed(() => partsStore.loading)
 const hasParts = computed(() => partsStore.parts.length > 0)
+const selectedParts = computed(() => {
+  return selectedPartId.value !== null
+    ? partsStore.parts.filter(p => p.id === selectedPartId.value)
+    : []
+})
 
-function selectPart(part: Part) {
+function handleRowClick(row: Record<string, unknown>) {
+  const part = row as unknown as Part
   selectedPartId.value = part.id
   emit('select-part', part)
 }
 
+function handleSort(sort: { key: string, direction: 'asc' | 'desc' }) {
+  sortKey.value = sort.key
+  sortDirection.value = sort.direction
+}
+
 function handleCreate() {
   emit('create-new')
+}
+
+function handleColumnsUpdate(updatedColumns: Column[]) {
+  columns.value = updatedColumns
 }
 
 onMounted(async () => {
@@ -73,10 +122,17 @@ defineExpose({
     <!-- Header -->
     <div class="list-header">
       <h3>Díly</h3>
-      <button @click="handleCreate" class="btn-create">
-        <Plus :size="14" :stroke-width="2" />
-        Nový
-      </button>
+      <div class="header-actions">
+        <ColumnChooser
+          :columns="columns"
+          storageKey="partListColumns"
+          @update:columns="handleColumnsUpdate"
+        />
+        <button @click="handleCreate" class="btn-create">
+          <Plus :size="14" :stroke-width="2" />
+          Nový
+        </button>
+      </div>
     </div>
 
     <!-- Search Bar -->
@@ -88,38 +144,45 @@ defineExpose({
       class="search-input"
     />
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-list">
-      <div class="spinner"></div>
-      <p>Načítám díly...</p>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="!hasParts" class="empty-list">
-      <div class="empty-icon">
-        <Package :size="48" :stroke-width="1.5" />
-      </div>
-      <p>Žádné díly</p>
-    </div>
-
-    <!-- Parts List -->
-    <div v-else class="parts-list">
-      <div
-        v-for="part in filteredParts"
-        :key="part.id"
-        @click="selectPart(part)"
-        :class="{ active: selectedPartId === part.id }"
-        class="part-item"
+    <!-- DataTable -->
+    <div class="table-container">
+      <DataTable
+        :data="filteredParts"
+        :columns="columns"
+        :loading="isLoading"
+        :rowClickable="true"
+        :selected="selectedParts"
+        :sortKey="sortKey"
+        :sortDirection="sortDirection"
+        emptyText="Žádné díly"
+        @row-click="handleRowClick"
+        @sort="handleSort"
       >
-        <span class="part-number">{{ part.part_number }}</span>
-        <span class="part-name">{{ part.name }}</span>
-      </div>
+        <!-- Custom cell for article_number (bold + colored) -->
+        <template #cell-article_number="{ value }">
+          <span class="article-number">{{ value || '—' }}</span>
+        </template>
+
+        <!-- Custom cell for notes (truncate) -->
+        <template #cell-notes="{ value }">
+          <span class="notes-truncate" :title="String(value || '')">
+            {{ value || '—' }}
+          </span>
+        </template>
+
+        <!-- Custom cell for status (badge) -->
+        <template #cell-status="{ value }">
+          <span v-if="value" class="status-badge" :class="`status-${value}`">
+            {{ value }}
+          </span>
+          <span v-else>—</span>
+        </template>
+      </DataTable>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Copy relevant styles from PartMainModule.vue LEFT PANEL section */
 .part-list-panel {
   display: flex;
   flex-direction: column;
@@ -140,6 +203,12 @@ defineExpose({
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .btn-create {
@@ -176,88 +245,48 @@ defineExpose({
   border-color: var(--state-focus-border);
 }
 
-.loading-list {
+.table-container {
+  flex: 1;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
+}
+
+/* Custom cell styles */
+.article-number {
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.notes-truncate {
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+}
+
+.status-active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-draft {
+  background: var(--bg-subtle);
   color: var(--text-secondary);
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
+.status-archived {
+  background: var(--bg-subtle);
   color: var(--text-tertiary);
-  text-align: center;
-}
-
-.empty-list .empty-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-}
-
-.empty-list p {
-  font-size: var(--text-sm);
-}
-
-.parts-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.part-item {
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-fast);
-  background: var(--bg-surface);
-}
-
-.part-item:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
-}
-
-.part-item.active {
-  background: var(--state-selected);
-  border-color: var(--color-primary);
-}
-
-.part-item .part-number {
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-primary);
-  margin-bottom: var(--space-1);
-}
-
-.part-item .part-name {
-  display: block;
-  font-size: var(--text-sm);
-  color: var(--text-body);
 }
 </style>

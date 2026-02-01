@@ -43,7 +43,7 @@ async def test_create_part_integrity_error_rollback(mock_user):
     db_mock.commit = AsyncMock(side_effect=IntegrityError("test", "test", "test"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="10000001", name="Test Part")
+    data = PartCreate(article_number="ART-TEST", name="Test Part")
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -135,7 +135,7 @@ async def test_error_logging_on_integrity_error(mock_user):
     db_mock.commit = AsyncMock(side_effect=IntegrityError("test", "test", "test"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="10000001", name="Test Part")
+    data = PartCreate(article_number="ART-TEST", name="Test Part")
 
     # Act
     with patch('app.db_helpers.logger') as mock_logger:  # safe_commit logs from db_helpers
@@ -164,7 +164,7 @@ async def test_success_logging_on_create(mock_user):
         obj.id = 1
     db_mock.refresh = mock_refresh
 
-    data = PartCreate(part_number="10000001", name="Test Part")
+    data = PartCreate(article_number="ART-TEST", name="Test Part")
 
     # Act
     with patch('app.routers.parts_router.logger') as mock_logger:

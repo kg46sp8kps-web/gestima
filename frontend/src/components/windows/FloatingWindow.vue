@@ -6,6 +6,8 @@
 
 import { ref, computed } from 'vue'
 import { useWindowsStore, type WindowState, type LinkingGroup } from '@/stores/windows'
+import { useWindowContextStore } from '@/stores/windowContext'
+import { Link } from 'lucide-vue-next'
 
 interface Props {
   window: WindowState
@@ -13,6 +15,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const store = useWindowsStore()
+const contextStore = useWindowContextStore()
 
 // Drag state
 const isDragging = ref(false)
@@ -268,6 +271,26 @@ const linkingGroupColor = computed(() => {
   return linkingGroupColors[props.window.linkingGroup || 'null']
 })
 
+// Window title with linked article_number
+const displayTitle = computed(() => {
+  if (!props.window.linkingGroup) {
+    return props.window.title
+  }
+
+  // Get context for this linking group
+  const context = contextStore.getContext(props.window.linkingGroup)
+
+  if (!context.articleNumber) {
+    return props.window.title
+  }
+
+  // Extract module name from title (e.g., "Operations - 10001234" -> "Operations")
+  const parts = props.window.title.split(' - ')
+  const moduleName = parts[0]
+
+  return moduleName
+})
+
 // Window actions
 function handleClose() {
   store.closeWindow(props.window.id)
@@ -342,7 +365,13 @@ const colorOptions = [
             </div>
           </Transition>
         </div>
-        <span class="window-title">{{ window.title }}</span>
+        <span class="window-title">
+          {{ displayTitle }}
+          <span v-if="window.linkingGroup && contextStore.getContext(window.linkingGroup).articleNumber" class="linked-part">
+            (<Link :size="12" :stroke-width="2" class="link-icon-inline" />
+            {{ contextStore.getContext(window.linkingGroup).articleNumber }})
+          </span>
+        </span>
       </div>
       <div class="window-controls">
         <button class="btn-control btn-minimize" @click.stop="handleMinimize" title="Minimize">
@@ -516,6 +545,23 @@ const colorOptions = [
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.linked-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+}
+
+.link-icon-inline {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .window-controls {

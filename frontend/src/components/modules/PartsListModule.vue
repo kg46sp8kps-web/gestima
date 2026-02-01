@@ -48,7 +48,7 @@ function selectPart(partNumber: string) {
   if (props.linkingGroup) {
     const part = parts.value.find(p => p.part_number === partNumber)
     if (part) {
-      contextStore.setContext(props.linkingGroup, part.id, part.part_number)
+      contextStore.setContext(props.linkingGroup, part.id, part.part_number, part.article_number)
     }
   }
 }
@@ -82,7 +82,7 @@ function formatDate(dateString: string) {
       >
         <div class="part-header">
           <h3 class="part-name">{{ part.name }}</h3>
-          <span class="part-number">{{ part.part_number }}</span>
+          <span class="article-number">{{ part.article_number || part.part_number }}</span>
         </div>
         <p v-if="part.notes" class="part-notes">{{ part.notes }}</p>
         <div class="part-meta">
@@ -208,7 +208,7 @@ function formatDate(dateString: string) {
   text-overflow: ellipsis;
 }
 
-.part-number {
+.article-number {
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
   font-family: var(--font-mono);

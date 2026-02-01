@@ -6,7 +6,7 @@ ADR-024: MaterialInput refactor (v1.8.0)
 """
 
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -16,6 +16,7 @@ from app.models.enums import StockShape, PartStatus
 
 if TYPE_CHECKING:
     from app.models.material import MaterialItemWithGroupResponse, MaterialPriceCategoryWithGroupResponse
+    from app.models.drawing import Drawing
 
 
 class Part(Base, AuditMixin):
@@ -23,7 +24,7 @@ class Part(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     part_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 10XXXXXX
-    article_number = Column(String(50), nullable=True, index=True)  # Dodavatelské číslo
+    article_number = Column(String(50), nullable=False, index=True)  # Dodavatelské číslo (REQUIRED)
     name = Column(String(200), nullable=True)
 
     # ADR-024: Revize (v1.8.0 - MaterialInput refactor)
@@ -35,6 +36,9 @@ class Part(Base, AuditMixin):
     length = Column(Float, default=0.0)  # mm - délka obráběné části
 
     notes = Column(String(500), default="")
+    # DEPRECATED: drawing_path - use drawings relationship (multiple drawings support)
+    # Kept for backwards compatibility during migration period
+    # Will be removed after migration to drawings table
     drawing_path = Column(String(500), nullable=True)
 
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
@@ -45,11 +49,31 @@ class Part(Base, AuditMixin):
     operations = relationship("Operation", back_populates="part", cascade="all, delete-orphan")
     batches = relationship("Batch", back_populates="part", cascade="all, delete-orphan")
     batch_sets = relationship("BatchSet", back_populates="part")  # ADR-022: Sady cen
+    drawings = relationship(
+        "Drawing",
+        back_populates="part",
+        cascade="all, delete-orphan",
+        order_by="Drawing.is_primary.desc(), Drawing.created_at.desc()"
+    )
+
+    @property
+    def primary_drawing_path(self) -> Optional[str]:
+        """
+        Computed property for backwards compatibility.
+        Returns file_path of primary drawing or None.
+
+        DEPRECATED: Use drawings relationship directly.
+        This property will be removed after full migration.
+        """
+        for drawing in self.drawings:
+            if drawing.is_primary and drawing.deleted_at is None:
+                return drawing.file_path
+        return None
 
 
 class PartBase(BaseModel):
     part_number: str = Field(..., min_length=8, max_length=8, description="Číslo dílu (unikátní, 8-digit)")
-    article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
+    article_number: str = Field(..., max_length=50, description="Dodavatelské číslo (REQUIRED)")
     drawing_path: Optional[str] = Field(None, max_length=500, description="Cesta k PDF výkresu")
     name: str = Field("", max_length=200, description="Název dílu")
     revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize (A-Z)")

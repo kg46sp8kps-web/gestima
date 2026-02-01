@@ -63,10 +63,10 @@ async def seed_demo_parts(db: AsyncSession):
                 "notes": "DEMO - Vzorový díl pro testování. Můžete smazat a znovu se vytvoří při restartu."
             },
             {
-                "article_number": None,
-                "name": "Demo příruba (bez article)",
+                "article_number": "ART-DEMO-003",
+                "name": "Demo příruba",
                 "length": 200.0,
-                "notes": "DEMO - Vzorový díl bez article number. Můžete smazat a znovu se vytvoří při restartu."
+                "notes": "DEMO - Vzorový díl pro testování. Můžete smazat a znovu se vytvoří při restartu."
             },
         ]
 

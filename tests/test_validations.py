@@ -10,48 +10,47 @@ class TestPartValidations:
     def test_part_number_auto_generated(self):
         """part_number se auto-generuje pokud není zadán (ADR-017)"""
         from app.models.part import PartCreate
-        # part_number je Optional - pokud není zadán, backend vygeneruje
-        part = PartCreate(material_item_id=1)
-        # V Pydantic modelu může být None, backend vygeneruje při create
-        assert part.part_number is None or len(part.part_number) == 7
+        # part_number není v PartCreate - backend vygeneruje při create
+        part = PartCreate(
+            article_number="ART-TEST-001",  # REQUIRED
+            name="Test díl"  # REQUIRED
+        )
+        # part_number není součástí PartCreate (auto-generated v backendu)
+        assert not hasattr(part, 'part_number') or part.part_number is None
 
-    def test_part_number_min_length(self):
-        """part_number musí mít alespoň 1 znak"""
+    def test_article_number_required(self):
+        """article_number je REQUIRED (ADR-024 update)"""
         from app.models.part import PartCreate
         with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="", material_item_id=1)
-        assert "part_number" in str(exc_info.value)
+            PartCreate(name="Test díl")  # Missing article_number
+        assert "article_number" in str(exc_info.value)
 
-    def test_part_number_exact_length(self):
-        """part_number musí mít přesně 8 znaků (ADR-017 v2.0)"""
-        from app.models.part import PartCreate
-        # Too long (9 digits)
-        with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="123456789", material_item_id=1)
-        assert "part_number" in str(exc_info.value)
-        # Too short (7 digits)
-        with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="1234567", material_item_id=1)
-        assert "part_number" in str(exc_info.value)
-
-    def test_part_length_non_negative(self):
-        """length nesmí být záporná"""
+    def test_name_required(self):
+        """name je REQUIRED v PartCreate"""
         from app.models.part import PartCreate
         with pytest.raises(ValidationError) as exc_info:
-            PartCreate(part_number="10000001", material_item_id=1, length=-5)
-        assert "length" in str(exc_info.value)
+            PartCreate(article_number="ART-TEST")  # Missing name
+        assert "name" in str(exc_info.value)
+
+    def test_article_number_max_length(self):
+        """article_number má max 50 znaků"""
+        from app.models.part import PartCreate
+        with pytest.raises(ValidationError) as exc_info:
+            PartCreate(
+                article_number="A" * 51,  # 51 chars (too long)
+                name="Test díl"
+            )
+        assert "article_number" in str(exc_info.value)
 
     def test_part_valid_data(self):
         """Validní data projdou"""
         from app.models.part import PartCreate
         part = PartCreate(
-            part_number="10000001",  # 8-digit number (ADR-017)
-            material_item_id=1,
-            length=100.0,
-            name="Test díl"
+            article_number="ART-TEST-001",  # REQUIRED
+            name="Test díl"  # REQUIRED
         )
-        assert part.part_number == "10000001"
-        assert part.length == 100.0
+        assert part.article_number == "ART-TEST-001"
+        assert part.name == "Test díl"
 
 
 class TestBatchValidations:
