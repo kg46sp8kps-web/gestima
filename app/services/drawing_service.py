@@ -408,19 +408,20 @@ class DrawingService:
         from app.models.drawing import Drawing
 
         try:
-            # Check duplicate hash
+            # Check duplicate hash (scoped to this part only)
             result = await db.execute(
                 select(Drawing).where(
                     Drawing.file_hash == file_hash,
+                    Drawing.part_id == part_id,  # Same file can exist for different parts
                     Drawing.deleted_at.is_(None)
                 )
             )
             existing = result.scalar_one_or_none()
             if existing:
-                logger.warning(f"Duplicate file hash detected: {file_hash}")
+                logger.warning(f"Duplicate file hash detected for part {part_id}: {file_hash}")
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Tento soubor již existuje (díl {existing.part_id}, výkres ID {existing.id})"
+                    detail=f"Tento soubor již existuje u tohoto dílu (výkres ID {existing.id})"
                 )
 
             # If is_primary=True, unset others for this part

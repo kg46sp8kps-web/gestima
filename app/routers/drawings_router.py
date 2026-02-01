@@ -21,6 +21,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -189,6 +190,12 @@ async def upload_drawing(
         await db.commit()
         await db.refresh(drawing)
 
+        # Sync Part.drawing_path with primary drawing (Phase A compatibility)
+        if is_first_drawing:
+            part.drawing_path = file_path_rel
+            part.updated_by = current_user.username
+            await db.commit()
+
         logger.info(
             f"Uploaded drawing: part={part_number}, file='{file.filename}', "
             f"size={file_size}, hash={file_hash[:8]}..., primary={is_first_drawing}, "
@@ -264,6 +271,11 @@ async def set_primary_drawing(
     try:
         drawing = await drawing_service.set_primary_drawing(drawing_id, db)
         drawing.updated_by = current_user.username
+
+        # Sync Part.drawing_path with new primary drawing (Phase A compatibility)
+        part.drawing_path = drawing.file_path
+        part.updated_by = current_user.username
+
         await db.commit()
         await db.refresh(drawing)
 
@@ -344,10 +356,17 @@ async def delete_drawing(
             promoted = await drawing_service.auto_promote_primary(part.id, db)
             if promoted:
                 promoted.updated_by = current_user.username
+                # Sync Part.drawing_path with new primary (Phase A compatibility)
+                part.drawing_path = promoted.file_path
+                part.updated_by = current_user.username
                 logger.info(
                     f"Auto-promoted drawing {promoted.id} to primary after delete "
                     f"(part={part_number})"
                 )
+            else:
+                # No more drawings - clear Part.drawing_path
+                part.drawing_path = None
+                part.updated_by = current_user.username
 
         await db.commit()
 
@@ -423,8 +442,83 @@ async def get_drawing_file(
 
     logger.debug(f"Serving drawing file: {drawing.filename} (part={part_number})")
 
+    # RFC 5987: Encode filename for Unicode support in Content-Disposition header
+    # Use ASCII fallback + UTF-8 encoded version for Czech characters (háčky, čárky)
+    encoded_filename = quote(drawing.filename, safe='')
+
     return FileResponse(
         path=file_path,
         media_type="application/pdf",
-        filename=drawing.filename
+        filename=drawing.filename,
+        headers={
+            "Content-Disposition": f"inline; filename=\"{drawing.filename.encode('ascii', 'ignore').decode('ascii') or 'drawing.pdf'}\"; filename*=UTF-8''{encoded_filename}"
+        }
+    )
+
+
+# ============================================================================
+# LEGACY PHASE A ENDPOINTS (backwards compatibility)
+# ============================================================================
+
+@router.get("/api/parts/{part_number}/drawing", response_class=FileResponse)
+async def get_primary_drawing_legacy(
+    part_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    LEGACY Phase A endpoint: Vrátí primární výkres dílu.
+    Pro backwards compatibility s Phase A kódem.
+
+    Args:
+        part_number: Číslo dílu
+
+    Returns:
+        FileResponse: PDF soubor primárního výkresu
+
+    Raises:
+        HTTPException 404: Díl nenalezen nebo nemá primární výkres
+    """
+    # Find part
+    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    part = result.scalar_one_or_none()
+    if not part:
+        raise HTTPException(status_code=404, detail="Díl nebyl nalezen")
+
+    # Find primary drawing
+    primary_drawing = await drawing_service.get_primary_drawing(part.id, db)
+    if not primary_drawing:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Drawing not found for part: {part_number}"
+        )
+
+    # Check if deleted
+    if primary_drawing.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="Výkres byl smazán")
+
+    # Get file path
+    file_path = Path(primary_drawing.file_path)
+    if not file_path.exists():
+        logger.error(
+            f"Drawing file not found on disk: {primary_drawing.file_path} "
+            f"(part={part_number}, drawing_id={primary_drawing.id})"
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=f"Soubor výkresu nebyl nalezen na disku"
+        )
+
+    logger.debug(f"Serving primary drawing: {primary_drawing.filename} (part={part_number})")
+
+    # RFC 5987: Encode filename for Unicode support
+    encoded_filename = quote(primary_drawing.filename, safe='')
+
+    return FileResponse(
+        path=file_path,
+        media_type="application/pdf",
+        filename=primary_drawing.filename,
+        headers={
+            "Content-Disposition": f"inline; filename=\"{primary_drawing.filename.encode('ascii', 'ignore').decode('ascii') or 'drawing.pdf'}\"; filename*=UTF-8''{encoded_filename}"
+        }
     )

@@ -80,10 +80,12 @@ const isLoginPage = computed(() => route.name === 'login')
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
 }
 
 .app-main.with-chrome {
-  /* Space for fixed header if needed */
+  /* No margin/padding - starts right after header */
 }
 </style>

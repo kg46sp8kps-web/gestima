@@ -50,7 +50,7 @@ async def test_create_quote(db_session: AsyncSession, test_partner: Partner):
 
     # Verify
     assert quote.id is not None
-    assert quote.quote_number.startswith("85")
+    assert quote.quote_number.startswith("50")  # ADR-017: Quotes prefix = 50
     assert quote.status == QuoteStatus.DRAFT.value
     assert quote.partner_id == test_partner.id
     assert quote.total == 0.0
@@ -377,14 +377,14 @@ async def test_item_line_total_recalculation(db_session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_quote_number_generation(db_session: AsyncSession):
-    """Test quote number generation in correct range"""
+    """Test quote number generation in correct range (ADR-017: prefix 50)"""
     quote_number = await NumberGenerator.generate_quote_number(db_session)
 
     # Verify format
     assert len(quote_number) == 8
-    assert quote_number.startswith("85")
-    assert int(quote_number) >= 85000000
-    assert int(quote_number) <= 85999999
+    assert quote_number.startswith("50")  # ADR-017: Quotes = 50XXXXXX
+    assert int(quote_number) >= 50000000
+    assert int(quote_number) <= 50999999
 
 
 @pytest.mark.asyncio

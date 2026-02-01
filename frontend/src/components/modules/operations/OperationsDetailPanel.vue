@@ -11,7 +11,8 @@ import type { Operation, CuttingMode } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
 import DeleteOperationModal from './DeleteOperationModal.vue'
-import { Settings, Trash2, Lock, Unlock } from 'lucide-vue-next'
+import { Settings, Trash2, Lock, Unlock, Wrench, RotateCw, Scissors, Gem } from 'lucide-vue-next'
+import type { Component } from 'vue'
 
 interface Props {
   partId: number | null
@@ -176,6 +177,19 @@ async function executeDelete() {
   operationToDelete.value = null
 }
 
+// Icon mapping: string → Lucide component
+const iconMap: Record<string, Component> = {
+  'wrench': Wrench,
+  'rotate-cw': RotateCw,
+  'scissors': Scissors,
+  'gem': Gem,
+  'settings': Settings
+}
+
+function getIconComponent(iconName: string): Component {
+  return iconMap[iconName] || Wrench
+}
+
 // Expose operationsCount for parent
 defineExpose({
   operationsCount: computed(() => operations.value.length)
@@ -219,10 +233,9 @@ defineExpose({
       >
         <!-- Inline Row - editable fields directly visible -->
         <div class="op-row">
-          <!-- Seq + Icon -->
+          <!-- Seq only -->
           <div class="op-seq-icon">
             <span class="op-seq">{{ op.seq }}</span>
-            <span class="op-icon">{{ op.icon }}</span>
           </div>
 
           <!-- Work Center Dropdown (inline) -->

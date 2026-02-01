@@ -145,7 +145,7 @@ async def create_quote(
     """
     Create new quote in DRAFT status.
 
-    Auto-generates quote_number (85XXXXXX)
+    Auto-generates quote_number (50XXXXXX) - ADR-017
     """
     # Verify partner exists
     partner = await db.get(Partner, data.partner_id)

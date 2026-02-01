@@ -1,3 +1,38 @@
+## [1.12.0] - 2026-02-01 - Windows UI/UX Refinement 🪟
+
+### Fixed
+- **Header/Footer Layout** - Eliminated empty space between header and window placement area
+  - Removed legacy WindowManager toolbar (replaced by integrated header search)
+  - Fixed all snap points: Y=100 → Y=56 (header height)
+  - Updated boundary calculations in FloatingWindow.vue and stores/windows.ts
+  - Maximized windows now correctly fill bounded area (56px header + 32px footer)
+
+### Changed
+- **AppHeader.vue** - Integrated module search and favorite layouts
+  - Added search field for quick module opening (replaces old toolbar)
+  - Display top 3 favorite layouts as buttons with Star icons
+  - Moved layout management to menu drawer (New, Save Current, Load, Manage)
+- **AppFooter.vue** - Merged taskbar into footer (one-line layout)
+  - Left: Window tabs (on /windows route) or company logo
+  - Center: GESTIMA branding + version + motto
+  - Right: Live time display (HH:mm format)
+  - Height: 32px (compact, always visible)
+- **WindowsView.vue** - Absolute positioning for bounded window area
+  - top: 56px (right after header), bottom: 32px (above footer)
+  - overflow: hidden (no page scrolling)
+- **Page Scrolling** - Disabled in favor of window-only movement
+  - body overflow: hidden
+  - Windows move within fixed bounded area
+  - Fixed borders: left (0px), right (viewport), top (56px)
+
+### Technical
+- All layout heights now use consistent values:
+  - Header: 56px (fixed)
+  - Footer: 32px (fixed)
+  - Window area: calc(100vh - 88px)
+- Removed duplicate Taskbar.vue component
+- Snap threshold: 15px for all edges and window-to-window snapping
+
 ## [1.11.0] - 2026-01-31 - Partners & Quotes Modules 🎯
 
 ### ✅ MAJOR RELEASE - v2.0 Roadmap Modules Delivered
@@ -39,7 +74,7 @@ Complete implementation of Partners (customers & suppliers) and Quotes managemen
 
 #### Quotes Module (Backend)
 - **quote.py** (206 LOC) - Quote + QuoteItem models
-  - quote_number (85XXXXXX range)
+  - quote_number (50XXXXXX range - ADR-017)
   - Workflow states: DRAFT → SENT → APPROVED/REJECTED
   - Auto-calculated totals (subtotal, discount, tax, total)
   - Snapshot pattern (ADR-VIS-002) - immutable after SENT
@@ -99,7 +134,7 @@ Complete implementation of Partners (customers & suppliers) and Quotes managemen
 #### ADR Compliance
 - ✅ **ADR-001**: Soft delete pattern
 - ✅ **ADR-008**: Optimistic locking (version field)
-- ✅ **ADR-017**: 8-digit entity numbering (70XXXXXX partners, 85XXXXXX quotes)
+- ✅ **ADR-017**: 8-digit entity numbering (70XXXXXX partners, 50XXXXXX quotes)
 - ✅ **ADR-VIS-002**: Snapshot pattern (quote freeze on SENT)
 
 #### Security
@@ -116,7 +151,7 @@ Complete implementation of Partners (customers & suppliers) and Quotes managemen
 ### Known Issues
 
 #### Warnings (Non-Critical)
-1. **ADR-017 Documentation**: Quotes documented as prefix 50, implemented as 85 (update ADR recommended)
+1. ~~**ADR-017 Documentation**: Quotes documented as prefix 50, implemented as 85 (update ADR recommended)~~ **FIXED** (2026-02-01)
 2. **QuoteDetailView.vue Complexity**: 757 LOC (approaching L-036 limit, consider extracting sub-components)
 3. **Quote DELETE**: Missing role check (security hardening recommended)
 4. **Accessibility**: Emoji buttons lack aria-labels (a11y improvement recommended)

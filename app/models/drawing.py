@@ -29,7 +29,7 @@ class Drawing(Base, AuditMixin):
     part_id = Column(Integer, ForeignKey("parts.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # File metadata
-    file_hash = Column(String(64), unique=True, nullable=False, index=True)  # SHA-256
+    file_hash = Column(String(64), nullable=False, index=True)  # SHA-256 (not globally unique - same file can be used for multiple parts)
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer, nullable=False)
     filename = Column(String(255), nullable=False)

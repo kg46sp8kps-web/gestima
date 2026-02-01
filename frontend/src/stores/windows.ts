@@ -137,14 +137,14 @@ export const useWindowsStore = defineStore('windows', () => {
 
   // Find free position (no overlapping with existing windows)
   function findFreePosition(width: number, height: number) {
-    const toolbarHeight = 100
+    const headerHeight = 56
     const stepX = 50
     const stepY = 50
     const maxX = window.innerWidth - width
     const maxY = window.innerHeight - height
 
     // Try positions in a grid pattern
-    for (let y = toolbarHeight; y < maxY; y += stepY) {
+    for (let y = headerHeight; y < maxY; y += stepY) {
       for (let x = 0; x < maxX; x += stepX) {
         // Check if this position overlaps any existing window
         const overlaps = windows.value.some(win => {
@@ -218,9 +218,10 @@ export const useWindowsStore = defineStore('windows', () => {
     const openWins = openWindows.value
     if (openWins.length === 0) return
 
-    const toolbarHeight = 100
+    const headerHeight = 56
+    const footerHeight = 32
     const containerWidth = window.innerWidth
-    const containerHeight = window.innerHeight - toolbarHeight
+    const containerHeight = window.innerHeight - headerHeight - footerHeight
 
     if (mode === 'grid') {
       // Grid layout (2x2, 2x3, etc.)
@@ -234,7 +235,7 @@ export const useWindowsStore = defineStore('windows', () => {
         const row = Math.floor(idx / cols)
 
         win.x = col * winWidth
-        win.y = toolbarHeight + row * winHeight
+        win.y = headerHeight + row * winHeight
         win.width = (col === cols - 1) ? containerWidth - col * winWidth : winWidth
         win.height = (row === rows - 1) ? containerHeight - row * winHeight : winHeight
         win.maximized = false
@@ -245,7 +246,7 @@ export const useWindowsStore = defineStore('windows', () => {
 
       openWins.forEach((win, idx) => {
         win.x = idx * winWidth
-        win.y = toolbarHeight
+        win.y = headerHeight
         win.width = (idx === openWins.length - 1) ? containerWidth - idx * winWidth : winWidth
         win.height = containerHeight
         win.maximized = false
@@ -256,7 +257,7 @@ export const useWindowsStore = defineStore('windows', () => {
 
       openWins.forEach((win, idx) => {
         win.x = 0
-        win.y = toolbarHeight + idx * winHeight
+        win.y = headerHeight + idx * winHeight
         win.width = containerWidth
         win.height = (idx === openWins.length - 1) ? containerHeight - idx * winHeight : winHeight
         win.maximized = false

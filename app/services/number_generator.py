@@ -57,8 +57,8 @@ class NumberGenerator:
     PARTNER_MAX = 70999999
     WORK_CENTER_MIN = 80000001  # Sequential, not random (ADR-021)
     WORK_CENTER_MAX = 80999999
-    QUOTE_MIN = 85000000  # Quotes (customer quotations)
-    QUOTE_MAX = 85999999
+    QUOTE_MIN = 50000000  # Quotes (customer quotations) - ADR-017
+    QUOTE_MAX = 50999999
 
     # Safety limits
     MAX_RETRIES = 10
@@ -500,7 +500,7 @@ class NumberGenerator:
         """
         Generate multiple unique 8-digit quote numbers at once.
 
-        Format: 85XXXXXX (85000000-85999999)
+        Format: 50XXXXXX (50000000-50999999) - ADR-017
         """
         if count <= 0:
             return []

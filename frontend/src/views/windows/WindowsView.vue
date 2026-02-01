@@ -6,7 +6,6 @@
 import { onMounted } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import FloatingWindow from '@/components/windows/FloatingWindow.vue'
-import Taskbar from '@/components/windows/Taskbar.vue'
 import { LayoutGrid } from 'lucide-vue-next'
 
 // Module components (lazy loaded)
@@ -71,29 +70,24 @@ onMounted(() => {
     <div v-if="store.windows.length === 0" class="empty-state">
       <LayoutGrid :size="64" :stroke-width="1" class="empty-icon" />
       <h2>No Windows Open</h2>
-      <p>Use the toolbar above to open modules</p>
+      <p>Use search or menu to open modules</p>
     </div>
-
-    <!-- Bottom Taskbar -->
-    <Taskbar />
   </div>
 </template>
 
 <style scoped>
 .windows-view {
-  width: 100%;
-  min-height: calc(100vh - 120px); /* Account for header + footer */
-  overflow: auto; /* Allow scrolling */
+  position: absolute;
+  top: 56px; /* Right after fixed header */
+  bottom: 32px; /* Above fixed footer */
+  left: 0;
+  right: 0;
   background: var(--bg-base);
-  position: relative;
-  margin: var(--space-4); /* Pevné hranice vlevo, vpravo, nahoře */
-  margin-bottom: 0; /* Footer bude fixní */
-  padding-bottom: 40px; /* Space for taskbar */
+  overflow: hidden;
 }
 
 .windows-container {
   position: relative;
-  min-height: 600px; /* Minimum height for windows */
   width: 100%;
   height: 100%;
 }

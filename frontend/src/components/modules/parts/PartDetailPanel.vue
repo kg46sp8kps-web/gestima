@@ -23,12 +23,26 @@ const emit = defineEmits<{
 // Drawings management modal
 const showDrawingsModal = ref(false)
 
-function openDrawingsModal() {
+function handleDrawingButtonClick() {
+  // Check if part has any drawings
+  if (props.part.drawing_path) {
+    // Has drawing = open primary drawing window
+    emit('open-drawing')
+  } else {
+    // No drawing = open modal for upload
+    showDrawingsModal.value = true
+  }
+}
+
+function handleDrawingButtonRightClick(event: MouseEvent) {
+  event.preventDefault()
+  // Right-click = always open modal for management
   showDrawingsModal.value = true
 }
 
 function handleOpenDrawing(drawingId?: number) {
   emit('open-drawing', drawingId)
+  showDrawingsModal.value = false
 }
 
 function formatDate(dateString: string) {
@@ -79,9 +93,14 @@ function formatDate(dateString: string) {
         <DollarSign :size="32" class="action-icon" />
         <span class="action-label">Ceny</span>
       </button>
-      <button class="action-button" @click="openDrawingsModal">
+      <button
+        class="action-button"
+        @click="handleDrawingButtonClick"
+        @contextmenu="handleDrawingButtonRightClick"
+        title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
+      >
         <FileText :size="32" class="action-icon" />
-        <span class="action-label">Výkresy</span>
+        <span class="action-label">Výkres</span>
       </button>
     </div>
 

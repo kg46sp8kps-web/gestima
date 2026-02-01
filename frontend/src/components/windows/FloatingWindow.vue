@@ -39,9 +39,9 @@ const windowStyle = computed(() => {
   if (props.window.maximized) {
     return {
       left: '0',
-      top: '50px',
+      top: '56px',
       width: '100vw',
-      height: 'calc(100vh - 50px)',
+      height: 'calc(100vh - 88px)', // 56px header + 32px footer
       zIndex: props.window.zIndex
     }
   }
@@ -93,11 +93,12 @@ function onDragMove(event: MouseEvent) {
   let newY = dragStartWinY.value + deltaY
 
   // Apply screen boundaries (prevent dragging outside)
-  const toolbarHeight = 100
+  const headerHeight = 56  // CHANGED: Fixed header height
+  const footerHeight = 32  // CHANGED: Sticky footer height
   const minX = 0
-  const minY = toolbarHeight
+  const minY = headerHeight
   const maxX = window.innerWidth - props.window.width
-  const maxY = window.innerHeight - props.window.height
+  const maxY = window.innerHeight - footerHeight - props.window.height  // CHANGED: Respect footer
 
   newX = Math.max(minX, Math.min(newX, maxX))
   newY = Math.max(minY, Math.min(newY, maxY))
@@ -117,7 +118,7 @@ function applySnapping(x: number, y: number, width: number, height: number) {
 
   // Snap to screen edges
   if (Math.abs(x) < snapThreshold) snappedX = 0
-  if (Math.abs(y - 100) < snapThreshold) snappedY = 100 // Toolbar offset
+  if (Math.abs(y - 56) < snapThreshold) snappedY = 56 // Header offset
   if (Math.abs(x + width - window.innerWidth) < snapThreshold) {
     snappedX = window.innerWidth - width
   }
@@ -186,8 +187,9 @@ function onResizeMove(event: MouseEvent) {
   let newHeight = Math.max(MIN_HEIGHT, resizeStartHeight.value + deltaY)
 
   // Apply screen boundaries (prevent resizing outside)
+  const footerHeight = 32  // CHANGED: Sticky footer height
   const maxWidth = window.innerWidth - props.window.x
-  const maxHeight = window.innerHeight - props.window.y
+  const maxHeight = window.innerHeight - footerHeight - props.window.y  // CHANGED: Respect footer
 
   newWidth = Math.min(newWidth, maxWidth)
   newHeight = Math.min(newHeight, maxHeight)

@@ -29,12 +29,20 @@ const props = withDefaults(defineProps<Props>(), {
   windowTitle: undefined
 })
 
-// Parse drawing ID from window title
-// Pattern: "Drawing #123 - PN001" where 123 is drawing_id
+// Parse drawing ID and part number from window title
+// Pattern: "Drawing #123 - PN001" where 123 is drawing_id, PN001 is part_number
+// OR: "Drawing - PN001" for primary drawing
 const drawingIdFromTitle = computed(() => {
   if (!props.windowTitle) return undefined
   const match = props.windowTitle.match(/Drawing #(\d+)/)
   return match && match[1] ? parseInt(match[1], 10) : undefined
+})
+
+const partNumberFromTitle = computed(() => {
+  if (!props.windowTitle) return undefined
+  // Extract part number after " - "
+  const match = props.windowTitle.match(/ - (.+)$/)
+  return match && match[1] ? match[1] : undefined
 })
 
 const partsStore = usePartsStore()
@@ -62,7 +70,16 @@ const drawingUrl = computed(() => {
   return drawingsApi.getDrawingUrl(currentPart.value.part_number, drawingIdFromTitle.value)
 })
 
-const hasDrawing = computed(() => !!currentPart.value?.drawing_path)
+// Check if drawing exists:
+// - If specific drawing ID from modal: assume it exists (show viewer)
+// - If primary drawing: check if part has drawing_path
+const hasDrawing = computed(() => {
+  if (!currentPart.value) return false
+  // Specific drawing from modal - always show (let iframe handle 404)
+  if (drawingIdFromTitle.value) return true
+  // Primary drawing - check if exists
+  return !!currentPart.value.drawing_path
+})
 
 function handleDownload() {
   if (!drawingUrl.value) return
@@ -73,7 +90,20 @@ function handleDownload() {
 // Watch context changes and load part
 watch(contextPartId, async (newPartId) => {
   if (newPartId) {
+    // Fetch fresh parts to ensure drawing_path is synced
+    await partsStore.fetchParts()
     const part = partsStore.parts.find(p => p.id === newPartId)
+    if (part) {
+      currentPart.value = part
+    }
+  }
+}, { immediate: true })
+
+// Watch part number from title (for standalone windows opened from modal)
+watch(partNumberFromTitle, async (partNumber) => {
+  if (partNumber) {
+    await partsStore.fetchParts()
+    const part = partsStore.parts.find(p => p.part_number === partNumber)
     if (part) {
       currentPart.value = part
     }
@@ -84,7 +114,16 @@ watch(contextPartId, async (newPartId) => {
 onMounted(async () => {
   await partsStore.fetchParts()
 
-  // Try to load part from context
+  // Priority 1: Load from title (standalone window from modal)
+  if (partNumberFromTitle.value) {
+    const part = partsStore.parts.find(p => p.part_number === partNumberFromTitle.value)
+    if (part) {
+      currentPart.value = part
+      return
+    }
+  }
+
+  // Priority 2: Load from context (linked window)
   if (contextPartId.value) {
     const part = partsStore.parts.find(p => p.id === contextPartId.value)
     if (part) {
@@ -127,6 +166,7 @@ onMounted(async () => {
       <!-- PDF Viewer -->
       <div class="pdf-viewer">
         <iframe
+          :key="drawingUrl"
           :src="drawingUrl"
           class="pdf-iframe"
           title="PDF Drawing Viewer"

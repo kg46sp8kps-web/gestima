@@ -17,8 +17,7 @@ body {
     display: flex;
     flex-direction: column;
     position: relative;
-    overflow-x: auto;  /* Horizontal scroll při malém okně */
-    overflow-y: hidden; /* Vertikální scroll řeší komponenty */
+    overflow: hidden; /* No page scroll */
 }
 
 /* === MAIN CONTENT === */

@@ -32,7 +32,7 @@ class Quote(Base, AuditMixin):
     __tablename__ = "quotes"
 
     id = Column(Integer, primary_key=True, index=True)
-    quote_number = Column(String(8), unique=True, nullable=False, index=True)  # 85XXXXXX
+    quote_number = Column(String(8), unique=True, nullable=False, index=True)  # 50XXXXXX (ADR-017)
     partner_id = Column(Integer, ForeignKey("partners.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Metadata

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * DrawingsManagementModal - Manage multiple PDF drawings for a part
- * Features: List, upload, set primary, delete, open in floating window
+ * Features: List, upload (drag & drop, multiple), set primary, delete, open in floating window
  */
 import { ref, computed, watch } from 'vue'
 import { FileText, Upload, Trash2, Star } from 'lucide-vue-next'
@@ -32,6 +32,8 @@ const loading = ref(false)
 const showDeleteConfirm = ref(false)
 const deleteTarget = ref<Drawing | null>(null)
 const uploadingDrawing = ref(false)
+const isDragging = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // Computed
 const isOpen = computed({
@@ -64,34 +66,84 @@ async function loadDrawings() {
   }
 }
 
-async function handleFileSelect(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
+// Drag & drop handlers
+function onDragEnter(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = true
+}
 
-  // Get revision from prompt
-  const revision = prompt('Zadejte revizi (volitelné, 1-2 velká písmena A-Z):')
-  if (revision !== null && revision && !/^[A-Z]{1,2}$/.test(revision)) {
-    uiStore.showError('Revize musí být 1-2 velká písmena (A-Z)')
-    input.value = ''
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+}
+
+function onDragLeave(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = false
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = false
+
+  const files = Array.from(e.dataTransfer?.files || [])
+  handleFilesUpload(files)
+}
+
+function onFileInputChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files || [])
+  handleFilesUpload(files)
+  input.value = '' // Reset for re-upload
+}
+
+function openFilePicker() {
+  fileInputRef.value?.click()
+}
+
+async function handleFilesUpload(files: File[]) {
+  if (files.length === 0) return
+
+  // Filter only PDFs
+  const pdfFiles = files.filter(f => f.type === 'application/pdf')
+  if (pdfFiles.length === 0) {
+    uiStore.showError('Pouze PDF soubory jsou podporovány')
     return
   }
 
   uploadingDrawing.value = true
+  let successCount = 0
+  let errorCount = 0
+
   try {
-    await drawingsApi.uploadDrawing(
-      props.partNumber,
-      file,
-      revision || undefined
-    )
-    uiStore.showSuccess('Výkres nahrán')
+    // Upload all files in parallel
+    const uploadPromises = pdfFiles.map(async (file) => {
+      try {
+        await drawingsApi.uploadDrawing(
+          props.partNumber,
+          file,
+          'A' // Default revision
+        )
+        successCount++
+      } catch (error: any) {
+        errorCount++
+        console.error(`Failed to upload ${file.name}:`, error)
+      }
+    })
+
+    await Promise.all(uploadPromises)
+
+    // Show results
+    if (successCount > 0) {
+      uiStore.showSuccess(`${successCount} výkresů nahráno`)
+    }
+    if (errorCount > 0) {
+      uiStore.showError(`${errorCount} souborů se nepodařilo nahrát`)
+    }
+
     await loadDrawings()
     emit('refresh')
-  } catch (error: any) {
-    uiStore.showError(`Nepodařilo se nahrát výkres: ${error.message}`)
   } finally {
     uploadingDrawing.value = false
-    input.value = ''
   }
 }
 
@@ -132,20 +184,35 @@ function openDrawing(drawing: Drawing) {
 
 <template>
   <Modal v-model="isOpen" :title="`Správa výkresů - ${partNumber}`" size="xl">
-    <!-- Header with upload -->
+    <!-- Drag & Drop Upload Zone -->
+    <div
+      class="upload-zone"
+      :class="{ dragging: isDragging, uploading: uploadingDrawing }"
+      @dragenter="onDragEnter"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
+      @click="openFilePicker"
+    >
+      <input
+        ref="fileInputRef"
+        type="file"
+        accept="application/pdf"
+        multiple
+        style="display: none"
+        @change="onFileInputChange"
+      />
+
+      <Upload :size="32" :stroke-width="1.5" />
+      <p class="upload-label">
+        {{ uploadingDrawing ? 'Nahrávám...' : 'Přetáhněte PDF výkresy sem nebo klikněte pro výběr' }}
+      </p>
+      <p class="upload-hint">Podporuje více souborů najednou</p>
+    </div>
+
+    <!-- Count -->
     <div class="header">
       <span class="count">{{ drawings.length }} výkresů</span>
-      <label class="btn-primary" :class="{ disabled: uploadingDrawing }">
-        <Upload :size="16" />
-        {{ uploadingDrawing ? 'Nahrávám...' : 'Nahrát výkres' }}
-        <input
-          type="file"
-          accept="application/pdf"
-          style="display: none"
-          :disabled="uploadingDrawing"
-          @change="handleFileSelect"
-        />
-      </label>
     </div>
 
     <!-- Loading -->
@@ -350,5 +417,52 @@ function openDrawing(drawing: Drawing) {
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Upload Zone */
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  color: var(--text-secondary);
+}
+
+.upload-zone:hover {
+  border-color: var(--color-primary);
+  background: var(--bg-raised);
+  color: var(--color-primary);
+}
+
+.upload-zone.dragging {
+  border-color: var(--color-success);
+  background: rgba(5, 150, 105, 0.1);
+  transform: scale(1.02);
+}
+
+.upload-zone.uploading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.upload-label {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  text-align: center;
+}
+
+.upload-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 </style>
