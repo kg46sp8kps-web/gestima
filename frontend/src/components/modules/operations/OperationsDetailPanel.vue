@@ -30,6 +30,7 @@ const expandedOps = reactive<Record<number, boolean>>({})
 const showDeleteConfirm = ref(false)
 const operationToDelete = ref<Operation | null>(null)
 const draggedOpId = ref<number | null>(null)
+const dragOverOpId = ref<number | null>(null)
 
 // Debounce timers per operation
 const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -149,6 +150,21 @@ function handleDragStart(op: Operation) {
   draggedOpId.value = op.id
 }
 
+function handleDragEnter(op: Operation) {
+  if (draggedOpId.value && draggedOpId.value !== op.id) {
+    dragOverOpId.value = op.id
+  }
+}
+
+function handleDragLeave() {
+  dragOverOpId.value = null
+}
+
+function handleDragEnd() {
+  draggedOpId.value = null
+  dragOverOpId.value = null
+}
+
 function handleDragOver(event: DragEvent) {
   event.preventDefault()
 }
@@ -194,6 +210,7 @@ async function handleDrop(event: DragEvent, targetOp: Operation) {
   )
 
   draggedOpId.value = null
+  dragOverOpId.value = null
 }
 
 // Expose operationsCount for parent
@@ -236,9 +253,15 @@ defineExpose({
         :key="op.id"
         draggable="true"
         @dragstart="handleDragStart(op)"
+        @dragenter="handleDragEnter(op)"
+        @dragleave="handleDragLeave"
         @dragover="handleDragOver"
+        @dragend="handleDragEnd"
         @drop="handleDrop($event, op)"
-        :class="{ 'is-dragging': draggedOpId === op.id }"
+        :class="{
+          'is-dragging': draggedOpId === op.id,
+          'drag-over': dragOverOpId === op.id
+        }"
       >
         <OperationRow
           :operation="op"
@@ -378,6 +401,14 @@ defineExpose({
 }
 
 .operations-list > div.is-dragging {
-  opacity: 0.5;
+  opacity: 0.4;
+  transform: scale(0.98);
+  cursor: grabbing;
+}
+
+.operations-list > div.drag-over {
+  border-top: 3px solid var(--color-primary);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
 }
 </style>

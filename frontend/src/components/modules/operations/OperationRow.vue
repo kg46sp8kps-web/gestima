@@ -9,7 +9,6 @@ import { ref, computed } from 'vue'
 import type { Operation, CuttingMode, WorkCenter } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import CuttingModeButtons from '@/components/ui/CuttingModeButtons.vue'
-import CoefficientsInput from '@/components/ui/CoefficientsInput.vue'
 import CoopSettings from '@/components/ui/CoopSettings.vue'
 import MaterialLinksInfo from '@/components/ui/MaterialLinksInfo.vue'
 import { Trash2, ChevronDown, ChevronRight } from 'lucide-vue-next'
@@ -67,6 +66,11 @@ function handleTimeInput(field: 'setup_time_min' | 'operation_time_min', event: 
 function handleWorkCenterChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value
   emit('update-work-center', value ? Number(value) : null)
+}
+
+function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilization_coefficient', event: Event) {
+  const value = Number((event.target as HTMLInputElement).value)
+  emit('update-field', field, value)
 }
 </script>
 
@@ -131,6 +135,35 @@ function handleWorkCenterChange(event: Event) {
         <span class="time-unit">min</span>
       </div>
 
+      <!-- Coefficients (inline editable) -->
+      <div class="coef-field" @click.stop>
+        <span class="coef-label">Plnění:</span>
+        <input
+          type="number"
+          step="5"
+          min="0"
+          max="200"
+          :value="operation.manning_coefficient"
+          @input="handleCoefficientInput('manning_coefficient', $event)"
+          class="coef-input"
+        />
+        <span class="coef-unit">%</span>
+      </div>
+
+      <div class="coef-field" @click.stop>
+        <span class="coef-label">Využití:</span>
+        <input
+          type="number"
+          step="5"
+          min="0"
+          max="200"
+          :value="operation.machine_utilization_coefficient"
+          @input="handleCoefficientInput('machine_utilization_coefficient', $event)"
+          class="coef-input"
+        />
+        <span class="coef-unit">%</span>
+      </div>
+
       <!-- Time Sums (Tp, Tj, To) -->
       <div class="time-sums">
         <span class="sum-item tp">Tp: {{ timeSums.tp }}</span>
@@ -161,7 +194,7 @@ function handleWorkCenterChange(event: Event) {
       </button>
     </div>
 
-    <!-- Expanded Settings (cutting mode, coefficients, coop, materials) -->
+    <!-- Expanded Settings (cutting mode, coop, materials) -->
     <div v-if="expanded" class="op-settings">
       <!-- Cutting Mode -->
       <div class="setting-group">
@@ -170,18 +203,6 @@ function handleWorkCenterChange(event: Event) {
           :mode="operation.cutting_mode"
           :disabled="saving"
           @change="emit('change-mode', $event)"
-        />
-      </div>
-
-      <!-- Coefficients -->
-      <div class="setting-group">
-        <label class="setting-label">Koeficienty</label>
-        <CoefficientsInput
-          :manning-coefficient="operation.manning_coefficient"
-          :machine-utilization-coefficient="operation.machine_utilization_coefficient"
-          :disabled="saving"
-          @update:manning="emit('update-field', 'manning_coefficient', $event)"
-          @update:machine-utilization="emit('update-field', 'machine_utilization_coefficient', $event)"
         />
       </div>
 
@@ -318,6 +339,42 @@ function handleWorkCenterChange(event: Event) {
 }
 
 .time-unit {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* Coefficient Fields */
+.coef-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.coef-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+}
+
+.coef-input {
+  width: 45px;
+  padding: var(--space-1);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-align: right;
+}
+
+.coef-input:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
+}
+
+.coef-unit {
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
