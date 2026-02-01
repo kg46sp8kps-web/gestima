@@ -441,7 +441,7 @@ defineExpose({
 .operations-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-6);  /* 24px - větší hit area pro drag target */
   overflow-y: auto;
   flex: 1;
 }
@@ -450,6 +450,7 @@ defineExpose({
 .operation-wrapper {
   cursor: grab;
   transition: transform 0.2s ease, opacity 0.2s ease;
+  padding: var(--space-2) 0;  /* Extra padding pro větší drag target */
 }
 
 .operation-wrapper:active {
