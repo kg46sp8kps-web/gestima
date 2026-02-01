@@ -189,59 +189,68 @@ function handleDragStart(event: DragEvent, op: Operation) {
   }
 }
 
-function handleDragEnter(event: DragEvent, op: Operation) {
-  event.preventDefault()
-  if (draggedOpId.value && draggedOpId.value !== op.id) {
-    dragOverOpId.value = op.id
-  }
-}
-
-function handleDragLeave(event: DragEvent) {
-  // Only clear if we're really leaving (not entering child element)
-  const relatedTarget = event.relatedTarget as HTMLElement
-  const currentTarget = event.currentTarget as HTMLElement
-
-  if (!currentTarget.contains(relatedTarget)) {
-    dragOverOpId.value = null
-  }
-}
-
 function handleDragEnd() {
   draggedOpId.value = null
   dragOverOpId.value = null
 }
 
-function handleDragOver(event: DragEvent) {
+function handleDragOver(event: DragEvent, op: Operation) {
   event.preventDefault()
+
+  if (!draggedOpId.value || draggedOpId.value === op.id) {
+    dragOverOpId.value = null
+    return
+  }
+
+  // Detect mouse position relative to element
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const mouseY = event.clientY
+  const elementMiddle = rect.top + rect.height / 2
+
+  // If mouse in TOP half → gap ABOVE this element
+  // If mouse in BOTTOM half → gap ABOVE next element
+  if (mouseY < elementMiddle) {
+    dragOverOpId.value = op.id
+  } else {
+    const currentIndex = sortedOperations.value.findIndex(o => o.id === op.id)
+    const nextOp = sortedOperations.value[currentIndex + 1]
+    dragOverOpId.value = nextOp ? nextOp.id : null
+  }
 }
 
-async function handleDrop(event: DragEvent, targetOp: Operation) {
+async function handleDrop(event: DragEvent) {
   event.preventDefault()
 
-  if (!draggedOpId.value || draggedOpId.value === targetOp.id) {
+  if (!draggedOpId.value || !dragOverOpId.value) {
     draggedOpId.value = null
+    dragOverOpId.value = null
     return
   }
 
   const draggedOp = operations.value.find(op => op.id === draggedOpId.value)
   if (!draggedOp) {
     draggedOpId.value = null
+    dragOverOpId.value = null
     return
   }
 
   // Get current sorted order
   const sorted = [...sortedOperations.value]
   const draggedIndex = sorted.findIndex(op => op.id === draggedOpId.value)
-  const targetIndex = sorted.findIndex(op => op.id === targetOp.id)
+  const targetIndex = sorted.findIndex(op => op.id === dragOverOpId.value)
 
   if (draggedIndex === -1 || targetIndex === -1) {
     draggedOpId.value = null
+    dragOverOpId.value = null
     return
   }
 
-  // Reorder array
+  // Remove from old position
   sorted.splice(draggedIndex, 1)
-  sorted.splice(targetIndex, 0, draggedOp)
+
+  // Insert BEFORE target (gap shows ABOVE dragOverOpId)
+  const newTargetIndex = sorted.findIndex(op => op.id === dragOverOpId.value)
+  sorted.splice(newTargetIndex, 0, draggedOp)
 
   // Renumber all operations 10-20-30...
   sorted.forEach((op, index) => {
@@ -308,11 +317,9 @@ defineExpose({
         <div
           draggable="true"
           @dragstart="handleDragStart($event, op)"
-          @dragenter="handleDragEnter($event, op)"
-          @dragleave="handleDragLeave($event)"
-          @dragover="handleDragOver"
+          @dragover="handleDragOver($event, op)"
           @dragend="handleDragEnd"
-          @drop="handleDrop($event, op)"
+          @drop="handleDrop"
           :class="{
             'operation-wrapper': true,
             'is-dragging': draggedOpId === op.id
@@ -441,7 +448,7 @@ defineExpose({
 .operations-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);  /* 24px - větší hit area pro drag target */
+  gap: var(--space-3);  /* 12px - normální mezera */
   overflow-y: auto;
   flex: 1;
 }
@@ -450,7 +457,6 @@ defineExpose({
 .operation-wrapper {
   cursor: grab;
   transition: transform 0.2s ease, opacity 0.2s ease;
-  padding: var(--space-2) 0;  /* Extra padding pro větší drag target */
 }
 
 .operation-wrapper:active {
