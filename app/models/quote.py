@@ -154,7 +154,7 @@ class QuoteBase(BaseModel):
 
 class QuoteCreate(BaseModel):
     """Create new quote - quote_number auto-generated"""
-    partner_id: int = Field(..., gt=0, description="ID partnera (zákazníka)")
+    partner_id: Optional[int] = Field(None, description="ID partnera (zákazníka) - optional")
     title: str = Field("", max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
