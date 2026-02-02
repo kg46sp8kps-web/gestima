@@ -38,6 +38,7 @@ class Quote(Base, AuditMixin):
     # Metadata
     title = Column(String(200), nullable=False, default="")
     description = Column(Text, nullable=True)
+    customer_request_number = Column(String(50), nullable=True, index=True)  # RFQ number from customer
     valid_until = Column(DateTime, nullable=True, index=True)
 
     # Workflow
@@ -139,6 +140,7 @@ class QuoteBase(BaseModel):
     partner_id: Optional[int] = Field(None, description="ID partnera (zákazníka)")
     title: str = Field("", max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
+    customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
     valid_until: Optional[datetime] = Field(None, description="Platnost do")
     status: str = Field(QuoteStatus.DRAFT.value, description="Stav nabídky")
     subtotal: float = Field(0.0, ge=0.0, description="Mezisoučet")
@@ -155,6 +157,7 @@ class QuoteCreate(BaseModel):
     partner_id: int = Field(..., gt=0, description="ID partnera (zákazníka)")
     title: str = Field("", max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
+    customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
     valid_until: Optional[datetime] = Field(None, description="Platnost do")
     discount_percent: float = Field(0.0, ge=0.0, le=100.0, description="Sleva %")
     tax_percent: float = Field(21.0, ge=0.0, le=100.0, description="DPH %")
@@ -165,6 +168,7 @@ class QuoteUpdate(BaseModel):
     """Update quote - only allowed in DRAFT status"""
     title: Optional[str] = Field(None, max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
+    customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
     valid_until: Optional[datetime] = Field(None, description="Platnost do")
     discount_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="Sleva %")
     tax_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="DPH %")

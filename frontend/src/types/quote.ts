@@ -16,6 +16,7 @@ export interface Quote {
   partner_id: number | null
   title: string
   description: string
+  customer_request_number: string | null
   status: QuoteStatus
   valid_until: string | null
   sent_at: string | null
@@ -69,6 +70,7 @@ export interface QuoteCreate {
   partner_id?: number | null
   title: string
   description?: string
+  customer_request_number?: string | null
   valid_until?: string | null
   discount_percent?: number
   tax_percent?: number
@@ -81,6 +83,7 @@ export interface QuoteUpdate {
   partner_id?: number | null
   title?: string
   description?: string
+  customer_request_number?: string | null
   valid_until?: string | null
   discount_percent?: number
   tax_percent?: number
@@ -150,6 +153,7 @@ export interface ItemExtraction {
 export interface QuoteRequestExtraction {
   customer: CustomerExtraction
   items: ItemExtraction[]
+  customer_request_number: string | null
   valid_until: string | null
   notes: string | null
 }
@@ -209,6 +213,7 @@ export interface PartMatch {
 export interface QuoteRequestReview {
   customer: CustomerMatch
   items: PartMatch[]
+  customer_request_number: string | null
   valid_until: string | null
   notes: string | null
   summary: {
@@ -260,6 +265,7 @@ export interface QuoteFromRequestCreate {
 
   // Quote fields
   title: string
+  customer_request_number?: string | null
   valid_until?: string | null
   notes?: string | null
   discount_percent?: number

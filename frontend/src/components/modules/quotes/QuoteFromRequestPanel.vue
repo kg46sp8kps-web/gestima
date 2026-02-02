@@ -39,6 +39,7 @@ const formData = reactive({
     phone: ''
   },
   title: '',
+  customer_request_number: '',
   valid_until: '',
   discount_percent: 0,
   tax_percent: 21,
@@ -104,6 +105,7 @@ async function uploadPDF(file: File) {
     formData.customer.contact_person = result.customer.contact_person || ''
     formData.customer.email = result.customer.email || ''
     formData.customer.phone = result.customer.phone || ''
+    formData.customer_request_number = result.customer_request_number || ''
     formData.valid_until = result.valid_until || ''
     formData.notes = result.notes || ''
 
@@ -144,6 +146,7 @@ async function handleConfirm() {
 
   const data: QuoteFromRequestCreate = {
     title: formData.title,
+    customer_request_number: formData.customer_request_number || null,
     valid_until: formData.valid_until || null,
     notes: formData.notes || null,
     discount_percent: formData.discount_percent,
@@ -224,7 +227,7 @@ function formatCurrency(value: number): string {
     <div v-if="quotesStore.aiParsing" class="loading-section">
       <div class="loading-state">
         <div class="spinner"></div>
-        <p>OpenAI Vision analyzuje PDF...</p>
+        <p>Claude AI Sonnet 4.5 analyzuje PDF...</p>
         <p class="upload-hint">Trvá cca 10-30 sekund podle velikosti PDF</p>
       </div>
     </div>
@@ -258,7 +261,7 @@ function formatCurrency(value: number): string {
         <h3><Info :size="20" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
         <ul>
           <li>Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
-          <li>OpenAI Vision AI extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
+          <li>Claude AI Sonnet 4.5 extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
           <li>Systém hledá existující zákazníky a díly v databázi</li>
           <li>Automaticky přiřadí ceny z vhodných zamražených dávek</li>
           <li>Vy zkontrolujete, upravíte a potvrdíte → vytvoří se nabídka</li>
@@ -440,6 +443,13 @@ function formatCurrency(value: number): string {
             <label>Název nabídky *</label>
             <Input v-model="formData.title" placeholder="Poptávka Q1/2026" />
           </div>
+          <div class="form-field">
+            <label>Číslo poptávky zákazníka</label>
+            <Input v-model="formData.customer_request_number" placeholder="P20971, RFQ-2026-001..." />
+          </div>
+        </div>
+
+        <div class="form-row">
           <div class="form-field">
             <label>Platnost do</label>
             <input

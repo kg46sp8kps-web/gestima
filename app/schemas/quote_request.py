@@ -42,6 +42,7 @@ class QuoteRequestExtraction(BaseModel):
     """Complete AI extraction result from PDF"""
     customer: CustomerExtraction
     items: List[ItemExtraction] = Field(..., description="List of items (can have duplicates for same article_number)")
+    customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka (RFQ number)")
     valid_until: Optional[date] = Field(None, description="Platnost nabídky do")
     notes: Optional[str] = Field(None, description="Obecné poznámky")
 
@@ -140,6 +141,7 @@ class QuoteFromRequestCreate(BaseModel):
     items: List[QuoteFromRequestItem] = Field(..., min_length=1)
 
     title: str = Field(..., max_length=200)
+    customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
     valid_until: Optional[date] = None
     notes: Optional[str] = None
     discount_percent: float = Field(0.0, ge=0.0, le=100.0)

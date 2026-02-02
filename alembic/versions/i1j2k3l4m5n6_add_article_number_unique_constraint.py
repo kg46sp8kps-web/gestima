@@ -29,23 +29,36 @@ def upgrade() -> None:
     """
     Add UNIQUE constraint to article_number.
 
-    Note: This will fail if there are duplicate article_numbers.
-    To fix duplicates before running:
-
-    SELECT article_number, COUNT(*)
-    FROM parts
-    WHERE deleted_at IS NULL
-    GROUP BY article_number
-    HAVING COUNT(*) > 1;
+    Automatically resolves duplicates by soft-deleting all but the oldest record
+    for each duplicate article_number group.
     """
-    # Add unique constraint
-    op.create_unique_constraint(
-        'uq_parts_article_number',
-        'parts',
-        ['article_number']
-    )
+    # First, soft-delete duplicates (keep oldest record for each article_number)
+    connection = op.get_bind()
+    connection.execute(sa.text("""
+        UPDATE parts
+        SET deleted_at = datetime('now')
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM parts
+            WHERE deleted_at IS NULL
+            GROUP BY article_number
+        )
+        AND deleted_at IS NULL
+        AND article_number IN (
+            SELECT article_number
+            FROM parts
+            WHERE deleted_at IS NULL
+            GROUP BY article_number
+            HAVING COUNT(*) > 1
+        )
+    """))
+
+    # Add unique constraint using batch mode for SQLite
+    with op.batch_alter_table('parts', schema=None) as batch_op:
+        batch_op.create_unique_constraint('uq_parts_article_number', ['article_number'])
 
 
 def downgrade() -> None:
     """Remove UNIQUE constraint from article_number."""
-    op.drop_constraint('uq_parts_article_number', 'parts', type_='unique')
+    with op.batch_alter_table('parts', schema=None) as batch_op:
+        batch_op.drop_constraint('uq_parts_article_number', type_='unique')

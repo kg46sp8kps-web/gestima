@@ -1,9 +1,9 @@
-"""GESTIMA - Quote Request Parser (OpenAI Vision)
+"""GESTIMA - Quote Request Parser (Claude AI)
 
-Parses quote request PDFs using OpenAI GPT-4 Vision API.
+Parses quote request PDFs using Claude AI Sonnet 4.5 Vision API.
 
 Features:
-- PDF → images → structured JSON extraction
+- Direct PDF upload → structured JSON extraction
 - Customer info + items list
 - Confidence scoring
 - Error handling + fallback
@@ -24,7 +24,7 @@ from app.schemas.quote_request import (
 logger = logging.getLogger(__name__)
 
 
-# OpenAI prompt for quote request extraction
+# Claude AI prompt for quote request extraction
 QUOTE_REQUEST_PROMPT = """
 You are analyzing a B2B QUOTE REQUEST document (RFQ - Request for Quotation).
 
@@ -50,8 +50,9 @@ Return ONLY valid JSON (no markdown, no explanations):
       "confidence": 0.0-1.0
     }
   ],
+  "customer_request_number": "string | null (RFQ/Poptávka number from customer - extract ONLY the identifier)",
   "valid_until": "YYYY-MM-DD | null (quote validity deadline)",
-  "notes": "string | null (RFQ reference number, delivery terms, general remarks)"
+  "notes": "string | null (delivery terms, general remarks - NOT RFQ number)"
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -72,50 +73,67 @@ SUPPLIER (who you MUST IGNORE):
 
 IDENTIFICATION STRATEGIES (use ALL clues together):
 
-A) SPATIAL/VISUAL CLUES (strongest signals):
+A) PRIORITY SEARCH ORDER (apply from top to bottom, stop at first match):
+
+   **PRIORITY 1: Explicit "Buyer" / "Customer" labels** (HIGHEST)
+   - Look for fields explicitly labeled: "Buyer:", "Customer:", "Client:", "Requestor:"
+   - Common in RFQ documents where entity REQUESTING the quote is clearly marked
+   - Email domains near "Buyer:" field indicate customer organization
+   - Extract company from same section as buyer email/contact
+   → IF FOUND: This is the CUSTOMER (ignore all other sections)
+
+   **PRIORITY 2: Sender/From in RFQ context** (HIGH)
+   - If document title is "Request for Quotation" / "RFQ" / "Poptávka"
+   - AND sender/from company is NOT in shipping address
+   - Then sender is the CUSTOMER (they are requesting the quote)
+   → The entity SENDING the RFQ is the BUYER
+
+   **PRIORITY 3: Shipping address** (MEDIUM)
+   - "Shipping address:", "Ship to:", "Delivery address:", "Dodací adresa:"
+   - WARNING: In RFQ documents, shipping address may be the SUPPLIER (receiving party)
+   - Cross-check: If shipping address matches header/footer company → It's the SUPPLIER (ignore)
+   - Only use if NOT matching document creator
+   → Use with caution in RFQ context
+
+   **PRIORITY 4: Spatial zones** (FALLBACK)
    ┌─────────────────────────────────────────────────────────────┐
    │ HEADER ZONE (top 15% of page)                               │
-   │ - Company logos, letterhead, "from" sections                │
-   │ - Contact info in headers/footers                           │
-   │ → THIS IS THE SUPPLIER - IGNORE FOR CUSTOMER EXTRACTION     │
+   │ - Company logos, letterhead                                 │
+   │ → Usually SUPPLIER (but check RFQ context)                  │
    └─────────────────────────────────────────────────────────────┘
 
    ┌─────────────────────────────────────────────────────────────┐
    │ BODY ZONE (middle 40-70% of page)                           │
-   │ - Shipping/delivery addresses (ANY language)                │
-   │ - "To:", "Bill to:", "Ship to:" sections                    │
-   │ - Boxed/highlighted recipient information                   │
-   │ - Contact blocks in main document area                      │
-   │ → THIS IS THE CUSTOMER - EXTRACT THIS                       │
+   │ - Main content, contact blocks                              │
+   │ → Context-dependent                                         │
    └─────────────────────────────────────────────────────────────┘
 
-   ┌─────────────────────────────────────────────────────────────┐
-   │ FOOTER ZONE (bottom 15% of page)                            │
-   │ - Bank details, registration numbers, disclaimers           │
-   │ - Repeated company info                                     │
-   │ → THIS IS THE SUPPLIER - IGNORE FOR CUSTOMER EXTRACTION     │
-   └─────────────────────────────────────────────────────────────┘
+B) SEMANTIC ROLE MARKERS (use for validation):
 
-B) SEMANTIC ROLE MARKERS (language-agnostic patterns):
+   CUSTOMER indicators:
+   - "Buyer:", "Client:", "Requestor:" (STRONGEST)
+   - Email contact in document body (not header/footer)
+   - "Bill to:" address (who pays)
+   - Company associated with RFQ sender in RFQ documents
 
-   CUSTOMER indicators (extract if near these patterns):
-   - Delivery/shipping address (ANY language: "Ship", "Deliver", "送货", "納品", "Lieferung", "Livraison")
-   - Recipient/buyer labels (ANY: "To:", "Customer:", "Buyer:", "客户", "顧客", "Kunde", "Cliente")
-   - Billing/invoicing address for PAYEE
-   - Boxed sections titled with recipient semantics
+   SUPPLIER indicators (IGNORE):
+   - Company in logo/header/footer
+   - "Shipping address:" IF it matches header company
+   - Watermarks, bank details in footer
+   - Tax IDs in document footer
 
-   SUPPLIER indicators (IGNORE if near these patterns):
-   - Sender/from labels ("From:", "Sender:", "发件人", "送信者", "Von:", "De:")
-   - Document creator watermarks
-   - Company branding/logo areas
-   - Footer contact blocks
+C) BUSINESS LOGIC VALIDATION:
 
-C) BUSINESS LOGIC CLUES:
+   **For RFQ (Request for Quotation) documents:**
+   - Entity labeled "Buyer:" = CUSTOMER (they want the quote)
+   - Entity in header/footer = SUPPLIER (they create the quote)
+   - Shipping address in RFQ often = SUPPLIER (where to ship FROM, not TO)
+   - Double-check: Buyer email domain should match customer company
 
-   - If multiple company names exist → SMALLER/SECONDARY one is usually customer
-   - If one company appears 3+ times → It's the SUPPLIER (ignore it)
-   - Shipping address ≠ Supplier address → Shipping is CUSTOMER
+   **For regular quote requests:**
    - "Attention:", "ATTN:", "致:" near name → Usually CUSTOMER contact
+   - Company in logo repeated 3+ times → SUPPLIER (ignore)
+   - Billing/invoicing address → CUSTOMER (who pays)
 
 ═══════════════════════════════════════════════════════════════════════════════
 RULE 2: BUSINESS ID EXTRACTION (MULTI-JURISDICTION)
@@ -160,8 +178,9 @@ PATTERN MATCHING (language-agnostic):
 EXTRACTION:
 1. Find reference number using visual proximity to title
 2. Extract identifier only (strip labels: "RFQ: P17992" → extract "P17992")
-3. Store in "notes" field as: "RFQ: [extracted_number]"
-4. If other notes exist, prepend: "RFQ: [number] | [other notes]"
+3. Store ONLY the identifier in "customer_request_number" field (NOT in notes)
+4. Do NOT include "RFQ:" prefix in customer_request_number - just the number/code itself
+5. Store other remarks (delivery terms, payment terms, etc.) separately in "notes" field
 
 ═══════════════════════════════════════════════════════════════════════════════
 RULE 4: ITEMS TABLE EXTRACTION (STRUCTURE-BASED)
@@ -175,30 +194,42 @@ TABLE IDENTIFICATION (visual patterns):
 
 COLUMN SEMANTICS (position-based, language-agnostic):
 
+COLUMN SEMANTICS (position-based, language-agnostic):
+
 LEFT COLUMNS (leftmost 30%):
-→ Part identifiers: Drawing numbers, SKUs, article codes, model numbers
-→ Labels (ignore): "No.", "Item", "Pos.", "番号", "項目"
-→ Extract to: "article_number"
+→ Part identifiers, descriptions
+→ May include SKUs in brackets: [byn-10101251]
+→ May include part names: "Halter", "Bolzen"
 
 MIDDLE COLUMNS (center 40%):
-→ Descriptions: Part names, specifications, titles
-→ May span multiple lines
-→ Extract to: "name"
+→ Additional specifications, scaled prices
+→ Technical details
 
 RIGHT COLUMNS (rightmost 30%):
-→ Quantities: Numeric values with unit labels
-→ Labels (ignore): "Qty", "Ks", "Pcs", "個", "数量", "Stk"
-→ Extract to: "quantity"
+→ Quantities with units
+→ Labels (ignore): "Qty", "Ks", "Pcs", "Units", "個", "数量"
 
-OPTIONAL COLUMNS:
-→ Material codes, finish specs, technical notes → Extract to: "notes"
+CRITICAL: DRAWING NUMBER EXTRACTION
 
-EXTRACTION RULES:
+**PRIORITY 1: Look for explicit "Drawing:" labels** (HIGHEST)
+- Labels: "Drawing:", "Drawing No.:", "Výkres:", "図面:", "图纸:"
+- Format: "Drawing: 90057637-00", "Výkres č. 123456"
+- Position: Usually BELOW part description in same row
+- Action: Extract number after "Drawing:" label → This is "article_number"
 
-1. **Article Number Preservation**:
-   - Copy EXACTLY character-by-character
-   - Preserve: dashes (-), dots (.), slashes (/), spaces, case
-   - Examples: "965-621344", "ABC.123.XY", "Part 10/2026"
+**PRIORITY 2: Part numbers / SKUs** (FALLBACK only if no Drawing field)
+- Format: [byn-10101251], ABC-123, Part-XYZ
+- Often in brackets or dashes
+- Use ONLY if "Drawing:" field is missing
+
+**EXTRACTION RULES:**
+
+1. **Article Number (Číslo výkresu) - CRITICAL**:
+   - IF "Drawing:" / "Výkres:" / "图纸:" exists → Extract that number (e.g., "90057637-00")
+   - IF no Drawing label → Use SKU/Part number (e.g., "[byn-10101251]")
+   - NEVER mix: Don't concatenate drawing + SKU
+   - Copy EXACTLY character-by-character: preserve dashes, dots, spaces, case
+   - Examples: "90057637-00", "965-621344", "ABC.123.XY"
 
 2. **Row-by-Row Processing**:
    - Each table ROW = one JSON item
@@ -280,21 +311,23 @@ RULE 7: ANTI-PATTERNS (CRITICAL MISTAKES TO AVOID)
 EXAMPLE OUTPUTS (showing variety of formats)
 ═══════════════════════════════════════════════════════════════════════════════
 
-EXAMPLE 1 - English Format (International):
+EXAMPLE 1 - RFQ from International Buyer:
 {
   "customer": {
-    "company_name": "Global Manufacturing Ltd.",
-    "contact_person": "John Smith",
-    "email": "j.smith@globalmanuf.com",
-    "phone": "+44 20 1234 5678",
-    "ico": "GB123456789",
+    "company_name": "GELSO AG",
+    "contact_person": "Roko Paskov",
+    "email": "roko.paskov@gelso.ch",
+    "phone": "+41 44 840 33 40",
+    "ico": "CHE-108.413.346",
     "confidence": 0.95
   },
   "items": [
-    {"article_number": "GM-2026-001", "name": "Steel Bracket Type A", "quantity": 500, "notes": "Material: S235JR", "confidence": 0.98}
+    {"article_number": "90057637-00", "name": "Halter", "quantity": 1, "notes": "Scaled prices: 1/5/10/20, SKU: byn-10101251", "confidence": 0.98},
+    {"article_number": "90057543-01", "name": "Halter", "quantity": 1, "notes": "Scaled prices: 1/5/10/20, SKU: byn-10101263-01", "confidence": 0.98}
   ],
-  "valid_until": "2026-04-30",
-  "notes": "RFQ: REQ-2026-0042"
+  "customer_request_number": "P20971",
+  "valid_until": "2025-12-22",
+  "notes": "Incoterm: FCA | Payment: 10 days net"
 }
 
 EXAMPLE 2 - Asian Format (Chinese):
@@ -310,8 +343,9 @@ EXAMPLE 2 - Asian Format (Chinese):
   "items": [
     {"article_number": "SZ-A-001", "name": "铝合金外壳", "quantity": 1000, "notes": null, "confidence": 0.95}
   ],
+  "customer_request_number": "报价单-2026-0088",
   "valid_until": "2026-05-15",
-  "notes": "RFQ: 报价单-2026-0088"
+  "notes": null
 }
 
 EXAMPLE 3 - German Format:
@@ -328,8 +362,9 @@ EXAMPLE 3 - German Format:
     {"article_number": "965-621344", "name": "Bolzen", "quantity": 100, "notes": null, "confidence": 0.98},
     {"article_number": "123-456789", "name": "Welle", "quantity": 200, "notes": "Werkstoff: 16MnCr5", "confidence": 0.95}
   ],
+  "customer_request_number": "ANF-2026-042",
   "valid_until": "2026-03-15",
-  "notes": "RFQ: ANF-2026-042 | Liefertermin: 4 Wochen"
+  "notes": "Liefertermin: 4 Wochen"
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -341,67 +376,54 @@ Analyze the provided document using the semantic rules above. Return ONLY the JS
 
 
 class QuoteRequestParser:
-    """OpenAI Vision-based PDF parser"""
+    """Claude AI Vision-based PDF parser"""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o"):
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-5-20250929"):
         self.model = model
         try:
-            from openai import OpenAI
-            self.client = OpenAI(api_key=api_key)
-            logger.info(f"Initialized parser with {model}")
+            from anthropic import Anthropic
+            self.client = Anthropic(api_key=api_key)
+            logger.info(f"Initialized parser with Claude {model}")
         except ImportError:
-            raise HTTPException(500, "Missing openai package")
+            raise HTTPException(500, "Missing anthropic package")
 
-    def _pdf_to_images(self, pdf_path: Path) -> list[str]:
-        """Convert PDF to base64 PNG images"""
-        try:
-            import fitz  # PyMuPDF
-        except ImportError:
-            raise HTTPException(500, "Missing pymupdf package")
-
-        doc = fitz.open(pdf_path)
-        images = []
-
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            pix = page.get_pixmap(dpi=300)
-            img_bytes = pix.tobytes("png")
-            img_base64 = base64.b64encode(img_bytes).decode("utf-8")
-            images.append(img_base64)
-
-        doc.close()
-        return images
+    def _load_pdf(self, pdf_path: Path) -> str:
+        """Load PDF as base64 for direct upload to Claude"""
+        with open(pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+            return base64.b64encode(pdf_bytes).decode('utf-8')
 
     async def parse_pdf(self, pdf_path: Path) -> QuoteRequestExtraction:
         if not pdf_path.exists():
             raise HTTPException(400, f"PDF not found: {pdf_path}")
 
-        # Convert PDF to images
-        images = self._pdf_to_images(pdf_path)
-        logger.debug(f"Converted PDF to {len(images)} images")
+        # Load PDF for direct upload to Claude
+        pdf_base64 = self._load_pdf(pdf_path)
+        logger.debug(f"Loaded PDF ({len(pdf_base64)} bytes base64) for direct upload")
 
-        # Build messages
-        content = [{"type": "text", "text": QUOTE_REQUEST_PROMPT}]
-        for img in images:
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{img}",
-                    "detail": "high"
+        # Build messages for Claude with direct PDF upload
+        content = [
+            {"type": "text", "text": QUOTE_REQUEST_PROMPT},
+            {
+                "type": "document",
+                "source": {
+                    "type": "base64",
+                    "media_type": "application/pdf",
+                    "data": pdf_base64
                 }
-            })
+            }
+        ]
 
-        # Call OpenAI
+        # Call Claude AI
         try:
-            response = self.client.chat.completions.create(
+            response = self.client.messages.create(
                 model=self.model,
-                messages=[{"role": "user", "content": content}],
                 max_tokens=4096,
-                timeout=60.0
+                messages=[{"role": "user", "content": content}]
             )
-            response_text = response.choices[0].message.content
+            response_text = response.content[0].text
         except Exception as e:
-            logger.error(f"OpenAI API failed: {e}")
+            logger.error(f"Claude API failed: {e}")
             raise HTTPException(500, f"AI parsing failed: {e}")
 
         # Parse JSON
@@ -432,7 +454,7 @@ class QuoteRequestParser:
 def get_quote_parser(api_key: Optional[str] = None) -> QuoteRequestParser:
     if api_key is None:
         from app.config import settings
-        api_key = settings.OPENAI_API_KEY
+        api_key = settings.ANTHROPIC_API_KEY
         if not api_key:
-            raise HTTPException(500, "OPENAI_API_KEY not configured")
+            raise HTTPException(500, "ANTHROPIC_API_KEY not configured")
     return QuoteRequestParser(api_key=api_key)

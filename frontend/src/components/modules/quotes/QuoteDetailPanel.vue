@@ -35,6 +35,7 @@ const editForm = reactive({
   partner_id: null as number | null,
   title: '',
   description: '',
+  customer_request_number: '',
   valid_until: '',
   discount_percent: 0,
   tax_percent: 21,
@@ -57,6 +58,7 @@ watch(() => props.quote, (quote) => {
     editForm.partner_id = quote.partner_id
     editForm.title = quote.title
     editForm.description = quote.description || ''
+    editForm.customer_request_number = quote.customer_request_number || ''
     editForm.valid_until = quote.valid_until || ''
     editForm.discount_percent = quote.discount_percent
     editForm.tax_percent = quote.tax_percent
@@ -74,6 +76,7 @@ function cancelEdit() {
     editForm.partner_id = props.quote.partner_id
     editForm.title = props.quote.title
     editForm.description = props.quote.description || ''
+    editForm.customer_request_number = props.quote.customer_request_number || ''
     editForm.valid_until = props.quote.valid_until || ''
     editForm.discount_percent = props.quote.discount_percent
     editForm.tax_percent = props.quote.tax_percent
@@ -88,6 +91,7 @@ async function saveQuote() {
     partner_id: editForm.partner_id,
     title: editForm.title,
     description: editForm.description || undefined,
+    customer_request_number: editForm.customer_request_number || undefined,
     valid_until: editForm.valid_until || undefined,
     discount_percent: editForm.discount_percent,
     tax_percent: editForm.tax_percent,
@@ -232,6 +236,18 @@ partsStore.fetchParts()
                 rows="3"
                 maxlength="1000"
               ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Číslo poptávky zákazníka</label>
+              <input
+                v-model="editForm.customer_request_number"
+                type="text"
+                class="form-input"
+                :disabled="!isEditing"
+                maxlength="50"
+                placeholder="P20971, RFQ-2026-001..."
+              />
             </div>
 
             <div class="form-row">
