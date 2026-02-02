@@ -30,6 +30,7 @@ const showCreateForm = ref(false)
 const newQuote = reactive<QuoteCreate>({
   title: '',
   description: '',
+  customer_request_number: null,
   partner_id: null,
   valid_until: null,
   discount_percent: 0,
@@ -83,6 +84,7 @@ function selectQuote(quote: Quote) {
 function handleCreate() {
   newQuote.title = ''
   newQuote.description = ''
+  newQuote.customer_request_number = null
   newQuote.partner_id = null
   newQuote.valid_until = null
   newQuote.discount_percent = 0
@@ -99,6 +101,7 @@ async function createQuote() {
     const quote = await quotesStore.createQuote({
       title: newQuote.title,
       description: newQuote.description || undefined,
+      customer_request_number: newQuote.customer_request_number || undefined,
       partner_id: newQuote.partner_id,
       valid_until: newQuote.valid_until,
       discount_percent: newQuote.discount_percent,
@@ -271,6 +274,17 @@ function formatCurrency(value: number): string {
                 maxlength="1000"
                 placeholder="Popis nabídky"
               ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Číslo poptávky zákazníka</label>
+              <input
+                v-model="newQuote.customer_request_number"
+                type="text"
+                class="form-input"
+                maxlength="50"
+                placeholder="P20971, RFQ-2026-001..."
+              />
             </div>
 
             <div class="form-group">

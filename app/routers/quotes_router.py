@@ -517,6 +517,7 @@ async def parse_quote_request_pdf(
         review = QuoteRequestReview(
             customer=customer_match,
             items=item_matches,
+            customer_request_number=extraction.customer_request_number,
             valid_until=extraction.valid_until,
             notes=extraction.notes,
             summary=ReviewSummary(

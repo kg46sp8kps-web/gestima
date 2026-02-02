@@ -103,6 +103,7 @@ class QuoteRequestReview(BaseModel):
     """Complete review data (extraction + matching)"""
     customer: CustomerMatch
     items: List[PartMatch] = Field(..., description="All items with part+batch matching")
+    customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
     valid_until: Optional[date] = None
     notes: Optional[str] = None
     summary: ReviewSummary
