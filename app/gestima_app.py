@@ -38,7 +38,9 @@ from app.routers import (
     quotes_router,
     quote_items_router,
     uploads_router,
-    drawings_router  # Multiple drawings per part support
+    drawings_router,  # Multiple drawings per part support
+    module_layouts_router,  # ADR-031: Visual Editor
+    module_defaults_router  # ADR-031: Module Defaults
 )
 from app.database import async_session, engine, close_db
 
@@ -199,9 +201,16 @@ app.include_router(material_inputs_router.router)  # ADR-024: prefix already in 
 app.include_router(partners_router.router, prefix="/api/partners", tags=["Partners"])
 app.include_router(quotes_router.router, prefix="/api/quotes", tags=["Quotes"])
 app.include_router(quote_items_router.router, prefix="/api", tags=["Quote Items"])
+
+# Test/Mock endpoints (DEBUG only)
+if settings.DEBUG:
+    from app.routers import quotes_router_test
+    app.include_router(quotes_router_test.router, prefix="/api/quotes-test", tags=["Quotes Test"])
 app.include_router(uploads_router.router, prefix="/api/uploads", tags=["Uploads"])
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
+app.include_router(module_layouts_router.router, prefix="/api", tags=["Module Layouts"])  # ADR-031
+app.include_router(module_defaults_router.router, prefix="/api", tags=["Module Defaults"])  # ADR-031
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])

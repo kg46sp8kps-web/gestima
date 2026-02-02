@@ -1,3 +1,83 @@
+## [Module Defaults Persistence] - 2026-02-02
+
+### Added
+- **Module Defaults System**: Per-module default window sizes and settings (ADR-031)
+  - Backend API: `GET/POST/PUT/DELETE /api/module-defaults/{module_type}`
+  - Database: New `module_defaults` table with UNIQUE constraint on `module_type`
+  - Validation: Window sizes 200-3000px (Pydantic Field validation)
+  - Audit trail: created_by, updated_by, soft delete support
+  - Optimistic locking: version field for conflict detection
+
+- **Frontend Confirmation Modal**: SaveModuleDefaultsModal.vue
+  - Intelligent prompting: Modal appears only when window size changed (10px tolerance)
+  - Shows changes summary: "✓ Velikost okna: 900 × 700"
+  - Design system compliant: Uses tokens, Lucide icons, keyboard navigation
+  - Non-intrusive UX: No modal on unchanged closes
+
+- **Windows Store Integration**: Load/save defaults from API
+  - `openWindow()`: Loads defaults from `/api/module-defaults/{module_type}`
+  - Fallback: 800×600px if no defaults found
+  - `saveModuleDefaults()`: Saves current window size to API
+  - Priority logic: Saved views override defaults (snapshot precedence)
+
+### Changed
+- FloatingWindow.vue: Added size change tracking on mount
+  - Tracks originalSize: {width, height}
+  - Detects changes on close (10px tolerance)
+  - Shows SaveModuleDefaultsModal if changed
+  - Silent close if unchanged
+
+### Technical
+- Database migration: `m6n7o8p9q0r1_create_module_defaults_table.py`
+- Model: app/models/module_defaults.py (69 LOC)
+- Router: app/routers/module_defaults_router.py (294 LOC)
+- L-008 compliant: Transaction handling with safe_commit()
+- L-009 compliant: Pydantic Field validation (gt=200, le=3000)
+- Security: Auth required on all endpoints, ORM parameterized queries
+- Tests: 12 unit tests (test_module_defaults_endpoints.py)
+
+### Documentation
+- ADR-031: Module Defaults Persistence System
+- Relationship to ADR-030 (Universal Responsive Module Template)
+- Future enhancements: Split positions, column widths, GridStack support
+
+---
+
+## [Operations Module Refactor] - 2026-02-02
+
+### Changed
+- **Operations Table Structure**: Migrated from card-based layout to table structure with header row
+  - Converted OperationsDetailPanel.vue to use `<table>` with sticky `<thead>`
+  - Converted OperationRow.vue from div-based to `<tr>`/`<td>` structure
+  - Removed inline field labels (tp:, tj:, Ko:, Ke:) - now in table header
+  - Integrated VueDraggable with `<tbody>` tag for drag-and-drop functionality
+  - Column headers: Seq, Pracoviště, tp, tj, Ko, Ke, Tp, Tj, To, Actions
+  - Better visual organization and data density
+
+- **Material-Operation Linking**: Complete UX overhaul with persistence fixes
+  - Fixed persistence bug: Links now survive page refresh (added async reload after link/unlink)
+  - Auto-link behavior: Links created immediately on dropdown selection (@change event)
+  - Compact operation chips: Display just operation numbers (e.g., "10", "20") with tooltips
+  - Material dimensions display: Show "M1 Ø50 L100" format for better identification
+  - Bidirectional linking: Works from both Operations → Materials and Materials → Operations
+  - Added `formatMaterialDimensions()` helper (adapts to shape: diameter, width×height, length)
+
+- **Simplified Operation Detail**: Removed unnecessary UI from expanded operation row
+  - Removed: CuttingModeButtons component
+  - Removed: CoopSettings component
+  - Kept: MaterialLinksInfo component only (material-operation linking)
+  - Cleaner, more focused detail view
+
+- **Icon Button Standardization**: Changed "Přidat operaci" button to Lucide Plus icon
+  - Uses `ICON_SIZE.STANDARD` (20px) from design system
+  - Consistent with other action buttons across the app
+
+### Technical
+- MaterialLinksInfo.vue: Added dimension formatting logic
+- MaterialInputList.vue: Compact operation linking UI
+- OperationRow.vue: Simplified expanded row to single colspan cell
+- Design system compliance: All icon sizes use constants from config/design.ts
+
 ## [Phase 1] - 2026-02-02
 
 ### Added
@@ -17,6 +97,108 @@
 - Zero anti-pattern violations (L-036, L-033, L-008 compliant)
 - Full design system compliance (all CSS uses tokens)
 - Container queries for responsive design
+
+## [1.14.0] - 2026-02-02 - AI Quote Parser Complete ✅
+
+### ✅ MAJOR UPDATE - Frontend + Claude 4.5 Upgrade
+
+Completed **AI Quote Request Parsing** with frontend implementation and upgraded to Claude Sonnet 4.5 for better accuracy.
+
+**Stats:**
+- **1200+ LOC** total (Backend: 800+ LOC | Frontend: 400+ LOC)
+- **3 database migrations** (article_number UNIQUE, customer_request_number, drawing_number)
+- **1 new frontend component** (QuoteFromRequestPanel.vue)
+- **AI cost**: ~$0.08 per quote parse (3× cheaper than OpenAI)
+- **Time saved**: 5-10 min → 1-2 min (80% faster quote entry)
+- **Processing speed**: 2-5 seconds (direct PDF upload, no image conversion)
+
+### Added
+
+#### AI Model Upgrade
+- **Claude Sonnet 4.5** - Upgraded from Claude 3.5 Sonnet
+  - Model: `claude-sonnet-4-5-20250929`
+  - Better accuracy for Czech B2B documents (verified on real PDFs)
+  - Improved semantic understanding (buyer vs supplier, drawing vs SKU)
+  - **Direct PDF upload** via base64 encoding (no image conversion needed)
+  - 3-5x faster processing (2-5s vs 10-15s with PNG conversion)
+
+#### customer_request_number Field
+- **Database migration**: `j2k3l4m5n6o7_add_customer_request_number_to_quote.py`
+  - New indexed column: `Quote.customer_request_number` (String(50))
+  - Stores customer RFQ numbers (e.g., "P20971", "RFQ-2026-001")
+  - Searchable and filterable
+- **Backend**: Updated all Quote schemas (QuoteCreate, QuoteUpdate, QuoteResponse, QuoteBase)
+- **Frontend**: Added input field to all quote forms (QuoteDetailPanel, QuoteListPanel, QuoteFromRequestPanel)
+- **AI Parser**: Extracts RFQ number separately from notes (improved prompt engineering)
+
+#### Optional Fields Policy
+- **All quote creation fields are now optional** (except auto-generated quote_number)
+  - User preference: "žádné pole nesmí být povinné" (no required fields)
+  - `partner_id`, `title`, `customer_request_number`, `valid_until` all optional
+  - Backend validation only runs if fields are provided
+  - Empty title defaults to `""` (empty string)
+
+#### Frontend Implementation
+- **QuoteFromRequestPanel.vue** (400+ LOC) - Complete AI parsing UI
+  - PDF upload with drag & drop support
+  - AI extraction progress indicator
+  - Review/edit extracted data form
+  - Customer match display with confidence indicator
+  - Items table with part matching status
+  - Batch status indicators:
+    - ✅ Green: Exact batch match
+    - ⚠️ Orange: Lower batch used (with warning)
+    - 🔴 Red: No batch found (missing)
+  - customer_request_number input field (pre-filled from AI extraction)
+  - Editable form before quote creation
+  - Confirm button → POST /from-request → navigate to created quote
+- **API Integration**: quotes.ts - parseQuoteRequestPDF() and createQuoteFromRequest()
+- **Store Actions**: quotes.ts - Full AI workflow state management
+- **TypeScript Types**: Updated all quote interfaces with customer_request_number
+
+### Changed
+
+#### AI Parser Improvements
+- **Switched from OpenAI to Anthropic**
+  - Removed: `openai>=1.6.0`
+  - Added: `anthropic>=0.40.0`
+  - Updated `.env` with ANTHROPIC_API_KEY
+- **Direct PDF Upload** (breaking change from image-based approach)
+  - Removed: `_pdf_to_images()` method
+  - Added: `_load_pdf()` method (base64 encoding)
+  - Changed content structure: single document block instead of multiple images
+- **Improved AI Prompt**
+  - Semantic understanding: Extract buyer (not supplier) as customer
+  - Drawing number extraction: Use "Drawing:" field, not SKU
+  - RFQ number extraction: Strip prefixes ("RFQ: P17992" → "P17992")
+  - Separate notes from customer_request_number
+
+#### Backend Updates
+- **quotes_router.py**: Made partner validation conditional (only if partner_id provided)
+- **QuoteCreate schema**: Changed `partner_id` and `title` to Optional
+- **quote_request.py schemas**: Added customer_request_number to all relevant schemas
+
+### Fixed
+- **Migration i1j2k3l4m5n6**: Added SQLite batch mode for ALTER TABLE operations
+- **Migration i1j2k3l4m5n6**: Auto-cleanup of duplicate article_number records
+- **QuoteRequestReview**: Added missing customer_request_number field
+- **AI Extraction**: Now correctly identifies customer from "Buyer:" field (not "Supplier:")
+- **AI Extraction**: Now correctly extracts article_number from "Drawing:" field (not SKU)
+
+### Documentation
+- **ADR-028**: Updated to v1.14.0
+  - Claude Sonnet 4.5 details
+  - Direct PDF upload implementation
+  - customer_request_number field documentation
+  - Optional fields policy
+  - Frontend implementation complete
+- **VIS-002**: Added customer_request_number to Quote snapshot documentation
+- **STATUS.md**: Updated to reflect v1.14.0 completion
+
+### Migration Notes
+- **Breaking**: Requires `ANTHROPIC_API_KEY` in `.env` (replace OPENAI_API_KEY)
+- **Database**: Run migration `j2k3l4m5n6o7_add_customer_request_number_to_quote.py`
+- **Compatibility**: Existing quotes remain functional (customer_request_number nullable)
 
 ## [1.13.0] - 2026-02-01 - AI Quote Request Parsing 🤖
 

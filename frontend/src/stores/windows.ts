@@ -5,6 +5,8 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getModuleDefaults, saveModuleDefaults } from '@/api/module-defaults'
+import type { ModuleDefaults } from '@/types/module-defaults'
 
 export type WindowModule =
   | 'part-main'
@@ -15,6 +17,9 @@ export type WindowModule =
   | 'batch-sets'
   | 'partners-list'
   | 'quotes-list'
+  | 'quote-from-request'
+  | 'manufacturing-items'
+  | 'material-items-list'
 
 export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
 
@@ -71,51 +76,49 @@ export const useWindowsStore = defineStore('windows', () => {
   }
 
   // Actions
-  function openWindow(module: WindowModule, title: string, linkingGroup?: LinkingGroup) {
+  async function openWindow(module: WindowModule, title: string, linkingGroup?: LinkingGroup) {
+    // Load defaults from API (with fallback)
+    let defaultWidth = 800
+    let defaultHeight = 600
+
+    try {
+      const defaults = await getModuleDefaults(module)
+      if (defaults) {
+        defaultWidth = defaults.default_width
+        defaultHeight = defaults.default_height
+        // TODO: Apply split positions and column widths from defaults.settings
+      }
+    } catch (error) {
+      console.warn(`Failed to load defaults for ${module}, using fallback`, error)
+    }
+
     // Allow multiple windows of the same type (for comparison workflows)
     // Find free space (no overlapping)
-    const defaultWidth = 800
-    const defaultHeight = 600
     const position = findFreePosition(defaultWidth, defaultHeight)
 
-    // Auto-assign linking group if not specified (for part-main, always assign)
+    // Auto-assign linking group if not specified (for part-main and manufacturing-items, always assign)
     const assignedGroup = linkingGroup !== undefined
       ? linkingGroup
-      : (module === 'part-main' ? findAvailableLinkingGroup() : null)
+      : (module === 'part-main' || module === 'manufacturing-items' ? findAvailableLinkingGroup() : null)
 
-    // If no free space found, auto-arrange existing windows first
+    // If no free space found, use centered position with offset
+    let finalX = position.x
+    let finalY = position.y
+
     if (position.x === -1) {
-      arrangeWindows('grid')
-      // Try again after arranging
-      const newPosition = findFreePosition(defaultWidth, defaultHeight)
-
-      const newWindow: WindowState = {
-        id: `${module}-${Date.now()}`,
-        module,
-        title,
-        x: newPosition.x === -1 ? 50 : newPosition.x,
-        y: newPosition.y === -1 ? 150 : newPosition.y,
-        width: defaultWidth,
-        height: defaultHeight,
-        zIndex: nextZIndex++,
-        minimized: false,
-        maximized: false,
-        linkingGroup: assignedGroup
-      }
-
-      windows.value.push(newWindow)
-
-      // Arrange all windows including the new one
-      arrangeWindows('grid')
-      return newWindow.id
+      // Center of screen with small random offset to avoid exact overlap
+      const headerHeight = 56
+      const offset = (windows.value.length * 30) % 100
+      finalX = Math.max(0, (window.innerWidth - defaultWidth) / 2 + offset)
+      finalY = Math.max(headerHeight, (window.innerHeight - defaultHeight) / 2 + offset)
     }
 
     const newWindow: WindowState = {
       id: `${module}-${Date.now()}`,
       module,
       title,
-      x: position.x,
-      y: position.y,
+      x: finalX,
+      y: finalY,
       width: defaultWidth,
       height: defaultHeight,
       zIndex: nextZIndex++,
@@ -265,6 +268,18 @@ export const useWindowsStore = defineStore('windows', () => {
     }
   }
 
+  function updateActiveView() {
+    if (!currentViewId.value) return false
+
+    const view = savedViews.value.find(v => v.id === currentViewId.value)
+    if (!view) return false
+
+    // Update existing view
+    view.windows = JSON.parse(JSON.stringify(windows.value))
+    view.updatedAt = new Date().toISOString()
+    return true
+  }
+
   function saveCurrentView(name: string) {
     const view: SavedView = {
       id: `view-${Date.now()}`,
@@ -277,6 +292,21 @@ export const useWindowsStore = defineStore('windows', () => {
 
     savedViews.value.push(view)
     currentViewId.value = view.id
+  }
+
+  function saveCurrentViewAs(name: string) {
+    const view: SavedView = {
+      id: `view-${Date.now()}`,
+      name,
+      windows: JSON.parse(JSON.stringify(windows.value)),
+      favorite: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    savedViews.value.push(view)
+    currentViewId.value = view.id
+    return view.id
   }
 
   function loadView(viewId: string) {
@@ -320,6 +350,29 @@ export const useWindowsStore = defineStore('windows', () => {
 
   function closeAllWindows() {
     windows.value = []
+  }
+
+  // Save current window settings as module defaults
+  async function saveModuleDefaults(windowId: string) {
+    const win = windows.value.find(w => w.id === windowId)
+    if (!win) return
+
+    try {
+      const data = {
+        module_type: win.module,
+        default_width: win.width,
+        default_height: win.height,
+        settings: {
+          // TODO: Collect split positions from SplitPane components
+          // TODO: Collect column widths from table components
+        }
+      }
+
+      await saveModuleDefaults(data)
+      console.log(`Saved defaults for ${win.module}`)
+    } catch (error) {
+      console.error('Failed to save module defaults:', error)
+    }
   }
 
   // Persistence
@@ -383,11 +436,14 @@ export const useWindowsStore = defineStore('windows', () => {
     updateWindowSize,
     setWindowLinkingGroup,
     arrangeWindows,
+    updateActiveView,
     saveCurrentView,
+    saveCurrentViewAs,
     loadView,
     deleteView,
     toggleFavoriteView,
     setDefaultLayout,
-    closeAllWindows
+    closeAllWindows,
+    saveModuleDefaults
   }
 })

@@ -4,10 +4,11 @@
  * Features: Drag titlebar, resize from corners, minimize/maximize/close
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, provide, onMounted, onBeforeUnmount } from 'vue'
 import { useWindowsStore, type WindowState, type LinkingGroup } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
-import { Link } from 'lucide-vue-next'
+import { Link, Settings, Edit } from 'lucide-vue-next'
+import SaveModuleDefaultsModal from '@/components/modals/SaveModuleDefaultsModal.vue'
 
 interface Props {
   window: WindowState
@@ -33,6 +34,88 @@ const resizeStartHeight = ref(0)
 
 // Color dropdown state
 const showColorDropdown = ref(false)
+const colorDropdownTrigger = ref<HTMLElement | null>(null)
+
+// Settings dropdown state
+const showSettingsDropdown = ref(false)
+const settingsDropdownTrigger = ref<HTMLElement | null>(null)
+
+// Edit modes (provided to child components via inject)
+const floatingWindowEditMode = ref(false)
+
+// Module defaults tracking
+const originalSize = ref({ width: 0, height: 0 })
+const showSaveDefaultsModal = ref(false)
+
+// Dropdown positions (for teleported dropdowns)
+const colorDropdownPosition = computed(() => {
+  if (!colorDropdownTrigger.value) return { top: '0px', left: '0px' }
+  const rect = colorDropdownTrigger.value.getBoundingClientRect()
+  return {
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`
+  }
+})
+
+const settingsDropdownPosition = computed(() => {
+  if (!settingsDropdownTrigger.value) return { top: '0px', right: '0px' }
+  const rect = settingsDropdownTrigger.value.getBoundingClientRect()
+  return {
+    top: `${rect.bottom + 4}px`,
+    right: `${window.innerWidth - rect.right}px`
+  }
+})
+
+// Provide edit modes to child components
+provide('floatingWindowEditMode', floatingWindowEditMode)
+
+// Toggle functions
+function toggleEditMode() {
+  floatingWindowEditMode.value = !floatingWindowEditMode.value
+  showSettingsDropdown.value = false
+}
+
+function toggleSettingsDropdown() {
+  showSettingsDropdown.value = !showSettingsDropdown.value
+  if (showSettingsDropdown.value) {
+    showColorDropdown.value = false // Close color dropdown when opening settings
+  }
+}
+
+// Close dropdowns on click outside
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement
+
+  // Check if click is outside color dropdown
+  if (showColorDropdown.value &&
+      colorDropdownTrigger.value &&
+      !colorDropdownTrigger.value.contains(target) &&
+      !target.closest('.color-dropdown-teleported')) {
+    showColorDropdown.value = false
+  }
+
+  // Check if click is outside settings dropdown
+  if (showSettingsDropdown.value &&
+      settingsDropdownTrigger.value &&
+      !settingsDropdownTrigger.value.contains(target) &&
+      !target.closest('.settings-dropdown-teleported')) {
+    showSettingsDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+
+  // Track original window size for defaults detection
+  originalSize.value = {
+    width: props.window.width,
+    height: props.window.height
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // Window style
 const windowStyle = computed(() => {
@@ -293,8 +376,57 @@ const displayTitle = computed(() => {
   return moduleName
 })
 
+// Check if window settings have changed (for defaults saving)
+function hasWindowChanged(): boolean {
+  // Check if size changed (more than 10px tolerance)
+  const sizeChanged =
+    Math.abs(props.window.width - originalSize.value.width) > 10 ||
+    Math.abs(props.window.height - originalSize.value.height) > 10
+
+  // TODO: Check if split positions changed (requires SplitPane integration)
+  // TODO: Check if column widths changed (requires table integration)
+
+  return sizeChanged
+}
+
+// Module label for UI display
+const moduleLabel = computed(() => {
+  const labels: Record<string, string> = {
+    'part-main': 'Part Detail',
+    'part-pricing': 'Part Pricing',
+    'part-operations': 'Operations',
+    'part-material': 'Material',
+    'part-drawing': 'Drawing',
+    'batch-sets': 'Batch Sets',
+    'partners-list': 'Partners',
+    'quotes-list': 'Quotes',
+    'quote-from-request': 'Quote from Request',
+    'manufacturing-items': 'Manufacturing Items'
+  }
+  return labels[props.window.module] || props.window.module
+})
+
 // Window actions
 function handleClose() {
+  // Check if settings changed
+  if (hasWindowChanged()) {
+    showSaveDefaultsModal.value = true
+  } else {
+    // Close immediately
+    store.closeWindow(props.window.id)
+  }
+}
+
+function handleConfirmSaveDefaults() {
+  // Save current window settings as defaults
+  store.saveModuleDefaults(props.window.id)
+  showSaveDefaultsModal.value = false
+  store.closeWindow(props.window.id)
+}
+
+function handleCancelSaveDefaults() {
+  // Close without saving defaults
+  showSaveDefaultsModal.value = false
   store.closeWindow(props.window.id)
 }
 
@@ -344,7 +476,7 @@ const colorOptions = [
     <div class="window-titlebar" @mousedown="startDrag">
       <div class="window-title-row">
         <!-- Color dropdown on dot -->
-        <div class="color-dropdown-wrapper">
+        <div class="color-dropdown-wrapper" ref="colorDropdownTrigger">
           <button
             class="linking-dot clickable"
             @click.stop="toggleColorDropdown"
@@ -352,8 +484,16 @@ const colorOptions = [
           >
             <span class="color-dot" :style="{ backgroundColor: linkingGroupColor }"></span>
           </button>
+        </div>
+        <!-- Teleport color dropdown to body -->
+        <Teleport to="body">
           <Transition name="dropdown-fade">
-            <div v-if="showColorDropdown" class="color-dropdown" @click.stop>
+            <div
+              v-if="showColorDropdown"
+              class="color-dropdown color-dropdown-teleported"
+              :style="colorDropdownPosition"
+              @click.stop
+            >
               <button
                 v-for="opt in colorOptions"
                 :key="opt.value || 'none'"
@@ -366,7 +506,7 @@ const colorOptions = [
               </button>
             </div>
           </Transition>
-        </div>
+        </Teleport>
         <span class="window-title">
           {{ displayTitle }}
           <span v-if="window.linkingGroup && contextStore.getContext(window.linkingGroup).articleNumber" class="linked-part">
@@ -376,6 +516,35 @@ const colorOptions = [
         </span>
       </div>
       <div class="window-controls">
+        <!-- Settings dropdown -->
+        <div class="settings-dropdown-wrapper" ref="settingsDropdownTrigger">
+          <button
+            class="btn-control btn-settings"
+            :class="{ active: floatingWindowEditMode }"
+            @click.stop="toggleSettingsDropdown"
+            title="Layout Settings"
+          >
+            <Settings :size="14" />
+          </button>
+        </div>
+        <!-- Teleport settings dropdown to body -->
+        <Teleport to="body">
+          <Transition name="dropdown">
+            <div
+              v-if="showSettingsDropdown"
+              class="settings-dropdown settings-dropdown-teleported"
+              :style="settingsDropdownPosition"
+              @click.stop
+            >
+              <button class="dropdown-item" @click="toggleEditMode">
+                <Edit :size="14" />
+                <span>Edit Layout</span>
+                <span v-if="floatingWindowEditMode" class="checkmark">✓</span>
+              </button>
+            </div>
+          </Transition>
+        </Teleport>
+
         <button class="btn-control btn-minimize" @click.stop="handleMinimize" title="Minimize">
           −
         </button>
@@ -399,6 +568,19 @@ const colorOptions = [
       class="resize-handle"
       @mousedown="startResize"
     ></div>
+
+    <!-- Save Defaults Modal -->
+    <SaveModuleDefaultsModal
+      v-model="showSaveDefaultsModal"
+      :module-label="moduleLabel"
+      :width="window.width"
+      :height="window.height"
+      :has-changed-size="hasWindowChanged()"
+      :has-changed-split="false"
+      :has-changed-columns="false"
+      @confirm="handleConfirmSaveDefaults"
+      @cancel="handleCancelSaveDefaults"
+    />
   </div>
 </template>
 
@@ -496,7 +678,14 @@ const colorOptions = [
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--space-1);
-  z-index: 10000;
+  z-index: 100000; /* Above all floating windows */
+}
+
+/* Teleported color dropdown (fixed positioning) */
+.color-dropdown-teleported {
+  position: fixed !important;
+  top: auto;
+  left: auto;
 }
 
 .color-option {
@@ -570,6 +759,64 @@ const colorOptions = [
   display: flex;
   gap: 0.125rem;
   flex-shrink: 0;
+  align-items: center;
+}
+
+.settings-dropdown-wrapper {
+  position: relative;
+  margin-right: 0.5rem;
+}
+
+/* Settings Dropdown */
+.settings-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
+  z-index: 100000; /* Above all floating windows */
+}
+
+/* Teleported settings dropdown (fixed positioning) */
+.settings-dropdown-teleported {
+  position: fixed !important;
+  top: auto;
+  left: auto;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+.dropdown-item:hover {
+  background: var(--state-hover, #f3f4f6);
+}
+
+.dropdown-item span:first-of-type {
+  flex: 1;
+}
+
+.checkmark {
+  color: var(--color-primary);
+  font-weight: bold;
+  margin-left: auto;
 }
 
 .btn-control {
@@ -591,6 +838,11 @@ const colorOptions = [
 .btn-control:hover {
   background: var(--state-hover);
   transform: scale(1.1);
+}
+
+.btn-settings.active {
+  background: var(--color-primary);
+  color: white;
 }
 
 .btn-close:hover {

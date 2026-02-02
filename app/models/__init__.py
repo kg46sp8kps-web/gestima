@@ -68,6 +68,19 @@ from app.models.quote import (
     QuoteItemUpdate,
     QuoteItemResponse
 )
+from app.models.module_layout import (
+    ModuleLayout,
+    ModuleLayoutCreate,
+    ModuleLayoutUpdate,
+    ModuleLayoutResponse
+)
+from app.models.module_defaults import (
+    ModuleDefaults,
+    ModuleDefaultsCreate,
+    ModuleDefaultsUpdate,
+    ModuleDefaultsResponse
+)
+from app.models.drawing import Drawing
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
@@ -90,4 +103,7 @@ __all__ = [
     "Quote", "QuoteItem", "QuoteCreate", "QuoteUpdate", "QuoteResponse",
     "QuoteWithItemsResponse", "QuoteListResponse",
     "QuoteItemCreate", "QuoteItemUpdate", "QuoteItemResponse",
+    "ModuleLayout", "ModuleLayoutCreate", "ModuleLayoutUpdate", "ModuleLayoutResponse",
+    "ModuleDefaults", "ModuleDefaultsCreate", "ModuleDefaultsUpdate", "ModuleDefaultsResponse",
+    "Drawing",
 ]

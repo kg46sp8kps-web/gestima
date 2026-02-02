@@ -19,5 +19,7 @@ from app.routers import (
     admin_router,
     quotes_router,
     quote_items_router,
-    uploads_router
+    uploads_router,
+    module_layouts_router,  # ADR-031: Visual Editor
+    module_defaults_router  # ADR-031: Module Defaults
 )
