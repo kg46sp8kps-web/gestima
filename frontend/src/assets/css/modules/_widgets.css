@@ -1,0 +1,138 @@
+/**
+ * Shared Widget Styles
+ *
+ * Common styles for all widgets.
+ * Use with WidgetWrapper.vue component.
+ *
+ * @see docs/ADR/030-universal-responsive-module-template.md
+ */
+
+/* === WIDGET WRAPPER === */
+.widget-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  container-type: inline-size; /* Enable container queries for widgets */
+  container-name: widget;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border-default);
+  cursor: move; /* Drag handle indicator */
+  flex-shrink: 0;
+  min-height: 32px;
+  user-select: none;
+}
+
+.widget-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.widget-content {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-3);
+}
+
+/* === WIDGET STATES === */
+
+/* Loading state */
+.widget-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+/* Error state */
+.widget-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+/* Empty state */
+.widget-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+/* === WIDGET ACTIONS === */
+.widget-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.widget-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.widget-btn:hover {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+
+.widget-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === RESPONSIVE WIDGET CONTENT === */
+
+/* Container queries for widget-specific responsive behavior */
+@container widget (max-width: 300px) {
+  .widget-content {
+    padding: var(--space-2);
+  }
+
+  .widget-header {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .widget-title {
+    font-size: var(--text-xs);
+  }
+}
+
+@container widget (min-width: 600px) {
+  .widget-content {
+    padding: var(--space-4);
+  }
+}

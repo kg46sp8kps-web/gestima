@@ -11,6 +11,9 @@ import './assets/css/layout.css'
 import './assets/css/components.css'
 import './assets/css/forms.css'
 
+// Shared module styles (split-pane, grid-layout, widgets)
+import './assets/css/modules/_shared.css'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 

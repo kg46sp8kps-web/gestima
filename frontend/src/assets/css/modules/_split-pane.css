@@ -1,0 +1,103 @@
+/**
+ * Shared Split-Pane Styles
+ *
+ * Extracted from duplicated code across 7+ modules.
+ * Use with SplitPane.vue component.
+ *
+ * @see docs/ADR/030-universal-responsive-module-template.md
+ */
+
+/* === SPLIT LAYOUT === */
+.split-layout {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.split-layout.layout-horizontal {
+  flex-direction: column; /* Horizontal split = stacked (nad sebou) */
+}
+
+.split-layout.layout-vertical {
+  flex-direction: row; /* Vertical split = side by side (vedle sebe) */
+}
+
+/* === FIRST PANEL (with container queries) === */
+.first-panel {
+  flex-shrink: 0;
+  /* width/height set via :style binding */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size; /* Enable container queries for child components */
+  container-name: first-panel;
+}
+
+.layout-vertical .first-panel {
+  height: 100%;
+}
+
+.layout-horizontal .first-panel {
+  width: 100%;
+}
+
+/* === RESIZE HANDLE === */
+.resize-handle {
+  background: var(--border-default);
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+
+.layout-vertical .resize-handle {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.layout-horizontal .resize-handle {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--color-primary);
+}
+
+/* Wider hit area for easier dragging (24px gap) */
+.layout-vertical .resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -10px;
+  right: -10px;
+  cursor: col-resize;
+}
+
+.layout-horizontal .resize-handle::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10px;
+  bottom: -10px;
+  cursor: row-resize;
+}
+
+/* === SECOND PANEL === */
+.second-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.layout-vertical .second-panel {
+  height: 100%;
+}
+
+.layout-horizontal .second-panel {
+  width: 100%;
+}

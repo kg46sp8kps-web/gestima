@@ -1,0 +1,106 @@
+/**
+ * Shared Grid Layout Styles
+ *
+ * Container queries for responsive widget grids.
+ * Use with GridLayoutArea.vue component.
+ *
+ * @see docs/ADR/030-universal-responsive-module-template.md
+ */
+
+/* === GRID LAYOUT AREA === */
+.grid-layout-area {
+  container-type: inline-size;
+  container-name: grid-area;
+  height: 100%;
+  overflow: auto;
+}
+
+/* === RESPONSIVE BREAKPOINTS (Container Queries) === */
+
+/* Narrow: 1 column (< 400px) */
+@container grid-area (max-width: 400px) {
+  .grid-layout {
+    --grid-cols: 1;
+    --grid-gap: var(--space-2);
+  }
+}
+
+/* Tablet: 2 columns (400-600px) */
+@container grid-area (min-width: 400px) and (max-width: 600px) {
+  .grid-layout {
+    --grid-cols: 2;
+    --grid-gap: var(--space-3);
+  }
+}
+
+/* Desktop: 3 columns (600-900px) */
+@container grid-area (min-width: 600px) and (max-width: 900px) {
+  .grid-layout {
+    --grid-cols: 3;
+    --grid-gap: var(--space-3);
+  }
+}
+
+/* Wide: 4 columns (900-1200px) */
+@container grid-area (min-width: 900px) and (max-width: 1200px) {
+  .grid-layout {
+    --grid-cols: 4;
+    --grid-gap: var(--space-4);
+  }
+}
+
+/* Ultrawide: 6 columns (>1200px) with max-width */
+@container grid-area (min-width: 1200px) {
+  .grid-layout {
+    --grid-cols: 6;
+    --grid-gap: var(--space-4);
+    max-width: 1600px; /* Prevent excessive stretching */
+    margin: 0 auto;
+  }
+}
+
+/* === VUE GRID LAYOUT OVERRIDES === */
+
+/* Grid layout container */
+.vue-grid-layout {
+  position: relative;
+  transition: height var(--transition-normal);
+}
+
+/* Grid items */
+.vue-grid-item {
+  transition: all var(--transition-normal);
+  z-index: 1;
+}
+
+.vue-grid-item.resizing,
+.vue-grid-item.dragging {
+  z-index: 10;
+  opacity: 0.9;
+}
+
+/* Drag placeholder */
+.vue-grid-item.vue-grid-placeholder {
+  background: var(--color-primary);
+  opacity: 0.2;
+  z-index: 2;
+  border-radius: var(--radius-md);
+}
+
+/* Resize handle */
+.vue-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+}
+
+.vue-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-tertiary);
+  border-bottom: 2px solid var(--text-tertiary);
+}
