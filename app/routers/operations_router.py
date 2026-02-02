@@ -1,9 +1,12 @@
-"""GESTIMA - Operations API router"""
+"""GESTIMA - Operations API router
+
+ADR-024: Added M:N linking endpoints (operation → material)
+"""
 
 import logging
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -12,6 +15,7 @@ from app.db_helpers import set_audit, safe_commit
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse, ChangeModeRequest
+from app.models.material_input import MaterialInput, material_operation_link, MaterialOperationLinkRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -140,3 +144,106 @@ async def change_mode(
     operation = await safe_commit(db, operation, "změna režimu")
     logger.info(f"Changed cutting mode to {data.cutting_mode.value}", extra={"operation_id": operation_id, "user": current_user.username})
     return operation
+
+
+# ═══════════════════════════════════════════════════════════════
+# M:N LINKING (Operation ↔ MaterialInput) - ADR-024
+# ═══════════════════════════════════════════════════════════════
+
+@router.post("/{operation_id}/link-material/{material_id}", status_code=201)
+async def link_material_to_operation(
+    operation_id: int,
+    material_id: int,
+    request: Optional[MaterialOperationLinkRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
+):
+    """Přiřadit materiál k operaci (M:N vztah) - operation-side endpoint"""
+
+    # Verify Operation exists
+    op_result = await db.execute(
+        select(Operation).where(
+            and_(
+                Operation.id == operation_id,
+                Operation.deleted_at.is_(None)
+            )
+        )
+    )
+    if not op_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Operation {operation_id} not found"
+        )
+
+    # Verify MaterialInput exists
+    mat_result = await db.execute(
+        select(MaterialInput).where(
+            and_(
+                MaterialInput.id == material_id,
+                MaterialInput.deleted_at.is_(None)
+            )
+        )
+    )
+    if not mat_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=404,
+            detail=f"MaterialInput {material_id} not found"
+        )
+
+    # Check if link already exists
+    existing = await db.execute(
+        select(material_operation_link).where(
+            and_(
+                material_operation_link.c.material_input_id == material_id,
+                material_operation_link.c.operation_id == operation_id
+            )
+        )
+    )
+    if existing.first():
+        raise HTTPException(
+            status_code=409,
+            detail="Link already exists"
+        )
+
+    # Create link
+    consumed_quantity = request.consumed_quantity if request else None
+    await db.execute(
+        material_operation_link.insert().values(
+            material_input_id=material_id,
+            operation_id=operation_id,
+            consumed_quantity=consumed_quantity
+        )
+    )
+
+    await db.commit()
+    logger.info(f"Linked material {material_id} to operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
+
+    return {"message": "Link created successfully"}
+
+
+@router.delete("/{operation_id}/unlink-material/{material_id}", status_code=204)
+async def unlink_material_from_operation(
+    operation_id: int,
+    material_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.OPERATOR]))
+):
+    """Odebrat vazbu operace → materiál"""
+
+    result = await db.execute(
+        delete(material_operation_link).where(
+            and_(
+                material_operation_link.c.material_input_id == material_id,
+                material_operation_link.c.operation_id == operation_id
+            )
+        )
+    )
+
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Link not found"
+        )
+
+    await db.commit()
+    logger.info(f"Unlinked material {material_id} from operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})

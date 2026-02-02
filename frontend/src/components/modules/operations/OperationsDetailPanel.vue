@@ -3,16 +3,21 @@
  * Operations Detail Panel Component (Refactored)
  * COORDINATOR ONLY - delegates rendering to OperationRow.vue
  * BUILDING BLOCKS (L-039): <150 LOC coordinator
+ * DRAG & DROP: VueDraggable (professional solution)
  */
 
 import { ref, computed, watch, reactive } from 'vue'
 import { useOperationsStore } from '@/stores/operations'
+import { useMaterialsStore } from '@/stores/materials'
+import { operationsApi } from '@/api/operations'
 import type { Operation, CuttingMode } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
 import OperationRow from './OperationRow.vue'
 import DeleteOperationModal from './DeleteOperationModal.vue'
-import { Settings } from 'lucide-vue-next'
+import { Settings, Plus } from 'lucide-vue-next'
+import draggable from 'vuedraggable'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   partId: number | null
@@ -24,13 +29,12 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const operationsStore = useOperationsStore()
+const materialsStore = useMaterialsStore()
 
 // Local state
 const expandedOps = reactive<Record<number, boolean>>({})
 const showDeleteConfirm = ref(false)
 const operationToDelete = ref<Operation | null>(null)
-const draggedOpId = ref<number | null>(null)
-const dragOverOpId = ref<number | null>(null)
 
 // Debounce timers per operation
 const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -41,6 +45,17 @@ const sortedOperations = computed(() => operationsStore.getSortedOperations(prop
 const loading = computed(() => operationsStore.getContext(props.linkingGroup).loading)
 const activeWorkCenters = computed(() => operationsStore.activeWorkCenters)
 const saving = computed(() => operationsStore.saving)
+
+// Material inputs for linking
+const materialInputs = computed(() => materialsStore.getContext(props.linkingGroup).materialInputs)
+
+// VueDraggable local array (v-model)
+const localOperations = ref<Operation[]>([])
+
+// Sync with store
+watch(sortedOperations, (newOps) => {
+  localOperations.value = [...newOps]
+}, { immediate: true })
 
 // Watch partId change
 watch(() => props.partId, async (newPartId) => {
@@ -53,7 +68,8 @@ watch(() => props.partId, async (newPartId) => {
 async function loadData(partId: number) {
   await Promise.all([
     operationsStore.loadWorkCenters(),
-    operationsStore.loadOperations(partId, props.linkingGroup)
+    operationsStore.loadOperations(partId, props.linkingGroup),
+    materialsStore.loadMaterialInputs(partId, props.linkingGroup)
   ])
 }
 
@@ -145,146 +161,47 @@ async function executeDelete() {
   operationToDelete.value = null
 }
 
-// Drag & Drop handlers (HTML5 API)
-function handleDragStart(event: DragEvent, op: Operation) {
-  draggedOpId.value = op.id
-
-  // Clone the entire operation card for realistic drag preview
-  const wrapper = event.currentTarget as HTMLElement
-  const opCard = wrapper.querySelector('.operation-card') as HTMLElement
-
-  if (opCard) {
-    const ghostElement = opCard.cloneNode(true) as HTMLElement
-    ghostElement.style.cssText = `
-      position: absolute;
-      top: -9999px;
-      left: -9999px;
-      width: ${opCard.offsetWidth}px;
-      opacity: 0.95;
-      transform: rotate(2deg);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      pointer-events: none;
-      z-index: 9999;
-    `
-
-    document.body.appendChild(ghostElement)
-
-    // Calculate offset from mouse to element (keep grab position)
-    const rect = opCard.getBoundingClientRect()
-    const offsetX = event.clientX - rect.left
-    const offsetY = event.clientY - rect.top
-
-    // Set custom drag image at EXACT grab position
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setDragImage(ghostElement, offsetX, offsetY)
-    }
-
-    // Cleanup after browser copies the image
-    setTimeout(() => {
-      if (document.body.contains(ghostElement)) {
-        document.body.removeChild(ghostElement)
-      }
-    }, 0)
-  }
-}
-
-function handleDragEnd() {
-  draggedOpId.value = null
-  dragOverOpId.value = null
-}
-
-function handleDragOver(event: DragEvent, op: Operation) {
-  event.preventDefault()
-
-  if (!draggedOpId.value || draggedOpId.value === op.id) {
-    dragOverOpId.value = null
-    return
-  }
-
-  // Detect mouse position relative to element
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const mouseY = event.clientY
-  const elementMiddle = rect.top + rect.height / 2
-
-  // If mouse in TOP half → gap ABOVE this element
-  // If mouse in BOTTOM half → gap ABOVE next element
-  if (mouseY < elementMiddle) {
-    dragOverOpId.value = op.id
-  } else {
-    const currentIndex = sortedOperations.value.findIndex(o => o.id === op.id)
-    const nextOp = sortedOperations.value[currentIndex + 1]
-    dragOverOpId.value = nextOp ? nextOp.id : null
-  }
-}
-
-async function handleDrop(event: DragEvent) {
-  event.preventDefault()
-
-  console.log('🎯 DROP!', { draggedOpId: draggedOpId.value, dragOverOpId: dragOverOpId.value })
-
-  if (!draggedOpId.value || !dragOverOpId.value) {
-    console.log('❌ Missing IDs')
-    draggedOpId.value = null
-    dragOverOpId.value = null
-    return
-  }
-
-  if (draggedOpId.value === dragOverOpId.value) {
-    console.log('❌ Same operation')
-    draggedOpId.value = null
-    dragOverOpId.value = null
-    return
-  }
-
-  const draggedOp = operations.value.find(op => op.id === draggedOpId.value)
-  if (!draggedOp) {
-    draggedOpId.value = null
-    dragOverOpId.value = null
-    return
-  }
-
-  // Get current sorted order
-  const sorted = [...sortedOperations.value]
-  const draggedIndex = sorted.findIndex(op => op.id === draggedOpId.value)
-  const targetIndex = sorted.findIndex(op => op.id === dragOverOpId.value)
-
-  if (draggedIndex === -1 || targetIndex === -1) {
-    draggedOpId.value = null
-    dragOverOpId.value = null
-    return
-  }
-
-  // Calculate insert position BEFORE removing
-  // Gap shows ABOVE dragOverOpId, so we insert BEFORE it
-  let insertIndex = targetIndex
-
-  // If dragged element is before target, adjust index
-  // (after removal, everything shifts left)
-  if (draggedIndex < targetIndex) {
-    insertIndex--
-  }
-
-  // Remove from old position
-  sorted.splice(draggedIndex, 1)
-
-  // Insert at calculated position
-  sorted.splice(insertIndex, 0, draggedOp)
-
-  // Renumber all operations 10-20-30...
-  sorted.forEach((op, index) => {
+// VueDraggable handler - called after drag ends
+async function handleDragEnd() {
+  // Renumber operations 10-20-30...
+  localOperations.value.forEach((op, index) => {
     op.seq = (index + 1) * 10
   })
 
-  // Bulk update
+  // Bulk update to backend
   await Promise.all(
-    sorted.map(op =>
+    localOperations.value.map(op =>
       operationsStore.updateOperation(op.id, { seq: op.seq }, props.linkingGroup)
     )
   )
+}
 
-  draggedOpId.value = null
-  dragOverOpId.value = null
+// Link material to operation
+async function handleLinkMaterial(operationId: number, materialId: number) {
+  try {
+    await operationsApi.linkMaterial(operationId, materialId)
+
+    // Reload materials to reflect the new link
+    if (props.partId) {
+      await materialsStore.loadMaterialInputs(props.partId, props.linkingGroup)
+    }
+  } catch (error) {
+    console.error('Failed to link material to operation:', error)
+  }
+}
+
+// Unlink material from operation
+async function handleUnlinkMaterial(operationId: number, materialId: number) {
+  try {
+    await operationsApi.unlinkMaterial(operationId, materialId)
+
+    // Reload materials to reflect the unlink
+    if (props.partId) {
+      await materialsStore.loadMaterialInputs(props.partId, props.linkingGroup)
+    }
+  } catch (error) {
+    console.error('Failed to unlink material from operation:', error)
+  }
 }
 
 // Expose operationsCount for parent
@@ -299,11 +216,12 @@ defineExpose({
     <div class="panel-header">
       <h3>Operace</h3>
       <button
-        class="btn-add"
+        class="btn-add-icon"
         @click="handleAddOperation"
         :disabled="!partId || loading"
+        title="Přidat operaci"
       >
-        + Přidat operaci
+        <Plus :size="ICON_SIZE.STANDARD" />
       </button>
     </div>
 
@@ -320,44 +238,52 @@ defineExpose({
       <p class="hint">Klikni na "+ Přidat operaci" pro začátek</p>
     </div>
 
-    <!-- Operations List (drag & drop enabled) -->
-    <div v-else class="operations-list">
-      <template v-for="op in sortedOperations" :key="op.id">
-        <!-- Drop placeholder GAP (shows BEFORE target operation) -->
-        <div
-          v-if="dragOverOpId === op.id && draggedOpId !== op.id"
-          class="drop-placeholder"
+    <!-- Operations Table (VueDraggable) -->
+    <div v-else class="operations-table-wrapper">
+      <table class="operations-table">
+        <thead>
+          <tr>
+            <th class="col-seq">Seq</th>
+            <th class="col-workcenter">Pracoviště</th>
+            <th class="col-time">tp</th>
+            <th class="col-time">tj</th>
+            <th class="col-coef">Ko</th>
+            <th class="col-coef">Ke</th>
+            <th class="col-sum">Tp</th>
+            <th class="col-sum">Tj</th>
+            <th class="col-sum">To</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <draggable
+          v-model="localOperations"
+          @end="handleDragEnd"
+          item-key="id"
+          :animation="300"
+          tag="tbody"
+          ghost-class="ghost"
+          chosen-class="chosen"
+          drag-class="drag"
         >
-          <div class="placeholder-line"></div>
-          <span class="placeholder-text">Sem vložit</span>
-        </div>
-
-        <!-- Operation wrapper -->
-        <div
-          draggable="true"
-          @dragstart="handleDragStart($event, op)"
-          @dragover="handleDragOver($event, op)"
-          @dragend="handleDragEnd"
-          @drop="handleDrop"
-          :class="{
-            'operation-wrapper': true,
-            'is-dragging': draggedOpId === op.id
-          }"
-        >
-          <OperationRow
-            :operation="op"
-            :work-centers="activeWorkCenters"
-            :expanded="expandedOps[op.id] || false"
-            :saving="saving"
-            @toggle-expanded="toggleExpanded(op.id)"
-            @update-field="(field, value) => debouncedUpdateOperation(op, field, value)"
-            @update-work-center="(wcId) => onWorkCenterChange(op, wcId)"
-            @change-mode="(mode) => changeMode(op, mode)"
-            @toggle-coop="toggleCoop(op)"
-            @delete="confirmDelete(op)"
-          />
-        </div>
-      </template>
+          <template #item="{ element: op }">
+            <OperationRow
+              :operation="op"
+              :work-centers="activeWorkCenters"
+              :available-materials="materialInputs"
+              :expanded="expandedOps[op.id] || false"
+              :saving="saving"
+              @toggle-expanded="toggleExpanded(op.id)"
+              @update-field="(field, value) => debouncedUpdateOperation(op, field, value)"
+              @update-work-center="(wcId) => onWorkCenterChange(op, wcId)"
+              @change-mode="(mode) => changeMode(op, mode)"
+              @toggle-coop="toggleCoop(op)"
+              @delete="confirmDelete(op)"
+              @link-material="(matId) => handleLinkMaterial(op.id, matId)"
+              @unlink-material="(matId) => handleUnlinkMaterial(op.id, matId)"
+            />
+          </template>
+        </draggable>
+      </table>
     </div>
 
     <!-- Delete confirmation modal -->
@@ -394,23 +320,26 @@ defineExpose({
   color: var(--text-primary);
 }
 
-.btn-add {
-  padding: var(--space-1) var(--space-3);
+.btn-add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   background: var(--color-primary);
   color: white;
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
-.btn-add:hover:not(:disabled) {
+.btn-add-icon:hover:not(:disabled) {
   background: var(--color-primary-hover);
 }
 
-.btn-add:disabled {
+.btn-add-icon:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -463,76 +392,64 @@ defineExpose({
   color: var(--text-secondary);
 }
 
-/* === OPERATIONS LIST === */
-.operations-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);  /* 12px - normální mezera */
+/* === OPERATIONS TABLE === */
+.operations-table-wrapper {
   overflow-y: auto;
   flex: 1;
 }
 
-/* Drag & Drop styles */
-.operation-wrapper {
-  cursor: grab;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.operation-wrapper:active {
-  cursor: grabbing;
-}
-
-.operation-wrapper.is-dragging {
-  opacity: 0.3;
-  transform: scale(0.95);
-  cursor: grabbing;
-}
-
-/* Drop placeholder (gap visualization) */
-.drop-placeholder {
-  height: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  margin: var(--space-3) 0;
-  padding: var(--space-4) 0;
-  animation: slideIn 0.2s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    height: 0;
-    margin: 0;
-    padding: 0;
-    opacity: 0;
-    transform: scaleY(0);
-  }
-  to {
-    height: 80px;
-    margin: var(--space-3) 0;
-    padding: var(--space-4) 0;
-    opacity: 1;
-    transform: scaleY(1);
-  }
-}
-
-.placeholder-line {
+.operations-table {
   width: 100%;
-  height: 3px;
-  background: var(--color-primary);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 8px var(--color-primary);
+  border-collapse: collapse;
+  font-size: var(--text-sm);
 }
 
-.placeholder-text {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-primary);
+/* Table Header */
+.operations-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   background: var(--bg-surface);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-primary);
+}
+
+.operations-table th {
+  padding: var(--space-2) var(--space-2);
+  text-align: left;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.col-seq { width: 50px; }
+.col-workcenter { min-width: 180px; }
+.col-time { width: 80px; }
+.col-coef { width: 70px; }
+.col-sum { width: 70px; font-family: var(--font-mono); }
+.col-actions { width: 80px; text-align: right; }
+
+/* Table Body - VueDraggable */
+.operations-table tbody {
+  cursor: grab;
+}
+
+.operations-table tbody:active {
+  cursor: grabbing;
+}
+
+/* VueDraggable states */
+.ghost {
+  opacity: 0.4;
+}
+
+.chosen {
+  cursor: grabbing !important;
+}
+
+.drag {
+  opacity: 1 !important;
+  cursor: grabbing !important;
 }
 </style>

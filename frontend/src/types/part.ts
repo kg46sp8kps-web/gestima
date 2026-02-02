@@ -3,6 +3,11 @@
  */
 
 /**
+ * Part status - matches backend PartStatus enum
+ */
+export type PartStatus = 'draft' | 'active' | 'archived'
+
+/**
  * Stock shape - matches backend StockShape enum
  */
 export type StockShape =
@@ -20,8 +25,10 @@ export interface PartBase {
   article_number: string | null
   drawing_path: string | null
   name: string
+  revision: string | null
   customer_revision: string | null
   drawing_number: string | null
+  status: PartStatus
   notes: string
   material_item_id: number | null
   price_category_id: number | null
@@ -39,15 +46,16 @@ export interface Part extends PartBase {
   version: number
   created_at: string
   updated_at: string
+  created_by_name?: string | null
 }
 
 /**
  * Create new part - simplified (part_number auto-generated)
  */
 export interface PartCreate {
-  article_number: string  // REQUIRED
+  article_number?: string
   drawing_path?: string | null
-  name: string  // REQUIRED
+  name?: string
   customer_revision?: string | null
   drawing_number?: string | null
   notes?: string | null

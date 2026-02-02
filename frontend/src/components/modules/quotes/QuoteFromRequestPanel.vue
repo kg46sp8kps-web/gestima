@@ -353,7 +353,7 @@ function formatCurrency(value: number): string {
           <table class="items-table">
             <thead>
               <tr>
-                <th>Číslo výkresu</th>
+                <th>Artikl / Part Number</th>
                 <th>Název</th>
                 <th>Množství</th>
                 <th>Dávka</th>
@@ -366,7 +366,7 @@ function formatCurrency(value: number): string {
                 <td @click.stop>
                   <Input
                     v-model="item.article_number"
-                    placeholder="Číslo výkresu"
+                    placeholder="Artikl / Part Number"
                     mono
                     class="table-input"
                   />

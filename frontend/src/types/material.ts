@@ -256,6 +256,7 @@ export interface MaterialParseResult {
   height: number | null
   thickness: number | null
   wall_thickness: number | null
+  material_norm: string | null
   confidence: number
   suggested_price_category_id: number | null
   raw_input: string

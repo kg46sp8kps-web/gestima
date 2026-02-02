@@ -73,7 +73,7 @@ Dependencies: [none | sequential | mixed]
 Použij Task tool s:
 - subagent_type: "Explore"
 - prompt: "Najdi relevantní dokumentaci pro [task].
-   Prohledej: docs/ADR/, CLAUDE.md, docs/DESIGN-SYSTEM.md.
+   Prohledej: docs/ADR/, docs/guides/, CLAUDE.md, docs/DESIGN-SYSTEM.md.
    Vrať POUZE relevantní sekce (max 3000 tokens).
    Keywords: [keywords z úkolu]"
 ```

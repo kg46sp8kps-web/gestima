@@ -120,7 +120,14 @@ const responseErrorInterceptor = (error: AxiosError) => {
       throw new OptimisticLockErrorClass(data)
 
     case 422:
-      // Validation error
+      // Validation error - log details for debugging
+      if (Array.isArray(data?.detail)) {
+        console.error('[API] Validation errors:', data.detail)
+        // Format Pydantic errors for better readability
+        data.detail.forEach((err: any, idx: number) => {
+          console.error(`  [${idx + 1}] ${err.loc?.join('.')} - ${err.msg}`)
+        })
+      }
       throw new ValidationErrorClass(data)
 
     case 500:

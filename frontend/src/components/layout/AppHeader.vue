@@ -8,7 +8,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useWindowsStore } from '@/stores/windows'
-import { Menu, X, Search, Save, FolderOpen, FilePlus, Settings as SettingsIcon, Package, DollarSign, Cog, Box, Layers, LayoutGrid, AlignHorizontalSpaceAround, AlignVerticalSpaceAround } from 'lucide-vue-next'
+import { Menu, X, Search, Save, FolderOpen, FilePlus, Settings as SettingsIcon, Package, DollarSign, Cog, Box, Layers, LayoutGrid, AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Users, FileText } from 'lucide-vue-next'
 import ManageLayoutsModal from '@/components/modals/ManageLayoutsModal.vue'
 import Tooltip from '@/components/ui/Tooltip.vue'
 
@@ -19,7 +19,9 @@ const windowsStore = useWindowsStore()
 
 const showMenu = ref(false)
 const searchQuery = ref('')
+const showSearchDropdown = ref(false)
 const showSaveDialog = ref(false)
+const showSaveAsDialog = ref(false)
 const saveLayoutName = ref('')
 const showManageLayoutsModal = ref(false)
 const showArrangeDropdown = ref(false)
@@ -41,7 +43,12 @@ const availableModules = [
   { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
   { value: 'part-operations', label: 'Operations', icon: Cog },
   { value: 'part-material', label: 'Material', icon: Box },
-  { value: 'batch-sets', label: 'Batch Sets', icon: Layers }
+  { value: 'batch-sets', label: 'Batch Sets', icon: Layers },
+  { value: 'partners-list', label: 'Zákazníci', icon: Users },
+  { value: 'quotes-list', label: 'Nabídky', icon: FileText },
+  { value: 'manufacturing-items', label: 'Vyráběné položky', icon: Package },
+  { value: 'material-items-list', label: 'Materiálové položky', icon: Box },
+  { value: 'template', label: 'Template (Demo)', icon: LayoutGrid }
 ]
 
 // Quick module buttons (fixed 5)
@@ -55,7 +62,7 @@ const quickModules = [
 
 // Filtered modules based on search
 const filteredModules = computed(() => {
-  if (!searchQuery.value) return []
+  if (!searchQuery.value) return availableModules // Show all when empty
   const query = searchQuery.value.toLowerCase()
   return availableModules.filter(m => m.label.toLowerCase().includes(query))
 })
@@ -108,6 +115,18 @@ async function handleLogout() {
 function openModule(moduleValue: string, label: string) {
   windowsStore.openWindow(moduleValue as any, label)
   searchQuery.value = ''
+  showSearchDropdown.value = false
+}
+
+function handleSearchFocus() {
+  showSearchDropdown.value = true
+}
+
+function handleSearchBlur() {
+  // Delay to allow click on dropdown items
+  setTimeout(() => {
+    showSearchDropdown.value = false
+  }, 200)
 }
 
 function openQuickModule(moduleValue: string, label: string) {
@@ -156,7 +175,28 @@ function handleSaveCurrentLayout() {
     alert('No windows open to save!')
     return
   }
+
+  // If there's an active layout, update it directly
+  if (windowsStore.currentViewId) {
+    const updated = windowsStore.updateActiveView()
+    if (updated) {
+      closeMenu()
+      return
+    }
+  }
+
+  // No active layout, create new one
   showSaveDialog.value = true
+  saveLayoutName.value = `Layout ${windowsStore.savedViews.length + 1}`
+  closeMenu()
+}
+
+function handleSaveCurrentAsNewLayout() {
+  if (windowsStore.openWindows.length === 0) {
+    alert('No windows open to save!')
+    return
+  }
+  showSaveAsDialog.value = true
   saveLayoutName.value = `Layout ${windowsStore.savedViews.length + 1}`
   closeMenu()
 }
@@ -168,6 +208,16 @@ function confirmSaveLayout() {
   }
   windowsStore.saveCurrentView(saveLayoutName.value)
   showSaveDialog.value = false
+  saveLayoutName.value = ''
+}
+
+function confirmSaveAsLayout() {
+  if (!saveLayoutName.value.trim()) {
+    alert('Please enter a layout name')
+    return
+  }
+  windowsStore.saveCurrentViewAs(saveLayoutName.value)
+  showSaveAsDialog.value = false
   saveLayoutName.value = ''
 }
 
@@ -214,9 +264,11 @@ function closeAllWindows() {
             type="text"
             placeholder="search modules"
             class="search-input"
+            @focus="handleSearchFocus"
+            @blur="handleSearchBlur"
           />
           <!-- Search results dropdown -->
-          <div v-if="filteredModules.length > 0" class="search-results">
+          <div v-if="showSearchDropdown && filteredModules.length > 0" class="search-results">
             <button
               v-for="mod in filteredModules"
               :key="mod.value"
@@ -384,18 +436,22 @@ function closeAllWindows() {
 
           <!-- Window Layouts Section -->
           <div class="menu-section">
-            <div class="section-title">Window Layouts</div>
+            <div class="section-title">Layouts</div>
             <button class="menu-item" @click="handleNewLayout">
               <FilePlus :size="18" />
-              <span>New</span>
+              <span>Nový</span>
             </button>
             <button class="menu-item" @click="handleSaveCurrentLayout">
               <Save :size="18" />
-              <span>Save Current</span>
+              <span>Uložit aktuální</span>
+            </button>
+            <button class="menu-item" @click="handleSaveCurrentAsNewLayout">
+              <FilePlus :size="18" />
+              <span>Uložit aktivní jako...</span>
             </button>
             <button class="menu-item" @click="handleManageLayouts">
               <SettingsIcon :size="18" />
-              <span>Manage Layouts</span>
+              <span>Správa layoutů</span>
             </button>
           </div>
 
@@ -438,6 +494,26 @@ function closeAllWindows() {
           <div class="modal-actions">
             <button @click="confirmSaveLayout" class="btn-primary">Save</button>
             <button @click="showSaveDialog = false" class="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Save As Layout Dialog -->
+    <Transition name="backdrop-fade">
+      <div v-if="showSaveAsDialog" class="modal-overlay" @click="showSaveAsDialog = false">
+        <div class="modal" @click.stop>
+          <h3>Uložit jako nový layout</h3>
+          <input
+            v-model="saveLayoutName"
+            type="text"
+            placeholder="Název layoutu..."
+            class="input-layout-name"
+            @keyup.enter="confirmSaveAsLayout"
+          />
+          <div class="modal-actions">
+            <button @click="confirmSaveAsLayout" class="btn-primary">Uložit</button>
+            <button @click="showSaveAsDialog = false" class="btn-secondary">Zrušit</button>
           </div>
         </div>
       </div>
@@ -487,8 +563,8 @@ function closeAllWindows() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -840,13 +916,14 @@ function closeAllWindows() {
 
 .search-input {
   width: 100%;
-  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8);
+  height: 32px;
+  padding: 0 var(--space-3) 0 var(--space-10);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--text-sm);
-  text-align: center;
+  text-align: left;
   transition: all var(--duration-fast) var(--ease-out);
 }
 
@@ -854,11 +931,6 @@ function closeAllWindows() {
   outline: none;
   border-color: var(--primary-color);
   background: var(--bg-base);
-  text-align: left;
-}
-
-.search-input:not(:placeholder-shown) {
-  text-align: left;
 }
 
 .search-results {
@@ -903,7 +975,8 @@ function closeAllWindows() {
   align-items: center;
   justify-content: center;
   min-width: 80px;
-  padding: var(--space-2) var(--space-3);
+  height: 32px;
+  padding: 0 var(--space-3);
   background: transparent;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -1019,11 +1092,11 @@ function closeAllWindows() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);

@@ -467,6 +467,8 @@ partsStore.fetchParts()
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
+  container-type: inline-size;
+  container-name: detail-panel;
 }
 
 /* Empty State */
@@ -494,16 +496,16 @@ partsStore.fetchParts()
 .detail-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: var(--space-5);
+  padding: var(--space-5);
 }
 
 .panel-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--border-color);
 }
 
 /* Forms */
@@ -538,13 +540,14 @@ partsStore.fetchParts()
 
 .form-input,
 .form-textarea {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
+  padding: var(--space-3);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   background: var(--bg-input);
   color: var(--text-body);
   font-family: inherit;
+  transition: all var(--duration-fast);
 }
 
 .form-input:disabled,
@@ -552,6 +555,7 @@ partsStore.fetchParts()
   background: var(--bg-surface);
   color: var(--text-secondary);
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .form-input:focus,
@@ -559,6 +563,7 @@ partsStore.fetchParts()
   outline: none;
   background: var(--state-focus-bg);
   border-color: var(--state-focus-border);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-textarea {
@@ -572,15 +577,16 @@ partsStore.fetchParts()
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  background: var(--bg-muted, #f3f4f6);
-  border-radius: var(--radius-md);
+  background: rgba(115, 115, 115, 0.1);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
 
 .info-notice {
-  background: var(--palette-info-light, rgba(59, 130, 246, 0.1));
-  border: 1px solid var(--palette-info, #3b82f6);
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid var(--color-info);
   color: var(--text-body);
 }
 
@@ -612,21 +618,24 @@ partsStore.fetchParts()
 
 .items-table th,
 .items-table td {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
   text-align: left;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .items-table th {
-  background: var(--bg-subtle);
+  background: var(--bg-surface);
   font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .items-table td {
   font-size: var(--text-sm);
   color: var(--text-primary);
+  font-weight: var(--font-medium);
 }
 
 .items-empty {
@@ -709,22 +718,24 @@ partsStore.fetchParts()
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--duration-normal);
 }
 
 .btn-primary {
-  background: var(--palette-primary);
+  background: var(--color-primary);
   color: white;
 }
 
-.btn-primary:hover {
-  background: var(--palette-primary-hover);
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary:disabled {
@@ -733,26 +744,41 @@ partsStore.fetchParts()
 }
 
 .btn-secondary {
-  background: var(--bg-raised);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: var(--state-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
 }
 
 .btn-icon {
-  padding: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: none;
   background: transparent;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: var(--text-base);
-  transition: var(--transition-fast);
+  color: var(--text-tertiary);
+  transition: all var(--duration-fast);
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--state-hover);
+  color: var(--text-primary);
+  transform: scale(1.1);
 }
 
 .btn-icon.btn-danger:hover:not(:disabled) {
-  opacity: 0.7;
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .btn-icon:disabled {

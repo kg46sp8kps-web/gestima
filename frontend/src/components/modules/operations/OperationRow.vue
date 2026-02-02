@@ -8,6 +8,7 @@
 import { ref, computed } from 'vue'
 import type { Operation, CuttingMode, WorkCenter } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
+import type { MaterialInputWithOperations } from '@/types/material'
 import CuttingModeButtons from '@/components/ui/CuttingModeButtons.vue'
 import CoopSettings from '@/components/ui/CoopSettings.vue'
 import MaterialLinksInfo from '@/components/ui/MaterialLinksInfo.vue'
@@ -16,6 +17,7 @@ import { Trash2, ChevronDown, ChevronRight } from 'lucide-vue-next'
 interface Props {
   operation: Operation
   workCenters: WorkCenter[]
+  availableMaterials: MaterialInputWithOperations[]  // All materials for the part
   expanded: boolean
   saving?: boolean
 }
@@ -27,10 +29,13 @@ interface Emits {
   (e: 'change-mode', mode: CuttingMode): void
   (e: 'toggle-coop'): void
   (e: 'delete'): void
+  (e: 'link-material', materialId: number): void
+  (e: 'unlink-material', materialId: number): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  saving: false
+  saving: false,
+  availableMaterials: () => []
 })
 
 const emit = defineEmits<Emits>()
@@ -81,215 +86,189 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 </script>
 
 <template>
-  <div
-    class="operation-card"
+  <!-- Main data row -->
+  <tr
+    class="operation-row"
     :class="{ 'is-coop': operation.is_coop, 'is-expanded': expanded }"
+    @click="emit('toggle-expanded')"
   >
-    <!-- Inline Row - clickable to expand/collapse -->
-    <div class="op-row" @click="emit('toggle-expanded')">
-      <!-- Seq -->
-      <div class="op-seq-icon">
-        <span class="op-seq">{{ operation.seq }}</span>
-      </div>
+    <!-- Seq -->
+    <td class="col-seq">
+      <span class="op-seq">{{ operation.seq }}</span>
+    </td>
 
-      <!-- Work Center Dropdown (inline) -->
-      <div class="op-work-center" @click.stop>
-        <select
-          :value="operation.work_center_id"
-          @change="handleWorkCenterChange"
-          class="wc-select"
-          :style="{ width: maxWorkCenterWidth + 'px' }"
+    <!-- Work Center -->
+    <td class="col-workcenter" @click.stop>
+      <select
+        :value="operation.work_center_id"
+        @change="handleWorkCenterChange"
+        class="wc-select"
+      >
+        <option :value="null">- Pracoviště -</option>
+        <option
+          v-for="wc in workCenters"
+          :key="wc.id"
+          :value="wc.id"
         >
-          <option :value="null">- Pracoviště -</option>
-          <option
-            v-for="wc in workCenters"
-            :key="wc.id"
-            :value="wc.id"
-          >
-            {{ wc.name }}
-          </option>
-        </select>
-      </div>
+          {{ wc.name }}
+        </option>
+      </select>
+    </td>
 
-      <!-- tp - setup time (inline editable) -->
-      <div class="time-field" @click.stop>
-        <span class="time-label tp">tp:</span>
-        <input
-          type="number"
-          step="0.1"
-          min="0"
-          :value="operation.setup_time_min"
-          @focus="($event.target as HTMLInputElement).select()"
-          @input="handleTimeInput('setup_time_min', $event)"
-          class="time-input"
-          :disabled="operation.setup_time_locked"
-        />
-        <span class="time-unit">min</span>
-      </div>
-
-      <!-- tj - operation time (inline editable) -->
-      <div class="time-field" @click.stop>
-        <span class="time-label tj">tj:</span>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          :value="operation.operation_time_min"
-          @focus="($event.target as HTMLInputElement).select()"
-          @input="handleTimeInput('operation_time_min', $event)"
-          class="time-input"
-          :disabled="operation.operation_time_locked"
-        />
-        <span class="time-unit">min</span>
-      </div>
-
-      <!-- Coefficients (inline editable) -->
-      <div class="coef-field" @click.stop>
-        <span class="coef-label">Ko:</span>
-        <input
-          type="number"
-          step="5"
-          min="0"
-          max="200"
-          :value="operation.manning_coefficient"
-          @focus="($event.target as HTMLInputElement).select()"
-          @input="handleCoefficientInput('manning_coefficient', $event)"
-          class="coef-input"
-          title="Koeficient obsluhy"
-        />
-        <span class="coef-unit">%</span>
-      </div>
-
-      <div class="coef-field" @click.stop>
-        <span class="coef-label">Ke:</span>
-        <input
-          type="number"
-          step="5"
-          min="0"
-          max="200"
-          :value="operation.machine_utilization_coefficient"
-          @focus="($event.target as HTMLInputElement).select()"
-          @input="handleCoefficientInput('machine_utilization_coefficient', $event)"
-          class="coef-input"
-          title="Koeficient efektivity"
-        />
-        <span class="coef-unit">%</span>
-      </div>
-
-      <!-- Time Sums (Tp, Tj, To) -->
-      <div class="time-sums">
-        <span class="sum-item tp">Tp: {{ timeSums.tp }}</span>
-        <span class="sum-item tj">Tj: {{ timeSums.tj }}</span>
-        <span class="sum-item to">To: {{ timeSums.to }}</span>
-      </div>
-
-      <!-- Coop badge -->
-      <span v-if="operation.is_coop" class="coop-badge">Koop</span>
-
-      <!-- Delete button -->
-      <button
-        class="delete-btn"
-        @click.stop="emit('delete')"
-        title="Smazat operaci"
-      >
-        <Trash2 :size="16" />
-      </button>
-
-      <!-- Expand toggle -->
-      <button
-        class="expand-btn"
-        @click.stop="emit('toggle-expanded')"
-        :title="expanded ? 'Sbalit' : 'Rozbalit nastavení'"
-      >
-        <ChevronDown v-if="expanded" :size="16" />
-        <ChevronRight v-else :size="16" />
-      </button>
-    </div>
-
-    <!-- Expanded Settings (cutting mode, coop, materials) -->
-    <div v-if="expanded" class="op-settings">
-      <!-- Cutting Mode -->
-      <div class="setting-group">
-        <label class="setting-label">Režim řezání</label>
-        <CuttingModeButtons
-          :mode="operation.cutting_mode"
-          :disabled="saving"
-          @change="emit('change-mode', $event)"
-        />
-      </div>
-
-      <!-- Coop Settings -->
-      <CoopSettings
-        :is-coop="operation.is_coop"
-        :coop-price="operation.coop_price"
-        :coop-min-price="operation.coop_min_price"
-        :coop-days="operation.coop_days"
-        :disabled="saving"
-        @toggle="emit('toggle-coop')"
-        @update:price="emit('update-field', 'coop_price', $event)"
-        @update:min-price="emit('update-field', 'coop_min_price', $event)"
-        @update:days="emit('update-field', 'coop_days', $event)"
+    <!-- tp - setup time -->
+    <td class="col-time" @click.stop>
+      <input
+        type="number"
+        step="0.1"
+        min="0"
+        :value="operation.setup_time_min"
+        @focus="($event.target as HTMLInputElement).select()"
+        @input="handleTimeInput('setup_time_min', $event)"
+        class="time-input"
+        :disabled="operation.setup_time_locked"
       />
+    </td>
 
-      <!-- Material Links -->
-      <div class="setting-group">
-        <MaterialLinksInfo :operation-id="operation.id" />
+    <!-- tj - operation time -->
+    <td class="col-time" @click.stop>
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        :value="operation.operation_time_min"
+        @focus="($event.target as HTMLInputElement).select()"
+        @input="handleTimeInput('operation_time_min', $event)"
+        class="time-input"
+        :disabled="operation.operation_time_locked"
+      />
+    </td>
+
+    <!-- Ko coefficient -->
+    <td class="col-coef" @click.stop>
+      <input
+        type="number"
+        step="5"
+        min="0"
+        max="200"
+        :value="operation.manning_coefficient"
+        @focus="($event.target as HTMLInputElement).select()"
+        @input="handleCoefficientInput('manning_coefficient', $event)"
+        class="coef-input"
+        title="Koeficient obsluhy"
+      />
+    </td>
+
+    <!-- Ke coefficient -->
+    <td class="col-coef" @click.stop>
+      <input
+        type="number"
+        step="5"
+        min="0"
+        max="200"
+        :value="operation.machine_utilization_coefficient"
+        @focus="($event.target as HTMLInputElement).select()"
+        @input="handleCoefficientInput('machine_utilization_coefficient', $event)"
+        class="coef-input"
+        title="Koeficient efektivity"
+      />
+    </td>
+
+    <!-- Tp sum -->
+    <td class="col-sum">
+      <span class="sum-value tp">{{ timeSums.tp }}</span>
+    </td>
+
+    <!-- Tj sum -->
+    <td class="col-sum">
+      <span class="sum-value tj">{{ timeSums.tj }}</span>
+    </td>
+
+    <!-- To sum -->
+    <td class="col-sum">
+      <span class="sum-value to">{{ timeSums.to }}</span>
+    </td>
+
+    <!-- Actions -->
+    <td class="col-actions" @click.stop>
+      <div class="action-buttons">
+        <span v-if="operation.is_coop" class="coop-badge">K</span>
+        <button
+          class="action-btn delete-btn"
+          @click="emit('delete')"
+          title="Smazat operaci"
+        >
+          <Trash2 :size="16" />
+        </button>
+        <button
+          class="action-btn expand-btn"
+          @click="emit('toggle-expanded')"
+          :title="expanded ? 'Sbalit' : 'Rozbalit nastavení'"
+        >
+          <ChevronDown v-if="expanded" :size="16" />
+          <ChevronRight v-else :size="16" />
+        </button>
       </div>
-    </div>
-  </div>
+    </td>
+  </tr>
+
+  <!-- Expanded settings row -->
+  <tr v-if="expanded" class="expanded-row">
+    <td colspan="10" class="expanded-cell">
+      <div class="op-settings">
+        <!-- Material Links ONLY -->
+        <MaterialLinksInfo
+          :operation-id="operation.id"
+          :editable="true"
+          :available-materials="availableMaterials"
+          @link-material="emit('link-material', $event)"
+          @unlink-material="emit('unlink-material', $event)"
+        />
+      </div>
+    </td>
+  </tr>
 </template>
 
 <style scoped>
-/* === OPERATION CARD === */
-.operation-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+/* === OPERATION ROW === */
+.operation-row {
+  cursor: pointer;
   transition: var(--transition-fast);
 }
 
-.operation-card.is-coop {
-  border-left: 3px solid var(--color-warning);
-}
-
-.operation-card.is-expanded {
-  border-color: var(--color-primary);
-}
-
-/* === INLINE ROW === */
-.op-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-surface);
-  cursor: pointer;
-}
-
-.op-row:hover {
+.operation-row:hover {
   background: var(--state-hover);
 }
 
-.op-seq-icon {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-width: 50px;
+.operation-row.is-coop {
+  border-left: 3px solid var(--color-warning);
+}
+
+.operation-row.is-expanded {
+  background: var(--state-selected);
+}
+
+/* === TABLE CELLS === */
+.operation-row td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-default);
+  vertical-align: middle;
+}
+
+/* Seq column */
+.col-seq {
+  text-align: center;
 }
 
 .op-seq {
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
   font-size: var(--text-xs);
+  font-family: var(--font-mono);
 }
 
 /* Work Center Select */
-.op-work-center {
-  flex-shrink: 0;
-}
-
 .wc-select {
+  width: 100%;
   padding: var(--space-1) var(--space-2);
   background: var(--bg-input);
   border: 1px solid var(--border-default);
@@ -306,35 +285,17 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   background: var(--state-focus-bg);
 }
 
-/* Time Fields */
-.time-field {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.time-label {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-}
-
-.time-label.tp {
-  color: var(--color-warning);
-}
-
-.time-label.tj {
-  color: var(--color-primary);
-}
-
+/* Time Inputs */
 .time-input {
-  width: 55px;
-  padding: var(--space-1) var(--space-1);
+  width: 100%;
+  padding: var(--space-1);
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
+  font-family: var(--font-mono);
   text-align: right;
 }
 
@@ -350,26 +311,9 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   background: var(--bg-muted);
 }
 
-.time-unit {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-/* Coefficient Fields */
-.coef-field {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.coef-label {
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-}
-
+/* Coefficient Inputs */
 .coef-input {
-  width: 45px;
+  width: 100%;
   padding: var(--space-1);
   background: var(--bg-input);
   border: 1px solid var(--border-default);
@@ -377,6 +321,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   color: var(--text-primary);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
+  font-family: var(--font-mono);
   text-align: right;
 }
 
@@ -386,84 +331,88 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   background: var(--state-focus-bg);
 }
 
-.coef-unit {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-/* Time Sums */
-.time-sums {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
+/* Sum values */
+.sum-value {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-}
-
-.sum-item {
-  color: var(--text-secondary);
   font-weight: var(--font-medium);
+  color: var(--text-secondary);
 }
 
-.sum-item.tp {
+.sum-value.tp {
   color: var(--color-warning);
 }
 
-.sum-item.tj {
+.sum-value.tj {
   color: var(--color-info);
 }
 
-.sum-item.to {
+.sum-value.to {
   color: var(--color-success);
 }
 
-/* Coop Badge */
-.coop-badge {
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-warning);
-  color: white;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
+/* Actions column */
+.col-actions {
+  text-align: right;
+  padding-right: var(--space-2);
 }
 
-/* Delete Button */
-.delete-btn {
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-1);
   background: none;
   border: none;
   cursor: pointer;
-  font-size: var(--text-sm);
-  opacity: 0.4;
-  transition: var(--transition-fast);
-}
-
-.delete-btn:hover {
-  opacity: 1;
-  color: var(--color-danger);
-}
-
-/* Expand Button */
-.expand-btn {
-  padding: var(--space-1) var(--space-2);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: var(--text-xs);
   color: var(--text-muted);
   transition: var(--transition-fast);
 }
 
-.expand-btn:hover {
+.action-btn:hover {
   color: var(--text-primary);
 }
 
-/* === EXPANDED SETTINGS === */
+.delete-btn:hover {
+  color: var(--color-danger);
+}
+
+/* Coop Badge (compact) */
+.coop-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--color-warning);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+}
+
+/* === EXPANDED ROW === */
+.expanded-row {
+  background: var(--bg-muted);
+}
+
+.expanded-row td {
+  border-bottom: 1px solid var(--border-default);
+}
+
+.expanded-cell {
+  padding: 0 !important;
+}
+
 .op-settings {
   padding: var(--space-3);
-  border-top: 1px solid var(--border-default);
-  background: var(--bg-muted);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

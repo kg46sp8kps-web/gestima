@@ -228,6 +228,27 @@ class MaterialParserService:
             # 2a. Find MaterialGroup v DB (via MaterialNorm)
             group = await self._find_material_group(material_match["norm"])
             if group:
+                # Also fetch the MaterialNorm to get W.Nr.
+                material_norm_result = await self.db.execute(
+                    select(MaterialNorm)
+                    .where(
+                        MaterialNorm.material_group_id == group.id,
+                        or_(
+                            MaterialNorm.w_nr == material_match["norm"].upper(),
+                            MaterialNorm.en_iso == material_match["norm"].upper(),
+                            MaterialNorm.csn == material_match["norm"].upper(),
+                            MaterialNorm.aisi == material_match["norm"].upper()
+                        ),
+                        MaterialNorm.deleted_at.is_(None)
+                    )
+                    .limit(1)
+                )
+                material_norm = material_norm_result.scalar_one_or_none()
+
+                # Use W.Nr. from database if found, otherwise keep raw input
+                if material_norm and material_norm.w_nr:
+                    result.material_norm = material_norm.w_nr
+
                 result.suggested_material_group_id = group.id
                 result.suggested_material_group_code = group.code
                 result.suggested_material_group_name = group.name

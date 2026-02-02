@@ -1,10 +1,38 @@
-# GESTIMA Design System v1.6
+# GESTIMA Design System v1.7
 
 **"Refined & Subtle"** - Dark-first design s jemným červeným akcentem
 
-**Approved:** 2026-02-01
-**Status:** ✅ Production Ready (Subtle borders + Logo red hover + Component Showcase)
+**Approved:** 2026-02-02
+**Status:** ✅ Production Ready (Icon sizes + Subtle borders + Component Showcase)
 **Target Display:** 27" @ 2560x1440 (primary development display)
+
+---
+
+## 🎯 Design Constants
+
+### Icon Sizes (Lucide Icons)
+
+**Lokace:** `frontend/src/config/design.ts`
+
+Použijte tyto konstanty pro konzistentní velikosti ikon napříč celou aplikací:
+
+```typescript
+import { ICON_SIZE } from '@/config/design'
+
+// Standardní velikost (tlačítka, formuláře)
+<CheckIcon :size="ICON_SIZE.STANDARD" /> // 20px
+
+// Malé ikony (inline text, badges)
+<InfoIcon :size="ICON_SIZE.SMALL" /> // 16px
+
+// Velké ikony (headery, hlavní akce)
+<SettingsIcon :size="ICON_SIZE.LARGE" /> // 24px
+
+// Extra velké ikony (empty states, ilustrace)
+<BoxIcon :size="ICON_SIZE.XLARGE" /> // 32px
+```
+
+**DŮLEŽITÉ:** NIKDY nepoužívejte hardcoded velikosti - vždy importujte `ICON_SIZE`!
 
 ---
 

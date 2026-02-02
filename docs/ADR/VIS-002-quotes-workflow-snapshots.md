@@ -90,6 +90,7 @@ def check_edit_lock(quote: Quote):
 snapshot = {
     "quote_number": "85000001",
     "title": "Offer for CNC parts",
+    "customer_request_number": "P20971",  # Customer RFQ number
     "valid_until": "2026-02-28",
 
     # Partner data (může se změnit)
@@ -130,6 +131,7 @@ snapshot = {
 
 **Důvod:**
 - ✅ Kompletní obchodní dokument (self-contained)
+- ✅ Customer RFQ number preserved (traceability to customer request)
 - ✅ Partner data zachována (pokud změní adresu, snapshot má původní)
 - ✅ Ceny zamrzlé v okamžiku odeslání
 - ✅ Použitelné pro PDF export
@@ -177,17 +179,22 @@ async def delete_quote(...):
 ### Backend Changes
 
 **Files modified:**
-1. `app/models/quote.py` - Removed `unit_price` from `QuoteItemUpdate`
+1. `app/models/quote.py` - Removed `unit_price` from `QuoteItemUpdate`, added `customer_request_number` field
 2. `app/services/quote_service.py` - Block creation if no frozen batch (HTTP 400)
 3. `app/routers/quote_items_router.py` - Remove price editing in update endpoint
 4. `app/routers/quotes_router.py` - Delete protection for SENT/APPROVED
 
+**Database migration:**
+- `j2k3l4m5n6o7_add_customer_request_number_to_quote.py` - Added indexed column
+
 ### Frontend Changes
 
 **Files modified:**
-1. `frontend/src/types/quote.ts` - Removed `unit_price` from types
-2. `frontend/src/components/modules/quotes/QuoteDetailPanel.vue` - Removed price input field
-3. Added info notice: "Cena se automaticky načte z nejnovější zmrazené kalkulace dílu"
+1. `frontend/src/types/quote.ts` - Removed `unit_price` from types, added `customer_request_number` to all quote interfaces
+2. `frontend/src/components/modules/quotes/QuoteDetailPanel.vue` - Removed price input field, added customer_request_number input
+3. `frontend/src/components/modules/quotes/QuoteListPanel.vue` - Added customer_request_number input to create modal
+4. `frontend/src/components/modules/quotes/QuoteFromRequestPanel.vue` - AI parsing UI with customer_request_number field
+5. Added info notice: "Cena se automaticky načte z nejnovější zmrazené kalkulace dílu"
 
 ### Tests Added
 

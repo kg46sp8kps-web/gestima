@@ -96,16 +96,52 @@
           <span class="category-label">{{ getPriceCategoryName(material.price_category_id) }}</span>
         </div>
 
-        <!-- Calculated values (weight, price, operations) -->
+        <!-- Calculated values (weight, price) -->
         <Tooltip :text="getMaterialTooltip(material)">
           <div class="material-info">
             <span v-if="material.weight_kg" class="weight">{{ material.weight_kg.toFixed(3) }} kg</span>
             <span v-if="material.cost_per_piece" class="price">{{ material.cost_per_piece.toFixed(2) }} Kč</span>
-            <span v-if="material.operations?.length" class="operations">
-              Op: {{ material.operations.map(op => op.seq).join(', ') }}
-            </span>
           </div>
         </Tooltip>
+
+        <!-- Linked operations (compact: just numbers) -->
+        <div class="material-operations">
+          <!-- Existing linked operations -->
+          <span
+            v-for="op in material.operations"
+            :key="op.id"
+            class="operation-chip-compact"
+            :title="`${op.seq}: ${op.name}`"
+          >
+            {{ op.seq }}
+            <button
+              type="button"
+              class="unlink-btn-compact"
+              @click.stop="handleUnlinkOperation(material.id, op.id)"
+              title="Odpojit"
+            >
+              ×
+            </button>
+          </span>
+
+          <!-- Add operation dropdown (compact) -->
+          <select
+            v-if="getAvailableOperations(material).length > 0"
+            v-model="selectedOperations[material.id]"
+            class="operation-select-compact"
+            @change="handleLinkOperation(material.id)"
+            @click.stop
+          >
+            <option :value="null">+</option>
+            <option
+              v-for="op in getAvailableOperations(material)"
+              :key="op.id"
+              :value="op.id"
+            >
+              {{ op.seq }}
+            </option>
+          </select>
+        </div>
 
         <!-- Actions -->
         <div class="material-actions">
@@ -121,28 +157,38 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { MaterialInputWithOperations, StockShape } from '@/types/material'
+import type { Operation } from '@/types/operation'
 import { getShapeDimensionFields } from '@/types/material'
 import { useMaterialsStore } from '@/stores/materials'
 import Button from '@/components/ui/Button.vue'
 import Tooltip from '@/components/ui/Tooltip.vue'
+import { Link as LinkIcon, X as XIcon } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 const materialsStore = useMaterialsStore()
 
 interface Props {
   materials: MaterialInputWithOperations[]
+  operations: Operation[]  // Available operations for the part
   loading?: boolean
   editingMaterialId?: number | null  // ID of material being edited
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  editingMaterialId: null
+  editingMaterialId: null,
+  operations: () => []
 })
 
 const emit = defineEmits<{
   delete: [materialId: number]
   update: [materialId: number, updates: Partial<MaterialInputWithOperations>]
+  linkOperation: [materialId: number, operationId: number]
+  unlinkOperation: [materialId: number, operationId: number]
 }>()
+
+// Local state for selected operation per material
+const selectedOperations = ref<Record<number, number | null>>({})
 
 const SHAPE_ICONS: Record<StockShape, string> = {
   round_bar: '○',
@@ -178,6 +224,26 @@ function getMaterialTooltip(material: MaterialInputWithOperations): string {
   if (!material.price_per_kg) return 'Cena není dostupná'
   return `Cena z tieru: ${formatPrice(material.price_per_kg)} Kč/kg`
 }
+
+// Get available operations for material (not already linked)
+function getAvailableOperations(material: MaterialInputWithOperations): Operation[] {
+  const linkedOpIds = material.operations?.map(op => op.id) || []
+  return props.operations.filter(op => !linkedOpIds.includes(op.id))
+}
+
+// Handle link operation
+function handleLinkOperation(materialId: number) {
+  const operationId = selectedOperations.value[materialId]
+  if (operationId) {
+    emit('linkOperation', materialId, operationId)
+    selectedOperations.value[materialId] = null  // Reset selection
+  }
+}
+
+// Handle unlink operation
+function handleUnlinkOperation(materialId: number, operationId: number) {
+  emit('unlinkOperation', materialId, operationId)
+}
 </script>
 
 <style scoped>
@@ -199,10 +265,10 @@ function getMaterialTooltip(material: MaterialInputWithOperations): string {
 .empty-icon { font-size: 48px; opacity: 0.5; }
 .empty-state p { margin: 0; font-size: var(--text-base); color: var(--text-secondary); }
 .materials-list { display: flex; flex-direction: column; gap: var(--space-1); overflow-y: auto; }
-/* Material row - grid layout: Icon | Dimensions | Category | Info | Actions */
+/* Material row - grid layout: Icon | Dimensions | Category | Info | Operations | Actions */
 .material-row {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto minmax(200px, auto) auto;
   gap: var(--space-3);
   align-items: center;
   padding: var(--space-3);
@@ -317,6 +383,70 @@ function getMaterialTooltip(material: MaterialInputWithOperations): string {
   background: var(--bg-surface);
   border-radius: var(--radius-sm);
   white-space: nowrap;
+}
+
+/* Operations section (compact inline) */
+.material-operations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 100px;
+}
+
+.operation-chip-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: var(--palette-info, rgba(37, 99, 235, 0.2));
+  border: 1px solid var(--palette-info);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: help;
+}
+
+.unlink-btn-compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  font-size: 14px;
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.unlink-btn-compact:hover {
+  color: var(--palette-danger);
+}
+
+.operation-select-compact {
+  min-width: 40px;
+  max-width: 50px;
+  padding: 2px 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  font-family: var(--font-mono);
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.operation-select-compact:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  background: var(--state-focus-bg);
 }
 
 /* Actions */

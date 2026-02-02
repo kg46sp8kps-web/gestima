@@ -26,10 +26,11 @@ const store = useWindowsStore()
 // Available modules with Lucide icons
 const modules: Array<{ value: WindowModule; label: string; icon: Component }> = [
   { value: 'part-main', label: 'Part Main', icon: Package },
-  { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
-  { value: 'part-operations', label: 'Operations', icon: Settings },
-  { value: 'part-material', label: 'Material', icon: Box },
-  { value: 'batch-sets', label: 'Batch Sets', icon: ClipboardList }
+  { value: 'part-pricing', label: 'Ceny položky', icon: DollarSign },
+  { value: 'part-operations', label: 'Operace položky', icon: Settings },
+  { value: 'part-material', label: 'Materiál položky', icon: Box },
+  { value: 'batch-sets', label: 'Batch Sets', icon: ClipboardList },
+  { value: 'manufacturing-items', label: 'Vyráběné položky', icon: Package }
 ]
 
 // Save view dialog

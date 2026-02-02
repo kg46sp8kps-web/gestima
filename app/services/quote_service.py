@@ -485,22 +485,45 @@ class QuoteService:
         Returns:
             Part or None if not found
         """
-        result = await db.execute(
-            select(Part)
-            .where(
-                Part.article_number == article_number,
-                Part.deleted_at.is_(None)
+        from app.services.article_number_matcher import ArticleNumberMatcher
+
+        # Generate search variants (exact, without prefix, without revision)
+        variants = ArticleNumberMatcher.generate_variants(article_number)
+        logger.debug(f"Searching for article_number variants: {variants}")
+
+        for variant in variants:
+            result = await db.execute(
+                select(Part)
+                .where(
+                    Part.article_number == variant,
+                    Part.deleted_at.is_(None)
+                )
+                .limit(1)
             )
-            .limit(1)
-        )
-        part = result.scalar_one_or_none()
+            part = result.scalar_one_or_none()
 
-        if part:
-            logger.debug(f"Found existing part: {article_number} → {part.part_number}")
-        else:
-            logger.debug(f"Part not found: {article_number}")
+            if part:
+                # Determine match type
+                match_type, warning = ArticleNumberMatcher.match_type(
+                    article_number,
+                    part.article_number
+                )
+                logger.info(
+                    f"Found part: '{article_number}' → {part.part_number} "
+                    f"(match={match_type})"
+                )
+                if warning:
+                    logger.warning(warning)
 
-        return part
+                # Return tuple: (part, match_type, warning)
+                # Store as tuple for backward compat
+                part._fuzzy_match_type = match_type
+                part._fuzzy_warning = warning
+                return part
+
+        # No match found
+        logger.debug(f"Part not found: {article_number}")
+        return None
 
     @staticmethod
     async def match_item(
@@ -547,8 +570,14 @@ class QuoteService:
                 )
             )
 
-        # Part exists - find best batch
-        batch, status, warnings = await QuoteService.find_best_batch(
+        # Part exists - check for fuzzy match warning
+        fuzzy_warning = getattr(part, '_fuzzy_warning', '')
+        if fuzzy_warning:
+            # Append fuzzy warning to notes
+            notes = f"{fuzzy_warning}\n{notes}" if notes else fuzzy_warning
+
+        # Find best batch
+        batch, status, batch_warnings = await QuoteService.find_best_batch(
             part, quantity, db
         )
 
@@ -568,7 +597,7 @@ class QuoteService:
             status=status,
             unit_price=unit_price,
             line_total=line_total,
-            warnings=warnings
+            warnings=batch_warnings
         )
 
         return PartMatch(

@@ -1,53 +1,44 @@
 <template>
-  <div v-if="summary" class="material-summary-panel">
-    <div class="summary-header">
-      <h4>Kalkulace materiálu</h4>
-      <span v-if="loading" class="loading-indicator">Počítám...</span>
-    </div>
-
-    <div class="summary-layout">
-      <!-- LEFT: Weight and price per piece -->
-      <div class="summary-left">
+  <div class="material-summary-panel">
+    <!-- Weight and Price section -->
+    <div class="summary-section">
+      <div class="summary-items">
         <div class="summary-item">
           <span class="item-label">Hmotnost na 1 ks</span>
-          <span class="item-value mono">{{ summary.weight_kg.toFixed(3) }} kg</span>
+          <span class="item-value mono">{{ summary ? summary.weight_kg.toFixed(3) : '—' }} kg</span>
         </div>
 
         <div class="summary-item">
           <span class="item-label">Cena za kus</span>
-          <span class="item-value mono price">{{ summary.cost_per_piece.toFixed(2) }} Kč</span>
+          <span class="item-value mono price">{{ summary ? summary.cost_per_piece.toFixed(2) : '—' }} Kč</span>
         </div>
       </div>
+      <span v-if="loading" class="loading-indicator">Počítám...</span>
+    </div>
 
-      <!-- RIGHT: Price tiers table -->
-      <div class="summary-right">
-        <div class="tier-table-header">
-          <span class="tier-label">Cenové pásy</span>
-        </div>
-        <table v-if="allTiers && allTiers.length > 0" class="tier-table">
-          <tbody>
-            <tr
-              v-for="tier in sortedTiers"
-              :key="tier.id"
-              :class="{ 'tier-selected': tier.id === summary.tier_id }"
-            >
-              <td class="tier-range">
-                {{ tier.min_weight }}-{{ tier.max_weight ? tier.max_weight : '∞' }} kg
-              </td>
-              <td class="tier-price">{{ tier.price_per_kg.toFixed(2) }} Kč/kg</td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-else class="tier-table-empty">
-          Žádné cenové pásy
-        </div>
+    <!-- Price tiers section -->
+    <div class="summary-section">
+      <div class="tier-table-header">
+        <span class="tier-label">Cenové pásy</span>
+      </div>
+      <table v-if="allTiers && allTiers.length > 0" class="tier-table">
+        <tbody>
+          <tr
+            v-for="tier in sortedTiers"
+            :key="tier.id"
+            :class="{ 'tier-selected': summary && tier.id === summary.tier_id }"
+          >
+            <td class="tier-range">
+              {{ tier.min_weight }}-{{ tier.max_weight ? tier.max_weight : '∞' }} kg
+            </td>
+            <td class="tier-price">{{ tier.price_per_kg.toFixed(2) }} Kč/kg</td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-else class="tier-table-empty">
+        Žádné cenové pásy
       </div>
     </div>
-  </div>
-
-  <!-- Empty state -->
-  <div v-else class="summary-empty">
-    <p>Vyplňte rozměry a kategorii pro zobrazení kalkulace</p>
   </div>
 </template>
 
@@ -85,26 +76,22 @@ const sortedTiers = computed(() => {
 
 <style scoped>
 .material-summary-panel {
-  padding: var(--space-4);
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-}
-
-.summary-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-default);
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.summary-header h4 {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--text-body);
+/* Summary sections (matching parser style) */
+.summary-section {
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.summary-items {
+  display: flex;
+  gap: var(--space-6);
+  margin-bottom: var(--space-2);
 }
 
 .loading-indicator {
@@ -113,24 +100,11 @@ const sortedTiers = computed(() => {
   font-style: italic;
 }
 
-/* Layout: LEFT (weight/price) | RIGHT (tier table) */
-.summary-layout {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: var(--space-4);
-}
-
-/* LEFT section */
-.summary-left {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 .summary-item {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  flex: 1;
 }
 
 .item-label {
@@ -142,7 +116,7 @@ const sortedTiers = computed(() => {
 }
 
 .item-value {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   color: var(--text-body);
   font-weight: var(--font-semibold);
 }
@@ -155,25 +129,14 @@ const sortedTiers = computed(() => {
   color: var(--palette-success);
 }
 
-/* RIGHT section - Tier table */
-.summary-right {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
 .tier-table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  margin-bottom: var(--space-2);
 }
 
 .tier-label {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  color: var(--text-body);
   font-weight: var(--font-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .tier-table {

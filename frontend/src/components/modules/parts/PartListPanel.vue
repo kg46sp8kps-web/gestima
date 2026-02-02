@@ -21,6 +21,7 @@ const emit = defineEmits<{
 
 const partsStore = usePartsStore()
 const searchQuery = ref('')
+const statusFilter = ref<string>('all') // 'all' | 'draft' | 'active' | 'archived'
 const selectedPartId = ref<number | null>(null)
 const sortKey = ref('article_number')
 const sortDirection = ref<'asc' | 'desc'>('asc')
@@ -42,6 +43,11 @@ const columns = ref<Column[]>(defaultColumns)
 // Filter and sort parts
 const filteredParts = computed(() => {
   let list = [...partsStore.parts]
+
+  // Filter by status
+  if (statusFilter.value !== 'all') {
+    list = list.filter(p => p.status === statusFilter.value)
+  }
 
   // Filter by search query
   if (searchQuery.value.trim()) {
@@ -85,6 +91,17 @@ const selectedParts = computed(() => {
   return selectedPartId.value !== null
     ? partsStore.parts.filter(p => p.id === selectedPartId.value)
     : []
+})
+
+// Status counts for filter labels
+const statusCounts = computed(() => {
+  const counts = {
+    all: partsStore.parts.length,
+    draft: partsStore.parts.filter(p => p.status === 'draft').length,
+    active: partsStore.parts.filter(p => p.status === 'active').length,
+    archived: partsStore.parts.filter(p => p.status === 'archived').length
+  }
+  return counts
 })
 
 function handleRowClick(row: Record<string, unknown>) {
@@ -140,21 +157,31 @@ defineExpose({
           storageKey="partListColumns"
           @update:columns="handleColumnsUpdate"
         />
-        <button @click="handleCreate" class="btn-create">
-          <Plus :size="14" :stroke-width="2" />
-          Nový
+        <button @click="handleCreate" class="btn-create" title="Vytvořit nový díl">
+          <Plus :size="16" :stroke-width="2" />
         </button>
       </div>
     </div>
 
-    <!-- Search Bar -->
-    <input
-      v-model="searchQuery"
-      v-select-on-focus
-      type="text"
-      placeholder="Filtrovat díly..."
-      class="search-input"
-    />
+    <!-- Filters Row -->
+    <div class="filters-row">
+      <!-- Status Filter -->
+      <select v-model="statusFilter" class="status-filter">
+        <option value="all">Vše ({{ statusCounts.all }})</option>
+        <option value="draft">Draft ({{ statusCounts.draft }})</option>
+        <option value="active">Active ({{ statusCounts.active }})</option>
+        <option value="archived">Archived ({{ statusCounts.archived }})</option>
+      </select>
+
+      <!-- Search Bar -->
+      <input
+        v-model="searchQuery"
+        v-select-on-focus
+        type="text"
+        placeholder="Filtrovat díly..."
+        class="search-input"
+      />
+    </div>
 
     <!-- DataTable -->
     <div class="table-container">
@@ -202,6 +229,8 @@ defineExpose({
   gap: var(--space-3);
   height: 100%;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: part-list-container;
 }
 
 .list-header {
@@ -209,6 +238,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .list-header h3 {
@@ -227,23 +257,60 @@ defineExpose({
 .btn-create {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-primary);
-  color: white;
-  border: none;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all var(--duration-fast);
+  flex-shrink: 0;
 }
 
 .btn-create:hover {
-  background: var(--color-primary-hover);
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.btn-create:active {
+  transform: scale(0.95);
+}
+
+.filters-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.status-filter {
+  min-width: 120px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  background: var(--bg-input);
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.status-filter:hover {
+  border-color: var(--color-primary);
+}
+
+.status-filter:focus {
+  outline: none;
+  background: var(--state-focus-bg);
+  border-color: var(--state-focus-border);
 }
 
 .search-input {
+  flex: 1;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -263,6 +330,54 @@ defineExpose({
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
+  container-name: parts-table;
+}
+
+/* Container Queries - Hide less important columns on narrow width */
+@container parts-table (max-width: 600px) {
+  :deep(.col-notes),
+  :deep(.col-created_at) {
+    display: none !important;
+  }
+}
+
+@container parts-table (max-width: 450px) {
+  :deep(.col-length),
+  :deep(.col-customer_revision) {
+    display: none !important;
+  }
+}
+
+@container parts-table (max-width: 350px) {
+  :deep(.col-revision),
+  :deep(.col-status) {
+    display: none !important;
+  }
+}
+
+/* Container Queries - Responsive adjustments */
+@container part-list-container (max-width: 320px) {
+  .list-header h3 {
+    font-size: var(--text-base);
+  }
+
+  .header-actions {
+    gap: var(--space-1);
+  }
+}
+
+/* Very narrow: stack header vertically */
+@container part-list-container (max-width: 280px) {
+  .list-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 /* Custom cell styles */

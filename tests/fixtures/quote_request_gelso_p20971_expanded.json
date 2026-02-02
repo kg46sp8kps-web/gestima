@@ -1,0 +1,74 @@
+{
+  "extraction": {
+    "customer": {
+      "company_name": "GELSO AG",
+      "contact_person": "Roko Paskov",
+      "email": "roko.paskov@gelso.ch",
+      "phone": "+41 44 840 33 40",
+      "ico": "CHE-108.413.346",
+      "confidence": 0.95
+    },
+    "items": [
+      {
+        "article_number": "byn-10101251",
+        "name": "Halter",
+        "quantity": 1,
+        "notes": "🎯 Volume tier: 1 pc | Original: Scaled prices: 1/5/10/20 | Drawing: 90057637-00",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101251",
+        "name": "Halter",
+        "quantity": 5,
+        "notes": "🎯 Volume tier: 5 pcs | Original: Scaled prices: 1/5/10/20 | Drawing: 90057637-00",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101251",
+        "name": "Halter",
+        "quantity": 10,
+        "notes": "🎯 Volume tier: 10 pcs | Original: Scaled prices: 1/5/10/20 | Drawing: 90057637-00",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101251",
+        "name": "Halter",
+        "quantity": 20,
+        "notes": "🎯 Volume tier: 20 pcs | Original: Scaled prices: 1/5/10/20 | Drawing: 90057637-00",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101263-01",
+        "name": "Halter",
+        "quantity": 1,
+        "notes": "🎯 Volume tier: 1 pc | Original: SCALED PRICES 1/5/10/20 | Drawing: 90057543-01",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101263-01",
+        "name": "Halter",
+        "quantity": 5,
+        "notes": "🎯 Volume tier: 5 pcs | Original: SCALED PRICES 1/5/10/20 | Drawing: 90057543-01",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101263-01",
+        "name": "Halter",
+        "quantity": 10,
+        "notes": "🎯 Volume tier: 10 pcs | Original: SCALED PRICES 1/5/10/20 | Drawing: 90057543-01",
+        "confidence": 0.98
+      },
+      {
+        "article_number": "byn-10101263-01",
+        "name": "Halter",
+        "quantity": 20,
+        "notes": "🎯 Volume tier: 20 pcs | Original: SCALED PRICES 1/5/10/20 | Drawing: 90057543-01",
+        "confidence": 0.98
+      }
+    ],
+    "customer_request_number": "P20971",
+    "valid_until": "2025-12-22",
+    "notes": "Incoterm: FCA | Payment: 10 days net"
+  },
+  "note": "This is EXPANDED version - 8 items (4 per part for volume tiers: 1/5/10/20)"
+}

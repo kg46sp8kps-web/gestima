@@ -5,59 +5,95 @@
     </h3>
 
     <form @submit.prevent="handleSubmit" class="form-container">
-      <!-- Two-column layout: LEFT (parser + summary) | RIGHT (manual input) -->
+      <!-- Two-column layout: LEFT (parser + stock) | RIGHT (summary) -->
       <div class="form-layout">
-        <!-- LEFT: Parser + Summary -->
+        <!-- LEFT: Parser + Stock placeholder -->
         <div class="form-left">
           <MaterialParserInput
             ref="parserRef"
             :disabled="saving"
+            :material-standard="recognizedMaterialStandard"
             @parsed="handleParsed"
           />
 
+          <!-- Stock placeholder (future) -->
+          <div class="stock-placeholder">
+            <div class="placeholder-icon">📦</div>
+            <div class="placeholder-text">
+              <div class="placeholder-title">Skladová zásoba</div>
+              <div class="placeholder-subtitle">Připravujeme...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Price calculations -->
+        <div class="form-right">
           <MaterialSummaryPanel
             :summary="summary"
             :all-tiers="priceTiers"
             :loading="calculatingSummary"
           />
         </div>
-
-        <!-- RIGHT: Manual input -->
-        <div class="form-right">
-          <MaterialDimensionsFields
-            v-model:shape="formData.stock_shape"
-            v-model:price-category-id="formData.price_category_id"
-            v-model:diameter="formData.stock_diameter"
-            v-model:width="formData.stock_width"
-            v-model:height="formData.stock_height"
-            v-model:wall-thickness="formData.stock_wall_thickness"
-            v-model:length="formData.stock_length"
-            :disabled="saving"
-          />
-        </div>
       </div>
 
       <!-- Actions -->
       <div class="form-actions">
-        <Button
-          variant="secondary"
+        <!-- Manual input button (left side) -->
+        <button
           type="button"
-          :disabled="saving"
-          @click="handleCancel"
+          class="icon-button"
+          @click="showManualModal = true"
+          title="Ruční zadání rozměrů"
         >
-          Zrušit
-        </Button>
+          <Edit3Icon :size="ICON_SIZE.STANDARD" />
+        </button>
 
-        <Button
-          variant="primary"
-          type="submit"
-          :loading="saving"
-          :disabled="!isFormValid || saving"
-        >
-          {{ isEditMode ? 'Uložit změny' : 'Vytvořit materiál' }}
-        </Button>
+        <div class="actions-right">
+          <button
+            type="button"
+            class="icon-button"
+            :disabled="saving"
+            @click="handleCancel"
+            title="Zrušit"
+          >
+            <XIcon :size="ICON_SIZE.STANDARD" />
+          </button>
+
+          <button
+            type="submit"
+            class="icon-button icon-button-primary"
+            :disabled="!isFormValid || saving"
+            title="Vytvořit materiál"
+          >
+            <CheckIcon :size="ICON_SIZE.STANDARD" />
+          </button>
+        </div>
       </div>
     </form>
+
+    <!-- Manual input modal -->
+    <Modal
+      v-model="showManualModal"
+      title="Ruční zadání rozměrů materiálu"
+      size="lg"
+    >
+      <MaterialDimensionsFields
+        v-model:shape="formData.stock_shape"
+        v-model:price-category-id="formData.price_category_id"
+        v-model:diameter="formData.stock_diameter"
+        v-model:width="formData.stock_width"
+        v-model:height="formData.stock_height"
+        v-model:wall-thickness="formData.stock_wall_thickness"
+        v-model:length="formData.stock_length"
+        :disabled="saving"
+      />
+      <template #footer>
+        <Button variant="secondary" @click="showManualModal = false">
+          <XIcon :size="ICON_SIZE.STANDARD" />
+          Zavřít
+        </Button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -72,6 +108,9 @@ import MaterialParserInput from './MaterialParserInput.vue'
 import MaterialDimensionsFields from './MaterialDimensionsFields.vue'
 import MaterialSummaryPanel from './MaterialSummaryPanel.vue'
 import Button from '@/components/ui/Button.vue'
+import Modal from '@/components/ui/Modal.vue'
+import { Check as CheckIcon, X as XIcon, Edit3 as Edit3Icon } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   materialInput?: MaterialInput | null
@@ -119,6 +158,8 @@ const saving = ref(false)
 const calculatingSummary = ref(false)
 const summary = ref<MaterialSummary | null>(null)
 const priceTiers = ref<MaterialPriceTier[]>([])
+const showManualModal = ref(false)
+const recognizedMaterialStandard = ref<string | null>(null)
 
 // Computed
 const isEditMode = computed(() => props.materialInput !== null)
@@ -180,6 +221,9 @@ function handleParsed(result: MaterialParseResult) {
   }
   if (result.suggested_price_category_id !== null) {
     formData.price_category_id = result.suggested_price_category_id
+  }
+  if (result.material_norm) {
+    recognizedMaterialStandard.value = result.material_norm
   }
 }
 
@@ -296,6 +340,10 @@ async function handleSubmit() {
       console.log('[MaterialInputForm] Creating material with payload:', payload)
       const created = await materialsStore.createMaterialInput(payload, null)
       emit('save', created)
+
+      // Clear parser and reset form after successful creation
+      parserRef.value?.clear()
+      initializeForm()
     }
   } catch (error: any) {
     // Log detailed validation error
@@ -312,6 +360,17 @@ async function handleSubmit() {
 function handleCancel() {
   emit('cancel')
 }
+
+// Watch for parser result changes - clear form when parser is cleared
+watch(() => materialsStore.parseResult, (newResult) => {
+  if (!newResult || !newResult.confidence || newResult.confidence < 0.4) {
+    // Parser cleared or low confidence - reset form data
+    initializeForm()
+    summary.value = null
+    priceTiers.value = []
+    recognizedMaterialStandard.value = null
+  }
+}, { deep: true })
 
 // Lifecycle
 onMounted(async () => {
@@ -339,9 +398,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-4);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
 }
 
 .form-title {
@@ -356,14 +412,14 @@ onMounted(async () => {
 .form-container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
 }
 
-/* Two-column layout: LEFT (parser + summary) | RIGHT (manual input) */
+/* Two-column layout: LEFT (parser + stock) | RIGHT (summary) */
 .form-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .form-left,
@@ -373,29 +429,36 @@ onMounted(async () => {
   gap: var(--space-4);
 }
 
-/* Divider */
-.divider {
-  position: relative;
-  text-align: center;
-  margin: var(--space-2) 0;
+/* Stock placeholder */
+.stock-placeholder {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  opacity: 0.6;
 }
 
-.divider::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--border-default);
+.placeholder-icon {
+  font-size: 24px;
+  flex-shrink: 0;
 }
 
-.divider span {
-  position: relative;
-  display: inline-block;
-  padding: 0 var(--space-3);
-  background: var(--bg-surface);
+.placeholder-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.placeholder-title {
   font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.placeholder-subtitle {
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   font-style: italic;
 }
@@ -403,9 +466,54 @@ onMounted(async () => {
 /* Actions */
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: var(--space-3);
-  padding-top: var(--space-4);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--border-default);
+}
+
+.actions-right {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* Icon buttons */
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+
+.icon-button:active:not(:disabled) {
+  background: var(--state-active);
+}
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-button-primary {
+  color: var(--color-primary);
+}
+
+.icon-button-primary:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
 }
 </style>

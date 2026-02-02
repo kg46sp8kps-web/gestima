@@ -153,10 +153,47 @@ export interface WidgetLayout {
   h: number
 
   /**
+   * Minimum width in grid columns
+   * @default undefined
+   */
+  minW?: number
+
+  /**
+   * Minimum height in grid rows
+   * @default undefined
+   */
+  minH?: number
+
+  /**
+   * Maximum width in grid columns
+   * @default undefined
+   */
+  maxW?: number
+
+  /**
+   * Maximum height in grid rows
+   * @default undefined
+   */
+  maxH?: number
+
+  /**
    * If true, widget cannot be moved or resized
    * @default false
    */
   static?: boolean
+
+  /**
+   * GridStack sizeToContent option
+   * - false/undefined: No auto-height (fixed height from h)
+   * - true: Auto-height to fit content (no limit)
+   * - number: Soft max height in rows (allows shrinking below)
+   *
+   * @example
+   * sizeToContent: 4  // Soft max 4 rows, allows shrinking to content
+   *
+   * @default undefined
+   */
+  sizeToContent?: boolean | number
 }
 
 /**
@@ -238,6 +275,48 @@ export interface ModuleLayoutConfig {
      */
     comfortable: WidgetLayout[]
   }
+
+  /**
+   * Recommended window properties (optional)
+   * Defines default window size when this module is opened
+   */
+  windowDefaults?: {
+    /**
+     * Default window width in pixels
+     * @default 800
+     */
+    width?: number
+
+    /**
+     * Default window height in pixels
+     * @default 600
+     */
+    height?: number
+
+    /**
+     * Minimum window width in pixels
+     * @default 400
+     */
+    minWidth?: number
+
+    /**
+     * Minimum window height in pixels
+     * @default 300
+     */
+    minHeight?: number
+
+    /**
+     * Default window title (can be overridden when opening)
+     */
+    title?: string
+  }
+
+  /**
+   * Custom widget properties (from Visual Editor)
+   * Stores styling, glue, tokens per widget
+   * Key: widgetId, Value: WidgetProperties
+   */
+  widgetProperties?: Record<string, any>
 }
 
 /**

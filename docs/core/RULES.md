@@ -111,7 +111,7 @@ export function useResizablePanel(options: {
 
 ---
 
-## 4 CRITICAL ANTI-PATTERNS
+## 6 CRITICAL ANTI-PATTERNS
 
 | ID | Pattern | Důsledek |
 |----|---------|----------|
@@ -119,6 +119,8 @@ export function useResizablePanel(options: {
 | L-008 | Chybí transaction | DB corruption |
 | L-015 | Validation walkaround | ADR violation |
 | L-036 | Fat component >500 LOC | Nereusable |
+| L-040 | Doc soubory v rootu | Bordel, nepřehlednost |
+| L-041 | Zanechané session notes | Duplicitní dokumentace |
 
 Full list: [reference/ANTI-PATTERNS.md](../reference/ANTI-PATTERNS.md)
 
@@ -159,5 +161,66 @@ python gestima.py seed-demo  # Reset DB + demo data
 
 ---
 
-**Version:** 5.0 (2026-01-31)
-**Lines:** 100
+## DOCUMENTATION PLACEMENT RULES
+
+### L-040: Documentation Placement (BLOCKING!)
+
+**Rule:** Root directory obsahuje POUZE:
+- README.md (project overview)
+- CLAUDE.md (AI rules)
+- CHANGELOG.md (version history)
+
+**ALL ostatní docs patří do `docs/`:**
+
+```
+✅ docs/ADR/NNN-decision-name.md        # Architecture decisions
+✅ docs/guides/FEATURE-GUIDE.md          # How-to guides
+✅ docs/audits/YYYY-MM-DD-audit.md       # Session notes, audits
+✅ docs/design/FEATURE-SPEC.md           # Design specifications
+✅ scripts/script_name.sh                # Shell scripts
+
+❌ FEATURE_SUMMARY.md                     # NIKDY v rootu!
+❌ IMPLEMENTATION_CHECKLIST.md            # NIKDY v rootu!
+❌ DEBUG_SOMETHING.sh                     # NIKDY v rootu!
+```
+
+**Porušení:** Violation code L-040
+
+---
+
+### L-041: Documentation Lifecycle (BLOCKING!)
+
+**Rule:** Session-based implementation notes NESMÍ zůstat v rootu.
+
+**Workflow:**
+1. Implementuješ feature → píšeš notes během práce (root je OK dočasně)
+2. Feature hotová → vytvoř ADR v `docs/ADR/`
+3. Session notes:
+   - **Historical value?** → přesuň do `docs/audits/YYYY-MM-DD-feature.md`
+   - **Duplicitní?** → smaž (ADR = single source of truth)
+4. NIKDY nenechávej implementation docs v rootu!
+
+**Pattern: Session-Based Documentation Dumping (ANTI-PATTERN!)**
+
+```
+❌ BAD:
+- Implementuješ feature
+- Vytvoříš 3-6 summary souborů v rootu
+- Feature skončí v ADR + CHANGELOG
+- Summary soubory zůstávají navždy
+- Repeat → bordel!
+
+✅ GOOD:
+- Implementuješ feature
+- Vytvoříš temporary notes v rootu (během práce)
+- Feature hotová → ADR + CHANGELOG
+- Temporary notes → přesuň do docs/audits/ (nebo smaž)
+- Root zůstane čistý!
+```
+
+**Porušení:** Violation code L-041
+
+---
+
+**Version:** 5.1 (2026-02-02)
+**Lines:** 220

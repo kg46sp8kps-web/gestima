@@ -44,6 +44,7 @@ Return ONLY valid JSON (no markdown, no explanations):
   "items": [
     {
       "article_number": "string (REQUIRED - part identifier - PRESERVE EXACTLY: all dashes, dots, spaces, case)",
+      "drawing_number": "string | null (drawing/výkres number if present - SEPARATE from article_number)",
       "name": "string (REQUIRED - part description/title)",
       "quantity": integer (REQUIRED - must be positive integer)",
       "notes": "string | null (technical specs, material codes, special requirements)",
@@ -209,27 +210,38 @@ RIGHT COLUMNS (rightmost 30%):
 → Quantities with units
 → Labels (ignore): "Qty", "Ks", "Pcs", "Units", "個", "数量"
 
-CRITICAL: DRAWING NUMBER EXTRACTION
+CRITICAL: ARTICLE NUMBER + DRAWING NUMBER EXTRACTION
 
-**PRIORITY 1: Look for explicit "Drawing:" labels** (HIGHEST)
+**PRIORITY 1: Article Number / Part Number / SKU** (HIGHEST - PRIMARY IDENTIFIER)
+- Labels: "Article:", "Article No.:", "Part No.:", "SKU:", "Artikl:", "Díl č.:", "部品番号:", "零件号:"
+- Format: [byn-10101251], ABC-123, Part-XYZ, 10101251
+- Position: Usually in LEFT columns or first column of table
+- Often in brackets, dashes, or standalone codes
+- Action: Extract as "article_number" → This is the PRIMARY identifier
+
+**PRIORITY 2: Drawing Number** (SEPARATE FIELD - always extract if present)
 - Labels: "Drawing:", "Drawing No.:", "Výkres:", "図面:", "图纸:"
 - Format: "Drawing: 90057637-00", "Výkres č. 123456"
-- Position: Usually BELOW part description in same row
-- Action: Extract number after "Drawing:" label → This is "article_number"
-
-**PRIORITY 2: Part numbers / SKUs** (FALLBACK only if no Drawing field)
-- Format: [byn-10101251], ABC-123, Part-XYZ
-- Often in brackets or dashes
-- Use ONLY if "Drawing:" field is missing
+- Position: Usually BELOW part description in same row OR in separate column
+- Action: Extract as SEPARATE "drawing_number" field (do NOT merge with article_number)
+- If found: Extract to "drawing_number" field
+- If not found: Leave "drawing_number" as null
 
 **EXTRACTION RULES:**
 
-1. **Article Number (Číslo výkresu) - CRITICAL**:
-   - IF "Drawing:" / "Výkres:" / "图纸:" exists → Extract that number (e.g., "90057637-00")
-   - IF no Drawing label → Use SKU/Part number (e.g., "[byn-10101251]")
-   - NEVER mix: Don't concatenate drawing + SKU
-   - Copy EXACTLY character-by-character: preserve dashes, dots, spaces, case
-   - Examples: "90057637-00", "965-621344", "ABC.123.XY"
+1. **Article Number (Artikl / Part Number) - CRITICAL PRIMARY IDENTIFIER**:
+   - FIRST: Look for "Article:", "Part No.:", "SKU:", "Artikl:" labels
+   - SECOND: Look for alphanumeric codes in brackets or with dashes ([byn-10101251], ABC-123)
+   - THIRD (FALLBACK): If Article/Part/SKU NOT found → Use "Drawing:" number AND add warning to notes
+   - Copy EXACTLY character-by-character: preserve dashes, dots, spaces, case, brackets
+   - Examples: "[byn-10101251]", "965-621344", "ABC.123.XY", "10101251"
+   - If using Drawing Number fallback: Add warning to notes field
+
+2. **Drawing Number - SEPARATE FIELD (always extract if present)**:
+   - Extract to "drawing_number" field (SEPARATE from article_number)
+   - Copy EXACTLY as written: "90057637-00", "ABC-123-REV-A"
+   - If both Article Number AND Drawing Number are present → Extract BOTH to separate fields
+   - If only Drawing Number found → Use it for article_number AND drawing_number with warning
 
 2. **Row-by-Row Processing**:
    - Each table ROW = one JSON item
@@ -311,7 +323,7 @@ RULE 7: ANTI-PATTERNS (CRITICAL MISTAKES TO AVOID)
 EXAMPLE OUTPUTS (showing variety of formats)
 ═══════════════════════════════════════════════════════════════════════════════
 
-EXAMPLE 1 - RFQ from International Buyer:
+EXAMPLE 1 - RFQ with Article Numbers (PRIMARY):
 {
   "customer": {
     "company_name": "GELSO AG",
@@ -322,8 +334,8 @@ EXAMPLE 1 - RFQ from International Buyer:
     "confidence": 0.95
   },
   "items": [
-    {"article_number": "90057637-00", "name": "Halter", "quantity": 1, "notes": "Scaled prices: 1/5/10/20, SKU: byn-10101251", "confidence": 0.98},
-    {"article_number": "90057543-01", "name": "Halter", "quantity": 1, "notes": "Scaled prices: 1/5/10/20, SKU: byn-10101263-01", "confidence": 0.98}
+    {"article_number": "byn-10101251", "name": "Halter", "quantity": 1, "notes": "Drawing: 90057637-00 | Scaled prices: 1/5/10/20", "confidence": 0.98},
+    {"article_number": "byn-10101263-01", "name": "Halter", "quantity": 1, "notes": "Drawing: 90057543-01 | Scaled prices: 1/5/10/20", "confidence": 0.98}
   ],
   "customer_request_number": "P20971",
   "valid_until": "2025-12-22",
@@ -348,7 +360,7 @@ EXAMPLE 2 - Asian Format (Chinese):
   "notes": null
 }
 
-EXAMPLE 3 - German Format:
+EXAMPLE 3 - German Format (Article Number primary):
 {
   "customer": {
     "company_name": "Maschinenbau Schmidt GmbH",
@@ -365,6 +377,24 @@ EXAMPLE 3 - German Format:
   "customer_request_number": "ANF-2026-042",
   "valid_until": "2026-03-15",
   "notes": "Liefertermin: 4 Wochen"
+}
+
+EXAMPLE 4 - Drawing Number Fallback (with warning):
+{
+  "customer": {
+    "company_name": "TechParts Ltd",
+    "contact_person": "John Smith",
+    "email": "j.smith@techparts.com",
+    "phone": "+44 20 1234 5678",
+    "ico": "GB123456789",
+    "confidence": 0.92
+  },
+  "items": [
+    {"article_number": "DWG-2026-001", "name": "Mounting Bracket", "quantity": 50, "notes": "⚠️ Parsed from Drawing Number (Article Number not found)", "confidence": 0.85}
+  ],
+  "customer_request_number": "RFQ-UK-2026-99",
+  "valid_until": "2026-04-01",
+  "notes": null
 }
 
 ═══════════════════════════════════════════════════════════════════════════════

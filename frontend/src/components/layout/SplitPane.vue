@@ -26,7 +26,7 @@
  * ```
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import { useResizeHandle } from '@/composables/useResizeHandle'
 import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
 
@@ -55,17 +55,25 @@ interface Props {
    * Maximum panel size in pixels
    */
   maxSize?: number
+
+  /**
+   * Layout orientation (vertical = left/right, horizontal = top/bottom)
+   */
+  orientation?: 'vertical' | 'horizontal'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   leftCollapsed: false,
   defaultSize: 320,
   minSize: 250,
-  maxSize: 1000
+  maxSize: 1000,
+  orientation: 'vertical'
 })
 
 // Layout mode (vertical = side-by-side, horizontal = stacked)
-const { layoutMode } = usePartLayoutSettings(props.storageKey)
+// Use prop if provided, otherwise fallback to stored settings
+const { layoutMode: storedLayoutMode } = usePartLayoutSettings(props.storageKey)
+const layoutMode = computed(() => props.orientation || storedLayoutMode.value)
 
 // Resize handle
 const { size: panelSize, isDragging, startResize } = useResizeHandle(
@@ -146,6 +154,10 @@ const leftPanelStyle = computed(() => {
   transition: width var(--transition-fast), height var(--transition-fast);
   display: flex;
   flex-direction: column;
+
+  /* 🎯 CONTAINER QUERIES - levý panel reaguje na vlastní šířku */
+  container-type: inline-size;
+  container-name: first-panel;
 }
 
 .layout-vertical .first-panel {
@@ -206,6 +218,10 @@ const leftPanelStyle = computed(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+
+  /* 🎯 CONTAINER QUERIES - pravý panel reaguje na vlastní šířku */
+  container-type: inline-size;
+  container-name: second-panel;
 }
 
 .layout-vertical .second-panel {

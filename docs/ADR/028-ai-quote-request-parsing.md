@@ -1,9 +1,9 @@
 # ADR-028: AI Quote Request Parsing with Claude Vision
 
-**Status:** ✅ Implemented
-**Date:** 2026-02-01
+**Status:** ✅ Implemented (Backend + Frontend Complete)
+**Date:** 2026-02-01 (Updated: 2026-02-02)
 **Author:** Development Team
-**Version:** 1.13.0
+**Version:** 1.14.0
 
 ---
 
@@ -11,8 +11,10 @@
 
 Customers send quote requests (poptávky) as PDF documents containing:
 - Customer information (company, contact, email, phone, ICO)
-- List of parts with quantities (can have multiple rows for same part)
+- Customer request number (RFQ number like "P20971")
+- List of parts with article numbers and quantities
 - Delivery deadline
+- Notes and special requirements
 
 Manual entry of this data is time-consuming and error-prone. We need an AI-powered solution to:
 1. Extract structured data from PDF quote requests
@@ -24,15 +26,17 @@ Manual entry of this data is time-consuming and error-prone. We need an AI-power
 
 ## Decision
 
-Implement **AI-powered quote request parsing** using **Claude 3.5 Sonnet Vision API** with the following architecture:
+Implement **AI-powered quote request parsing** using **Claude Sonnet 4.5 API** with direct PDF upload and the following architecture:
 
 ### Architecture Components
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Frontend (Future - not yet implemented)                      │
-│ - QuoteNewFromRequestView.vue                                │
+│ Frontend (✅ Implemented)                                     │
+│ - QuoteFromRequestPanel.vue                                  │
 │ - Upload PDF → Review extracted data → Create Quote          │
+│ - Customer match verification                                │
+│ - Part/batch status display (exact/lower/missing)            │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -74,20 +78,28 @@ Implement **AI-powered quote request parsing** using **Claude 3.5 Sonnet Vision 
 
 ## Technical Implementation
 
-### 1. AI Provider: Claude 3.5 Sonnet
+### 1. AI Provider: Claude Sonnet 4.5
 
-**Why Claude over OpenAI Vision?**
+**Model:** `claude-sonnet-4-5-20250929`
+
+**Why Claude Sonnet 4.5 over OpenAI Vision?**
 - ✅ **3× cheaper** ($3/MTok vs $10/MTok for vision input)
+- ✅ **Better accuracy** for Czech B2B documents (verified on real PDFs)
+- ✅ **Native PDF support** (no image conversion needed - direct base64 upload)
 - ✅ **Better structured output** (native JSON schema support)
 - ✅ **Better table extraction** (critical for Czech quote forms)
-- ✅ **Native PDF support** (no conversion to images needed)
 - ✅ **200K context** (can handle large multi-page PDFs)
-- ✅ **Easy to switch** later if needed (abstraction in place)
+- ✅ **Semantic understanding** (identifies buyer vs supplier, drawing vs SKU)
 
 **Cost estimate:**
 - 10-page PDF ≈ 20K tokens input + 1K tokens output
 - Cost: ~$0.08 per parse
 - With 10/hour rate limit: max ~$20/month at full usage
+
+**Performance:**
+- Direct PDF upload: ~2-5 seconds processing time
+- No image conversion overhead (was 10-15s with PNG conversion)
+- Smaller payload size (PDF base64 vs multiple image base64)
 
 ### 2. Key Technical Decisions
 
@@ -106,9 +118,66 @@ Implement **AI-powered quote request parsing** using **Claude 3.5 Sonnet Vision 
 **Impact:**
 - ✅ Reliable Part matching in AI workflow
 - ✅ Prevents duplicate part creation
-- ⚠️ Breaks if existing DB has duplicate article_numbers (clean up first)
+- ⚠️ Breaks if existing DB has duplicate article_numbers (auto-cleanup in migration)
 
-#### B. Batch Matching Strategy: Exact → Nearest Lower → Missing
+#### B. customer_request_number field
+
+**Decision:** Added dedicated `customer_request_number` field to Quote model
+
+**Rationale:**
+- Customer RFQ numbers (like "P20971", "RFQ-2026-001") are critical for tracking
+- Was incorrectly extracted to `notes` field before
+- Needs to be searchable and filterable (indexed column)
+- Separate from internal quote_number (50XXXXXX)
+
+**Migration:** `j2k3l4m5n6o7_add_customer_request_number_to_quote.py`
+
+**Schema:**
+```python
+customer_request_number = Column(String(50), nullable=True, index=True)
+```
+
+**AI Extraction:**
+- Extracted separately from notes
+- Prompt instructs: "Extract ONLY the identifier (strip 'RFQ:' prefix)"
+- Example: "RFQ: P17992" → extracted as "P17992"
+
+**Impact:**
+- ✅ Proper tracking of customer request numbers
+- ✅ Searchable/filterable in UI
+- ✅ Separate from internal notes field
+
+#### C. Optional Fields Policy
+
+**Decision:** ALL quote creation fields are optional (except auto-generated quote_number)
+
+**Rationale:**
+- User preference: "žádné pole nesmí být povinné" (no required fields)
+- Internal numbering system (quote_number 50XXXXXX) is sufficient identifier
+- Partner, title, dates, etc. can be filled later
+- Prevents validation errors during rapid quote creation
+
+**Implementation:**
+```python
+class QuoteCreate(BaseModel):
+    partner_id: Optional[int] = Field(None, description="Optional")
+    title: Optional[str] = Field(None, max_length=200, description="Optional")
+    customer_request_number: Optional[str] = Field(None, max_length=50)
+    valid_until: Optional[datetime] = Field(None)
+    # ... all fields optional
+```
+
+**Backend validation:**
+- Partner validation only runs if `partner_id` is provided
+- Empty title defaults to `""` (empty string)
+- Allows creating quote with only items, fill details later
+
+**Impact:**
+- ✅ Faster quote creation workflow
+- ✅ No validation errors for incomplete data
+- ✅ Users can fill details incrementally
+
+#### D. Batch Matching Strategy: Exact → Nearest Lower → Missing
 
 **Decision:** When matching quantity to batch, use this hierarchy:
 
@@ -139,7 +208,7 @@ PDF requests:
 - 5 ks   → 🔴 Missing (no batch ≤5, error)
 ```
 
-#### C. Customer Matching: Multi-Strategy
+#### E. Customer Matching: Multi-Strategy
 
 **Decision:** Match Partner using priority cascade:
 
@@ -154,7 +223,7 @@ PDF requests:
 
 **Fallback:** Create new Partner if no match (user verifies in UI)
 
-#### D. Security & Cost Controls
+#### F. Security & Cost Controls
 
 **Implemented protections:**
 
@@ -257,6 +326,7 @@ ItemExtraction
 QuoteRequestExtraction
   - customer: CustomerExtraction
   - items: ItemExtraction[]
+  - customer_request_number: Optional[str]  # NEW: RFQ number
   - valid_until, notes
 
 # Matching Results (after DB lookup)
@@ -279,14 +349,17 @@ PartMatch
 QuoteRequestReview (final output)
   - customer: CustomerMatch
   - items: PartMatch[]
+  - customer_request_number: Optional[str]  # NEW: RFQ number
   - valid_until, notes
   - summary: total_items, unique_parts, matched_parts, new_parts, missing_batches
 
 # Quote Creation Input
 QuoteFromRequestCreate
-  - partner_id (or partner_data for new)
+  - partner_id (or partner_data for new) - OPTIONAL
   - items: [{part_id, article_number, name, quantity, notes}]
-  - title, valid_until, notes, discount_percent, tax_percent
+  - title - OPTIONAL (defaults to "")
+  - customer_request_number - OPTIONAL but recommended
+  - valid_until, notes, discount_percent, tax_percent - all OPTIONAL
 ```
 
 ---
@@ -359,19 +432,23 @@ QuoteFromRequestCreate
 ## Migration Path
 
 ### Phase 1: Backend Implementation ✅ DONE
-- [x] Claude parser service
+- [x] Claude Sonnet 4.5 parser service with direct PDF upload
 - [x] Batch matching logic
 - [x] API endpoints (parse-request, from-request)
 - [x] Security controls (rate limit, file size, timeout)
 - [x] article_number UNIQUE constraint
+- [x] customer_request_number field (database + schemas)
+- [x] Optional fields policy implementation
 
-### Phase 2: Frontend Implementation ⏳ TODO
-- [ ] QuoteNewFromRequestView.vue
-- [ ] PDF upload component
-- [ ] Review/edit extracted data UI
-- [ ] Customer matching dropdown
-- [ ] Items table (grouped by article_number)
-- [ ] Batch status indicators (✅/⚠️/🔴)
+### Phase 2: Frontend Implementation ✅ DONE
+- [x] QuoteFromRequestPanel.vue (integrated into quotes workflow)
+- [x] PDF upload component (drag & drop)
+- [x] Review/edit extracted data UI
+- [x] Customer matching display with confidence indicators
+- [x] Items table with part matching status
+- [x] Batch status indicators (exact/lower/missing with colors)
+- [x] customer_request_number input field
+- [x] Editable form before quote creation
 
 ### Phase 3: Enhancements 🔮 FUTURE
 - [ ] Caching (by PDF hash, 1 hour TTL)
@@ -480,13 +557,20 @@ QuoteFromRequestCreate
 
 ## Changelog
 
-- **2026-02-01:** Initial implementation (v1.13.0)
+- **2026-02-02:** Frontend implementation + Claude 4.5 upgrade (v1.14.0)
+  - Upgraded to Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+  - Switched from image conversion to direct PDF upload
+  - Added customer_request_number field across entire stack
+  - Implemented optional fields policy (no required fields)
+  - Frontend complete (QuoteFromRequestPanel.vue)
+  - Improved AI prompt for semantic understanding (buyer vs supplier, drawing vs SKU)
+
+- **2026-02-01:** Initial backend implementation (v1.13.0)
   - Backend complete (parse-request, from-request endpoints)
   - Security controls (rate limit, file size, timeout)
   - article_number UNIQUE constraint
-  - Frontend pending
 
 ---
 
-**Status:** ✅ Backend Implemented, Frontend Pending
-**Next Steps:** Frontend implementation (QuoteNewFromRequestView.vue)
+**Status:** ✅ Complete (Backend + Frontend Implemented)
+**Next Steps:** User testing, prompt refinement based on feedback

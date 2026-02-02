@@ -19,6 +19,9 @@ const PartDrawingWindow = defineAsyncComponent(() => import('@/components/module
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
 const PartnersListModule = defineAsyncComponent(() => import('@/components/modules/PartnersListModule.vue'))
 const QuotesListModule = defineAsyncComponent(() => import('@/components/modules/QuotesListModule.vue'))
+const QuoteFromRequestModule = defineAsyncComponent(() => import('@/components/modules/QuoteFromRequestModule.vue'))
+const ManufacturingItemsModule = defineAsyncComponent(() => import('@/components/modules/manufacturing/ManufacturingItemsModule.vue'))
+const MaterialItemsListModule = defineAsyncComponent(() => import('@/components/modules/materials/MaterialItemsListModule.vue'))
 
 const store = useWindowsStore()
 
@@ -33,6 +36,9 @@ function getModuleComponent(module: string) {
     case 'batch-sets': return BatchSetsModule
     case 'partners-list': return PartnersListModule
     case 'quotes-list': return QuotesListModule
+    case 'quote-from-request': return QuoteFromRequestModule
+    case 'manufacturing-items': return ManufacturingItemsModule
+    case 'material-items-list': return MaterialItemsListModule
     default: return null
   }
 }

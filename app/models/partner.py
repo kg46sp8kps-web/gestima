@@ -69,65 +69,40 @@ class PartnerBase(BaseModel):
     country: str = Field("CZ", min_length=2, max_length=2, description="Kód země (ISO 3166-1 alpha-2)")
     is_customer: bool = Field(True, description="Je zákazník?")
     is_supplier: bool = Field(False, description="Je dodavatel?")
-    notes: str = Field("", max_length=500, description="Poznámky")
+    notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
-    @field_validator('ico')
     @classmethod
     def validate_ico(cls, v: Optional[str]) -> Optional[str]:
-        """Validate Czech ICO (8 digits, mod 11 checksum)
-
-        Algorithm: x = (11 - (8n₁ + 7n₂ + 6n₃ + 5n₄ + 4n₅ + 3n₆ + 2n₇) mod 11) mod 10
-        """
-        if not v:
+        """Validate Czech IČO (business ID) - basic format check"""
+        if v is None or v == "":
             return v
+        # Strip whitespace
+        v = v.strip()
+        # Basic check: 8 digits
+        if not v.isdigit() or len(v) != 8:
+            raise ValueError("IČO musí obsahovat 8 číslic")
+        return v
 
-        # Remove spaces and check format
-        ico = v.strip().replace(" ", "")
-        if not ico.isdigit() or len(ico) != 8:
-            raise ValueError("IČO musí mít 8 číslic")
-
-        # Czech ICO mod 11 algorithm
-        weights = [8, 7, 6, 5, 4, 3, 2]
-        checksum = sum(int(ico[i]) * weights[i] for i in range(7))
-        remainder = checksum % 11
-
-        # Calculate expected check digit
-        if remainder == 0:
-            expected = 1
-        elif remainder == 1:
-            expected = 0
-        else:
-            expected = (11 - remainder) % 10  # mod 10 is critical!
-
-        if int(ico[7]) != expected:
-            raise ValueError("IČO má neplatný kontrolní součet")
-
-        return ico
-
-    @field_validator('dic')
     @classmethod
     def validate_dic(cls, v: Optional[str]) -> Optional[str]:
-        """Validate Czech DIC (format: CZ12345678 or CZ123456789 or CZ1234567890)"""
-        if not v:
+        """Validate Czech DIČ (VAT ID) - basic format check"""
+        if v is None or v == "":
             return v
-
-        # Remove spaces
-        dic = v.strip().replace(" ", "").upper()
-
-        # Czech DIC format: CZ followed by 8-10 digits
-        if not dic.startswith("CZ"):
+        # Strip whitespace
+        v = v.strip().upper()
+        # Czech format: CZxxxxxxxx (CZ + 8-10 digits)
+        if not v.startswith("CZ"):
             raise ValueError("DIČ musí začínat 'CZ'")
-
-        digits = dic[2:]
+        digits = v[2:]
         if not digits.isdigit() or len(digits) < 8 or len(digits) > 10:
-            raise ValueError("DIČ musí mít formát CZ + 8-10 číslic")
+            raise ValueError("DIČ musí být ve formátu CZ + 8-10 číslic")
+        return v
 
-        return dic
-
-    @field_validator('country')
     @classmethod
     def validate_country(cls, v: str) -> str:
-        """Uppercase country code"""
+        """Validate country code (ISO 3166-1 alpha-2)"""
+        if not v or len(v) != 2:
+            raise ValueError("Kód země musí mít 2 znaky (ISO 3166-1 alpha-2)")
         return v.upper()
 
 

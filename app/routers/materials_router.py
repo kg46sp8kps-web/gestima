@@ -528,3 +528,359 @@ async def parse_material_description(
             confidence=0.0,
             matched_pattern="error"
         )
+
+
+# ========== CATALOG IMPORT ==========
+
+from pydantic import BaseModel
+
+class ImportPreviewResponse(BaseModel):
+    """Preview importu z katalogu"""
+    total_items: int
+    parseable_items: int
+    skipped_items: int
+    material_groups_needed: dict
+    price_categories_needed: dict
+    sample_items: List[dict]
+
+
+class ImportExecuteResponse(BaseModel):
+    """Výsledek importu"""
+    success: bool
+    groups_created: int
+    categories_created: int
+    items_created: int
+    items_skipped: int
+    message: str
+
+
+@router.post("/import/preview", response_model=ImportPreviewResponse)
+async def preview_catalog_import(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    Preview importu materiálového katalogu z Excel.
+
+    Načte parsed CSV data a vrátí statistiky bez zápisu do DB.
+    """
+    import pandas as pd
+    from pathlib import Path
+
+    PARSED_CSV = Path(__file__).parent.parent.parent / "temp" / "material_codes_preview.csv"
+    EXCEL_PATH = Path(__file__).parent.parent.parent / "data" / "materialy_export_import.xlsx"
+
+    if not PARSED_CSV.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Parsovaná data nenalezena. Spusťte nejdřív: python scripts/analyze_material_codes.py"
+        )
+
+    try:
+        # Load parsed data
+        df_parsed = pd.read_csv(PARSED_CSV)
+
+        # Load original Excel for skipped count
+        df_excel = pd.read_excel(EXCEL_PATH)
+        all_codes = set(df_excel['Pol.'].astype(str))
+        parsed_codes = set(df_parsed['raw_code'].astype(str))
+        skipped_codes = all_codes - parsed_codes
+
+        # Analyze MaterialGroups needed (simplified - import full logic from script)
+        from scripts.import_material_catalog import (
+            identify_material_group,
+            get_price_category_code,
+            correct_shape
+        )
+
+        material_groups_needed = {}
+        price_categories_needed = {}
+
+        for _, row in df_parsed.head(20).iterrows():  # Sample first 20
+            material_code = row['material']
+            shape = row['shape']
+            shape_code = row['shape_code']
+
+            corrected_shape = correct_shape(shape, shape_code)
+            group_info = identify_material_group(material_code)
+
+            if group_info:
+                code = group_info['code']
+                if code not in material_groups_needed:
+                    material_groups_needed[code] = group_info['name']
+
+                cat_code, cat_name = get_price_category_code(code, corrected_shape)
+                if cat_code not in price_categories_needed:
+                    price_categories_needed[cat_code] = cat_name
+
+        # Sample items
+        sample_items = []
+        for _, row in df_parsed.head(10).iterrows():
+            sample_items.append({
+                "code": row['raw_code'],
+                "material": row['material'],
+                "shape": row['shape'],
+                "diameter": float(row['diameter']) if pd.notna(row['diameter']) else None,
+                "width": float(row['width']) if pd.notna(row['width']) else None,
+            })
+
+        logger.info(
+            f"Import preview generated",
+            extra={
+                "user": current_user.username,
+                "parseable": len(df_parsed),
+                "skipped": len(skipped_codes)
+            }
+        )
+
+        return ImportPreviewResponse(
+            total_items=len(all_codes),
+            parseable_items=len(df_parsed),
+            skipped_items=len(skipped_codes),
+            material_groups_needed=material_groups_needed,
+            price_categories_needed=price_categories_needed,
+            sample_items=sample_items
+        )
+
+    except Exception as e:
+        logger.error(f"Import preview error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Chyba při načítání preview: {str(e)}")
+
+
+@router.post("/import/execute", response_model=ImportExecuteResponse)
+async def execute_catalog_import(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    Provede import materiálového katalogu do databáze.
+
+    DŮLEŽITÉ: Vytvoří MaterialGroups, PriceCategories a MaterialItems.
+    Price Tiers NEBUDOU vytvořeny - musí se nastavit manuálně!
+    """
+    import pandas as pd
+    from pathlib import Path
+    from scripts.import_material_catalog import (
+        identify_material_group,
+        get_price_category_code,
+        correct_shape,
+        get_tier_template,
+        MATERIAL_GROUPS
+    )
+    from app.models.enums import StockShape
+    import random
+
+    PARSED_CSV = Path(__file__).parent.parent.parent / "temp" / "material_codes_preview.csv"
+
+    if not PARSED_CSV.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Parsovaná data nenalezena"
+        )
+
+    try:
+        df_parsed = pd.read_csv(PARSED_CSV)
+
+        # Analyze what's needed
+        material_groups_needed = {}
+        price_categories_needed = {}
+
+        for _, row in df_parsed.iterrows():
+            material_code = row['material']
+            shape = row['shape']
+            shape_code = row['shape_code']
+
+            corrected_shape = correct_shape(shape, shape_code)
+            group_info = identify_material_group(material_code)
+
+            if group_info:
+                code = group_info['code']
+                if code not in material_groups_needed:
+                    material_groups_needed[code] = {
+                        'name': group_info['name'],
+                        'density': group_info['density']
+                    }
+
+                cat_code, cat_name = get_price_category_code(code, corrected_shape)
+                if cat_code not in price_categories_needed:
+                    price_categories_needed[cat_code] = {
+                        'name': cat_name,
+                        'material_group_code': code
+                    }
+
+        # Execute import
+        group_id_map = {}
+        category_id_map = {}
+        created_count = 0
+        skipped_count = 0
+
+        # Create MaterialGroups
+        for code, info in material_groups_needed.items():
+            result = await db.execute(
+                select(MaterialGroup).where(MaterialGroup.code == code)
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                group_id_map[code] = existing.id
+            else:
+                new_group = MaterialGroup(
+                    code=code,
+                    name=info['name'],
+                    density=info['density']
+                )
+                set_audit(new_group, current_user.username)
+                db.add(new_group)
+                await db.flush()
+                group_id_map[code] = new_group.id
+
+        await db.commit()
+
+        # Create PriceCategories + Tiers
+        tiers_created = 0
+        for code, info in price_categories_needed.items():
+            result = await db.execute(
+                select(MaterialPriceCategory).where(MaterialPriceCategory.code == code)
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                category_id_map[code] = existing.id
+            else:
+                material_group_code = info['material_group_code']
+                material_group_id = group_id_map.get(material_group_code)
+
+                new_category = MaterialPriceCategory(
+                    code=code,
+                    name=info['name'],
+                    material_group_id=material_group_id
+                )
+                set_audit(new_category, current_user.username)
+                db.add(new_category)
+                await db.flush()
+                category_id_map[code] = new_category.id
+
+                # Auto-create tiers from template
+                template_code = get_tier_template(code)
+                if template_code:
+                    template_result = await db.execute(
+                        select(MaterialPriceCategory).where(MaterialPriceCategory.code == template_code)
+                    )
+                    template_category = template_result.scalar_one_or_none()
+
+                    if template_category:
+                        tiers_result = await db.execute(
+                            select(MaterialPriceTier)
+                            .where(MaterialPriceTier.price_category_id == template_category.id)
+                            .order_by(MaterialPriceTier.min_weight)
+                        )
+                        template_tiers = tiers_result.scalars().all()
+
+                        for tier in template_tiers:
+                            new_tier = MaterialPriceTier(
+                                price_category_id=new_category.id,
+                                min_weight=tier.min_weight,
+                                max_weight=tier.max_weight,
+                                price_per_kg=round(tier.price_per_kg * 0.8, 1)
+                            )
+                            set_audit(new_tier, current_user.username)
+                            db.add(new_tier)
+                            tiers_created += 1
+
+        await db.commit()
+
+        # Create MaterialItems
+        for idx, row in df_parsed.iterrows():
+            material_code = row['material']
+            shape = row['shape']
+            shape_code = row['shape_code']
+            code = row['raw_code']
+
+            corrected_shape = correct_shape(shape, shape_code)
+            group_info = identify_material_group(material_code)
+
+            if not group_info:
+                skipped_count += 1
+                continue
+
+            material_group_id = group_id_map.get(group_info['code'])
+            cat_code, _ = get_price_category_code(group_info['code'], corrected_shape)
+            price_category_id = category_id_map.get(cat_code)
+
+            if not material_group_id or not price_category_id:
+                skipped_count += 1
+                continue
+
+            # Check if exists
+            result = await db.execute(
+                select(MaterialItem).where(MaterialItem.code == code)
+            )
+            if result.scalar_one_or_none():
+                skipped_count += 1
+                continue
+
+            # Generate unique material_number
+            material_number = f"20{random.randint(100000, 999999)}"
+            while True:
+                result = await db.execute(
+                    select(MaterialItem).where(MaterialItem.material_number == material_number)
+                )
+                if not result.scalar_one_or_none():
+                    break
+                material_number = f"20{random.randint(100000, 999999)}"
+
+            # Parse dimensions
+            diameter = float(row['diameter']) if pd.notna(row['diameter']) else None
+            width = float(row['width']) if pd.notna(row['width']) else None
+            thickness = float(row['thickness']) if pd.notna(row['thickness']) else None
+            wall_thickness = float(row['wall_thickness']) if pd.notna(row['wall_thickness']) else None
+
+            # Create item
+            new_item = MaterialItem(
+                material_number=material_number,
+                code=code,
+                name=f"{material_code} {code.split('-', 1)[1] if '-' in code else code}",
+                shape=StockShape[corrected_shape],
+                diameter=diameter,
+                width=width,
+                thickness=thickness,
+                wall_thickness=wall_thickness,
+                material_group_id=material_group_id,
+                price_category_id=price_category_id,
+                stock_available=0.0
+            )
+            set_audit(new_item, current_user.username)
+            db.add(new_item)
+            created_count += 1
+
+            if created_count % 100 == 0:
+                await db.flush()
+
+        await db.commit()
+        clear_cache()
+
+        logger.info(
+            f"Catalog import completed",
+            extra={
+                "user": current_user.username,
+                "groups": len(group_id_map),
+                "categories": len(category_id_map),
+                "items_created": created_count,
+                "items_skipped": skipped_count
+            }
+        )
+
+        tier_msg = f" Price Tiers: {tiers_created} vytvořeno (80% cena z template)." if tiers_created > 0 else " Price Tiers: nastavte manuálně!"
+        return ImportExecuteResponse(
+            success=True,
+            groups_created=len(group_id_map),
+            categories_created=len(category_id_map),
+            items_created=created_count,
+            items_skipped=skipped_count,
+            message=f"Import dokončen. Vytvořeno {created_count} položek.{tier_msg}"
+        )
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Import execution error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Chyba při importu: {str(e)}")

@@ -10,19 +10,23 @@
       />
     </div>
 
-    <!-- Confidence indicator under input -->
-    <div v-if="parseResult" class="confidence-indicator">
-      <span class="confidence-badge" :class="confidenceClass">
-        {{ (parseResult.confidence * 100).toFixed(0) }}% spolehlivost
-      </span>
-    </div>
-
     <!-- Parse result preview -->
     <div v-if="parseResult && parseResult.confidence >= 0.4" class="parse-preview">
       <div class="preview-header">
         <span class="preview-label">Rozpoznáno:</span>
+        <div class="confidence-bar">
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="confidence-segment"
+            :class="getSegmentClass(i)"
+          ></div>
+        </div>
       </div>
       <div class="preview-values">
+        <span v-if="parseResult.material_norm" class="preview-item">
+          W.Nr. {{ parseResult.material_norm }}
+        </span>
         <span v-if="parseResult.shape" class="preview-item">
           {{ formatShape(parseResult.shape) }}
         </span>
@@ -69,6 +73,7 @@ function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
 
 interface Props {
   disabled?: boolean
+  materialStandard?: string | null
 }
 
 interface Emits {
@@ -76,7 +81,8 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  disabled: false
+  disabled: false,
+  materialStandard: null
 })
 
 const emit = defineEmits<Emits>()
@@ -133,12 +139,33 @@ const debouncedParse = debounce(async () => {
 }, 500)
 
 // Watch text changes for real-time preview (NOT confirmation)
-watch(parserText, () => {
-  debouncedParse()
+watch(parserText, (newValue) => {
+  if (!newValue || newValue.trim() === '') {
+    // Clear everything when text is deleted
+    previewResult.value = null
+    materialsStore.clearParseResult()
+  } else {
+    debouncedParse()
+  }
 })
 
 function formatShape(shape: StockShape): string {
   return materialsStore.formatShape(shape)
+}
+
+// Confidence segment helper
+function getSegmentClass(segmentIndex: number): string {
+  if (!parseResult.value) return 'segment-inactive'
+
+  const confidence = parseResult.value.confidence
+  const segmentsToFill = Math.ceil(confidence * 3) // 0-3 segments filled
+
+  if (segmentIndex <= segmentsToFill) {
+    if (confidence >= 0.8) return 'segment-high'
+    if (confidence >= 0.6) return 'segment-medium'
+    return 'segment-low'
+  }
+  return 'segment-inactive'
 }
 
 // Expose for parent
@@ -163,20 +190,10 @@ defineExpose({
   width: 100%;
 }
 
-/* Confidence indicator under input */
-.confidence-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
 /* Parse preview */
 .parse-preview {
   padding: var(--space-3);
-  background: var(--palette-success-light);
-  border: 1px solid var(--palette-success);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
 }
 
@@ -193,27 +210,37 @@ defineExpose({
   color: var(--text-body);
 }
 
-.confidence-badge {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-mono);
+.confidence-bar {
+  display: flex;
+  gap: 2px;
+  width: 60px;
 }
 
-.confidence-high {
-  background: var(--palette-success);
-  color: white;
+.confidence-segment {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-default);
+  transition: all var(--transition-normal) var(--ease-out);
 }
 
-.confidence-medium {
-  background: var(--palette-warning);
-  color: white;
-}
-
-.confidence-low {
+.confidence-segment.segment-low {
   background: var(--palette-danger);
-  color: white;
+  box-shadow: 0 0 4px var(--palette-danger);
+}
+
+.confidence-segment.segment-medium {
+  background: var(--palette-warning);
+  box-shadow: 0 0 4px var(--palette-warning);
+}
+
+.confidence-segment.segment-high {
+  background: var(--palette-success);
+  box-shadow: 0 0 4px var(--palette-success);
+}
+
+.confidence-segment.segment-inactive {
+  background: var(--border-default);
 }
 
 .preview-values {
@@ -224,7 +251,6 @@ defineExpose({
 
 .preview-item {
   padding: var(--space-1) var(--space-2);
-  background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);

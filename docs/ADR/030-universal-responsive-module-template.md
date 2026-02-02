@@ -83,10 +83,11 @@ Users need:
 - Max-width constraint (1600px on ultrawide)
 
 ### 5. Grid Layout Library
-- **vue-responsive-grid-layout** (MIT license, free for commercial use)
-- Mature, battle-tested (used by Grafana, etc.)
-- +18KB gzipped (acceptable for 2,500 LOC savings)
-- Drag & drop, resize, responsive built-in
+- **gridstack.js** (MIT license, free for commercial use)
+- Enterprise-grade, battle-tested (8,700+ stars, used by Grafana, Kibana, etc.)
+- Framework-agnostic (Vue 3, React, Angular support)
+- Drag & drop, resize, responsive, nested grids built-in
+- TypeScript native with full type definitions
 
 ---
 
@@ -272,10 +273,11 @@ Using **container queries** for true component-level responsiveness:
 ### Negative ❌
 
 1. **Bundle Size Impact**
-   - +18KB for vue-grid-layout (gzipped)
+   - +30KB for gridstack.js (minified + CSS)
    - +5KB for new components
-   - Total: +23KB (~5% increase)
-   - **Mitigation:** Lazy-load grid library, tree-shake unused widgets
+   - Total: +35KB (~7% increase)
+   - **Mitigation:** Lazy-load grid library via dynamic import, tree-shake unused widgets
+   - **Trade-off:** Enterprise-grade reliability (8.7k⭐) worth the extra 12KB
 
 2. **Migration Effort**
    - 5 weeks implementation timeline
@@ -531,7 +533,7 @@ find frontend/src/components/modules -name "*Panel.vue" -exec wc -l {} + | awk '
 - **Widget API:** [docs/reference/WIDGET-API.md](../reference/WIDGET-API.md)
 - **Related ADR:** [ADR-025: Workspace Layout System](025-workspace-layout-system.md)
 - **Related ADR:** [ADR-026: Universal Module Pattern](026-universal-module-pattern.md)
-- **Library:** [vue-responsive-grid-layout](https://github.com/gwinnem/vue-responsive-grid-layout) (MIT License)
+- **Library:** [gridstack.js](https://github.com/gridstack/gridstack.js) (MIT License, 8.7k⭐)
 
 ---
 
@@ -559,7 +561,7 @@ find frontend/src/components/modules -name "*Panel.vue" -exec wc -l {} + | awk '
 
 ---
 
-### Why vue-grid-layout Instead of Custom?
+### Why gridstack.js Instead of Custom?
 
 **Custom implementation:**
 - 3-4 weeks development
@@ -567,14 +569,16 @@ find frontend/src/components/modules -name "*Panel.vue" -exec wc -l {} + | awk '
 - Bug-prone (collision detection, snap, etc.)
 - Need to maintain forever
 
-**vue-grid-layout:**
+**gridstack.js:**
 - MIT license (free, commercial use OK)
-- Battle-tested (used by Grafana, etc.)
-- 18KB gzipped
-- Maintained by community
+- **8,700+ stars** (enterprise-proven, used by Grafana, Kibana, etc.)
+- 30KB minified (includes CSS)
+- **Framework-agnostic** (works with Vue 2, Vue 3, React, Angular)
+- TypeScript native with full type definitions
+- Active maintenance (11+ years, latest release Dec 2025)
 - Zero bugs (already solved)
 
-**ROI:** Saves 3-4 weeks development time, 18KB bundle cost is acceptable for 2,500 LOC savings.
+**ROI:** Saves 3-4 weeks development time + gets enterprise-grade reliability. 30KB bundle cost is acceptable for 2,500 LOC savings + long-term maintainability.
 
 ---
 
@@ -601,6 +605,18 @@ if (settings.advancedCustomization) {
 
 ---
 
-**Version:** 1.0
+---
+
+## Update: Hybrid Layout Solution (2026-02-02)
+
+**Problem Discovered:** GridStack.js does NOT support vertical fill behavior (fixed-height rows only).
+
+**Solution:** Hybrid approach - use Flexbox for vertical stacking, GridStack for horizontal layouts.
+
+**See:** [docs/guides/HYBRID-LAYOUT-SOLUTION.md](../guides/HYBRID-LAYOUT-SOLUTION.md) for simple implementation guide.
+
+---
+
+**Version:** 1.1
 **Last Updated:** 2026-02-02
 **Status:** ✅ Accepted - Implementation in progress

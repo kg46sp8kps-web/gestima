@@ -32,6 +32,7 @@ class CustomerExtraction(BaseModel):
 class ItemExtraction(BaseModel):
     """Single item (part + quantity) extracted from PDF"""
     article_number: str = Field(..., min_length=1, max_length=50, description="Číslo výkresu/article number")
+    drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu (Drawing Number)")
     name: str = Field(..., min_length=1, max_length=200, description="Název dílu")
     quantity: int = Field(..., gt=0, description="Množství kusů")
     notes: Optional[str] = Field(None, description="Poznámky k položce")
@@ -128,8 +129,9 @@ class PartnerCreateData(BaseModel):
 class QuoteFromRequestItem(BaseModel):
     """Item for creating quote from request"""
     part_id: Optional[int] = Field(None, description="Existing part ID or None (will create)")
-    article_number: str = Field(..., description="Article number for new part creation")
-    name: str = Field(..., description="Name for new part creation")
+    article_number: str = Field(..., min_length=1, max_length=50, description="Article number for new part creation")
+    drawing_number: Optional[str] = Field(None, max_length=50, description="Drawing number for new part creation")
+    name: str = Field(..., min_length=1, max_length=200, description="Name for new part creation")
     quantity: int = Field(..., gt=0)
     notes: Optional[str] = None
 

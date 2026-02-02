@@ -183,7 +183,26 @@ async def get_parts(
         .offset(skip)
         .limit(limit)
     )
-    return result.scalars().all()
+    parts = result.scalars().all()
+
+    # Get creator usernames for all parts
+    creator_usernames = {p.created_by for p in parts if p.created_by}
+    if creator_usernames:
+        users_result = await db.execute(
+            select(User).where(User.username.in_(creator_usernames))
+        )
+        users_map = {u.username: u.username for u in users_result.scalars().all()}
+    else:
+        users_map = {}
+
+    # Build response with created_by_name
+    response = []
+    for part in parts:
+        part_dict = PartResponse.model_validate(part).model_dump()
+        part_dict['created_by_name'] = users_map.get(part.created_by) if part.created_by else None
+        response.append(PartResponse(**part_dict))
+
+    return response
 
 
 @router.get("/search")
@@ -225,8 +244,22 @@ async def search_parts(
     result = await db.execute(query)
     parts = result.scalars().all()
 
-    # Convert to Pydantic models for proper JSON serialization
-    parts_response = [PartResponse.model_validate(part) for part in parts]
+    # Get creator usernames for all parts
+    creator_usernames = {p.created_by for p in parts if p.created_by}
+    if creator_usernames:
+        users_result = await db.execute(
+            select(User).where(User.username.in_(creator_usernames))
+        )
+        users_map = {u.username: u.username for u in users_result.scalars().all()}
+    else:
+        users_map = {}
+
+    # Convert to Pydantic models with created_by_name
+    parts_response = []
+    for part in parts:
+        part_dict = PartResponse.model_validate(part).model_dump()
+        part_dict['created_by_name'] = users_map.get(part.created_by) if part.created_by else None
+        parts_response.append(PartResponse(**part_dict))
 
     return {
         "parts": parts_response,

@@ -8,6 +8,10 @@
  *   PUT    /api/operations/{id}            - Update operation
  *   DELETE /api/operations/{id}            - Delete operation
  *   POST   /api/operations/{id}/change-mode - Change cutting mode
+ *
+ * ADR-024: M:N linking endpoints (operation ↔ material)
+ *   POST   /api/operations/{id}/link-material/{material_id}   - Link material to operation
+ *   DELETE /api/operations/{id}/unlink-material/{material_id} - Unlink material from operation
  */
 
 import { apiClient } from './client'
@@ -20,6 +24,7 @@ import type {
   WorkCenterCreate,
   WorkCenterUpdate
 } from '@/types'
+import type { MaterialInput } from '@/types/material'
 
 export const operationsApi = {
   /**
@@ -70,6 +75,31 @@ export const operationsApi = {
       request
     )
     return data
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // M:N Linking (Operation ↔ MaterialInput) - ADR-024
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Link material to operation (M:N relationship)
+   * @param consumedQuantity Optional: how much of this material is consumed in this operation
+   */
+  async linkMaterial(
+    operationId: number,
+    materialId: number,
+    consumedQuantity?: number
+  ): Promise<void> {
+    await apiClient.post(`/operations/${operationId}/link-material/${materialId}`, {
+      consumed_quantity: consumedQuantity
+    })
+  },
+
+  /**
+   * Unlink material from operation
+   */
+  async unlinkMaterial(operationId: number, materialId: number): Promise<void> {
+    await apiClient.delete(`/operations/${operationId}/unlink-material/${materialId}`)
   }
 }
 

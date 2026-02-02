@@ -127,7 +127,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 <template>
   <div class="split-layout">
     <!-- LEFT PANEL: Only visible when standalone (not linked) -->
-    <div v-if="!isLinked" class="left-panel" :style="{ width: `${panelWidth}px` }">
+    <div v-if="!linkingGroup" class="left-panel" :style="{ width: `${panelWidth}px` }">
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
@@ -137,18 +137,32 @@ watch(() => props.partNumber, (newPartNumber) => {
 
     <!-- RESIZE HANDLE: Only visible when left panel is shown -->
     <div
-      v-if="!isLinked"
+      v-if="!linkingGroup"
       class="resize-handle"
       :class="{ dragging: isDragging }"
       @mousedown="startResize"
     ></div>
 
     <!-- RIGHT PANEL: Header + Detail (full width when linked) -->
-    <div class="right-panel" :class="{ 'full-width': isLinked }">
+    <div class="right-panel" :class="{ 'full-width': linkingGroup }">
+      <!-- CONTEXT INFO RIBBON (when linked) -->
+      <div v-if="linkingGroup && selectedPart" class="context-ribbon">
+        <span class="context-label">Operace</span>
+        <span class="context-divider">|</span>
+        <span class="context-value">{{ selectedPart.part_number }}</span>
+        <span class="context-divider">|</span>
+        <span class="context-value">{{ selectedPart.article_number || '-' }}</span>
+        <span class="context-divider">|</span>
+        <span class="context-value">{{ selectedPart.name || '-' }}</span>
+      </div>
+
+      <!-- OPERATIONS HEADER (when standalone) -->
       <OperationsHeader
+        v-if="!linkingGroup"
         :part="selectedPart"
         :operationsCount="operationsCount"
       />
+
       <OperationsDetailPanel
         ref="detailPanelRef"
         :partId="currentPartId"
@@ -209,9 +223,41 @@ watch(() => props.partNumber, (newPartNumber) => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: right-panel;
 }
 
 .right-panel.full-width {
   width: 100%;
+}
+
+/* === CONTEXT INFO RIBBON === */
+.context-ribbon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.context-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-divider {
+  color: var(--border-default);
+  font-weight: 300;
+}
+
+.context-value {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
 }
 </style>

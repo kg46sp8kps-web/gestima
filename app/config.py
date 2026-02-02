@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     BACKUP_COMPRESS: bool = True  # Komprimovat gzip
 
     # AI Services
-    OPENAI_API_KEY: str = ""  # OpenAI API key for quote request parsing (GPT-4 Vision)
+    ANTHROPIC_API_KEY: str = ""  # Anthropic API key for quote request parsing (Claude Sonnet 4.5)
     AI_RATE_LIMIT: str = "10/hour"  # AI parsing rate limit (cost control)
 
     # Rate limiting

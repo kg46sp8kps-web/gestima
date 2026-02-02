@@ -12,6 +12,8 @@ import { useWindowContextStore } from '@/stores/windowContext'
 import { useMaterialsStore } from '@/stores/materials'
 import { useOperationsStore } from '@/stores/operations'
 import { useResizablePanel } from '@/composables/useResizablePanel'
+import { operationsApi } from '@/api/operations'
+import { linkMaterialToOperation, unlinkMaterialFromOperation } from '@/api/materialInputs'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
 import type { MaterialInput, MaterialInputWithOperations } from '@/types/material'
@@ -151,6 +153,34 @@ function handleUpdate(materialId: number, updates: Partial<MaterialInput>) {
   debounceTimers.set(materialId, timer)
 }
 
+async function handleLinkOperation(materialId: number, operationId: number) {
+  try {
+    // Use material-side API endpoint (either works, but for consistency use material-side)
+    await linkMaterialToOperation(materialId, operationId)
+
+    // Reload materials to reflect the new link
+    if (currentPartId.value) {
+      await materialsStore.loadMaterialInputs(currentPartId.value, props.linkingGroup)
+    }
+  } catch (error) {
+    console.error('Failed to link operation to material:', error)
+  }
+}
+
+async function handleUnlinkOperation(materialId: number, operationId: number) {
+  try {
+    // Use material-side API endpoint
+    await unlinkMaterialFromOperation(materialId, operationId)
+
+    // Reload materials to reflect the unlink
+    if (currentPartId.value) {
+      await materialsStore.loadMaterialInputs(currentPartId.value, props.linkingGroup)
+    }
+  } catch (error) {
+    console.error('Failed to unlink operation from material:', error)
+  }
+}
+
 async function handleDelete(materialId: number) {
   try {
     await materialsStore.deleteMaterialInput(materialId, props.linkingGroup)
@@ -230,7 +260,7 @@ watch(currentPartId, async (newPartId) => {
 <template>
   <div class="split-layout">
     <!-- LEFT PANEL: Only visible when standalone (not linked) -->
-    <div v-if="!isLinked" class="left-panel" :style="{ width: `${panelWidth}px` }">
+    <div v-if="!linkingGroup" class="left-panel" :style="{ width: `${panelWidth}px` }">
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
@@ -240,14 +270,25 @@ watch(currentPartId, async (newPartId) => {
 
     <!-- RESIZE HANDLE: Only visible when left panel is shown -->
     <div
-      v-if="!isLinked"
+      v-if="!linkingGroup"
       class="resize-handle"
       :class="{ dragging: isDragging }"
       @mousedown="startResize"
     ></div>
 
     <!-- RIGHT PANEL: Horizontal split (full width when linked) -->
-    <div class="right-panel" :class="{ 'full-width': isLinked }">
+    <div class="right-panel" :class="{ 'full-width': linkingGroup }">
+      <!-- CONTEXT INFO RIBBON (when linked) -->
+      <div v-if="linkingGroup && selectedPart" class="context-ribbon">
+        <span class="context-label">Materiál</span>
+        <span class="context-divider">|</span>
+        <span class="context-value">{{ selectedPart.part_number }}</span>
+        <span class="context-divider">|</span>
+        <span class="context-value">{{ selectedPart.article_number || '-' }}</span>
+        <span class="context-divider">|</span>
+        <span class="context-value">{{ selectedPart.name || '-' }}</span>
+      </div>
+
       <!-- TOP SECTION: Material Input Form -->
       <div class="material-form-section">
         <div v-if="!currentPartId" class="no-part-selected">
@@ -270,11 +311,14 @@ watch(currentPartId, async (newPartId) => {
       <div class="material-list-section">
         <MaterialInputList
           :materials="materialInputs"
+          :operations="operations"
           :editing-material-id="editingMaterial?.id || null"
           :loading="loading"
           @edit="handleEdit"
           @update="handleUpdate"
           @delete="handleDelete"
+          @link-operation="handleLinkOperation"
+          @unlink-operation="handleUnlinkOperation"
         />
       </div>
     </div>
@@ -332,20 +376,50 @@ watch(currentPartId, async (newPartId) => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: right-panel;
 }
 
 .right-panel.full-width {
   width: 100%;
 }
 
+/* === CONTEXT INFO RIBBON === */
+.context-ribbon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.context-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-divider {
+  color: var(--border-default);
+  font-weight: 300;
+}
+
+.context-value {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 /* === MATERIAL FORM SECTION (TOP) === */
 .material-form-section {
   flex-shrink: 0;
-  min-height: 400px;
-  max-height: 60%;
   overflow-y: auto;
   padding: var(--space-4);
-  background: var(--bg-base);
+  padding-bottom: 0;
 }
 
 .no-part-selected {
@@ -378,6 +452,5 @@ watch(currentPartId, async (newPartId) => {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-4);
-  background: var(--bg-base);
 }
 </style>

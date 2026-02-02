@@ -208,11 +208,11 @@ function formatCurrency(value: number): string {
 .quote-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: 2px solid var(--border-color);
   background: var(--bg-surface);
-  min-height: 180px;
+  flex-shrink: 0;
 }
 
 .quote-info {
@@ -231,8 +231,8 @@ function formatCurrency(value: number): string {
 
 .quote-main h2 {
   margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
   color: var(--text-primary);
   flex: 1;
 }
@@ -245,22 +245,22 @@ function formatCurrency(value: number): string {
 }
 
 .quote-number-badge {
-  padding: var(--space-1) var(--space-3);
-  background: var(--palette-primary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
   color: white;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-semibold);
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-semibold);
 }
 
 .status-badge.status-draft {
@@ -287,10 +287,10 @@ function formatCurrency(value: number): string {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
   background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .partner-label {
@@ -314,10 +314,10 @@ function formatCurrency(value: number): string {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-4);
   background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-color);
 }
 
 .total-item {
@@ -363,13 +363,13 @@ function formatCurrency(value: number): string {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all var(--duration-normal);
 }
 
 .btn-workflow:disabled {
@@ -378,49 +378,61 @@ function formatCurrency(value: number): string {
 }
 
 .btn-send {
-  background: var(--palette-info, #3b82f6);
+  background: var(--color-info);
   color: white;
 }
 
 .btn-send:hover:not(:disabled) {
-  background: var(--palette-info-hover, #2563eb);
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-approve {
-  background: var(--palette-success, #10b981);
+  background: var(--color-success);
   color: white;
 }
 
 .btn-approve:hover:not(:disabled) {
-  background: var(--palette-success-hover, #059669);
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-reject {
-  background: var(--palette-danger, #ef4444);
+  background: var(--color-danger);
   color: white;
 }
 
 .btn-reject:hover:not(:disabled) {
-  background: var(--palette-danger-hover, #dc2626);
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-clone {
-  background: var(--palette-secondary, #8b5cf6);
-  color: white;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
 }
 
 .btn-clone:hover:not(:disabled) {
-  background: var(--palette-secondary-hover, #7c3aed);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-delete {
-  background: var(--palette-danger-light, rgba(244, 63, 94, 0.15));
-  color: var(--palette-danger, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
 }
 
 .btn-delete:hover:not(:disabled) {
-  background: var(--palette-danger, #ef4444);
+  background: var(--color-danger);
   color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .empty-state {

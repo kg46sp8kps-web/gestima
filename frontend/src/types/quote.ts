@@ -141,6 +141,7 @@ export interface CustomerExtraction {
  */
 export interface ItemExtraction {
   article_number: string
+  drawing_number?: string | null
   name: string
   quantity: number
   notes: string | null
@@ -248,6 +249,7 @@ export interface QuoteFromRequestItem {
 
   // If part doesn't exist (AI will create it)
   article_number: string
+  drawing_number?: string | null
   name: string
 
   // Common fields

@@ -22,10 +22,11 @@ from app.rate_limiter import limiter
 from app.config import settings
 from app.models.quote import (
     Quote, QuoteCreate, QuoteUpdate, QuoteResponse,
-    QuoteWithItemsResponse, QuoteListResponse
+    QuoteWithItemsResponse, QuoteListResponse, QuoteItem
 )
 from app.models.partner import Partner
 from app.models.enums import QuoteStatus
+from app.schemas.quote_request import QuoteFromRequestCreate
 from app.services.number_generator import NumberGenerator
 from app.services.quote_service import QuoteService
 
@@ -488,6 +489,17 @@ async def parse_quote_request_pdf(
             f"items={len(extraction.items)}"
         )
 
+        # Expand scaled prices (1/5/10/20) → multiple items
+        from app.services.scaled_prices_expander import expand_all_items
+        original_item_count = len(extraction.items)
+        extraction.items = expand_all_items(extraction.items)
+
+        if len(extraction.items) > original_item_count:
+            logger.info(
+                f"Scaled prices expansion: {original_item_count} items → "
+                f"{len(extraction.items)} items"
+            )
+
         # Match customer (Partner)
         customer_match = await _match_customer(extraction.customer, db)
 
@@ -662,7 +674,7 @@ async def _match_customer(
 
 @router.post("/from-request", response_model=QuoteResponse)
 async def create_quote_from_request(
-    data: "QuoteFromRequestCreate",
+    data: QuoteFromRequestCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -679,7 +691,6 @@ async def create_quote_from_request(
     Returns:
         Created Quote
     """
-    from app.schemas.quote_request import QuoteFromRequestCreate
     from app.services.number_generator import NumberGenerator
     from app.models.part import Part, PartCreate
     from app.models.partner import Partner, PartnerCreate
@@ -714,27 +725,77 @@ async def create_quote_from_request(
             detail="partner_id or partner_data required"
         )
 
-    # 2. Create missing Parts
+    # 2. Create missing Parts (deduplicate by article_number)
+    # Group items by article_number to avoid creating duplicate parts
+    article_to_part_id = {}  # article_number -> part_id mapping
+
     for item in data.items:
         if not item.part_id:
-            # Create new part
-            part_number = await NumberGenerator.generate_part_number(db)
+            # Check if we already created a part for this article_number
+            if item.article_number in article_to_part_id:
+                # Reuse existing part_id
+                item.part_id = article_to_part_id[item.article_number]
+                logger.debug(
+                    f"Reusing existing part for article_number: {item.article_number} "
+                    f"(part_id={item.part_id})"
+                )
+            else:
+                # Create new part (first occurrence of this article_number)
+                part_number = await NumberGenerator.generate_part_number(db)
 
-            new_part = Part(
-                part_number=part_number,
-                article_number=item.article_number,
-                name=item.name,
-                revision="A",
-                status="draft",
-                created_by=current_user.username,
-                updated_by=current_user.username
-            )
-            db.add(new_part)
-            await db.flush()
+                # Normalize article_number - strip customer prefix (byn-, trgcz-, etc.)
+                from app.services.article_number_matcher import ArticleNumberMatcher
+                normalized = ArticleNumberMatcher.normalize(item.article_number)
+                clean_article_number = normalized.base  # Without prefix AND revision
+                customer_revision = normalized.revision  # e.g., "00" from "90057637-00"
 
-            # Update item with new part_id
-            item.part_id = new_part.id
-            logger.info(f"Created new part: {part_number} - {item.article_number}")
+                logger.debug(
+                    f"Normalizing article_number: '{item.article_number}' → '{clean_article_number}' "
+                    f"(prefix={normalized.prefix}, revision={customer_revision})"
+                )
+
+                new_part = Part(
+                    part_number=part_number,
+                    article_number=clean_article_number,  # Save WITHOUT prefix/revision
+                    drawing_number=item.drawing_number or clean_article_number,  # Fallback to article if no drawing
+                    customer_revision=customer_revision,  # Save extracted revision (00, 01, etc.)
+                    name=item.name,
+                    revision=None,  # Internal revision is optional
+                    status="draft",
+                    created_by=current_user.username,
+                    updated_by=current_user.username
+                )
+                db.add(new_part)
+                await db.flush()
+
+                # Create empty batches for standard quantities [1, 10, 50, 100, 500]
+                from app.models.batch import Batch
+                from app.services.number_generator import NumberGenerator
+
+                default_quantities = [1, 10, 50, 100, 500]
+                for qty in default_quantities:
+                    batch_number = await NumberGenerator.generate_batch_number(db)
+                    new_batch = Batch(
+                        batch_number=batch_number,
+                        part_id=new_part.id,
+                        quantity=qty,
+                        is_default=(qty == 1),  # First batch is default
+                        created_by=current_user.username,
+                        updated_by=current_user.username
+                    )
+                    db.add(new_batch)
+                    logger.debug(f"Created empty batch {batch_number} for quantity={qty}")
+
+                await db.flush()
+                logger.info(f"Created {len(default_quantities)} empty batches for part {part_number}")
+
+                # Store mapping and update item
+                article_to_part_id[item.article_number] = new_part.id
+                item.part_id = new_part.id
+                logger.info(
+                    f"Created new part: {part_number} - {clean_article_number} "
+                    f"(drawing={new_part.drawing_number}, customer_rev={customer_revision})"
+                )
 
     # 3. Create Quote
     quote_number = await NumberGenerator.generate_quote_number(db)
@@ -777,6 +838,14 @@ async def create_quote_from_request(
 
         # Denormalize part fields
         part = await db.get(Part, item.part_id) if item.part_id else None
+
+        # VALIDATION: If part_id is set, Part MUST exist
+        if item.part_id and not part:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Part with id={item.part_id} not found (article: {item.article_number})"
+            )
+
         part_number = part.part_number if part else None
         part_name = part.name if part else item.name
 

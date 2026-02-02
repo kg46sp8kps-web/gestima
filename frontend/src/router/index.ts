@@ -33,16 +33,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Demo - CustomizableModule Template Demo
-  {
-    path: '/demo',
-    name: 'demo',
-    component: () => import('@/components/modules/DemoModule.vue'),
-    meta: {
-      title: 'CustomizableModule Demo'
-    }
-  },
-
   // Work Centers (Admin only - accessed via /admin/master-data)
   {
     path: '/admin/work-centers/new',

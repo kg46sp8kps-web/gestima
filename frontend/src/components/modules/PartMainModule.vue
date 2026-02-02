@@ -6,11 +6,12 @@
  * RIGHT: Empty / PartDetailPanel / PartCreateForm
  */
 
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useWindowsStore } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
+import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
 import { getPart } from '@/api/parts'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
@@ -42,13 +43,73 @@ const selectedPart = ref<Part | null>(null)
 const isCreating = ref(false)
 const listPanelRef = ref<InstanceType<typeof PartListPanel> | null>(null)
 
-// Resizable panel (PartMainModule always shows left panel - no linking)
-const { panelWidth, isDragging, startResize } = useResizablePanel({
-  storageKey: 'partMainPanelWidth',
-  defaultWidth: 320,
-  minWidth: 250,
-  maxWidth: 1000
+// Layout settings
+const { layoutMode } = usePartLayoutSettings('part-main')
+
+// Panel size state
+const panelSize = ref(320) // Can be width (horizontal) or height (vertical)
+const isDragging = ref(false)
+
+// Load panel size from localStorage
+onMounted(() => {
+  const stored = localStorage.getItem('partMainPanelSize')
+  if (stored) {
+    const size = parseInt(stored, 10)
+    if (!isNaN(size) && size >= 250 && size <= 1000) {
+      panelSize.value = size
+    }
+  }
 })
+
+// Custom resize handler that works for both horizontal and vertical
+function startResize(event: MouseEvent) {
+  event.preventDefault()
+  isDragging.value = true
+
+  const isVertical = layoutMode.value === 'vertical'
+  const startPos = isVertical ? event.clientX : event.clientY
+  const startSize = panelSize.value
+
+  // Disable text selection during drag
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = isVertical ? 'col-resize' : 'row-resize'
+
+  function onMouseMove(e: MouseEvent) {
+    const currentPos = isVertical ? e.clientX : e.clientY
+    const delta = currentPos - startPos
+    const newSize = Math.max(250, Math.min(1000, startSize + delta))
+    panelSize.value = newSize
+  }
+
+  function onMouseUp() {
+    isDragging.value = false
+
+    // Re-enable text selection
+    document.body.style.userSelect = ''
+    document.body.style.cursor = ''
+
+    // Save to localStorage
+    localStorage.setItem('partMainPanelSize', panelSize.value.toString())
+
+    // Cleanup listeners
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
+
+// Dynamic layout classes
+const layoutClasses = computed(() => ({
+  'layout-vertical': layoutMode.value === 'vertical',
+  'layout-horizontal': layoutMode.value === 'horizontal'
+}))
+
+// Dynamic resize cursor
+const resizeCursor = computed(() =>
+  layoutMode.value === 'vertical' ? 'col-resize' : 'row-resize'
+)
 
 // Handlers
 function handleSelectPart(part: Part) {
@@ -89,21 +150,21 @@ function handleCancelCreate() {
 function openMaterialWindow() {
   if (!selectedPart.value) return
 
-  const title = `Material - ${selectedPart.value.part_number}`
+  const title = `Materiál položky - ${selectedPart.value.part_number}`
   windowsStore.openWindow('part-material', title, props.linkingGroup || null)
 }
 
 function openOperationsWindow() {
   if (!selectedPart.value) return
 
-  const title = `Operations - ${selectedPart.value.part_number}`
+  const title = `Operace položky - ${selectedPart.value.part_number}`
   windowsStore.openWindow('part-operations', title, props.linkingGroup || null)
 }
 
 function openPricingWindow() {
   if (!selectedPart.value) return
 
-  const title = `Pricing - ${selectedPart.value.part_number}`
+  const title = `Ceny položky - ${selectedPart.value.part_number}`
   windowsStore.openWindow('part-pricing', title, props.linkingGroup || null)
 }
 
@@ -157,9 +218,9 @@ watch(() => props.partNumber, (newPartNumber) => {
 </script>
 
 <template>
-  <div class="split-layout">
-    <!-- LEFT PANEL: Parts List -->
-    <div class="left-panel" :style="{ width: `${panelWidth}px` }">
+  <div class="split-layout" :class="layoutClasses">
+    <!-- FIRST PANEL: Parts List -->
+    <div class="first-panel" :style="layoutMode === 'vertical' ? { width: `${panelSize}px` } : { height: `${panelSize}px` }">
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
@@ -172,11 +233,12 @@ watch(() => props.partNumber, (newPartNumber) => {
     <div
       class="resize-handle"
       :class="{ dragging: isDragging }"
+      :style="{ cursor: resizeCursor }"
       @mousedown="startResize"
     ></div>
 
-    <!-- RIGHT PANEL: Detail / Create / Empty -->
-    <div class="right-panel">
+    <!-- SECOND PANEL: Detail / Create / Empty -->
+    <div class="second-panel">
       <!-- Mode 1: EMPTY -->
       <div v-if="!selectedPart && !isCreating" class="empty">
         <p>Vyberte díl ze seznamu vlevo</p>
@@ -187,6 +249,7 @@ watch(() => props.partNumber, (newPartNumber) => {
         v-else-if="selectedPart && !isCreating"
         :part="selectedPart"
         :linkingGroup="linkingGroup"
+        :orientation="layoutMode"
         @open-material="openMaterialWindow"
         @open-operations="openOperationsWindow"
         @open-pricing="openPricingWindow"
@@ -213,23 +276,52 @@ watch(() => props.partNumber, (newPartNumber) => {
   overflow: hidden;
 }
 
-/* === LEFT PANEL === */
-.left-panel {
+/* Layout modes */
+.split-layout.layout-horizontal {
+  flex-direction: column; /* Horizontal split = stacked (nad sebou) */
+}
+
+.split-layout.layout-vertical {
+  flex-direction: row; /* Vertical split = side by side (vedle sebe) */
+}
+
+/* === FIRST PANEL (with container queries) === */
+.first-panel {
   flex-shrink: 0;
-  /* width set via :style binding */
+  /* width/height set via :style binding */
   padding: var(--space-3);
-  height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  container-type: inline-size; /* Enable container queries for child components */
+  container-name: part-list-panel;
+}
+
+.layout-vertical .first-panel {
+  height: 100%;
+}
+
+.layout-horizontal .first-panel {
+  width: 100%;
 }
 
 /* === RESIZE HANDLE === */
 .resize-handle {
-  width: 4px;
   background: var(--border-default);
-  cursor: col-resize;
   flex-shrink: 0;
   transition: background var(--transition-fast);
   position: relative;
+}
+
+.layout-vertical .resize-handle {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.layout-horizontal .resize-handle {
+  height: 4px;
+  cursor: row-resize;
 }
 
 .resize-handle:hover,
@@ -238,7 +330,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 /* Wider hit area for easier dragging */
-.resize-handle::before {
+.layout-vertical .resize-handle::before {
   content: '';
   position: absolute;
   top: 0;
@@ -248,14 +340,31 @@ watch(() => props.partNumber, (newPartNumber) => {
   cursor: col-resize;
 }
 
-/* === RIGHT PANEL === */
-.right-panel {
+.layout-horizontal .resize-handle::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -4px;
+  bottom: -4px;
+  cursor: row-resize;
+}
+
+/* === SECOND PANEL === */
+.second-panel {
   flex: 1;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow-y: auto;
+}
+
+.layout-vertical .second-panel {
+  height: 100%;
+}
+
+.layout-horizontal .second-panel {
+  width: 100%;
 }
 
 /* Empty State */

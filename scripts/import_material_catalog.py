@@ -31,28 +31,28 @@ EXCEL_PATH = Path(__file__).parent.parent / "data" / "materialy_export_import.xl
 PARSED_CSV = Path(__file__).parent.parent / "temp" / "material_codes_preview.csv"
 
 
-# ========== MATERIAL GROUP MAPPING (User-corrected 2026-01-27) ==========
+# ========== MATERIAL GROUP MAPPING (User-corrected 2026-02-02) ==========
 MATERIAL_GROUPS = {
     # Oceli (1.0xxx - 1.3xxx)
-    "1.0": {"code": "10xxx", "name": "Ocel konstrukční", "density": 7.85},  # Změna: odstraněno "uhlíková"
-    "1.1": {"code": "11xxx", "name": "Ocel automatová", "density": 7.85},
-    "1.2": {"code": "12xxx", "name": "Ocel nástrojová", "density": 7.85},
-    "1.3": {"code": "13xxx", "name": "Ocel nízkolegovaná", "density": 7.85},
+    "1.0": {"code": "OCEL-KONS", "name": "Ocel konstrukční", "density": 7.85},
+    "1.1": {"code": "OCEL-AUTO", "name": "Ocel automatová", "density": 7.85},
+    "1.2": {"code": "OCEL-NAST", "name": "Ocel nástrojová", "density": 7.85},
+    "1.3": {"code": "OCEL-LEG", "name": "Ocel legovaná", "density": 7.85},
 
     # Nerez (1.4xxx)
-    "1.4": {"code": "14xxx", "name": "Nerez", "density": 7.90},
+    "1.4": {"code": "NEREZ", "name": "Nerez", "density": 7.90},
 
     # Měď, bronz, mosaz (2.xxxx)
-    "2.0": {"code": "20xxx", "name": "Měď a slitiny mědi", "density": 8.90},
-    "2.1": {"code": "21xxx", "name": "Mosaz", "density": 8.40},
-    "2.2": {"code": "22xxx", "name": "Bronz", "density": 8.80},
+    "2.0": {"code": "MED", "name": "Měď", "density": 8.90},
+    "2.1": {"code": "MOSAZ", "name": "Mosaz", "density": 8.50},
+    "2.2": {"code": "BRONZ", "name": "Bronz", "density": 8.80},
 
     # Hliník (3.xxxx) - SLOUČENO pod jednu kategorii
-    "3.0": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
-    "3.1": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
-    "3.2": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
-    "3.3": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
-    "3.4": {"code": "3xxxx", "name": "Hliník", "density": 2.70},
+    "3.0": {"code": "HLINIK", "name": "Hliník", "density": 2.70},
+    "3.1": {"code": "HLINIK", "name": "Hliník", "density": 2.70},
+    "3.2": {"code": "HLINIK", "name": "Hliník", "density": 2.70},
+    "3.3": {"code": "HLINIK", "name": "Hliník", "density": 2.70},
+    "3.4": {"code": "HLINIK", "name": "Hliník", "density": 2.70},
 
     # Litina (cast iron)
     "GG250": {"code": "LITINA-GG", "name": "Litina šedá", "density": 7.20},
@@ -60,21 +60,21 @@ MATERIAL_GROUPS = {
     "GG": {"code": "LITINA-GG", "name": "Litina šedá", "density": 7.20},  # Fallback for GG200, GG300, etc.
     "GGG": {"code": "LITINA-TV", "name": "Litina tvárná", "density": 7.10},  # Fallback for GGG50, etc.
 
-    # Plasty - SLOUČENO pod jednu kategorii
-    "PA6": {"code": "PLAST", "name": "Plasty", "density": 1.14},
-    "PA6G": {"code": "PLAST", "name": "Plasty", "density": 1.14},
-    "PA66": {"code": "PLAST", "name": "Plasty", "density": 1.14},
-    "POM": {"code": "PLAST", "name": "Plasty", "density": 1.42},
-    "POM-C": {"code": "PLAST", "name": "Plasty", "density": 1.42},
-    "PE300": {"code": "PLAST", "name": "Plasty", "density": 0.95},
-    "PE500": {"code": "PLAST", "name": "Plasty", "density": 0.95},
-    "PE1000": {"code": "PLAST", "name": "Plasty", "density": 0.95},
+    # Plasty - SLOUČENO pod jednu kategorii (průměrná hustota)
+    "PA6": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PA6G": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PA66": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "POM": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "POM-C": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PE300": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PE500": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PE1000": {"code": "PLAST", "name": "Plasty", "density": 1.20},
     "PC": {"code": "PLAST", "name": "Plasty", "density": 1.20},
-    "PEEK": {"code": "PLAST", "name": "Plasty", "density": 1.32},
-    "PEEK1000": {"code": "PLAST", "name": "Plasty", "density": 1.32},
-    "PEEK-GF30": {"code": "PLAST", "name": "Plasty", "density": 1.50},
-    "MAPA": {"code": "PLAST", "name": "Plasty", "density": 1.14},
-    "ABS": {"code": "PLAST", "name": "Plasty", "density": 1.05},
+    "PEEK": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PEEK1000": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "PEEK-GF30": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "MAPA": {"code": "PLAST", "name": "Plasty", "density": 1.20},
+    "ABS": {"code": "PLAST", "name": "Plasty", "density": 1.20},
 }
 
 
@@ -133,28 +133,28 @@ def get_price_category_code(material_group_code: str, shape: str) -> Tuple[str, 
     Returns:
         (code, name) tuple
     """
-    # Material family name (user correction 2026-01-27: OCEL → OCEL-KONS)
+    # Material family mapping (corrected 2026-02-02)
     family_map = {
-        "10xxx": "OCEL-KONS",  # Změna: přejmenováno z "OCEL"
-        "11xxx": "OCEL-AUTO",
-        "12xxx": "OCEL-NAST",
-        "13xxx": "OCEL-NIZKO",
-        "14xxx": "NEREZ",
-        "20xxx": "MED",
-        "21xxx": "MOSAZ",
-        "22xxx": "BRONZ",
-        "3xxxx": "HLINIK",  # Sloučené hliníky
-        "LITINA-GG": "LITINA-GG",  # Litina šedá
-        "LITINA-TV": "LITINA-TV",  # Litina tvárná
-        "PLAST": "PLAST",   # Sloučené plasty
+        "OCEL-KONS": "OCEL-KONS",
+        "OCEL-AUTO": "OCEL-AUTO",
+        "OCEL-NAST": "OCEL-NAST",
+        "OCEL-LEG": "OCEL-LEG",
+        "NEREZ": "NEREZ",
+        "MED": "MED",
+        "MOSAZ": "MOSAZ",
+        "BRONZ": "BRONZ",
+        "HLINIK": "HLINIK",
+        "LITINA-GG": "LITINA-GG",
+        "LITINA-TV": "LITINA-TV",
+        "PLAST": "PLAST",
     }
 
-    # Shape suffix
+    # Shape suffix (aligned with seed_material_catalog.py)
     shape_map = {
         "ROUND_BAR": ("KRUHOVA", "kruhová tyč"),
         "FLAT_BAR": ("PLOCHA", "plochá tyč"),
-        "SQUARE_BAR": ("CTVERC", "čtvercová tyč"),
-        "HEXAGONAL_BAR": ("SESTHRAN", "šestihranná tyč"),
+        "SQUARE_BAR": ("CTVEREC", "čtvercová tyč"),
+        "HEXAGONAL_BAR": ("SESTIHRAN", "šestihran"),
         "TUBE": ("TRUBKA", "trubka"),
         "PLATE": ("DESKA", "deska"),
     }
@@ -162,22 +162,26 @@ def get_price_category_code(material_group_code: str, shape: str) -> Tuple[str, 
     family = family_map.get(material_group_code, "UNKNOWN")
     shape_code, shape_name = shape_map.get(shape, ("UNKNOWN", "unknown"))
 
+    # Special case: PLAST profily (CTVERC, PLOCHA) → DESKA
+    if family == "PLAST" and shape in ["SQUARE_BAR", "FLAT_BAR"]:
+        shape_code, shape_name = ("DESKA", "deska")
+
     code = f"{family}-{shape_code}"
 
-    # Name construction
+    # Name construction (aligned with seed_material_catalog.py)
     family_names = {
-        "OCEL-KONS": "Ocel konstrukční",  # Změna: přejmenováno z "OCEL"
-        "OCEL-AUTO": "Ocel automatová",
-        "OCEL-NAST": "Ocel nástrojová",
-        "OCEL-NIZKO": "Ocel nízkolegovaná",
-        "NEREZ": "Nerez",
-        "MED": "Měď",
-        "MOSAZ": "Mosaz",
-        "BRONZ": "Bronz",
-        "HLINIK": "Hliník",
-        "LITINA-GG": "Litina šedá",
-        "LITINA-TV": "Litina tvárná",
-        "PLAST": "Plasty",
+        "OCEL-KONS": "OCEL konstrukční",
+        "OCEL-AUTO": "OCEL automatová",
+        "OCEL-NAST": "OCEL nástrojová",
+        "OCEL-LEG": "OCEL legovaná",
+        "NEREZ": "NEREZ",
+        "MED": "MĚĎ",
+        "MOSAZ": "MOSAZ",
+        "BRONZ": "BRONZ",
+        "HLINIK": "HLINÍK",
+        "LITINA-GG": "LITINA",
+        "LITINA-TV": "LITINA",
+        "PLAST": "PLASTY",
     }
 
     family_name_full = family_names.get(family, family)
@@ -196,6 +200,71 @@ def correct_shape(parsed_shape: str, shape_code: str) -> str:
     if shape_code == "OK":
         return "HEXAGONAL_BAR"
     return parsed_shape
+
+
+# ========== PRICE TIER TEMPLATE MAPPING ==========
+# Nové kategorie → Template pro kopírování price tiers
+# Používá seed_price_categories.py naming (OCEL-KRUHOVA, OCEL-PLOCHA, atd.)
+TIER_TEMPLATES = {
+    # OCEL KONSTRUKČNÍ
+    "OCEL-KONS-CTVEREC": "OCEL-KRUHOVA",
+    "OCEL-KONS-SESTIHRAN": "OCEL-KRUHOVA",
+
+    # OCEL AUTOMATOVÁ (NOVÉ)
+    "OCEL-AUTO-KRUHOVA": "OCEL-KRUHOVA",
+    "OCEL-AUTO-PLOCHA": "OCEL-PLOCHA",
+    "OCEL-AUTO-SESTIHRAN": "OCEL-KRUHOVA",
+
+    # OCEL NÁSTROJOVÁ (částečně existuje)
+    "OCEL-NAST-PLOCHA": "OCEL-PLOCHA",
+    "OCEL-NAST-CTVEREC": "OCEL-NASTROJOVA",  # seed má OCEL-NAST-KRUHOVA
+    "OCEL-NAST-SESTIHRAN": "OCEL-NASTROJOVA",
+
+    # OCEL LEGOVANÁ (NOVÉ)
+    "OCEL-LEG-KRUHOVA": "OCEL-KRUHOVA",
+    "OCEL-LEG-PLOCHA": "OCEL-PLOCHA",
+    "OCEL-LEG-CTVEREC": "OCEL-KRUHOVA",
+
+    # NEREZ (částečně existuje)
+    "NEREZ-CTVEREC": "NEREZ-KRUHOVA",
+    "NEREZ-SESTIHRAN": "NEREZ-KRUHOVA",
+    "NEREZ-TRUBKA": "NEREZ-KRUHOVA",
+
+    # MĚĎ (NOVÉ)
+    "MED-KRUHOVA": "MOSAZ-BRONZ",  # seed nemá MED, použijeme MOSAZ
+    "MED-PLOCHA": "NEREZ-PLOCHA",
+
+    # MOSAZ (částečně existuje)
+    "MOSAZ-CTVEREC": "MOSAZ-KRUHOVA",  # seed má MOSAZ-KRUHOVA
+
+    # BRONZ (NOVÉ)
+    "BRONZ-KRUHOVA": "MOSAZ-BRONZ",  # seed má MOSAZ-BRONZ
+    "BRONZ-PLOCHA": "NEREZ-PLOCHA",
+    "BRONZ-CTVEREC": "MOSAZ-BRONZ",
+
+    # HLINÍK (částečně existuje)
+    "HLINIK-CTVEREC": "HLINIK-KRUHOVA",
+    "HLINIK-SESTIHRAN": "HLINIK-KRUHOVA",
+
+    # PLASTY (NOVÉ kromě základních)
+    # seed má: PLAST-KRUHOVA, PLAST-PLOCHA, PLAST-DESKA, PLAST-BLOK
+
+    # LITINA (NOVÉ)
+    "LITINA-KRUHOVA": "OCEL-KRUHOVA",  # seed má jen generic LITINA-KRUHOVA
+}
+
+
+def get_tier_template(new_category_code: str) -> Optional[str]:
+    """
+    Vrátí code existující kategorie, ze které zkopírovat tier strukturu.
+
+    Args:
+        new_category_code: Code nové kategorie (např. "OCEL-AUTO-KRUHOVA")
+
+    Returns:
+        Code existující kategorie (např. "OCEL-KRUHOVA") nebo None
+    """
+    return TIER_TEMPLATES.get(new_category_code)
 
 
 # ========== DRY RUN PREVIEW ==========
@@ -360,12 +429,12 @@ def preview_import(dry_run: bool = True):
             print("❌ Import zrušen")
             return
 
-        # TODO: Implement actual import
+        # Execute import (async)
         print("\n🚀 Spouštím import...")
-        execute_import(df_parsed, material_groups_needed, price_categories_needed)
+        asyncio.run(execute_import(df_parsed, material_groups_needed, price_categories_needed))
 
 
-def execute_import(
+async def execute_import(
     df_parsed: pd.DataFrame,
     material_groups_needed: Dict,
     price_categories_needed: Dict
@@ -373,13 +442,269 @@ def execute_import(
     """
     Provede skutečný import do databáze.
 
-    TODO: Implement actual DB import logic
+    Args:
+        df_parsed: Parsovaná data z CSV
+        material_groups_needed: {code: {name, density, count, samples}}
+        price_categories_needed: {code: {name, material_group_code, count}}
     """
-    print("\n⚠️  TODO: Implementovat skutečný import do DB")
-    print("   - Vytvořit MaterialGroups")
-    print("   - Vytvořit PriceCategories")
-    print("   - Vytvořit MaterialItems")
-    print("   - Propojit FK relationships")
+    from app.database import async_session
+    from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialItem
+    from app.models.enums import StockShape
+    from sqlalchemy import select
+    from sqlalchemy.exc import IntegrityError
+    import random
+
+    print("\n" + "=" * 100)
+    print("🚀 SPOUŠTÍM IMPORT DO DATABÁZE")
+    print("=" * 100)
+
+    async with async_session() as session:
+        try:
+            # ========== KROK 1: MaterialGroups ==========
+            print(f"\n📦 Vytvářím MaterialGroups ({len(material_groups_needed)})...")
+
+            group_id_map = {}  # {code: db_id}
+
+            for code, info in material_groups_needed.items():
+                # Check if exists
+                result = await session.execute(
+                    select(MaterialGroup).where(MaterialGroup.code == code)
+                )
+                existing = result.scalar_one_or_none()
+
+                if existing:
+                    print(f"   ✓ {code:10s} - již existuje (ID: {existing.id})")
+                    group_id_map[code] = existing.id
+                else:
+                    # Create new
+                    new_group = MaterialGroup(
+                        code=code,
+                        name=info['name'],
+                        density=info['density']
+                    )
+                    session.add(new_group)
+                    await session.flush()  # Get ID
+                    group_id_map[code] = new_group.id
+                    print(f"   + {code:10s} - vytvořeno (ID: {new_group.id}) - {info['name']}")
+
+            await session.commit()
+            print(f"   ✅ MaterialGroups hotovo ({len(group_id_map)} skupin)")
+
+            # ========== KROK 2: PriceCategories + Tiers ==========
+            print(f"\n💰 Vytvářím PriceCategories ({len(price_categories_needed)})...")
+
+            category_id_map = {}  # {code: db_id}
+            tiers_created_count = 0
+
+            for code, info in price_categories_needed.items():
+                # Check if exists
+                result = await session.execute(
+                    select(MaterialPriceCategory).where(MaterialPriceCategory.code == code)
+                )
+                existing = result.scalar_one_or_none()
+
+                if existing:
+                    print(f"   ✓ {code:25s} - již existuje (ID: {existing.id})")
+                    category_id_map[code] = existing.id
+                else:
+                    # Get MaterialGroup ID
+                    material_group_code = info['material_group_code']
+                    material_group_id = group_id_map.get(material_group_code)
+
+                    # Create new category
+                    new_category = MaterialPriceCategory(
+                        code=code,
+                        name=info['name'],
+                        material_group_id=material_group_id
+                    )
+                    session.add(new_category)
+                    await session.flush()
+                    category_id_map[code] = new_category.id
+                    print(f"   + {code:25s} - vytvořeno (ID: {new_category.id})")
+
+                    # Auto-create price tiers from template
+                    template_code = get_tier_template(code)
+                    if template_code:
+                        # Find template category
+                        template_result = await session.execute(
+                            select(MaterialPriceCategory).where(MaterialPriceCategory.code == template_code)
+                        )
+                        template_category = template_result.scalar_one_or_none()
+
+                        if template_category:
+                            # Load tiers from template
+                            from app.models.material import MaterialPriceTier
+                            tiers_result = await session.execute(
+                                select(MaterialPriceTier)
+                                .where(MaterialPriceTier.price_category_id == template_category.id)
+                                .order_by(MaterialPriceTier.min_weight)
+                            )
+                            template_tiers = tiers_result.scalars().all()
+
+                            if template_tiers:
+                                print(f"      └─ Kopíruji {len(template_tiers)} tiers z {template_code} (80% cena):")
+                                for tier in template_tiers:
+                                    # Copy tier structure with 80% price
+                                    new_tier = MaterialPriceTier(
+                                        price_category_id=new_category.id,
+                                        min_weight=tier.min_weight,
+                                        max_weight=tier.max_weight,
+                                        price_per_kg=round(tier.price_per_kg * 0.8, 1)
+                                    )
+                                    session.add(new_tier)
+                                    tiers_created_count += 1
+
+                                    max_w = f"{tier.max_weight}kg" if tier.max_weight else "∞"
+                                    print(f"         [{tier.min_weight}-{max_w:6}] → {new_tier.price_per_kg:6.1f} Kč/kg")
+                        else:
+                            print(f"      ⚠️  Template {template_code} nenalezen - tiers nezkopírovány")
+                    else:
+                        print(f"      ⚠️  Žádný template - tiers je třeba nastavit manuálně")
+
+            await session.commit()
+            print(f"   ✅ PriceCategories hotovo ({len(category_id_map)} kategorií, {tiers_created_count} tiers)")
+            if tiers_created_count > 0:
+                print(f"   ℹ️  Price Tiers vytvořeny s 80% cenou z template kategorií - upravitelné později!")
+
+            # ========== KROK 3: MaterialItems ==========
+            print(f"\n📋 Vytvářím MaterialItems ({len(df_parsed)})...")
+
+            created_count = 0
+            skipped_count = 0
+
+            for idx, row in df_parsed.iterrows():
+                material_code = row['material']
+                shape = row['shape']
+                shape_code = row['shape_code']
+                code = row['raw_code']
+
+                # Correct shape (OK → HEXAGONAL_BAR)
+                corrected_shape = correct_shape(shape, shape_code)
+
+                # Get MaterialGroup
+                group_info = identify_material_group(material_code)
+                if not group_info:
+                    print(f"   ⊘ {code} - nelze identifikovat MaterialGroup")
+                    skipped_count += 1
+                    continue
+
+                material_group_id = group_id_map.get(group_info['code'])
+                if not material_group_id:
+                    print(f"   ⊘ {code} - MaterialGroup nenalezen v DB")
+                    skipped_count += 1
+                    continue
+
+                # Get PriceCategory
+                cat_code, cat_name = get_price_category_code(group_info['code'], corrected_shape)
+                price_category_id = category_id_map.get(cat_code)
+                if not price_category_id:
+                    print(f"   ⊘ {code} - PriceCategory nenalezena v DB ({cat_code})")
+                    skipped_count += 1
+                    continue
+
+                # Check if already exists
+                result = await session.execute(
+                    select(MaterialItem).where(MaterialItem.code == code)
+                )
+                existing = result.scalar_one_or_none()
+                if existing:
+                    skipped_count += 1
+                    continue
+
+                # Generate material_number (8-digit: 20XXXXXX)
+                material_number = f"20{random.randint(100000, 999999)}"
+
+                # Ensure unique
+                while True:
+                    result = await session.execute(
+                        select(MaterialItem).where(MaterialItem.material_number == material_number)
+                    )
+                    if result.scalar_one_or_none() is None:
+                        break
+                    material_number = f"20{random.randint(100000, 999999)}"
+
+                # Parse dimensions
+                diameter = row['diameter'] if pd.notna(row['diameter']) else None
+                width = row['width'] if pd.notna(row['width']) else None
+                thickness = row['thickness'] if pd.notna(row['thickness']) else None
+                wall_thickness = row['wall_thickness'] if pd.notna(row['wall_thickness']) else None
+
+                # Lookup norms from MaterialNorm table
+                from app.models.material_norm import MaterialNorm
+                norms_text = None
+                norm_result = await session.execute(
+                    select(MaterialNorm).where(
+                        (MaterialNorm.w_nr == material_code) |
+                        (MaterialNorm.en_iso == material_code) |
+                        (MaterialNorm.csn == material_code) |
+                        (MaterialNorm.aisi == material_code)
+                    ).limit(1)
+                )
+                norm_entry = norm_result.scalar_one_or_none()
+                if norm_entry:
+                    # Build norms string from available fields
+                    norms_parts = []
+                    if norm_entry.w_nr:
+                        norms_parts.append(f"W.Nr: {norm_entry.w_nr}")
+                    if norm_entry.en_iso:
+                        norms_parts.append(f"EN: {norm_entry.en_iso}")
+                    if norm_entry.csn:
+                        norms_parts.append(f"ČSN: {norm_entry.csn}")
+                    if norm_entry.aisi:
+                        norms_parts.append(f"AISI: {norm_entry.aisi}")
+                    norms_text = ", ".join(norms_parts) if norms_parts else None
+
+                # Create MaterialItem
+                try:
+                    new_item = MaterialItem(
+                        material_number=material_number,
+                        code=code,
+                        name=f"{material_code} {code.split('-', 1)[1] if '-' in code else code}",
+                        shape=StockShape[corrected_shape],
+                        diameter=diameter,
+                        width=width,
+                        thickness=thickness,
+                        wall_thickness=wall_thickness,
+                        norms=norms_text,  # ← Naplnit z MaterialNorm
+                        material_group_id=material_group_id,
+                        price_category_id=price_category_id,
+                        stock_available=0.0
+                    )
+                    session.add(new_item)
+                    created_count += 1
+
+                    if created_count % 100 == 0:
+                        await session.flush()
+                        print(f"   ... {created_count} položek vytvořeno")
+
+                except Exception as e:
+                    print(f"   ⊘ {code} - chyba: {str(e)}")
+                    skipped_count += 1
+
+            await session.commit()
+
+            print(f"\n   ✅ MaterialItems hotovo:")
+            print(f"      + Vytvořeno:  {created_count}")
+            print(f"      ⊘ Přeskočeno: {skipped_count}")
+
+            print("\n" + "=" * 100)
+            print("✅ IMPORT ÚSPĚŠNĚ DOKONČEN")
+            print("=" * 100)
+            print(f"\n📊 Souhrn:")
+            print(f"   MaterialGroups:     {len(group_id_map)}")
+            print(f"   PriceCategories:    {len(category_id_map)}")
+            print(f"   MaterialItems:      {created_count}")
+            print(f"\n⚠️  DALŠÍ KROKY:")
+            print(f"   1. Nastavit Price Tiers pro nové kategorie (admin UI)")
+            print(f"   2. Doplnit supplier info (supplier, supplier_code)")
+            print(f"   3. Doplnit katalogové info (weight_per_meter, standard_length, norms)")
+
+        except Exception as e:
+            await session.rollback()
+            print(f"\n❌ CHYBA PŘI IMPORTU: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
 
 
 # ========== MAIN ==========

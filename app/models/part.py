@@ -24,11 +24,11 @@ class Part(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     part_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 10XXXXXX
-    article_number = Column(String(50), unique=True, nullable=False, index=True)  # Dodavatelské číslo (REQUIRED, UNIQUE)
+    article_number = Column(String(50), unique=True, nullable=True, index=True)  # Dodavatelské číslo
     name = Column(String(200), nullable=True)
 
     # ADR-024: Revize (v1.8.0 - MaterialInput refactor)
-    revision = Column(String(2), default="A", nullable=False)  # Interní revize (A-Z)
+    revision = Column(String(2), nullable=True)  # Interní revize (A-Z) - volitelné
     customer_revision = Column(String(50), nullable=True)      # Zákaznická revize (zobrazená na výkresu)
     drawing_number = Column(String(50), nullable=True)         # Číslo výkresu (zobrazené v hlavičce)
     status = Column(String(20), default="active", nullable=False)  # Lifecycle status (validated by Pydantic)
@@ -74,23 +74,23 @@ class Part(Base, AuditMixin):
 
 class PartBase(BaseModel):
     part_number: str = Field(..., min_length=8, max_length=8, description="Číslo dílu (unikátní, 8-digit)")
-    article_number: str = Field(..., max_length=50, description="Dodavatelské číslo (REQUIRED)")
+    article_number: Optional[str] = Field(None, max_length=50, description="Dodavatelské číslo")
     drawing_path: Optional[str] = Field(None, max_length=500, description="Cesta k PDF výkresu")
-    name: str = Field("", max_length=200, description="Název dílu")
-    revision: str = Field("A", min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize (A-Z)")
+    name: Optional[str] = Field(None, max_length=200, description="Název dílu")
+    revision: Optional[str] = Field(None, min_length=1, max_length=2, pattern=r"^[A-Z]{1,2}$", description="Interní revize (A-Z) - volitelné")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
-    status: PartStatus = Field(PartStatus.DRAFT, description="Status dílu")
+    status: PartStatus = Field(PartStatus.ACTIVE, description="Status dílu (default: active)")
     length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
-    notes: str = Field("", max_length=500, description="Poznámky")
+    notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
 
 class PartCreate(BaseModel):
     """Create new part - simplified (part_number auto-generated 10XXXXXX)"""
-    article_number: str = Field(..., max_length=50, description="Dodavatelské číslo (REQUIRED)")
+    article_number: str = Field("", max_length=50, description="Dodavatelské číslo")
     drawing_path: Optional[str] = Field(None, max_length=500, description="Cesta k výkresu (deprecated, use temp_drawing_id)")
     temp_drawing_id: Optional[str] = Field(None, description="UUID temp file to move to permanent storage")
-    name: str = Field(..., max_length=200, description="Název dílu (REQUIRED)")
+    name: str = Field("", max_length=200, description="Název dílu")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
@@ -116,6 +116,7 @@ class PartResponse(PartBase):
     version: int
     created_at: datetime
     updated_at: datetime
+    created_by_name: Optional[str] = Field(None, description="Username of user who created the part")
 
 
 class PartFullResponse(PartResponse):
