@@ -149,23 +149,25 @@ async def create_quote(
 
     Auto-generates quote_number (50XXXXXX) - ADR-017
     """
-    # Verify partner exists
-    partner = await db.get(Partner, data.partner_id)
-    if not partner or partner.deleted_at:
-        raise HTTPException(status_code=404, detail="Partner not found")
+    # Verify partner exists (if provided)
+    if data.partner_id:
+        partner = await db.get(Partner, data.partner_id)
+        if not partner or partner.deleted_at:
+            raise HTTPException(status_code=404, detail="Partner not found")
 
-    if not partner.is_customer:
-        raise HTTPException(status_code=400, detail="Partner must be a customer")
+        if not partner.is_customer:
+            raise HTTPException(status_code=400, detail="Partner must be a customer")
 
     # Generate quote number
     quote_number = await NumberGenerator.generate_quote_number(db)
 
-    # Create quote
+    # Create quote (use defaults for empty fields)
     quote = Quote(
         quote_number=quote_number,
         partner_id=data.partner_id,
-        title=data.title,
+        title=data.title or "",
         description=data.description,
+        customer_request_number=data.customer_request_number,
         valid_until=data.valid_until,
         status=QuoteStatus.DRAFT.value,
         discount_percent=data.discount_percent,

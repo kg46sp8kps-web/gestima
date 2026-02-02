@@ -254,14 +254,13 @@ function formatCurrency(value: number): string {
           <h3>Nová nabídka</h3>
           <form @submit.prevent="createQuote" class="create-form">
             <div class="form-group">
-              <label>Název <span class="required">*</span></label>
+              <label>Název</label>
               <input
                 v-model="newQuote.title"
                 type="text"
                 class="form-input"
-                required
                 maxlength="200"
-                placeholder="Název nabídky"
+                placeholder="Název nabídky (optional)"
               />
             </div>
 
