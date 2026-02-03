@@ -1,23 +1,26 @@
 <template>
   <Modal
     v-model="state.confirm.visible"
-    :title="options?.title"
     size="sm"
     :close-on-backdrop="false"
     :close-on-esc="false"
     :show-close="false"
   >
-    <!-- Message with icon -->
-    <div class="confirm-content">
-      <div class="confirm-icon" :class="`confirm-icon-${options?.type}`">
-        <Trash2 v-if="options?.type === 'danger'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-        <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-        <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-        <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+    <!-- Header with icon + title -->
+    <template #header>
+      <div class="confirm-header">
+        <div class="confirm-icon" :class="`confirm-icon-${options?.type}`">
+          <Trash2 v-if="options?.type === 'danger'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+        </div>
+        <h3 class="confirm-title">{{ options?.title }}</h3>
       </div>
+    </template>
 
-      <div class="confirm-message">{{ options?.message }}</div>
-    </div>
+    <!-- Message only -->
+    <div class="confirm-message">{{ options?.message }}</div>
 
     <!-- Actions -->
     <template #footer>
@@ -99,25 +102,29 @@ watch(() => state.confirm.visible, async (visible) => {
 </script>
 
 <style scoped>
-/* === CONFIRM CONTENT === */
-.confirm-content {
+/* === HEADER === */
+.confirm-header {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: var(--space-4);
-  padding: var(--space-2) 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.confirm-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
 }
 
 /* === ICON === */
 .confirm-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-lg);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .confirm-icon-danger {
@@ -142,12 +149,10 @@ watch(() => state.confirm.visible, async (visible) => {
 
 /* === MESSAGE === */
 .confirm-message {
-  flex: 1;
   font-size: var(--text-base);
   color: var(--text-body);
   line-height: var(--leading-relaxed);
   white-space: pre-line;
-  text-align: left;
 }
 
 /* === ICON BUTTONS === */

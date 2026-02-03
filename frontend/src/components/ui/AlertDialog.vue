@@ -1,23 +1,26 @@
 <template>
   <Modal
     v-model="state.alert.visible"
-    :title="options?.title"
     size="sm"
     :close-on-backdrop="false"
     :close-on-esc="false"
     :show-close="false"
   >
-    <!-- Message with icon -->
-    <div class="alert-content">
-      <div class="alert-icon" :class="`alert-icon-${options?.type}`">
-        <XCircle v-if="options?.type === 'error'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-        <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-        <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-        <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+    <!-- Header with icon + title -->
+    <template #header>
+      <div class="alert-header">
+        <div class="alert-icon" :class="`alert-icon-${options?.type}`">
+          <XCircle v-if="options?.type === 'error'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+        </div>
+        <h3 class="alert-title">{{ options?.title }}</h3>
       </div>
+    </template>
 
-      <div class="alert-message">{{ options?.message }}</div>
-    </div>
+    <!-- Message only -->
+    <div class="alert-message">{{ options?.message }}</div>
 
     <!-- Actions -->
     <template #footer>
@@ -83,25 +86,29 @@ watch(() => state.alert.visible, async (visible) => {
 </script>
 
 <style scoped>
-/* === ALERT CONTENT === */
-.alert-content {
+/* === HEADER === */
+.alert-header {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: var(--space-4);
-  padding: var(--space-2) 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.alert-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
 }
 
 /* === ICON === */
 .alert-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-lg);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .alert-icon-error {
@@ -126,12 +133,10 @@ watch(() => state.alert.visible, async (visible) => {
 
 /* === MESSAGE === */
 .alert-message {
-  flex: 1;
   font-size: var(--text-base);
   color: var(--text-body);
   line-height: var(--leading-relaxed);
   white-space: pre-line;
-  text-align: left;
 }
 
 /* === ICON BUTTON === */
