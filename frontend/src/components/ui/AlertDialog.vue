@@ -23,10 +23,11 @@
     <template #footer>
       <button
         ref="okButtonRef"
-        class="btn btn-primary"
+        class="icon-btn icon-btn-close"
         @click="handleClose"
+        title="Zavřít (ENTER/ESC)"
       >
-        {{ options?.confirmText }}
+        <X :size="ICON_SIZE.LARGE" :stroke-width="2" />
       </button>
     </template>
   </Modal>
@@ -34,13 +35,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
-import { XCircle, Check, Info, AlertTriangle } from 'lucide-vue-next'
+import { XCircle, Check, Info, AlertTriangle, X } from 'lucide-vue-next'
 import Modal from './Modal.vue'
 import { useDialog } from '@/composables/useDialog'
 
 // Icon size constant (from Librarian report)
 const ICON_SIZE = {
-  STANDARD: 20
+  STANDARD: 20,
+  LARGE: 24
 }
 
 const { state, closeAlert } = useDialog()
@@ -129,5 +131,39 @@ watch(() => state.alert.visible, async (visible) => {
   line-height: var(--leading-relaxed);
   white-space: pre-line;
   max-width: 400px;
+}
+
+/* === ICON BUTTON === */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.icon-btn:hover {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--state-focus-border);
+  outline-offset: 2px;
+}
+
+.icon-btn-close {
+  color: var(--text-secondary);
+}
+
+.icon-btn-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 </style>

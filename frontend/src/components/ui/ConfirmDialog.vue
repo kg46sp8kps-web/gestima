@@ -22,18 +22,20 @@
     <!-- Actions -->
     <template #footer>
       <button
-        class="btn btn-secondary"
+        class="icon-btn icon-btn-cancel"
         @click="handleCancel"
+        title="Zrušit (ESC)"
       >
-        {{ options?.cancelText }}
+        <X :size="ICON_SIZE.LARGE" :stroke-width="2" />
       </button>
       <button
         ref="confirmButtonRef"
-        class="btn"
-        :class="buttonClass"
+        class="icon-btn icon-btn-confirm"
+        :class="`icon-btn-${options?.type}`"
         @click="handleConfirm"
+        :title="`${options?.confirmText} (ENTER)`"
       >
-        {{ options?.confirmText }}
+        <Check :size="ICON_SIZE.LARGE" :stroke-width="2" />
       </button>
     </template>
   </Modal>
@@ -41,13 +43,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
-import { Trash2, AlertTriangle, Info, Check } from 'lucide-vue-next'
+import { Trash2, AlertTriangle, Info, Check, X } from 'lucide-vue-next'
 import Modal from './Modal.vue'
 import { useDialog } from '@/composables/useDialog'
 
 // Icon size constant (from Librarian report)
 const ICON_SIZE = {
-  STANDARD: 20
+  STANDARD: 20,
+  LARGE: 24
 }
 
 const { state, closeConfirm } = useDialog()
@@ -56,14 +59,6 @@ const confirmButtonRef = ref<HTMLButtonElement | null>(null)
 
 // Computed options with defaults
 const options = computed(() => state.confirm.options)
-
-// Button class based on type
-const buttonClass = computed(() => {
-  const type = options.value?.type || 'warning'
-  if (type === 'danger') return 'btn-danger'
-  if (type === 'success') return 'btn-primary'
-  return 'btn-primary'
-})
 
 // Handle confirm
 function handleConfirm() {
@@ -152,5 +147,72 @@ watch(() => state.confirm.visible, async (visible) => {
   line-height: var(--leading-relaxed);
   white-space: pre-line;
   max-width: 400px;
+}
+
+/* === ICON BUTTONS === */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.icon-btn:hover {
+  background: var(--state-hover);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--state-focus-border);
+  outline-offset: 2px;
+}
+
+/* Cancel button */
+.icon-btn-cancel {
+  color: var(--text-secondary);
+}
+
+.icon-btn-cancel:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Confirm button - colors by type */
+.icon-btn-confirm.icon-btn-danger {
+  color: #f43f5e;
+}
+
+.icon-btn-confirm.icon-btn-danger:hover {
+  background: rgba(244, 63, 94, 0.15);
+}
+
+.icon-btn-confirm.icon-btn-warning {
+  color: #d97706;
+}
+
+.icon-btn-confirm.icon-btn-warning:hover {
+  background: rgba(217, 119, 6, 0.15);
+}
+
+.icon-btn-confirm.icon-btn-info {
+  color: #2563eb;
+}
+
+.icon-btn-confirm.icon-btn-info:hover {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.icon-btn-confirm.icon-btn-success {
+  color: #059669;
+}
+
+.icon-btn-confirm.icon-btn-success:hover {
+  background: rgba(5, 150, 105, 0.15);
 }
 </style>
