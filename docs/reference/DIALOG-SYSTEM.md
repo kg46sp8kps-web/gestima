@@ -1,6 +1,8 @@
 # Global Dialog System
 
-Promise-based API pro confirm/alert dialogy v GESTIMA.
+**⚠️ MANDATORY:** Všechny informativní modály MUSÍ používat tento systém!
+
+Promise-based API pro confirm/alert dialogy v GESTIMA s jednotným designem.
 
 ## Použití
 
@@ -63,15 +65,42 @@ await alert({
 
 **Returns:** `Promise<void>` - resolves when user closes dialog
 
-## Dialog Types & Icons
+## Design Pattern (MANDATORY!)
 
-| Type | Icon | Color |
-|------|------|-------|
-| `danger` | Trash2 | Pink (#f43f5e) |
-| `warning` | AlertTriangle | Orange (#d97706) |
-| `info` | Info | Blue (#2563eb) |
-| `success` | Check | Green (#059669) |
-| `error` | XCircle | Pink (#f43f5e) |
+### Layout
+```
+┌──────────────────────────┐
+│ 🗑️ Smazat nabídku?       │ ← Icon (32x32) + Title in Header
+├──────────────────────────┤
+│ Opravdu chcete smazat... │ ← Message text only
+│                          │
+│                ❌  ✅    │ ← Icon-only action buttons
+└──────────────────────────┘
+```
+
+### Features
+- ✅ **Icon + Title in Header** - Compact, clean hierarchy
+- ✅ **Icon-only Buttons** - X (cancel) + Check (confirm)
+- ✅ **Auto-focus** - Primary button has immediate focus
+- ✅ **ENTER support** - Confirms instantly (no mouse needed)
+- ✅ **ESC support** - Cancels/closes dialog
+- ✅ **Color-coded** - Semantic colors by dialog type
+
+### Dialog Types & Icons
+
+| Type | Header Icon | Color | Button Color |
+|------|-------------|-------|--------------|
+| `danger` | Trash2 | Pink (#f43f5e) | Pink confirm |
+| `warning` | AlertTriangle | Orange (#d97706) | Orange confirm |
+| `info` | Info | Blue (#2563eb) | Blue confirm |
+| `success` | Check | Green (#059669) | Green confirm |
+| `error` | XCircle | Pink (#f43f5e) | N/A (alert only) |
+
+### Button Design
+- **Cancel (X icon):** Gray, transparent background, hover effect
+- **Confirm (Check icon):** Colored by type, hover with 15% opacity background
+- **Size:** 40x40px
+- **No text labels** - Icons only for clean minimal look
 
 ## Keyboard Shortcuts
 
@@ -160,12 +189,16 @@ async function handleSubmit() {
 - **Registration:** Components are globally mounted in `App.vue`
 
 ### Design System Compliance
-- Uses existing `Modal.vue` component
-- Follows `design-system.css` tokens
-- Lucid icons (size: 20px)
-- Auto-focus on primary button
+- Uses existing `Modal.vue` component as wrapper
+- Follows `design-system.css` tokens (100% compliance)
+- Lucid icons:
+  - Header icons: 20px (ICON_SIZE.STANDARD)
+  - Button icons: 24px (ICON_SIZE.LARGE)
+- Icon backgrounds: 15% opacity colors (rgba)
+- Auto-focus on primary button via `nextTick()` + `ref.focus()`
 - Keyboard navigation (ENTER/ESC)
-- Smooth transitions
+- Smooth transitions (inherited from Modal.vue)
+- Typography: `--text-xl` for title, `--text-base` for message
 
 ### State Management
 - Single global reactive state
@@ -203,8 +236,91 @@ if (confirmed) {
 
 ## Technical Notes
 
+### Implementation Details
 - Auto-focus implementation uses `nextTick()` and `ref.focus()`
 - Keyboard listeners are added/removed on dialog open/close
 - ESC handler in Modal.vue is disabled (handled by dialog components)
 - Backdrop clicks are disabled for safety
-- Close button (X) is hidden - users must choose action
+- Close button (X) is hidden - users must choose action explicitly
+
+### When to Use
+✅ **USE for:**
+- Delete confirmations
+- Unsaved changes warnings
+- Form validation errors
+- Success/error notifications
+- Any yes/no question
+- Any informational message
+
+❌ **DON'T USE for:**
+- Complex forms with multiple inputs → Create custom modal with `Modal.vue`
+- Multi-step wizards → Use dedicated wizard component
+- Content that needs scrolling → Custom modal
+- File upload dialogs → Custom modal
+
+### Custom Modals
+If you need a custom modal (forms, complex content):
+1. Use `Modal.vue` as base wrapper
+2. Follow the same design pattern (icon + title in header if applicable)
+3. Use icon-only buttons in footer where possible
+4. Keep footer buttons consistent (secondary left, primary right)
+
+Example:
+```vue
+<Modal v-model="show" size="md">
+  <template #header>
+    <div class="modal-header">
+      <FileIcon :size="20" /> <!-- Optional icon -->
+      <h3>Upload File</h3>
+    </div>
+  </template>
+
+  <!-- Your custom content -->
+
+  <template #footer>
+    <button class="icon-btn" @click="cancel">
+      <X :size="24" />
+    </button>
+    <button class="icon-btn icon-btn-primary" @click="submit">
+      <Check :size="24" />
+    </button>
+  </template>
+</Modal>
+```
+
+## Anti-Patterns (DON'T DO THIS!)
+
+❌ **Creating custom confirm modals**
+```vue
+<!-- DON'T! -->
+<DeleteConfirmModal v-model="showDelete" @confirm="handleDelete" />
+```
+✅ **Use global dialog instead:**
+```ts
+// DO!
+const confirmed = await confirm({
+  title: 'Delete?',
+  message: '...',
+  type: 'danger'
+})
+```
+
+❌ **Using window.confirm() or alert()**
+```ts
+// DON'T!
+if (window.confirm('Delete?')) { ... }
+alert('Error!')
+```
+
+❌ **Text buttons in dialogs**
+```vue
+<!-- DON'T! -->
+<button class="btn btn-primary">Smazat</button>
+```
+✅ **Use icon-only:**
+```vue
+<!-- DO! -->
+<button class="icon-btn">
+  <Check :size="24" />
+</button>
+```
