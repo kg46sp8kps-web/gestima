@@ -10,6 +10,8 @@ import { useUiStore } from '@/stores/ui'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import AlertDialog from '@/components/ui/AlertDialog.vue'
 import CssDebugOverlay from '@/components/dev/CssDebugOverlay.vue'
 
 const route = useRoute()
@@ -70,6 +72,10 @@ const isLoginPage = computed(() => route.name === 'login')
 
     <!-- Global toast notifications -->
     <ToastContainer />
+
+    <!-- Global dialogs -->
+    <ConfirmDialog />
+    <AlertDialog />
 
     <!-- CSS Debug Overlay (Ctrl+Shift+D) -->
     <CssDebugOverlay v-if="isDev" />

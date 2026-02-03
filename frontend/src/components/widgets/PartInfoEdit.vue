@@ -17,6 +17,7 @@
 import { ref, watch, computed } from 'vue'
 import Input from '@/components/ui/Input.vue'
 import { Edit, Copy, Trash2, AlertTriangle, Check, X } from 'lucide-vue-next'
+import { confirm } from '@/composables/useDialog'
 
 interface Props {
   context?: {
@@ -100,8 +101,16 @@ function handleCopy() {
   emit('action', 'action:copy')
 }
 
-function handleDelete() {
-  if (confirm(`Opravdu smazat díl ${props.context?.part?.part_number}?\n\nTato akce je nevratná!`)) {
+async function handleDelete() {
+  const confirmed = await confirm({
+    title: 'Smazat díl?',
+    message: `Opravdu chcete smazat díl ${props.context?.part?.part_number}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (confirmed) {
     emit('action', 'action:delete')
   }
 }
@@ -125,7 +134,7 @@ defineExpose({
     <!-- View mode toolbar (bottom right) -->
     <div v-if="!isEditMode" class="view-toolbar">
       <button class="btn-edit" @click="handleCopy" title="Kopírovat díl">
-        <Copy :size="14" />
+        <Copy :size="15" />
       </button>
       <button
         v-if="context?.isAdmin"
@@ -133,10 +142,10 @@ defineExpose({
         @click="handleDelete"
         title="Smazat díl"
       >
-        <Trash2 :size="14" />
+        <Trash2 :size="15" />
       </button>
       <button class="btn-edit" @click="handleEdit" title="Upravit díl">
-        <Edit :size="14" />
+        <Edit :size="15" />
       </button>
     </div>
 

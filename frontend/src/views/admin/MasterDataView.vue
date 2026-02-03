@@ -10,6 +10,7 @@ import { useOperationsStore } from '@/stores/operations'
 import { Trash2, CheckCircle, XCircle } from 'lucide-vue-next'
 import type { MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialGroup, MaterialGroupCreate, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate, MaterialPriceTier, MaterialPriceTierCreate, MaterialPriceTierUpdate } from '@/types/material'
 import type { WorkCenter, WorkCenterCreate, WorkCenterUpdate, WorkCenterType } from '@/types/operation'
+import { confirm } from '@/composables/useDialog'
 import {
   getMaterialNorms,
   createMaterialNorm,
@@ -264,7 +265,16 @@ async function saveNorm() {
 }
 
 async function deleteNormItem(norm: MaterialNorm) {
-  if (!confirm(`Smazat normu ${norm.w_nr || norm.en_iso || norm.csn || norm.aisi}?`)) return
+  const normName = norm.w_nr || norm.en_iso || norm.csn || norm.aisi
+  const confirmed = await confirm({
+    title: 'Smazat normu?',
+    message: `Opravdu chcete smazat normu ${normName}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await deleteMaterialNorm(norm.id)
@@ -335,7 +345,15 @@ async function saveGroup() {
 }
 
 async function deleteGroupItem(group: MaterialGroup) {
-  if (!confirm(`Smazat skupinu ${group.code} - ${group.name}?`)) return
+  const confirmed = await confirm({
+    title: 'Smazat skupinu?',
+    message: `Opravdu chcete smazat skupinu ${group.code} - ${group.name}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await deleteMaterialGroup(group.id)
@@ -422,7 +440,15 @@ async function saveCategory() {
 }
 
 async function deleteCategoryItem(category: MaterialPriceCategory) {
-  if (!confirm(`Smazat kategorii ${category.code} - ${category.name}?`)) return
+  const confirmed = await confirm({
+    title: 'Smazat kategorii?',
+    message: `Opravdu chcete smazat kategorii ${category.code} - ${category.name}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await deletePriceCategory(category.id)
@@ -562,7 +588,15 @@ async function saveTier() {
 }
 
 async function deleteTierItem(tier: MaterialPriceTier) {
-  if (!confirm(`Smazat cenový stupeň ${tier.min_weight}-${tier.max_weight || '∞'} kg?`)) return
+  const confirmed = await confirm({
+    title: 'Smazat cenový stupeň?',
+    message: `Opravdu chcete smazat cenový stupeň ${tier.min_weight}-${tier.max_weight || '∞'} kg?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
   if (!selectedCategory.value) return
 
   try {
@@ -698,7 +732,15 @@ async function saveWorkCenter() {
 }
 
 async function deleteWorkCenterItem(wc: WorkCenter) {
-  if (!confirm(`Smazat pracoviště ${wc.work_center_number} - ${wc.name}?`)) return
+  const confirmed = await confirm({
+    title: 'Smazat pracoviště?',
+    message: `Opravdu chcete smazat pracoviště ${wc.work_center_number} - ${wc.name}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await operationsStore.deleteWorkCenter(wc.work_center_number)
@@ -1017,7 +1059,7 @@ onMounted(async () => {
                         <!-- Actions -->
                         <td>
                           <button @click="deleteTierItem(tier)" class="btn-icon" title="Smazat">
-                            <Trash2 :size="14" />
+                            <Trash2 :size="15" />
                           </button>
                         </td>
                       </tr>
@@ -1059,10 +1101,10 @@ onMounted(async () => {
                         </td>
                         <td>
                           <button @click="saveTier" class="btn-icon" title="Uložit" :disabled="savingTier">
-                            <CheckCircle :size="14" />
+                            <CheckCircle :size="15" />
                           </button>
                           <button @click="cancelAddTier" class="btn-icon" title="Zrušit">
-                            <XCircle :size="14" />
+                            <XCircle :size="15" />
                           </button>
                         </td>
                       </tr>

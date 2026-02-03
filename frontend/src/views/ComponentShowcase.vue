@@ -258,6 +258,57 @@
       </div>
     </section>
 
+    <!-- DIALOGS -->
+    <section class="showcase-section">
+      <h2 class="section-title">Dialog System</h2>
+
+      <div class="component-group">
+        <h3 class="group-title">Confirm Dialogs</h3>
+        <div class="button-row">
+          <Button variant="danger" @click="testConfirmDanger">
+            Danger Confirm
+          </Button>
+          <Button variant="primary" @click="testConfirmWarning">
+            Warning Confirm
+          </Button>
+          <Button variant="primary" @click="testConfirmInfo">
+            Info Confirm
+          </Button>
+          <Button variant="primary" @click="testConfirmSuccess">
+            Success Confirm
+          </Button>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3 class="group-title">Alert Dialogs</h3>
+        <div class="button-row">
+          <Button variant="danger" @click="testAlertError">
+            Error Alert
+          </Button>
+          <Button variant="primary" @click="testAlertSuccess">
+            Success Alert
+          </Button>
+          <Button variant="primary" @click="testAlertInfo">
+            Info Alert
+          </Button>
+          <Button variant="primary" @click="testAlertWarning">
+            Warning Alert
+          </Button>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <h3 class="group-title">Real-World Example</h3>
+        <div class="button-row">
+          <Button variant="danger" @click="testDeleteQuote">
+            Delete Quote (Full Flow)
+          </Button>
+        </div>
+        <p class="demo-hint">Tests both confirm and alert in sequence</p>
+      </div>
+    </section>
+
     <!-- BORDERS & SPACING -->
     <section class="showcase-section">
       <h2 class="section-title">Refined Style — Subtle Structure</h2>
@@ -357,6 +408,7 @@
 import { ref } from 'vue';
 import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
+import { confirm, alert } from '@/composables/useDialog';
 
 // Demo data
 const demoInputText = ref('Sample text');
@@ -374,6 +426,123 @@ const formData = ref({
   quantity: 100,
   unitPrice: 12.50
 });
+
+// Dialog test functions
+async function testConfirmDanger() {
+  const confirmed = await confirm({
+    title: 'Smazat díl?',
+    message: 'Opravdu chcete smazat díl "10001234"?\n\nTato akce je nevratná!',
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  });
+
+  console.log('Danger confirm result:', confirmed);
+}
+
+async function testConfirmWarning() {
+  const confirmed = await confirm({
+    title: 'Neuložené změny',
+    message: 'Máte neuložené změny.\n\nOpravdu chcete zavřít bez uložení?',
+    type: 'warning',
+    confirmText: 'Zavřít bez uložení',
+    cancelText: 'Zůstat'
+  });
+
+  console.log('Warning confirm result:', confirmed);
+}
+
+async function testConfirmInfo() {
+  const confirmed = await confirm({
+    title: 'Potvrdit změnu',
+    message: 'Chcete změnit nastavení hustoty na "Comfortable"?\n\nBude vyžadován restart.',
+    type: 'info',
+    confirmText: 'Pokračovat',
+    cancelText: 'Zrušit'
+  });
+
+  console.log('Info confirm result:', confirmed);
+}
+
+async function testConfirmSuccess() {
+  const confirmed = await confirm({
+    title: 'Aktivovat díl',
+    message: 'Díl bude nastaven jako aktivní a připraven k výrobě.',
+    type: 'success',
+    confirmText: 'Aktivovat',
+    cancelText: 'Zrušit'
+  });
+
+  console.log('Success confirm result:', confirmed);
+}
+
+async function testAlertError() {
+  await alert({
+    title: 'Chyba při ukládání',
+    message: 'Nepodařilo se uložit data.\n\nZkontrolujte připojení k serveru.',
+    type: 'error'
+  });
+
+  console.log('Error alert dismissed');
+}
+
+async function testAlertSuccess() {
+  await alert({
+    title: 'Úspěšně uloženo',
+    message: 'Nabídka byla úspěšně uložena.',
+    type: 'success'
+  });
+
+  console.log('Success alert dismissed');
+}
+
+async function testAlertInfo() {
+  await alert({
+    title: 'Informace',
+    message: 'Tato funkce je momentálně ve vývoji.\n\nBude dostupná v příští verzi.',
+    type: 'info'
+  });
+
+  console.log('Info alert dismissed');
+}
+
+async function testAlertWarning() {
+  await alert({
+    title: 'Upozornění',
+    message: 'Některá pole nejsou vyplněna.\n\nDoporučujeme je doplnit před pokračováním.',
+    type: 'warning'
+  });
+
+  console.log('Warning alert dismissed');
+}
+
+async function testDeleteQuote() {
+  // Step 1: Confirm deletion
+  const confirmed = await confirm({
+    title: 'Smazat nabídku?',
+    message: 'Opravdu chcete smazat nabídku "Q-2026-001"?\n\nTato akce je nevratná!',
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  });
+
+  if (!confirmed) {
+    console.log('User cancelled deletion');
+    return;
+  }
+
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Step 2: Show success alert
+  await alert({
+    title: 'Úspěch',
+    message: 'Nabídka byla úspěšně smazána.',
+    type: 'success'
+  });
+
+  console.log('Delete quote flow completed');
+}
 </script>
 
 <style scoped>
@@ -518,6 +687,13 @@ const formData = ref({
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+}
+
+.demo-hint {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* === INPUTS === */

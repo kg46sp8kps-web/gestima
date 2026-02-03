@@ -9,7 +9,8 @@ import { usePartnersStore } from '@/stores/partners'
 import { usePartsStore } from '@/stores/parts'
 import type { QuoteWithItems, QuoteUpdate, QuoteItemCreate } from '@/types/quote'
 import FormTabs from '@/components/ui/FormTabs.vue'
-import { FileText, Edit, Trash2, Save, Lock, Info, Plus } from 'lucide-vue-next'
+import { FileText, Edit, Trash2, Save, Lock, Info, Plus, X } from 'lucide-vue-next'
+import { confirm } from '@/composables/useDialog'
 
 interface Props {
   quote: QuoteWithItems | null
@@ -131,7 +132,15 @@ async function addItem() {
 }
 
 async function deleteItem(itemId: number) {
-  if (!confirm('Opravdu smazat položku?')) return
+  const confirmed = await confirm({
+    title: 'Smazat položku?',
+    message: 'Opravdu chcete smazat tuto položku z nabídky?\n\nTato akce je nevratná!',
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.deleteQuoteItem(itemId)
@@ -175,19 +184,18 @@ partsStore.fetchParts()
       <div class="panel-actions">
         <button
           v-if="!isEditing && canEdit"
-          class="btn-primary"
+          class="btn-icon-action"
           @click="startEdit"
+          title="Upravit"
         >
-          <Edit :size="16" />
-          Upravit
+          <Edit :size="15" />
         </button>
         <template v-else-if="isEditing">
-          <button class="btn-secondary" @click="cancelEdit">
-            Zrušit
+          <button class="btn-icon-action" @click="cancelEdit" title="Zrušit">
+            <X :size="15" />
           </button>
-          <button class="btn-primary" @click="saveQuote" :disabled="saving">
-            <Save :size="16" />
-            {{ saving ? 'Ukládám...' : 'Uložit' }}
+          <button class="btn-icon-action btn-icon-primary" @click="saveQuote" :disabled="saving" :title="saving ? 'Ukládám...' : 'Uložit'">
+            <Save :size="15" />
           </button>
         </template>
       </div>
@@ -300,9 +308,8 @@ partsStore.fetchParts()
           <div class="items-panel">
             <!-- Add Item Button -->
             <div v-if="canEdit" class="items-actions">
-              <button class="btn-primary" @click="openAddItemForm">
-                <Plus :size="16" />
-                Přidat položku
+              <button class="btn-icon-action btn-icon-primary" @click="openAddItemForm" title="Přidat položku">
+                <Plus :size="15" />
               </button>
             </div>
 
@@ -504,8 +511,42 @@ partsStore.fetchParts()
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  padding-bottom: var(--space-4);
-  border-bottom: 2px solid var(--border-color);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.btn-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.btn-icon-action:hover:not(:disabled) {
+  color: var(--color-primary);
+  transform: scale(1.15);
+}
+
+.btn-icon-action.btn-icon-primary {
+  color: var(--color-primary);
+}
+
+.btn-icon-action.btn-icon-primary:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+  transform: scale(1.15);
+}
+
+.btn-icon-action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 /* Forms */

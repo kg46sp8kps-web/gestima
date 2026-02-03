@@ -8,6 +8,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
 import { Plus, Search, Filter, Download, RefreshCw, Settings, Save, X } from 'lucide-vue-next'
+import { alert } from '@/composables/useDialog'
 
 // Layout settings
 const { layoutMode } = usePartLayoutSettings('template')
@@ -264,11 +265,15 @@ function saveLayout() {
   console.log('✅ Layout saved:', layoutConfig)
 
   // Show success feedback
-  alert(`Layout saved!\n` +
-    `Window: ${windowWidth.value}×${windowHeight.value}px\n` +
-    `Split: ${panelSize.value}px / ${rightPanelWidth.value}px\n` +
-    `Grid: H${gridAreas.value.header} | I${gridAreas.value.infoGrid} | S${gridAreas.value.stats} | D${gridAreas.value.description}\n` +
-    `Constraints & Glues saved!`)
+  await alert({
+    title: 'Úspěch',
+    message: `Layout saved!\n` +
+      `Window: ${windowWidth.value}×${windowHeight.value}px\n` +
+      `Split: ${panelSize.value}px / ${rightPanelWidth.value}px\n` +
+      `Grid: H${gridAreas.value.header} | I${gridAreas.value.infoGrid} | S${gridAreas.value.stats} | D${gridAreas.value.description}\n` +
+      `Constraints & Glues saved!`,
+    type: 'success'
+  })
 }
 
 // Resize grid area

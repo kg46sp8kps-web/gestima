@@ -7,6 +7,7 @@ import { computed } from 'vue'
 import { useQuotesStore } from '@/stores/quotes'
 import type { QuoteWithItems, QuoteStatus } from '@/types/quote'
 import { Edit, FileText, Send, CheckCircle, XCircle, Copy, Trash2 } from 'lucide-vue-next'
+import { confirm } from '@/composables/useDialog'
 
 interface Props {
   quote: QuoteWithItems | null
@@ -86,7 +87,16 @@ async function handleClone() {
 
 async function handleDelete() {
   if (!props.quote) return
-  if (!confirm(`Opravdu smazat nabídku ${props.quote.quote_number}?`)) return
+
+  const confirmed = await confirm({
+    title: 'Smazat nabídku?',
+    message: `Opravdu chcete smazat nabídku ${props.quote.quote_number}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.deleteQuote(props.quote.quote_number)
@@ -114,7 +124,7 @@ function formatCurrency(value: number): string {
         <div class="quote-badges">
           <span class="quote-number-badge">{{ quote.quote_number }}</span>
           <span v-if="statusBadge" :class="['status-badge', statusBadge.class]">
-            <component :is="statusBadge.icon" :size="14" />
+            <component :is="statusBadge.icon" :size="15" />
             {{ statusBadge.label }}
           </span>
         </div>
@@ -154,45 +164,45 @@ function formatCurrency(value: number): string {
           @click="handleSend"
           class="btn-workflow btn-send"
           :disabled="quotesStore.loading"
+          title="Odeslat"
         >
-          <Send :size="16" />
-          Odeslat
+          <Send :size="15" />
         </button>
         <button
           v-if="showApproveButton"
           @click="handleApprove"
           class="btn-workflow btn-approve"
           :disabled="quotesStore.loading"
+          title="Schválit"
         >
-          <CheckCircle :size="16" />
-          Schválit
+          <CheckCircle :size="15" />
         </button>
         <button
           v-if="showRejectButton"
           @click="handleReject"
           class="btn-workflow btn-reject"
           :disabled="quotesStore.loading"
+          title="Odmítnout"
         >
-          <XCircle :size="16" />
-          Odmítnout
+          <XCircle :size="15" />
         </button>
         <button
           v-if="showCloneButton"
           @click="handleClone"
           class="btn-workflow btn-clone"
           :disabled="quotesStore.loading"
+          title="Duplikovat"
         >
-          <Copy :size="16" />
-          Duplikovat
+          <Copy :size="15" />
         </button>
         <button
           v-if="showDeleteButton"
           @click="handleDelete"
           class="btn-workflow btn-delete"
           :disabled="quotesStore.loading"
+          title="Smazat"
         >
-          <Trash2 :size="16" />
-          Smazat
+          <Trash2 :size="15" />
         </button>
       </div>
     </div>
@@ -355,84 +365,75 @@ function formatCurrency(value: number): string {
 
 .workflow-buttons {
   display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-color);
 }
 
 .btn-workflow {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
   border: none;
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--duration-normal);
+  transition: all var(--duration-fast);
 }
 
 .btn-workflow:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .btn-send {
-  background: var(--color-info);
-  color: white;
+  color: var(--color-info);
 }
 
 .btn-send:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  color: #1d4ed8;
+  transform: scale(1.15);
 }
 
 .btn-approve {
-  background: var(--color-success);
-  color: white;
+  color: var(--color-success);
 }
 
 .btn-approve:hover:not(:disabled) {
-  background: #047857;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  color: #047857;
+  transform: scale(1.15);
 }
 
 .btn-reject {
-  background: var(--color-danger);
-  color: white;
+  color: var(--color-danger);
 }
 
 .btn-reject:hover:not(:disabled) {
-  background: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  color: #dc2626;
+  transform: scale(1.15);
 }
 
 .btn-clone {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
+  color: var(--text-tertiary);
 }
 
 .btn-clone:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  color: var(--color-primary);
+  transform: scale(1.15);
 }
 
 .btn-delete {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  color: var(--text-tertiary);
 }
 
 .btn-delete:hover:not(:disabled) {
-  background: var(--color-danger);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  color: var(--color-danger);
+  transform: scale(1.15);
 }
 
 .empty-state {

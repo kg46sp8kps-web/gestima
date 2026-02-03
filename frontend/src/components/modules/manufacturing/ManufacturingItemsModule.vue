@@ -19,6 +19,7 @@ import type { LinkingGroup } from '@/stores/windows'
 import { Package, Settings, DollarSign, FileText, Edit, Trash2, Save, X, Copy } from 'lucide-vue-next'
 import { updatePart, createPart, deletePart } from '@/api/parts'
 import type { PartCreate } from '@/types/part'
+import { confirm, alert } from '@/composables/useDialog'
 
 interface Props {
   partNumber?: string
@@ -186,7 +187,11 @@ async function saveEdit() {
   // Validate: article_number is required
   const articleNumber = editForm.value.article_number?.trim()
   if (!articleNumber) {
-    alert('Artikl je povinný údaj!')
+    await alert({
+      title: 'Chyba validace',
+      message: 'Artikl je povinný údaj!',
+      type: 'warning'
+    })
     return
   }
 
@@ -237,7 +242,11 @@ async function saveEdit() {
     isEditing.value = false
   } catch (error: any) {
     console.error('Failed to save part:', error)
-    alert(`Chyba při ukládání: ${error.message || 'Neznámá chyba'}`)
+    await alert({
+      title: 'Chyba',
+      message: `Chyba při ukládání: ${error.message || 'Neznámá chyba'}`,
+      type: 'error'
+    })
   }
 }
 
@@ -252,15 +261,25 @@ async function handleDelete() {
 
   // Don't allow deleting virtual parts (they don't exist in DB yet)
   if (selectedPart.value.id === -1) {
-    alert('Tento díl ještě není uložený.')
+    await alert({
+      title: 'Info',
+      message: 'Tento díl ještě není uložený.',
+      type: 'info'
+    })
     return
   }
 
   // Confirm deletion
   const partInfo = selectedPart.value.article_number || selectedPart.value.part_number
-  if (!confirm(`Opravdu chcete smazat díl ${partInfo}?\n\nTato akce je nevratná!`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Smazat díl?',
+    message: `Opravdu chcete smazat díl ${partInfo}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await deletePart(selectedPart.value.part_number)
@@ -271,7 +290,11 @@ async function handleDelete() {
     await partsStore.fetchParts()
   } catch (error: any) {
     console.error('Failed to delete part:', error)
-    alert(`Chyba při mazání: ${error.message || 'Neznámá chyba'}`)
+    await alert({
+      title: 'Chyba',
+      message: `Chyba při mazání: ${error.message || 'Neznámá chyba'}`,
+      type: 'error'
+    })
   }
 }
 
@@ -437,23 +460,23 @@ const resizeCursor = computed(() =>
           <!-- Edit mode: Save/Cancel -->
           <template v-if="isEditing">
             <button class="icon-btn icon-btn-primary" @click="saveEdit" title="Uložit změny">
-              <Save :size="14" />
+              <Save :size="15" />
             </button>
             <button class="icon-btn" @click="cancelEdit" title="Zrušit">
-              <X :size="14" />
+              <X :size="15" />
             </button>
           </template>
 
           <!-- Normal mode: Edit/Copy/Delete -->
           <template v-else>
             <button class="icon-btn" @click="startEdit" title="Upravit díl">
-              <Edit :size="14" />
+              <Edit :size="15" />
             </button>
             <button class="icon-btn" @click="openCopyModal" title="Kopírovat díl">
-              <Copy :size="14" />
+              <Copy :size="15" />
             </button>
             <button class="icon-btn icon-btn-danger" @click="handleDelete" title="Smazat díl">
-              <Trash2 :size="14" />
+              <Trash2 :size="15" />
             </button>
           </template>
         </div>

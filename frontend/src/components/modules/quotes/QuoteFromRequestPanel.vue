@@ -18,6 +18,7 @@ import {
   ArrowLeft
 } from 'lucide-vue-next'
 import type { QuoteRequestReview, QuoteFromRequestCreate } from '@/types/quote'
+import { alert } from '@/composables/useDialog'
 
 // Stores
 const quotesStore = useQuotesStore()
@@ -83,7 +84,11 @@ async function handleDrop(event: DragEvent) {
     if (file && file.type === 'application/pdf') {
       await uploadPDF(file)
     } else if (file) {
-      alert('Pouze PDF soubory jsou podporovány')
+      await alert({
+        title: 'Nepodporovaný formát',
+        message: 'Pouze PDF soubory jsou podporovány',
+        type: 'warning'
+      })
     }
   }
 }
@@ -91,7 +96,11 @@ async function handleDrop(event: DragEvent) {
 async function uploadPDF(file: File) {
   // Validate file size (10 MB)
   if (file.size > 10 * 1024 * 1024) {
-    alert('PDF je příliš velké. Maximum je 10 MB.')
+    await alert({
+      title: 'Soubor je příliš velký',
+      message: 'PDF je příliš velké. Maximum je 10 MB.',
+      type: 'warning'
+    })
     return
   }
 
@@ -427,9 +436,9 @@ function formatCurrency(value: number): string {
           <div class="batch-legend">
             <h4>Legenda dávek:</h4>
             <div class="legend-items">
-              <span><CheckCircle2 :size="14" class="status-success" /> <strong>Exact:</strong> Přesně stejná dávka (best price)</span>
-              <span><AlertTriangle :size="14" class="status-warning" /> <strong>Lower:</strong> Nejbližší nižší (konzervativní cena)</span>
-              <span><XCircle :size="14" class="status-danger" /> <strong>Missing:</strong> Chybí kalkulace (nutno doplnit později)</span>
+              <span><CheckCircle2 :size="15" class="status-success" /> <strong>Exact:</strong> Přesně stejná dávka (best price)</span>
+              <span><AlertTriangle :size="15" class="status-warning" /> <strong>Lower:</strong> Nejbližší nižší (konzervativní cena)</span>
+              <span><XCircle :size="15" class="status-danger" /> <strong>Missing:</strong> Chybí kalkulace (nutno doplnit později)</span>
             </div>
           </div>
         </div>

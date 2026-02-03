@@ -14,6 +14,7 @@ import CopyPartModal from './CopyPartModal.vue'
 import { updatePart, deletePart } from '@/api/parts'
 import { useAuthStore } from '@/stores/auth'
 import { Edit, Copy, Trash2, Package, Settings, DollarSign, FileText, Save, X } from 'lucide-vue-next'
+import { confirm, alert } from '@/composables/useDialog'
 
 interface Props {
   part: Part
@@ -72,7 +73,11 @@ async function saveEdit() {
     emit('refresh')
   } catch (error: any) {
     console.error('Failed to update part:', error)
-    alert('Chyba při ukládání: ' + (error.message || 'Neznámá chyba'))
+    await alert({
+      title: 'Chyba',
+      message: `Chyba při ukládání: ${error.message || 'Neznámá chyba'}`,
+      type: 'error'
+    })
   }
 }
 
@@ -81,14 +86,26 @@ function cancelEdit() {
 }
 
 async function handleDelete() {
-  if (!confirm(`Opravdu smazat díl ${props.part.part_number}?`)) return
+  const confirmed = await confirm({
+    title: 'Smazat díl?',
+    message: `Opravdu chcete smazat díl ${props.part.part_number}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await deletePart(props.part.part_number)
     emit('refresh')
   } catch (error: any) {
     console.error('Failed to delete part:', error)
-    alert('Chyba při mazání: ' + (error.message || 'Neznámá chyba'))
+    await alert({
+      title: 'Chyba',
+      message: `Chyba při mazání: ${error.message || 'Neznámá chyba'}`,
+      type: 'error'
+    })
   }
 }
 
@@ -210,10 +227,10 @@ function handleOpenDrawing(drawingId?: number) {
           @click="startEdit"
           title="Upravit"
         >
-          <Edit :size="14" />
+          <Edit :size="15" />
         </button>
         <button class="icon-btn" @click="handleCopy" title="Kopírovat">
-          <Copy :size="14" />
+          <Copy :size="15" />
         </button>
         <button
           v-if="authStore.isAdmin"
@@ -221,7 +238,7 @@ function handleOpenDrawing(drawingId?: number) {
           @click="handleDelete"
           title="Smazat"
         >
-          <Trash2 :size="14" />
+          <Trash2 :size="15" />
         </button>
       </div>
     </div>

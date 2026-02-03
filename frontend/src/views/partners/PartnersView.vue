@@ -30,14 +30,14 @@
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Partner)"
                 >
-                  <Edit :size="14" />
+                  <Edit :size="15" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Partner)"
                 >
-                  <Trash2 :size="14" />
+                  <Trash2 :size="15" />
                 </button>
               </div>
             </template>
@@ -63,14 +63,14 @@
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Partner)"
                 >
-                  <Edit :size="14" />
+                  <Edit :size="15" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Partner)"
                 >
-                  <Trash2 :size="14" />
+                  <Trash2 :size="15" />
                 </button>
               </div>
             </template>
@@ -89,6 +89,7 @@ import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Partner } from '@/types/partner'
 import { Users, Factory, Edit, Trash2 } from 'lucide-vue-next'
+import { confirm } from '@/composables/useDialog'
 
 const router = useRouter()
 const partnersStore = usePartnersStore()
@@ -136,9 +137,15 @@ function handleEdit(partner: Partner) {
 }
 
 async function handleDelete(partner: Partner) {
-  if (!confirm(`Opravdu smazat partnera "${partner.company_name}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Smazat partnera?',
+    message: `Opravdu chcete smazat partnera "${partner.company_name}"?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await partnersStore.deletePartner(partner.partner_number)

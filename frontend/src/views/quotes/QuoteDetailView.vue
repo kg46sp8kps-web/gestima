@@ -12,6 +12,7 @@ import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { QuoteUpdate, QuoteItemCreate, QuoteItemUpdate, QuoteItem } from '@/types/quote'
 import { FileText, Package, Camera, Send, CheckCircle, XCircle, Copy, Trash2, AlertTriangle } from 'lucide-vue-next'
+import { confirm } from '@/composables/useDialog'
 
 const route = useRoute()
 const router = useRouter()
@@ -120,9 +121,15 @@ async function handleSave() {
 async function handleSend() {
   if (!quote.value) return
 
-  if (!confirm(`Opravdu odeslat nabídku "${quote.value.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Odeslat nabídku?',
+    message: `Opravdu chcete odeslat nabídku "${quote.value.title}"?`,
+    type: 'warning',
+    confirmText: 'Odeslat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.sendQuote(quote.value.quote_number)
@@ -135,9 +142,15 @@ async function handleSend() {
 async function handleApprove() {
   if (!quote.value) return
 
-  if (!confirm(`Opravdu schválit nabídku "${quote.value.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Schválit nabídku?',
+    message: `Opravdu chcete schválit nabídku "${quote.value.title}"?`,
+    type: 'info',
+    confirmText: 'Schválit',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.approveQuote(quote.value.quote_number)
@@ -150,9 +163,15 @@ async function handleApprove() {
 async function handleReject() {
   if (!quote.value) return
 
-  if (!confirm(`Opravdu odmítnout nabídku "${quote.value.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Odmítnout nabídku?',
+    message: `Opravdu chcete odmítnout nabídku "${quote.value.title}"?`,
+    type: 'warning',
+    confirmText: 'Odmítnout',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.rejectQuote(quote.value.quote_number)
@@ -210,9 +229,15 @@ async function handleAddItem() {
 }
 
 async function handleDeleteItem(item: QuoteItem) {
-  if (!confirm(`Opravdu smazat položku "${item.part_name}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Smazat položku?',
+    message: `Opravdu chcete smazat položku "${item.part_name}"?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.deleteQuoteItem(item.id)
@@ -261,7 +286,7 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleSend"
           >
-            <Send :size="14" />
+            <Send :size="15" />
             Odeslat
           </button>
           <button
@@ -270,7 +295,7 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleApprove"
           >
-            <CheckCircle :size="14" />
+            <CheckCircle :size="15" />
             Schválit
           </button>
           <button
@@ -279,11 +304,11 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleReject"
           >
-            <XCircle :size="14" />
+            <XCircle :size="15" />
             Odmítnout
           </button>
           <button class="btn" :disabled="isLoading" @click="handleClone">
-            <Copy :size="14" />
+            <Copy :size="15" />
             Duplikovat
           </button>
         </div>
@@ -487,7 +512,7 @@ onMounted(() => {
                       title="Smazat"
                       @click.stop="handleDeleteItem(row as unknown as QuoteItem)"
                     >
-                      <Trash2 :size="14" />
+                      <Trash2 :size="15" />
                     </button>
                   </div>
                 </template>

@@ -20,6 +20,7 @@ import {
   AlignHorizontalSpaceAround,
   AlignVerticalSpaceAround
 } from 'lucide-vue-next'
+import { confirm, alert } from '@/composables/useDialog'
 
 const store = useWindowsStore()
 
@@ -48,9 +49,13 @@ function handleArrange() {
   store.arrangeWindows(arrangeMode.value)
 }
 
-function handleSaveView() {
+async function handleSaveView() {
   if (store.openWindows.length === 0) {
-    alert('No windows open to save!')
+    await alert({
+      title: 'Info',
+      message: 'No windows open to save!',
+      type: 'info'
+    })
     return
   }
 
@@ -58,9 +63,13 @@ function handleSaveView() {
   viewName.value = `View ${store.savedViews.length + 1}`
 }
 
-function confirmSaveView() {
+async function confirmSaveView() {
   if (!viewName.value.trim()) {
-    alert('Please enter a view name')
+    await alert({
+      title: 'Chyba validace',
+      message: 'Please enter a view name',
+      type: 'warning'
+    })
     return
   }
 
@@ -82,8 +91,16 @@ function handleLoadViewFromSelect(event: Event) {
   }
 }
 
-function handleCloseAll() {
-  if (confirm('Close all windows?')) {
+async function handleCloseAll() {
+  const confirmed = await confirm({
+    title: 'Zavřít všechna okna?',
+    message: 'Opravdu chcete zavřít všechna otevřená okna?',
+    type: 'warning',
+    confirmText: 'Zavřít',
+    cancelText: 'Zrušit'
+  })
+
+  if (confirmed) {
     store.closeAllWindows()
   }
 }
@@ -180,7 +197,7 @@ function handleCloseAll() {
             :class="{ active: store.currentViewId === view.id }"
             :title="view.name"
           >
-            <Star :size="14" :fill="store.currentViewId === view.id ? 'currentColor' : 'none'" />
+            <Star :size="15" :fill="store.currentViewId === view.id ? 'currentColor' : 'none'" />
             <span>{{ view.name }}</span>
           </button>
         </div>

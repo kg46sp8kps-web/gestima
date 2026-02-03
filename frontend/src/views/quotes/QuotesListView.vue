@@ -45,28 +45,28 @@
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Quote)"
                 >
-                  <Edit :size="14" />
+                  <Edit :size="15" />
                 </button>
                 <button
                   class="btn-icon btn-primary"
                   title="Odeslat"
                   @click.stop="handleSend(row as unknown as Quote)"
                 >
-                  <Send :size="14" />
+                  <Send :size="15" />
                 </button>
                 <button
                   class="btn-icon"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="14" />
+                  <Copy :size="15" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Quote)"
                 >
-                  <Trash2 :size="14" />
+                  <Trash2 :size="15" />
                 </button>
               </div>
             </template>
@@ -102,21 +102,21 @@
                   title="Schválit"
                   @click.stop="handleApprove(row as unknown as Quote)"
                 >
-                  <CheckCircle :size="14" />
+                  <CheckCircle :size="15" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Odmítnout"
                   @click.stop="handleReject(row as unknown as Quote)"
                 >
-                  <XCircle :size="14" />
+                  <XCircle :size="15" />
                 </button>
                 <button
                   class="btn-icon"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="14" />
+                  <Copy :size="15" />
                 </button>
               </div>
             </template>
@@ -152,7 +152,7 @@
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="14" />
+                  <Copy :size="15" />
                 </button>
               </div>
             </template>
@@ -188,14 +188,14 @@
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="14" />
+                  <Copy :size="15" />
                 </button>
                 <button
                   class="btn-icon btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Quote)"
                 >
-                  <Trash2 :size="14" />
+                  <Trash2 :size="15" />
                 </button>
               </div>
             </template>
@@ -214,6 +214,7 @@ import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Quote, QuoteStatus } from '@/types/quote'
 import { FileEdit, Send, CheckCircle, XCircle, Edit, Copy, Trash2, Sparkles } from 'lucide-vue-next'
+import { confirm } from '@/composables/useDialog'
 
 const router = useRouter()
 const quotesStore = useQuotesStore()
@@ -281,9 +282,15 @@ function handleEdit(quote: Quote) {
 }
 
 async function handleSend(quote: Quote) {
-  if (!confirm(`Opravdu odeslat nabídku "${quote.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Odeslat nabídku?',
+    message: `Opravdu chcete odeslat nabídku "${quote.title}"?`,
+    type: 'warning',
+    confirmText: 'Odeslat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.sendQuote(quote.quote_number)
@@ -294,9 +301,15 @@ async function handleSend(quote: Quote) {
 }
 
 async function handleApprove(quote: Quote) {
-  if (!confirm(`Opravdu schválit nabídku "${quote.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Schválit nabídku?',
+    message: `Opravdu chcete schválit nabídku "${quote.title}"?`,
+    type: 'info',
+    confirmText: 'Schválit',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.approveQuote(quote.quote_number)
@@ -307,9 +320,15 @@ async function handleApprove(quote: Quote) {
 }
 
 async function handleReject(quote: Quote) {
-  if (!confirm(`Opravdu odmítnout nabídku "${quote.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Odmítnout nabídku?',
+    message: `Opravdu chcete odmítnout nabídku "${quote.title}"?`,
+    type: 'warning',
+    confirmText: 'Odmítnout',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.rejectQuote(quote.quote_number)
@@ -332,9 +351,15 @@ async function handleClone(quote: Quote) {
 }
 
 async function handleDelete(quote: Quote) {
-  if (!confirm(`Opravdu smazat nabídku "${quote.title}"?`)) {
-    return
-  }
+  const confirmed = await confirm({
+    title: 'Smazat nabídku?',
+    message: `Opravdu chcete smazat nabídku "${quote.title}"?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     await quotesStore.deleteQuote(quote.quote_number)

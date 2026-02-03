@@ -9,6 +9,7 @@
 import { ref, watch, computed } from 'vue'
 import { Edit, Copy, Trash2, Save, X } from 'lucide-vue-next'
 import type { MaterialItem } from '@/types/material'
+import { confirm, alert } from '@/composables/useDialog'
 
 interface Props {
   item?: MaterialItem | null
@@ -93,7 +94,11 @@ async function saveEdit() {
     console.log('Save material item:', editForm.value)
   } catch (error: any) {
     console.error('Failed to save material item:', error)
-    alert(`Chyba při ukládání: ${error.message || 'Neznámá chyba'}`)
+    await alert({
+      title: 'Chyba',
+      message: `Chyba při ukládání: ${error.message || 'Neznámá chyba'}`,
+      type: 'error'
+    })
   }
 }
 
@@ -102,14 +107,25 @@ async function handleCopy() {
 
   // TODO: Implement copy functionality
   console.log('Copy material item:', props.item.material_number)
-  alert('Kopírování materiálové položky zatím není implementováno')
+  await alert({
+    title: 'Info',
+    message: 'Kopírování materiálové položky zatím není implementováno',
+    type: 'info'
+  })
 }
 
 async function handleDelete() {
   if (!props.item) return
 
-  const confirmMsg = `Opravdu chcete smazat materiálovou položku ${props.item.code}?\n\nTato akce je nevratná!`
-  if (!confirm(confirmMsg)) return
+  const confirmed = await confirm({
+    title: 'Smazat materiálovou položku?',
+    message: `Opravdu chcete smazat materiálovou položku ${props.item.code}?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (!confirmed) return
 
   try {
     // TODO: Implement API call to delete material item
@@ -119,7 +135,11 @@ async function handleDelete() {
     console.log('Delete material item:', props.item.material_number)
   } catch (error: any) {
     console.error('Failed to delete material item:', error)
-    alert(`Chyba při mazání: ${error.message || 'Neznámá chyba'}`)
+    await alert({
+      title: 'Chyba',
+      message: `Chyba při mazání: ${error.message || 'Neznámá chyba'}`,
+      type: 'error'
+    })
   }
 }
 
@@ -137,7 +157,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 
     <div v-else class="detail-content">
       <!-- INFO RIBBON -->
-      <div class="info-ribbon" :class="{ 'editing': isEditing }">
+      <div class="info-ribbon">
         <!-- INFO GRID -->
         <div class="info-grid">
           <div class="info-card">
@@ -223,23 +243,23 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
           <!-- Edit mode: Save/Cancel -->
           <template v-if="isEditing">
             <button class="icon-btn icon-btn-primary" @click="saveEdit" title="Uložit změny">
-              <Save :size="14" />
+              <Save :size="15" />
             </button>
             <button class="icon-btn" @click="cancelEdit" title="Zrušit">
-              <X :size="14" />
+              <X :size="15" />
             </button>
           </template>
 
           <!-- Normal mode: Edit/Copy/Delete -->
           <template v-else>
             <button class="icon-btn" @click="startEdit" title="Upravit položku">
-              <Edit :size="14" />
+              <Edit :size="15" />
             </button>
             <button class="icon-btn" @click="handleCopy" title="Kopírovat položku">
-              <Copy :size="14" />
+              <Copy :size="15" />
             </button>
             <button class="icon-btn icon-btn-danger" @click="handleDelete" title="Smazat položku">
-              <Trash2 :size="14" />
+              <Trash2 :size="15" />
             </button>
           </template>
         </div>
@@ -284,11 +304,6 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   border: 2px solid var(--border-color);
   border-radius: var(--radius-lg);
   transition: all var(--duration-normal);
-}
-
-.info-ribbon.editing {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
 }
 
 /* === ICON TOOLBAR === */

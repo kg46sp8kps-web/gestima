@@ -167,13 +167,13 @@
                     v-if="item.batch_match"
                     :class="['batch-badge', `batch-${item.batch_match.status}`]"
                   >
-                    <CheckCircle2 v-if="item.batch_match.status === 'exact'" :size="14" />
-                    <AlertTriangle v-else-if="item.batch_match.status === 'lower'" :size="14" />
-                    <XCircle v-else :size="14" />
+                    <CheckCircle2 v-if="item.batch_match.status === 'exact'" :size="15" />
+                    <AlertTriangle v-else-if="item.batch_match.status === 'lower'" :size="15" />
+                    <XCircle v-else :size="15" />
                     {{ item.batch_match.batch_quantity }} ks
                   </span>
                   <span v-else class="batch-badge batch-missing">
-                    <XCircle :size="14" />
+                    <XCircle :size="15" />
                     Chybí
                   </span>
                 </td>
@@ -213,17 +213,17 @@
           <h4>Legenda dávek:</h4>
           <div class="legend-items">
             <div class="legend-item">
-              <CheckCircle2 :size="14" class="exact" />
+              <CheckCircle2 :size="15" class="exact" />
               <span><strong>Exact:</strong> Přesná shoda (ideální)</span>
             </div>
             <div class="legend-item">
-              <AlertTriangle :size="14" class="lower" />
+              <AlertTriangle :size="15" class="lower" />
               <span
                 ><strong>Lower:</strong> Nižší dávka (vyšší cena/ks, bezpečnější odhad)</span
               >
             </div>
             <div class="legend-item">
-              <XCircle :size="14" class="missing" />
+              <XCircle :size="15" class="missing" />
               <span><strong>Missing:</strong> Chybí kalkulace (nutno doplnit později)</span>
             </div>
           </div>
@@ -315,6 +315,7 @@ import {
   ArrowLeft
 } from 'lucide-vue-next'
 import type { QuoteRequestReview, QuoteFromRequestCreate } from '@/types/quote'
+import { alert } from '@/composables/useDialog'
 
 // Stores
 const quotesStore = useQuotesStore()
@@ -368,7 +369,11 @@ async function handleDrop(event: DragEvent) {
     if (file && file.type === 'application/pdf') {
       await uploadPDF(file)
     } else if (file) {
-      alert('Pouze PDF soubory jsou podporovány')
+      await alert({
+        title: 'Nepodporovaný formát',
+        message: 'Pouze PDF soubory jsou podporovány',
+        type: 'warning'
+      })
     }
   }
 }
@@ -376,7 +381,11 @@ async function handleDrop(event: DragEvent) {
 async function uploadPDF(file: File) {
   // Validate file size (10 MB)
   if (file.size > 10 * 1024 * 1024) {
-    alert('PDF je příliš velké (max 10 MB)')
+    await alert({
+      title: 'Soubor je příliš velký',
+      message: 'PDF je příliš velké. Maximum je 10 MB.',
+      type: 'warning'
+    })
     return
   }
 

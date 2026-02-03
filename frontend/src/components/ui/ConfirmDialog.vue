@@ -1,91 +1,156 @@
 <template>
   <Modal
-    v-model="isOpen"
-    :title="title"
+    v-model="state.confirm.visible"
+    :title="options?.title"
     size="sm"
     :close-on-backdrop="false"
-    :close-on-esc="!loading"
+    :close-on-esc="false"
+    :show-close="false"
   >
-    <!-- Message -->
-    <div class="confirm-message">
-      {{ message }}
+    <!-- Message with icon -->
+    <div class="confirm-content">
+      <div class="confirm-icon" :class="`confirm-icon-${options?.type}`">
+        <Trash2 v-if="options?.type === 'danger'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+        <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+        <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+        <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+      </div>
+
+      <div class="confirm-message">{{ options?.message }}</div>
     </div>
 
-    <!-- Footer with actions -->
+    <!-- Actions -->
     <template #footer>
-      <Button
-        variant="ghost"
-        :disabled="loading"
+      <button
+        class="btn btn-secondary"
         @click="handleCancel"
       >
-        {{ cancelText }}
-      </Button>
-
-      <Button
-        :variant="variant"
-        :loading="loading"
+        {{ options?.cancelText }}
+      </button>
+      <button
+        ref="confirmButtonRef"
+        class="btn"
+        :class="buttonClass"
         @click="handleConfirm"
       >
-        {{ confirmText }}
-      </Button>
+        {{ options?.confirmText }}
+      </button>
     </template>
   </Modal>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import Modal from './Modal.vue';
-import Button from './Button.vue';
+import { computed, ref, watch, nextTick } from 'vue'
+import { Trash2, AlertTriangle, Info, Check } from 'lucide-vue-next'
+import Modal from './Modal.vue'
+import { useDialog } from '@/composables/useDialog'
 
-interface Props {
-  modelValue: boolean;
-  title?: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: 'primary' | 'danger';
-  loading?: boolean;
+// Icon size constant (from Librarian report)
+const ICON_SIZE = {
+  STANDARD: 20
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  title: 'Potvrdit akci',
-  confirmText: 'Potvrdit',
-  cancelText: 'Zrušit',
-  variant: 'danger',
-  loading: false
-});
+const { state, closeConfirm } = useDialog()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean];
-  confirm: [];
-  cancel: [];
-}>();
+const confirmButtonRef = ref<HTMLButtonElement | null>(null)
 
-const isOpen = ref(props.modelValue);
+// Computed options with defaults
+const options = computed(() => state.confirm.options)
 
-watch(() => props.modelValue, (value) => {
-  isOpen.value = value;
-});
+// Button class based on type
+const buttonClass = computed(() => {
+  const type = options.value?.type || 'warning'
+  if (type === 'danger') return 'btn-danger'
+  if (type === 'success') return 'btn-primary'
+  return 'btn-primary'
+})
 
-watch(isOpen, (value) => {
-  emit('update:modelValue', value);
-});
+// Handle confirm
+function handleConfirm() {
+  closeConfirm(true)
+}
 
-const handleConfirm = () => {
-  emit('confirm');
-};
+// Handle cancel
+function handleCancel() {
+  closeConfirm(false)
+}
 
-const handleCancel = () => {
-  isOpen.value = false;
-  emit('cancel');
-};
+// Handle keyboard events
+function handleKeydown(e: KeyboardEvent) {
+  if (!state.confirm.visible) return
+
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    handleConfirm()
+  } else if (e.key === 'Escape') {
+    e.preventDefault()
+    handleCancel()
+  }
+}
+
+// Auto-focus confirm button when dialog opens
+watch(() => state.confirm.visible, async (visible) => {
+  if (visible) {
+    await nextTick()
+    confirmButtonRef.value?.focus()
+
+    // Add keyboard listener
+    document.addEventListener('keydown', handleKeydown)
+  } else {
+    // Remove keyboard listener
+    document.removeEventListener('keydown', handleKeydown)
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
+/* === CONFIRM CONTENT === */
+.confirm-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+
+/* === ICON === */
+.confirm-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-icon-danger {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+}
+
+.confirm-icon-warning {
+  background: rgba(217, 119, 6, 0.15);
+  color: #d97706;
+}
+
+.confirm-icon-info {
+  background: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+}
+
+.confirm-icon-success {
+  background: rgba(5, 150, 105, 0.15);
+  color: #059669;
+}
+
+/* === MESSAGE === */
 .confirm-message {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   color: var(--text-body);
   line-height: var(--leading-relaxed);
-  margin: var(--space-2) 0;
+  white-space: pre-line;
+  max-width: 400px;
 }
 </style>

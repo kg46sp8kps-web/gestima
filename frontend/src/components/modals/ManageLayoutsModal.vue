@@ -7,6 +7,7 @@
 import { ref } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import { Star, Trash2, Edit3, Check, X, FolderOpen } from 'lucide-vue-next'
+import { confirm, alert } from '@/composables/useDialog'
 
 interface Props {
   show: boolean
@@ -48,7 +49,7 @@ function cancelRename() {
   editingName.value = ''
 }
 
-function toggleFavorite(layoutId: string) {
+async function toggleFavorite(layoutId: string) {
   const view = store.savedViews.find(v => v.id === layoutId)
   if (!view) return
 
@@ -56,7 +57,11 @@ function toggleFavorite(layoutId: string) {
   if (!view.favorite) {
     const currentFavoritesCount = store.savedViews.filter(v => v.favorite).length
     if (currentFavoritesCount >= 3) {
-      alert('Maximum 3 favorite layouts allowed. Unmark another layout first.')
+      await alert({
+        title: 'Limit oblíbených',
+        message: 'Maximum 3 favorite layouts allowed. Unmark another layout first.',
+        type: 'warning'
+      })
       return
     }
   }
@@ -69,8 +74,16 @@ function setAsDefault(layoutId: string) {
   store.setDefaultLayout(isCurrentDefault ? null : layoutId)
 }
 
-function deleteLayout(layoutId: string) {
-  if (confirm('Delete this layout?')) {
+async function deleteLayout(layoutId: string) {
+  const confirmed = await confirm({
+    title: 'Smazat layout?',
+    message: 'Opravdu chcete smazat tento layout?\n\nTato akce je nevratná!',
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
+
+  if (confirmed) {
     store.deleteView(layoutId)
   }
 }

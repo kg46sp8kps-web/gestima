@@ -8,9 +8,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useWindowsStore } from '@/stores/windows'
-import { Menu, X, Search, Save, FolderOpen, FilePlus, Settings as SettingsIcon, Package, DollarSign, Cog, Box, Layers, LayoutGrid, AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Users, FileText } from 'lucide-vue-next'
+import { Menu, X, Search, Save, FolderOpen, FilePlus, Settings as SettingsIcon, Package, DollarSign, Cog, Box, Layers, LayoutGrid, AlignHorizontalSpaceAround, AlignVerticalSpaceAround, Users, FileText, Database } from 'lucide-vue-next'
 import ManageLayoutsModal from '@/components/modals/ManageLayoutsModal.vue'
 import Tooltip from '@/components/ui/Tooltip.vue'
+import { alert } from '@/composables/useDialog'
 
 const router = useRouter()
 const route = useRoute()
@@ -48,6 +49,7 @@ const availableModules = [
   { value: 'quotes-list', label: 'Nabídky', icon: FileText },
   { value: 'manufacturing-items', label: 'Vyráběné položky', icon: Package },
   { value: 'material-items-list', label: 'Materiálové položky', icon: Box },
+  { value: 'infor-admin', label: 'Infor Integration', icon: Database },
   { value: 'template', label: 'Template (Demo)', icon: LayoutGrid }
 ]
 
@@ -170,9 +172,13 @@ function handleNewLayout() {
   closeMenu()
 }
 
-function handleSaveCurrentLayout() {
+async function handleSaveCurrentLayout() {
   if (windowsStore.openWindows.length === 0) {
-    alert('No windows open to save!')
+    await alert({
+      title: 'Info',
+      message: 'No windows open to save!',
+      type: 'info'
+    })
     return
   }
 
@@ -191,9 +197,13 @@ function handleSaveCurrentLayout() {
   closeMenu()
 }
 
-function handleSaveCurrentAsNewLayout() {
+async function handleSaveCurrentAsNewLayout() {
   if (windowsStore.openWindows.length === 0) {
-    alert('No windows open to save!')
+    await alert({
+      title: 'Info',
+      message: 'No windows open to save!',
+      type: 'info'
+    })
     return
   }
   showSaveAsDialog.value = true
@@ -201,9 +211,13 @@ function handleSaveCurrentAsNewLayout() {
   closeMenu()
 }
 
-function confirmSaveLayout() {
+async function confirmSaveLayout() {
   if (!saveLayoutName.value.trim()) {
-    alert('Please enter a layout name')
+    await alert({
+      title: 'Chyba validace',
+      message: 'Please enter a layout name',
+      type: 'warning'
+    })
     return
   }
   windowsStore.saveCurrentView(saveLayoutName.value)
@@ -211,9 +225,13 @@ function confirmSaveLayout() {
   saveLayoutName.value = ''
 }
 
-function confirmSaveAsLayout() {
+async function confirmSaveAsLayout() {
   if (!saveLayoutName.value.trim()) {
-    alert('Please enter a layout name')
+    await alert({
+      title: 'Chyba validace',
+      message: 'Please enter a layout name',
+      type: 'warning'
+    })
     return
   }
   windowsStore.saveCurrentViewAs(saveLayoutName.value)
@@ -295,15 +313,15 @@ function closeAllWindows() {
             <Transition name="dropdown-fade">
               <div v-if="showArrangeDropdown" class="arrange-dropdown" @click.stop>
                 <button class="arrange-option" @click="arrangeWindows('grid')">
-                  <LayoutGrid :size="14" />
+                  <LayoutGrid :size="15" />
                   <span>Grid</span>
                 </button>
                 <button class="arrange-option" @click="arrangeWindows('horizontal')">
-                  <AlignHorizontalSpaceAround :size="14" />
+                  <AlignHorizontalSpaceAround :size="15" />
                   <span>Horizontal</span>
                 </button>
                 <button class="arrange-option" @click="arrangeWindows('vertical')">
-                  <AlignVerticalSpaceAround :size="14" />
+                  <AlignVerticalSpaceAround :size="15" />
                   <span>Vertical</span>
                 </button>
               </div>
