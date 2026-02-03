@@ -14,7 +14,7 @@ import type { Operation, CuttingMode } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
 import OperationRow from './OperationRow.vue'
-import DeleteOperationModal from './DeleteOperationModal.vue'
+import { confirm } from '@/composables/useDialog'
 import { Settings, Plus } from 'lucide-vue-next'
 import draggable from 'vuedraggable'
 import { ICON_SIZE } from '@/config/design'
@@ -33,8 +33,6 @@ const materialsStore = useMaterialsStore()
 
 // Local state
 const expandedOps = reactive<Record<number, boolean>>({})
-const showDeleteConfirm = ref(false)
-const operationToDelete = ref<Operation | null>(null)
 
 // Debounce timers per operation
 const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -147,18 +145,19 @@ async function handleAddOperation() {
 }
 
 // Delete confirmation
-function confirmDelete(op: Operation) {
-  operationToDelete.value = op
-  showDeleteConfirm.value = true
-}
+async function confirmDelete(op: Operation) {
+  const confirmed = await confirm({
+    title: 'Smazat operaci?',
+    message: `Opravdu chcete smazat operaci "${op.name}"?\n\nTato akce je nevratná!`,
+    type: 'danger',
+    confirmText: 'Smazat',
+    cancelText: 'Zrušit'
+  })
 
-async function executeDelete() {
-  if (!operationToDelete.value) return
-  const opId = operationToDelete.value.id
-  await operationsStore.deleteOperation(opId, props.linkingGroup)
-  delete expandedOps[opId]
-  showDeleteConfirm.value = false
-  operationToDelete.value = null
+  if (!confirmed) return
+
+  await operationsStore.deleteOperation(op.id, props.linkingGroup)
+  delete expandedOps[op.id]
 }
 
 // VueDraggable handler - called after drag ends
@@ -286,13 +285,6 @@ defineExpose({
       </table>
     </div>
 
-    <!-- Delete confirmation modal -->
-    <DeleteOperationModal
-      :show="showDeleteConfirm"
-      :operation="operationToDelete"
-      @confirm="executeDelete"
-      @cancel="showDeleteConfirm = false"
-    />
   </div>
 </template>
 
