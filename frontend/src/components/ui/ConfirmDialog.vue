@@ -102,22 +102,22 @@ watch(() => state.confirm.visible, async (visible) => {
 /* === CONFIRM CONTENT === */
 .confirm-content {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-start;
   gap: var(--space-4);
-  text-align: center;
-  padding: var(--space-4) 0;
+  padding: var(--space-2) 0;
 }
 
 /* === ICON === */
 .confirm-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .confirm-icon-danger {
@@ -142,11 +142,12 @@ watch(() => state.confirm.visible, async (visible) => {
 
 /* === MESSAGE === */
 .confirm-message {
-  font-size: var(--text-lg);
+  flex: 1;
+  font-size: var(--text-base);
   color: var(--text-body);
   line-height: var(--leading-relaxed);
   white-space: pre-line;
-  max-width: 400px;
+  text-align: left;
 }
 
 /* === ICON BUTTONS === */
