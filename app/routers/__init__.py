@@ -21,5 +21,7 @@ from app.routers import (
     quote_items_router,
     uploads_router,
     module_layouts_router,  # ADR-031: Visual Editor
-    module_defaults_router  # ADR-031: Module Defaults
+    module_defaults_router,  # ADR-031: Module Defaults
+    infor_router,  # Infor CloudSuite Industrial integration
+    step_router,  # OCCT Raw Geometry Extraction (ADR-042)
 )

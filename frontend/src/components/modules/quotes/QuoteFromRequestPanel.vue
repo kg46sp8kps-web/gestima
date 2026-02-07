@@ -15,10 +15,13 @@ import {
   Package,
   FileText,
   Check,
-  ArrowLeft
+  ArrowLeft,
+  File,
+  X
 } from 'lucide-vue-next'
-import type { QuoteRequestReview, QuoteFromRequestCreate } from '@/types/quote'
+import type { QuoteFromRequestCreate, QuoteItem } from '@/types/quote'
 import { alert } from '@/composables/useDialog'
+import { ICON_SIZE } from '@/config/design'
 
 // Stores
 const quotesStore = useQuotesStore()
@@ -47,14 +50,33 @@ const formData = reactive({
   notes: '',
   editableItems: [] as Array<{
     article_number: string
+    drawing_number: string | null
     name: string
     quantity: number
     notes: string | null
     // References to original item
     part_id: number | null
     part_exists: boolean
-    batch_match: any
+    batch_match: {
+      batch_id: number | null
+      batch_quantity: number | null
+      status: 'exact' | 'lower' | 'missing'
+      unit_price: number
+      line_total: number
+      warnings: string[]
+    } | null
+    // Drawing files for FR
+    stepFile: File | null
+    pdfFile: File | null
   }>
+})
+
+// FR progress state
+const frProgress = ref({
+  active: false,
+  total: 0,
+  analyzed: 0,
+  errors: [] as string[]
 })
 
 // Computed
@@ -125,12 +147,15 @@ async function uploadPDF(file: File) {
     // Initialize editable items from AI result
     formData.editableItems = result.items.map(item => ({
       article_number: item.article_number,
+      drawing_number: item.drawing_number,
       name: item.name,
       quantity: item.quantity,
       notes: item.notes,
       part_id: item.part_id,
       part_exists: item.part_exists,
-      batch_match: item.batch_match
+      batch_match: item.batch_match,
+      stepFile: null,
+      pdfFile: null
     }))
   } catch (error) {
     console.error('Upload failed:', error)
@@ -149,6 +174,29 @@ function handleBack() {
   quotesStore.clearAiReview()
 }
 
+// Handle per-item file selection
+function handleItemFile(index: number, event: Event, fileType: 'step' | 'pdf') {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (fileType === 'step') {
+    formData.editableItems[index].stepFile = file
+  } else {
+    formData.editableItems[index].pdfFile = file
+  }
+}
+
+// Remove per-item file
+function removeItemFile(index: number, fileType: 'step' | 'pdf') {
+  if (fileType === 'step') {
+    formData.editableItems[index].stepFile = null
+  } else {
+    formData.editableItems[index].pdfFile = null
+  }
+}
+
+
 async function handleConfirm() {
   const currentReview = review.value
   if (!currentReview || !isFormValid.value) return
@@ -163,6 +211,7 @@ async function handleConfirm() {
     items: formData.editableItems.map((item) => ({
       part_id: item.part_exists ? item.part_id : null,
       article_number: item.article_number,
+      drawing_number: item.drawing_number,
       name: item.name,
       quantity: item.quantity,
       notes: item.notes
@@ -187,6 +236,7 @@ async function handleConfirm() {
 
   try {
     const newQuote = await quotesStore.createQuoteFromParsedRequest(data)
+
     // Close this window
     windowsStore.closeWindow('quote-from-request')
     // Optionally open the detail window
@@ -267,7 +317,7 @@ function formatCurrency(value: number): string {
 
       <!-- Info panel -->
       <div class="info-panel">
-        <h3><Info :size="20" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
+        <h3><Info :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
         <ul>
           <li>Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
           <li>Claude AI Sonnet 4.5 extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
@@ -286,7 +336,7 @@ function formatCurrency(value: number): string {
     <div v-if="review && !quotesStore.loading" class="review-section">
       <!-- Summary stats -->
       <div class="summary-panel">
-        <h2><BarChart3 :size="20" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
+        <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
         <div class="summary-grid">
           <div class="summary-item">
             <span class="summary-label">Celkem položek:</span>
@@ -313,7 +363,7 @@ function formatCurrency(value: number): string {
 
       <!-- Customer section -->
       <div class="customer-section">
-        <h2><User :size="20" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
+        <h2><User :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
         <div class="customer-info">
           <div class="form-row">
             <div class="form-field">
@@ -345,11 +395,11 @@ function formatCurrency(value: number): string {
           </div>
 
           <div v-if="review.customer.partner_exists" class="match-result success">
-            <CheckCircle2 :size="16" />
+            <CheckCircle2 :size="ICON_SIZE.SMALL" />
             <span>Zákazník nalezen: {{ review.customer.partner_number }}</span>
           </div>
           <div v-else class="match-result warning">
-            <AlertCircle :size="16" />
+            <AlertCircle :size="ICON_SIZE.SMALL" />
             <span>Zákazník bude vytvořen jako nový partner</span>
           </div>
         </div>
@@ -357,14 +407,16 @@ function formatCurrency(value: number): string {
 
       <!-- Items table -->
       <div class="items-section">
-        <h2><Package :size="20" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
+        <h2><Package :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
         <div class="items-table-wrapper">
           <table class="items-table">
             <thead>
               <tr>
                 <th>Artikl / Part Number</th>
+                <th>Drawing Number</th>
                 <th>Název</th>
                 <th>Množství</th>
+                <th>Výkresy</th>
                 <th>Dávka</th>
                 <th>Cena/ks</th>
                 <th>Celkem</th>
@@ -380,6 +432,14 @@ function formatCurrency(value: number): string {
                     class="table-input"
                   />
                   <span v-if="!item.part_exists" class="badge badge-new">Nový</span>
+                </td>
+                <td @click.stop>
+                  <Input
+                    v-model="item.drawing_number"
+                    placeholder="Drawing Number"
+                    mono
+                    class="table-input"
+                  />
                 </td>
                 <td @click.stop>
                   <Input
@@ -399,11 +459,54 @@ function formatCurrency(value: number): string {
                     <span class="quantity-unit">ks</span>
                   </div>
                 </td>
+                <td class="col-drawings" @click.stop>
+                  <div class="item-drawings">
+                    <!-- STEP file button -->
+                    <label class="file-btn" :class="{ 'has-file': item.stepFile }">
+                      <span v-if="!item.stepFile">STEP</span>
+                      <span v-else class="file-name">{{ item.stepFile.name.substring(0, 8) }}...</span>
+                      <input
+                        type="file"
+                        accept=".step,.stp"
+                        class="hidden-input"
+                        @change="(e) => handleItemFile(idx, e, 'step')"
+                      />
+                    </label>
+                    <button
+                      v-if="item.stepFile"
+                      class="remove-file-btn"
+                      @click="removeItemFile(idx, 'step')"
+                      title="Odstranit STEP"
+                    >
+                      <X :size="12" />
+                    </button>
+
+                    <!-- PDF file button -->
+                    <label class="file-btn" :class="{ 'has-file': item.pdfFile }">
+                      <span v-if="!item.pdfFile">PDF</span>
+                      <span v-else class="file-name">{{ item.pdfFile.name.substring(0, 8) }}...</span>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        class="hidden-input"
+                        @change="(e) => handleItemFile(idx, e, 'pdf')"
+                      />
+                    </label>
+                    <button
+                      v-if="item.pdfFile"
+                      class="remove-file-btn"
+                      @click="removeItemFile(idx, 'pdf')"
+                      title="Odstranit PDF"
+                    >
+                      <X :size="12" />
+                    </button>
+                  </div>
+                </td>
                 <td>
                   <div v-if="item.batch_match" class="batch-status">
                     <component
                       :is="getBatchStatusIcon(item.batch_match.status)"
-                      :size="16"
+                      :size="ICON_SIZE.SMALL"
                       :class="`status-${getBatchStatusColor(item.batch_match.status)}`"
                     />
                     <span class="batch-text">
@@ -416,7 +519,7 @@ function formatCurrency(value: number): string {
                     </span>
                   </div>
                   <div v-else class="batch-status">
-                    <XCircle :size="16" class="status-danger" />
+                    <XCircle :size="ICON_SIZE.SMALL" class="status-danger" />
                     <span class="batch-text">Chybí</span>
                   </div>
                 </td>
@@ -436,9 +539,9 @@ function formatCurrency(value: number): string {
           <div class="batch-legend">
             <h4>Legenda dávek:</h4>
             <div class="legend-items">
-              <span><CheckCircle2 :size="15" class="status-success" /> <strong>Exact:</strong> Přesně stejná dávka (best price)</span>
-              <span><AlertTriangle :size="15" class="status-warning" /> <strong>Lower:</strong> Nejbližší nižší (konzervativní cena)</span>
-              <span><XCircle :size="15" class="status-danger" /> <strong>Missing:</strong> Chybí kalkulace (nutno doplnit později)</span>
+              <span><CheckCircle2 :size="ICON_SIZE.SMALL" class="status-success" /> <strong>Exact:</strong> Přesně stejná dávka (best price)</span>
+              <span><AlertTriangle :size="ICON_SIZE.SMALL" class="status-warning" /> <strong>Lower:</strong> Nejbližší nižší (konzervativní cena)</span>
+              <span><XCircle :size="ICON_SIZE.SMALL" class="status-danger" /> <strong>Missing:</strong> Chybí kalkulace (nutno doplnit později)</span>
             </div>
           </div>
         </div>
@@ -446,7 +549,7 @@ function formatCurrency(value: number): string {
 
       <!-- Quote metadata -->
       <div class="metadata-section">
-        <h2><FileText :size="20" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
+        <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
         <div class="form-row">
           <div class="form-field">
             <label>Název nabídky *</label>
@@ -491,18 +594,24 @@ function formatCurrency(value: number): string {
         </div>
       </div>
 
+      <!-- FR Progress -->
+      <div v-if="frProgress.active" class="fr-progress">
+        <div class="spinner"></div>
+        <p>Feature Recognition: {{ frProgress.analyzed }} / {{ frProgress.total }} položek...</p>
+      </div>
+
       <!-- Actions -->
       <div class="actions-section">
-        <button class="btn" @click="handleBack">
-          <ArrowLeft :size="16" />
+        <button class="btn" @click="handleBack" :disabled="frProgress.active">
+          <ArrowLeft :size="ICON_SIZE.SMALL" />
           Nahrát jiné PDF
         </button>
         <button
           class="btn btn-primary"
-          :disabled="!isFormValid || quotesStore.loading"
+          :disabled="!isFormValid || quotesStore.loading || frProgress.active"
           @click="handleConfirm"
         >
-          <Check :size="16" />
+          <Check :size="ICON_SIZE.SMALL" />
           Vytvořit nabídku
         </button>
       </div>
@@ -922,6 +1031,96 @@ function formatCurrency(value: number): string {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+}
+
+/* Drawing upload column */
+.col-drawings {
+  width: 180px;
+  min-width: 180px;
+}
+
+.item-drawings {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-muted);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.file-btn:hover {
+  border-color: var(--palette-primary);
+  color: var(--palette-primary);
+  background: var(--state-hover);
+}
+
+.file-btn.has-file {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--color-success);
+  border-style: solid;
+  color: var(--color-success);
+}
+
+.file-name {
+  font-size: 9px;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.remove-file-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: var(--color-danger);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: white;
+  transition: var(--transition-fast);
+}
+
+.remove-file-btn:hover {
+  background: var(--palette-danger-hover);
+}
+
+/* FR Progress */
+.fr-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--palette-primary-faint);
+  border: 1px solid var(--palette-primary);
+  border-radius: var(--radius-md);
+}
+
+.fr-progress p {
+  margin: 0;
+  color: var(--text-body);
+  font-size: var(--text-sm);
 }
 
 /* Actions */

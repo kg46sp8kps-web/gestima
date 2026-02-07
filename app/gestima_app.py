@@ -40,7 +40,9 @@ from app.routers import (
     uploads_router,
     drawings_router,  # Multiple drawings per part support
     module_layouts_router,  # ADR-031: Visual Editor
-    module_defaults_router  # ADR-031: Module Defaults
+    module_defaults_router,  # ADR-031: Module Defaults
+    infor_router,  # Infor CloudSuite Industrial integration
+    step_router,  # OCCT Raw Geometry Extraction (ADR-042)
 )
 from app.database import async_session, engine, close_db
 
@@ -178,6 +180,24 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="vue-assets")
+    # Serve WASM and JS files from dist root (occt-import-js for 3D STEP viewer)
+    wasm_file = frontend_dist / "occt-import-js.wasm"
+    occt_js = frontend_dist / "occt-import-js.js"
+    if wasm_file.exists() or occt_js.exists():
+        from starlette.responses import FileResponse as StarletteFileResponse
+
+        @app.get("/occt-import-js.wasm", include_in_schema=False)
+        async def serve_occt_wasm():
+            return StarletteFileResponse(
+                str(wasm_file), media_type="application/wasm"
+            )
+
+        @app.get("/occt-import-js.js", include_in_schema=False)
+        async def serve_occt_js():
+            return StarletteFileResponse(
+                str(occt_js), media_type="application/javascript"
+            )
+        logger.info("✅ OCCT WASM/JS files mounted for 3D STEP viewer")
     logger.info(f"✅ Vue SPA assets mounted: {frontend_dist / 'assets'}")
 
 # Jinja2 templates archived (2026-01-31) - see archive/legacy-alpinejs-v1.6.1/
@@ -211,6 +231,8 @@ app.include_router(uploads_router.router, prefix="/api/uploads", tags=["Uploads"
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(module_layouts_router.router, prefix="/api", tags=["Module Layouts"])  # ADR-031
 app.include_router(module_defaults_router.router, prefix="/api", tags=["Module Defaults"])  # ADR-031
+app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
+app.include_router(step_router.router, tags=["STEP"])  # OCCT Raw Geometry (prefix in router)
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])

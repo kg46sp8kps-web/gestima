@@ -14,6 +14,7 @@ import { defineAsyncComponent } from 'vue'
 const PartMainModule = defineAsyncComponent(() => import('@/components/modules/PartMainModule.vue'))
 const PartPricingModule = defineAsyncComponent(() => import('@/components/modules/PartPricingModule.vue'))
 const PartOperationsModule = defineAsyncComponent(() => import('@/components/modules/PartOperationsModule.vue'))
+const PartTechnologyModule = defineAsyncComponent(() => import('@/components/modules/PartTechnologyModule.vue'))
 const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
 const PartDrawingWindow = defineAsyncComponent(() => import('@/components/modules/parts/PartDrawingWindow.vue'))
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
@@ -22,6 +23,7 @@ const QuotesListModule = defineAsyncComponent(() => import('@/components/modules
 const QuoteFromRequestModule = defineAsyncComponent(() => import('@/components/modules/QuoteFromRequestModule.vue'))
 const ManufacturingItemsModule = defineAsyncComponent(() => import('@/components/modules/manufacturing/ManufacturingItemsModule.vue'))
 const MaterialItemsListModule = defineAsyncComponent(() => import('@/components/modules/materials/MaterialItemsListModule.vue'))
+const MasterAdminModule = defineAsyncComponent(() => import('@/components/modules/MasterAdminModule.vue'))
 
 const store = useWindowsStore()
 
@@ -31,6 +33,7 @@ function getModuleComponent(module: string) {
     case 'part-main': return PartMainModule
     case 'part-pricing': return PartPricingModule
     case 'part-operations': return PartOperationsModule
+    case 'part-technology': return PartTechnologyModule
     case 'part-material': return PartMaterialModule
     case 'part-drawing': return PartDrawingWindow
     case 'batch-sets': return BatchSetsModule
@@ -39,6 +42,7 @@ function getModuleComponent(module: string) {
     case 'quote-from-request': return QuoteFromRequestModule
     case 'manufacturing-items': return ManufacturingItemsModule
     case 'material-items-list': return MaterialItemsListModule
+    case 'master-admin': return MasterAdminModule
     default: return null
   }
 }
