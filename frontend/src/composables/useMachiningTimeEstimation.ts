@@ -18,8 +18,8 @@ export function useMachiningTimeEstimation() {
     error.value = null
 
     try {
-      const response = await apiClient.get<BatchEstimationResults>('/api/estimation/batch')
-      results.value = response.data.results
+      const response = await apiClient.get<MachiningTimeEstimation[]>('/api/machining-time/batch')
+      results.value = response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load batch results'
       results.value = []
