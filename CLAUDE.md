@@ -109,6 +109,7 @@ python gestima.py run|test|seed-demo
 | Need | Location |
 |------|----------|
 | **Core rules** | [docs/core/RULES.md](docs/core/RULES.md) |
+| **Audit framework** | [docs/core/AUDIT-FRAMEWORK.md](docs/core/AUDIT-FRAMEWORK.md) ⭐ |
 | **Agent definitions** | [.claude/agents/](/.claude/agents/) |
 | **Agent orchestrace** | [docs/agents/AGENT-INSTRUCTIONS.md](docs/agents/AGENT-INSTRUCTIONS.md) |
 | **Anti-patterns** | [docs/reference/ANTI-PATTERNS.md](docs/reference/ANTI-PATTERNS.md) |

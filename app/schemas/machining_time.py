@@ -49,9 +49,13 @@ class MachiningTimeEstimateResponse(BaseModel):
     """Response schema for machining time estimation."""
 
     total_time_min: float = Field(..., ge=0, description="Total machining time in minutes")
-    roughing_time_min: float = Field(..., ge=0, description="Roughing time in minutes")
-    finishing_time_min: float = Field(..., ge=0, description="Finishing time in minutes")
-    setup_time_min: float = Field(..., ge=0, description="Setup time in minutes")
+    roughing_time_min: float = Field(..., ge=0, description="Total roughing time in minutes (main + aux)")
+    roughing_time_main: float = Field(..., ge=0, description="Main roughing time (material removal)")
+    roughing_time_aux: float = Field(..., ge=0, description="Auxiliary roughing time (rapids, tool changes - 20% of main)")
+    finishing_time_min: float = Field(..., ge=0, description="Total finishing time in minutes (main + aux)")
+    finishing_time_main: float = Field(..., ge=0, description="Main finishing time (surface machining)")
+    finishing_time_aux: float = Field(..., ge=0, description="Auxiliary finishing time (rapids, tool changes - 15% of main)")
+    setup_time_min: float = Field(default=0.0, ge=0, description="Setup time (deprecated, always 0)")
     breakdown: MachiningTimeBreakdown = Field(..., description="Detailed breakdown")
     deterministic: bool = Field(..., description="Always True (deterministic calculation)")
 
@@ -64,3 +68,15 @@ class MaterialListItem(BaseModel):
     iso_group: str = Field(..., description="ISO material group")
     hardness_hb: int = Field(..., description="Hardness in Brinell (HB)")
     density: float = Field(..., description="Density in kg/dm³")
+
+
+class MachiningTimeReEstimateRequest(BaseModel):
+    """Request schema for re-estimating machining time with different material."""
+
+    filename: str = Field(..., min_length=1, max_length=255, description="STEP filename (from uploads/drawings)")
+    material_code: str = Field(..., min_length=1, max_length=20, description="Material group code (e.g., 'OCEL-AUTO', 'HLINIK')")
+    stock_type: str = Field(
+        default="bbox",
+        description="Stock type: 'bbox' or 'cylinder'",
+        pattern=r"^(bbox|cylinder)$"
+    )

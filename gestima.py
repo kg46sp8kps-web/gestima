@@ -263,15 +263,22 @@ print("✅ Database schema initialized")
         if result.returncode != 0:
             sys.exit(1)
 
-        # Seed materials (V3: catalog + norms)
-        print("✓ Seeding material catalog (groups + price categories)...")
+        # Seed materials (V4: 8-digit codes, canonical seeds)
+        print("✓ Seeding material groups (9 categories)...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_material_catalog.py"
+            str(VENV_PYTHON), "scripts/seed_material_groups.py"
         ])
         if result.returncode != 0:
             sys.exit(1)
 
-        print("✓ Seeding material norms (conversion table)...")
+        print("✓ Seeding material price categories (43 categories)...")
+        result = subprocess.run([
+            str(VENV_PYTHON), "scripts/seed_price_categories.py"
+        ])
+        if result.returncode != 0:
+            sys.exit(1)
+
+        print("✓ Seeding material norms (83 conversion entries)...")
         result = subprocess.run([
             str(VENV_PYTHON), "scripts/seed_material_norms_complete.py"
         ])

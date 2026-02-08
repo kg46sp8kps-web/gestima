@@ -103,6 +103,21 @@ export interface MaterialGroup {
   version: number
   created_at: string
   updated_at: string
+
+  // Cutting parameters (nullable)
+  iso_group?: string | null
+  hardness_hb?: number | null
+  mrr_turning_roughing?: number | null
+  mrr_turning_finishing?: number | null
+  mrr_milling_roughing?: number | null
+  mrr_milling_finishing?: number | null
+  cutting_speed_turning?: number | null
+  cutting_speed_milling?: number | null
+  feed_turning?: number | null
+  feed_milling?: number | null
+  deep_pocket_penalty?: number | null
+  thin_wall_penalty?: number | null
+  cutting_data_source?: string | null
 }
 
 export interface MaterialGroupCreate {
@@ -115,6 +130,22 @@ export interface MaterialGroupUpdate {
   code?: string
   name?: string
   density?: number
+
+  // Cutting parameters (nullable)
+  iso_group?: string | null
+  hardness_hb?: number | null
+  mrr_turning_roughing?: number | null
+  mrr_turning_finishing?: number | null
+  mrr_milling_roughing?: number | null
+  mrr_milling_finishing?: number | null
+  cutting_speed_turning?: number | null
+  cutting_speed_milling?: number | null
+  feed_turning?: number | null
+  feed_milling?: number | null
+  deep_pocket_penalty?: number | null
+  thin_wall_penalty?: number | null
+  cutting_data_source?: string | null
+
   version: number  // Required for optimistic locking
 }
 

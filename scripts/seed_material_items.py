@@ -18,6 +18,7 @@ from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialIt
 
 
 # Demo material items (konkrétní skladové položky)
+# Updated 2026-02-08: 8-digit category codes (20900000-20900042)
 DEMO_ITEMS = [
     {
         "material_number": "20001001",  # 8-digit: 20XXXXXX (Materials prefix)
@@ -30,8 +31,8 @@ DEMO_ITEMS = [
         "norms": "1.0503, C45, 12050",
         "supplier": "Demo Supplier",
         "stock_available": True,
-        "group_code": "OCEL-KONS",
-        "category_code": "OCEL-KONS-KRUHOVA",
+        "group_name": "Ocel konstrukční",  # Maps to 20910004
+        "category_code": "20900026",  # Ocel konstrukční - tyč kruhová
     },
     {
         "material_number": "20001002",  # 8-digit: 20XXXXXX (Materials prefix)
@@ -44,8 +45,8 @@ DEMO_ITEMS = [
         "norms": "1.0503, C45, 12050",
         "supplier": "Demo Supplier",
         "stock_available": True,
-        "group_code": "OCEL-KONS",
-        "category_code": "OCEL-KONS-KRUHOVA",
+        "group_name": "Ocel konstrukční",
+        "category_code": "20900026",  # Ocel konstrukční - tyč kruhová
     },
     {
         "material_number": "20001003",  # 8-digit: 20XXXXXX (Materials prefix)
@@ -58,8 +59,8 @@ DEMO_ITEMS = [
         "norms": "1.0503, C45, 12050",
         "supplier": "Demo Supplier",
         "stock_available": True,
-        "group_code": "OCEL-KONS",
-        "category_code": "OCEL-KONS-KRUHOVA",
+        "group_name": "Ocel konstrukční",
+        "category_code": "20900026",  # Ocel konstrukční - tyč kruhová
     },
     {
         "material_number": "20001004",  # 8-digit: 20XXXXXX (Materials prefix)
@@ -72,8 +73,8 @@ DEMO_ITEMS = [
         "norms": "1.4301, X5CrNi18-10, 304",
         "supplier": "Demo Supplier",
         "stock_available": True,
-        "group_code": "NEREZ",
-        "category_code": "NEREZ-CTVEREC",  # Using available category
+        "group_name": "Nerez",
+        "category_code": "20900017",  # Nerez - tyč kruhová
     },
 ]
 
@@ -107,13 +108,13 @@ async def seed_material_items(session=None):
                 print(f"⏭️  {item_data['code']} - již existuje")
                 continue
 
-            # Get material group
+            # Get material group by name (2026-02-08: groups use 8-digit codes but we lookup by name)
             group = await session.execute(
-                select(MaterialGroup).where(MaterialGroup.code == item_data["group_code"])
+                select(MaterialGroup).where(MaterialGroup.name == item_data["group_name"])
             )
             group = group.scalar_one_or_none()
             if not group:
-                print(f"⚠️  {item_data['code']} - chybí MaterialGroup: {item_data['group_code']}")
+                print(f"⚠️  {item_data['code']} - chybí MaterialGroup: {item_data['group_name']}")
                 continue
 
             # Get price category

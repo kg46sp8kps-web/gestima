@@ -15,9 +15,18 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from app.config.material_database import get_material_data, list_available_materials
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.config import settings
+from app.models.material import MaterialGroup
 
 logger = logging.getLogger(__name__)
+
+# Create synchronous engine for this service (OCCT is synchronous)
+# Convert async URL (sqlite+aiosqlite:///...) to sync URL (sqlite:///...)
+_sync_db_url = settings.DATABASE_URL.replace('+aiosqlite', '')
+_sync_engine = create_engine(_sync_db_url, echo=False)
+_SessionLocal = sessionmaker(bind=_sync_engine, autocommit=False, autoflush=False)
 
 # OCCT imports (conditional)
 try:
@@ -60,7 +69,7 @@ class MachiningTimeEstimationService:
 
         Args:
             step_path: Path to STEP file
-            material: Material code (8-digit, e.g., "20910005")
+            material: Material group code (e.g., "OCEL-AUTO", "HLINIK")
             stock_type: Stock type ("bbox" or "cylinder")
 
         Returns:
@@ -87,14 +96,33 @@ class MachiningTimeEstimationService:
         if not step_path.exists():
             raise ValueError(f"STEP file not found: {step_path}")
 
-        # Validate material
-        material_data = get_material_data(material)
-        if not material_data:
-            available = ", ".join(list_available_materials())
-            raise ValueError(
-                f"Unknown material code: {material}. "
-                f"Available codes: {available}"
-            )
+        # Fetch material from database
+        db = _SessionLocal()
+        try:
+            material_group = db.query(MaterialGroup).filter(
+                MaterialGroup.code == material
+            ).first()
+
+            if not material_group:
+                raise ValueError(f"Material code '{material}' not found in database")
+
+            if not material_group.mrr_milling_roughing:
+                raise ValueError(
+                    f"Material '{material}' has no cutting parameters defined. "
+                    f"Run seed_material_group_cutting_params.py to populate data."
+                )
+
+            # Convert DB model to dict for compatibility with existing code
+            material_data = {
+                "iso_group": material_group.iso_group,
+                "hardness_hb": material_group.hardness_hb,
+                "density": material_group.density,
+                "mrr_aggressive_cm3_min": material_group.mrr_milling_roughing,
+                "deep_pocket_penalty": material_group.deep_pocket_penalty or 1.8,
+                "thin_wall_penalty": material_group.thin_wall_penalty or 2.5,
+            }
+        finally:
+            db.close()
 
         # Load STEP file
         shape = MachiningTimeEstimationService._load_step(step_path)
@@ -126,32 +154,35 @@ class MachiningTimeEstimationService:
         # Roughing: volume / MRR
         mrr_roughing = material_data["mrr_aggressive_cm3_min"]
         roughing_time_base = material_to_remove_cm3 / mrr_roughing
-        roughing_time_min = roughing_time_base * constraint_multiplier
+        roughing_time_main = roughing_time_base * constraint_multiplier
+
+        # Roughing auxiliary (přejezdy - 20% hlavního času)
+        roughing_time_aux = roughing_time_main * 0.20
+        roughing_time_min = roughing_time_main + roughing_time_aux
 
         # Finishing: surface area / rate
-        finishing_time_min = surface_area_cm2 / FINISHING_RATE_CM2_MIN
+        finishing_time_main = surface_area_cm2 / FINISHING_RATE_CM2_MIN
 
-        # Setup time (based on part size)
-        max_dim_mm = max(
-            geometry["bbox"]["width"],
-            geometry["bbox"]["depth"],
-            geometry["bbox"]["height"]
-        )
-        setup_time_min = SETUP_TIME_BASE_MIN + (max_dim_mm / 100.0) * SETUP_TIME_PER_100MM_MIN
+        # Finishing auxiliary (přejezdy - 15% hlavního času)
+        finishing_time_aux = finishing_time_main * 0.15
+        finishing_time_min = finishing_time_main + finishing_time_aux
 
-        # Total time
-        total_time_min = roughing_time_min + finishing_time_min + setup_time_min
+        # Total time (NO SETUP - není potřeba)
+        total_time_min = roughing_time_min + finishing_time_min
 
         # Round all values to 2 decimals for consistency
         return {
             "total_time_min": round(total_time_min, 2),
             "roughing_time_min": round(roughing_time_min, 2),
+            "roughing_time_main": round(roughing_time_main, 2),
+            "roughing_time_aux": round(roughing_time_aux, 2),
             "finishing_time_min": round(finishing_time_min, 2),
-            "setup_time_min": round(setup_time_min, 2),
+            "finishing_time_main": round(finishing_time_main, 2),
+            "finishing_time_aux": round(finishing_time_aux, 2),
+            "setup_time_min": 0.0,  # No longer used, kept for compatibility
             "breakdown": {
                 "material": material,
-                "material_category": material_data["category"],
-                "iso_group": material_data["iso_group"],
+                "iso_group": material_data.get("iso_group"),
                 "stock_volume_mm3": round(stock_volume_mm3, 2),
                 "part_volume_mm3": round(part_volume_mm3, 2),
                 "material_to_remove_mm3": round(material_to_remove_mm3, 2),

@@ -26,10 +26,7 @@ from statistics import stdev
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.services.batch_estimation_service import (
-    batch_estimate_all_files,
-    estimate_machining_time,
-)
+from app.services.machining_time_estimation_service import MachiningTimeEstimationService
 
 # Setup logging
 logging.basicConfig(
@@ -39,53 +36,113 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def test_determinism(step_file: Path, runs: int = 3) -> tuple[bool, list[float]]:
+def test_determinism(
+    step_file: Path,
+    material: str = "20910003",
+    runs: int = 3
+) -> tuple[bool, list[float]]:
     """
     Test if estimation is 100% deterministic across multiple runs.
-    
+
     Args:
         step_file: Path to STEP file
+        material: Material group code (default: "20910003" = Ocel automatová)
         runs: Number of runs (default 3)
-    
+
     Returns:
         (is_deterministic, times_list)
     """
     times = []
-    
+
     for run_idx in range(runs):
         try:
-            result = estimate_machining_time(step_file)
+            result = MachiningTimeEstimationService.estimate_time(
+                step_path=step_file,
+                material=material,
+                stock_type="bbox"
+            )
             times.append(result["total_time_min"])
         except Exception as e:
             logger.warning(f"Determinism test run {run_idx + 1} failed: {e}")
             return False, []
-    
+
     # Check if all values are identical
     is_deterministic = len(set(times)) == 1
-    
+
     return is_deterministic, times
 
 
 def main():
     """Main batch processing function."""
-    
+
     drawings_dir = Path("uploads/drawings")
-    
+    default_material = "20910003"  # Ocel automatová
+
     if not drawings_dir.exists():
         logger.error(f"Directory not found: {drawings_dir}")
         sys.exit(1)
-    
+
     logger.info("=" * 70)
     logger.info("GESTIMA BATCH MACHINING TIME ESTIMATION")
     logger.info("=" * 70)
-    
+    logger.info(f"Default material: {default_material}")
+
     # Phase 1: Estimate all files
     logger.info("\n[Phase 1] Estimating machining times...")
-    results = batch_estimate_all_files(drawings_dir)
-    
+
+    step_files = sorted(
+        list(drawings_dir.glob("**/*.step")) + list(drawings_dir.glob("**/*.stp"))
+    )
+
+    logger.info(f"Found {len(step_files)} STEP files")
+
+    results = []
+    errors = []
+
+    for idx, step_file in enumerate(step_files, 1):
+        try:
+            logger.info(f"[{idx}/{len(step_files)}] Processing {step_file.name}...")
+
+            result = MachiningTimeEstimationService.estimate_time(
+                step_path=step_file,
+                material=default_material,
+                stock_type="bbox"
+            )
+
+            # Convert to format expected by output
+            result_dict = {
+                "filename": step_file.name,
+                "material": default_material,
+                "setup_time_min": result["setup_time_min"],
+                "roughing_time_min": result["roughing_time_min"],
+                "roughing_time_main": result["roughing_time_main"],
+                "roughing_time_aux": result["roughing_time_aux"],
+                "finishing_time_min": result["finishing_time_min"],
+                "finishing_time_main": result["finishing_time_main"],
+                "finishing_time_aux": result["finishing_time_aux"],
+                "total_time_min": result["total_time_min"],
+                "breakdown": result["breakdown"],
+                "deterministic": result["deterministic"],
+            }
+
+            results.append(result_dict)
+
+            logger.info(f"  ✓ {result['total_time_min']:.2f} min ({default_material})")
+
+        except Exception as e:
+            logger.error(f"  ✗ ERROR: {e}")
+            errors.append({
+                "filename": step_file.name,
+                "error": str(e)
+            })
+
     if not results:
         logger.error("No results generated. Check OCCT installation.")
         sys.exit(1)
+
+    logger.info(f"\nProcessed {len(results)} files successfully")
+    if errors:
+        logger.warning(f"Failed to process {len(errors)} files")
     
     # Phase 2: Determinism testing (sample first 5 files)
     logger.info("\n[Phase 2] Testing determinism (sampling first 5 files, 3 runs each)...")
@@ -133,7 +190,7 @@ def main():
             "part_volume_mm3",
             "stock_volume_mm3",
             "material_to_remove_mm3",
-            "surface_area_cm2",
+            "surface_area_mm2",
             "setup_time_min",
             "roughing_time_min",
             "finishing_time_min",
@@ -142,16 +199,16 @@ def main():
         ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        
+
         for r in results:
             bd = r["breakdown"]
             writer.writerow({
                 "filename": r["filename"],
-                "material": r["material"],
+                "material": bd["material"],
                 "part_volume_mm3": bd["part_volume_mm3"],
                 "stock_volume_mm3": bd["stock_volume_mm3"],
                 "material_to_remove_mm3": bd["material_to_remove_mm3"],
-                "surface_area_cm2": bd["surface_area_cm2"],
+                "surface_area_mm2": bd["surface_area_mm2"],
                 "setup_time_min": r["setup_time_min"],
                 "roughing_time_min": r["roughing_time_min"],
                 "finishing_time_min": r["finishing_time_min"],
@@ -199,9 +256,9 @@ def main():
     # Material distribution
     materials = {}
     for r in results:
-        mat = r["material"]
+        mat = r["breakdown"]["material"]
         materials[mat] = materials.get(mat, 0) + 1
-    
+
     logger.info(f"\nMaterial distribution:")
     for mat, count in sorted(materials.items()):
         pct = count/len(results)*100

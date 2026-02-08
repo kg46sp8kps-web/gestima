@@ -5,6 +5,74 @@ Claude Code ho čte na začátku KAŽDÉ session = persistentní paměť.
 
 ---
 
+## 🔥 CRITICAL: Time Calculation System Cleanup (2026-02-08)
+
+**DŮLEŽITÉ:** Projekt má nyní **POUZE 1 systém** počítání strojních časů!
+
+### ✅ JEDINÝ AKTIVNÍ SYSTÉM:
+**Physics-Based MRR Model (ADR-040)**
+- Service: `app/services/machining_time_estimation_service.py`
+- Router: `app/routers/machining_time_router.py`
+- Dokumentace: `docs/ADR/040-machining-time-estimation.md`
+
+**Princip:** STEP → OCCT → Geometry → MRR → Time (100% deterministický)
+
+### ❌ SMAZANÉ SYSTÉMY (již NEEXISTUJÍ):
+1. `time_calculator.py` - Feature-based calculator
+2. `cutting_conditions.py` - Cutting speeds lookup
+3. `batch_estimation_service.py` - Starší batch systém
+4. `ai_feature_mapper.py` - AI bridge pro FR
+5. `vision_feature_extractor.py` - Claude Vision API
+6. `fr_apply_service.py` - Feature Recognition apply
+7. `setup_planner.py` - Setup optimization
+8. `gcode_generator.py` - G-code generator
+9. `toolpath_generator.py` - Toolpath generator
+10. `vision_debug_router.py` - Debug router
+11. `feature_recognition_router.py` - FR API
+
+**Celkem smazáno:** ~2500 LOC (75% redukcí!)
+
+### 📁 ARCHIVOVANÁ DOKUMENTACE:
+Přesunuto do `docs/archive/deprecated-2026-02-08/`:
+- ADR-039 (Vision Hybrid Pipeline)
+- FEATURE-RECOGNITION-GUIDE.md
+- CONSTRAINT-DETECTION-GUIDE.md
+- FR-HIERARCHICAL-OPERATIONS.md
+- FUTURE_VISION_STEP_HYBRID.md
+
+### ⚠️ DŮLEŽITÉ PRO DALŠÍ SESSION:
+- **NIKDY** nepoužívej smazané services!
+- **NIKDY** neimportuj `time_calculator`, `ai_feature_mapper`, atd.
+- Všechny time calculations = pouze `machining_time_estimation_service.py`
+- Feature Recognition pipeline **NEEXISTUJE** (smazán)
+- Vision API integration **NEEXISTUJE** (smazán)
+
+---
+
+## 🔧 CRITICAL: Material Seed Scripts (CANONICAL)
+
+**JEDINÉ PLATNÉ seed skripty pro materiály:**
+
+1. **`scripts/seed_material_groups.py`** (9 MaterialGroups)
+   - 8-digit kódy: `20910000-20910008`
+   - Ocel automatová, Ocel konstrukční, Ocel legovaná, Ocel nástrojová, Nerez, Hliník, Měď, Mosaz, Plasty
+
+2. **`scripts/seed_price_categories.py`** (43 MaterialPriceCategories)
+   - 8-digit kódy: `20900000-20900042`
+   - Kombinace 9 materiálů × tvary (ROUND_BAR, FLAT_BAR, SQUARE_BAR, PLATE, TUBE, HEXAGONAL_BAR)
+   - Příklady: "Ocel konstrukční - tyč kruhová" (20900026), "Ocel automatová - tyč plochá" (20900023)
+
+3. **`scripts/seed_material_norms_complete.py`** (83 MaterialNorms)
+   - Převodní tabulka W.Nr/EN/CSN/AISI → MaterialGroup
+
+**POZNÁMKA:** Všechny ostatní seed skripty v `scripts/archive/seed_material_*` jsou **DEPRECATED** a nepoužívají se!
+
+**Model:** `app/models/material.py` - String(8) kódy dle ADR-017 (Migration b9c0d1e2f3g4 z 2026-02-03)
+
+**Dokumentace:** `docs/guides/MATERIAL-GUIDE.md` (verze 2.0, 2026-02-08)
+
+---
+
 ## Session 2026-02-07 (3D Mfg Feature Coloring — Edge Convexity)
 
 ### Co bylo vytvořeno
@@ -82,6 +150,48 @@ Rozhodovací strom na základě `concave_ratio = concave_edges / total_edges`:
 - `frontend/src/components/modules/visualization/StepFeatureViewer.vue` — nová komponenta (160 LOC)
 - `app/static/test_3d_features.html` — standalone 3D test stránka
 - `app/static/test_features.html` — tabulková test stránka (bez 3D)
+
+---
+
+## Session 2026-02-08 (Machining Time UI Refactor + PDF Viewer)
+
+### Co bylo hotovo
+**1. Backend time calculation refactor** (setup removed, split times):
+- Removed `setup_time_min` from calculations (deprecated, defaulted to 0.0)
+- Split roughing/finishing times into **main** (actual machining) + **auxiliary** (rapids/tool changes)
+- Auxiliary time: 20% of roughing main, 15% of finishing main
+- Files: `app/services/machining_time_estimation_service.py`, `app/schemas/machining_time.py`
+
+**2. Frontend time display refactor**:
+- Updated `TimeBreakdownWidget.vue` to show 2 sections (Roughing + Finishing), each with main + aux times
+- Updated TypeScript types in `frontend/src/types/estimation.ts`
+- Files: `frontend/src/components/modules/estimation/TimeBreakdownWidget.vue`, `EstimationDetailPanel.vue`
+
+**3. PDF drawing viewer (floating window)**:
+- Created `EstimationPdfWindow.vue` - simple PDF viewer reading URL from window title (format: `"Výkres: filename|url"`)
+- Created JSON mapping: `uploads/drawings/step_pdf_mapping.json` (38 STEP → PDF filename mappings)
+- Character-by-character matching algorithm (minimum 5 common chars)
+- Linked to estimation detail panel: click "📄 Výkres" → opens floating window
+- **Auto-update on selection change**: watch on `props.result` updates PDF window title when switching parts in list
+- Files: `EstimationPdfWindow.vue`, `EstimationDetailPanel.vue`, `windows.ts` (+`updateWindowTitle`, `findWindowByModule`)
+
+**4. Batch results regenerated**:
+- Re-ran `app/scripts/batch_estimate_machining_time.py` with new time structure
+- Output: `uploads/drawings/batch_machining_time_results.json` (37 files, all deterministic)
+
+### Key implementation pattern: Window title as data carrier
+- PDF URL passed via window title: `"Výkres: filename.step|/uploads/drawings/file.pdf"`
+- `EstimationPdfWindow` parses title into `displayFilename` + `pdfUrl` (computed)
+- Watch on `props.result` → find open PDF window → update title → component reacts (Vue reactivity)
+- No need for complex context store extensions - simple string manipulation
+
+### Files created/modified
+- `frontend/src/components/modules/estimation/EstimationPdfWindow.vue` (NEW, 180 LOC)
+- `frontend/src/components/modules/estimation/EstimationDetailPanel.vue` (PDF button + auto-update watch)
+- `frontend/src/components/modules/estimation/TimeBreakdownWidget.vue` (redesigned display)
+- `frontend/src/stores/windows.ts` (+`updateWindowTitle`, `findWindowByModule`)
+- `frontend/src/views/windows/WindowsView.vue` (registered EstimationPdfWindow)
+- `uploads/drawings/step_pdf_mapping.json` (NEW, 38 mappings)
 
 ---
 

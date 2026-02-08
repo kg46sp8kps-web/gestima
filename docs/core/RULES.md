@@ -142,5 +142,56 @@ Stop hook:
 
 ---
 
-**Version:** 7.0 (2026-02-05)
-**Enforcement:** 14 hook souborů, 6 vrstev, 26 automatických kontrol
+## AUDIT RULES (kompletní framework)
+
+**CRITICAL:** Před každou verzí je POVINNÝ hluboký audit s totální jistotou!
+
+### Kdy auditovat (MANDATORY triggers)
+
+| Trigger | Agent | Output |
+|---------|-------|--------|
+| **Post-Cleanup** (100+ LOC deleted) | Auditor (Opus) | `docs/audits/YYYY-MM-DD-cleanup-audit.md` |
+| **Post-Feature** (3+ files) | Auditor (Opus) | `docs/audits/YYYY-MM-DD-feature-audit.md` |
+| **Post-Migration** (Alembic migration) | Auditor (Opus) | `docs/audits/YYYY-MM-DD-migration-audit.md` |
+| **Pre-Release** (před git tag) | Auditor (Opus) | `docs/audits/YYYY-MM-DD-pre-release-audit.md` |
+
+### Audit checklist (8 sekcí)
+
+**Kompletní checklist:** [AUDIT-FRAMEWORK.md](AUDIT-FRAMEWORK.md)
+
+1. **Code Quality** - dead code, DRY, anti-patterns (L-XXX), complexity
+2. **Test Coverage** - unit tests, edge cases, pytest/vitest execution
+3. **Architecture** - ADR adherence, design system, module structure
+4. **Security** - OWASP Top 10, auth/authz, input validation, secrets
+5. **Performance** - N+1 queries, API response, bundle size
+6. **Database** - migrations, constraints, data integrity (5 layers)
+7. **Documentation** - docstrings, CHANGELOG, ADRs, session notes
+8. **Dependencies** - vulnerabilities, outdated, unused, licenses
+
+### Blocking criteria (P0)
+
+**Git tag BLOKOVÁN pokud:**
+- 🔴 Security vulnerability (auth bypass, SQL injection)
+- 🔴 Test failures (`pytest` nebo `vitest` FAIL)
+- 🔴 Build failure (`npm run build` FAIL)
+- 🔴 Migration failure (`alembic upgrade head` FAIL)
+- 🔴 Missing transaction handling (raw `db.commit()`)
+- 🔴 Missing FK ondelete (orphaned records risk)
+- 🔴 Component >300 LOC (L-036 violation)
+- 🔴 Secrets in code (L-042 violation)
+
+### Scoring & verdikt
+
+| Score | Status | Action |
+|-------|--------|--------|
+| 90-100 | 🟢 EXCELLENT | ✅ APPROVED - immediate deploy |
+| 75-89 | 🟡 GOOD | ⚠️ APPROVED s minor warnings |
+| 60-74 | 🟠 ACCEPTABLE | ⚠️ Fix P1 issues před deploy |
+| <60 | 🔴 FAILED | ❌ BLOCKED - fix P0 issues |
+
+**Detailní framework:** [AUDIT-FRAMEWORK.md](AUDIT-FRAMEWORK.md) (8-section checklist, tools, scoring, report template)
+
+---
+
+**Version:** 8.0 (2026-02-08)
+**Enforcement:** 14 hook souborů, 6 vrstev, 26 automatických kontrol + comprehensive audit framework

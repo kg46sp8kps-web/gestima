@@ -15,6 +15,7 @@ export type WindowModule =
   | 'part-technology' // Unified view: Material + Operations + Features
   | 'part-material'
   | 'part-drawing'
+  | 'pdf-viewer'
   | 'batch-sets'
   | 'partners-list'
   | 'quotes-list'
@@ -221,6 +222,17 @@ export const useWindowsStore = defineStore('windows', () => {
       win.width = width
       win.height = height
     }
+  }
+
+  function updateWindowTitle(id: string, title: string) {
+    const win = windows.value.find(w => w.id === id)
+    if (win) {
+      win.title = title
+    }
+  }
+
+  function findWindowByModule(module: WindowModule): WindowState | undefined {
+    return windows.value.find(w => w.module === module)
   }
 
   function arrangeWindows(mode: 'grid' | 'horizontal' | 'vertical' = 'grid') {
@@ -440,6 +452,8 @@ export const useWindowsStore = defineStore('windows', () => {
     bringToFront,
     updateWindowPosition,
     updateWindowSize,
+    updateWindowTitle,
+    findWindowByModule,
     setWindowLinkingGroup,
     arrangeWindows,
     updateActiveView,

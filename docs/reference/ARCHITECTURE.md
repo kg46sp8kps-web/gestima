@@ -50,7 +50,7 @@ gestima/
 │   │   └── pricing_router.py       # BatchSet freeze
 │   ├── services/            # Business logika
 │   │   ├── price_calculator.py
-│   │   ├── time_calculator.py
+│   │   ├── machining_time_estimation_service.py  (ONLY TIME SYSTEM)
 │   │   └── snapshot_service.py
 │   ├── templates/           # Jinja2 HTML
 │   │   ├── parts/           # edit.html, list
@@ -76,7 +76,7 @@ gestima/
 | Hledám... | Soubor |
 |-----------|--------|
 | Výpočty cen | services/price_calculator.py |
-| Výpočty časů | services/time_calculator.py |
+| Výpočty časů | services/machining_time_estimation_service.py (ADR-040) |
 | Backup/restore DB | services/backup_service.py |
 | Snapshots (freeze) | services/snapshot_service.py |
 | API díly | routers/parts_router.py |
@@ -122,7 +122,7 @@ gestima/
 │                     ▼                                    │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  Services (Business Logic)                       │  │
-│  │  - price_calculator, time_calculator             │  │
+│  │  - price_calculator, machining_time_estimation_service │  │
 │  │  - snapshot_service                              │  │
 │  └──────────────────────────────────────────────────┘  │
 │                     ▼                                    │

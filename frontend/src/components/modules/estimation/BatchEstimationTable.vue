@@ -91,10 +91,7 @@ function getSortIcon(key: keyof MachiningTimeEstimation | 'removal') {
               <span>Filename</span>
               <component v-if="getSortIcon('filename')" :is="getSortIcon('filename')" :size="ICON_SIZE.SMALL" />
             </th>
-            <th class="sortable" @click="toggleSort('part_type')">
-              <span>Type</span>
-              <component v-if="getSortIcon('part_type')" :is="getSortIcon('part_type')" :size="ICON_SIZE.SMALL" />
-            </th>
+            <th>Material</th>
             <th class="sortable numeric" @click="toggleSort('removal')">
               <span>Removal (cm³)</span>
               <component v-if="getSortIcon('removal')" :is="getSortIcon('removal')" :size="ICON_SIZE.SMALL" />
@@ -117,9 +114,7 @@ function getSortIcon(key: keyof MachiningTimeEstimation | 'removal') {
         <tbody>
           <tr v-for="result in sortedResults" :key="result.filename" :class="{ selected: selectedFilename === result.filename }" @click="selectResult(result)">
             <td class="filename">{{ result.filename }}</td>
-            <td>
-              <span class="type-badge" :class="result.part_type.toLowerCase()">{{ result.part_type }}</span>
-            </td>
+            <td class="material-cell">{{ result.breakdown.material }}</td>
             <td class="numeric">{{ volumeInCm3(result.breakdown.material_to_remove_mm3) }}</td>
             <td class="numeric">{{ result.roughing_time_min.toFixed(2) }}</td>
             <td class="numeric">{{ result.finishing_time_min.toFixed(2) }}</td>
@@ -239,6 +234,12 @@ td.filename {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+td.material-cell {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 td.numeric {

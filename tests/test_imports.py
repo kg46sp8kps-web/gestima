@@ -28,8 +28,8 @@ def test_import_all_models():
 @pytest.mark.critical
 def test_import_services():
     """Import services"""
-    from app.services.time_calculator import FeatureCalculator
-    from app.services.cutting_conditions import get_conditions
     from app.services.price_calculator import calculate_batch_prices
-    
-    assert FeatureCalculator is not None
+    from app.services.machining_time_estimation_service import MachiningTimeEstimationService
+
+    assert calculate_batch_prices is not None
+    assert MachiningTimeEstimationService is not None

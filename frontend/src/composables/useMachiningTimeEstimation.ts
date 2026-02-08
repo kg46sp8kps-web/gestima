@@ -18,7 +18,7 @@ export function useMachiningTimeEstimation() {
     error.value = null
 
     try {
-      const response = await apiClient.get<MachiningTimeEstimation[]>('/api/machining-time/batch')
+      const response = await apiClient.get<MachiningTimeEstimation[]>('/machining-time/batch')
       results.value = response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load batch results'
@@ -34,11 +34,37 @@ export function useMachiningTimeEstimation() {
 
     try {
       const response = await apiClient.get<MachiningTimeEstimation>(
-        `/api/estimation/${encodeURIComponent(filename)}`
+        `/machining-time/estimate/${encodeURIComponent(filename)}`
       )
       return response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load estimation'
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function reEstimate(
+    filename: string,
+    materialCode: string,
+    stockType: string = 'bbox'
+  ): Promise<MachiningTimeEstimation | null> {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await apiClient.post<MachiningTimeEstimation>(
+        '/machining-time/re-estimate',
+        {
+          filename,
+          material_code: materialCode,
+          stock_type: stockType
+        }
+      )
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to re-estimate'
       return null
     } finally {
       loading.value = false
@@ -50,6 +76,7 @@ export function useMachiningTimeEstimation() {
     loading,
     error,
     fetchBatchResults,
-    fetchSingleEstimation
+    fetchSingleEstimation,
+    reEstimate
   }
 }

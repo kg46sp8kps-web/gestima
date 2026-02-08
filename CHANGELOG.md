@@ -1,3 +1,69 @@
+## [1.24.0] - 2026-02-08
+
+### Changed - Major Cleanup: Machining Time Systems Consolidation
+- **REMOVED:** Feature Recognition pipeline (~2500 LOC deleted)
+  - Deleted services: `ai_feature_mapper.py`, `time_calculator.py`, `batch_estimation_service.py`, `cutting_conditions.py`, `fr_apply_service.py`, `setup_planner.py`, `gcode_generator.py`, `vision_feature_extractor.py`
+  - Deleted routers: `vision_debug_router.py`
+  - Deleted tests: `test_fr_apply_service.py`, `test_batch_estimation.py`, `test_calculator.py`, `test_setup_planner.py`, `test_conditions.py`
+- **UNIFIED SYSTEM:** Only 1 machining time calculation method remains (ADR-040 Physics-Based MRR)
+  - Service: `machining_time_estimation_service.py`
+  - Router: `machining_time_router.py`
+  - 100% deterministic STEP → OCCT → Geometry → MRR → Time
+
+### Removed - Deprecated Documentation
+- Archived to `docs/archive/deprecated-2026-02-08/`:
+  - ADR-039 (Vision Hybrid Pipeline)
+  - ADR-041 (Batch Machining Time Estimation)
+  - FEATURE-RECOGNITION-GUIDE.md
+  - CONSTRAINT-DETECTION-GUIDE.md
+  - FR-HIERARCHICAL-OPERATIONS.md
+  - FUTURE_VISION_STEP_HYBRID.md
+
+### Added
+- **Audit Framework:** `docs/core/AUDIT-FRAMEWORK.md` (v1.0)
+  - 8-section comprehensive checklist (Code Quality, Tests, Architecture, Security, Performance, Database, Documentation, Dependencies)
+  - 4 mandatory audit types (Post-Cleanup, Post-Feature, Post-Migration, Pre-Release)
+  - P0/P1/P2 prioritization + scoring system (90-100 = EXCELLENT, <60 = BLOCKED)
+  - Audit tools & commands, report template, lessons learned integration
+- **Material System:**
+  - New migration: `t3u4v5w6x7y8_add_cutting_params_to_material_groups.py` (cutting parameters on MaterialGroup)
+  - New seed scripts: `scripts/seed_material_groups.py`, `scripts/seed_price_categories.py`
+  - Updated: `scripts/seed_material_norms_complete.py` (83 norms)
+- **Frontend:**
+  - `EstimationPdfWindow.vue` - PDF drawing viewer (floating window)
+  - `MaterialGroupBasicForm.vue`, `MaterialGroupCuttingParamsForm.vue` - split from fat component
+  - `uploads/drawings/step_pdf_mapping.json` - STEP↔PDF mapping (38 files)
+- **Backend:**
+  - `app/scripts/seed_material_group_cutting_params.py` - seed cutting params
+  - `app/scripts/update_batch_results_material.py` - update batch results with material codes
+
+### Changed
+- **Time Calculation Refactor:**
+  - Removed `setup_time_min` from calculations (deprecated, defaulted to 0.0)
+  - Split roughing/finishing times into **main** (machining) + **auxiliary** (rapids/tool changes)
+  - Auxiliary time: 20% of roughing main, 15% of finishing main
+- **Frontend:** TimeBreakdownWidget.vue redesigned (2 sections: Roughing + Finishing with main/aux split)
+- **Documentation:**
+  - `docs/core/RULES.md` updated to v8.0 (audit rules section added)
+  - `CLAUDE.md` updated to v6.0 (audit framework reference)
+  - `docs/guides/MATERIAL-GUIDE.md` updated to v2.0 (canonical seed scripts)
+
+### Fixed
+- **Audit P0 Issue:** Deleted orphaned test file `tests/test_conditions.py` (imported deleted module)
+- **L-040 Compliance:** Moved `CLEANUP-REPORT-2026-02-08.md` from root → `docs/audits/2026-02-08-cleanup-report.md`
+
+### Documentation
+- `docs/audits/2026-02-08-cleanup-report.md` - Detailed cleanup log
+- `docs/audits/2026-02-08-post-cleanup-audit.md` - Comprehensive audit (Score: 76/100, Status: APPROVED)
+
+### Notes
+- **Codebase reduction:** ~2500 LOC deleted (75% reduction in time calculation systems)
+- **Architecture simplification:** 1 unified system vs 3 competing approaches
+- **Audit score:** 76/100 (GOOD - APPROVED with 8 P1 warnings)
+- **Known P1 issues:** 4x L-008 violations (missing try/except), 17x print() in drawing_parser.py, 7x fat components, 80+ `: any` types, 3x missing FK ondelete
+
+---
+
 ## [1.23.2] - 2026-02-06
 
 ### Fixed - Frontend Bug Fixes (User-Reported)

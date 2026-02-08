@@ -14,6 +14,8 @@ class MaterialGroup(Base, AuditMixin):
     """
     Kategorie materiálu pro výpočty (hustota, řezné podmínky).
     Příklad: "Ocel automatová", "Hliník 6060", "Mosaz".
+
+    Migration t3u4v5w6x7y8: Přidány řezné parametry pro machining time estimation.
     """
     __tablename__ = "material_groups"
 
@@ -21,6 +23,31 @@ class MaterialGroup(Base, AuditMixin):
     code = Column(String(20), unique=True, nullable=False, index=True)    # "11xxx", "S235"
     name = Column(String(100), nullable=False)                            # "Ocel automatová"
     density = Column(Float, nullable=False)                               # kg/dm³ (pro výpočet váhy)
+
+    # Cutting parameters (Migration t3u4v5w6x7y8) - nullable for backward compatibility
+    iso_group = Column(String(5), index=True, nullable=True)              # P, M, K, N, S, H
+    hardness_hb = Column(Float, nullable=True)                            # Brinell hardness
+
+    # Material Removal Rates (cm³/min)
+    mrr_turning_roughing = Column(Float, nullable=True)
+    mrr_turning_finishing = Column(Float, nullable=True)
+    mrr_milling_roughing = Column(Float, nullable=True)
+    mrr_milling_finishing = Column(Float, nullable=True)
+
+    # Cutting speeds (m/min)
+    cutting_speed_turning = Column(Float, nullable=True)
+    cutting_speed_milling = Column(Float, nullable=True)
+
+    # Feed rates
+    feed_turning = Column(Float, nullable=True)                           # mm/rev
+    feed_milling = Column(Float, nullable=True)                           # mm/tooth
+
+    # Constraint penalties
+    deep_pocket_penalty = Column(Float, nullable=True, default=1.8)
+    thin_wall_penalty = Column(Float, nullable=True, default=2.5)
+
+    # Metadata
+    cutting_data_source = Column(String(100), nullable=True)              # "Sandvik Coromant 2024"
 
     # Relationships
     items = relationship("MaterialItem", back_populates="group", cascade="all, delete-orphan")
@@ -35,6 +62,7 @@ class MaterialPriceCategory(Base, AuditMixin):
 
     Migration 2026-01-26: Přidán material_group_id FK pro propojení s MaterialGroup.
     Migration 2026-02-03: Code změněn na 8-digit formát (20900000-20909999) dle ADR-017.
+    Migration 2026-02-08: Přidány řezné parametry pro machining time estimation.
     """
     __tablename__ = "material_price_categories"
 
@@ -44,6 +72,33 @@ class MaterialPriceCategory(Base, AuditMixin):
 
     # FK → MaterialGroup (Migration 2026-01-26: pro auto-assign hustoty)
     material_group_id = Column(Integer, ForeignKey("material_groups.id"), nullable=True, index=True)
+
+    # Cutting parameters (Migration 2026-02-08) - nullable for old records
+    iso_group = Column(String(5), index=True, nullable=True)              # P, M, K, N, S, H
+    hardness_hb = Column(Float, nullable=True)                            # Brinell hardness
+    density = Column(Float, nullable=True)                                # kg/dm³
+
+    # Material Removal Rates (cm³/min)
+    mrr_turning_roughing = Column(Float, nullable=True)
+    mrr_turning_finishing = Column(Float, nullable=True)
+    mrr_milling_roughing = Column(Float, nullable=True)
+    mrr_milling_finishing = Column(Float, nullable=True)
+
+    # Cutting speeds (m/min)
+    cutting_speed_turning = Column(Float, nullable=True)
+    cutting_speed_milling = Column(Float, nullable=True)
+
+    # Feed rates
+    feed_turning = Column(Float, nullable=True)                           # mm/rev
+    feed_milling = Column(Float, nullable=True)                           # mm/tooth
+
+    # Constraint penalties
+    deep_pocket_penalty = Column(Float, nullable=True, default=1.8)
+    thin_wall_penalty = Column(Float, nullable=True, default=2.5)
+
+    # Metadata
+    cutting_data_source = Column(String(100), nullable=True)              # "Sandvik Coromant 2024"
+    cutting_data_notes = Column(String, nullable=True)                    # Additional notes
 
     # Relationships
     material_group = relationship("MaterialGroup", foreign_keys=[material_group_id])
@@ -123,6 +178,21 @@ class MaterialGroupBase(BaseModel):
     name: str = Field(..., max_length=100, description="Název skupiny")
     density: float = Field(..., gt=0, description="Hustota v kg/dm³")
 
+    # Cutting parameters (optional)
+    iso_group: Optional[str] = Field(None, max_length=5, description="ISO material group: P, M, K, N, S, H")
+    hardness_hb: Optional[float] = Field(None, gt=0, description="Hardness (Brinell)")
+    mrr_turning_roughing: Optional[float] = Field(None, gt=0, description="Material removal rate - turning roughing (cm³/min)")
+    mrr_turning_finishing: Optional[float] = Field(None, gt=0, description="Material removal rate - turning finishing (cm³/min)")
+    mrr_milling_roughing: Optional[float] = Field(None, gt=0, description="Material removal rate - milling roughing (cm³/min)")
+    mrr_milling_finishing: Optional[float] = Field(None, gt=0, description="Material removal rate - milling finishing (cm³/min)")
+    cutting_speed_turning: Optional[float] = Field(None, gt=0, description="Cutting speed - turning (m/min)")
+    cutting_speed_milling: Optional[float] = Field(None, gt=0, description="Cutting speed - milling (m/min)")
+    feed_turning: Optional[float] = Field(None, gt=0, description="Feed rate - turning (mm/rev)")
+    feed_milling: Optional[float] = Field(None, gt=0, description="Feed rate - milling (mm/tooth)")
+    deep_pocket_penalty: Optional[float] = Field(None, ge=1.0, description="Time penalty multiplier for deep pockets")
+    thin_wall_penalty: Optional[float] = Field(None, ge=1.0, description="Time penalty multiplier for thin walls")
+    cutting_data_source: Optional[str] = Field(None, max_length=100, description="Source of cutting data (e.g., 'Sandvik 2024')")
+
 
 class MaterialGroupCreate(MaterialGroupBase):
     pass
@@ -132,6 +202,22 @@ class MaterialGroupUpdate(BaseModel):
     code: Optional[str] = Field(None, max_length=20)
     name: Optional[str] = Field(None, max_length=100)
     density: Optional[float] = Field(None, gt=0)
+
+    # Cutting parameters (optional)
+    iso_group: Optional[str] = Field(None, max_length=5)
+    hardness_hb: Optional[float] = Field(None, gt=0)
+    mrr_turning_roughing: Optional[float] = Field(None, gt=0)
+    mrr_turning_finishing: Optional[float] = Field(None, gt=0)
+    mrr_milling_roughing: Optional[float] = Field(None, gt=0)
+    mrr_milling_finishing: Optional[float] = Field(None, gt=0)
+    cutting_speed_turning: Optional[float] = Field(None, gt=0)
+    cutting_speed_milling: Optional[float] = Field(None, gt=0)
+    feed_turning: Optional[float] = Field(None, gt=0)
+    feed_milling: Optional[float] = Field(None, gt=0)
+    deep_pocket_penalty: Optional[float] = Field(None, ge=1.0)
+    thin_wall_penalty: Optional[float] = Field(None, ge=1.0)
+    cutting_data_source: Optional[str] = Field(None, max_length=100)
+
     version: int  # Optimistic locking
 
 
@@ -149,6 +235,24 @@ class MaterialGroupResponse(MaterialGroupBase):
 class MaterialPriceCategoryBase(BaseModel):
     code: str = Field(..., min_length=8, max_length=8, description="Kód kategorie (8-digit: 20900000-20909999)")
     name: str = Field(..., max_length=200, description="Název kategorie")
+    material_group_id: Optional[int] = Field(None, gt=0, description="ID materiálové skupiny")
+
+    # Cutting parameters (optional)
+    iso_group: Optional[str] = Field(None, max_length=5, description="ISO material group: P, M, K, N, S, H")
+    hardness_hb: Optional[float] = Field(None, gt=0, description="Hardness (Brinell)")
+    density: Optional[float] = Field(None, gt=0, description="Density (kg/dm³)")
+    mrr_turning_roughing: Optional[float] = Field(None, gt=0, description="Material removal rate - turning roughing (cm³/min)")
+    mrr_turning_finishing: Optional[float] = Field(None, gt=0, description="Material removal rate - turning finishing (cm³/min)")
+    mrr_milling_roughing: Optional[float] = Field(None, gt=0, description="Material removal rate - milling roughing (cm³/min)")
+    mrr_milling_finishing: Optional[float] = Field(None, gt=0, description="Material removal rate - milling finishing (cm³/min)")
+    cutting_speed_turning: Optional[float] = Field(None, gt=0, description="Cutting speed - turning (m/min)")
+    cutting_speed_milling: Optional[float] = Field(None, gt=0, description="Cutting speed - milling (m/min)")
+    feed_turning: Optional[float] = Field(None, gt=0, description="Feed rate - turning (mm/rev)")
+    feed_milling: Optional[float] = Field(None, gt=0, description="Feed rate - milling (mm/tooth)")
+    deep_pocket_penalty: Optional[float] = Field(None, ge=1.0, description="Time penalty multiplier for deep pockets")
+    thin_wall_penalty: Optional[float] = Field(None, ge=1.0, description="Time penalty multiplier for thin walls")
+    cutting_data_source: Optional[str] = Field(None, max_length=100, description="Source of cutting data (e.g., 'Sandvik 2024')")
+    cutting_data_notes: Optional[str] = Field(None, description="Additional notes about cutting parameters")
 
 
 class MaterialPriceCategoryCreate(MaterialPriceCategoryBase):
@@ -158,6 +262,25 @@ class MaterialPriceCategoryCreate(MaterialPriceCategoryBase):
 class MaterialPriceCategoryUpdate(BaseModel):
     code: Optional[str] = Field(None, min_length=8, max_length=8)
     name: Optional[str] = Field(None, max_length=200)
+    material_group_id: Optional[int] = Field(None, gt=0)
+
+    # Cutting parameters (optional)
+    iso_group: Optional[str] = Field(None, max_length=5)
+    hardness_hb: Optional[float] = Field(None, gt=0)
+    density: Optional[float] = Field(None, gt=0)
+    mrr_turning_roughing: Optional[float] = Field(None, gt=0)
+    mrr_turning_finishing: Optional[float] = Field(None, gt=0)
+    mrr_milling_roughing: Optional[float] = Field(None, gt=0)
+    mrr_milling_finishing: Optional[float] = Field(None, gt=0)
+    cutting_speed_turning: Optional[float] = Field(None, gt=0)
+    cutting_speed_milling: Optional[float] = Field(None, gt=0)
+    feed_turning: Optional[float] = Field(None, gt=0)
+    feed_milling: Optional[float] = Field(None, gt=0)
+    deep_pocket_penalty: Optional[float] = Field(None, ge=1.0)
+    thin_wall_penalty: Optional[float] = Field(None, ge=1.0)
+    cutting_data_source: Optional[str] = Field(None, max_length=100)
+    cutting_data_notes: Optional[str] = None
+
     version: int  # Optimistic locking
 
 

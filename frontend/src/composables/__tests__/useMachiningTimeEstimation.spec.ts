@@ -23,36 +23,30 @@ describe('useMachiningTimeEstimation', () => {
 
   it('should fetch batch results successfully', async () => {
     const { apiClient } = await import('@/api/client')
-    const mockData: BatchEstimationResults = {
-      results: [
-        {
-          filename: 'test.stp',
-          part_type: 'ROT',
-          roughing_time_min: 10,
-          finishing_time_min: 2,
-          setup_time_min: 5,
-          total_time_min: 17,
-          breakdown: {
-            material: '1.4301',
-            stock_volume_mm3: 100000,
-            part_volume_mm3: 80000,
-            material_to_remove_mm3: 20000,
-            material_removal_percent: 20,
-            surface_area_mm2: 10000,
-            machining_strategy: {
-              rough: { mrr_mm3_min: 2000, cutting_time_min: 10 },
-              finish: { mrr_mm3_min: 500, cutting_time_min: 2 }
-            },
-            critical_constraints: [],
-            constraint_multiplier: 1.0,
-            pure_machining_time_min: 12
-          }
+    const mockData = [
+      {
+        filename: 'test.stp',
+        material: '20910003',
+        roughing_time_min: 10,
+        finishing_time_min: 2,
+        setup_time_min: 5,
+        total_time_min: 17,
+        breakdown: {
+          material: '20910003',
+          iso_group: 'P',
+          stock_volume_mm3: 100000,
+          part_volume_mm3: 80000,
+          material_to_remove_mm3: 20000,
+          material_removal_percent: 20,
+          surface_area_mm2: 10000,
+          mrr_roughing_cm3_min: 300,
+          finishing_rate_cm2_min: 50,
+          critical_constraints: [],
+          constraint_multiplier: 1.0,
+          stock_type: 'bbox'
         }
-      ],
-      total_files: 1,
-      avg_time_min: 17,
-      total_volume_removed_cm3: 20
-    }
+      }
+    ]
 
     vi.mocked(apiClient.get).mockResolvedValue({ data: mockData })
 
@@ -65,7 +59,7 @@ describe('useMachiningTimeEstimation', () => {
     expect(loading.value).toBe(false)
     expect(results.value).toHaveLength(1)
     expect(results.value[0]?.filename).toBe('test.stp')
-    expect(apiClient.get).toHaveBeenCalledWith('/api/estimation/batch')
+    expect(apiClient.get).toHaveBeenCalledWith('/machining-time/batch')
   })
 
   it('should handle fetch errors gracefully', async () => {

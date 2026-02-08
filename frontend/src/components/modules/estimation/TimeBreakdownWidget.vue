@@ -2,59 +2,77 @@
 import { computed } from 'vue'
 
 interface Props {
-  roughingMin: number
-  finishingMin: number
-  setupMin: number
-  totalMin: number
+  roughingMain: number
+  roughingAux: number
+  finishingMain: number
+  finishingAux: number
 }
 
 const props = defineProps<Props>()
 
+const roughingTotal = computed(() => props.roughingMain + props.roughingAux)
+const finishingTotal = computed(() => props.finishingMain + props.finishingAux)
+const totalMin = computed(() => roughingTotal.value + finishingTotal.value)
+
 const roughingPercent = computed(() =>
-  ((props.roughingMin / props.totalMin) * 100).toFixed(0)
+  totalMin.value > 0 ? ((roughingTotal.value / totalMin.value) * 100).toFixed(0) : '0'
 )
 const finishingPercent = computed(() =>
-  ((props.finishingMin / props.totalMin) * 100).toFixed(0)
-)
-const setupPercent = computed(() =>
-  ((props.setupMin / props.totalMin) * 100).toFixed(0)
+  totalMin.value > 0 ? ((finishingTotal.value / totalMin.value) * 100).toFixed(0) : '0'
 )
 </script>
 
 <template>
   <div class="time-breakdown-widget">
-    <h3>Time Breakdown</h3>
+    <h3>Rozdělení času</h3>
     <div class="breakdown-grid">
-      <div class="breakdown-item roughing">
-        <div class="breakdown-bar">
-          <div class="bar-fill" :style="{ width: roughingPercent + '%' }"></div>
+      <!-- Roughing Section -->
+      <div class="breakdown-section">
+        <div class="section-header">Hrubování ({{ roughingTotal.toFixed(2) }} min - {{ roughingPercent }}%)</div>
+
+        <div class="breakdown-item roughing">
+          <div class="breakdown-bar">
+            <div class="bar-fill" :style="{ width: roughingPercent + '%' }"></div>
+          </div>
+          <div class="breakdown-content">
+            <span class="label">Hlavní čas (odebírání materiálu)</span>
+            <span class="value">{{ roughingMain.toFixed(2) }} min</span>
+          </div>
         </div>
-        <div class="breakdown-content">
-          <span class="label">Roughing</span>
-          <span class="value">{{ roughingMin.toFixed(2) }} min</span>
-          <span class="percent">{{ roughingPercent }}%</span>
+
+        <div class="breakdown-item roughing-aux">
+          <div class="breakdown-bar aux">
+            <div class="bar-fill" :style="{ width: ((roughingAux / totalMin) * 100).toFixed(0) + '%' }"></div>
+          </div>
+          <div class="breakdown-content">
+            <span class="label">Vedlejší čas (přejezdy, 20%)</span>
+            <span class="value">{{ roughingAux.toFixed(2) }} min</span>
+          </div>
         </div>
       </div>
 
-      <div class="breakdown-item finishing">
-        <div class="breakdown-bar">
-          <div class="bar-fill" :style="{ width: finishingPercent + '%' }"></div>
-        </div>
-        <div class="breakdown-content">
-          <span class="label">Finishing</span>
-          <span class="value">{{ finishingMin.toFixed(2) }} min</span>
-          <span class="percent">{{ finishingPercent }}%</span>
-        </div>
-      </div>
+      <!-- Finishing Section -->
+      <div class="breakdown-section">
+        <div class="section-header">Dokončování ({{ finishingTotal.toFixed(2) }} min - {{ finishingPercent }}%)</div>
 
-      <div class="breakdown-item setup">
-        <div class="breakdown-bar">
-          <div class="bar-fill" :style="{ width: setupPercent + '%' }"></div>
+        <div class="breakdown-item finishing">
+          <div class="breakdown-bar">
+            <div class="bar-fill" :style="{ width: finishingPercent + '%' }"></div>
+          </div>
+          <div class="breakdown-content">
+            <span class="label">Hlavní čas (povrch)</span>
+            <span class="value">{{ finishingMain.toFixed(2) }} min</span>
+          </div>
         </div>
-        <div class="breakdown-content">
-          <span class="label">Setup</span>
-          <span class="value">{{ setupMin.toFixed(2) }} min</span>
-          <span class="percent">{{ setupPercent }}%</span>
+
+        <div class="breakdown-item finishing-aux">
+          <div class="breakdown-bar aux">
+            <div class="bar-fill" :style="{ width: ((finishingAux / totalMin) * 100).toFixed(0) + '%' }"></div>
+          </div>
+          <div class="breakdown-content">
+            <span class="label">Vedlejší čas (přejezdy, 15%)</span>
+            <span class="value">{{ finishingAux.toFixed(2) }} min</span>
+          </div>
         </div>
       </div>
     </div>
@@ -79,7 +97,24 @@ h3 {
 .breakdown-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
+}
+
+.breakdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-base);
+  border-radius: var(--radius-md);
+}
+
+.section-header {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .breakdown-item {
@@ -96,6 +131,10 @@ h3 {
   overflow: hidden;
 }
 
+.breakdown-bar.aux {
+  height: 4px;
+}
+
 .breakdown-bar .bar-fill {
   height: 100%;
   transition: width var(--duration-normal) var(--ease-out);
@@ -105,35 +144,34 @@ h3 {
   background: var(--color-primary);
 }
 
+.breakdown-item.roughing-aux .bar-fill {
+  background: rgba(99, 102, 241, 0.5);
+}
+
 .breakdown-item.finishing .bar-fill {
   background: var(--color-success);
 }
 
-.breakdown-item.setup .bar-fill {
-  background: var(--color-warning);
+.breakdown-item.finishing-aux .bar-fill {
+  background: rgba(34, 197, 94, 0.5);
 }
 
 .breakdown-content {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   gap: var(--space-3);
   align-items: baseline;
 }
 
 .breakdown-content .label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
 .breakdown-content .value {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary);
   font-family: var(--font-mono);
-}
-
-.breakdown-content .percent {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
 }
 </style>

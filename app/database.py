@@ -151,33 +151,43 @@ async def _safe_seed(name: str, seed_func, session, logger):
 
 # === SEED WRAPPERS ===
 async def _seed_price_categories_wrapper(session):
-    """Wrapper to check & seed price categories"""
-    from app.models import MaterialPriceCategory
-    from sqlalchemy import select
-    result = await session.execute(select(MaterialPriceCategory).where(MaterialPriceCategory.deleted_at.is_(None)))
-    if not result.scalars().first():
-        from scripts.seed_price_categories import seed_price_categories
-        await seed_price_categories(session)
+    """Wrapper to check & seed price categories (2026-02-08: skip - handled by gestima.py seed-demo)"""
+    # NOTE: PriceCategories seed is now handled by scripts/seed_price_categories.py
+    # Called explicitly in gestima.py seed-demo command
+    # This wrapper left empty to avoid import errors
+    pass
 
 
 async def _seed_material_groups_wrapper(session):
-    """Wrapper to check & seed material groups"""
+    """Wrapper to check & seed material groups (2026-02-08: inline 8-digit seed)"""
     from app.models import MaterialGroup
     from sqlalchemy import select
+
     result = await session.execute(select(MaterialGroup).where(MaterialGroup.deleted_at.is_(None)))
     if not result.scalars().first():
-        from app.seed_materials import seed_materials
-        await seed_materials(session)
+        # Inline seed data (9 groups with 8-digit codes)
+        groups = [
+            {'code': '20910000', 'name': 'Hliník', 'density': 2.7},
+            {'code': '20910001', 'name': 'Měď', 'density': 8.9},
+            {'code': '20910002', 'name': 'Mosaz', 'density': 8.5},
+            {'code': '20910003', 'name': 'Ocel automatová', 'density': 7.85},
+            {'code': '20910004', 'name': 'Ocel konstrukční', 'density': 7.85},
+            {'code': '20910005', 'name': 'Ocel legovaná', 'density': 7.85},
+            {'code': '20910006', 'name': 'Ocel nástrojová', 'density': 7.85},
+            {'code': '20910007', 'name': 'Nerez', 'density': 7.9},
+            {'code': '20910008', 'name': 'Plasty', 'density': 1.2},
+        ]
+        for g in groups:
+            session.add(MaterialGroup(**g, created_by='system_seed'))
+        await session.commit()
 
 
 async def _seed_material_norms_wrapper(session):
-    """Wrapper to check & seed material norms"""
-    from app.models import MaterialNorm
-    from sqlalchemy import select
-    result = await session.execute(select(MaterialNorm).where(MaterialNorm.deleted_at.is_(None)))
-    if not result.scalars().first():
-        from scripts.seed_material_norms import seed_material_norms
-        await seed_material_norms(session)
+    """Wrapper to check & seed material norms (2026-02-08: skip - handled by gestima.py seed-demo)"""
+    # NOTE: MaterialNorms seed is now handled by scripts/seed_material_norms_complete.py
+    # Called explicitly in gestima.py seed-demo command
+    # This wrapper left empty to avoid import errors
+    pass
 
 
 async def _migrate_parts_stock_columns(conn):

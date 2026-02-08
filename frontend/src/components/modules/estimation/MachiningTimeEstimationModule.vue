@@ -4,59 +4,37 @@ import type { MachiningTimeEstimation } from '@/types/estimation'
 import BatchEstimationTable from './BatchEstimationTable.vue'
 import EstimationDetailPanel from './EstimationDetailPanel.vue'
 import { FileQuestion } from 'lucide-vue-next'
+import { useMachiningTimeEstimation } from '@/composables/useMachiningTimeEstimation'
 
-const batchResults = ref<MachiningTimeEstimation[]>([])
 const selectedResult = ref<MachiningTimeEstimation | null>(null)
-const loading = ref(false)
-const error = ref<string | null>(null)
+const { results: batchResults, fetchBatchResults, loading, error } = useMachiningTimeEstimation()
 
 onMounted(async () => {
   await loadBatchResults()
 })
 
 async function loadBatchResults() {
-  loading.value = true
-  error.value = null
-
-  try {
-    const mockResults: MachiningTimeEstimation[] = [
-      {
-        filename: 'PDM-249322_03.stp',
-        part_type: 'ROT',
-        roughing_time_min: 12.5,
-        finishing_time_min: 3.2,
-        setup_time_min: 5.0,
-        total_time_min: 20.7,
-        breakdown: {
-          material: '1.4301 (X5CrNi18-10)',
-          stock_volume_mm3: 125000,
-          part_volume_mm3: 85000,
-          material_to_remove_mm3: 40000,
-          material_removal_percent: 32,
-          surface_area_mm2: 15000,
-          machining_strategy: {
-            rough: { mrr_mm3_min: 3200, cutting_time_min: 12.5 },
-            finish: { mrr_mm3_min: 800, cutting_time_min: 3.2 }
-          },
-          critical_constraints: [],
-          constraint_multiplier: 1.0,
-          pure_machining_time_min: 15.7
-        }
-      }
-    ]
-
-    batchResults.value = mockResults
-    const firstResult = mockResults[0]
-    selectedResult.value = firstResult ?? null
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load batch results'
-  } finally {
-    loading.value = false
+  await fetchBatchResults()
+  console.log('📊 Batch results loaded:', batchResults.value.length, 'files')
+  console.log('First result:', batchResults.value[0])
+  if (batchResults.value.length > 0) {
+    selectedResult.value = batchResults.value[0] ?? null
+    console.log('✅ Selected first result:', selectedResult.value?.filename)
+  } else {
+    console.warn('⚠️ No batch results received!')
   }
 }
 
 function handleSelect(result: MachiningTimeEstimation) {
   selectedResult.value = result
+}
+
+function handleUpdated(newEstimate: MachiningTimeEstimation) {
+  const index = batchResults.value.findIndex(r => r.filename === newEstimate.filename)
+  if (index !== -1) {
+    batchResults.value[index] = newEstimate
+  }
+  selectedResult.value = newEstimate
 }
 </script>
 
@@ -77,11 +55,18 @@ function handleSelect(result: MachiningTimeEstimation) {
       </div>
 
       <div class="right-pane">
-        <EstimationDetailPanel v-if="selectedResult" :result="selectedResult" />
-        <div v-else class="empty-state">
+        <div v-if="!selectedResult" class="empty-state">
           <FileQuestion :size="48" class="empty-icon" />
           <p>Select a result to view details</p>
+          <p class="debug-info">Debug: selectedResult is {{ selectedResult === null ? 'NULL' : 'NOT NULL' }}</p>
         </div>
+        <EstimationDetailPanel
+          v-else
+          :result="selectedResult"
+          :all-results="batchResults"
+          @updated="handleUpdated"
+          @select="handleSelect"
+        />
       </div>
     </template>
   </div>
@@ -146,5 +131,12 @@ function handleSelect(result: MachiningTimeEstimation) {
   padding: var(--space-4);
   border-radius: var(--radius-md);
   background: rgba(244, 63, 94, 0.1);
+}
+
+.debug-info {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
 }
 </style>

@@ -1,6 +1,6 @@
 # Material System - Kompletni Prirucka
 
-**Verze:** 1.0 | **Datum:** 2026-01-28
+**Verze:** 2.0 | **Datum:** 2026-02-08
 
 ---
 
@@ -13,12 +13,17 @@ Materialovy system GESTIMA resit automaticke prirazovani materialovych kategorii
 ```
 MaterialNorm (prevodni tabulka)     → W.Nr/EN/CSN/AISI → MaterialGroup
      ↓
-MaterialGroup (kategorie)           → hustota, nazev (napr. "Ocel C45")
-     ↓
+MaterialGroup (kategorie)           → hustota, nazev (napr. "Ocel konstrukční")
+     ↓                                  8-digit kód: 20910000-20910008
 MaterialItem (konkretni polotovar)  → rozmery, cena, shape
      ↓
 MaterialPriceCategory (ceny)        → cenove tabulky podle vaha tiers
+                                       8-digit kód: 20900000-20900042
 ```
+
+**DŮLEŽITÉ:** Používají se **8-digit kódy** dle ADR-017:
+- MaterialPriceCategory: `20900000-20900042` (43 kategorií)
+- MaterialGroup: `20910000-20910008` (9 skupin)
 
 **ADRs:** [ADR-011](ADR/011-material-hierarchy.md), [ADR-014](ADR/014-material-price-tiers.md), [ADR-015](ADR/015-material-norm-mapping.md)
 
@@ -58,26 +63,69 @@ python scripts/seed_material_norms.py
 
 ---
 
-## 2. MaterialGroup - Kategorie
+## 2. MaterialGroup - Kategorie (9 skupin)
 
-### Dostupne kategorie (13)
+### Seed Script: `scripts/seed_material_groups.py`
 
-| Code | Nazev | Hustota (kg/dm3) |
-|------|-------|------------------|
-| 11xxx | Ocel konstrukcni (automatova) | 7.85 |
-| C45 | Ocel konstrukcni (C45) | 7.85 |
-| 42CrMo4 | Ocel legovana | 7.85 |
-| X5CrNi18-10 | Nerez (304) | 7.90 |
-| X2CrNiMo17-12-2 | Nerez (316L) | 8.00 |
-| 6060 | Hlinik (6060) | 2.70 |
-| 7075 | Hlinik (7075 dural) | 2.81 |
-| CuZn37 | Mosaz | 8.40 |
-| PA6 | Plasty (PA6) | 1.14 |
-| POM | Plasty (POM) | 1.42 |
+**CANONICAL SOURCE - Jediný platný seed pro MaterialGroup!**
+
+| Code (8-digit) | Nazev | Hustota (kg/dm³) |
+|----------------|-------|------------------|
+| 20910000 | Hliník | 2.70 |
+| 20910001 | Měď | 8.90 |
+| 20910002 | Mosaz | 8.50 |
+| 20910003 | Ocel automatová | 7.85 |
+| 20910004 | Ocel konstrukční | 7.85 |
+| 20910005 | Ocel legovaná | 7.85 |
+| 20910006 | Ocel nástrojová | 7.85 |
+| 20910007 | Nerez | 7.90 |
+| 20910008 | Plasty | 1.20 |
+
+**Spuštění:**
+```bash
+python scripts/seed_material_groups.py
+```
 
 ---
 
-## 3. MaterialItem - Polotovary
+## 3. MaterialPriceCategory - Cenové kategorie (43 kategorií)
+
+### Seed Script: `scripts/seed_price_categories.py`
+
+**CANONICAL SOURCE - Jediný platný seed pro MaterialPriceCategory!**
+
+**43 kategorií podle materiálu a tvaru (20900000-20900042):**
+
+| Materiál | Počet tvarů | Kódy | Příklad |
+|----------|-------------|------|---------|
+| Hliník | 6 | 20900000-20900005 | deska, tyč kruhová, tyč plochá, tyč čtvercová, trubka, tyč šestihranná |
+| Mosaz | 4 | 20900006-20900009 | tyč kruhová, tyč plochá, tyč čtvercová, trubka |
+| Měď | 6 | 20900010-20900015 | deska, tyč kruhová, tyč plochá, tyč čtvercová, trubka, tyč šestihranná |
+| Nerez | 6 | 20900016-20900021 | deska, tyč kruhová, tyč plochá, tyč čtvercová, trubka, tyč šestihranná |
+| **Ocel automatová** | 3 | **20900022-20900024** | **tyč kruhová, tyč plochá, tyč čtvercová** |
+| **Ocel konstrukční** | 6 | **20900025-20900030** | **deska, tyč kruhová, tyč plochá, tyč čtvercová, trubka, tyč šestihranná** |
+| **Ocel legovaná** | 3 | **20900031-20900033** | **tyč kruhová, tyč plochá, tyč čtvercová** |
+| **Ocel nástrojová** | 4 | **20900034-20900037** | **deska, tyč kruhová, tyč plochá, tyč čtvercová** |
+| Plasty | 5 | 20900038-20900042 | deska, tyč kruhová, tyč plochá, tyč čtvercová, tyč šestihranná |
+
+**Spuštění:**
+```bash
+# NEJPRVE seed MaterialGroups!
+python scripts/seed_material_groups.py
+
+# PAK seed PriceCategories (vyžaduje groups)
+python scripts/seed_price_categories.py
+```
+
+**Výhody této struktury:**
+- Generic názvy (Hliník = všechny 3xxx-6xxx série)
+- 4 typy ocelí (automatová, konstrukční, legovaná, nástrojová)
+- Separované tvary (SQUARE_BAR ≠ FLAT_BAR)
+- 8-digit kódy dle ADR-017
+
+---
+
+## 4. MaterialItem - Polotovary
 
 ### Struktura zaznamu
 
@@ -106,7 +154,7 @@ MaterialItem:
 
 ---
 
-## 4. Smart Lookup (Inteligentni vyhledavani)
+## 5. Smart Lookup (Inteligentni vyhledavani)
 
 ### Jak to funguje
 
@@ -127,7 +175,7 @@ Zadano: D21 → NENALEZENO: D20 (mensi = nelze pouzit!)
 
 ---
 
-## 5. Import katalogu
+## 6. Import katalogu
 
 ### Status: ODLOZENO
 
@@ -148,7 +196,7 @@ Import z Excel (~4181 radku) odlozen. Parser podporuje 79.5% formatu.
 
 ---
 
-## 6. API Reference
+## 7. API Reference
 
 ### Endpointy
 
@@ -176,7 +224,7 @@ group = await auto_assign_group(db, norm_code="C45")
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 ### "Neznama norma: {kod}"
 
@@ -196,7 +244,7 @@ Zkontrolujte `temp/all_unrecognized.txt` pro seznam nepodporovanych formatu.
 
 ---
 
-## 8. Odkazy
+## 9. Odkazy
 
 **ADRs:**
 - [ADR-011: Material Hierarchy](ADR/011-material-hierarchy.md)
@@ -206,10 +254,12 @@ Zkontrolujte `temp/all_unrecognized.txt` pro seznam nepodporovanych formatu.
 - [ADR-019: Smart Lookup](ADR/019-material-catalog-smart-lookup.md)
 
 **Kod:**
-- `app/models/material_*.py` - DB modely
+- `app/models/material.py` - DB modely (MaterialGroup, MaterialPriceCategory, MaterialItem, MaterialNorm)
 - `app/services/material_mapping.py` - business logika
-- `scripts/seed_material_norms.py` - seed data
+- **`scripts/seed_material_groups.py`** - **CANONICAL seed pro MaterialGroup (9 skupin)**
+- **`scripts/seed_price_categories.py`** - **CANONICAL seed pro MaterialPriceCategory (43 kategorií)**
+- `scripts/seed_material_norms_complete.py` - seed pro MaterialNorm (83 norem)
 
 ---
 
-**Verze:** 1.0 | **Autor:** GESTIMA Team
+**Verze:** 2.0 | **Autor:** GESTIMA Team | **Updated:** 2026-02-08

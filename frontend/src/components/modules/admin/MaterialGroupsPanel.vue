@@ -4,12 +4,14 @@
  * Extracted from MasterAdminModule.vue
  */
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { confirm } from '@/composables/useDialog'
 import { useUiStore } from '@/stores/ui'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Column } from '@/components/ui/DataTable.vue'
 import Modal from '@/components/ui/Modal.vue'
+import MaterialGroupBasicForm from './MaterialGroupBasicForm.vue'
+import MaterialGroupCuttingParamsForm from './MaterialGroupCuttingParamsForm.vue'
 import type { MaterialGroup, MaterialGroupCreate, MaterialGroupUpdate } from '@/types/material'
 import {
   getAdminMaterialGroups,
@@ -26,28 +28,68 @@ const loadingGroups = ref(false)
 const showGroupModal = ref(false)
 const editingGroup = ref<MaterialGroup | null>(null)
 const savingGroup = ref(false)
+const activeFormTab = ref<'basic' | 'cutting'>('basic')
 
 const groupForm = ref({
   code: '',
   name: '',
   density: 0,
-  version: 0
+  version: 0,
+  iso_group: null as string | null,
+  hardness_hb: null as number | null,
+  mrr_turning_roughing: null as number | null,
+  mrr_turning_finishing: null as number | null,
+  mrr_milling_roughing: null as number | null,
+  mrr_milling_finishing: null as number | null,
+  cutting_speed_turning: null as number | null,
+  cutting_speed_milling: null as number | null,
+  feed_turning: null as number | null,
+  feed_milling: null as number | null,
+  deep_pocket_penalty: 1.8,
+  thin_wall_penalty: 2.5,
+  cutting_data_source: null as string | null
 })
 
 const groupColumns: Column[] = [
   { key: 'code', label: 'Kod', sortable: true, width: '120px' },
   { key: 'name', label: 'Nazev', sortable: true },
-  { key: 'density', label: 'Hustota (kg/dm3)', sortable: true, width: '180px' }
+  { key: 'iso_group', label: 'ISO', sortable: true, width: '80px' },
+  { key: 'density', label: 'Hustota', sortable: true, width: '120px' },
+  { key: 'mrr_milling_roughing', label: 'MRR Freza', sortable: true, width: '120px' },
+  { key: 'cutting_speed_milling', label: 'Vc (m/min)', sortable: true, width: '120px' }
 ]
 
-// Methods
+// Computed bindings for sub-forms
+const basicFields = computed({
+  get: () => ({ code: groupForm.value.code, name: groupForm.value.name, density: groupForm.value.density }),
+  set: (v) => { groupForm.value.code = v.code; groupForm.value.name = v.name; groupForm.value.density = v.density }
+})
+
+const cuttingParams = computed({
+  get: () => ({
+    iso_group: groupForm.value.iso_group,
+    hardness_hb: groupForm.value.hardness_hb,
+    mrr_turning_roughing: groupForm.value.mrr_turning_roughing,
+    mrr_turning_finishing: groupForm.value.mrr_turning_finishing,
+    mrr_milling_roughing: groupForm.value.mrr_milling_roughing,
+    mrr_milling_finishing: groupForm.value.mrr_milling_finishing,
+    cutting_speed_turning: groupForm.value.cutting_speed_turning,
+    cutting_speed_milling: groupForm.value.cutting_speed_milling,
+    feed_turning: groupForm.value.feed_turning,
+    feed_milling: groupForm.value.feed_milling,
+    deep_pocket_penalty: groupForm.value.deep_pocket_penalty,
+    thin_wall_penalty: groupForm.value.thin_wall_penalty,
+    cutting_data_source: groupForm.value.cutting_data_source
+  }),
+  set: (v) => Object.assign(groupForm.value, v)
+})
+
 async function loadGroups() {
   loadingGroups.value = true
   try {
     groups.value = await getAdminMaterialGroups()
   } catch (error) {
     uiStore.showError('Chyba pri nacitani skupin materialu')
-    console.error(error)
   } finally {
     loadingGroups.value = false
   }
@@ -56,23 +98,35 @@ async function loadGroups() {
 function openCreateGroupModal() {
   editingGroup.value = null
   groupForm.value = {
-    code: '',
-    name: '',
-    density: 0,
-    version: 0
+    code: '', name: '', density: 0, version: 0,
+    iso_group: null, hardness_hb: null, mrr_turning_roughing: null,
+    mrr_turning_finishing: null, mrr_milling_roughing: null, mrr_milling_finishing: null,
+    cutting_speed_turning: null, cutting_speed_milling: null, feed_turning: null,
+    feed_milling: null, deep_pocket_penalty: 1.8, thin_wall_penalty: 2.5,
+    cutting_data_source: null
   }
+  activeFormTab.value = 'basic'
   showGroupModal.value = true
 }
 
 function openEditGroupModal(row: Record<string, unknown>) {
-  const group = row as unknown as MaterialGroup
-  editingGroup.value = group
+  const g = row as unknown as MaterialGroup
+  editingGroup.value = g
   groupForm.value = {
-    code: group.code,
-    name: group.name,
-    density: group.density,
-    version: group.version
+    code: g.code, name: g.name, density: g.density, version: g.version,
+    iso_group: g.iso_group ?? null, hardness_hb: g.hardness_hb ?? null,
+    mrr_turning_roughing: g.mrr_turning_roughing ?? null,
+    mrr_turning_finishing: g.mrr_turning_finishing ?? null,
+    mrr_milling_roughing: g.mrr_milling_roughing ?? null,
+    mrr_milling_finishing: g.mrr_milling_finishing ?? null,
+    cutting_speed_turning: g.cutting_speed_turning ?? null,
+    cutting_speed_milling: g.cutting_speed_milling ?? null,
+    feed_turning: g.feed_turning ?? null, feed_milling: g.feed_milling ?? null,
+    deep_pocket_penalty: g.deep_pocket_penalty ?? 1.8,
+    thin_wall_penalty: g.thin_wall_penalty ?? 2.5,
+    cutting_data_source: g.cutting_data_source ?? null
   }
+  activeFormTab.value = 'basic'
   showGroupModal.value = true
 }
 
@@ -80,12 +134,7 @@ async function saveGroup() {
   savingGroup.value = true
   try {
     if (editingGroup.value) {
-      const updateData: MaterialGroupUpdate = {
-        code: groupForm.value.code,
-        name: groupForm.value.name,
-        density: groupForm.value.density,
-        version: groupForm.value.version
-      }
+      const updateData: MaterialGroupUpdate = { ...groupForm.value, version: groupForm.value.version }
       await updateMaterialGroup(editingGroup.value.id, updateData)
       uiStore.showSuccess('Skupina aktualizovana')
     } else {
@@ -100,8 +149,7 @@ async function saveGroup() {
     showGroupModal.value = false
     await loadGroups()
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Chyba pri ukladani'
-    uiStore.showError(message)
+    uiStore.showError(error instanceof Error ? error.message : 'Chyba pri ukladani')
   } finally {
     savingGroup.value = false
   }
@@ -115,9 +163,7 @@ async function deleteGroupItem(group: MaterialGroup) {
     confirmText: 'Smazat',
     cancelText: 'Zrusit'
   })
-
   if (!confirmed) return
-
   try {
     await deleteMaterialGroup(group.id)
     uiStore.showSuccess('Skupina smazana')
@@ -125,14 +171,10 @@ async function deleteGroupItem(group: MaterialGroup) {
     await loadGroups()
   } catch (error) {
     uiStore.showError('Chyba pri mazani skupiny')
-    console.error(error)
   }
 }
 
-// Lifecycle
-onMounted(() => {
-  loadGroups()
-})
+onMounted(() => { loadGroups() })
 </script>
 
 <template>
@@ -151,20 +193,25 @@ onMounted(() => {
       @row-click="openEditGroupModal"
     />
 
-    <Modal v-model="showGroupModal" :title="editingGroup ? 'Upravit skupinu' : 'Nova skupina'">
+    <Modal v-model="showGroupModal" :title="editingGroup ? 'Upravit skupinu' : 'Nova skupina'" size="xl">
       <form @submit.prevent="saveGroup">
-        <div class="form-group">
-          <label>Kod *</label>
-          <input v-model="groupForm.code" type="text" maxlength="20" required />
+        <div class="form-tabs">
+          <button type="button" @click="activeFormTab = 'basic'" :class="{ active: activeFormTab === 'basic' }">
+            Zakladni
+          </button>
+          <button type="button" @click="activeFormTab = 'cutting'" :class="{ active: activeFormTab === 'cutting' }">
+            Rezne podminky
+          </button>
         </div>
-        <div class="form-group">
-          <label>Nazev *</label>
-          <input v-model="groupForm.name" type="text" maxlength="100" required />
+
+        <div v-show="activeFormTab === 'basic'">
+          <MaterialGroupBasicForm v-model="basicFields" />
         </div>
-        <div class="form-group">
-          <label>Hustota (kg/dm3) *</label>
-          <input v-model.number="groupForm.density" type="number" step="0.001" min="0" required />
+
+        <div v-show="activeFormTab === 'cutting'">
+          <MaterialGroupCuttingParamsForm v-model="cuttingParams" />
         </div>
+
         <div class="form-actions">
           <button v-if="editingGroup" type="button" class="btn btn-danger" @click="deleteGroupItem(editingGroup)">
             Smazat
@@ -206,78 +253,29 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
-/* Forms */
-.form-group {
-  margin-bottom: var(--space-3);
-}
-
-.form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: var(--space-1);
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-/* Buttons */
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  display: inline-flex;
-  align-items: center;
+.form-tabs {
+  display: flex;
   gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.btn-primary {
-  background: var(--color-primary);
-  color: white;
+.form-tabs button {
+  padding: var(--space-2) var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+.form-tabs button.active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
 }
 
-.btn-secondary {
-  background: var(--bg-raised);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-danger {
-  background: var(--color-danger);
-  color: white;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Form Actions */
 .form-actions {
   display: flex;
   justify-content: flex-end;
