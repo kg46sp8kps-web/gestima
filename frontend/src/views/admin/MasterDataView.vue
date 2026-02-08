@@ -8,6 +8,8 @@ import Modal from '@/components/ui/Modal.vue'
 import { useUiStore } from '@/stores/ui'
 import { useOperationsStore } from '@/stores/operations'
 import { Trash2, CheckCircle, XCircle } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
+import MachiningTimeEstimationModule from '@/components/modules/estimation/MachiningTimeEstimationModule.vue'
 import type { MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialGroup, MaterialGroupCreate, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate, MaterialPriceTier, MaterialPriceTierCreate, MaterialPriceTierUpdate } from '@/types/material'
 import type { WorkCenter, WorkCenterCreate, WorkCenterUpdate, WorkCenterType } from '@/types/operation'
 import { confirm } from '@/composables/useDialog'
@@ -39,7 +41,8 @@ const tabs = [
   { label: 'Normy materiálů', icon: 'ClipboardList' },
   { label: 'Skupiny materiálů', icon: 'Tag' },
   { label: 'Cenové kategorie', icon: 'DollarSign' },
-  { label: 'Pracoviště', icon: 'Factory' }
+  { label: 'Pracoviště', icon: 'Factory' },
+  { label: 'Odhad strojních časů', icon: 'Clock' }
 ]
 
 // Tab 0: Material Norms
@@ -1058,8 +1061,8 @@ onMounted(async () => {
 
                         <!-- Actions -->
                         <td>
-                          <button @click="deleteTierItem(tier)" class="btn-icon" title="Smazat">
-                            <Trash2 :size="15" />
+                          <button @click="deleteTierItem(tier)" class="icon-btn" title="Smazat">
+                            <Trash2 :size="ICON_SIZE.STANDARD" />
                           </button>
                         </td>
                       </tr>
@@ -1100,11 +1103,11 @@ onMounted(async () => {
                           />
                         </td>
                         <td>
-                          <button @click="saveTier" class="btn-icon" title="Uložit" :disabled="savingTier">
-                            <CheckCircle :size="15" />
+                          <button @click="saveTier" class="icon-btn" title="Uložit" :disabled="savingTier">
+                            <CheckCircle :size="ICON_SIZE.STANDARD" />
                           </button>
-                          <button @click="cancelAddTier" class="btn-icon" title="Zrušit">
-                            <XCircle :size="15" />
+                          <button @click="cancelAddTier" class="icon-btn" title="Zrušit">
+                            <XCircle :size="ICON_SIZE.STANDARD" />
                           </button>
                         </td>
                       </tr>
@@ -1292,6 +1295,13 @@ onMounted(async () => {
             </Modal>
           </div>
         </template>
+
+        <!-- Tab 4: Machining Time Estimation -->
+        <template #tab-4>
+          <div class="tab-content tab-content-full">
+            <MachiningTimeEstimationModule />
+          </div>
+        </template>
       </FormTabs>
     </div>
   </div>
@@ -1347,6 +1357,11 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-2);
+}
+
+.tab-content-full {
+  padding: 0;
+  overflow: hidden;
 }
 
 .tab-header {
@@ -1421,27 +1436,6 @@ onMounted(async () => {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
   border-top: 1px solid var(--border-default);
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: var(--text-lg);
-  padding: var(--space-2);
-  opacity: 0.6;
-  transition: all 0.2s ease;
-  border-radius: var(--radius-sm);
-}
-
-.btn-icon:hover {
-  opacity: 1;
-  background: var(--bg-hover);
-  transform: scale(1.1);
-}
-
-.btn-icon:active {
-  transform: scale(0.95);
 }
 
 .tiers-header {
