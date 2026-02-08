@@ -8,6 +8,7 @@ import { useBatchesStore } from '@/stores/batches'
 import type { Batch } from '@/types/batch'
 import type { LinkingGroup } from '@/stores/windows'
 import { DollarSign, Trash2, Snowflake, BarChart3 } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import Tooltip from '@/components/ui/Tooltip.vue'
 
 interface Props {
@@ -289,7 +290,7 @@ watch(displayedBatches, (newBatches) => {
                 @click="freezeActiveSet"
                 :disabled="!partId || saving || displayedBatches.length === 0"
               >
-                <Snowflake :size="20" :stroke-width="2" class="freeze-icon" />
+                <Snowflake :size="ICON_SIZE.STANDARD" :stroke-width="2" class="freeze-icon" />
               </button>
             </Tooltip>
           </div>
@@ -356,14 +357,14 @@ watch(displayedBatches, (newBatches) => {
                   @click="confirmDelete(batch)"
                   title="Smazat dávku"
                 >
-                  <Trash2 :size="16" />
+                  <Trash2 :size="ICON_SIZE.SMALL" />
                 </button>
                 <button
                   class="action-btn"
                   @click="expandBatch(batch)"
                   title="Detail"
                 >
-                  <BarChart3 :size="16" />
+                  <BarChart3 :size="ICON_SIZE.SMALL" />
                 </button>
               </td>
             </tr>

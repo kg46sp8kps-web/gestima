@@ -24,4 +24,6 @@ from app.routers import (
     module_defaults_router,  # ADR-031: Module Defaults
     infor_router,  # Infor CloudSuite Industrial integration
     step_router,  # OCCT Raw Geometry Extraction (ADR-042)
+    vision_debug_router,  # Vision Hybrid Pipeline (ADR-TBD)
+    machining_time_router,  # ADR-040: Machining Time Estimation
 )

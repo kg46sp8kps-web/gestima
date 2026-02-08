@@ -28,7 +28,14 @@ logger = logging.getLogger(__name__)
 QUOTE_REQUEST_PROMPT = """
 You are analyzing a B2B QUOTE REQUEST document (RFQ - Request for Quotation).
 
-Your task: Extract structured data using SEMANTIC UNDERSTANDING of document roles and visual layout.
+CRITICAL: Use COMMON SENSE and SEMANTIC UNDERSTANDING - read the document like a human business analyst would.
+Don't rigidly follow rules - understand the INTENT and CONTEXT of each section.
+
+KEY PRINCIPLES:
+1. **Buyer vs Seller**: The BUYER is requesting the quote (they want goods/services). The SELLER creates the document (company in header/footer with logo). DON'T confuse shipping address with buyer!
+2. **Drawing Numbers**: Look for "Drawing:", "Dwg:", "Výkres:" labels ANYWHERE in the item description - could be on a different line in the same cell.
+3. **Scaled Prices**: If you see "Scaled prices: 1/5/10/20" or similar, create SEPARATE items for EACH quantity (4 items in this example).
+4. **Buyer with Email Only**: If "Buyer" field shows only email (e.g., john@gelso.ch), extract company from email domain and find full company name in header/footer.
 
 Return ONLY valid JSON (no markdown, no explanations):
 
@@ -80,8 +87,12 @@ A) PRIORITY SEARCH ORDER (apply from top to bottom, stop at first match):
    - Look for fields explicitly labeled: "Buyer:", "Customer:", "Client:", "Requestor:"
    - Common in RFQ documents where entity REQUESTING the quote is clearly marked
    - Email domains near "Buyer:" field indicate customer organization
+   - CRITICAL: If Buyer field contains ONLY email/contact (no company name):
+     * Extract company name from email domain (roko@gelso.ch → GELSO AG)
+     * Search header/footer for matching company with same domain
+     * Extract full company name with business entity type (AG, GmbH, s.r.o., etc.)
    - Extract company from same section as buyer email/contact
-   → IF FOUND: This is the CUSTOMER (ignore all other sections)
+   → IF FOUND: This is the CUSTOMER (ignore all other sections including shipping address)
 
    **PRIORITY 2: Sender/From in RFQ context** (HIGH)
    - If document title is "Request for Quotation" / "RFQ" / "Poptávka"
@@ -220,10 +231,16 @@ CRITICAL: ARTICLE NUMBER + DRAWING NUMBER EXTRACTION
 - Action: Extract as "article_number" → This is the PRIMARY identifier
 
 **PRIORITY 2: Drawing Number** (SEPARATE FIELD - always extract if present)
-- Labels: "Drawing:", "Drawing No.:", "Výkres:", "図面:", "图纸:"
-- Format: "Drawing: 90057637-00", "Výkres č. 123456"
-- Position: Usually BELOW part description in same row OR in separate column
+- Labels: "Drawing:", "Drawing No.:", "Výkres:", "図面:", "图纸:", "Dwg:", "Zeichnung:"
+- Format: "Drawing: 90057637-00", "Výkres č. 123456", "Dwg: ABC-123-REV-A"
+- Position: Can be ANYWHERE in same table row/cell:
+  * Same line as article number
+  * BELOW part description (multi-line cell)
+  * In separate column
+  * Within "Scaled prices" or "SCALED PRICES" section
+- CRITICAL: Search entire row/cell text, not just first line
 - Action: Extract as SEPARATE "drawing_number" field (do NOT merge with article_number)
+- Extract EXACTLY as shown (including dashes, dots, revision codes)
 - If found: Extract to "drawing_number" field
 - If not found: Leave "drawing_number" as null
 
@@ -249,7 +266,17 @@ CRITICAL: ARTICLE NUMBER + DRAWING NUMBER EXTRACTION
    - DO NOT merge/deduplicate rows
    - DO NOT sum quantities across rows
 
-3. **Quantity Parsing**:
+3. **Quantity Parsing - INCLUDING SCALED PRICES**:
+
+   **CRITICAL: "Scaled prices" / "SCALED PRICES" = Multiple Quote Items**
+   - If row contains "Scaled prices:", "SCALED PRICES", "Staffelpreise:", etc.
+   - Format examples: "Scaled prices : 1/5/10/20", "SCALED PRICES 1/5/10/20"
+   - Action: Create SEPARATE item for EACH quantity in the list
+   - Example: "Scaled prices: 1/5/10/20" → Create 4 items with quantities [1, 5, 10, 20]
+   - Each item has SAME article_number, drawing_number, name
+   - Main QTY column value: Use as first/default quantity if no scaled prices
+
+   **Standard Quantity Extraction**:
    - Extract as positive integer only
    - Ignore unit labels ("100 pcs" → 100)
    - Multipliers: "3x 100" → 100 (quantity per line item, not total)
@@ -258,6 +285,7 @@ CRITICAL: ARTICLE NUMBER + DRAWING NUMBER EXTRACTION
 4. **Multi-line Items**:
    - If description spans 2+ rows → Concatenate into single "name"
    - Technical specs below name → Move to "notes"
+   - Search entire cell for Drawing number (not just first line)
 
 ═══════════════════════════════════════════════════════════════════════════════
 RULE 5: DATE EXTRACTION (INTERNATIONAL FORMATS)

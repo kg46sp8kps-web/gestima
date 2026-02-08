@@ -35,7 +35,7 @@ function createMockQuote(overrides: Partial<Quote> = {}): Quote {
     partner_id: null,
     title: 'Test Quote',
     description: '',
-    status: 'draft',
+    customer_request_number: null,    status: 'draft',
     valid_until: null,
     sent_at: null,
     approved_at: null,

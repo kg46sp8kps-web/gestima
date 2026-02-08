@@ -259,6 +259,7 @@ export interface MaterialParseResult {
   material_norm: string | null
   confidence: number
   suggested_price_category_id: number | null
+  suggested_material_item_id: number | null  // Konkrétní položka (když najde přesnou shodu)
   raw_input: string
 }
 

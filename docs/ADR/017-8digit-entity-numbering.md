@@ -76,8 +76,10 @@ Total = 8 digits
 | **10** | Parts | Random | 1M | ✅ Implemented (migrate from 1XXXXXX) |
 | **11** | Parts - Assemblies | Random | 1M | 🔮 Reserved (future BOM) |
 | **12** | Parts - Spare | Random | 1M | 🔮 Reserved |
-| **20** | Materials | Random | 1M | ✅ Implemented (migrate from 2XXXXXX) |
+| **20** | Materials | **Hierarchical** | 1M | ✅ Implemented (with sub-ranges) |
 | **21** | Materials - Consumables | Random | 1M | 🔮 Reserved |
+
+**Note:** Prefix 20 uses **hierarchical sub-ranges** for material-related entities (see Materials Hierarchy section below).
 
 #### Transactions (30-59)
 
@@ -127,6 +129,106 @@ WorkCenter:  80000001  (sequential)
 WorkCenter:  80000002  (sequential)
 Customer:    70234567  (random, future)
 WorkOrder:   81345678  (random, future)
+```
+
+---
+
+## Materials Hierarchy (20XXXXXX) - Hierarchical Sub-Ranges
+
+**Decision Date:** 2026-02-03
+**Version:** v1.7.0
+
+Prefix **20** (Materials) uses **hierarchical sub-ranges** to accommodate multiple material-related entities while maintaining consistency.
+
+### Structure
+
+```
+20_000_001 - 20_899_999   MaterialItem           [900k capacity]  90%
+20_900_000 - 20_909_999   MaterialPriceCategory  [ 10k capacity]   1%
+20_910_000 - 20_919_999   MaterialGroup          [ 10k capacity]   1%
+20_920_000 - 20_929_999   MaterialNorm           [ 10k capacity]   1%
+20_930_000 - 20_999_999   (reserved for future)  [ 70k capacity]   7%
+```
+
+### Rationale
+
+**Why sub-ranges instead of separate prefixes (21, 22, 23)?**
+
+1. **Logical grouping** - All material-related entities under one prefix (20)
+2. **Sufficient capacity** - 10k categories, 10k groups, 10k norms is plenty
+3. **900k for MaterialItem** - Primary entity gets 90% of the range
+4. **Preservation of prefixes** - Saves prefixes 21-23 for other domains
+
+### Capacity Analysis
+
+| Entity | Current Count | Sub-range Capacity | Utilization |
+|--------|---------------|-------------------|-------------|
+| MaterialItem | ~5k (Infor import) | 900k | 0.6% |
+| MaterialPriceCategory | 53 | 10k | 0.5% |
+| MaterialGroup | ~50 | 10k | 0.5% |
+| MaterialNorm | ~200 | 10k | 2.0% |
+
+**Verdict:** ✅ Sub-ranges provide sufficient capacity for decades of growth.
+
+### Examples
+
+```
+MaterialItem:          20148215   (random, range: 20000001-20899999)
+MaterialItem:          20456789   (random, range: 20000001-20899999)
+MaterialPriceCategory: 20900003   (sequential, Hliník - deska)
+MaterialPriceCategory: 20900030   (sequential, Ocel konstrukční - tyč plochá)
+MaterialGroup:         20910001   (future, sequential)
+MaterialNorm:          20920001   (future, sequential)
+```
+
+### Implementation
+
+**Number Generator (Updated):**
+
+```python
+class NumberGenerator:
+    # MaterialItem: 20000001 - 20899999 (random)
+    MATERIAL_ITEM_MIN = 20000001
+    MATERIAL_ITEM_MAX = 20899999
+
+    # MaterialPriceCategory: 20900000 - 20909999 (sequential)
+    PRICE_CATEGORY_MIN = 20900000
+    PRICE_CATEGORY_MAX = 20909999
+
+    # MaterialGroup: 20910000 - 20919999 (sequential, future)
+    MATERIAL_GROUP_MIN = 20910000
+    MATERIAL_GROUP_MAX = 20919999
+
+    # MaterialNorm: 20920000 - 20929999 (sequential, future)
+    MATERIAL_NORM_MIN = 20920000
+    MATERIAL_NORM_MAX = 20929999
+
+    @staticmethod
+    async def generate_material_number(db: AsyncSession) -> str:
+        """Generate random 8-digit material item number: 20XXXXXX"""
+        return await _generate_random_number(
+            db, MaterialItem, 'material_number',
+            MATERIAL_ITEM_MIN, MATERIAL_ITEM_MAX
+        )
+
+    @staticmethod
+    async def generate_price_category_code(db: AsyncSession) -> str:
+        """Generate sequential MaterialPriceCategory code: 20900000-20909999"""
+        result = await db.execute(
+            select(func.max(MaterialPriceCategory.code))
+            .where(MaterialPriceCategory.code >= '20900000')
+            .where(MaterialPriceCategory.code <= '20909999')
+        )
+        max_code = result.scalar()
+
+        if max_code is None:
+            return "20900000"  # First category
+
+        next_num = int(max_code) + 1
+        if next_num > PRICE_CATEGORY_MAX:
+            raise ValueError("Price category range exhausted (20900000-20909999)")
+
+        return str(next_num)
 ```
 
 ---

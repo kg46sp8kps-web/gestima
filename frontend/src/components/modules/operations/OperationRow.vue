@@ -13,6 +13,7 @@ import CuttingModeButtons from '@/components/ui/CuttingModeButtons.vue'
 import CoopSettings from '@/components/ui/CoopSettings.vue'
 import MaterialLinksInfo from '@/components/ui/MaterialLinksInfo.vue'
 import { Trash2, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   operation: Operation
@@ -20,6 +21,7 @@ interface Props {
   availableMaterials: MaterialInputWithOperations[]  // All materials for the part
   expanded: boolean
   saving?: boolean
+  selected?: boolean
 }
 
 interface Emits {
@@ -31,11 +33,13 @@ interface Emits {
   (e: 'delete'): void
   (e: 'link-material', materialId: number): void
   (e: 'unlink-material', materialId: number): void
+  (e: 'select'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   saving: false,
-  availableMaterials: () => []
+  availableMaterials: () => [],
+  selected: false
 })
 
 const emit = defineEmits<Emits>()
@@ -89,8 +93,8 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   <!-- Main data row -->
   <tr
     class="operation-row"
-    :class="{ 'is-coop': operation.is_coop, 'is-expanded': expanded }"
-    @click="emit('toggle-expanded')"
+    :class="{ 'is-coop': operation.is_coop, 'is-expanded': expanded, 'is-selected': selected }"
+    @click="emit('select')"
   >
     <!-- Seq -->
     <td class="col-seq">
@@ -197,15 +201,15 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
           @click="emit('delete')"
           title="Smazat operaci"
         >
-          <Trash2 :size="16" />
+          <Trash2 :size="ICON_SIZE.SMALL" />
         </button>
         <button
           class="action-btn expand-btn"
           @click="emit('toggle-expanded')"
           :title="expanded ? 'Sbalit' : 'Rozbalit nastavení'"
         >
-          <ChevronDown v-if="expanded" :size="16" />
-          <ChevronRight v-else :size="16" />
+          <ChevronDown v-if="expanded" :size="ICON_SIZE.SMALL" />
+          <ChevronRight v-else :size="ICON_SIZE.SMALL" />
         </button>
       </div>
     </td>
@@ -244,6 +248,15 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .operation-row.is-expanded {
+  background: var(--state-selected);
+}
+
+.operation-row.is-selected {
+  background: var(--state-selected);
+  border-left: 3px solid var(--color-primary);
+}
+
+.operation-row.is-selected:hover {
   background: var(--state-selected);
 }
 

@@ -9,13 +9,14 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { useOperationsStore } from '@/stores/operations'
 import { useMaterialsStore } from '@/stores/materials'
+import { useWindowsStore } from '@/stores/windows'
 import { operationsApi } from '@/api/operations'
 import type { Operation, CuttingMode } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
 import OperationRow from './OperationRow.vue'
 import { confirm } from '@/composables/useDialog'
-import { Settings, Plus } from 'lucide-vue-next'
+import { Settings, Plus, Wand2 } from 'lucide-vue-next'
 import draggable from 'vuedraggable'
 import { ICON_SIZE } from '@/config/design'
 
@@ -28,11 +29,17 @@ const props = withDefaults(defineProps<Props>(), {
   linkingGroup: null
 })
 
+const emit = defineEmits<{
+  'select-operation': [operation: Operation | null]
+}>()
+
 const operationsStore = useOperationsStore()
 const materialsStore = useMaterialsStore()
+const windowsStore = useWindowsStore()
 
 // Local state
 const expandedOps = reactive<Record<number, boolean>>({})
+const selectedOperationId = ref<number | null>(null)
 
 // Debounce timers per operation
 const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -203,6 +210,24 @@ async function handleUnlinkMaterial(operationId: number, materialId: number) {
   }
 }
 
+// Select operation (toggle on click)
+function selectOperation(op: Operation) {
+  if (selectedOperationId.value === op.id) {
+    // Deselect on second click
+    selectedOperationId.value = null
+    emit('select-operation', null)
+  } else {
+    selectedOperationId.value = op.id
+    emit('select-operation', op)
+  }
+}
+
+// Open FR window linked to current part
+function handleOpenFR() {
+  if (!props.partId) return
+  windowsStore.openWindow('feature-recognition', 'Feature Recognition', props.linkingGroup || undefined)
+}
+
 // Expose operationsCount for parent
 defineExpose({
   operationsCount: computed(() => operations.value.length)
@@ -211,17 +236,27 @@ defineExpose({
 
 <template>
   <div class="operations-detail-panel">
-    <!-- Header with Add button -->
+    <!-- Header with Add + AI buttons -->
     <div class="panel-header">
       <h3>Operace</h3>
-      <button
-        class="btn-add-icon"
-        @click="handleAddOperation"
-        :disabled="!partId || loading"
-        title="Přidat operaci"
-      >
-        <Plus :size="ICON_SIZE.STANDARD" />
-      </button>
+      <div class="header-actions">
+        <button
+          class="btn-ai"
+          @click="handleOpenFR"
+          :disabled="!partId || loading"
+          title="Feature Recognition - otevřít okno pro AI analýzu"
+        >
+          <Wand2 :size="ICON_SIZE.STANDARD" />
+        </button>
+        <button
+          class="btn-add-icon"
+          @click="handleAddOperation"
+          :disabled="!partId || loading"
+          title="Přidat operaci"
+        >
+          <Plus :size="ICON_SIZE.STANDARD" />
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -271,6 +306,7 @@ defineExpose({
               :available-materials="materialInputs"
               :expanded="expandedOps[op.id] || false"
               :saving="saving"
+              :selected="selectedOperationId === op.id"
               @toggle-expanded="toggleExpanded(op.id)"
               @update-field="(field, value) => debouncedUpdateOperation(op, field, value)"
               @update-work-center="(wcId) => onWorkCenterChange(op, wcId)"
@@ -279,6 +315,7 @@ defineExpose({
               @delete="confirmDelete(op)"
               @link-material="(matId) => handleLinkMaterial(op.id, matId)"
               @unlink-material="(matId) => handleUnlinkMaterial(op.id, matId)"
+              @select="selectOperation(op)"
             />
           </template>
         </draggable>
@@ -312,6 +349,11 @@ defineExpose({
   color: var(--text-primary);
 }
 
+.header-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
 .btn-add-icon {
   display: flex;
   align-items: center;
@@ -332,6 +374,31 @@ defineExpose({
 }
 
 .btn-add-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ai {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-ai:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  transform: scale(1.05);
+}
+
+.btn-ai:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

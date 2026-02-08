@@ -23,12 +23,16 @@ async def get_features(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(
-        select(Feature)
-        .where(Feature.operation_id == operation_id, Feature.deleted_at.is_(None))
-        .order_by(Feature.seq)
-    )
-    return result.scalars().all()
+    try:
+        result = await db.execute(
+            select(Feature)
+            .where(Feature.operation_id == operation_id, Feature.deleted_at.is_(None))
+            .order_by(Feature.seq)
+        )
+        return result.scalars().all()
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching features for operation {operation_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání kroků")
 
 
 @router.get("/{feature_id}", response_model=FeatureResponse)
@@ -37,11 +41,17 @@ async def get_feature(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Feature).where(Feature.id == feature_id))
-    feature = result.scalar_one_or_none()
-    if not feature:
-        raise HTTPException(status_code=404, detail="Krok nenalezen")
-    return feature
+    try:
+        result = await db.execute(select(Feature).where(Feature.id == feature_id))
+        feature = result.scalar_one_or_none()
+        if not feature:
+            raise HTTPException(status_code=404, detail="Krok nenalezen")
+        return feature
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching feature {feature_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání kroku")
 
 
 @router.post("/", response_model=FeatureResponse)

@@ -24,7 +24,7 @@ class ModuleLayout(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     module_key = Column(String(100), nullable=False)  # e.g., "manufacturing-items-detail"
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     layout_name = Column(String(200), nullable=False)  # e.g., "Custom Layout 2026-02-02"
     config = Column(JSON, nullable=False)  # ModuleLayoutConfig as JSON
     is_default = Column(Boolean, default=False, nullable=False)

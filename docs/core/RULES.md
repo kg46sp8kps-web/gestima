@@ -1,226 +1,146 @@
 # GESTIMA Development Rules
 
-**Toto je CORE pravidel. Čti VŽDY před každou akcí.**
+**Single source of truth pro hook-enforced pravidla a enforcement architekturu.**
+**Workflow pravidla a 8 blocking rules:** viz [CLAUDE.md](../../CLAUDE.md) (vstupní bod)
 
 ---
 
-## MODE DETECTION
+## HOOK-ENFORCED RULES (automaticky vynucované)
 
-### SINGLE AGENT (tento chat)
-- Typo, single-line fix
-- Otázka, vysvětlení
-- Jednoduchá změna v 1-2 souborech
-- Explicitní "rychle udělej X"
+Tyto pravidla se vynucují automaticky přes Claude Code hooks.
+`exit 2` = BLOCK (operace se neprovede). WARNING = jen upozornění.
 
-### MULTI-AGENT (ŠÉFÍK mode)
-- Nová feature (víc než 1 soubor)
-- Architektonická změna
-- Schema/model změna
-- Multi-file refactor
-- Cokoliv kde je potřeba Backend + Frontend + QA
+### BLOCKING (hook nedovolí uložit)
 
-**Trigger:** "Toto je komplexní úkol. Aktivuji ŠÉFÍK mode." → viz [agents/AGENT-INSTRUCTIONS.md](../agents/AGENT-INSTRUCTIONS.md)
+| ID | Pravidlo | Hook | Scope |
+|----|----------|------|-------|
+| L-008 | Transaction handling (try/except/rollback) | validate_edit.py | `app/**/*.py` |
+| L-009 | Pydantic Field() validace (ne holé typy) | validate_edit.py | `app/schemas/*.py` |
+| L-036 | Komponenta < 300 LOC | validate_frontend.py | `*.vue` |
+| L-040 | Docs POUZE v `docs/` (ne root) | validate_docs.py | `*.md` |
+| L-042 | Žádné secrets/credentials v kódu | validate_edit.py | `app/**/*.py` |
+| L-043 | Žádné bare `except:` / `except...pass` | validate_edit.py | `app/**/*.py` |
+| L-044 | Žádné print()/breakpoint() v produkci | validate_edit.py | `app/{services,routers,models}/*.py` |
+| L-044 | Žádné console.log/debug v produkci | validate_frontend.py | `*.vue`, `*.ts` (ne testy) |
+| L-049 | Žádný `any` typ v TypeScriptu | validate_frontend.py | `*.vue` `<script>`, `*.ts` |
 
----
+### WARNING (hook upozorní, neblokuje)
 
-## 8 BLOCKING RULES
+| ID | Pravidlo | Hook |
+|----|----------|------|
+| L-001 | Business výpočty nepatří do routerů | validate_edit.py |
+| L-007 | Audit fields (created_at/by) na modelech | validate_edit.py |
+| L-015 | Oslabení validačních constraints | validate_edit.py |
+| L-028 | SQLite Enum handling (String wrapper) | validate_edit.py |
+| L-045 | Missing type hints na public functions | validate_edit.py |
+| L-046 | TODO/FIXME/HACK tracking | validate_edit.py + validate_frontend.py |
+| L-047 | Missing response_model na endpointech | validate_edit.py |
+| L-048 | Missing docstring na public functions | validate_edit.py |
 
-### 1. TEXT FIRST
-Netriviální úkol → návrh → schválení → pak tools.
-NEVER: Tools first, explain later.
+### PROCESS (git + Definition of Done)
 
-### 2. EDIT NOT WRITE
-Write přepisuje celý soubor. Edit mění jen část.
-Write = ztráta kódu pokud nečtu celý soubor.
+| Kontrola | Hook | Kdy |
+|----------|------|-----|
+| Sensitive files (.env, .pem, credentials) | commit_guard.py | Před `git commit` |
+| Debug kód ve staged diff | commit_guard.py | Před `git commit` |
+| Commit message formát | commit_guard.py | Před `git commit` |
+| CHANGELOG pro feat: commity | commit_guard.py | Před `git commit` |
+| Co-Authored-By header | commit_guard.py | Před `git commit` |
+| Testy pro změněné services/routers | definition_of_done.py | Před ukončením agenta |
+| Migrace pro změněné modely | definition_of_done.py | Před ukončením agenta |
+| Build freshness pro frontend | definition_of_done.py | Před ukončením agenta |
+| response_model na nových endpointech | definition_of_done.py | Před ukončením agenta |
 
-### 3. GREP BEFORE CODE
-```bash
-grep -r "PATTERN" app/ frontend/src/
-```
-Existuje podobný kód? → Použij existující, neduplikuj.
-
-### 4. VERIFICATION BEFORE DONE
-```bash
-# Paste output jako důkaz:
-grep -r "PATTERN" | wc -l  # = 0 matches
-pytest -v                   # = X passed, 0 failed
-```
-BANNED: "mělo by být OK", "teď už to bude fungovat"
-
-### 5. TRANSACTION HANDLING (L-008)
-```python
-try:
-    db.add(entity)
-    await db.commit()
-except Exception:
-    await db.rollback()
-    raise
-```
-
-### 6. PYDANTIC VALIDATION (L-009)
-```python
-Field(..., gt=0)        # positive
-Field(..., ge=0)        # non-negative
-Field(..., max_length=200)
-```
-
-### 7. GENERIC-FIRST (L-036)
-- Component < 300 LOC
-- Reusable, not context-specific
-- Thin wrappers over generic components
-
-### 8. REUSABLE BUILDING BLOCKS (L-039)
-**Principle:** 1× napsat, N× použít
-
-**ALWAYS vytvářej:**
-- Generic komponenty (DataTable, ColumnChooser, Modal, etc.)
-- Composables (useResizablePanel, usePagination, etc.)
-- Utility functions (formatters, validators, etc.)
-
-**NEVER duplikuj:**
-- Resize logiku (use composable)
-- Column visibility (use ColumnChooser)
-- List/detail pattern (use generic layout)
-
-**Example:**
-```typescript
-// ✅ GOOD: Reusable composable
-export function useResizablePanel(options: {
-  storageKey: string
-  defaultWidth?: number
-  minWidth?: number
-  maxWidth?: number
-}) {
-  // 84 LOC, works with ANY split-pane
-  return { panelWidth, isDragging, startResize }
-}
-
-// ✅ GOOD: Generic component
-<DataTable :data="items" :columns="cols" />
-// Works with: Parts, Quotes, Operations, Materials, Orders
-
-// ❌ BAD: Copy/paste resize logic to každý modul
-// = 500 LOC duplicity, bugs v každé kopii
-```
-
-**Benefits:**
-- 950 LOC infrastructure → použitelné 10× = 9500 LOC saved
-- Bug fix jednou → opraveno všude
-- Konzistentní UX napříč app
-- Nový modul = 15 minut (not 5 hodin)
+Full anti-pattern list: [reference/ANTI-PATTERNS.md](../reference/ANTI-PATTERNS.md)
 
 ---
 
-## 6 CRITICAL ANTI-PATTERNS
+## ENFORCEMENT ARCHITECTURE
 
-| ID | Pattern | Důsledek |
-|----|---------|----------|
-| L-001 | Výpočty v JS | Rozbitá logika |
-| L-008 | Chybí transaction | DB corruption |
-| L-015 | Validation walkaround | ADR violation |
-| L-036 | Fat component >500 LOC | Nereusable |
-| L-040 | Doc soubory v rootu | Bordel, nepřehlednost |
-| L-041 | Zanechané session notes | Duplicitní dokumentace |
-
-Full list: [reference/ANTI-PATTERNS.md](../reference/ANTI-PATTERNS.md)
-
----
-
-## STACK
+### 6 vrstev (od nejnižší po nejvyšší)
 
 ```
-Backend:  FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2
-Frontend: Vue 3 + Pinia + TypeScript
-DB:       SQLite + WAL
-Tests:    pytest + Vitest
+┌─────────────────────────────────────────────────────────────┐
+│  VRSTVA 6: Persistent Memory                                │
+│  CLAUDE.local.md — Learning Agent zapisuje po každé session │
+├─────────────────────────────────────────────────────────────┤
+│  VRSTVA 5: Agent Permissions                                │
+│  disallowedTools ve frontmatter (.claude/agents/*.md)       │
+│  Auditor: nemá Edit, Write, Bash, Task                      │
+│  QA: nemá Edit, Write, Task                                 │
+├─────────────────────────────────────────────────────────────┤
+│  VRSTVA 4: Context Injection                                │
+│  session-context.sh → UserPromptSubmit (workflow do promptu)│
+│  inject_subagent_context.py → SubagentStart (rules do agenta│
+├─────────────────────────────────────────────────────────────┤
+│  VRSTVA 3: Definition of Done (Stop hook)                   │
+│  definition_of_done.py — kontroluje git diff:               │
+│  DoD-TEST, DoD-MIGRATION, DoD-BUILD, DoD-API                │
+├─────────────────────────────────────────────────────────────┤
+│  VRSTVA 2: Version Control (PreToolUse Bash)                │
+│  commit_guard.py — interceptuje git commit:                 │
+│  sensitive files, debug code, message format, CHANGELOG      │
+├─────────────────────────────────────────────────────────────┤
+│  VRSTVA 1: Static Analysis (PreToolUse Edit/Write)          │
+│  validate_edit.py — 5 BLOCKING + 8 WARNING (Python)         │
+│  validate_frontend.py — 4 BLOCKING + 3 WARNING (Vue/TS)     │
+│  validate_docs.py — 1 BLOCKING (docs placement)             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
+### Hook soubory
 
-## QUICK COMMANDS
+```
+.claude/hooks/
+├── session-context.sh            UserPromptSubmit: workflow injection
+├── inject_subagent_context.py    SubagentStart: rules pro subagenty
+├── inject-subagent-context.sh    (wrapper)
+├── validate_edit.py              PreToolUse Edit/Write: 13 Python rules
+├── validate-edit.sh              (wrapper)
+├── validate_frontend.py          PreToolUse Edit/Write: 11 Vue/TS rules
+├── validate-frontend.sh          (wrapper)
+├── validate_docs.py              PreToolUse Edit/Write: docs placement
+├── validate-docs.sh              (wrapper)
+├── commit_guard.py               PreToolUse Bash: git commit guard
+├── commit-guard.sh               (wrapper)
+├── definition_of_done.py         Stop: DoD verification
+├── definition-of-done.sh         (wrapper)
+└── validate-frontend-final.sh    Stop: Vue LOC final check (frontend agent)
+```
 
-```bash
-python gestima.py run        # Start server
-python gestima.py test       # Run tests
-python gestima.py seed-demo  # Reset DB + demo data
+### Kde se hooky spouští
+
+| Context | Kde definováno | Kdo ovlivní |
+|---------|----------------|-------------|
+| **Hlavní chat** (single agent) | `.claude/settings.local.json` | PreToolUse + PostToolUse + Stop |
+| **Subagenti** (multi-agent) | `.claude/agents/*.md` frontmatter | PreToolUse + Stop |
+| **Všechny sessions** | SubagentStart v settings | inject_subagent_context.py |
+
+### Pokrytí agentů
+
+| Agent | Static Analysis | Git Guard | DoD | Permissions |
+|-------|----------------|-----------|-----|-------------|
+| Hlavní chat | validate-edit + frontend + docs | commit-guard | definition-of-done | N/A |
+| Backend | validate-edit + docs | commit-guard | definition-of-done | Write+Edit |
+| Frontend | validate-frontend + docs | commit-guard | definition-of-done + LOC | Write+Edit |
+| ŠÉFÍK | ALL validators | commit-guard | definition-of-done | Full access |
+| DevOps | validate-edit + docs | commit-guard | — | No Write |
+| QA | — (read-only) | — | — | No Edit/Write/Task |
+| Auditor | — (read-only) | — | — | No Edit/Write/Bash/Task |
+
+### Jak hook blokuje
+
+```
+PreToolUse hook:
+  Exit 0 → OK, pokračuj
+  Exit 2 → BLOCK! Operace se NEPROVEDE. Stderr = chybová hláška.
+
+Stop hook:
+  stdout JSON {"decision":"block","reason":"..."} → Agent nemůže skončit
+  stdout empty → OK, agent může skončit
 ```
 
 ---
 
-## REFERENCE
-
-| Topic | File |
-|-------|------|
-| Anti-patterns | [reference/ANTI-PATTERNS.md](../reference/ANTI-PATTERNS.md) |
-| Design system | [reference/DESIGN-SYSTEM.md](../reference/DESIGN-SYSTEM.md) |
-| Architecture | [reference/ARCHITECTURE.md](../reference/ARCHITECTURE.md) |
-| Vision | [reference/VISION.md](../reference/VISION.md) |
-| Agent system | [agents/AGENT-INSTRUCTIONS.md](../agents/AGENT-INSTRUCTIONS.md) |
-| Current status | [status/STATUS.md](../status/STATUS.md) |
-| ADRs | [ADR/](../ADR/) |
-
----
-
-## DOCUMENTATION PLACEMENT RULES
-
-### L-040: Documentation Placement (BLOCKING!)
-
-**Rule:** Root directory obsahuje POUZE:
-- README.md (project overview)
-- CLAUDE.md (AI rules)
-- CHANGELOG.md (version history)
-
-**ALL ostatní docs patří do `docs/`:**
-
-```
-✅ docs/ADR/NNN-decision-name.md        # Architecture decisions
-✅ docs/guides/FEATURE-GUIDE.md          # How-to guides
-✅ docs/audits/YYYY-MM-DD-audit.md       # Session notes, audits
-✅ docs/design/FEATURE-SPEC.md           # Design specifications
-✅ scripts/script_name.sh                # Shell scripts
-
-❌ FEATURE_SUMMARY.md                     # NIKDY v rootu!
-❌ IMPLEMENTATION_CHECKLIST.md            # NIKDY v rootu!
-❌ DEBUG_SOMETHING.sh                     # NIKDY v rootu!
-```
-
-**Porušení:** Violation code L-040
-
----
-
-### L-041: Documentation Lifecycle (BLOCKING!)
-
-**Rule:** Session-based implementation notes NESMÍ zůstat v rootu.
-
-**Workflow:**
-1. Implementuješ feature → píšeš notes během práce (root je OK dočasně)
-2. Feature hotová → vytvoř ADR v `docs/ADR/`
-3. Session notes:
-   - **Historical value?** → přesuň do `docs/audits/YYYY-MM-DD-feature.md`
-   - **Duplicitní?** → smaž (ADR = single source of truth)
-4. NIKDY nenechávej implementation docs v rootu!
-
-**Pattern: Session-Based Documentation Dumping (ANTI-PATTERN!)**
-
-```
-❌ BAD:
-- Implementuješ feature
-- Vytvoříš 3-6 summary souborů v rootu
-- Feature skončí v ADR + CHANGELOG
-- Summary soubory zůstávají navždy
-- Repeat → bordel!
-
-✅ GOOD:
-- Implementuješ feature
-- Vytvoříš temporary notes v rootu (během práce)
-- Feature hotová → ADR + CHANGELOG
-- Temporary notes → přesuň do docs/audits/ (nebo smaž)
-- Root zůstane čistý!
-```
-
-**Porušení:** Violation code L-041
-
----
-
-**Version:** 5.1 (2026-02-02)
-**Lines:** 220
+**Version:** 7.0 (2026-02-05)
+**Enforcement:** 14 hook souborů, 6 vrstev, 26 automatických kontrol

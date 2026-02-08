@@ -14,6 +14,7 @@ import type {
 import type { LinkingGroup } from '@/stores/windows'
 import { STOCK_SHAPE_OPTIONS, getShapeDimensionFields } from '@/types/material'
 import { Package, Trash2, Save } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   partId: number | null
@@ -467,7 +468,7 @@ async function executeDelete() {
                 class="btn-danger"
                 @click="confirmDelete(mat)"
               >
-                <Trash2 :size="16" />
+                <Trash2 :size="ICON_SIZE.SMALL" />
                 Smazat
               </button>
               <button
@@ -475,7 +476,7 @@ async function executeDelete() {
                 class="btn-primary"
                 :disabled="saving"
               >
-                <Save :size="16" />
+                <Save :size="ICON_SIZE.SMALL" />
                 {{ saving ? 'Ukládám...' : 'Uložit' }}
               </button>
             </div>

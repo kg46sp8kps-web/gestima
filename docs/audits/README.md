@@ -29,6 +29,8 @@ Priklady:
 
 | Datum | Typ | Verze | Skore | Poznamka |
 |-------|-----|-------|-------|----------|
+| 2026-02-03 | post-phase-audit | v1.18.0 | APPROVED | 8-section audit, 5 P0 fixed |
+| 2026-02-03 | data-integrity-audit | v1.18.0 | 56/100 | 5-layer defense in depth audit |
 | 2026-01-26 | pre-beta-audit | v1.2.0 | 65/100 | Hloubkovy audit pred beta release |
 | 2026-01-25 | full-audit | v1.1.0 | 73/100 | Prvni kompletni audit |
 
@@ -63,4 +65,4 @@ Po kazdem auditu:
 
 ---
 
-*Posledni aktualizace: 2026-01-26*
+*Posledni aktualizace: 2026-02-03*

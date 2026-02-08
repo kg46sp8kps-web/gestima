@@ -13,11 +13,14 @@ export interface Drawing {
   file_size: number
   file_path: string
   is_primary: boolean
+  file_type: 'pdf' | 'step'
   revision: string
   created_at: string
   updated_at: string
   created_by: string | null
   version: number
+  /** Whether the file physically exists on disk (false = orphan record) */
+  file_exists: boolean
 }
 
 export interface DrawingListResponse {

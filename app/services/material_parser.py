@@ -307,6 +307,8 @@ class MaterialParserService:
                 result.suggested_material_item_id = item.id
                 result.suggested_material_item_code = item.code
                 result.suggested_material_item_name = item.name
+                # MaterialItem má FK na PriceCategory - použij ji
+                result.suggested_price_category_id = item.price_category_id
                 result.confidence += 0.05
 
         return result
@@ -594,9 +596,9 @@ class MaterialParserService:
             logger.debug(f"_find_price_category: No keywords for shape {shape}")
             return None
 
-        # Query DB
+        # Query DB (search in NAME, not code - code is numeric)
         conditions = [
-            MaterialPriceCategory.code.ilike(f"%{kw}%") for kw in keywords
+            MaterialPriceCategory.name.ilike(f"%{kw}%") for kw in keywords
         ]
 
         logger.debug(f"_find_price_category: Looking for material_group_id={material_group_id}, shape={shape}, keywords={keywords}")

@@ -41,7 +41,7 @@
         <!-- Manual input button (left side) -->
         <button
           type="button"
-          class="icon-button"
+          class="icon-btn"
           @click="showManualModal = true"
           title="Ruční zadání rozměrů"
         >
@@ -51,7 +51,7 @@
         <div class="actions-right">
           <button
             type="button"
-            class="icon-button"
+            class="icon-btn"
             :disabled="saving"
             @click="handleCancel"
             title="Zrušit"
@@ -61,7 +61,7 @@
 
           <button
             type="submit"
-            class="icon-button icon-button-primary"
+            class="icon-btn icon-btn-primary"
             :disabled="!isFormValid || saving"
             title="Vytvořit materiál"
           >
@@ -476,44 +476,5 @@ onMounted(async () => {
 .actions-right {
   display: flex;
   gap: var(--space-3);
-}
-
-/* Icon buttons */
-.icon-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.icon-button:hover:not(:disabled) {
-  background: var(--state-hover);
-  color: var(--text-primary);
-}
-
-.icon-button:active:not(:disabled) {
-  background: var(--state-active);
-}
-
-.icon-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.icon-button-primary {
-  color: var(--color-primary);
-}
-
-.icon-button-primary:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
 }
 </style>

@@ -37,6 +37,7 @@ class Drawing(Base, AuditMixin):
     # Drawing metadata
     is_primary = Column(Boolean, default=False, nullable=False, index=True)
     revision = Column(String(2), default="A", nullable=False)
+    file_type = Column(String(10), default="pdf", nullable=False)  # "pdf" or "step"
 
     # AuditMixin provides:
     # - created_at, updated_at, created_by, updated_by

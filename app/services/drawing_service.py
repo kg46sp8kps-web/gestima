@@ -28,8 +28,12 @@ class DrawingService:
     DRAWINGS_DIR = Path("drawings")
     TEMP_DIR = DRAWINGS_DIR / "temp"
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    MAX_STEP_FILE_SIZE = 100 * 1024 * 1024  # 100MB for STEP files
     TEMP_EXPIRY_HOURS = 24
     PDF_MAGIC_BYTES = b"%PDF"
+    STEP_MAGIC = b"ISO-10303"
+    STEP_EXTENSIONS = {'.step', '.stp'}
+    PDF_EXTENSIONS = {'.pdf'}
 
     def __init__(self):
         """Initialize service and ensure directories exist"""
@@ -37,6 +41,31 @@ class DrawingService:
         self.TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     # ==================== VALIDATION ====================
+
+    def detect_file_type(self, filename: str) -> str:
+        """
+        Detect file type from filename extension.
+
+        Args:
+            filename: Name of file
+
+        Returns:
+            str: "pdf" or "step"
+
+        Raises:
+            HTTPException 400: Unsupported file type
+        """
+        ext = Path(filename).suffix.lower()
+
+        if ext in self.PDF_EXTENSIONS:
+            return "pdf"
+        elif ext in self.STEP_EXTENSIONS:
+            return "step"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {ext}. Only PDF and STEP files are allowed."
+            )
 
     async def validate_pdf(self, file: UploadFile) -> None:
         """
@@ -75,9 +104,49 @@ class DrawingService:
         # Reset file pointer for further processing
         await file.seek(0)
 
-    async def validate_file_size(self, file: UploadFile) -> int:
+    async def validate_step(self, file: UploadFile) -> None:
+        """
+        Validate STEP file using magic bytes (security-critical).
+
+        Checks:
+        1. Filename extension (.step or .stp)
+        2. Magic bytes (ISO-10303 in first 20 bytes)
+
+        Raises:
+            HTTPException 400: Invalid file type
+        """
+        # Check filename extension
+        if not file.filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Filename is required"
+            )
+
+        ext = Path(file.filename).suffix.lower()
+        if ext not in self.STEP_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Only STEP files are allowed (invalid extension: {ext})"
+            )
+
+        # Check magic bytes (ISO-10303 standard identifier)
+        header = await file.read(20)
+        if not header.startswith(self.STEP_MAGIC):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid STEP file (magic bytes check failed)"
+            )
+
+        # Reset file pointer for further processing
+        await file.seek(0)
+
+    async def validate_file_size(self, file: UploadFile, max_size: Optional[int] = None) -> int:
         """
         Validate file size without loading entire file into memory.
+
+        Args:
+            file: Uploaded file
+            max_size: Maximum file size in bytes (defaults to MAX_FILE_SIZE)
 
         Returns:
             int: File size in bytes
@@ -85,15 +154,18 @@ class DrawingService:
         Raises:
             HTTPException 413: File too large
         """
+        if max_size is None:
+            max_size = self.MAX_FILE_SIZE
+
         # Seek to end to get size (file.file is sync, not async)
         file.file.seek(0, 2)
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to start
 
-        if file_size > self.MAX_FILE_SIZE:
+        if file_size > max_size:
             raise HTTPException(
                 status_code=413,
-                detail=f"File too large (max {self.MAX_FILE_SIZE / 1024 / 1024:.0f}MB)"
+                detail=f"File too large (max {max_size / 1024 / 1024:.0f}MB)"
             )
 
         if file_size == 0:
@@ -376,7 +448,8 @@ class DrawingService:
         is_primary: bool,
         revision: str,
         created_by: str,
-        db: AsyncSession
+        db: AsyncSession,
+        file_type: str = "pdf"
     ) -> "Drawing":
         """
         Create Drawing record in database.
@@ -424,17 +497,18 @@ class DrawingService:
                     detail=f"Tento soubor již existuje u tohoto dílu (výkres ID {existing.id})"
                 )
 
-            # If is_primary=True, unset others for this part
+            # If is_primary=True, unset others for this part (same file_type only)
             if is_primary:
                 await db.execute(
                     update(Drawing)
                     .where(
                         Drawing.part_id == part_id,
+                        Drawing.file_type == file_type,
                         Drawing.deleted_at.is_(None)
                     )
                     .values(is_primary=False, updated_at=datetime.utcnow())
                 )
-                logger.info(f"Unset is_primary for all drawings of part_id={part_id}")
+                logger.info(f"Unset is_primary for {file_type} drawings of part_id={part_id}")
 
             # Create new drawing record
             drawing = Drawing(
@@ -445,6 +519,7 @@ class DrawingService:
                 file_hash=file_hash,
                 is_primary=is_primary,
                 revision=revision,
+                file_type=file_type,
                 created_by=created_by,
                 updated_by=created_by
             )
@@ -510,11 +585,12 @@ class DrawingService:
                 logger.debug(f"Drawing {drawing_id} is already primary")
                 return drawing
 
-            # Unset is_primary for all drawings in same part
+            # Unset is_primary for drawings in same part + same file_type
             await db.execute(
                 update(Drawing)
                 .where(
                     Drawing.part_id == drawing.part_id,
+                    Drawing.file_type == drawing.file_type,
                     Drawing.deleted_at.is_(None)
                 )
                 .values(is_primary=False, updated_at=datetime.utcnow())
@@ -541,14 +617,16 @@ class DrawingService:
     async def get_primary_drawing(
         self,
         part_id: int,
-        db: AsyncSession
+        db: AsyncSession,
+        file_type: str = "pdf"
     ) -> Optional["Drawing"]:
         """
-        Get primary drawing for part.
+        Get primary drawing for part (filtered by file_type).
 
         Args:
             part_id: ID dílu
             db: Database session
+            file_type: File type to filter ("pdf" or "step")
 
         Returns:
             Drawing | None: Primární výkres nebo None
@@ -560,6 +638,7 @@ class DrawingService:
                 select(Drawing)
                 .where(
                     Drawing.part_id == part_id,
+                    Drawing.file_type == file_type,
                     Drawing.is_primary == True,
                     Drawing.deleted_at.is_(None)
                 )
@@ -575,15 +654,17 @@ class DrawingService:
     async def auto_promote_primary(
         self,
         part_id: int,
-        db: AsyncSession
+        db: AsyncSession,
+        file_type: str = "pdf"
     ) -> Optional["Drawing"]:
         """
-        Auto-promote oldest non-deleted drawing to primary.
+        Auto-promote oldest non-deleted drawing of same file_type to primary.
         Called after primary drawing deletion.
 
         Args:
             part_id: ID dílu
             db: Database session
+            file_type: File type to promote within ("pdf" or "step")
 
         Returns:
             Drawing | None: Newly promoted drawing or None if no drawings left
@@ -594,11 +675,12 @@ class DrawingService:
         from app.models.drawing import Drawing
 
         try:
-            # Find oldest non-deleted drawing
+            # Find oldest non-deleted drawing of same file_type
             result = await db.execute(
                 select(Drawing)
                 .where(
                     Drawing.part_id == part_id,
+                    Drawing.file_type == file_type,
                     Drawing.deleted_at.is_(None)
                 )
                 .order_by(Drawing.created_at.asc())

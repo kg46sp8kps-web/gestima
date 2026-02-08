@@ -44,6 +44,7 @@ export interface QuoteItem {
   part_id: number | null
   part_number: string
   article_number?: string | null
+  drawing_number?: string | null
   part_name: string
   quantity: number
   unit_price: number
@@ -200,6 +201,7 @@ export interface PartMatch {
 
   // Extracted data
   article_number: string
+  drawing_number: string | null
   name: string
   quantity: number
   notes: string | null

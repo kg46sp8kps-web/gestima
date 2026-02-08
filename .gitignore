@@ -55,6 +55,9 @@ data/archive/
 # Logs
 *.log
 
+# Claude Code memory (lokální learning data)
+.claude/memory/
+
 # Environment variables (pokud budou v budoucnu)
 .env
 .env.local

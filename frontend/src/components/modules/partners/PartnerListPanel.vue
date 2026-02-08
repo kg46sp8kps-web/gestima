@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { usePartnersStore } from '@/stores/partners'
 import type { Partner } from '@/types/partner'
 import { Plus, Building2, Users, Factory } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   selectedPartner?: Partner | null
@@ -75,7 +76,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
     <div class="list-header">
       <h3>Partneři</h3>
       <button @click="handleCreate" class="btn-create">
-        <Plus :size="14" :stroke-width="2" />
+        <Plus :size="ICON_SIZE.STANDARD" :stroke-width="2" />
         Nový
       </button>
     </div>
@@ -141,10 +142,10 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
           <span class="partner-number">{{ partner.partner_number }}</span>
           <div class="partner-badges">
             <span v-if="partner.is_customer" class="badge-customer" title="Zákazník">
-              <Users :size="14" :stroke-width="2" />
+              <Users :size="ICON_SIZE.STANDARD" :stroke-width="2" />
             </span>
             <span v-if="partner.is_supplier" class="badge-supplier" title="Dodavatel">
-              <Factory :size="14" :stroke-width="2" />
+              <Factory :size="ICON_SIZE.STANDARD" :stroke-width="2" />
             </span>
           </div>
         </div>

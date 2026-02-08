@@ -18,6 +18,7 @@ import type { Part, PartUpdate } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import { Package, Settings, DollarSign, FileText, Edit, Trash2, Save, X, Copy } from 'lucide-vue-next'
 import { updatePart, createPart, deletePart } from '@/api/parts'
+import { ICON_SIZE } from '@/config/design'
 import type { PartCreate } from '@/types/part'
 import { confirm, alert } from '@/composables/useDialog'
 
@@ -460,23 +461,23 @@ const resizeCursor = computed(() =>
           <!-- Edit mode: Save/Cancel -->
           <template v-if="isEditing">
             <button class="icon-btn icon-btn-primary" @click="saveEdit" title="Uložit změny">
-              <Save :size="15" />
+              <Save :size="ICON_SIZE.STANDARD" />
             </button>
             <button class="icon-btn" @click="cancelEdit" title="Zrušit">
-              <X :size="15" />
+              <X :size="ICON_SIZE.STANDARD" />
             </button>
           </template>
 
           <!-- Normal mode: Edit/Copy/Delete -->
           <template v-else>
             <button class="icon-btn" @click="startEdit" title="Upravit díl">
-              <Edit :size="15" />
+              <Edit :size="ICON_SIZE.STANDARD" />
             </button>
             <button class="icon-btn" @click="openCopyModal" title="Kopírovat díl">
-              <Copy :size="15" />
+              <Copy :size="ICON_SIZE.STANDARD" />
             </button>
             <button class="icon-btn icon-btn-danger" @click="handleDelete" title="Smazat díl">
-              <Trash2 :size="15" />
+              <Trash2 :size="ICON_SIZE.STANDARD" />
             </button>
           </template>
         </div>
@@ -489,15 +490,15 @@ const resizeCursor = computed(() =>
         <!-- Normal mode: All actions -->
         <div class="actions-grid">
           <button class="action-button" @click="openMaterialWindow" title="Materiál">
-            <Package :size="26" class="action-icon" />
+            <Package :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Materiál</span>
           </button>
           <button class="action-button" @click="openOperationsWindow" title="Operace">
-            <Settings :size="26" class="action-icon" />
+            <Settings :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Operace</span>
           </button>
           <button class="action-button" @click="openPricingWindow" title="Ceny">
-            <DollarSign :size="26" class="action-icon" />
+            <DollarSign :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Ceny</span>
           </button>
           <button
@@ -506,7 +507,7 @@ const resizeCursor = computed(() =>
             @contextmenu="handleDrawingRightClick"
             title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
           >
-            <FileText :size="26" class="action-icon" />
+            <FileText :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Výkres</span>
           </button>
         </div>

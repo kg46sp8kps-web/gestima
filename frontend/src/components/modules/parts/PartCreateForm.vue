@@ -6,6 +6,7 @@ import { drawingsApi } from '@/api/drawings'
 import DragDropZone from '@/components/ui/DragDropZone.vue'
 import PDFPreview from '@/components/ui/PDFPreview.vue'
 import { Trash2, Check, X } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 const emit = defineEmits<{
   'created': [part: Part]
@@ -164,7 +165,7 @@ function handleCancel() {
           <div class="temp-drawing-info">
             <p class="temp-filename">{{ tempDrawingFile?.name }}</p>
             <button type="button" class="btn-sm btn-danger" @click="removeTempDrawing">
-              <Trash2 :size="14" />
+              <Trash2 :size="ICON_SIZE.SMALL" />
               Odebrat
             </button>
           </div>
@@ -172,11 +173,11 @@ function handleCancel() {
       </div>
 
       <div class="form-actions">
-        <button type="button" @click="handleCancel" class="btn-icon btn-cancel" title="Zrušit">
-          <X :size="20" />
+        <button type="button" @click="handleCancel" class="icon-btn icon-btn-danger" title="Zrušit">
+          <X :size="ICON_SIZE.STANDARD" />
         </button>
-        <button type="submit" class="btn-icon btn-confirm" title="Vytvořit díl">
-          <Check :size="20" />
+        <button type="submit" class="icon-btn icon-btn-success" title="Vytvořit díl">
+          <Check :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </form>
@@ -248,35 +249,7 @@ function handleCancel() {
   border-radius: var(--radius-md);
 }
 
-/* Icon buttons - same as modal */
-.btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-icon.btn-confirm {
-  color: var(--color-success);
-}
-
-.btn-icon.btn-confirm:hover {
-  background: rgba(34, 197, 94, 0.1);
-}
-
-.btn-icon.btn-cancel {
-  color: var(--color-error);
-}
-
-.btn-icon.btn-cancel:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
+/* Icon buttons use global .icon-btn classes from design-system.css */
 
 /* Drawing field */
 .drawing-field {

@@ -7,6 +7,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { usePartnersStore } from '@/stores/partners'
 import type { Partner, PartnerCreate, PartnerUpdate } from '@/types/partner'
 import { Building2, Edit, Trash2, Save } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   partner: Partner | null
@@ -225,7 +226,7 @@ async function executeDelete() {
           class="btn-primary"
           @click="startEdit"
         >
-          <Edit :size="16" />
+          <Edit :size="ICON_SIZE.STANDARD" />
           Upravit
         </button>
         <template v-else>
@@ -233,7 +234,7 @@ async function executeDelete() {
             Zrušit
           </button>
           <button class="btn-primary" @click="savePartner" :disabled="saving">
-            <Save :size="16" />
+            <Save :size="ICON_SIZE.STANDARD" />
             {{ saving ? 'Ukládám...' : 'Uložit' }}
           </button>
         </template>
@@ -242,7 +243,7 @@ async function executeDelete() {
           class="btn-danger"
           @click="confirmDelete"
         >
-          <Trash2 :size="16" />
+          <Trash2 :size="ICON_SIZE.STANDARD" />
           Smazat
         </button>
       </div>

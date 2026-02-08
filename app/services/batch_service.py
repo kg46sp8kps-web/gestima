@@ -67,9 +67,11 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
             raise ValueError(f"Part {batch.part_id} not found")
 
         # ADR-024: Check material_inputs instead of deprecated Part.price_category/material_item
-        if not part.material_inputs:
+        # CRITICAL: Filter out soft-deleted material_inputs (data integrity fix)
+        active_material_inputs = [mi for mi in part.material_inputs if not mi.deleted_at]
+        if not active_material_inputs:
             logger.warning(
-                f"Part {part.id} has no material_inputs, setting material_cost=0"
+                f"Part {part.id} has no active material_inputs, setting material_cost=0"
             )
             batch.material_cost = 0.0
             batch.material_weight_kg = None

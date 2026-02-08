@@ -1,3 +1,445 @@
+## [1.23.2] - 2026-02-06
+
+### Fixed - Frontend Bug Fixes (User-Reported)
+- **3D Viewer Not Loading (PARTIAL):**
+  - Created `StepViewerWrapper.vue` (75 LOC) with `:key` forcing for File reactivity
+  - Manual integration required for `FeatureRecognitionModule.vue` (1848 LOC blocks hooks)
+  - See `docs/guides/FIX-STEP-VIEWER-3D.md` for manual steps
+- **Duplicate Uploads in STEP Contours (COMPLETE):**
+  - Added deduplication logic in `StepContourTestPanel.vue`
+  - Same filename upload replaces old entry instead of creating duplicate
+
+### Added
+- `frontend/src/components/modules/visualization/StepViewerWrapper.vue` (75 LOC)
+- `docs/guides/FIX-STEP-VIEWER-3D.md` — manual integration guide
+- `docs/guides/BUGFIX-2026-02-06-STEP-VIEWER.md` — full bug report
+- `docs/audits/2026-02-06-stop-hook-frontend-violations.md` — LOC audit
+
+### Known Issues
+- 6 pre-existing L-036 violations (files >300 LOC)
+- See audit doc for cleanup plan
+
+---
+
+## [1.23.1] - 2026-02-06
+
+### Fixed - CRITICAL: OCCT Parser Integration
+- **ROOT CAUSE:** `analysis_service.py` was NOT passing `use_occt=True` to StepParser
+- **IMPACT:** OCCT parser implemented but unused → 40% accuracy (regex) instead of 90%+ (OCCT)
+- **FIX:** Pass `settings.ENABLE_OCCT_PARSER` to StepParser constructor
+- Enhanced logging: now shows "STEP parsed with source: occt" or "step_regex"
+- Added debug logging in `contour_builder.py` (classified features count)
+- Updated `.env.example` with `FR_PIPELINE_MODE` and `ENABLE_OCCT_PARSER` documentation
+
+### Added
+- New test suite: `tests/test_occt_integration.py` (4 tests)
+  - Verifies `use_occt=True` is passed to StepParser
+  - Verifies parser source is logged
+  - Verifies warning on regex fallback
+- ADR-040: OCCT Parser Integration Fix (lessons learned)
+
+### Changed
+- `analysis_service.py`: Now actually uses OCCT when enabled (line 267)
+- `contour_builder.py`: Added classification logging for debugging
+
+### Verification
+```bash
+./gestima.py test tests/test_occt_integration.py -v
+# 3 passed, 1 skipped in 0.02s
+```
+
+Check logs for: "STEP parsed with source: occt" (should be OCCT, not regex!)
+
+---
+
+## [1.23.0] - 2026-02-06
+
+### Added - OCCT Backend Parser
+- Native OCCT STEP parser with Python bindings (pythonocc-core)
+- Deterministic geometry extraction (cylinders, cones, tori)
+- Volume calculation with ±0.1% accuracy
+- Assembly support for multi-part STEP files
+- Hybrid fallback chain: OCCT → regex → Claude
+- 31 automated tests (unit + integration + compatibility)
+- MasterAdmin batch folder upload for STEP testing
+
+### Changed
+- `step_parser.py`: Refactored to hybrid orchestrator
+- `config.py`: Added ENABLE_OCCT_PARSER flag (default: True)
+- Feature recognition router: Uses OCCT parser when available
+
+### Fixed
+- L-036 violation: Split 490 LOC → 3 modules (221+237+148 LOC)
+- Angle conversion: OCCT radians → degrees for consistency
+- Inner/outer contour classification improved
+
+### Technical Details
+- **Installation:** Requires conda/mamba (pythonocc-core not pip-installable)
+- **Performance:** ~40ms parse time (comparable to regex)
+- **Thread Safety:** One parser instance per request (OCCT not thread-safe)
+- **Graceful Degradation:** Automatic fallback to regex if OCCT unavailable
+
+### Testing
+- 11 unit tests (test_step_parser_occt.py)
+- 10 integration tests (test_step_parser_integration.py)
+- 10 compatibility tests (test_step_parser_enhanced.py)
+- Edge cases: corrupt files, empty files, nonexistent files
+- Fallback mechanism verified
+
+### Documentation
+- ADR-039: OCCT STEP Parser Integration (implementation notes added)
+- Production testing guide: docs/testing/occt-production-test-2026-02-06.md
+- MasterAdmin batch upload: screenshots + workflow
+
+### Related ADRs
+- ADR-035: Feature Recognition System (parent)
+- ADR-036: Manufacturing Planning Services
+- ADR-037: Interactive SVG Visualization
+- ADR-038: 3D STEP Viewer
+
+---
+
+## [1.22.0] - 2026-02-06
+
+### Fixed - STEP Contour Inner Surface Detection
+- **Bug 1: JR 810670 Zigzag inner contour** - Sequential tracing instead of sort/deduplicate
+- **Bug 2: JR 810663 Cone misclassification** - Use boundary_zr_pairs instead of surf.radius
+- **Bug 3: JR 808404 Cross-holes + overlapping segments** - Extended off-axis filter, envelope algorithm
+
+### Technical
+- `contour_builder.py`: 3 critical inner contour fixes
+- `feature_recognition_router.py`: Removed duplicate endpoint (-122 LOC)
+- 20/20 step parser + contour builder tests passing
+- All 11 STEP files produce correct deterministic contours
+
+---
+
+## [1.21.0] 3D STEP Viewer + 2D Geometry Fix - 2026-02-05
+
+### Added
+- **3D STEP Viewer (ADR-038)**: Browser-based 3D visualization of STEP files
+  - occt-import-js WASM engine for STEP parsing in browser (zero backend involvement)
+  - Three.js renderer with OrbitControls (orbit, zoom, pan)
+  - Per-face B-rep colors from STEP file
+  - Cutting plane (section view) with axis selection and position slider
+  - View presets: Front, Top, Right, Isometric + reset
+  - Edge display toggle
+  - Auto-fit camera to model bounding box
+
+- **New Frontend Components**:
+  - `StepViewer3D.vue` (~290 LOC) -- Three.js + occt-import-js 3D viewer
+  - `occt-import-js.d.ts` (~58 LOC) -- TypeScript declarations
+
+- **2D/3D Mode Toggle**: Switch between 2D SVG profile and 3D STEP model in FeatureRecognitionModule
+
+### Added (Backend)
+- `app/services/contour_validator.py` (226 LOC) -- validates/corrects Claude's profile_geometry against STEP dimensions
+  - Auto-scales r-values to match STEP max diameter
+  - Auto-scales z-values to match total_length
+  - Ensures contour start/end on axis
+  - Reports missing STEP diameters in contour
+
+### Changed
+- `app/services/step_pdf_parser.py`: Added KALIBRACE section to prompt -- forces Claude to use exact STEP diameters in contour
+- `app/services/analysis_service.py`: Wired contour_validator into SVG generation pipeline
+- `frontend/vite.config.ts`: WASM support, Three.js vendor chunk splitting (FeatureRecognitionModule: 555 KB -> 60 KB)
+- `frontend/src/components/modules/FeatureRecognitionModule.vue`: Added 2D/3D toggle, StepViewer3D integration, cutting plane controls
+- `frontend/package.json`: Added three, occt-import-js, @types/three
+
+### Dependencies
+- `three` (Three.js) -- 3D rendering (495 KB vendor chunk, lazy-loaded)
+- `occt-import-js` 0.0.23 -- WASM OpenCascade STEP parser (59 KB + 7.6 MB WASM)
+- `@types/three` -- TypeScript types (dev only)
+
+---
+
+## [1.20.0] Interactive SVG Feature Visualization - 2026-02-05
+
+### Added
+- **Interactive SVG Feature Visualization (ADR-037)**: Complete interactive visualization system
+  - Feature zone overlays: color-coded regions on SVG mapped to manufacturing operations (6 categories: turning, drilling, threading, milling, grinding, finishing)
+  - SVG / Table bidirectional interactivity: hover table row highlights SVG zone, hover SVG zone highlights table row + shows tooltip
+  - Multi-view prismatic rendering: Top + Front + Side + Isometric views for milled parts
+  - Milling toolpath generator: pocket spiral, slot, face mill, contour, drilling cycles (639 LOC)
+  - Toolpath SVG overlay: colored move visualization (rapid=yellow, cut=green, retract=orange, plunge=red)
+
+- **New Backend Services (5 files, ~1812 LOC)**:
+  - `app/services/feature_position_mapper.py` (408 LOC) -- maps features to SVG coordinates via contour matching
+  - `app/services/svg_render_helpers.py` (376 LOC) -- extracted SVG construction helpers
+  - `app/services/milling_toolpath_generator.py` (639 LOC) -- 2.5D milling toolpath generation
+  - `app/services/prismatic_svg_renderer.py` (149 LOC) -- multi-view Top/Front/Side/Iso
+  - `app/services/toolpath_svg_overlay.py` (240 LOC) -- ToolMove to colored SVG overlay
+
+- **New Frontend Components (2 files, ~307 LOC)**:
+  - `frontend/src/composables/useFeatureHighlight.ts` (32 LOC) -- shared hover/select state
+  - `frontend/src/components/modules/visualization/InteractiveSvgViewer.vue` (275 LOC) -- interactive SVG with event delegation, tooltip, legend
+
+### Changed
+- `app/services/profile_svg_renderer.py`: Refactored from 482 to 252 LOC, added feature zone rendering with `data-feature-id` attributes
+- `app/services/toolpath_generator.py`: Extended ToolMove dataclass with `y` field for milling
+- `app/schemas/feature_recognition.py`: Added FeatureZoneSchema, feature_zones field in response
+- `frontend/src/types/featureRecognition.ts`: Added FeatureZone interface
+- `frontend/src/components/modules/FeatureRecognitionModule.vue`: Replaced static v-html SVG with InteractiveSvgViewer component
+- `frontend/src/components/ui/DataTable.vue`: Added row-hover/row-leave events, highlightedIndex prop
+- `docs/ADR/035-feature-recognition-system.md`: Updated roadmap -- Phase 3 split into 3a (Interactive SVG, done) + 3b (Three.js, future)
+
+---
+
+## [1.19.0] Manufacturing Planning Services - 2026-02-05
+
+### Added
+- **Tool Selection Catalog (ADR-036)**: Data-driven tool selection system
+  - File: `app/services/tool_selection_catalog.py` (602 LOC, 33 catalog entries)
+  - Pattern: Copy structure from `cutting_conditions_catalog.py`
+  - Lookup: (operation_type, operation, ISO_group, diameter) → tool_spec
+  - Coverage: turning, drilling, threading, milling, live tooling
+  - Diameter-based selection: HSS Ø1-10, VHM Ø10-20, indexable Ø20+
+  - Material-specific tools: ISO P/M/N/H groups
+  - Single Source of Truth: imports `MATERIAL_GROUP_MAP` from cutting_conditions_catalog
+  - Tests: 37 unit tests covering ISO mapping, diameter ranges, fallback logic, determinism
+
+- **Setup Planner (ADR-036)**: Multi-setup planning service
+  - File: `app/services/setup_planner.py` (385 LOC)
+  - Analyzes geometry → determines number of setups (1-3 typical)
+  - Turning: front/back detection, parting support, long-part handling
+  - Live tooling: 4-axis detection for radial features (lt_drill, lt_flat, lt_slot)
+  - Milling: multi-face analysis (3-axis vs 5-axis evaluation)
+  - Hybrid: mixed turning+milling strategy (70% threshold)
+  - Setup time estimation: 25min 3-jaw chuck, 15min collet, 20min vise
+  - Returns: setup list with fixture, estimated_time, machine_type
+  - Tests: 17 unit tests covering single/multi-setup, live tooling, edge cases
+
+- **Machine Selector (ADR-036)**: Cost-based machine selection
+  - File: `app/services/machine_selector.py` (244 LOC)
+  - Machine types: lathe 3ax/4ax, mill 3ax/4ax/5ax
+  - Hourly rates: €50-120/hour (TODO: eventually from DB/WorkCenter model)
+  - Decision logic:
+    - Rotational + radial features → 4ax lathe (live tooling saves setup)
+    - Complex 3D surfaces → 5ax mill (required for tool access)
+    - Simple prismatic → 3ax vs 5ax cost comparison (20% premium threshold)
+  - Cost calculation: setup time + machining time + hourly rate
+  - Constants: `SETUP_REDUCTION_5AX = 0.7`, `COST_PREMIUM_THRESHOLD = 1.2`, `EXTRA_MILLING_SETUP_MIN = 30.0`
+  - Returns: recommended machine + alternatives with cost breakdown
+  - Tests: 16 unit tests covering rotational, prismatic, cost calculation, determinism
+
+### Changed
+- **Operation Generator Integration (ADR-036)**:
+  - File: `app/services/operation_generator.py` (modified, 808 LOC)
+  - Added: `_select_tool_from_catalog()` method wrapper around tool_selection_catalog
+  - Tool assignments now use `select_tool()` from catalog (replaces hardcoded "CNMG hrubovací nůž")
+  - Drilling: dynamic tool selection based on diameter (HSS Ø<10, VHM Ø10-20, indexable Ø>20)
+  - Reaming: catalog-based tool selection for H6/H7/H8 tolerances
+  - Fallback: Generic tool names if catalog lookup fails (backward compatibility)
+  - Import: `from app.services.tool_selection_catalog import select_tool`
+
+### Fixed
+- **Data Conflict (L-002)**: ISO material mapping inconsistency
+  - Issue: `20910006` (Ocel nástrojová) mapped to both ISO K and ISO H in tool_selection_catalog
+  - Root cause: Duplicated `ISO_MATERIAL_GROUPS` dict diverged from canonical source
+  - Fix: Removed local copy, now imports `MATERIAL_GROUP_MAP` from cutting_conditions_catalog
+  - Result: Single Source of Truth for material-to-ISO mapping (20910006 → ISO H only)
+  - Test: `test_tool_steel()` updated to expect ISO H (hardened materials)
+
+- **Magic Numbers (L-001)**: Extracted hardcoded constants in machine_selector.py
+  - `SETUP_REDUCTION_5AX = 0.7` (5-axis reduces setup count to 70% of 3-axis)
+  - `COST_PREMIUM_THRESHOLD = 1.2` (accept 5-axis if within 20% cost premium)
+  - `EXTRA_MILLING_SETUP_MIN = 30.0` (extra setup time if lathe can't do radial features)
+  - Previous: Inline magic numbers `0.7`, `1.2`, `30.0` scattered in code
+
+### Tests
+- **70 unit tests total** (all passing):
+  - `test_tool_selection_catalog.py`: 37 tests
+    - ISO group mapping (P/M/K/N/H)
+    - Tool selection by diameter (HSS, VHM, indexable)
+    - Material-specific tools (steel, stainless, aluminum)
+    - Fallback logic (ISO P default, diameter out of range)
+    - Determinism (same input → same output, 10x repeated calls)
+    - Edge cases (zero diameter, empty material, invalid operation)
+  - `test_setup_planner.py`: 17 tests
+    - Turning single/two setups (front/back detection, parting, long parts)
+    - Live tooling (4-axis detection for radial features)
+    - Milling setups (single/multi-face)
+    - Hybrid parts (turning-dominant vs milling-dominant)
+    - Setup time calculation (25+15=40min for two setups)
+    - Edge cases (no features, unknown part type, empty geometry)
+  - `test_machine_selector.py`: 16 tests
+    - Rotational selection (3ax basic vs 4ax with radial features)
+    - Prismatic selection (3ax vs 5ax cost comparison)
+    - Cost calculation accuracy (setup time + machining time + hourly rate)
+    - Determinism (order independence)
+    - Edge cases (empty geometry, empty setups, unknown part type)
+
+### Documentation
+- **ADR-036**: Manufacturing Planning Services Architecture
+  - File: `docs/ADR/036-manufacturing-planning-services.md`
+  - Decision: 3-service pipeline (tool catalog + setup planner + machine selector)
+  - Rationale: 100% deterministic, data-driven, testable, modular, ML-ready
+  - Alternatives considered: Full ML pipeline (rejected - overkill), CAM engine integration (rejected - dependency hell)
+  - Future work: Phase 1b (milling time calculations), Phase 2 (ML time correction), Database migration
+
+### Technical Debt
+- ⚠️ `operation_generator.py` = 808 LOC (above 300 LOC threshold)
+  - Recommendation: Split into `turning_generator.py` + `milling_generator.py`
+  - Tracked for future refactoring (Phase 2)
+- ⚠️ Hardcoded machine rates should come from database (WorkCenter model)
+  - Current: Class constants `MACHINE_RATES = {"lathe_3ax": 50.0, ...}`
+  - TODO: Load from `work_centers.hourly_rate` column (future enhancement)
+
+---
+
+## [1.18.0] Infor Import Preparation Complete - 2026-02-03
+
+### Added
+- **Surface Treatment Integration (ADR-033)**: Complete implementation
+  - Migration: `o8p9q0r1s2t3_add_surface_treatment_to_material_items.py`
+  - MaterialItem.surface_treatment field (String(20), nullable)
+  - Parser: `extract_surface_treatment()` from Item code suffix (T, V, P, O, F, etc.)
+  - Frontend: Pattern Test Result displays surface treatment
+  - 10 recognized codes: T=Tažená, V=Válená, P=Lisovaná, O=Loupaná, F=Frézovaná, K=Kovaná, L=Litá, H=Kalená, N=Normalizovaná, Z=Pozinkovaná
+
+- **8-Digit MaterialGroup Codes (ADR-017 Compliance)**:
+  - Migration: `p9q0r1s2t3u4_update_material_group_codes_to_8digit.py`
+  - Changed MaterialGroup.code from textual (HLINIK, OCEL-AUTO) to 8-digit (20910000-20910008)
+  - Hierarchical sub-range: 20910000-20919999 (10k capacity)
+  - 9 groups: Hliník, Měď, Mosaz, Ocel automatová, Ocel konstrukční, Ocel legovaná, Ocel nástrojová, Nerez, Plasty
+
+- **MaterialNorms Seed with Pattern Matching**:
+  - Script: `scripts/seed_material_norms_basic.py`
+  - 25 basic norms (W.Nr, ČSN, EN ISO, AISI) → MaterialGroup mapping
+  - Pattern fallback: 1.0036 → match "1.0%" → Ocel konstrukční (when exact match fails)
+  - Prefix patterns: 1.0xxx, 1.1xxx, 1.2xxx, 1.4xxx, 1.6xxx, 1.7xxx, 3.xxxx, 2.0xxx
+
+- **MaterialPriceCategories Seed (43 categories)**:
+  - Script: `scripts/seed_price_categories_v2.py`
+  - 8-digit codes: 20900000-20900042 (sub-range 20900000-20909999)
+  - Reduced steel types from 8 to 4 (auto, konstrukční, legovaná, nástrojová)
+  - Generic names: "Hliník - deska" (covers all 3.0-3.4 series)
+  - CSV template: `data/material_price_tiers_template.csv` (43 rows)
+
+- **Parser Enhancements - Item Code as MASTER**:
+  - `extract_w_nr_from_item_code()`: Parses W.Nr from Item field (MASTER source)
+  - `parse_dimensions_from_item_code()`: Parses dimensions from Item code
+    - HR010x010 → width=10, thickness=10 (square bar)
+    - KR016 → diameter=16 (round bar)
+    - DE020 → thickness=20 (plate)
+    - TR025x002 → diameter=25, wall_thickness=2 (tube)
+  - Priority: Item code (MASTER) → Description (fallback)
+
+### Changed
+- **MaterialPriceCategory count**: 53 → 43 (removed 4 steel types)
+- **MaterialGroup lookup**: Now by name instead of code (since codes are 8-digit)
+- **Test Pattern endpoint**: Returns material_code_source ("Item code (MASTER)" vs "Description (fallback)")
+
+### Fixed
+- **MaterialNorm lookup failure**: Added pattern matching fallback for unknown W.Nr codes
+- **Dimensions parsing**: Now prioritizes Item code over Description
+- **Surface treatment visibility**: Added to InforMaterialImportPanel.vue Pattern Test Result
+
+---
+
+## [1.16.0] MaterialItems Catalog Import - 2026-02-03
+
+### Added
+- **MaterialItems Catalog Import System**: Complete Excel/CSV import with 3-phase pipeline
+  - Import script: `scripts/import_material_catalog.py` (3-phase: MaterialGroups → PriceCategories → MaterialItems)
+  - Preview mode (dry-run) with detailed statistics
+  - Execute mode with confirmation prompt
+  - Imported: 2,648 material items from 3,322 parseable records (79.4% success rate)
+  - Skipped: 859 items (EP povrch, výpalky, system codes, unrecognized formats)
+  - Material Groups: 11 created (OCEL-KONS, OCEL-AUTO, NEREZ, HLINIK, MED, MOSAZ, PLAST, LITINA-GG, LITINA-TV, OCEL-LEG, OCEL-NAST)
+  - Price Categories: 39 created with proper naming (e.g., OCEL-KONS-KRUHOVA, PLAST-DESKA)
+
+- **Price Tier Auto-Copy System**: Smart tier copying from templates at 80% price
+  - TIER_TEMPLATES mapping: 31 rules for new categories
+  - Example: OCEL-KONS-CTVEREC copies tier structure from OCEL-KRUHOVA
+  - Auto-creates tiers during import (editable later via admin UI)
+  - Reduces manual configuration work for new categories
+
+- **Norms Auto-Population**: MaterialNorm table lookup during import
+  - No duplicate data entry (single source of truth)
+  - Checks W.Nr, EN ISO, ČSN, AISI fields
+  - Builds formatted norms string (e.g., "W.Nr: 1.4301, EN: X5CrNi18-10")
+  - Populated for all matched materials during import
+
+- **Frontend Module - MaterialItems Catalog Management**:
+  - MaterialItemsListModule.vue: Split-pane coordinator (UI-BIBLE Pattern 1)
+    - LEFT: DataTable with resizable panel (360px default, 250-1000px range)
+    - RIGHT: Info Ribbon detail panel with inline editing
+    - Responsive layout (horizontal/vertical modes)
+    - Panel size persistence (localStorage: `materialItemsPanelSize`)
+
+  - MaterialItemsListPanel.vue: DataTable list with filters
+    - Column chooser with drag-reorder support
+    - Search: code, name, supplier_code, supplier (debounced 300ms)
+    - Filters: Material group, shape, supplier (debounced 200ms)
+    - Sortable columns: code, name, shape, supplier
+    - Column visibility persistence (localStorage: `materialItemListColumns`)
+    - Empty state handling
+
+  - MaterialItemDetailPanel.vue: Info Ribbon pattern (UI-BIBLE Pattern 2)
+    - 14 info cards: code, name, material_number, shape, dimensions (diameter, width, thickness, wall_thickness), norms, supplier, supplier_code, stock
+    - Inline editing mode: Save/Cancel icon buttons
+    - Icon toolbar (bottom): Edit | Copy | Delete
+    - Editable fields: code, name, supplier, supplier_code, norms
+
+  - MaterialItemSelectorDialog.vue: Catalog selector dialog
+    - Quick selector for choosing MaterialItem from catalog
+    - Search + filters (group, shape) with grid view
+    - Limit 50 items for performance
+    - For future integration in PartMaterialModule
+
+- **Module Registration**: Integrated into WindowsView, windows.ts, AppHeader.vue
+  - Menu entry: "Materiálové položky" (Box icon)
+  - Module type: `material-items-list`
+  - Available in floating windows system
+
+### Changed
+- **Material Group Codes**: Fixed from incorrect codes to proper semantic codes
+  - Before: 10xxx, 11xxx, 14xxx, 3xxxx (inconsistent numeric codes)
+  - After: OCEL-KONS, OCEL-AUTO, NEREZ, HLINIK (semantic codes aligned with seed data)
+  - User correction applied during import implementation
+
+- **Shape Naming**: Aligned with Czech terminology
+  - CTVERC → CTVEREC (čtvercová tyč)
+  - SESTHRAN → SESTIHRAN (šestihran)
+
+- **PLAST Category Consolidation**: Special case handling
+  - PLAST-CTVERC + PLAST-PLOCHA → PLAST-DESKA (single category)
+  - 107 items consolidated to avoid duplicate price categories
+
+### Fixed
+- **UnboundLocalError in get_price_category_code()**: PLAST special case code reordering
+  - Issue: `family` variable referenced before assignment (line 163 before line 166)
+  - Fix: Moved PLAST special case check AFTER `family` assignment
+  - Impact: Import preview now completes successfully
+
+- **Virtual Environment Setup**: Installed missing dependencies
+  - Added: pandas, openpyxl for Excel import
+  - Command: `pip3 install pandas openpyxl`
+
+### Technical
+- Files created: 4 (MaterialItemsListModule.vue, MaterialItemsListPanel.vue, MaterialItemDetailPanel.vue, MaterialItemSelectorDialog.vue)
+- Import script: scripts/import_material_catalog.py (642 LOC)
+- Database: 2,652 MaterialItems imported into existing schema
+- API: GET /api/materials/items, /groups (authentication required)
+- LOC: ~1,200 (frontend components + import script)
+
+### Database Statistics
+- Material Groups: 12 total (11 imported + 1 existing)
+- Price Categories: 58 total (39 imported + existing)
+- Material Items: 2,652 total (2,648 imported + 4 existing)
+- Import success rate: 79.4% (3,322 / 4,181 total items)
+
+### Next Steps
+1. Set Price Tiers for new categories via admin UI
+2. Add supplier info (supplier, supplier_code) to imported items
+3. Complete catalog info (weight_per_meter, standard_length) where missing
+4. Implement MaterialItemForm for manual item creation
+5. Implement MaterialImportDialog for UI-based import
+6. Integrate MaterialItemSelectorDialog into PartMaterialModule
+
+---
+
 ## [Module Defaults Persistence] - 2026-02-02
 
 ### Added

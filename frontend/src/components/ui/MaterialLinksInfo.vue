@@ -70,7 +70,7 @@ function formatMaterialDimensions(material: MaterialInput | MaterialInputWithOpe
     parts.push(`L${material.stock_length}`)
   }
 
-  if (parts.length === 0 && material.weight_kg) {
+  if (parts.length === 0 && 'weight_kg' in material && material.weight_kg) {
     return `${material.weight_kg.toFixed(2)}kg`
   }
 
@@ -248,7 +248,7 @@ watch(() => props.availableMaterials, () => {
 }
 
 .mat-dims {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   opacity: 0.8;
 }
@@ -263,7 +263,7 @@ watch(() => props.availableMaterials, () => {
   cursor: pointer;
   padding: 0;
   margin-left: var(--space-1);
-  font-size: 14px;
+  font-size: var(--text-sm);
   line-height: 1;
   transition: color var(--transition-fast);
 }

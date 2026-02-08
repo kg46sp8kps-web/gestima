@@ -7,6 +7,7 @@ import { computed } from 'vue'
 import { useQuotesStore } from '@/stores/quotes'
 import type { QuoteWithItems, QuoteStatus } from '@/types/quote'
 import { Edit, FileText, Send, CheckCircle, XCircle, Copy, Trash2 } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
 
 interface Props {
@@ -124,7 +125,7 @@ function formatCurrency(value: number): string {
         <div class="quote-badges">
           <span class="quote-number-badge">{{ quote.quote_number }}</span>
           <span v-if="statusBadge" :class="['status-badge', statusBadge.class]">
-            <component :is="statusBadge.icon" :size="15" />
+            <component :is="statusBadge.icon" :size="ICON_SIZE.STANDARD" />
             {{ statusBadge.label }}
           </span>
         </div>
@@ -166,7 +167,7 @@ function formatCurrency(value: number): string {
           :disabled="quotesStore.loading"
           title="Odeslat"
         >
-          <Send :size="15" />
+          <Send :size="ICON_SIZE.STANDARD" />
         </button>
         <button
           v-if="showApproveButton"
@@ -175,7 +176,7 @@ function formatCurrency(value: number): string {
           :disabled="quotesStore.loading"
           title="Schválit"
         >
-          <CheckCircle :size="15" />
+          <CheckCircle :size="ICON_SIZE.STANDARD" />
         </button>
         <button
           v-if="showRejectButton"
@@ -184,7 +185,7 @@ function formatCurrency(value: number): string {
           :disabled="quotesStore.loading"
           title="Odmítnout"
         >
-          <XCircle :size="15" />
+          <XCircle :size="ICON_SIZE.STANDARD" />
         </button>
         <button
           v-if="showCloneButton"
@@ -193,7 +194,7 @@ function formatCurrency(value: number): string {
           :disabled="quotesStore.loading"
           title="Duplikovat"
         >
-          <Copy :size="15" />
+          <Copy :size="ICON_SIZE.STANDARD" />
         </button>
         <button
           v-if="showDeleteButton"
@@ -202,7 +203,7 @@ function formatCurrency(value: number): string {
           :disabled="quotesStore.loading"
           title="Smazat"
         >
-          <Trash2 :size="15" />
+          <Trash2 :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </div>

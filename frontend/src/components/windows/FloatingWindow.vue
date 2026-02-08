@@ -9,6 +9,7 @@ import { useWindowsStore, type WindowState, type LinkingGroup } from '@/stores/w
 import { useWindowContextStore } from '@/stores/windowContext'
 import { Link, Settings, Edit } from 'lucide-vue-next'
 import SaveModuleDefaultsModal from '@/components/modals/SaveModuleDefaultsModal.vue'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   window: WindowState
@@ -419,7 +420,7 @@ function handleClose() {
 
 function handleConfirmSaveDefaults() {
   // Save current window settings as defaults
-  store.saveModuleDefaults(props.window.id)
+  store.saveWindowAsModuleDefaults(props.window.id)
   showSaveDefaultsModal.value = false
   store.closeWindow(props.window.id)
 }
@@ -524,7 +525,7 @@ const colorOptions = [
             @click.stop="toggleSettingsDropdown"
             title="Layout Settings"
           >
-            <Settings :size="14" />
+            <Settings :size="ICON_SIZE.SMALL" />
           </button>
         </div>
         <!-- Teleport settings dropdown to body -->
@@ -537,7 +538,7 @@ const colorOptions = [
               @click.stop
             >
               <button class="dropdown-item" @click="toggleEditMode">
-                <Edit :size="14" />
+                <Edit :size="ICON_SIZE.SMALL" />
                 <span>Edit Layout</span>
                 <span v-if="floatingWindowEditMode" class="checkmark">✓</span>
               </button>

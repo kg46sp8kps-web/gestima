@@ -61,7 +61,9 @@ async def create_batch_snapshot(
     part = batch.part
 
     # ADR-024: Get material data from first MaterialInput
-    material_input = part.material_inputs[0] if part.material_inputs else None
+    # CRITICAL: Filter out soft-deleted material_inputs (data integrity fix)
+    active_material_inputs = [mi for mi in part.material_inputs if not mi.deleted_at]
+    material_input = active_material_inputs[0] if active_material_inputs else None
     material_item = material_input.material_item if material_input and hasattr(material_input, 'material_item') else None
     material_group = material_item.group if material_item and hasattr(material_item, 'group') else None
 

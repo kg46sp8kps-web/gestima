@@ -5,6 +5,7 @@ import { usePartnersStore } from '@/stores/partners'
 import { useWindowsStore } from '@/stores/windows'
 import type { Quote, QuoteStatus, QuoteCreate } from '@/types/quote'
 import { Plus, ClipboardList, FileEdit, Send, CheckCircle, XCircle, Sparkles } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import type { Component } from 'vue'
 
 interface Props {
@@ -149,13 +150,12 @@ function formatCurrency(value: number): string {
     <!-- Header -->
     <div class="list-header">
       <h3>Nabídky</h3>
-      <div class="header-buttons">
-        <button @click="handleCreateFromRequest" class="btn-create btn-ai" title="Z poptávky (AI)">
-          <Sparkles :size="14" :stroke-width="2" />
+      <div class="icon-toolbar">
+        <button @click="handleCreateFromRequest" class="icon-btn icon-btn-sm" title="Z poptávky (AI)">
+          <Sparkles :size="ICON_SIZE.STANDARD" />
         </button>
-        <button @click="handleCreate" class="btn-create">
-          <Plus :size="14" :stroke-width="2" />
-          Nová
+        <button @click="handleCreate" class="icon-btn icon-btn-sm" title="Nová nabídka">
+          <Plus :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </div>
@@ -237,7 +237,7 @@ function formatCurrency(value: number): string {
             class="status-badge"
             :class="`status-${getStatusBadge(quote.status).color}`"
           >
-            <component :is="getStatusBadge(quote.status).icon" :size="14" :stroke-width="2" />
+            <component :is="getStatusBadge(quote.status).icon" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
           </span>
         </div>
         <span class="quote-title">{{ quote.title }}</span>
@@ -378,41 +378,6 @@ function formatCurrency(value: number): string {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-}
-
-.header-buttons {
-  display: flex;
-  gap: var(--space-1);
-}
-
-.btn-create {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--palette-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-create:hover {
-  background: var(--palette-primary-hover);
-}
-
-.btn-ai {
-  padding: var(--space-1);
-  background: var(--palette-neutral-700);
-  color: var(--palette-accent-red);
-}
-
-.btn-ai:hover {
-  background: var(--palette-neutral-600);
-  color: var(--palette-accent-red);
 }
 
 .filter-tabs {

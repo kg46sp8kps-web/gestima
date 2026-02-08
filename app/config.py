@@ -51,6 +51,26 @@ class Settings(BaseSettings):
     # AI Services
     ANTHROPIC_API_KEY: str = ""  # Anthropic API key for quote request parsing (Claude Sonnet 4.5)
     AI_RATE_LIMIT: str = "10/hour"  # AI parsing rate limit (cost control)
+    FR_PIPELINE_MODE: str = "auto"  # Feature Recognition pipeline: "hybrid" | "deterministic" | "step_deterministic" | "auto"
+    ENABLE_OCCT_PARSER: bool = True  # Use OCCT-based STEP parser (fallback to regex if unavailable)
+
+    @field_validator('ANTHROPIC_API_KEY', mode='before')
+    @classmethod
+    def resolve_anthropic_key(cls, v: str) -> str:
+        """Fallback to .env value if system env is empty string."""
+        if not v:
+            from dotenv import dotenv_values
+            vals = dotenv_values('.env')
+            return vals.get('ANTHROPIC_API_KEY', '')
+        return v
+
+    # Infor CloudSuite Industrial Integration
+    INFOR_API_URL: str = ""  # Infor API base URL (e.g., https://util90110.kovorybka.cz)
+    INFOR_CONFIG: str = "TEST"  # Infor configuration name (CRITICAL: NEVER use "LIVE"!)
+    INFOR_USERNAME: str = ""  # Infor API username
+    INFOR_PASSWORD: str = ""  # Infor API password
+    INFOR_SYNC_ENABLED: bool = False  # Enable automatic sync
+    INFOR_SYNC_INTERVAL: int = 30  # Sync interval in minutes
 
     # Rate limiting
     RATE_LIMIT_ENABLED: bool = True

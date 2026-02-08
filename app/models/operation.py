@@ -105,6 +105,7 @@ class OperationResponse(OperationBase):
 
     id: int
     part_id: int
+    feature_recognition_id: Optional[int] = None
     setup_time_locked: bool
     operation_time_locked: bool
     version: int

@@ -8,8 +8,9 @@
  * - MaterialGroupsPanel: Material groups CRUD
  * - PriceCategoriesPanel: Price categories with tiers
  * - WorkCentersPanel: Work centers CRUD
+ * - VisionDebugModule: PDF annotation refinement
  *
- * Refactored from 2149 LOC to <150 LOC (L-036 compliant)
+ * Refactored from 2149 LOC to <200 LOC (L-036 compliant)
  */
 
 import { ref } from 'vue'
@@ -18,17 +19,19 @@ import MaterialNormsPanel from './admin/MaterialNormsPanel.vue'
 import MaterialGroupsPanel from './admin/MaterialGroupsPanel.vue'
 import PriceCategoriesPanel from './admin/PriceCategoriesPanel.vue'
 import WorkCentersPanel from './admin/WorkCentersPanel.vue'
-import { Cloud, ClipboardList, Tag, DollarSign, Factory } from 'lucide-vue-next'
+import VisionDebugModule from './admin/VisionDebugModule.vue'
+import MachiningTimeEstimationModule from './estimation/MachiningTimeEstimationModule.vue'
+import { Cloud, ClipboardList, Tag, DollarSign, Factory, Eye, Clock } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 // Main tabs
-type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters'
+type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'vision' | 'machining-time'
 const activeMainTab = ref<MainTab>('infor')
 
 // Connection status from Infor panel
 const isConnected = ref(false)
 
-function handleConnectionChange(status: any) {
+function handleConnectionChange(status: Record<string, unknown>) {
   isConnected.value = status?.connected === true
 }
 </script>
@@ -59,6 +62,14 @@ function handleConnectionChange(status: any) {
         <Factory :size="ICON_SIZE.STANDARD" />
         <span>Pracoviste</span>
       </button>
+      <button @click="activeMainTab = 'vision'" :class="['main-tab', { active: activeMainTab === 'vision' }]">
+        <Eye :size="ICON_SIZE.STANDARD" />
+        <span>Vision Debug</span>
+      </button>
+      <button @click="activeMainTab = 'machining-time'" :class="['main-tab', { active: activeMainTab === 'machining-time' }]">
+        <Clock :size="ICON_SIZE.STANDARD" />
+        <span>Strojní časy</span>
+      </button>
     </div>
 
     <!-- TAB CONTENT -->
@@ -72,6 +83,8 @@ function handleConnectionChange(status: any) {
       <MaterialGroupsPanel v-else-if="activeMainTab === 'groups'" />
       <PriceCategoriesPanel v-else-if="activeMainTab === 'categories'" />
       <WorkCentersPanel v-else-if="activeMainTab === 'workcenters'" />
+      <VisionDebugModule v-else-if="activeMainTab === 'vision'" />
+      <MachiningTimeEstimationModule v-else-if="activeMainTab === 'machining-time'" />
     </div>
   </div>
 </template>

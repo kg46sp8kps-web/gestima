@@ -5,6 +5,7 @@ import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Column } from '@/components/ui/DataTable.vue'
 import { Plus, Package } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 import DataTable from '@/components/ui/DataTable.vue'
 import ColumnChooser from '@/components/ui/ColumnChooser.vue'
@@ -157,8 +158,8 @@ defineExpose({
           storageKey="partListColumns"
           @update:columns="handleColumnsUpdate"
         />
-        <button @click="handleCreate" class="btn-create" title="Vytvořit nový díl">
-          <Plus :size="16" :stroke-width="2" />
+        <button @click="handleCreate" class="icon-btn icon-btn-primary" title="Vytvořit nový díl">
+          <Plus :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </div>
@@ -252,33 +253,6 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.btn-create {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  flex-shrink: 0;
-}
-
-.btn-create:hover {
-  background: var(--bg-surface);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  transform: scale(1.05);
-}
-
-.btn-create:active {
-  transform: scale(0.95);
 }
 
 .filters-row {

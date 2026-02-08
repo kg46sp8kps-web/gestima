@@ -14,6 +14,7 @@
 
 import { computed } from 'vue'
 import { Package, FileCheck, FileX } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import type { Part } from '@/types/part'
 
 interface Props {
@@ -50,8 +51,8 @@ const hasDrawing = computed(() => !!item.value?.drawing_path)
       <div class="info-field">
         <span class="label">Drawing:</span>
         <span class="value">
-          <FileCheck v-if="hasDrawing" :size="16" class="icon-success" />
-          <FileX v-else :size="16" class="icon-muted" />
+          <FileCheck v-if="hasDrawing" :size="ICON_SIZE.SMALL" class="icon-success" />
+          <FileX v-else :size="ICON_SIZE.SMALL" class="icon-muted" />
           {{ hasDrawing ? 'Loaded' : 'No drawing' }}
         </span>
       </div>

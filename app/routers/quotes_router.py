@@ -500,6 +500,30 @@ async def parse_quote_request_pdf(
                 f"{len(extraction.items)} items"
             )
 
+        # CRITICAL: Deduplicate items by (article_number, quantity)
+        # AI parser sometimes extracts same item multiple times
+        seen_items = {}  # (article_number, quantity) -> ItemExtraction
+        deduplicated_items = []
+
+        for item in extraction.items:
+            key = (item.article_number.strip().lower(), item.quantity)
+            if key not in seen_items:
+                seen_items[key] = item
+                deduplicated_items.append(item)
+            else:
+                logger.warning(
+                    f"Skipping duplicate item: article_number={item.article_number}, "
+                    f"quantity={item.quantity}"
+                )
+
+        if len(deduplicated_items) < len(extraction.items):
+            logger.warning(
+                f"Deduplication: {len(extraction.items)} items → "
+                f"{len(deduplicated_items)} items "
+                f"({len(extraction.items) - len(deduplicated_items)} duplicates removed)"
+            )
+            extraction.items = deduplicated_items
+
         # Match customer (Partner)
         customer_match = await _match_customer(extraction.customer, db)
 
@@ -508,6 +532,7 @@ async def parse_quote_request_pdf(
         for item in extraction.items:
             part_match = await QuoteService.match_item(
                 article_number=item.article_number,
+                drawing_number=item.drawing_number,
                 name=item.name,
                 quantity=item.quantity,
                 notes=item.notes,
@@ -817,8 +842,31 @@ async def create_quote_from_request(
 
     logger.info(f"Created quote: {quote_number} for partner_id={partner_id}")
 
-    # 4. Create QuoteItems
+    # CRITICAL: Deduplicate items by (article_number, quantity) before creating QuoteItems
+    # Defense against duplicate items from frontend
+    seen_quote_items = {}  # (article_number, quantity) -> item
+    deduplicated_quote_items = []
+
     for item in data.items:
+        key = (item.article_number.strip().lower(), item.quantity)
+        if key not in seen_quote_items:
+            seen_quote_items[key] = item
+            deduplicated_quote_items.append(item)
+        else:
+            logger.warning(
+                f"Skipping duplicate quote item: article_number={item.article_number}, "
+                f"quantity={item.quantity}, part_id={item.part_id}"
+            )
+
+    if len(deduplicated_quote_items) < len(data.items):
+        logger.warning(
+            f"Quote item deduplication: {len(data.items)} items → "
+            f"{len(deduplicated_quote_items)} items "
+            f"({len(data.items) - len(deduplicated_quote_items)} duplicates removed)"
+        )
+
+    # 4. Create QuoteItems
+    for item in deduplicated_quote_items:
         # Get unit price from matched batch
         unit_price = 0.0
         if item.part_id:
@@ -848,12 +896,14 @@ async def create_quote_from_request(
 
         part_number = part.part_number if part else None
         part_name = part.name if part else item.name
+        drawing_number = part.drawing_number if part else item.drawing_number
 
         new_item = QuoteItem(
             quote_id=new_quote.id,
             part_id=item.part_id,
             part_number=part_number,
             part_name=part_name,
+            drawing_number=drawing_number,
             quantity=item.quantity,
             unit_price=unit_price,
             line_total=item.quantity * unit_price,
@@ -873,7 +923,8 @@ async def create_quote_from_request(
 
     logger.info(
         f"Created quote from request: {quote_number}, "
-        f"{len(data.items)} items, total={new_quote.total}"
+        f"{len(deduplicated_quote_items)} items (from {len(data.items)} input items), "
+        f"total={new_quote.total}"
     )
 
     return QuoteResponse.model_validate(new_quote)

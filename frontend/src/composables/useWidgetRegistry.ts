@@ -87,7 +87,7 @@ export function useWidgetRegistry(): UseWidgetRegistryReturn {
   }
 
   return {
-    widgets: readonly(registeredWidgets),
+    widgets: readonly(registeredWidgets) as Readonly<ReturnType<typeof ref<Map<string, WidgetDefinition>>>>,
     registerWidget,
     unregisterWidget,
     getWidget,

@@ -26,18 +26,18 @@
             <template #actions="{ row }">
               <div class="row-actions">
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Partner)"
                 >
-                  <Edit :size="15" />
+                  <Edit :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon btn-danger"
+                  class="icon-btn icon-btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Partner)"
                 >
-                  <Trash2 :size="15" />
+                  <Trash2 :size="ICON_SIZE.STANDARD" />
                 </button>
               </div>
             </template>
@@ -59,18 +59,18 @@
             <template #actions="{ row }">
               <div class="row-actions">
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Partner)"
                 >
-                  <Edit :size="15" />
+                  <Edit :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon btn-danger"
+                  class="icon-btn icon-btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Partner)"
                 >
-                  <Trash2 :size="15" />
+                  <Trash2 :size="ICON_SIZE.STANDARD" />
                 </button>
               </div>
             </template>
@@ -89,6 +89,7 @@ import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Partner } from '@/types/partner'
 import { Users, Factory, Edit, Trash2 } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
 
 const router = useRouter()
@@ -201,25 +202,6 @@ onMounted(() => {
   display: flex;
   gap: var(--space-2);
   justify-content: flex-end;
-}
-
-.btn-icon {
-  padding: var(--space-1) var(--space-2);
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
-  font-size: var(--text-base);
-}
-
-.btn-icon:hover {
-  background: var(--state-hover);
-}
-
-.btn-icon.btn-danger:hover {
-  background: var(--status-error-bg);
-  color: var(--status-error);
 }
 
 /* === BUTTONS === */

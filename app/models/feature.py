@@ -40,9 +40,12 @@ class Feature(Base, AuditMixin):
     
     blade_width = Column(Float, default=3.0)
     count = Column(Integer, default=1)
-    
+
     predicted_time_sec = Column(Float, default=0.0)
-    
+
+    tool_number = Column(Integer, nullable=True)
+    tool_name = Column(String(100), nullable=True)
+
     note = Column(String(200), default="")
     
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
@@ -69,6 +72,8 @@ class FeatureBase(BaseModel):
     fz: Optional[float] = Field(None, gt=0, description="Posuv na zub mm")
     blade_width: float = Field(3.0, gt=0, description="Šířka břitu v mm")
     count: int = Field(1, ge=1, description="Počet opakování")
+    tool_number: Optional[int] = Field(None, ge=1, description="Číslo nástroje (T01, T02...)")
+    tool_name: Optional[str] = Field(None, max_length=100, description="Název nástroje")
     note: str = Field("", max_length=200, description="Poznámka")
 
 
@@ -97,6 +102,8 @@ class FeatureUpdate(BaseModel):
     Ap_locked: Optional[bool] = None
     blade_width: Optional[float] = Field(None, gt=0)
     count: Optional[int] = Field(None, ge=1)
+    tool_number: Optional[int] = Field(None, ge=1)
+    tool_name: Optional[str] = Field(None, max_length=100)
     note: Optional[str] = Field(None, max_length=200)
     version: int  # Optimistic locking (ADR-008)
 

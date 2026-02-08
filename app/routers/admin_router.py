@@ -4,12 +4,16 @@ UPDATED: 2026-01-31
 Jinja2 templates archived in: archive/legacy-alpinejs-v1.6.1/
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models import (
@@ -41,14 +45,18 @@ async def api_get_material_groups(
     """
     API: Get all MaterialGroups (for dropdown in forms).
     """
-    from app.models.material import MaterialGroupResponse
-    result = await db.execute(
-        select(MaterialGroup)
-        .where(MaterialGroup.deleted_at.is_(None))
-        .order_by(MaterialGroup.name)
-    )
-    groups = result.scalars().all()
-    return [MaterialGroupResponse.model_validate(g) for g in groups]
+    try:
+        from app.models.material import MaterialGroupResponse
+        result = await db.execute(
+            select(MaterialGroup)
+            .where(MaterialGroup.deleted_at.is_(None))
+            .order_by(MaterialGroup.name)
+        )
+        groups = result.scalars().all()
+        return [MaterialGroupResponse.model_validate(g) for g in groups]
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching material groups: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání skupin materiálu")
 
 
 @router.get("/api/material-norms", response_model=List[Dict[str, Any]])
@@ -59,35 +67,39 @@ async def api_list_material_norms(
     """
     API: List all material norms with material_group eagerly loaded.
     """
-    result = await db.execute(
-        select(MaterialNorm)
-        .options(selectinload(MaterialNorm.material_group))
-        .where(MaterialNorm.deleted_at.is_(None))
-        .order_by(MaterialNorm.id)
-    )
-    norms = result.scalars().all()
+    try:
+        result = await db.execute(
+            select(MaterialNorm)
+            .options(selectinload(MaterialNorm.material_group))
+            .where(MaterialNorm.deleted_at.is_(None))
+            .order_by(MaterialNorm.id)
+        )
+        norms = result.scalars().all()
 
-    return [
-        {
-            "id": norm.id,
-            "w_nr": norm.w_nr,
-            "en_iso": norm.en_iso,
-            "csn": norm.csn,
-            "aisi": norm.aisi,
-            "material_group_id": norm.material_group_id,
-            "material_group": {
-                "id": norm.material_group.id,
-                "code": norm.material_group.code,
-                "name": norm.material_group.name,
-                "density": float(norm.material_group.density)
-            } if norm.material_group else None,
-            "note": norm.note,
-            "version": norm.version,
-            "created_at": norm.created_at.isoformat(),
-            "updated_at": norm.updated_at.isoformat()
-        }
-        for norm in norms
-    ]
+        return [
+            {
+                "id": norm.id,
+                "w_nr": norm.w_nr,
+                "en_iso": norm.en_iso,
+                "csn": norm.csn,
+                "aisi": norm.aisi,
+                "material_group_id": norm.material_group_id,
+                "material_group": {
+                    "id": norm.material_group.id,
+                    "code": norm.material_group.code,
+                    "name": norm.material_group.name,
+                    "density": float(norm.material_group.density)
+                } if norm.material_group else None,
+                "note": norm.note,
+                "version": norm.version,
+                "created_at": norm.created_at.isoformat(),
+                "updated_at": norm.updated_at.isoformat()
+            }
+            for norm in norms
+        ]
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching material norms: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání norem materiálu")
 
 
 @router.get("/api/material-norms/search")
@@ -106,8 +118,12 @@ async def api_search_material_norms(
         GET /api/material-norms/search?q=1.4301
         → [{"code": "1.4301", "standard": "EN", ...}, ...]
     """
-    norms = await search_norms(db, q, limit)
-    return [MaterialNormResponse.model_validate(n) for n in norms]
+    try:
+        norms = await search_norms(db, q, limit)
+        return [MaterialNormResponse.model_validate(n) for n in norms]
+    except SQLAlchemyError as e:
+        logger.error(f"Database error searching material norms: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při vyhledávání norem")
 
 
 @router.post("/api/material-norms")

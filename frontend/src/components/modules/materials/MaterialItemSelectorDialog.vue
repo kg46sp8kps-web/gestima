@@ -6,8 +6,9 @@
  * Quick selector with search and filters.
  */
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { X, Search, Package } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import type { MaterialItem, MaterialGroup, StockShape } from '@/types/material'
 import { getMaterialItems, getMaterialGroups } from '@/api/materials'
 
@@ -84,9 +85,29 @@ function handleClose() {
   emit('close')
 }
 
+// Keyboard handler
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!props.visible) return
+  if (e.key === 'Escape') {
+    handleClose()
+  }
+}
+
 // Lifecycle
 onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
   if (props.visible) {
+    loadData()
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+// Watch for visibility changes to load data
+watch(() => props.visible, (visible) => {
+  if (visible) {
     loadData()
   }
 })
@@ -99,14 +120,14 @@ onMounted(() => {
       <div class="dialog-header">
         <h2 class="dialog-title">Vybrat z katalogu</h2>
         <button class="close-btn" @click="handleClose">
-          <X :size="20" />
+          <X :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
 
       <!-- Search & Filters -->
       <div class="dialog-filters">
         <div class="search-box">
-          <Search :size="16" class="search-icon" />
+          <Search :size="ICON_SIZE.SMALL" class="search-icon" />
           <input
             v-model="searchQuery"
             type="text"
@@ -167,8 +188,8 @@ onMounted(() => {
 
       <!-- Footer -->
       <div class="dialog-footer">
-        <button class="btn btn-secondary" @click="handleClose">
-          Zrušit
+        <button class="icon-btn icon-btn-cancel" @click="handleClose" title="Zavrit (Escape)">
+          <X :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </div>
@@ -370,24 +391,37 @@ onMounted(() => {
   border-top: 1px solid var(--border-default);
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-2);
 }
 
-.btn {
-  padding: var(--space-2) var(--space-4);
+/* === ICON BUTTONS === */
+.icon-btn {
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
+  background: transparent;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
   transition: all 0.15s;
 }
 
-.btn-secondary {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+.icon-btn:hover {
+  background: var(--bg-hover);
 }
 
-.btn-secondary:hover {
-  background: var(--bg-secondary);
+.icon-btn:focus-visible {
+  outline: 2px solid var(--state-focus-border);
+  outline-offset: 2px;
+}
+
+.icon-btn-cancel {
+  color: var(--text-secondary);
+}
+
+.icon-btn-cancel:hover {
+  background: rgba(148, 163, 184, 0.1);
 }
 </style>

@@ -1,0 +1,44 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .axis { stroke: #ccc; stroke-width: 1; stroke-dasharray: 5,5; }
+        .outer { fill: none; stroke: red; stroke-width: 2; }
+        .inner { fill: none; stroke: blue; stroke-width: 2; }
+        .dimension { fill: #333; font-size: 12px; font-family: monospace; }
+        .label { fill: #666; font-size: 10px; font-family: monospace; }
+    </style>
+
+    <!-- Centerline (Z-axis) -->
+    <line class="axis" x1="50" y1="200" x2="550" y2="200" />
+
+    <!-- Outer contour (profile) -->
+    <rect class="outer"
+          x="50"
+          y="100.0"
+          width="400.0"
+          height="200.0" />
+
+    <!-- Inner contour (bore) if exists -->
+    <rect class="inner" x="50" y="190" width="320.0" height="20" />
+
+    <!-- Dimensions -->
+    <text class="dimension" x="250.0" y="90.0" text-anchor="middle">
+        Ø12 mm
+    </text>
+
+    <text class="dimension" x="250.0" y="380" text-anchor="middle">
+        L = 49 mm
+    </text>
+
+    <!-- Labels -->
+    <text class="label" x="50" y="20">JR 810671.ipt.step</text>
+    <text class="label" x="50" y="35">Part: rotational</text>
+    <text class="label" x="50" y="50">Material: 1.4305 X8CrNiS18-9</text>
+    <text class="label" x="50" y="65">Contour: 10 outer + 4 inner pts</text>
+
+    <!-- Legend -->
+    <line class="outer" x1="450" y1="30" x2="500" y2="30" />
+    <text class="label" x="510" y="35">Outer contour</text>
+
+    <line class="inner" x1="450" y1="50" x2="500" y2="50" />
+    <text class="label" x="510" y="55">Inner bore</text>
+</svg>

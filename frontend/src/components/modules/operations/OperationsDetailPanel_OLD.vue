@@ -10,7 +10,8 @@ import { useOperationsStore } from '@/stores/operations'
 import type { Operation, CuttingMode } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
-import DeleteOperationModal from './DeleteOperationModal.vue'
+// DeleteOperationModal removed - using useDialog.confirm() pattern
+// import DeleteOperationModal from './DeleteOperationModal.vue'
 import { Settings, Trash2, Lock, Unlock, Wrench, RotateCw, Scissors, Gem } from 'lucide-vue-next'
 import type { Component } from 'vue'
 

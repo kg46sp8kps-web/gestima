@@ -250,9 +250,13 @@ export const useOperationsStore = defineStore('operations', () => {
     } catch (err: any) {
       console.error('[operations] Update error:', err)
 
-      // Handle version conflict
+      // Handle version conflict - auto-reload data
       if (err?.status === 409) {
-        ui.showToast('Konflikt verze - obnovte stránku', 'warning')
+        // Auto-reload operations to get fresh data
+        if (ctx.currentPartId) {
+          await loadOperations(ctx.currentPartId, linkingGroup)
+        }
+        ui.showToast('Data byla změněna. Načtena aktuální verze - zkuste změnu znovu.', 'warning')
       } else {
         ui.showToast('Chyba při ukládání', 'error')
       }

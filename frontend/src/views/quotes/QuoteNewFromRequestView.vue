@@ -41,7 +41,7 @@
 
       <!-- Info panel -->
       <div class="info-panel">
-        <h3><Info :size="20" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
+        <h3><Info :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
         <ul>
           <li>Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
           <li>Claude Vision AI extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
@@ -60,7 +60,7 @@
     <div v-if="review && !quotesStore.loading" class="review-section">
       <!-- Summary stats -->
       <div class="summary-panel">
-        <h2><BarChart3 :size="20" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
+        <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
         <div class="summary-grid">
           <div class="summary-item">
             <span class="summary-label">Celkem položek:</span>
@@ -87,7 +87,7 @@
 
       <!-- Customer section -->
       <div class="customer-section">
-        <h2><User :size="20" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
+        <h2><User :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
         <div class="customer-info">
           <div class="form-row">
             <div class="form-field">
@@ -120,7 +120,7 @@
             v-if="review.customer.partner_exists"
             class="match-result success"
           >
-            <CheckCircle2 :size="16" />
+            <CheckCircle2 :size="ICON_SIZE.SMALL" />
             <span
               >Nalezen existující zákazník:
               <strong>{{ review.customer.partner_number }}</strong> (shoda:
@@ -128,7 +128,7 @@
             >
           </div>
           <div v-else class="match-result info">
-            <AlertCircle :size="16" />
+            <AlertCircle :size="ICON_SIZE.SMALL" />
             <span>Zákazník bude vytvořen jako nový partner</span>
           </div>
         </div>
@@ -136,7 +136,7 @@
 
       <!-- Items table -->
       <div class="items-section">
-        <h2><Package :size="20" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
+        <h2><Package :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
         <div class="items-table-wrapper">
           <table class="items-table">
             <thead>
@@ -167,13 +167,13 @@
                     v-if="item.batch_match"
                     :class="['batch-badge', `batch-${item.batch_match.status}`]"
                   >
-                    <CheckCircle2 v-if="item.batch_match.status === 'exact'" :size="15" />
-                    <AlertTriangle v-else-if="item.batch_match.status === 'lower'" :size="15" />
-                    <XCircle v-else :size="15" />
+                    <CheckCircle2 v-if="item.batch_match.status === 'exact'" :size="ICON_SIZE.SMALL" />
+                    <AlertTriangle v-else-if="item.batch_match.status === 'lower'" :size="ICON_SIZE.SMALL" />
+                    <XCircle v-else :size="ICON_SIZE.SMALL" />
                     {{ item.batch_match.batch_quantity }} ks
                   </span>
                   <span v-else class="batch-badge batch-missing">
-                    <XCircle :size="15" />
+                    <XCircle :size="ICON_SIZE.SMALL" />
                     Chybí
                   </span>
                 </td>
@@ -213,17 +213,17 @@
           <h4>Legenda dávek:</h4>
           <div class="legend-items">
             <div class="legend-item">
-              <CheckCircle2 :size="15" class="exact" />
+              <CheckCircle2 :size="ICON_SIZE.SMALL" class="exact" />
               <span><strong>Exact:</strong> Přesná shoda (ideální)</span>
             </div>
             <div class="legend-item">
-              <AlertTriangle :size="15" class="lower" />
+              <AlertTriangle :size="ICON_SIZE.SMALL" class="lower" />
               <span
                 ><strong>Lower:</strong> Nižší dávka (vyšší cena/ks, bezpečnější odhad)</span
               >
             </div>
             <div class="legend-item">
-              <XCircle :size="15" class="missing" />
+              <XCircle :size="ICON_SIZE.SMALL" class="missing" />
               <span><strong>Missing:</strong> Chybí kalkulace (nutno doplnit později)</span>
             </div>
           </div>
@@ -232,7 +232,7 @@
 
       <!-- Quote metadata -->
       <div class="metadata-section">
-        <h2><FileText :size="20" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
+        <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
         <div class="form-row">
           <div class="form-field">
             <label>Název nabídky *</label>
@@ -273,7 +273,7 @@
       <!-- Actions -->
       <div class="actions-section">
         <button class="btn" @click="handleBack">
-          <ArrowLeft :size="16" />
+          <ArrowLeft :size="ICON_SIZE.SMALL" />
           Nahrát jiné PDF
         </button>
         <button
@@ -281,7 +281,7 @@
           :disabled="!isFormValid || quotesStore.loading"
           @click="handleConfirm"
         >
-          <Check :size="16" />
+          <Check :size="ICON_SIZE.SMALL" />
           Vytvořit nabídku
         </button>
       </div>
@@ -316,6 +316,7 @@ import {
 } from 'lucide-vue-next'
 import type { QuoteRequestReview, QuoteFromRequestCreate } from '@/types/quote'
 import { alert } from '@/composables/useDialog'
+import { ICON_SIZE } from '@/config/design'
 
 // Stores
 const quotesStore = useQuotesStore()

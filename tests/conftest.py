@@ -10,6 +10,11 @@ from app.models.material import MaterialGroup, MaterialItem
 from app.models.config import SystemConfig
 from app.models import User
 from app.models.enums import StockShape, UserRole
+
+# Disable rate limiting for tests BEFORE importing app
+from app.config import settings
+settings.RATE_LIMIT_ENABLED = False
+
 from app.gestima_app import app
 from passlib.context import CryptContext
 

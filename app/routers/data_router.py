@@ -1,13 +1,15 @@
 """GESTIMA - Reference data API router"""
 
+import logging
 import math
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from pydantic import BaseModel, Field
 from app.services.reference_loader import get_work_centers, get_material_groups, get_feature_types, get_material_properties
 from app.dependencies import get_current_user
 from app.models import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -59,7 +61,11 @@ async def list_work_centers(
     current_user: User = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """Seznam pracovišť (vyžaduje přihlášení)"""
-    return await get_work_centers()
+    try:
+        return await get_work_centers()
+    except Exception as e:
+        logger.error(f"Error fetching work centers: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při načítání pracovišť")
 
 
 @router.get("/materials", response_model=List[MaterialRefResponse])
@@ -67,7 +73,11 @@ async def list_materials(
     current_user: User = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """Seznam materiálů (vyžaduje přihlášení)"""
-    return await get_material_groups()
+    try:
+        return await get_material_groups()
+    except Exception as e:
+        logger.error(f"Error fetching materials: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při načítání materiálů")
 
 
 @router.get("/feature-types", response_model=List[FeatureTypeResponse])
@@ -75,7 +85,11 @@ async def list_feature_types(
     current_user: User = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """Seznam typů operací (vyžaduje přihlášení)"""
-    return get_feature_types()
+    try:
+        return get_feature_types()
+    except Exception as e:
+        logger.error(f"Error fetching feature types: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při načítání typů operací")
 
 
 class StockPriceResponse(BaseModel):
@@ -106,37 +120,41 @@ async def calculate_stock_price(
     Příklad:
     GET /api/data/stock-price?stock_type=tyc&material_group=nerez_austeniticka&stock_diameter=50&stock_length=100
     """
-    # Get material properties (density, fallback price)
-    props = await get_material_properties(material_group)
-    density = props["density"]
-    price_per_kg = props["price_per_kg"]
+    try:
+        # Get material properties (density, fallback price)
+        props = await get_material_properties(material_group)
+        density = props["density"]
+        price_per_kg = props["price_per_kg"]
 
-    # Calculate volume based on stock type
-    volume_mm3 = 0.0
+        # Calculate volume based on stock type
+        volume_mm3 = 0.0
 
-    if stock_type in ["tyc", "odlitek"]:
-        if stock_diameter > 0 and stock_length > 0:
-            r = stock_diameter / 2
-            volume_mm3 = math.pi * r**2 * stock_length
+        if stock_type in ["tyc", "odlitek"]:
+            if stock_diameter > 0 and stock_length > 0:
+                r = stock_diameter / 2
+                volume_mm3 = math.pi * r**2 * stock_length
 
-    elif stock_type == "trubka":
-        if stock_diameter > 0 and stock_length > 0:
-            r_outer = stock_diameter / 2
-            r_inner = stock_diameter_inner / 2 if stock_diameter_inner > 0 else 0
-            volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
+        elif stock_type == "trubka":
+            if stock_diameter > 0 and stock_length > 0:
+                r_outer = stock_diameter / 2
+                r_inner = stock_diameter_inner / 2 if stock_diameter_inner > 0 else 0
+                volume_mm3 = math.pi * (r_outer**2 - r_inner**2) * stock_length
 
-    elif stock_type in ["prizez", "plech"]:
-        if stock_length > 0 and stock_width > 0 and stock_height > 0:
-            volume_mm3 = stock_length * stock_width * stock_height
+        elif stock_type in ["prizez", "plech"]:
+            if stock_length > 0 and stock_width > 0 and stock_height > 0:
+                volume_mm3 = stock_length * stock_width * stock_height
 
-    # Calculate weight and cost
-    volume_dm3 = volume_mm3 / 1_000_000
-    weight_kg = volume_dm3 * density
-    cost = weight_kg * price_per_kg
+        # Calculate weight and cost
+        volume_dm3 = volume_mm3 / 1_000_000
+        weight_kg = volume_dm3 * density
+        cost = weight_kg * price_per_kg
 
-    return StockPriceResponse(
-        volume_mm3=round(volume_mm3, 0),
-        weight_kg=round(weight_kg, 3),
-        price_per_kg=price_per_kg,
-        cost=round(cost, 2),
-    )
+        return StockPriceResponse(
+            volume_mm3=round(volume_mm3, 0),
+            weight_kg=round(weight_kg, 3),
+            price_per_kg=price_per_kg,
+            cost=round(cost, 2),
+        )
+    except Exception as e:
+        logger.error(f"Error calculating stock price: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při výpočtu ceny polotovaru")

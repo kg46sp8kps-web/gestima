@@ -10,6 +10,7 @@ import { usePartsStore } from '@/stores/parts'
 import type { QuoteWithItems, QuoteUpdate, QuoteItemCreate } from '@/types/quote'
 import FormTabs from '@/components/ui/FormTabs.vue'
 import { FileText, Edit, Trash2, Save, Lock, Info, Plus, X } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
 
 interface Props {
@@ -184,18 +185,18 @@ partsStore.fetchParts()
       <div class="panel-actions">
         <button
           v-if="!isEditing && canEdit"
-          class="btn-icon-action"
+          class="icon-btn"
           @click="startEdit"
           title="Upravit"
         >
-          <Edit :size="15" />
+          <Edit :size="ICON_SIZE.STANDARD" />
         </button>
         <template v-else-if="isEditing">
-          <button class="btn-icon-action" @click="cancelEdit" title="Zrušit">
-            <X :size="15" />
+          <button class="icon-btn" @click="cancelEdit" title="Zrušit">
+            <X :size="ICON_SIZE.STANDARD" />
           </button>
-          <button class="btn-icon-action btn-icon-primary" @click="saveQuote" :disabled="saving" :title="saving ? 'Ukládám...' : 'Uložit'">
-            <Save :size="15" />
+          <button class="icon-btn icon-btn-primary" @click="saveQuote" :disabled="saving" :title="saving ? 'Ukládám...' : 'Uložit'">
+            <Save :size="ICON_SIZE.STANDARD" />
           </button>
         </template>
       </div>
@@ -297,7 +298,7 @@ partsStore.fetchParts()
             </div>
 
             <div v-if="!canEdit" class="edit-lock-notice">
-              <Lock :size="16" class="lock-icon" />
+              <Lock :size="ICON_SIZE.SMALL" class="lock-icon" />
               <span>Nabídku lze editovat pouze ve stavu "Koncept"</span>
             </div>
           </form>
@@ -308,8 +309,8 @@ partsStore.fetchParts()
           <div class="items-panel">
             <!-- Add Item Button -->
             <div v-if="canEdit" class="items-actions">
-              <button class="btn-icon-action btn-icon-primary" @click="openAddItemForm" title="Přidat položku">
-                <Plus :size="15" />
+              <button class="icon-btn icon-btn-primary" @click="openAddItemForm" title="Přidat položku">
+                <Plus :size="ICON_SIZE.STANDARD" />
               </button>
             </div>
 
@@ -338,10 +339,10 @@ partsStore.fetchParts()
                     <td v-if="canEdit">
                       <button
                         @click="deleteItem(item.id)"
-                        class="btn-icon btn-danger"
+                        class="icon-btn icon-btn-danger"
                         :disabled="saving"
                       >
-                        <Trash2 :size="16" />
+                        <Trash2 :size="ICON_SIZE.STANDARD" />
                       </button>
                     </td>
                   </tr>
@@ -355,7 +356,7 @@ partsStore.fetchParts()
             </div>
 
             <div v-if="!canEdit" class="edit-lock-notice">
-              <Lock :size="16" class="lock-icon" />
+              <Lock :size="ICON_SIZE.SMALL" class="lock-icon" />
               <span>Položky lze editovat pouze ve stavu "Koncept"</span>
             </div>
           </div>
@@ -436,7 +437,7 @@ partsStore.fetchParts()
             </div>
 
             <div class="info-notice">
-              <Info :size="16" class="info-icon" />
+              <Info :size="ICON_SIZE.SMALL" class="info-icon" />
               <span>Cena se automaticky načte z nejnovější zmrazené kalkulace dílu.</span>
             </div>
 
@@ -513,40 +514,6 @@ partsStore.fetchParts()
   gap: var(--space-3);
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-color);
-}
-
-.btn-icon-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.btn-icon-action:hover:not(:disabled) {
-  color: var(--color-primary);
-  transform: scale(1.15);
-}
-
-.btn-icon-action.btn-icon-primary {
-  color: var(--color-primary);
-}
-
-.btn-icon-action.btn-icon-primary:hover:not(:disabled) {
-  color: var(--color-primary-hover);
-  transform: scale(1.15);
-}
-
-.btn-icon-action:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
 }
 
 /* Forms */
@@ -794,37 +761,6 @@ partsStore.fetchParts()
   background: var(--state-hover);
   border-color: var(--border-strong);
   transform: translateY(-1px);
-}
-
-.btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  color: var(--text-tertiary);
-  transition: all var(--duration-fast);
-}
-
-.btn-icon:hover:not(:disabled) {
-  background: var(--state-hover);
-  color: var(--text-primary);
-  transform: scale(1.1);
-}
-
-.btn-icon.btn-danger:hover:not(:disabled) {
-  color: var(--color-danger);
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.btn-icon:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
 }
 
 /* Modal */

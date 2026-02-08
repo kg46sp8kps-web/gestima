@@ -18,6 +18,7 @@ import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import { drawingsApi } from '@/api/drawings'
 import { FileText, AlertTriangle, Download } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   linkingGroup?: LinkingGroup
@@ -50,6 +51,7 @@ const contextStore = useWindowContextStore()
 
 // State
 const currentPart = ref<Part | null>(null)
+const drawingLoadError = ref(false)
 
 // Computed: Get partId from window context
 const contextPartId = computed(() => {
@@ -77,21 +79,41 @@ const drawingUrl = computed(() => {
 })
 
 // Check if drawing exists:
-// - If specific drawing ID from modal: assume it exists (show viewer)
+// - If specific drawing ID from modal: verify via HEAD request
 // - If primary drawing: check if part has drawing_path
 const hasDrawing = computed(() => {
   if (!currentPart.value) return false
-  // Specific drawing from modal - always show (let iframe handle 404)
+  if (drawingLoadError.value) return false
+  // Specific drawing from modal - check was verified
   if (drawingIdFromTitle.value) return true
   // Primary drawing - check if exists
   return !!currentPart.value.drawing_path
 })
+
+// Verify drawing file exists on server (HEAD request, no body download)
+async function verifyDrawingExists(url: string) {
+  if (!url) return
+  try {
+    const response = await fetch(url, { method: 'HEAD' })
+    if (!response.ok) {
+      drawingLoadError.value = true
+    }
+  } catch {
+    drawingLoadError.value = true
+  }
+}
 
 function handleDownload() {
   if (!drawingUrl.value) return
   // Open PDF in new tab (browser will show download dialog)
   window.open(drawingUrl.value, '_blank')
 }
+
+// Verify drawing exists when URL changes (catches orphan records, deleted files)
+watch(drawingUrl, (url) => {
+  drawingLoadError.value = false
+  if (url) verifyDrawingExists(url)
+}, { immediate: true })
 
 // Watch for updates to parts in store (e.g., after drawing upload)
 // This ensures currentPart is always in sync when partsStore refreshes
@@ -170,11 +192,18 @@ onMounted(async () => {
       <p class="empty-hint">Open from Part Main window</p>
     </div>
 
+    <!-- Drawing file missing on disk (orphan record) -->
+    <div v-else-if="drawingLoadError" class="empty-state">
+      <AlertTriangle :size="64" class="empty-icon error-icon" />
+      <p>Soubor výkresu chybí na disku</p>
+      <p class="empty-hint">Nahrajte výkres znovu přes Správu výkresů (pravý klik)</p>
+    </div>
+
     <!-- No drawing available -->
     <div v-else-if="!hasDrawing" class="empty-state">
       <AlertTriangle :size="64" class="empty-icon" />
-      <p>No drawing available</p>
-      <p class="empty-hint">Part: {{ currentPart.article_number || currentPart.part_number }}</p>
+      <p>Žádný výkres</p>
+      <p class="empty-hint">{{ currentPart.article_number || currentPart.part_number }}</p>
     </div>
 
     <!-- Drawing viewer -->
@@ -186,7 +215,7 @@ onMounted(async () => {
           <span class="drawing-label">{{ currentPart.drawing_path || 'Drawing' }}</span>
         </div>
         <button class="btn-download" @click="handleDownload" title="Download PDF">
-          <Download :size="16" />
+          <Download :size="ICON_SIZE.SMALL" />
           Download
         </button>
       </div>
@@ -292,6 +321,11 @@ onMounted(async () => {
 .empty-icon {
   opacity: 0.5;
   color: var(--text-secondary);
+}
+
+.error-icon {
+  color: #f43f5e;
+  opacity: 0.7;
 }
 
 .empty-state p {

@@ -262,6 +262,9 @@
   --font-semibold: 600;
   --font-bold: 700;
 
+  /* Icon size (Lucide) */
+  --icon-size: 15px; /* STANDARD for all icons */
+
   /* Line heights */
   --leading-tight: 1.25;
   --leading-normal: 1.4;
@@ -626,6 +629,104 @@ textarea::selection {
   cursor: not-allowed;
 }
 
+/* ==========================================================================
+   ICON SYSTEM
+   ========================================================================== */
+
+/* Icon Sizes */
+.icon-xs { width: 12px; height: 12px; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-md { width: 20px; height: 20px; }  /* Default/Standard */
+.icon-lg { width: 24px; height: 24px; }
+.icon-xl { width: 32px; height: 32px; }
+.icon-2xl { width: 48px; height: 48px; }
+
+/* Icon Colors */
+.icon-success { color: var(--color-success); }
+.icon-danger { color: var(--color-danger); }
+.icon-warning { color: var(--color-warning); }
+.icon-info { color: var(--color-info); }
+.icon-muted { color: var(--text-tertiary); }
+.icon-primary { color: var(--color-primary); }
+
+/* Icon Button Base */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-out);
+  color: var(--text-secondary);
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+.icon-btn:active:not(:disabled) {
+  background: var(--state-active);
+}
+.icon-btn:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icon Button Variants */
+.icon-btn-primary {
+  color: var(--color-primary);
+}
+.icon-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.icon-btn-success {
+  color: var(--color-success);
+}
+.icon-btn-success:hover:not(:disabled) {
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.icon-btn-danger {
+  color: var(--color-danger);
+}
+.icon-btn-danger:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.icon-btn-warning {
+  color: var(--color-warning);
+}
+.icon-btn-warning:hover:not(:disabled) {
+  background: rgba(217, 119, 6, 0.1);
+}
+
+/* Icon Button Sizes */
+.icon-btn-sm {
+  width: 24px;
+  height: 24px;
+}
+.icon-btn-lg {
+  width: 48px;
+  height: 48px;
+}
+
+/* Icon Toolbar (horizontal container for icon buttons) */
+.icon-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 /* ============================================================================
    HOW TO CHANGE PALETTE:
 
@@ -633,5 +734,5 @@ textarea::selection {
    2. In JS: document.documentElement.dataset.palette = 'blue'
    3. In CSS: Uncomment alternative palette above
 
-   Everything updates automatically! ✨
+   Everything updates automatically!
    ========================================================================== */

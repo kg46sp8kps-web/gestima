@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { X, Check } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
+import { ICON_SIZE } from '@/config/design'
 import type { Part } from '@/types/part'
 
 interface Props {
@@ -18,6 +19,9 @@ const emit = defineEmits<{
 
 const partsStore = usePartsStore()
 
+// Refs
+const confirmButtonRef = ref<HTMLButtonElement | null>(null)
+
 // Form data
 const articleNumber = ref('')
 const copyOperations = ref(true)
@@ -26,7 +30,7 @@ const copyBatches = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-// Reset form when modal opens
+// Reset form when modal opens + auto-focus
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     articleNumber.value = ''
@@ -34,7 +38,29 @@ watch(() => props.modelValue, (isOpen) => {
     copyMaterial.value = true
     copyBatches.value = false
     errorMessage.value = ''
+    // Auto-focus confirm button after modal opens
+    nextTick(() => {
+      confirmButtonRef.value?.focus()
+    })
   }
+})
+
+// Keyboard handler
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!props.modelValue) return
+  if (e.key === 'Escape') {
+    handleClose()
+  } else if (e.key === 'Enter' && !isLoading.value) {
+    handleConfirm()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 function handleClose() {
@@ -87,7 +113,7 @@ async function handleConfirm() {
       <div class="modal-header">
         <h3>Kopírovat díl {{ partNumber }}</h3>
         <button class="btn-close" @click="handleClose" title="Zavřít">
-          <X :size="20" />
+          <X :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
 
@@ -135,11 +161,11 @@ async function handleConfirm() {
       </div>
 
       <div class="modal-footer">
-        <button class="btn-icon btn-cancel" @click="handleClose" :disabled="isLoading" title="Zrušit">
-          <X :size="20" />
+        <button class="icon-btn icon-btn-danger" @click="handleClose" :disabled="isLoading" title="Zrušit (Escape)">
+          <X :size="ICON_SIZE.STANDARD" />
         </button>
-        <button class="btn-icon btn-confirm" @click="handleConfirm" :disabled="isLoading" title="Kopírovat díl">
-          <Check :size="20" />
+        <button ref="confirmButtonRef" class="icon-btn icon-btn-success" @click="handleConfirm" :disabled="isLoading" title="Kopírovat díl (Enter)">
+          <Check :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </div>
@@ -311,38 +337,5 @@ async function handleConfirm() {
   border-top: 1px solid var(--border-default);
 }
 
-/* Icon buttons */
-.btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-icon:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.btn-icon.btn-confirm {
-  color: var(--color-success);
-}
-
-.btn-icon.btn-confirm:not(:disabled):hover {
-  background: rgba(34, 197, 94, 0.1);
-}
-
-.btn-icon.btn-cancel {
-  color: var(--color-error);
-}
-
-.btn-icon.btn-cancel:not(:disabled):hover {
-  background: rgba(239, 68, 68, 0.1);
-}
+/* Icon buttons use global .icon-btn classes from design-system.css */
 </style>

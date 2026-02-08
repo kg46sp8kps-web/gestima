@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Users/lofas/miniforge3/envs/gestima-prod/bin/python
 """
 GESTIMA - CLI helper pro spouštění a správu aplikace
 Použití: python3 gestima.py [command]
@@ -13,9 +13,15 @@ from pathlib import Path
 
 # Get project directory
 PROJECT_DIR = Path(__file__).parent
+
+# Use conda gestima-prod environment (has pythonocc-core)
+CONDA_ENV_PYTHON = Path("/Users/lofas/miniforge3/envs/gestima-prod/bin/python")
+CONDA_ENV_PIP = Path("/Users/lofas/miniforge3/envs/gestima-prod/bin/pip")
+
+# Fallback to local venv if conda not available
 VENV_DIR = PROJECT_DIR / "venv"
-VENV_PYTHON = VENV_DIR / "bin" / "python"
-VENV_PIP = VENV_DIR / "bin" / "pip"
+VENV_PYTHON = CONDA_ENV_PYTHON if CONDA_ENV_PYTHON.exists() else VENV_DIR / "bin" / "python"
+VENV_PIP = CONDA_ENV_PIP if CONDA_ENV_PIP.exists() else VENV_DIR / "bin" / "pip"
 
 class Gestima:
     """CLI helper pro GESTIMA"""

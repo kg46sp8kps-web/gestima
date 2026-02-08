@@ -8,6 +8,7 @@
 
 import { ref, watch, computed } from 'vue'
 import { Edit, Copy, Trash2, Save, X } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import type { MaterialItem } from '@/types/material'
 import { confirm, alert } from '@/composables/useDialog'
 
@@ -243,23 +244,23 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
           <!-- Edit mode: Save/Cancel -->
           <template v-if="isEditing">
             <button class="icon-btn icon-btn-primary" @click="saveEdit" title="Uložit změny">
-              <Save :size="15" />
+              <Save :size="ICON_SIZE.STANDARD" />
             </button>
             <button class="icon-btn" @click="cancelEdit" title="Zrušit">
-              <X :size="15" />
+              <X :size="ICON_SIZE.STANDARD" />
             </button>
           </template>
 
           <!-- Normal mode: Edit/Copy/Delete -->
           <template v-else>
             <button class="icon-btn" @click="startEdit" title="Upravit položku">
-              <Edit :size="15" />
+              <Edit :size="ICON_SIZE.STANDARD" />
             </button>
             <button class="icon-btn" @click="handleCopy" title="Kopírovat položku">
-              <Copy :size="15" />
+              <Copy :size="ICON_SIZE.STANDARD" />
             </button>
             <button class="icon-btn icon-btn-danger" @click="handleDelete" title="Smazat položku">
-              <Trash2 :size="15" />
+              <Trash2 :size="ICON_SIZE.STANDARD" />
             </button>
           </template>
         </div>

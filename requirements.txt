@@ -29,7 +29,9 @@ slowapi>=0.1.9
 
 # === AI SERVICES ===
 anthropic>=0.40.0  # Claude AI for quote request parsing
-pymupdf>=1.24.0  # Reserved for future drawing analysis
+pymupdf>=1.24.0  # PDF parsing and manipulation
+pypdf>=4.0.0  # PDF reading and merging
+reportlab>=4.0.0  # PDF generation for annotations
 
 # === UTILS ===
 python-dotenv>=1.0.0

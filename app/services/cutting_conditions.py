@@ -1,13 +1,14 @@
 """GESTIMA - Řezné podmínky"""
 
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import async_session
 from app.models.cutting_condition import CuttingConditionDB
 from app.services.feature_definitions import FEATURE_FIELDS
+from app.services.cutting_conditions_catalog import get_catalog_conditions
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,8 @@ async def get_conditions(
     
     operation_type, operation = feature_def["db_operation"]
     
-    # Query DB
+    # Query DB first
+    condition = None
     try:
         async with async_session() as session:
             query = select(CuttingConditionDB).where(
@@ -42,22 +44,35 @@ async def get_conditions(
 
             db_result = await session.execute(query)
             condition = db_result.scalar_one_or_none()
-
-            if not condition:
-                return result
-
-            result["Vc"] = condition.Vc
-            result["f"] = condition.f
-            result["Ap"] = condition.Ap if condition.Ap else None
-
-            # Drilling-specific adjustments
-            if operation_type == "drilling" and diameter:
-                result = _apply_drilling_coefficients(result, diameter)
-
-            return result
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_conditions: {e}", exc_info=True)
-        return result  # Return empty result on error
+
+    if condition:
+        # DB hit
+        result["Vc"] = condition.Vc
+        result["f"] = condition.f
+        result["Ap"] = condition.Ap if condition.Ap else None
+    else:
+        # Fallback na in-memory katalog
+        catalog_result = get_catalog_conditions(material_group, operation_type, operation, mode)
+        if catalog_result:
+            logger.info(
+                f"Catalog fallback: {operation_type}/{operation} "
+                f"mat={material_group} mode={mode}"
+            )
+            result["Vc"] = catalog_result.get("Vc")
+            result["f"] = catalog_result.get("f")
+            result["Ap"] = catalog_result.get("Ap")
+            result["fz"] = catalog_result.get("fz")
+            # Milling: fz fallback → f (downstream code expects f)
+            if result["f"] is None and result["fz"] is not None:
+                result["f"] = result["fz"]
+
+    # Drilling-specific adjustments (platí pro DB i katalog)
+    if operation_type == "drilling" and diameter:
+        result = _apply_drilling_coefficients(result, diameter)
+
+    return result
 
 
 def _apply_drilling_coefficients(conditions: Dict, diameter: float) -> Dict:

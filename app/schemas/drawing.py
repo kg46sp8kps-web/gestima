@@ -27,6 +27,7 @@ class DrawingBase(BaseModel):
         pattern=r"^[A-Z]{1,2}$",
         description="Revize výkresu (A, B, C...)"
     )
+    file_type: str = Field(default="pdf", description="Typ souboru (pdf nebo step)")
 
 
 class DrawingCreate(BaseModel):
@@ -41,6 +42,7 @@ class DrawingCreate(BaseModel):
     file_size: int = Field(..., gt=0)
     is_primary: bool = Field(default=False)
     revision: str = Field(default="A", max_length=2, pattern=r"^[A-Z]{1,2}$")
+    file_type: str = Field(default="pdf")
 
 
 class DrawingResponse(DrawingBase):
@@ -55,6 +57,10 @@ class DrawingResponse(DrawingBase):
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     version: int
+    file_exists: bool = Field(
+        default=True,
+        description="Zda soubor fyzicky existuje na disku (false = orphan record)"
+    )
 
 
 class DrawingListResponse(BaseModel):

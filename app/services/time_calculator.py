@@ -128,8 +128,9 @@ class FeatureCalculator:
         return self._calc_id_rough(result, geo)
     
     def _calc_face(self, result: CalculationResult, geo: Dict) -> CalculationResult:
-        diameter = geo.get("from_diameter") or 50
-        depth = geo.get("depth") or 1
+        # AUDIT-FIX: Use 'is not None' instead of 'or' to preserve 0 as valid value
+        diameter = geo.get("from_diameter") if geo.get("from_diameter") is not None else 50
+        depth = geo.get("depth") if geo.get("depth") is not None else 1
         
         result.num_passes = max(1, math.ceil(depth / result.Ap)) if result.Ap else 1
         avg_dia = diameter / 2
@@ -140,8 +141,11 @@ class FeatureCalculator:
         return result
     
     def _calc_drill(self, result: CalculationResult, geo: Dict) -> CalculationResult:
-        diameter = geo.get("to_diameter") or 10
-        depth = geo.get("depth") or geo.get("length") or 30
+        # AUDIT-FIX: Use 'is not None' instead of 'or' to preserve 0 as valid value
+        diameter = geo.get("to_diameter") if geo.get("to_diameter") is not None else 10
+        depth = geo.get("depth") if geo.get("depth") is not None else (
+            geo.get("length") if geo.get("length") is not None else 30
+        )
         
         result.rpm = int(self.calc_rpm(result.Vc, diameter))
         
@@ -160,7 +164,8 @@ class FeatureCalculator:
         return self._calc_drill(result, geo)
     
     def _calc_parting(self, result: CalculationResult, geo: Dict) -> CalculationResult:
-        diameter = geo.get("from_diameter") or 40
+        # AUDIT-FIX: Use 'is not None' instead of 'or' to preserve 0 as valid value
+        diameter = geo.get("from_diameter") if geo.get("from_diameter") is not None else 40
         
         avg_dia = diameter / 2
         result.rpm = int(self.calc_rpm(result.Vc, avg_dia))
@@ -172,9 +177,12 @@ class FeatureCalculator:
         return result
     
     def _calc_thread_od(self, result: CalculationResult, geo: Dict) -> CalculationResult:
-        diameter = geo.get("to_diameter") or geo.get("from_diameter") or 20
-        length = geo.get("length") or 20
-        pitch = geo.get("thread_pitch") or 1.5
+        # AUDIT-FIX: Use 'is not None' instead of 'or' to preserve 0 as valid value
+        diameter = geo.get("to_diameter") if geo.get("to_diameter") is not None else (
+            geo.get("from_diameter") if geo.get("from_diameter") is not None else 20
+        )
+        length = geo.get("length") if geo.get("length") is not None else 20
+        pitch = geo.get("thread_pitch") if geo.get("thread_pitch") is not None else 1.5
         
         result.rpm = int(self.calc_rpm(result.Vc, diameter))
         result.f = pitch
@@ -186,6 +194,46 @@ class FeatureCalculator:
     
     def _calc_thread_id(self, result: CalculationResult, geo: Dict) -> CalculationResult:
         return self._calc_thread_od(result, geo)
+
+    def _calc_chamfer(self, result: CalculationResult, geo: Dict) -> CalculationResult:
+        """Chamfer: single-pass profiling along 45° edge. Path = width × √2."""
+        width = geo.get("width")
+        if not width or width <= 0:
+            # No geometry → ignore (time stays 0)
+            return result
+
+        diameter = geo.get("from_diameter") if geo.get("from_diameter") is not None else (
+            geo.get("to_diameter") if geo.get("to_diameter") is not None else 30
+        )
+
+        path_length = width * math.sqrt(2)  # 45° chamfer diagonal
+        result.rpm = int(self.calc_rpm(result.Vc, diameter))
+        result.num_passes = 1
+        result.cutting_time_sec = self.calc_time(path_length, result.rpm, result.f)
+        result.total_time_sec = result.cutting_time_sec
+        return result
+
+    def _calc_radius(self, result: CalculationResult, geo: Dict) -> CalculationResult:
+        """Radius/fillet: single-pass arc. Path = π/2 × R (quarter circle)."""
+        corner_radius = geo.get("corner_radius")
+        if not corner_radius or corner_radius <= 0:
+            # No geometry → ignore (time stays 0)
+            return result
+
+        diameter = geo.get("from_diameter") if geo.get("from_diameter") is not None else (
+            geo.get("to_diameter") if geo.get("to_diameter") is not None else 30
+        )
+
+        path_length = (math.pi / 2) * corner_radius  # Quarter-circle arc
+        result.rpm = int(self.calc_rpm(result.Vc, diameter))
+        result.num_passes = 1
+        result.cutting_time_sec = self.calc_time(path_length, result.rpm, result.f)
+        result.total_time_sec = result.cutting_time_sec
+        return result
+
+    def _calc_mill_chamfer(self, result: CalculationResult, geo: Dict) -> CalculationResult:
+        """Milling chamfer: same logic as turning chamfer."""
+        return self._calc_chamfer(result, geo)
 
 
 async def calculate_feature_time(

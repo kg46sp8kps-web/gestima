@@ -17,6 +17,7 @@
 import { ref, watch, computed } from 'vue'
 import Input from '@/components/ui/Input.vue'
 import { Edit, Copy, Trash2, AlertTriangle, Check, X } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
 
 interface Props {
@@ -134,7 +135,7 @@ defineExpose({
     <!-- View mode toolbar (bottom right) -->
     <div v-if="!isEditMode" class="view-toolbar">
       <button class="btn-edit" @click="handleCopy" title="Kopírovat díl">
-        <Copy :size="15" />
+        <Copy :size="ICON_SIZE.SMALL" />
       </button>
       <button
         v-if="context?.isAdmin"
@@ -142,10 +143,10 @@ defineExpose({
         @click="handleDelete"
         title="Smazat díl"
       >
-        <Trash2 :size="15" />
+        <Trash2 :size="ICON_SIZE.SMALL" />
       </button>
       <button class="btn-edit" @click="handleEdit" title="Upravit díl">
-        <Edit :size="15" />
+        <Edit :size="ICON_SIZE.SMALL" />
       </button>
     </div>
 
@@ -201,14 +202,14 @@ defineExpose({
 
     <!-- Edit mode toolbar (bottom right) -->
     <div v-if="isEditMode" class="edit-toolbar">
-      <AlertTriangle :size="20" class="warning-icon" />
+      <AlertTriangle :size="ICON_SIZE.STANDARD" class="warning-icon" />
       <button
         class="btn-action btn-confirm"
         @click="handleSave"
         :disabled="isLoading"
         title="Potvrdit změny"
       >
-        <Check :size="18" />
+        <Check :size="ICON_SIZE.STANDARD" />
       </button>
       <button
         class="btn-action btn-cancel"
@@ -216,7 +217,7 @@ defineExpose({
         :disabled="isLoading"
         title="Zrušit změny"
       >
-        <X :size="18" />
+        <X :size="ICON_SIZE.STANDARD" />
       </button>
     </div>
   </div>

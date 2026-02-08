@@ -43,6 +43,8 @@ from app.routers import (
     module_defaults_router,  # ADR-031: Module Defaults
     infor_router,  # Infor CloudSuite Industrial integration
     step_router,  # OCCT Raw Geometry Extraction (ADR-042)
+    vision_debug_router,  # Vision Hybrid Pipeline (ADR-TBD)
+    machining_time_router,  # ADR-040: Machining Time Estimation
 )
 from app.database import async_session, engine, close_db
 
@@ -63,8 +65,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
 
-        # Ochrana proti clickjacking
-        response.headers["X-Frame-Options"] = "DENY"
+        # Ochrana proti clickjacking (allow /uploads/* for PDF iframe preview)
+        if request.url.path.startswith("/uploads/"):
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        else:
+            response.headers["X-Frame-Options"] = "DENY"
 
         # Zakázat MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -171,10 +176,17 @@ if settings.CORS_ORIGINS:
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
             allow_headers=["*"],
+            expose_headers=["*"],  # SSE support
         )
         logger.info(f"CORS enabled for origins: {origins}")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Mount uploads directory (for PDF/STEP file access)
+uploads_dir = Path("uploads")
+if uploads_dir.exists():
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+    logger.info(f"Mounted /uploads directory")
 
 # Mount Vue SPA assets
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
@@ -233,6 +245,8 @@ app.include_router(module_layouts_router.router, prefix="/api", tags=["Module La
 app.include_router(module_defaults_router.router, prefix="/api", tags=["Module Defaults"])  # ADR-031
 app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
 app.include_router(step_router.router, tags=["STEP"])  # OCCT Raw Geometry (prefix in router)
+app.include_router(vision_debug_router.router, tags=["Vision Debug"])  # Vision Hybrid Pipeline (prefix in router)
+app.include_router(machining_time_router.router, prefix="/api/machining-time", tags=["Machining Time"])  # ADR-040
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])

@@ -34,12 +34,13 @@ class MaterialPriceCategory(Base, AuditMixin):
     Příklad: "OCEL konstrukční - kruhová tyč" → všechny průměry sdílí tyto price tiers.
 
     Migration 2026-01-26: Přidán material_group_id FK pro propojení s MaterialGroup.
+    Migration 2026-02-03: Code změněn na 8-digit formát (20900000-20909999) dle ADR-017.
     """
     __tablename__ = "material_price_categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    code = Column(String(50), unique=True, nullable=False, index=True)    # "OCEL-KRUHOVA"
-    name = Column(String(200), nullable=False)                            # "OCEL konstrukční - kruhová tyč"
+    code = Column(String(8), unique=True, nullable=False, index=True)     # "20900000" (8-digit: 20900000-20909999)
+    name = Column(String(200), nullable=False)                            # "Hliník - tyč kruhová"
 
     # FK → MaterialGroup (Migration 2026-01-26: pro auto-assign hustoty)
     material_group_id = Column(Integer, ForeignKey("material_groups.id"), nullable=True, index=True)
@@ -58,7 +59,7 @@ class MaterialPriceTier(Base, AuditMixin):
     __tablename__ = "material_price_tiers"
 
     id = Column(Integer, primary_key=True, index=True)
-    price_category_id = Column(Integer, ForeignKey("material_price_categories.id"), nullable=False)
+    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="CASCADE"), nullable=False)
 
     # Hranice (kg)
     min_weight = Column(Float, nullable=False)                            # 0, 15, 100
@@ -98,13 +99,16 @@ class MaterialItem(Base, AuditMixin):
     norms = Column(String(200), nullable=True)                            # "EN 10025, EN 10060"
     supplier_code = Column(String(50), nullable=True)                     # "T125110001" (TheSteel kód)
 
+    # Povrchová úprava (Migration 2026-02-03: ADR-033)
+    surface_treatment = Column(String(20), nullable=True)                 # "T", "V", "P", "O", "F", etc. (z Infor Item suffix)
+
     # Ekonomika (LIVE data)
     supplier = Column(String(100), nullable=True)                         # Dodavatel
     stock_available = Column(Float, nullable=True, default=0.0)           # kg (dostupné skladem)
 
     # Vazby
-    material_group_id = Column(Integer, ForeignKey("material_groups.id"), nullable=False)
-    price_category_id = Column(Integer, ForeignKey("material_price_categories.id"), nullable=False)  # ADR-014
+    material_group_id = Column(Integer, ForeignKey("material_groups.id", ondelete="RESTRICT"), nullable=False)
+    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="RESTRICT"), nullable=False)  # ADR-014
 
     group = relationship("MaterialGroup", back_populates="items")
     price_category = relationship("MaterialPriceCategory", back_populates="items")
@@ -143,7 +147,7 @@ class MaterialGroupResponse(MaterialGroupBase):
 # ----- MaterialPriceCategory -----
 
 class MaterialPriceCategoryBase(BaseModel):
-    code: str = Field(..., max_length=50, description="Kód kategorie (např. OCEL-KRUHOVA)")
+    code: str = Field(..., min_length=8, max_length=8, description="Kód kategorie (8-digit: 20900000-20909999)")
     name: str = Field(..., max_length=200, description="Název kategorie")
 
 
@@ -152,7 +156,7 @@ class MaterialPriceCategoryCreate(MaterialPriceCategoryBase):
 
 
 class MaterialPriceCategoryUpdate(BaseModel):
-    code: Optional[str] = Field(None, max_length=50)
+    code: Optional[str] = Field(None, min_length=8, max_length=8)
     name: Optional[str] = Field(None, max_length=200)
     version: int  # Optimistic locking
 
@@ -222,6 +226,7 @@ class MaterialItemBase(BaseModel):
     standard_length: Optional[float] = Field(None, gt=0, description="Standardní dodací délka v mm (typicky 6000)")
     norms: Optional[str] = Field(None, max_length=200, description="Normy (např. EN 10025, EN 10060)")
     supplier_code: Optional[str] = Field(None, max_length=50, description="Kód dodavatele (např. T125110001)")
+    surface_treatment: Optional[str] = Field(None, max_length=20, description="Povrchová úprava (T=tažená, V=válená, P=lisovaná, O=loupaná, F=frézovaná)")
     supplier: Optional[str] = Field(None, max_length=100, description="Dodavatel")
     stock_available: Optional[float] = Field(0.0, ge=0, description="Dostupné skladem (kg)")
     material_group_id: int = Field(..., gt=0, description="ID nadřazené skupiny")
@@ -242,6 +247,7 @@ class MaterialItemCreate(BaseModel):
     standard_length: Optional[float] = Field(None, gt=0, description="Standardní dodací délka v mm (typicky 6000)")
     norms: Optional[str] = Field(None, max_length=200, description="Normy (např. EN 10025, EN 10060)")
     supplier_code: Optional[str] = Field(None, max_length=50, description="Kód dodavatele (např. T125110001)")
+    surface_treatment: Optional[str] = Field(None, max_length=20, description="Povrchová úprava (T=tažená, V=válená, P=lisovaná, O=loupaná, F=frézovaná)")
     supplier: Optional[str] = Field(None, max_length=100, description="Dodavatel")
     stock_available: Optional[float] = Field(0.0, ge=0, description="Dostupné skladem (kg)")
     material_group_id: int = Field(..., gt=0, description="ID nadřazené skupiny")
@@ -261,6 +267,7 @@ class MaterialItemUpdate(BaseModel):
     standard_length: Optional[float] = Field(None, gt=0)
     norms: Optional[str] = Field(None, max_length=200)
     supplier_code: Optional[str] = Field(None, max_length=50)
+    surface_treatment: Optional[str] = Field(None, max_length=20)
     supplier: Optional[str] = Field(None, max_length=100)
     stock_available: Optional[float] = Field(None, ge=0)
     material_group_id: Optional[int] = Field(None, gt=0)

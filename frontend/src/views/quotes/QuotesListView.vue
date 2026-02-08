@@ -5,7 +5,7 @@
       <h1>Nabídky</h1>
       <div class="header-actions">
         <button class="btn" @click="handleCreateFromRequest">
-          <Sparkles :size="16" />
+          <Sparkles :size="ICON_SIZE.STANDARD" />
           Z poptávky (AI)
         </button>
         <button class="btn btn-primary" @click="handleCreate">+ Nová nabídka</button>
@@ -41,32 +41,32 @@
             <template #actions="{ row }">
               <div class="row-actions">
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Upravit"
                   @click.stop="handleEdit(row as unknown as Quote)"
                 >
-                  <Edit :size="15" />
+                  <Edit :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon btn-primary"
+                  class="icon-btn icon-btn-primary"
                   title="Odeslat"
                   @click.stop="handleSend(row as unknown as Quote)"
                 >
-                  <Send :size="15" />
+                  <Send :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="15" />
+                  <Copy :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon btn-danger"
+                  class="icon-btn icon-btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Quote)"
                 >
-                  <Trash2 :size="15" />
+                  <Trash2 :size="ICON_SIZE.STANDARD" />
                 </button>
               </div>
             </template>
@@ -98,25 +98,25 @@
             <template #actions="{ row }">
               <div class="row-actions">
                 <button
-                  class="btn-icon btn-success"
+                  class="icon-btn icon-btn-success"
                   title="Schválit"
                   @click.stop="handleApprove(row as unknown as Quote)"
                 >
-                  <CheckCircle :size="15" />
+                  <CheckCircle :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon btn-danger"
+                  class="icon-btn icon-btn-danger"
                   title="Odmítnout"
                   @click.stop="handleReject(row as unknown as Quote)"
                 >
-                  <XCircle :size="15" />
+                  <XCircle :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="15" />
+                  <Copy :size="ICON_SIZE.STANDARD" />
                 </button>
               </div>
             </template>
@@ -148,11 +148,11 @@
             <template #actions="{ row }">
               <div class="row-actions">
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="15" />
+                  <Copy :size="ICON_SIZE.STANDARD" />
                 </button>
               </div>
             </template>
@@ -184,18 +184,18 @@
             <template #actions="{ row }">
               <div class="row-actions">
                 <button
-                  class="btn-icon"
+                  class="icon-btn"
                   title="Duplikovat"
                   @click.stop="handleClone(row as unknown as Quote)"
                 >
-                  <Copy :size="15" />
+                  <Copy :size="ICON_SIZE.STANDARD" />
                 </button>
                 <button
-                  class="btn-icon btn-danger"
+                  class="icon-btn icon-btn-danger"
                   title="Smazat"
                   @click.stop="handleDelete(row as unknown as Quote)"
                 >
-                  <Trash2 :size="15" />
+                  <Trash2 :size="ICON_SIZE.STANDARD" />
                 </button>
               </div>
             </template>
@@ -214,6 +214,7 @@ import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { Quote, QuoteStatus } from '@/types/quote'
 import { FileEdit, Send, CheckCircle, XCircle, Edit, Copy, Trash2, Sparkles } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
 
 const router = useRouter()

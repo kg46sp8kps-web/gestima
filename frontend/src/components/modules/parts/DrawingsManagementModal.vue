@@ -4,12 +4,13 @@
  * Features: List, upload (drag & drop, multiple), set primary, delete, open in floating window
  */
 import { ref, computed, watch } from 'vue'
-import { FileText, Upload, Trash2, Star } from 'lucide-vue-next'
+import { FileText, Upload, Trash2, Star, Box, AlertTriangle } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { drawingsApi } from '@/api/drawings'
 import { useUiStore } from '@/stores/ui'
+import { useDialog } from '@/composables/useDialog'
 import type { Drawing } from '@/types/drawing'
 import Modal from '@/components/ui/Modal.vue'
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import Spinner from '@/components/ui/Spinner.vue'
 
 interface Props {
@@ -25,15 +26,15 @@ const emit = defineEmits<{
 }>()
 
 const uiStore = useUiStore()
+const { confirm } = useDialog()
 
 // State
 const drawings = ref<Drawing[]>([])
 const loading = ref(false)
-const showDeleteConfirm = ref(false)
-const deleteTarget = ref<Drawing | null>(null)
 const uploadingDrawing = ref(false)
 const isDragging = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const stepFileInputRef = ref<HTMLInputElement | null>(null)
 
 // Computed
 const isOpen = computed({
@@ -48,6 +49,14 @@ const sortedDrawings = computed(() => {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 })
+
+const pdfDrawings = computed(() =>
+  sortedDrawings.value.filter(d => d.file_type === 'pdf' || !d.file_type)
+)
+
+const stepDrawings = computed(() =>
+  sortedDrawings.value.filter(d => d.file_type === 'step')
+)
 
 // Load drawings when modal opens
 watch(isOpen, async (open) => {
@@ -96,17 +105,26 @@ function onFileInputChange(e: Event) {
   input.value = '' // Reset for re-upload
 }
 
-function openFilePicker() {
+function openPdfFilePicker() {
   fileInputRef.value?.click()
+}
+
+function openStepFilePicker() {
+  stepFileInputRef.value?.click()
 }
 
 async function handleFilesUpload(files: File[]) {
   if (files.length === 0) return
 
-  // Filter only PDFs
-  const pdfFiles = files.filter(f => f.type === 'application/pdf')
-  if (pdfFiles.length === 0) {
-    uiStore.showError('Pouze PDF soubory jsou podporovány')
+  // Separate by type
+  const pdfFiles = files.filter(f => f.name.toLowerCase().endsWith('.pdf'))
+  const stepFiles = files.filter(f =>
+    f.name.toLowerCase().endsWith('.step') || f.name.toLowerCase().endsWith('.stp')
+  )
+
+  const validFiles = [...pdfFiles, ...stepFiles]
+  if (validFiles.length === 0) {
+    uiStore.showError('Pouze PDF a STEP soubory jsou podporovány')
     return
   }
 
@@ -116,7 +134,7 @@ async function handleFilesUpload(files: File[]) {
 
   try {
     // Upload all files in parallel
-    const uploadPromises = pdfFiles.map(async (file) => {
+    const uploadPromises = validFiles.map(async (file) => {
       try {
         await drawingsApi.uploadDrawing(
           props.partNumber,
@@ -134,7 +152,7 @@ async function handleFilesUpload(files: File[]) {
 
     // Show results
     if (successCount > 0) {
-      uiStore.showSuccess(`${successCount} výkresů nahráno`)
+      uiStore.showSuccess(`${successCount} souborů nahráno`)
     }
     if (errorCount > 0) {
       uiStore.showError(`${errorCount} souborů se nepodařilo nahrát`)
@@ -158,18 +176,17 @@ async function setPrimary(drawing: Drawing) {
   }
 }
 
-function confirmDelete(drawing: Drawing) {
-  deleteTarget.value = drawing
-  showDeleteConfirm.value = true
-}
+async function confirmDelete(drawing: Drawing) {
+  const confirmed = await confirm({
+    title: 'Smazat výkres?',
+    message: `Opravdu smazat ${drawing.filename}?`,
+    type: 'danger'
+  })
+  if (!confirmed) return
 
-async function handleDelete() {
-  if (!deleteTarget.value) return
   try {
-    await drawingsApi.deleteDrawingById(props.partNumber, deleteTarget.value.id)
-    uiStore.showSuccess(`Výkres ${deleteTarget.value.filename} smazán`)
-    showDeleteConfirm.value = false
-    deleteTarget.value = null
+    await drawingsApi.deleteDrawingById(props.partNumber, drawing.id)
+    uiStore.showSuccess(`Výkres ${drawing.filename} smazán`)
     await loadDrawings()
     emit('refresh')
   } catch (error: any) {
@@ -184,106 +201,221 @@ function openDrawing(drawing: Drawing) {
 
 <template>
   <Modal v-model="isOpen" :title="`Správa výkresů - ${partNumber}`" size="xl">
-    <!-- Drag & Drop Upload Zone -->
-    <div
-      class="upload-zone"
-      :class="{ dragging: isDragging, uploading: uploadingDrawing }"
-      @dragenter="onDragEnter"
-      @dragover="onDragOver"
-      @dragleave="onDragLeave"
-      @drop="onDrop"
-      @click="openFilePicker"
-    >
-      <input
-        ref="fileInputRef"
-        type="file"
-        accept="application/pdf"
-        multiple
-        style="display: none"
-        @change="onFileInputChange"
-      />
-
-      <Upload :size="32" :stroke-width="1.5" />
-      <p class="upload-label">
-        {{ uploadingDrawing ? 'Nahrávám...' : 'Přetáhněte PDF výkresy sem nebo klikněte pro výběr' }}
-      </p>
-      <p class="upload-hint">Podporuje více souborů najednou</p>
-    </div>
-
-    <!-- Count -->
-    <div class="header">
-      <span class="count">{{ drawings.length }} výkresů</span>
-    </div>
-
     <!-- Loading -->
     <div v-if="loading" class="state">
       <Spinner />
       <p>Načítám výkresy...</p>
     </div>
 
-    <!-- Empty -->
-    <div v-else-if="drawings.length === 0" class="state">
-      <FileText :size="48" :stroke-width="1.5" />
-      <p>Žádné výkresy. Nahrajte první výkres.</p>
-    </div>
+    <!-- Content -->
+    <template v-else>
+      <!-- PDF DRAWINGS SECTION -->
+      <div class="section">
+        <h4 class="section-title">Výkresy</h4>
 
-    <!-- Grid -->
-    <div v-else class="grid">
-      <div
-        v-for="drawing in sortedDrawings"
-        :key="drawing.id"
-        class="card"
-        :class="{ primary: drawing.is_primary }"
-      >
-        <!-- Thumbnail -->
-        <div class="thumb" @click="openDrawing(drawing)">
-          <FileText :size="32" />
+        <!-- PDF Upload Zone -->
+        <div
+          class="upload-zone"
+          :class="{ dragging: isDragging, uploading: uploadingDrawing }"
+          @dragenter="onDragEnter"
+          @dragover="onDragOver"
+          @dragleave="onDragLeave"
+          @drop="onDrop"
+          @click="openPdfFilePicker"
+        >
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept="application/pdf"
+            multiple
+            style="display: none"
+            @change="onFileInputChange"
+          />
+
+          <Upload :size="ICON_SIZE.XLARGE" :stroke-width="1.5" />
+          <p class="upload-label">
+            {{ uploadingDrawing ? 'Nahrávám...' : 'PDF výkresy — přetáhněte sem nebo klikněte' }}
+          </p>
         </div>
 
-        <!-- Info -->
-        <div class="info">
-          <p class="name">{{ drawing.filename }}</p>
-          <p class="rev">Rev {{ drawing.revision }}</p>
+        <!-- PDF Count -->
+        <div class="header">
+          <span class="count">{{ pdfDrawings.length }} výkresů</span>
         </div>
 
-        <!-- Primary badge -->
-        <span v-if="drawing.is_primary" class="badge">
-          <Star :size="12" :fill="'currentColor'" />
-          Primary
-        </span>
+        <!-- PDF Grid -->
+        <div v-if="pdfDrawings.length > 0" class="grid">
+          <div
+            v-for="drawing in pdfDrawings"
+            :key="drawing.id"
+            class="card"
+            :class="{ primary: drawing.is_primary, broken: !drawing.file_exists }"
+          >
+            <!-- Broken file warning -->
+            <span v-if="!drawing.file_exists" class="badge badge-broken" title="Soubor chybí na disku">
+              <AlertTriangle :size="12" />
+              Chybí soubor
+            </span>
 
-        <!-- Actions -->
-        <div class="actions">
-          <button
-            v-if="!drawing.is_primary"
-            class="btn-icon"
-            @click="setPrimary(drawing)"
-            title="Nastavit jako primární"
-          >
-            <Star :size="16" />
-          </button>
-          <button
-            class="btn-icon btn-danger"
-            @click="confirmDelete(drawing)"
-            title="Smazat"
-          >
-            <Trash2 :size="16" />
-          </button>
+            <!-- Thumbnail -->
+            <div class="thumb" :class="{ disabled: !drawing.file_exists }" @click="drawing.file_exists && openDrawing(drawing)">
+              <AlertTriangle v-if="!drawing.file_exists" :size="ICON_SIZE.XLARGE" />
+              <FileText v-else :size="ICON_SIZE.XLARGE" />
+            </div>
+
+            <!-- Info -->
+            <div class="info">
+              <p class="name">{{ drawing.filename }}</p>
+              <p class="rev">Rev {{ drawing.revision }}</p>
+            </div>
+
+            <!-- Primary badge -->
+            <span v-if="drawing.is_primary && drawing.file_exists" class="badge">
+              <Star :size="12" :fill="'currentColor'" />
+              Primary
+            </span>
+
+            <!-- Actions -->
+            <div class="actions">
+              <button
+                v-if="!drawing.is_primary && drawing.file_exists"
+                class="icon-btn"
+                @click="setPrimary(drawing)"
+                title="Nastavit jako primární"
+              >
+                <Star :size="ICON_SIZE.STANDARD" />
+              </button>
+              <button
+                class="icon-btn icon-btn-danger"
+                @click="confirmDelete(drawing)"
+                title="Smazat"
+              >
+                <Trash2 :size="ICON_SIZE.STANDARD" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="state-mini">
+          <p>Žádné PDF výkresy</p>
         </div>
       </div>
-    </div>
 
-    <!-- Delete confirm -->
-    <ConfirmDialog
-      v-model="showDeleteConfirm"
-      title="Smazat výkres?"
-      :message="`Opravdu smazat ${deleteTarget?.filename}?`"
-      @confirm="handleDelete"
-    />
+      <!-- 3D DATA SECTION -->
+      <div class="section">
+        <h4 class="section-title">3D Data</h4>
+
+        <!-- STEP Upload Zone -->
+        <div
+          class="upload-zone"
+          :class="{ dragging: isDragging, uploading: uploadingDrawing }"
+          @dragenter="onDragEnter"
+          @dragover="onDragOver"
+          @dragleave="onDragLeave"
+          @drop="onDrop"
+          @click="openStepFilePicker"
+        >
+          <input
+            ref="stepFileInputRef"
+            type="file"
+            accept=".step,.stp"
+            multiple
+            style="display: none"
+            @change="onFileInputChange"
+          />
+
+          <Upload :size="ICON_SIZE.XLARGE" :stroke-width="1.5" />
+          <p class="upload-label">
+            {{ uploadingDrawing ? 'Nahrávám...' : 'STEP soubory — přetáhněte sem nebo klikněte' }}
+          </p>
+        </div>
+
+        <!-- STEP Count -->
+        <div class="header">
+          <span class="count">{{ stepDrawings.length }} 3D modelů</span>
+        </div>
+
+        <!-- STEP Grid -->
+        <div v-if="stepDrawings.length > 0" class="grid">
+          <div
+            v-for="drawing in stepDrawings"
+            :key="drawing.id"
+            class="card"
+            :class="{ primary: drawing.is_primary, broken: !drawing.file_exists }"
+          >
+            <!-- Broken file warning -->
+            <span v-if="!drawing.file_exists" class="badge badge-broken" title="Soubor chybí na disku">
+              <AlertTriangle :size="12" />
+              Chybí soubor
+            </span>
+
+            <!-- Thumbnail -->
+            <div class="thumb" :class="{ disabled: !drawing.file_exists }" @click="drawing.file_exists && openDrawing(drawing)">
+              <AlertTriangle v-if="!drawing.file_exists" :size="ICON_SIZE.XLARGE" />
+              <Box v-else :size="ICON_SIZE.XLARGE" />
+            </div>
+
+            <!-- Info -->
+            <div class="info">
+              <p class="name">{{ drawing.filename }}</p>
+              <p class="rev">Rev {{ drawing.revision }}</p>
+            </div>
+
+            <!-- Primary badge -->
+            <span v-if="drawing.is_primary && drawing.file_exists" class="badge">
+              <Star :size="12" :fill="'currentColor'" />
+              Primary
+            </span>
+
+            <!-- Actions -->
+            <div class="actions">
+              <button
+                v-if="!drawing.is_primary && drawing.file_exists"
+                class="icon-btn"
+                @click="setPrimary(drawing)"
+                title="Nastavit jako primární"
+              >
+                <Star :size="ICON_SIZE.STANDARD" />
+              </button>
+              <button
+                class="icon-btn icon-btn-danger"
+                @click="confirmDelete(drawing)"
+                title="Smazat"
+              >
+                <Trash2 :size="ICON_SIZE.STANDARD" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="state-mini">
+          <p>Žádné 3D modely</p>
+        </div>
+      </div>
+    </template>
+
   </Modal>
 </template>
 
 <style scoped>
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.section-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3) 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.state-mini {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -330,6 +462,12 @@ function openDrawing(drawing: Drawing) {
 .card.primary {
   border-color: var(--color-success);
   background: rgba(5, 150, 105, 0.05);
+}
+
+.card.broken {
+  border-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.05);
+  opacity: 0.75;
 }
 
 .thumb {
@@ -386,32 +524,31 @@ function openDrawing(drawing: Drawing) {
   border-radius: var(--radius-sm);
 }
 
+.badge-broken {
+  color: #f43f5e;
+  border-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.thumb.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  color: #f43f5e;
+}
+
+.thumb.disabled:hover {
+  background: transparent;
+  border-color: var(--border-default);
+  color: #f43f5e;
+}
+
 .actions {
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
 
-.btn-icon {
-  padding: var(--space-2);
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition-fast);
-  color: var(--text-secondary);
-}
-
-.btn-icon:hover {
-  background: var(--state-hover);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.btn-icon.btn-danger:hover {
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-}
+/* Icon buttons use global .icon-btn classes from design-system.css */
 
 @media (max-width: 768px) {
   .grid {

@@ -68,6 +68,7 @@ class PartMatch(BaseModel):
     part_number: Optional[str] = None
     part_exists: bool = False
     article_number: str
+    drawing_number: Optional[str] = None
     name: str
     quantity: int
     notes: Optional[str] = None

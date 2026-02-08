@@ -12,6 +12,7 @@ import FormTabs from '@/components/ui/FormTabs.vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import type { QuoteUpdate, QuoteItemCreate, QuoteItemUpdate, QuoteItem } from '@/types/quote'
 import { FileText, Package, Camera, Send, CheckCircle, XCircle, Copy, Trash2, AlertTriangle } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
 
 const route = useRoute()
@@ -286,7 +287,7 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleSend"
           >
-            <Send :size="15" />
+            <Send :size="ICON_SIZE.STANDARD" />
             Odeslat
           </button>
           <button
@@ -295,7 +296,7 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleApprove"
           >
-            <CheckCircle :size="15" />
+            <CheckCircle :size="ICON_SIZE.STANDARD" />
             Schválit
           </button>
           <button
@@ -304,11 +305,11 @@ onMounted(() => {
             :disabled="isLoading"
             @click="handleReject"
           >
-            <XCircle :size="15" />
+            <XCircle :size="ICON_SIZE.STANDARD" />
             Odmítnout
           </button>
           <button class="btn" :disabled="isLoading" @click="handleClone">
-            <Copy :size="15" />
+            <Copy :size="ICON_SIZE.STANDARD" />
             Duplikovat
           </button>
         </div>
@@ -418,7 +419,7 @@ onMounted(() => {
                 </div>
 
                 <div v-else class="edit-lock-warning">
-                  <AlertTriangle :size="16" />
+                  <AlertTriangle :size="ICON_SIZE.STANDARD" />
                   Nelze editovat odeslanou nabídku
                 </div>
               </div>
@@ -508,11 +509,11 @@ onMounted(() => {
                   <div class="row-actions">
                     <button
                       v-if="canEdit"
-                      class="btn-icon btn-danger"
+                      class="icon-btn icon-btn-danger"
                       title="Smazat"
                       @click.stop="handleDeleteItem(row as unknown as QuoteItem)"
                     >
-                      <Trash2 :size="15" />
+                      <Trash2 :size="ICON_SIZE.STANDARD" />
                     </button>
                   </div>
                 </template>

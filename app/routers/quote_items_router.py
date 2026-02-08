@@ -10,6 +10,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import get_db
 from app.db_helpers import set_audit, safe_commit
@@ -30,28 +31,34 @@ async def get_quote_items(
     current_user: User = Depends(get_current_user)
 ):
     """List all items for a quote"""
-    # Find quote
-    result = await db.execute(
-        select(Quote).where(
-            Quote.quote_number == quote_number,
-            Quote.deleted_at.is_(None)
+    try:
+        # Find quote
+        result = await db.execute(
+            select(Quote).where(
+                Quote.quote_number == quote_number,
+                Quote.deleted_at.is_(None)
+            )
         )
-    )
-    quote = result.scalar_one_or_none()
+        quote = result.scalar_one_or_none()
 
-    if not quote:
-        raise HTTPException(status_code=404, detail="Quote not found")
+        if not quote:
+            raise HTTPException(status_code=404, detail="Quote not found")
 
-    # Get items
-    result = await db.execute(
-        select(QuoteItem).where(
-            QuoteItem.quote_id == quote.id,
-            QuoteItem.deleted_at.is_(None)
+        # Get items
+        result = await db.execute(
+            select(QuoteItem).where(
+                QuoteItem.quote_id == quote.id,
+                QuoteItem.deleted_at.is_(None)
+            )
         )
-    )
-    items = result.scalars().all()
+        items = result.scalars().all()
 
-    return [QuoteItemResponse.model_validate(item) for item in items]
+        return [QuoteItemResponse.model_validate(item) for item in items]
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching quote items for {quote_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání položek nabídky")
 
 
 @router.post("/quotes/{quote_number}/items", response_model=QuoteItemResponse)
@@ -131,18 +138,24 @@ async def get_quote_item(
     current_user: User = Depends(get_current_user)
 ):
     """Get single quote item by ID"""
-    result = await db.execute(
-        select(QuoteItem).where(
-            QuoteItem.id == item_id,
-            QuoteItem.deleted_at.is_(None)
+    try:
+        result = await db.execute(
+            select(QuoteItem).where(
+                QuoteItem.id == item_id,
+                QuoteItem.deleted_at.is_(None)
+            )
         )
-    )
-    item = result.scalar_one_or_none()
+        item = result.scalar_one_or_none()
 
-    if not item:
-        raise HTTPException(status_code=404, detail="Quote item not found")
+        if not item:
+            raise HTTPException(status_code=404, detail="Quote item not found")
 
-    return QuoteItemResponse.model_validate(item)
+        return QuoteItemResponse.model_validate(item)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching quote item {item_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání položky nabídky")
 
 
 @router.put("/quote_items/{item_id}", response_model=QuoteItemResponse)

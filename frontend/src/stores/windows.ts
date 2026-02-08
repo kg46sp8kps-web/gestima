@@ -12,6 +12,7 @@ export type WindowModule =
   | 'part-main'
   | 'part-pricing'
   | 'part-operations'
+  | 'part-technology' // Unified view: Material + Operations + Features
   | 'part-material'
   | 'part-drawing'
   | 'batch-sets'
@@ -20,6 +21,8 @@ export type WindowModule =
   | 'quote-from-request'
   | 'manufacturing-items'
   | 'material-items-list'
+  | 'master-admin' // Master Admin (Infor, Material Norms, Pracoviště)
+  | 'feature-recognition' // Feature Recognition Testing
 
 export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
 
@@ -88,8 +91,11 @@ export const useWindowsStore = defineStore('windows', () => {
         defaultHeight = defaults.default_height
         // TODO: Apply split positions and column widths from defaults.settings
       }
-    } catch (error) {
-      console.warn(`Failed to load defaults for ${module}, using fallback`, error)
+    } catch (error: any) {
+      // 404 is expected for new modules without saved defaults - use fallback silently
+      if (error?.response?.status !== 404) {
+        console.warn(`Failed to load defaults for ${module}, using fallback`, error)
+      }
     }
 
     // Allow multiple windows of the same type (for comparison workflows)
@@ -353,7 +359,7 @@ export const useWindowsStore = defineStore('windows', () => {
   }
 
   // Save current window settings as module defaults
-  async function saveModuleDefaults(windowId: string) {
+  async function saveWindowAsModuleDefaults(windowId: string) {
     const win = windows.value.find(w => w.id === windowId)
     if (!win) return
 
@@ -444,6 +450,6 @@ export const useWindowsStore = defineStore('windows', () => {
     toggleFavoriteView,
     setDefaultLayout,
     closeAllWindows,
-    saveModuleDefaults
+    saveWindowAsModuleDefaults
   }
 })

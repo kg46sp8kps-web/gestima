@@ -1,8 +1,10 @@
 """GESTIMA - System Configuration API router"""
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 
 from app.database import get_db
@@ -12,6 +14,7 @@ from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
 from app.db_helpers import set_audit, safe_commit
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -21,11 +24,15 @@ async def get_all_config(
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     """Get all system configuration (admin only)"""
-    result = await db.execute(
-        select(SystemConfig).order_by(SystemConfig.key)
-    )
-    configs = result.scalars().all()
-    return configs
+    try:
+        result = await db.execute(
+            select(SystemConfig).order_by(SystemConfig.key)
+        )
+        configs = result.scalars().all()
+        return configs
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching config: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání konfigurace")
 
 
 @router.get("/{key}", response_model=SystemConfigResponse)
@@ -35,15 +42,21 @@ async def get_config_by_key(
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
     """Get specific config by key (admin only)"""
-    result = await db.execute(
-        select(SystemConfig).where(SystemConfig.key == key)
-    )
-    config = result.scalar_one_or_none()
+    try:
+        result = await db.execute(
+            select(SystemConfig).where(SystemConfig.key == key)
+        )
+        config = result.scalar_one_or_none()
 
-    if not config:
-        raise HTTPException(status_code=404, detail=f"Config key '{key}' not found")
+        if not config:
+            raise HTTPException(status_code=404, detail=f"Config key '{key}' not found")
 
-    return config
+        return config
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching config key '{key}': {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání konfigurace")
 
 
 @router.put("/{key}", response_model=SystemConfigResponse)

@@ -441,15 +441,92 @@ async def delete_part(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    """
+    Soft delete dílu a všech závislých entit.
+
+    Kaskáduje soft delete na:
+    - Operations (a jejich Features)
+    - MaterialInputs
+    - Batches
+    - Drawings
+
+    ADR-001: Soft delete pro audit trail a referenční integritu.
+    """
+    from datetime import datetime
+
+    # Načíst Part s všemi child entitami pro kaskádu
+    result = await db.execute(
+        select(Part)
+        .options(
+            selectinload(Part.operations).selectinload(Operation.features),
+            selectinload(Part.material_inputs),
+            selectinload(Part.batches),
+            selectinload(Part.drawings),
+        )
+        .where(
+            Part.part_number == part_number,
+            Part.deleted_at.is_(None)  # Pouze aktivní
+        )
+    )
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
 
-    await db.delete(part)
+    # Check: Part nesmí být v aktivní (DRAFT/SENT) nabídce
+    quote_check = await db.execute(
+        select(QuoteItem).where(
+            QuoteItem.part_id == part.id,
+            QuoteItem.deleted_at.is_(None)
+        )
+    )
+    active_quote_items = quote_check.scalars().all()
+    if active_quote_items:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Nelze smazat díl - je použit v {len(active_quote_items)} aktivních položkách nabídek"
+        )
 
-    await safe_commit(db, action="mazání dílu", integrity_error_msg="Nelze smazat díl - existují závislé záznamy (operace, dávky)")
-    logger.info(f"Deleted part: {part_number}", extra={"part_number": part_number, "user": current_user.username})
+    # Soft delete timestamp
+    now = datetime.utcnow()
+    username = current_user.username
+
+    # Kaskáda soft delete na všechny child entity
+    for operation in part.operations:
+        if operation.deleted_at is None:
+            operation.deleted_at = now
+            operation.deleted_by = username
+            # Kaskáda na features
+            for feature in operation.features:
+                if feature.deleted_at is None:
+                    feature.deleted_at = now
+                    feature.deleted_by = username
+
+    for material_input in part.material_inputs:
+        if material_input.deleted_at is None:
+            material_input.deleted_at = now
+            material_input.deleted_by = username
+
+    for batch in part.batches:
+        if batch.deleted_at is None:
+            batch.deleted_at = now
+            batch.deleted_by = username
+
+    for drawing in part.drawings:
+        if drawing.deleted_at is None:
+            drawing.deleted_at = now
+            drawing.deleted_by = username
+
+    # Soft delete samotného Part
+    part.deleted_at = now
+    part.deleted_by = username
+
+    await safe_commit(db, action="mazání dílu")
+    logger.info(
+        f"Soft deleted part: {part_number} with {len(part.operations)} operations, "
+        f"{len(part.material_inputs)} material_inputs, {len(part.batches)} batches, "
+        f"{len(part.drawings)} drawings",
+        extra={"part_number": part_number, "user": username}
+    )
     return {"message": "Díl smazán"}
 
 
@@ -848,12 +925,21 @@ async def get_part_drawing(
     # Use drawing_path from DB (Phase B compatible - supports timestamped filenames)
     drawing_path = Path(part.drawing_path)
 
-    # Validate file exists on disk
+    # Validate file exists on disk — auto-cleanup orphan reference
     if not drawing_path.exists():
-        logger.warning(f"Drawing file missing for part {part_number}: {part.drawing_path}")
+        logger.warning(
+            f"Drawing file missing for part {part_number}: {part.drawing_path}. "
+            f"Auto-cleaning Part.drawing_path."
+        )
+        try:
+            part.drawing_path = None
+            part.updated_by = "system:auto-cleanup"
+            await db.commit()
+        except Exception as e:
+            logger.error(f"Failed to auto-cleanup drawing_path for {part_number}: {e}")
         raise HTTPException(
             status_code=404,
-            detail=f"Drawing file not found: {part.drawing_path}"
+            detail="Soubor výkresu nebyl nalezen na disku"
         )
 
     return FileResponse(

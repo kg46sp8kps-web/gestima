@@ -25,7 +25,7 @@
                 @click="close"
                 aria-label="Close modal"
               >
-                <X :size="20" :stroke-width="2" />
+                <X :size="ICON_SIZE.STANDARD" :stroke-width="2" />
               </button>
             </div>
 
@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { watch, onMounted, onUnmounted } from 'vue';
 import { X } from 'lucide-vue-next';
+import { ICON_SIZE } from '@/config/design';
 
 interface Props {
   modelValue: boolean;

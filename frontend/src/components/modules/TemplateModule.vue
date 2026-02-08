@@ -9,6 +9,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
 import { Plus, Search, Filter, Download, RefreshCw, Settings, Save, X } from 'lucide-vue-next'
 import { alert } from '@/composables/useDialog'
+import { ICON_SIZE } from '@/config/design'
 
 // Layout settings
 const { layoutMode } = usePartLayoutSettings('template')
@@ -38,7 +39,13 @@ const gridAreas = ref({
 })
 
 // Grid area constraints and glue settings
-const gridConfig = ref({
+type GridAreaKey = 'header' | 'infoGrid' | 'stats' | 'description'
+
+const gridConfig = ref<Record<GridAreaKey, {
+  min: number
+  max: number
+  glue: Record<string, boolean>
+}>>({
   header: {
     min: 60,
     max: 200,
@@ -62,7 +69,7 @@ const gridConfig = ref({
 })
 
 // Selected grid area for property panel
-const selectedArea = ref<string | null>(null)
+const selectedArea = ref<GridAreaKey | null>(null)
 
 // Dragging state for grid areas
 const gridDragging = ref<string | null>(null)
@@ -186,16 +193,16 @@ function recalculateGridAreas() {
   let totalCurrent = 0
 
   areas.forEach(area => {
-    const config = gridConfig.value[area]
+    const config = gridConfig.value[area as keyof typeof gridConfig.value]
     totalMin += config.min
     totalMax += config.max
-    totalCurrent += gridAreas.value[area]
+    totalCurrent += gridAreas.value[area as keyof typeof gridAreas.value]
   })
 
   // If available space is less than total min, scale down proportionally (but respect mins)
   if (availableHeight < totalMin) {
     areas.forEach(area => {
-      gridAreas.value[area] = gridConfig.value[area].min
+      gridAreas.value[area as keyof typeof gridAreas.value] = gridConfig.value[area as keyof typeof gridConfig.value].min
     })
     return
   }
@@ -203,15 +210,15 @@ function recalculateGridAreas() {
   // If available space is more than total max, scale up proportionally (but respect maxs)
   if (availableHeight > totalMax) {
     // Find areas with fillRemaining
-    const fillAreas = areas.filter(area => gridConfig.value[area].glue.fillRemaining)
+    const fillAreas = areas.filter(area => gridConfig.value[area as keyof typeof gridConfig.value].glue.fillRemaining)
 
     if (fillAreas.length > 0) {
       // Set non-fill areas to their current size (or max)
       let usedHeight = 0
       areas.forEach(area => {
-        if (!gridConfig.value[area].glue.fillRemaining) {
-          gridAreas.value[area] = Math.min(gridAreas.value[area], gridConfig.value[area].max)
-          usedHeight += gridAreas.value[area]
+        if (!gridConfig.value[area as keyof typeof gridConfig.value].glue.fillRemaining) {
+          gridAreas.value[area as keyof typeof gridAreas.value] = Math.min(gridAreas.value[area as keyof typeof gridAreas.value], gridConfig.value[area as keyof typeof gridConfig.value].max)
+          usedHeight += gridAreas.value[area as keyof typeof gridAreas.value]
         }
       })
 
@@ -220,15 +227,15 @@ function recalculateGridAreas() {
       const heightPerFillArea = remainingHeight / fillAreas.length
 
       fillAreas.forEach(area => {
-        gridAreas.value[area] = Math.max(
-          gridConfig.value[area].min,
-          Math.min(gridConfig.value[area].max, heightPerFillArea)
+        gridAreas.value[area as keyof typeof gridAreas.value] = Math.max(
+          gridConfig.value[area as keyof typeof gridConfig.value].min,
+          Math.min(gridConfig.value[area as keyof typeof gridConfig.value].max, heightPerFillArea)
         )
       })
     } else {
       // No fill areas - just max out everything
       areas.forEach(area => {
-        gridAreas.value[area] = gridConfig.value[area].max
+        gridAreas.value[area as keyof typeof gridAreas.value] = gridConfig.value[area as keyof typeof gridConfig.value].max
       })
     }
     return
@@ -238,11 +245,11 @@ function recalculateGridAreas() {
   const scale = availableHeight / totalCurrent
 
   areas.forEach(area => {
-    const config = gridConfig.value[area]
-    const newHeight = gridAreas.value[area] * scale
+    const config = gridConfig.value[area as keyof typeof gridConfig.value]
+    const newHeight = gridAreas.value[area as keyof typeof gridAreas.value] * scale
 
     // Apply constraints
-    gridAreas.value[area] = Math.max(config.min, Math.min(config.max, newHeight))
+    gridAreas.value[area as keyof typeof gridAreas.value] = Math.max(config.min, Math.min(config.max, newHeight))
   })
 }
 
@@ -252,7 +259,7 @@ function toggleEditMode() {
 }
 
 // Save current layout (explicit save)
-function saveLayout() {
+async function saveLayout() {
   const layoutConfig = {
     panelSize: panelSize.value,
     windowWidth: windowWidth.value,
@@ -283,13 +290,13 @@ function startGridResize(area: 'header' | 'infoGrid' | 'stats', event: MouseEven
   gridDragging.value = area
 
   const startY = event.clientY
-  const startHeight = gridAreas.value[area]
-  const config = gridConfig.value[area]
+  const startHeight = gridAreas.value[area as keyof typeof gridAreas.value]
+  const config = gridConfig.value[area as keyof typeof gridConfig.value]
 
   const onMove = (e: MouseEvent) => {
     const delta = e.clientY - startY
     const newHeight = Math.max(config.min, Math.min(config.max, startHeight + delta))
-    gridAreas.value[area] = newHeight
+    gridAreas.value[area as keyof typeof gridAreas.value] = newHeight
   }
 
   const onUp = () => {
@@ -303,7 +310,7 @@ function startGridResize(area: 'header' | 'infoGrid' | 'stats', event: MouseEven
 }
 
 // Select grid area for editing
-function selectGridArea(area: string) {
+function selectGridArea(area: GridAreaKey) {
   selectedArea.value = selectedArea.value === area ? null : area
 }
 
@@ -388,11 +395,11 @@ function selectItem(item: typeof items.value[0]) {
       </div>
       <div class="toolbar-actions">
         <button class="btn-toolbar btn-save" @click="saveLayout" title="Save layout">
-          <Save :size="16" />
+          <Save :size="ICON_SIZE.SMALL" />
           Save
         </button>
         <button class="btn-toolbar btn-close" @click="toggleEditMode" title="Exit edit mode">
-          <X :size="16" />
+          <X :size="ICON_SIZE.SMALL" />
         </button>
       </div>
     </div>
@@ -404,7 +411,7 @@ function selectItem(item: typeof items.value[0]) {
       @click="toggleEditMode"
       title="Enter layout edit mode"
     >
-      <Settings :size="18" />
+      <Settings :size="ICON_SIZE.STANDARD" />
     </button>
 
     <!-- PROPERTY PANEL (Right side) -->
@@ -482,11 +489,11 @@ function selectItem(item: typeof items.value[0]) {
       <!-- TOOLBAR -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <button class="btn-icon btn-primary" title="Create New">
-            <Plus :size="18" />
+          <button class="icon-btn icon-btn-primary" title="Create New">
+            <Plus :size="ICON_SIZE.STANDARD" />
           </button>
           <div class="search-box">
-            <Search :size="16" class="search-icon" />
+            <Search :size="ICON_SIZE.SMALL" class="search-icon" />
             <input
               v-model="searchQuery"
               type="text"
@@ -496,14 +503,14 @@ function selectItem(item: typeof items.value[0]) {
           </div>
         </div>
         <div class="toolbar-right">
-          <button class="btn-icon" @click="filterStatus = filterStatus ? null : 'active'" :class="{ active: filterStatus }" title="Filter">
-            <Filter :size="18" />
+          <button class="icon-btn" @click="filterStatus = filterStatus ? null : 'active'" :class="{ active: filterStatus }" title="Filter">
+            <Filter :size="ICON_SIZE.STANDARD" />
           </button>
-          <button class="btn-icon btn-refresh" title="Refresh">
-            <RefreshCw :size="18" />
+          <button class="icon-btn btn-refresh" title="Refresh">
+            <RefreshCw :size="ICON_SIZE.STANDARD" />
           </button>
-          <button class="btn-icon btn-export" title="Export">
-            <Download :size="18" />
+          <button class="icon-btn btn-export" title="Export">
+            <Download :size="ICON_SIZE.STANDARD" />
           </button>
         </div>
       </div>
@@ -727,38 +734,6 @@ function selectItem(item: typeof items.value[0]) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
-.btn-icon:hover {
-  background: var(--state-hover);
-}
-
-.btn-icon.active {
-  background: var(--accent-subtle);
-  color: var(--color-primary);
-}
-
-.btn-icon.btn-primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.btn-icon.btn-primary:hover {
-  background: #7f1d1d;
 }
 
 .search-box {

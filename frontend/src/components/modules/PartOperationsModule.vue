@@ -12,10 +12,10 @@ import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
+import type { Operation } from '@/types/operation'
 
 import PartListPanel from './parts/PartListPanel.vue'
-import OperationsHeader from './operations/OperationsHeader.vue'
-import OperationsDetailPanel from './operations/OperationsDetailPanel.vue'
+import OperationsRightPanel from './operations/OperationsRightPanel.vue'
 
 interface Props {
   inline?: boolean
@@ -37,7 +37,7 @@ const contextStore = useWindowContextStore()
 // State
 const selectedPart = ref<Part | null>(null)
 const listPanelRef = ref<InstanceType<typeof PartListPanel> | null>(null)
-const detailPanelRef = ref<InstanceType<typeof OperationsDetailPanel> | null>(null)
+const rightPanelRef = ref<InstanceType<typeof OperationsRightPanel> | null>(null)
 
 // Computed: Get partId from window context (direct property access for fine-grained reactivity)
 const contextPartId = computed(() => {
@@ -57,7 +57,6 @@ const effectivePartId = computed(() => contextPartId.value ?? props.partId)
 
 const isLinked = computed(() => props.linkingGroup !== null)
 const currentPartId = computed(() => selectedPart.value?.id || effectivePartId.value)
-const operationsCount = computed(() => detailPanelRef.value?.operationsCount || 0)
 
 // Resizable panel (only when NOT linked)
 const { panelWidth, isDragging, startResize } = useResizablePanel({
@@ -143,7 +142,7 @@ watch(() => props.partNumber, (newPartNumber) => {
       @mousedown="startResize"
     ></div>
 
-    <!-- RIGHT PANEL: Header + Detail (full width when linked) -->
+    <!-- RIGHT PANEL: Reusable right panel component (full width when linked) -->
     <div class="right-panel" :class="{ 'full-width': linkingGroup }">
       <!-- CONTEXT INFO RIBBON (when linked) -->
       <div v-if="linkingGroup && selectedPart" class="context-ribbon">
@@ -156,17 +155,13 @@ watch(() => props.partNumber, (newPartNumber) => {
         <span class="context-value">{{ selectedPart.name || '-' }}</span>
       </div>
 
-      <!-- OPERATIONS HEADER (when standalone) -->
-      <OperationsHeader
-        v-if="!linkingGroup"
+      <!-- REUSABLE RIGHT PANEL (Material + Operations + Features) -->
+      <OperationsRightPanel
+        ref="rightPanelRef"
         :part="selectedPart"
-        :operationsCount="operationsCount"
-      />
-
-      <OperationsDetailPanel
-        ref="detailPanelRef"
         :partId="currentPartId"
         :linkingGroup="linkingGroup"
+        :showHeader="!linkingGroup"
       />
     </div>
   </div>

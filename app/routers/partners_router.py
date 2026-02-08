@@ -186,13 +186,28 @@ async def delete_partner(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
-    result = await db.execute(select(Partner).where(Partner.partner_number == partner_number))
+    """
+    Soft delete partnera.
+
+    Quotes které referují tohoto partnera zůstanou (partner_id SET NULL),
+    ale mají snapshot_data s historickými údaji.
+    """
+    from datetime import datetime
+
+    result = await db.execute(
+        select(Partner).where(
+            Partner.partner_number == partner_number,
+            Partner.deleted_at.is_(None)
+        )
+    )
     partner = result.scalar_one_or_none()
     if not partner:
         raise HTTPException(status_code=404, detail="Partner nenalezen")
 
-    await db.delete(partner)
+    # Soft delete
+    partner.deleted_at = datetime.utcnow()
+    partner.deleted_by = current_user.username
 
-    await safe_commit(db, action="mazání partnera", integrity_error_msg="Nelze smazat partnera - existují závislé záznamy")
-    logger.info(f"Deleted partner: {partner_number}", extra={"partner_number": partner_number, "user": current_user.username})
+    await safe_commit(db, action="mazání partnera")
+    logger.info(f"Soft deleted partner: {partner_number}", extra={"partner_number": partner_number, "user": current_user.username})
     return {"message": "Partner smazán"}

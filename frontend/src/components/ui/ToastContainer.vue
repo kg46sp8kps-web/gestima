@@ -11,7 +11,7 @@
         >
           <div class="toast-message">{{ toast.message }}</div>
           <button class="toast-close" @click.stop="ui.removeToast(toast.id)">
-            <X :size="16" :stroke-width="2" />
+            <X :size="ICON_SIZE.SMALL" :stroke-width="2" />
           </button>
         </div>
       </TransitionGroup>
@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
 import { X } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 const ui = useUiStore()
 </script>

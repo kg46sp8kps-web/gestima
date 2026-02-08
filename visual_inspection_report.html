@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Visual Inspection Report - 34 files</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .file-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .file-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .file-index {
+            background: #e5e7eb;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .metric {
+            display: flex;
+            flex-direction: column;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .svg-container {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .svg-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .evaluation-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-correct {
+            background: #10b981;
+            color: white;
+        }
+        .btn-correct:hover {
+            background: #059669;
+        }
+        .btn-wrong {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-wrong:hover {
+            background: #dc2626;
+        }
+        .btn-skip {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-skip:hover {
+            background: #4b5563;
+        }
+        .evaluation-result {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        .evaluation-result.correct {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+        .evaluation-result.wrong {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+        .error-card {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+        }
+        .progress {
+            position: sticky;
+            top: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            z-index: 100;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #2563eb;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Visual Inspection Report</h1>
+        <p>Review each extraction and mark as CORRECT or WRONG</p>
+    </div>
+
+    <div class="progress" id="progress">
+        <div>Progress: <strong><span id="evaluated">0</span> / 11</strong> evaluated</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value">34</div>
+            <div class="stat-label">Total Files</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">11</div>
+            <div class="stat-label">Successful Extractions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">23</div>
+            <div class="stat-label">Errors</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="accuracy">--%</div>
+            <div class="stat-label">Accuracy (after review)</div>
+        </div>
+    </div>
+
+    <div class="file-card" data-index="1">
+        <div class="file-header">
+            <div class="file-name">0347039_D00114455_000_000.step</div>
+            <div class="file-index">#1</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">prismatic</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">21 + 0</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">11</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, hole, slot, pocket, chamfer, chamfer, radius, radius, radius, contour_2d</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(1, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(1, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(1, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-1"></div>
+    </div>
+
+    <div class="file-card" data-index="2">
+        <div class="file-header">
+            <div class="file-name">10138363-01_21.03.2024.stp</div>
+            <div class="file-index">#2</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">prismatic</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">5 + 0</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">14</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">contour_2d, hole, hole, hole, hole, hole, pocket, slot, flat, chamfer</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(2, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(2, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(2, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-2"></div>
+    </div>
+
+    <div class="file-card" data-index="3">
+        <div class="file-header">
+            <div class="file-name">3DM_90057637_000_00.stp</div>
+            <div class="file-index">#3</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">rotational</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø75.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">58.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">10 + 2</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">12</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.75</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, hole_pattern, thread_id, chamfer, chamfer, chamfer, chamfer, radius, radius, radius</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(3, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(3, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(3, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-3"></div>
+    </div>
+
+    <div class="file-card" data-index="4">
+        <div class="file-header">
+            <div class="file-name">JR 808404.ipt.step</div>
+            <div class="file-index">#4</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">prismatic</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">0 + 0</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">13</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, hole, hole, hole, hole, hole, hole, hole, thread_id, radius</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(4, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(4, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(4, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-4"></div>
+    </div>
+
+    <div class="file-card" data-index="6">
+        <div class="file-header">
+            <div class="file-name">JR 810663.ipt.step</div>
+            <div class="file-index">#6</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">prismatic</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">1 + 1</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">6</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.98</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, counterbore, hole_pattern, chamfer, chamfer, radius</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(6, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(6, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(6, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-6"></div>
+    </div>
+
+    <div class="file-card" data-index="7">
+        <div class="file-header">
+            <div class="file-name">JR 810664.ipt.step</div>
+            <div class="file-index">#7</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">prismatic</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">0.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">5 + 0</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">6</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, thread_id, pocket, chamfer, contour_2d, slot</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(7, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(7, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(7, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-7"></div>
+    </div>
+
+    <div class="file-card" data-index="8">
+        <div class="file-header">
+            <div class="file-name">JR 810665.ipt.step</div>
+            <div class="file-index">#8</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">rotational</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø8.9 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">87.8 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">Ø12.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">10 + 9</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">4</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, thread_od, chamfer, chamfer</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(8, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(8, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(8, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-8"></div>
+    </div>
+
+    <div class="file-card" data-index="9">
+        <div class="file-header">
+            <div class="file-name">JR 810666.ipt.step</div>
+            <div class="file-index">#9</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">rotational</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø30.5 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">198.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">18 + 0</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">16</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, hole, hole, hole, hole, hole, thread_id, chamfer, chamfer, radius</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(9, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(9, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(9, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-9"></div>
+    </div>
+
+    <div class="file-card" data-index="10">
+        <div class="file-header">
+            <div class="file-name">JR 810669.ipt.step</div>
+            <div class="file-index">#10</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">rotational</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø46.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">460.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">N/A</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">17 + 2</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">10</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">thread_od, thread_od, hole, hole, hole, chamfer, chamfer, groove_od, groove_od, flat</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(10, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(10, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(10, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-10"></div>
+    </div>
+
+    <div class="file-card" data-index="11">
+        <div class="file-header">
+            <div class="file-name">JR 810670.ipt.step</div>
+            <div class="file-index">#11</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">rotational</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø36.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">24.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">Ø16.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">10 + 12</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">7</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, hole, hole, chamfer, chamfer, chamfer, groove_od</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(11, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(11, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(11, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-11"></div>
+    </div>
+
+    <div class="file-card" data-index="12">
+        <div class="file-header">
+            <div class="file-name">JR 810671.ipt.step</div>
+            <div class="file-index">#12</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-label">Part Type</div>
+                <div class="metric-value">rotational</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Max Diameter</div>
+                <div class="metric-value">Ø12.0 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Length</div>
+                <div class="metric-value">48.8 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Bore Diameter</div>
+                <div class="metric-value">Ø1.1 mm</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Contour Points</div>
+                <div class="metric-value">10 + 4</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">5</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value">0.92</div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Extracted Features</div>
+            <div style="margin-top: 5px; color: #4b5563;">hole, groove_od, groove_od, chamfer, chamfer</div>
+        </div>
+
+        <div class="svg-container">
+            <img src="data:image/svg+xml;base64," alt="Profile SVG" />
+        </div>
+
+        <div class="evaluation-buttons">
+            <button class="btn btn-correct" onclick="evaluate(12, 'correct')">✓ CORRECT</button>
+            <button class="btn btn-wrong" onclick="evaluate(12, 'wrong')">✗ WRONG</button>
+            <button class="btn btn-skip" onclick="evaluate(12, 'skip')">→ SKIP</button>
+        </div>
+
+        <div class="evaluation-result" id="result-12"></div>
+    </div>
+<h2>Failed Extractions</h2>
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 808405.ipt.step</div>
+            <div class="file-index">#5</div>
+        </div>
+        <p><strong>Error:</strong> '>' not supported between instances of 'NoneType' and 'int'</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810686.ipt.step</div>
+            <div class="file-index">#13</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLcqfgGvTeED1YV5sW'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810688.ipt.step</div>
+            <div class="file-index">#14</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLhhrv5So5qf3GMQAE'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810690.ipt.step</div>
+            <div class="file-index">#15</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLm5m4JsfD92ow8vuy'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810691.ipt.step</div>
+            <div class="file-index">#16</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLoapz7ZFfxu2MH5Fo'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810695.ipt.step</div>
+            <div class="file-index">#17</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLrSUHxr8u4PwgpjJL'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810715.ipt.step</div>
+            <div class="file-index">#18</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLuLME2nUuRXK9s3aA'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810716.ipt.step</div>
+            <div class="file-index">#19</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLwqfaxmJdcM6DhBHs'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810717.ipt.step</div>
+            <div class="file-index">#20</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPLzYsyWiChb44Z8QTa'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810718.ipt.step</div>
+            <div class="file-index">#21</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPM2qJEVkXKtGyHxZvz'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810833.ipt.step</div>
+            <div class="file-index">#22</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPM56yaiKrBEs8K9FDm'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810834.ipt.step</div>
+            <div class="file-index">#23</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPM7TcFMqnjDXCFsJ7a'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810857.ipt.step</div>
+            <div class="file-index">#24</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPM9sUCUGfwcSSJjhM8'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810872.ipt.step</div>
+            <div class="file-index">#25</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMCWxhWcicKruHenHC'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 810935.ipt.step</div>
+            <div class="file-index">#26</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMFdz6iuodvA5cPdpW'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 811181.ipt.step</div>
+            <div class="file-index">#27</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMMqYnxZzS1TxZoaNA'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 811182.ipt.step</div>
+            <div class="file-index">#28</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMQRpmSZDZPQ2YZSPS'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 811185.ipt.step</div>
+            <div class="file-index">#29</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMSrRd1edR9SFniJof'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 811186.ipt.step</div>
+            <div class="file-index">#30</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMVFHrYvZ4v6cABoFm'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 811187.ipt.step</div>
+            <div class="file-index">#31</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMXUVGAEs1eMn2TiPg'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">JR 811198.ipt.step</div>
+            <div class="file-index">#32</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMZehmc7jPKiQ18PM6'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">PDM-249322_03.stp</div>
+            <div class="file-index">#33</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMdb6M35zG1qBHbQ9p'}</p>
+    </div>
+
+    <div class="file-card error-card">
+        <div class="file-header">
+            <div class="file-name">PDM-280739_03.stp</div>
+            <div class="file-index">#34</div>
+        </div>
+        <p><strong>Error:</strong> Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CXsPMkcGJk4fpu4uRAzen'}</p>
+    </div>
+
+    <script>
+        const evaluations = {};
+
+        function evaluate(index, result) {
+            evaluations[index] = result;
+
+            const resultDiv = document.getElementById(`result-${index}`);
+            resultDiv.className = 'evaluation-result ' + result;
+
+            if (result === 'correct') {
+                resultDiv.textContent = '✓ Marked as CORRECT';
+            } else if (result === 'wrong') {
+                resultDiv.textContent = '✗ Marked as WRONG';
+            } else {
+                resultDiv.textContent = '→ Skipped';
+                resultDiv.style.background = '#f3f4f6';
+                resultDiv.style.color = '#6b7280';
+            }
+
+            // Update progress
+            const evaluated = Object.keys(evaluations).filter(k => evaluations[k] !== 'skip').length;
+            const total = 11;
+            const correct = Object.values(evaluations).filter(v => v === 'correct').length;
+
+            document.getElementById('evaluated').textContent = evaluated;
+            document.getElementById('progress-fill').style.width = (evaluated / total * 100) + '%';
+
+            if (evaluated > 0) {
+                const accuracy = (correct / evaluated * 100).toFixed(1);
+                document.getElementById('accuracy').textContent = accuracy + '%';
+            }
+
+            // Save to localStorage
+            localStorage.setItem('visual_inspection_evals', JSON.stringify(evaluations));
+
+            // Scroll to next unevaluated
+            const cards = document.querySelectorAll('.file-card:not(.error-card)');
+            for (let card of cards) {
+                const cardIndex = card.getAttribute('data-index');
+                if (!evaluations[cardIndex]) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    break;
+                }
+            }
+        }
+
+        // Load previous evaluations
+        const saved = localStorage.getItem('visual_inspection_evals');
+        if (saved) {
+            const evals = JSON.parse(saved);
+            for (let [index, result] of Object.entries(evals)) {
+                evaluate(parseInt(index), result);
+            }
+        }
+    </script>
+</body>
+</html>

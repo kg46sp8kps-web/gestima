@@ -97,6 +97,18 @@ class QuoteService:
         Formula: line_total = quantity * unit_price
         """
         item.line_total = item.quantity * item.unit_price
+
+        # INVARIANT CHECK: Verify calculation integrity
+        expected = item.quantity * item.unit_price
+        if abs(item.line_total - expected) > 0.01:
+            logger.error(
+                f"INVARIANT VIOLATION: QuoteItem {item.id} line_total mismatch! "
+                f"Stored: {item.line_total}, Expected: {expected}"
+            )
+            raise ValueError(
+                f"Data integrity error: QuoteItem line_total mismatch"
+            )
+
         return item
 
     @staticmethod
@@ -139,6 +151,18 @@ class QuoteService:
             f"subtotal={quote.subtotal}, discount={quote.discount_amount}, "
             f"tax={quote.tax_amount}, total={quote.total}"
         )
+
+        # INVARIANT CHECK: Verify calculation integrity
+        expected_subtotal = sum(item.line_total for item in items)
+        if abs(quote.subtotal - expected_subtotal) > 0.01:
+            logger.error(
+                f"INVARIANT VIOLATION: Quote {quote.quote_number} subtotal mismatch! "
+                f"Stored: {quote.subtotal}, Expected: {expected_subtotal}"
+            )
+            raise ValueError(
+                f"Data integrity error: Quote subtotal mismatch "
+                f"({quote.subtotal} != {expected_subtotal})"
+            )
 
         return quote
 
@@ -528,6 +552,7 @@ class QuoteService:
     @staticmethod
     async def match_item(
         article_number: str,
+        drawing_number: Optional[str],
         name: str,
         quantity: int,
         notes: Optional[str],
@@ -551,6 +576,17 @@ class QuoteService:
         Returns:
             PartMatch with part + batch matching results
         """
+        from app.services.article_number_matcher import ArticleNumberMatcher
+
+        # Normalize article_number (strip prefixes like byn-, trgcz-, etc.)
+        normalized = ArticleNumberMatcher.normalize(article_number)
+        clean_article_number = normalized.base  # Without prefix AND revision
+
+        logger.debug(
+            f"Normalizing article_number: '{article_number}' → '{clean_article_number}' "
+            f"(prefix={normalized.prefix}, revision={normalized.revision})"
+        )
+
         # Try to match part
         part = await QuoteService.match_part_by_article_number(article_number, db)
 
@@ -558,7 +594,8 @@ class QuoteService:
             # Part doesn't exist - will be created
             return PartMatch(
                 part_exists=False,
-                article_number=article_number,
+                article_number=clean_article_number,  # Return normalized
+                drawing_number=drawing_number,
                 name=name,
                 quantity=quantity,
                 notes=notes,
@@ -604,7 +641,8 @@ class QuoteService:
             part_id=part.id,
             part_number=part.part_number,
             part_exists=True,
-            article_number=article_number,
+            article_number=clean_article_number,  # Return normalized
+            drawing_number=drawing_number,
             name=name,
             quantity=quantity,
             notes=notes,

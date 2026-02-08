@@ -121,6 +121,7 @@ def expand_item(item: ItemExtraction) -> List[ItemExtraction]:
         # Create new item for this quantity tier
         expanded_item = ItemExtraction(
             article_number=item.article_number,
+            drawing_number=item.drawing_number,
             name=item.name,
             quantity=qty,
             notes=f"🎯 Volume tier: {qty} {'pc' if qty == 1 else 'pcs'} | Original: {original_notes}",

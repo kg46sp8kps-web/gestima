@@ -1,6 +1,6 @@
-# UI BIBLE V8.1 - KOMPLETNÍ STAVEBNÍ PRŮVODCE
+# UI BIBLE V8.2 - KOMPLETNÍ STAVEBNÍ PRŮVODCE
 
-**Verze:** 8.1
+**Verze:** 8.2
 **Datum:** 2026-02-02
 **Status:** 🔒 **PRODUCTION READY** - Konsolidovaná dokumentace všech UI vzorů
 
@@ -45,6 +45,9 @@
 --font-medium: 500
 --font-semibold: 600
 --font-bold: 700
+
+/* === ICONS === */
+--icon-size: 15px /* Lucide icon size (STANDARD) */
 
 /* === COLORS === */
 --color-primary: #991b1b       /* Red - primary actions */
@@ -420,13 +423,13 @@ async function saveEdit() {
     <!-- ICON TOOLBAR -->
     <div v-if="!isEditing" class="icon-toolbar">
       <button class="icon-btn" @click="startEdit" title="Upravit">
-        <Edit :size="14" />
+        <Edit :size="15" />
       </button>
       <button class="icon-btn" @click="handleCopy" title="Kopírovat">
-        <Copy :size="14" />
+        <Copy :size="15" />
       </button>
       <button class="icon-btn icon-btn-danger" @click="handleDelete" title="Smazat">
-        <Trash2 :size="14" />
+        <Trash2 :size="15" />
       </button>
     </div>
   </div>
@@ -1216,6 +1219,143 @@ watch(contextPartId, (newPartId) => {
 
 ---
 
+### Pattern 5: Icon-Only Buttons (STANDARD)
+
+**Použití:** VŠECHNY buttony v aplikaci (header, toolbar, actions)
+
+**KRITICKÉ PRAVIDLO:**
+```
+❌ NIKDY: <button>Text</button> nebo <button><Icon />Text</button>
+✅ VŽDY:  <button title="Text"><Icon :size="15" /></button>
+
+POZNÁMKA: V CSS existuje --icon-size: 15px pro budoucí použití
+```
+
+**Vizuální Design:**
+```
+┌─────────────────────────────┐
+│  📋  ➕  🗑️  💾  ✏️         │ ← Jen ikony, bez textu
+└─────────────────────────────┘
+    24px × 24px, ikona 15px
+```
+
+**Template:**
+
+```vue
+<script setup lang="ts">
+import { Plus, Edit, Trash2, Save, X } from 'lucide-vue-next'
+
+function handleCreate() {
+  // Create logic
+}
+
+function handleEdit() {
+  // Edit logic
+}
+
+function handleDelete() {
+  // Delete logic
+}
+</script>
+
+<template>
+  <div class="actions-toolbar">
+    <button class="btn-icon" @click="handleCreate" title="Vytvořit nový">
+      <Plus :size="15" />
+    </button>
+    <button class="btn-icon" @click="handleEdit" title="Upravit">
+      <Edit :size="15" />
+    </button>
+    <button class="btn-icon btn-icon-danger" @click="handleDelete" title="Smazat">
+      <Trash2 :size="15" />
+    </button>
+  </div>
+</template>
+
+<style scoped>
+.actions-toolbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border-color);
+}
+
+/* === ICON-ONLY BUTTON === */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: var(--color-primary);
+  transform: scale(1.15);
+}
+
+.btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Primary variant (pro hlavní akce) */
+.btn-icon-primary {
+  color: var(--color-primary);
+}
+
+.btn-icon-primary:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+  transform: scale(1.15);
+}
+
+/* Danger variant (pro destruktivní akce) */
+.btn-icon-danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  transform: scale(1.15);
+}
+</style>
+```
+
+**Kdy použít varianty:**
+
+| Varianta | Použití | Příklad |
+|----------|---------|---------|
+| `.btn-icon` (default) | Standardní akce | Edit, Copy |
+| `.btn-icon-primary` | Hlavní akce | Save, Confirm |
+| `.btn-icon-danger` | Destruktivní akce | Delete, Remove |
+
+**Výhody:**
+- ✅ Kompaktní UI (24px místo 80px+)
+- ✅ Mezinárodní (ikony = univerzální jazyk)
+- ✅ Konzistentní velikost a chování
+- ✅ Tooltip poskytuje kontext
+
+**ZAKÁZÁNO:**
+```vue
+<!-- ❌ NIKDY toto nedělej -->
+<button class="btn-large">
+  <Icon />
+  Dlouhý text
+</button>
+
+<!-- ✅ SPRÁVNĚ -->
+<button class="btn-icon" title="Dlouhý text">
+  <Icon :size="15" />
+</button>
+```
+
+---
+
 ## 🛠️ TOOLING & WORKFLOW
 
 ### CSS Debug Overlay
@@ -1340,6 +1480,20 @@ frontend/src/components/modules/manufacturing/ManufacturingItemsModule.vue
 
 ## 📝 CHANGELOG
 
+### V8.2 (2026-02-03)
+- ✅ **BREAKING:** Změna velikosti ikon z 14px na 15px (všechny Lucide ikony)
+- ✅ Aktualizace CSS proměnné: --icon-size: 15px
+- ✅ Hromadná změna 78 výskytů :size="14" → :size="15" napříč celou aplikací
+
+### V8.2 (2026-02-02)
+- ✅ **BREAKING:** Přidán Pattern 5: Icon-Only Buttons (STANDARD)
+- ✅ ZAKÁZÁNO: Buttony s textem - POUZE ikony + tooltip
+- ✅ Standardní velikost: 24px × 24px, ikona 15px
+- ✅ Přidána CSS proměnná: --icon-size: 15px
+- ✅ Implementováno v Quotes modulu (QuoteHeader, QuoteListPanel, QuoteDetailPanel)
+- ✅ Varianty: default, primary, danger
+- ✅ Hover efekt: scale(1.15) + barevná změna
+
 ### V8.1 (2026-02-02)
 - ✅ Přidán Pattern 4: Context Ribbon pro Linked Moduly
 - ✅ Dokumentace conditional rendering (part list)
@@ -1361,7 +1515,7 @@ frontend/src/components/modules/manufacturing/ManufacturingItemsModule.vue
 
 ---
 
-**🔒 END OF BIBLE V8.1**
+**🔒 END OF BIBLE V8.2**
 
 **Toto je kompletní, konsolidovaná dokumentace všech UI vzorů používaných v Gestima.**
 **Použij ji jako referenci při vytváření nových modulů.**

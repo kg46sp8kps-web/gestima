@@ -14,6 +14,7 @@ import CopyPartModal from './CopyPartModal.vue'
 import { updatePart, deletePart } from '@/api/parts'
 import { useAuthStore } from '@/stores/auth'
 import { Edit, Copy, Trash2, Package, Settings, DollarSign, FileText, Save, X } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm, alert } from '@/composables/useDialog'
 
 interface Props {
@@ -210,11 +211,11 @@ function handleOpenDrawing(drawingId?: number) {
       <!-- ICON TOOLBAR (Edit mode) -->
       <div v-if="isEditing" class="icon-toolbar">
         <button class="action-button action-button-primary" @click="saveEdit">
-          <Save :size="32" class="action-icon" />
+          <Save :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Uložit</span>
         </button>
         <button class="action-button action-button-secondary" @click="cancelEdit">
-          <X :size="32" class="action-icon" />
+          <X :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Zrušit</span>
         </button>
       </div>
@@ -227,10 +228,10 @@ function handleOpenDrawing(drawingId?: number) {
           @click="startEdit"
           title="Upravit"
         >
-          <Edit :size="15" />
+          <Edit :size="ICON_SIZE.STANDARD" />
         </button>
         <button class="icon-btn" @click="handleCopy" title="Kopírovat">
-          <Copy :size="15" />
+          <Copy :size="ICON_SIZE.STANDARD" />
         </button>
         <button
           v-if="authStore.isAdmin"
@@ -238,7 +239,7 @@ function handleOpenDrawing(drawingId?: number) {
           @click="handleDelete"
           title="Smazat"
         >
-          <Trash2 :size="15" />
+          <Trash2 :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
     </div>
@@ -249,17 +250,17 @@ function handleOpenDrawing(drawingId?: number) {
 
       <div class="actions-grid">
         <button class="action-button" @click="$emit('open-material')" title="Materiál">
-          <Package :size="32" class="action-icon" />
+          <Package :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Materiál</span>
         </button>
 
         <button class="action-button" @click="$emit('open-operations')" title="Operace">
-          <Settings :size="32" class="action-icon" />
+          <Settings :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Operace</span>
         </button>
 
         <button class="action-button" @click="$emit('open-pricing')" title="Ceny">
-          <DollarSign :size="32" class="action-icon" />
+          <DollarSign :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Ceny</span>
         </button>
 
@@ -269,7 +270,7 @@ function handleOpenDrawing(drawingId?: number) {
           @contextmenu="handleDrawingRightClick"
           title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
         >
-          <FileText :size="32" class="action-icon" />
+          <FileText :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Výkres</span>
         </button>
       </div>

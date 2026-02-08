@@ -36,31 +36,37 @@ async def login(
     - Nastaví HttpOnly cookie
     - Vrátí status + user info
     """
-    # Authenticate
-    user = await authenticate_user(db, credentials.username, credentials.password)
+    try:
+        # Authenticate
+        user = await authenticate_user(db, credentials.username, credentials.password)
 
-    # Create JWT token
-    access_token = create_access_token(
-        data={"sub": user.username, "role": user.role.value}
-    )
+        # Create JWT token
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role.value}
+        )
 
-    # Set HttpOnly cookie
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,                          # XSS protection
-        secure=settings.SECURE_COOKIE,          # HTTPS only v produkci
-        samesite="strict",                      # CSRF protection
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
+        # Set HttpOnly cookie
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,                          # XSS protection
+            secure=settings.SECURE_COOKIE,          # HTTPS only v produkci
+            samesite="strict",                      # CSRF protection
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
 
-    logger.info(f"User logged in: {user.username}")
+        logger.info(f"User logged in: {user.username}")
 
-    return TokenResponse(
-        status="ok",
-        username=user.username,
-        role=user.role
-    )
+        return TokenResponse(
+            status="ok",
+            username=user.username,
+            role=user.role
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during login: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při přihlašování")
 
 
 # ============================================================================
@@ -74,10 +80,14 @@ async def logout(response: Response):
 
     - Smaže HttpOnly cookie
     """
-    response.delete_cookie(key="access_token")
-    logger.info("User logged out")
+    try:
+        response.delete_cookie(key="access_token")
+        logger.info("User logged out")
 
-    return {"status": "ok", "message": "Logged out successfully"}
+        return {"status": "ok", "message": "Logged out successfully"}
+    except Exception as e:
+        logger.error(f"Error during logout: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při odhlašování")
 
 
 # ============================================================================

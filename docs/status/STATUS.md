@@ -1,8 +1,626 @@
 # GESTIMA - Current Status
 
-**Last Updated:** 2026-02-02
-**Version:** 1.15.0
-**Status:** 🟡 PLANNED - Visual Editor Design Spec Complete
+**Last Updated:** 2026-02-06
+**Version:** 1.23.1
+**Status:** OCCT Parser Integration FIXED (was implemented but unused!)
+
+---
+
+## 🔴 CRITICAL FIX: OCCT Parser Was Not Being Used! (v1.23.1)
+
+### Problem Discovered
+
+OCCT parser (`step_parser_occt.py`) was **implemented in v1.23.0 but NOT being used** by `analysis_service.py`.
+
+**Root Cause:**
+```python
+# analysis_service.py, line 265 (BEFORE):
+parser = StepParser()  # ❌ Missing use_occt parameter!
+```
+
+**Impact:**
+- Feature recognition was still using **regex parser** (40% accuracy)
+- Users saw approximate contours instead of exact OCCT geometry (90%+ accuracy)
+- `step_deterministic` pipeline was effectively running `step_regex`
+- **Silent failure** — no error, just bad results
+
+### Fix Applied
+
+```python
+# analysis_service.py, line 267 (AFTER):
+from app.config import settings
+parser = StepParser(use_occt=settings.ENABLE_OCCT_PARSER)  # ✅ Fixed!
+```
+
+**Enhancements:**
+- Added logging: "STEP parsed with source: occt" or "step_regex"
+- Warning when OCCT unavailable: "OCCT parser unavailable or failed - using regex fallback"
+- Debug logging in `contour_builder.py`: "Classified: 12 outer, 5 inner, 0 holes"
+
+### Verification
+
+**New Tests:** `tests/test_occt_integration.py` (4 tests)
+```bash
+./gestima.py test tests/test_occt_integration.py -v
+# ✅ 3 passed, 1 skipped in 0.02s
+```
+
+**Check Logs For:**
+```
+INFO: STEP parsed with source: occt | 17 features, rotation_axis=z
+INFO: ContourBuilder: building from 17 features
+INFO: Classified: 12 outer, 5 inner, 0 holes
+```
+
+If you see "source: step_regex" → OCCT unavailable or failed!
+
+### Lesson Learned
+
+**"Available" ≠ "Used"**
+- Just because code exists doesn't mean it's executed
+- Integration tests MUST verify actual behavior, not just imports
+- Always log data source for debugging accuracy issues
+
+**ADR-040:** Full postmortem and fix documentation
+
+---
+
+## Version 1.23.0 - OCCT Backend Parser (2026-02-06)
+
+## 🎯 Major Feature: Native OCCT STEP Parser
+
+**Motivation:** Regex parser limitations (approximate geometry, no assemblies, ±30% volume error)
+
+**Implementation:**
+- Native Python OCCT bindings (pythonocc-core)
+- 3-module architecture (606 LOC total, L-036 compliant)
+- Hybrid fallback chain: OCCT → regex → Claude
+- 31 tests passed, production-ready
+
+**Files:**
+- `app/services/step_parser_occt.py` (221 LOC) - Main orchestration
+- `app/services/occt_feature_extractors.py` (237 LOC) - Feature extraction
+- `app/services/occt_metadata.py` (148 LOC) - Metadata extraction
+- `tests/test_step_parser_occt.py` (262 LOC) - Unit tests
+- `tests/test_step_parser_integration.py` (300 LOC) - Integration tests
+
+**Benefits:**
+- ✅ Deterministic contours (B-rep topology vs Claude approximation)
+- ✅ Volume accuracy ±0.1% (vs ±30%)
+- ✅ Assembly support (multi-part STEP files)
+- ✅ Graceful degradation (OCCT optional dependency)
+
+**Installation:**
+```bash
+conda install -c conda-forge pythonocc-core
+```
+
+**Config:**
+```python
+# app/config.py
+ENABLE_OCCT_PARSER: bool = True  # Default enabled
+```
+
+**Performance:** ~40ms parse time (comparable to regex)
+
+**Next Steps:**
+1. Production testing with 50+ STEP files
+2. MasterAdmin batch upload UI
+3. Assembly workflow validation
+
+---
+
+## Latest: STEP Deterministic Contour & OCCT Migration Decision (v1.22.0 - Day 46)
+
+**Deterministická kontura z STEP souboru (bez Claude API) funguje pro 11 testovacích dílů. Regex parser narazil na fundamentální limity → schválena migrace na OCCT (ADR-039).**
+
+### What's New (this session)
+
+#### STEP Kontury Test Panel (Admin UI)
+- Nový tab **"STEP Kontury"** v Admin floating window (`MasterAdminModule.vue`)
+- `StepContourTestPanel.vue` (~290 LOC) — načte všechny STEP soubory, zobrazí deterministické kontury
+- Backend endpoint `GET /api/feature-recognition/test-contours` — bulk parse + contour build
+- Client-side SVG rendering z outer_contour + inner_contour bodů
+- **Výsledek:** 11 souborů, 10 kontur (1 prismatic = žádná rotační kontura), SVG preview pro každý díl
+
+#### Inner Contour Fixes (3 critical bugs)
+
+**Bug 1: JR 810670 — Zigzag inner contour**
+- `_build_inner_contour` používal `_sort_and_deduplicate` (sort by z,r) → zigzag na step transitions
+- **Fix:** Přepsáno na sequential tracing (same approach jako `_build_outer_contour`)
+- Výsledek: z=0 r=8 → z=11 r=8 → z=11 r=4.5 → z=24 r=4.5 (correct stepped bore)
+
+**Bug 2: JR 810663 — Cone misclassification to inner**
+- Cone `surf.radius` = semi_angle (1.23°), ne geometrický radius (22.5mm)
+- "Enclosed" check porovnával 1.23 < other_r*1.5 → špatně překlasifikoval chamfer na inner
+- **Fix:** Nová funkce `_effective_radius()` — používá `boundary_zr_pairs` max(r) místo `surf.radius`
+
+**Bug 3: JR 808404 — Cross-holes in inner + overlapping segments**
+- Off-axis check (bolt holes, cross-holes) se aplikoval POUZE na outer surfaces
+- Tři koncentrické válce (r=8.5, r=4.1, r=6.0) na z=[0,12] → sequential tracing = zigzag
+- **Fix 1:** Off-axis filter rozšířen na ALL surfaces (včetně is_inner=True)
+- **Fix 2:** Nový **envelope algorithm** pro překrývající se inner segmenty:
+  - Collect z-breakpoints ze všech segmentů
+  - Pro každý z-interval najdi segment s max(r) via interpolace
+  - `_interpolate_r()` + `_trace_sequential()` helper funkce
+
+#### Duplicate Endpoint Cleanup
+- Smazán duplicitní `test-contours` endpoint z konce routeru (lines 1205-1327)
+- Endpoint ponechán na line 396 (PŘED parametrizovanou `/{recognition_id}` route)
+
+### Regex Parser: Fundamental Limitations Discovered
+
+Během ladění 3 bugů se ukázalo, že regex-based STEP parser má **systémové limity**:
+
+| Problém | Příčina | Dopad |
+|---------|---------|-------|
+| Cone radius vs. semi_angle | STEP text `CONICAL_SURFACE(r)` = semi_angle, ne geometrický radius | Špatná klasifikace inner/outer |
+| Overlapping z-ranges | Více válců na stejném z-intervalu | Envelope algorithm nutný (workaround) |
+| Off-axis detection | Regex parsuje `DIRECTION` ale nemá topologický kontext | Cross-holes propadnou do inner |
+| Multi-line entity | Entity přes 2+ řádky → regex match selhává | Ztracené povrchy |
+
+**Závěr:** Každý nový STEP soubor může odhalit další edge case → nekonečný cyklus patchování. **OCCT parser je průmyslový standard a řeší ALL tyto problémy nativně.**
+
+### OCCT Migration Decision (ADR-039)
+
+- **Schváleno:** Přechod na OpenCASCADE Technology (OCCT) via `pythonocc-core`
+- **ADR:** [039-occt-step-parser-integration.md](../ADR/039-occt-step-parser-integration.md) — APPROVED
+- **Brief:** [OCCT-IMPLEMENTATION-BRIEF.md](../agents/OCCT-IMPLEMENTATION-BRIEF.md) — READY
+- **Architecture:** Hybrid (OCCT primary → regex fallback → Claude API fallback)
+- **Benefity:** Assembly support, NURBS, volume calculation, B-rep topology for toolpaths
+- **Timeline:** 1 týden implementation
+
+### Files Changed
+
+| File | Action | Detail |
+|------|--------|--------|
+| `app/services/contour_builder.py` | **3 FIXES** | off-axis inner, effective_radius, envelope algorithm |
+| `app/routers/feature_recognition_router.py` | **CLEANUP** | deleted duplicate endpoint (-122 LOC) |
+| `frontend/src/components/modules/admin/StepContourTestPanel.vue` | **NEW** (prev session) | ~290 LOC |
+| `frontend/src/components/modules/MasterAdminModule.vue` | **EDIT** (prev session) | +STEP Kontury tab |
+| `docs/ADR/039-occt-step-parser-integration.md` | **NEW** (prev session) | 726 LOC |
+| `docs/agents/OCCT-IMPLEMENTATION-BRIEF.md` | **NEW** (prev session) | 380 LOC |
+
+### Test Results
+- **20/20** step parser + contour builder tests pass
+- **All 11** STEP files produce correct deterministic contours in browser
+- Inner contours verified visually for JR 810670, JR 810663, JR 808404
+
+### Next Steps (Prioritized)
+1. **OCCT Implementation** (ADR-039) — `pythonocc-core` install, `step_parser_occt.py`, hybrid integration
+2. **Contour Builder update** — switch from regex features to OCCT B-rep topology
+3. **PDF Context Extractor** — lightweight Claude call for material/tolerances only (no geometry)
+4. **Continue FR Phases** — ADR-035 Phase 1 (Verification UI), ADR-037 Phase 4 (Toolpaths)
+
+### How to Start Next Session
+```
+Aktivuj ŠÉFÍKA - implementace OCCT parseru (ADR-039)
+Brief: docs/agents/OCCT-IMPLEMENTATION-BRIEF.md
+Timeline: 1 týden
+```
+
+### Related
+- ADR: [039-occt-step-parser-integration.md](../ADR/039-occt-step-parser-integration.md)
+- ADR: [035-feature-recognition-system.md](../ADR/035-feature-recognition-system.md)
+- ADR: [036-manufacturing-planning-services.md](../ADR/036-manufacturing-planning-services.md)
+
+---
+
+## Previous: Deterministic FR Pipeline Integration (v1.21.0 - Day 45)
+
+**Phase 2 of ADR-035/036: geometry_extractor + operation_generator connected as alternative pipeline with auto fallback.**
+
+### What's New (this session)
+
+#### Analysis Service (`app/services/analysis_service.py` - NEW, ~290 LOC)
+- Pipeline dispatch: hybrid / deterministic / auto modes
+- Bridge pattern: `convert_generator_ops_to_flat()` — Operation dataclass → enrichment-compatible dicts
+- Auto mode: try deterministic (confidence ≥ 0.80 + ops > 0) → fallback to hybrid
+- Shared enrichment + SVG + response construction for all 3 router endpoints
+- Material group validation: resolves text ("stainless_steel") → 8-digit code ("20910007")
+
+#### Geometry Extractor Upgrade (`app/services/geometry_extractor.py` - 394→540 LOC)
+- Retry with rate-limit handling (2 retries, 15s exponential backoff)
+- PDF trimming via `trim_pdf_pages()` (saves ~90% tokens on multi-page PDFs)
+- Robust JSON parsing via `parse_claude_json_response()` (handles markdown fences, repair)
+- PDF-only mode: `extract_geometry_pdf_only()` with confidence cap at 0.80
+- Unified model: `claude-sonnet-4-5-20250929`
+
+#### Router Refactor (`app/routers/feature_recognition_router.py` - 1685→1068 LOC, -37%)
+- 3 endpoints (analyze, apply, apply-from-drawings) use `run_analysis()` + `build_fr_response()`
+- Extracted helpers: `_process_step_file()`, `_process_pdf_file()`, `_cleanup_temp_files()`
+- All 7 routes preserved, endpoint signatures unchanged
+
+#### Config & Schema
+- `FR_PIPELINE_MODE` setting in config.py (currently: "auto")
+- `deterministic_geometry` added to OperationSuggestion.source pattern
+
+#### Tests (`tests/test_analysis_service.py` - 13 tests)
+- Conversion (3), Consistency (2), Pipeline dispatch (5), Operation suggestions (3)
+- All 135 FR-related tests pass, 544+ total tests pass
+
+### Known Issue: Geometry Accuracy
+- **Claude's geometry extraction from STEP+PDF is approximate, not exact**
+- Dimensions, angles, and tolerances may differ from actual part
+- Operation generator produces structurally correct operations, but times/params may be inaccurate
+- **Next step:** Compare Claude geometry vs. actual dimensions, calibrate accuracy
+- This is the main bottleneck for production-quality manufacturing planning
+
+### Files Changed
+
+| File | Action | LOC |
+|------|--------|-----|
+| `app/services/analysis_service.py` | **NEW** | ~290 |
+| `app/services/geometry_extractor.py` | **UPGRADE** | 394→540 |
+| `app/routers/feature_recognition_router.py` | **REFACTOR** | 1685→1068 |
+| `app/config.py` | **+1 line** | FR_PIPELINE_MODE |
+| `app/schemas/feature_recognition.py` | **EDIT** | +source pattern |
+| `tests/test_analysis_service.py` | **NEW** | 13 tests |
+
+### Bug Fix: material_group Validation (same session)
+- Claude returned `material_group: "stainless_steel"` (15 chars) instead of 8-digit code
+- Schema `OperationSuggestion.material_group` has `max_length=8` → 500 error
+- Fix: 3-point validation in analysis_service.py via `resolve_material_group()` + `MATERIAL_GROUP_MAP`
+
+### Related
+- ADR: [035-feature-recognition-system.md](../ADR/035-feature-recognition-system.md)
+- ADR: [036-manufacturing-planning-services.md](../ADR/036-manufacturing-planning-services.md)
+
+---
+
+## Previous: Feature Recognition v3 - Point-based Contour (v1.20.0 - Day 44)
+
+**Profile rendering rewritten from block model (rectangles) to point-based contour (path). Feature recognition now "běží" — this is the baseline for fine-tuning.**
+
+### What's New (this session)
+
+#### Profile SVG Renderer v3 (`app/services/profile_svg_renderer.py` - REWRITE)
+- **Complete rewrite** from rect-based (~566 LOC) to path-based (~471 LOC)
+- `<path>` polyline from contour points, mirrored top/bottom around centerline
+- Cones, fillets, chamfers rendered as smooth transitions (not rectangles!)
+- Inner bore: white fill, red stroke
+- Cross-hatch fill (45° pattern)
+- **Dimension filtering**: only stable segments (same r ±0.2mm, segment > 0.5mm)
+- Reduced dimension labels from 14 (every cone point) to 4 (Ø30, Ø27, Ø55, Ø19)
+- Backward compatible: `_sections_to_contours()` converts old format
+
+#### Claude Prompt v3 (`app/services/step_pdf_parser.py` - PROMPT REWRITE)
+- **Block model → Point-based contour**: `sections[]` replaced by `outer_contour: [{r, z}]`
+- `inner_contour: [{r, z}]` for through-bores and blind holes
+- `holes: [...]` for radial/axial holes outside main axis
+- Detailed example in prompt: shaft Ø30 with flange Ø55 (chamfer, cones, fillets)
+- Claude returns 28-point outer contour with natural cone interpolation
+- API confidence: 0.92 for Stuetzfuss test part (PDM-249322)
+
+#### Key Insight: Why v2 Failed ("Squares")
+- Block model format (`sections[{outer_diameter, inner_diameter, length}]`) = constant diameter per section
+- Cannot express: cones (gradual diameter change), fillets (arc transitions), chamfers (angled edges)
+- Claude forced to approximate → rectangles → "proč se to skládá ze čtverců?"
+- Point-based format naturally supports arbitrary geometry
+
+### Test Results (PDM-249322_03.stp + PDF)
+
+| Metric | v2 (block model) | v3 (point-based) |
+|--------|------------------|-------------------|
+| Outer contour points | 3 sections (rectangles) | 28 points (cones, fillets) |
+| Inner contour | Wrong (Ø47 blind) | Correct (Ø19 through) |
+| Dimension labels | 14 (every point) | 4 (Ø30, Ø27, Ø55, Ø19) |
+| Visual quality | ~30% of AI capability | ~90% match to reference |
+| Cones/fillets | Not representable | Natural transitions |
+
+### Files Changed
+
+| File | Action |
+|------|--------|
+| `app/services/profile_svg_renderer.py` | **REWRITE** (~471 LOC, path-based) |
+| `app/services/step_pdf_parser.py` | **PROMPT REWRITE** (point-based contour) |
+| `test_claude_pipeline.py` | Fixed file paths (uploads/drawings/) |
+
+### Status
+- Feature recognition is now **"běží"** (running) — this prompt + renderer = **baseline for debugging**
+- Operations identification ~90% correct
+- Profile visualization ~90% match to reference SVG
+- Next: fine-tune prompt accuracy, add prismatic part support
+
+### Related
+- ADR: [docs/ADR/035-feature-recognition-system.md](../ADR/035-feature-recognition-system.md)
+
+---
+
+## Previous: Feature Recognition v2 - Profile SVG (v1.19.0 - Day 44)
+
+**STEP+PDF analysis generates engineering cross-section SVG from Claude's structured geometry output.**
+
+### What Was New
+
+#### Profile SVG Renderer v2 (`app/services/profile_svg_renderer.py`)
+- Engineering cross-section from Claude's `profile_geometry` output
+- Centerline, outer contour, inner bores, thread patterns
+- Diameter + length dimension lines with arrows
+- Color coding: blue=cylinder, red=bore, green=thread, amber=chamfer
+- Cross-hatch fill, Czech legend
+- Deterministic rendering (no Claude needed for SVG generation)
+- **Limitation: Block model → rectangles only (no cones/fillets) → replaced by v3**
+
+#### Enhanced Claude Prompts (`app/services/step_pdf_parser.py`)
+- Added `profile_geometry` to output JSON schema (both STEP+PDF and PDF-only prompts)
+- Generic `PROFILE_GEOMETRY RULES` section (works for any rotational/prismatic part)
+- PDF page trimming via PyMuPDF (max 2 pages, saves ~90% tokens on multi-page PDFs)
+- Compact feature summary (~200 tokens) instead of raw STEP text (~8K tokens)
+- Model: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
+
+#### Performance Benchmark (1-page PDF + 34KB STEP)
+
+| Step | Time |
+|------|------|
+| File I/O | 0.001s |
+| PDF trim + STEP parse | 0.718s |
+| **Claude API (Sonnet 4.5)** | **37.806s** |
+| Response parse + SVG render | 0.003s |
+| **Total** | **38.5s** |
+
+Bottleneck: 98% = Claude API. Input: 3395 tokens, Output: 2985 tokens.
+
+---
+
+## Previous: Infor Import Preparation READY (v1.18.0 - Day 43)
+
+**System fully prepared for importing 3189 materials from Infor CloudSuite Industrial!**
+
+### ✅ Database Structure Ready
+
+#### MaterialGroups (9 groups with ADR-017 compliant codes)
+- ✅ **8-digit codes** - 20910000-20910008 (hierarchical sub-range)
+- ✅ **4 steel types** - Automatová, Konstrukční, Legovaná, Nástrojová (reduced from 8)
+- ✅ **Non-ferrous metals** - Hliník (2.7 kg/dm³), Měď (8.9), Mosaz (8.5), Nerez (7.9)
+- ✅ **Plastics** - Plasty (1.2 kg/dm³)
+
+#### MaterialNorms (25 basic norms + pattern matching)
+- ✅ **Exact match** - 25 common W.Nr/ČSN/EN/AISI codes seeded
+- ✅ **Pattern fallback** - 1.0036 → match "1.0%" → Ocel konstrukční
+- ✅ **Prefix patterns** - 1.0xxx, 1.1xxx, 1.2xxx, 1.4xxx, 1.6xxx, 1.7xxx, 3.xxxx, 2.0xxx
+
+#### MaterialPriceCategories (43 categories with 8-digit codes)
+- ✅ **Code range** - 20900000-20900042 (sub-range 20900000-20909999)
+- ✅ **Generic names** - "Hliník - deska" (covers all 3.0-3.4 series)
+- ✅ **Shape combinations** - Group + Shape matrix (reduced from 53)
+
+#### MaterialPriceTiers (193 tiers via CSV import)
+- ✅ **CSV template** - data/material_price_tiers_template.csv
+- ✅ **Weight-based pricing** - 3 tiers per category (0-15kg, 15-100kg, 100+kg)
+- ✅ **Import script** - scripts/import_price_tiers_from_csv.py
+
+### ✅ Parser Enhancements (Item Code = MASTER)
+
+#### Surface Treatment Integration (ADR-033)
+- ✅ **Extraction** - `extract_surface_treatment()` from Item code suffix
+- ✅ **Codes** - T, V, P, O, F, K, L, H, N, Z (10 codes)
+- ✅ **Storage** - MaterialItem.surface_treatment field
+- ✅ **UI display** - Pattern Test Result shows surface treatment
+
+#### W.Nr Prioritization
+- ✅ **MASTER source** - `extract_w_nr_from_item_code()` from Item field
+- ✅ **Fallback** - `extract_material_code()` from Description (ČSN, EN, etc.)
+- ✅ **Format** - `{W.Nr}-{SHAPE}{dimensions}-{SURFACE}` → "1.0503" from "1.0503-HR010x010-T"
+
+#### Dimensions Parsing from Item Code
+- ✅ **HR010x010** → width=10, thickness=10 (square bar)
+- ✅ **KR016** → diameter=16 (round bar)
+- ✅ **DE020** → thickness=20 (plate)
+- ✅ **TR025x002** → diameter=25, wall_thickness=2 (tube)
+
+### 📊 System Capacity
+
+| Entity | Code Range | Capacity | Used | Status |
+|--------|------------|----------|------|--------|
+| MaterialItem | 20000001-20899999 | 900k | 0 | Ready for 3189 |
+| MaterialPriceCategory | 20900000-20909999 | 10k | 43 | ✅ 0.4% |
+| MaterialGroup | 20910000-20919999 | 10k | 9 | ✅ 0.09% |
+| MaterialNorm | 20920000-20929999 | 10k | 25 | ✅ 0.25% |
+
+### 🎯 Next Steps
+1. **Load from Infor** - Fetch 3189 materials via InforAdminModule
+2. **Preview Import** - Validate all rows, check auto-detection accuracy
+3. **Execute Import** - Create MaterialItems with generated material_numbers
+4. **Verify** - Check counts, test search, validate pricing calculations
+
+---
+
+## 🔗 Previous: Infor Material Import System ✅ COMPLETE (v1.17.0 - Day 43)
+
+**Generic import system for Infor CloudSuite Industrial integration with smart auto-detection!**
+
+### ✅ Complete Implementation
+
+#### Generic Import Base (`InforImporterBase<T>`)
+- ✅ **Reusable base class** - Can import ANY Infor entity (materials, customers, orders)
+- ✅ **Config-driven** - Field mappings via `InforImporterConfig`
+- ✅ **Preview → Validate → Execute** workflow
+- ✅ **Duplicate handling** - Skip or update catalog fields
+- ✅ **Batch operations** - Efficient material number generation
+- ✅ **Transaction safety** - All-or-nothing with rollback
+
+#### Material-Specific Importer (`MaterialImporter`)
+- ✅ **12 field mappings** - Item→code, Description→name, Diameter, Weight, etc.
+- ✅ **Shape auto-detection** - Regex patterns for 8 shapes:
+  - Round bar: "tyč kruhová", "kulatina", "Ø20", "D20"
+  - Plate: "plech", "t5", "tl.5"
+  - Tube: "trubka", "roura"
+  - Square/Flat/Hexagonal bars, Casting, Forging
+- ✅ **Material code extraction** - W.Nr (1.4301), EN (S235), ČSN, AISI
+- ✅ **MaterialGroup detection** - Via MaterialNorm lookup table
+- ✅ **PriceCategory detection** - MaterialGroup + shape → category
+- ✅ **Dimension parsing** - D20 → diameter=20.0, t5 → thickness=5.0
+
+#### API Endpoints
+- ✅ **POST /api/infor/import/materials/preview** - Validate without creating
+- ✅ **POST /api/infor/import/materials/execute** - Create MaterialItems
+- ✅ **POST /api/infor/import/materials/test-pattern** - Debug parsing (Pattern Test Modal)
+
+#### Frontend UI (`InforMaterialImportPanel.vue`)
+- ✅ **Split-pane layout** - Resizable (LEFT: Source | RIGHT: Staging)
+- ✅ **LEFT panel - Load from Infor:**
+  - IDO Name input + Fetch Fields button (icon)
+  - Field chooser (collapsible dropdown with search)
+  - Filter (WHERE clause) + Limit inputs
+  - Load Data button (icon)
+  - Data table with checkboxes + toolbar:
+    - Stage Selected (first, purple accent)
+    - Select All / Unselect All
+    - Clear Data
+- ✅ **RIGHT panel - Review & Import:**
+  - Validation summary badges (valid/errors/duplicates)
+  - Search box (filters staging table)
+  - Staging table with 16 columns:
+    - Checkbox, Status icon, Code, Name, Shape, Dimensions (Ø,W,T,L)
+    - kg/m, Group, Price Cat, Supplier, Stock, Norms, Errors
+  - Toolbar:
+    - Select All / Unselect All
+    - Test Pattern (debug modal)
+    - Clear Staging
+  - Import button (shows selected count)
+- ✅ **Pattern Testing Modal** - Detailed breakdown:
+  - Original Description
+  - Parsed results (shape, material_code, dimensions)
+  - Auto-detected (material_group, price_category)
+  - Not found fields
+  - Errors/Warnings
+
+#### UI Polish (UI-BIBLE V8)
+- ✅ **Lucide icons** - All emojis replaced (CheckCircle, AlertTriangle, XCircle, etc.)
+- ✅ **Icon-only buttons** - Transparent backgrounds with hover states
+- ✅ **Design tokens** - --space-X, --text-X, --bg-X, --border-X
+- ✅ **Status icons** - Green (success), Orange (warning), Red (error)
+- ✅ **Column widths** - Fixed checkbox (48px), status (60px) to prevent overlap
+
+### 📊 Import Flow
+
+1. **Load Source** - Fetch IDO fields → Select fields → Load data (with filter/limit)
+2. **Stage** - Select rows → Click "Stage Selected" → Validation runs
+3. **Review** - Check validation summary → Use Test Pattern for debugging → Fix errors manually (future)
+4. **Import** - Select valid rows → Click Import → MaterialItems created with auto-generated material_numbers
+
+### 🔧 Technical Details
+
+**Backend:**
+- `app/services/infor_importer_base.py` (417 lines) - Generic base
+- `app/services/infor_material_importer_v2.py` (358 lines) - Material importer
+- `app/routers/infor_router.py` (+180 lines) - 3 new endpoints
+
+**Frontend:**
+- `frontend/src/components/modules/infor/InforMaterialImportPanel.vue` (1398 lines)
+- `frontend/src/components/modules/InforAdminModule.vue` (+20 lines) - Import tab
+- `frontend/src/types/infor.ts` (80 lines) - TypeScript types
+
+**Total:** ~2,453 lines
+
+### 🔗 Related
+- ADR: [docs/ADR/032-infor-material-import-system.md](../ADR/032-infor-material-import-system.md)
+- Guide: [docs/guides/INFOR-IMPORTER-GUIDE.md](../guides/INFOR-IMPORTER-GUIDE.md)
+- Infor API Client: [app/services/infor_api_client.py](../../app/services/infor_api_client.py)
+
+---
+
+## 📦 MaterialItems Catalog Import ✅ COMPLETE (v1.16.0 - Day 41-42)
+
+**2,648 material items imported + Full catalog management module!**
+
+### ✅ Complete Implementation
+
+#### Import Script
+- ✅ **import_material_catalog.py** - Excel/CSV import with 3-phase pipeline
+  - Phase 1: Create/find MaterialGroups (11 groups)
+  - Phase 2: Create PriceCategories with auto tier copying (39 categories)
+  - Phase 3: Create MaterialItems with norms lookup (2,648 items)
+  - Preview mode (dry-run) + Execute mode with confirmation
+  - Smart price tier copying from templates at 80% price
+  - Norms auto-population from MaterialNorm conversion table
+  - Skip logic for EP povrch, výpalky, system codes (859 items skipped)
+
+#### Material Group Mapping (User-Corrected)
+- ✅ **Correct codes enforced** - OCEL-KONS, OCEL-AUTO, NEREZ, HLINIK, etc.
+  - Fixed from incorrect codes (10xxx, 11xxx → proper semantic codes)
+  - Aligned with seed_material_catalog.py existing data
+  - PLAST special case: CTVERC + PLOCHA → DESKA (consolidated)
+  - Shape naming: CTVERC → CTVEREC, SESTHRAN → SESTIHRAN
+
+#### Price Tier Auto-Copy System
+- ✅ **TIER_TEMPLATES mapping** - 31 template rules
+  - New categories auto-copy tier structure from similar existing categories
+  - Price adjustment: 80% of template price (editable later)
+  - Examples:
+    - OCEL-KONS-CTVEREC → copies from OCEL-KRUHOVA
+    - NEREZ-CTVEREC → copies from NEREZ-KRUHOVA
+    - PLAST-DESKA → copies from PLASTY-DESKY
+
+#### Norms Auto-Population
+- ✅ **MaterialNorm table lookup** - No duplicate data entry
+  - Checks W.Nr, EN ISO, ČSN, AISI fields
+  - Builds formatted norms string (e.g., "W.Nr: 1.4301, EN: X5CrNi18-10")
+  - Populated during import for all matched materials
+
+#### Frontend Module (DataTable Pattern)
+- ✅ **MaterialItemsListModule.vue** - Split-pane coordinator (UI-BIBLE Pattern 1)
+  - LEFT: DataTable with sortable columns, search, filters (360px resizable)
+  - RIGHT: Info Ribbon detail panel with inline editing
+  - Responsive layout with horizontal/vertical modes
+  - Panel size persistence (localStorage)
+
+- ✅ **MaterialItemsListPanel.vue** - DataTable list
+  - Column chooser with drag-reorder support
+  - Search (code, name, supplier_code, supplier)
+  - Filters: Material group, shape, supplier (debounced 200-300ms)
+  - Sortable columns (code, name, shape, supplier)
+  - Column visibility persistence (localStorage)
+  - Empty state handling
+
+- ✅ **MaterialItemDetailPanel.vue** - Info Ribbon pattern (UI-BIBLE Pattern 2)
+  - 14 info cards (code, name, material_number, shape, dimensions, norms, supplier, stock)
+  - Inline editing with Save/Cancel icon buttons
+  - Icon toolbar: Edit | Copy | Delete (bottom-aligned)
+  - Edit mode: Editable fields (code, name, supplier, supplier_code, norms)
+
+- ✅ **MaterialItemSelectorDialog.vue** - Catalog selector dialog
+  - Quick selector for choosing MaterialItem from catalog
+  - Search + filters (group, shape) with grid view
+  - Limit 50 items for performance
+  - For future integration in PartMaterialModule
+
+#### Registration & Integration
+- ✅ **WindowsView.vue** - Module component registered
+- ✅ **windows.ts** - Type definition added (`material-items-list`)
+- ✅ **AppHeader.vue** - Menu entry added ("Materiálové položky")
+- ✅ **API endpoints** - GET /api/materials/items, /groups (authentication required)
+
+### 📊 Import Statistics
+- **Parseable items:** 3,322 (79.4%)
+- **Skipped items:** 859 (20.6%)
+  - EP povrch (electropolished aluminum): 26-31 items
+  - Výpalky (cutouts): 2-4 items
+  - System codes (000-): 1 item
+  - Ostatní (unrecognized format): 16-19 items
+- **Material Groups:** 12 total (11 imported + 1 existing)
+- **Price Categories:** 58 total (39 imported + existing)
+- **Material Items:** 2,652 total (2,648 imported + 4 existing seed data)
+
+### 🔧 Technical Fixes
+- ✅ **Fixed UnboundLocalError** - PLAST special case code reordering
+  - Issue: `family` variable referenced before assignment
+  - Fix: Moved PLAST special case after `family` assignment
+- ✅ **Virtual environment setup** - pandas, openpyxl installed
+- ✅ **Import execution** - Confirmed successful with database verification
+
+### 🔗 Related
+- Script: [scripts/import_material_catalog.py](../../scripts/import_material_catalog.py)
+- Module: [frontend/src/components/modules/materials/](../../frontend/src/components/modules/materials/)
+
+### 📝 Next Steps
+1. Set Price Tiers for new categories via admin UI
+2. Add supplier info (supplier, supplier_code) to imported items
+3. Complete catalog info (weight_per_meter, standard_length) where missing
+4. Implement MaterialItemForm for creating new items manually
+5. Implement MaterialImportDialog for UI-based import
+6. Integrate MaterialItemSelectorDialog into PartMaterialModule
 
 ---
 

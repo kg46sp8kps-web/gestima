@@ -94,10 +94,14 @@ const responseErrorInterceptor = (error: AxiosError) => {
   }
 
   const { status, data } = error.response
+  const url = error.config?.url || ''
 
-  // Log error in dev
+  // Log error in dev (but skip expected 404s for module-defaults)
   if (import.meta.env.DEV) {
-    console.error(`[API] Error ${status}:`, data)
+    const isExpected404 = status === 404 && url.includes('/api/module-defaults/')
+    if (!isExpected404) {
+      console.error(`[API] Error ${status}:`, data)
+    }
   }
 
   // Handle specific status codes
@@ -121,10 +125,11 @@ const responseErrorInterceptor = (error: AxiosError) => {
 
     case 422:
       // Validation error - log details for debugging
-      if (Array.isArray(data?.detail)) {
-        console.error('[API] Validation errors:', data.detail)
+      if (Array.isArray((data as any)?.detail)) {
+        const details = (data as any).detail
+        console.error('[API] Validation errors:', details)
         // Format Pydantic errors for better readability
-        data.detail.forEach((err: any, idx: number) => {
+        details.forEach((err: any, idx: number) => {
           console.error(`  [${idx + 1}] ${err.loc?.join('.')} - ${err.msg}`)
         })
       }

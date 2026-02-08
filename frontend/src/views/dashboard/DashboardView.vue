@@ -31,10 +31,20 @@
         </ul>
       </div>
 
+      <!-- Admin Section (only for admin users) -->
+      <div v-if="auth.isAdmin" class="admin-section">
+        <h3 class="admin-title">Administrace</h3>
+        <div class="admin-buttons">
+          <button class="admin-btn" @click="router.push('/admin/master-data')">
+            📊 Kmenová data
+          </button>
+        </div>
+      </div>
+
       <!-- Work Button -->
       <button class="work-button" @click="goToWork">
         <span class="work-icon">
-          <Rocket :size="32" />
+          <Rocket :size="ICON_SIZE.XLARGE" />
         </span>
         <span class="work-label">Pracuj</span>
       </button>
@@ -46,6 +56,7 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { BarChart3, Rocket } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -173,6 +184,48 @@ function goToWork() {
 .coming-soon-features li::before {
   content: '◦ ';
   color: var(--accent-red, #dc2626);
+}
+
+/* Admin Section */
+.admin-section {
+  width: 100%;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-default, #e5e7eb);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.admin-title {
+  margin: 0 0 1rem;
+  font-size: var(--text-2xl);
+  color: var(--text-primary, #111);
+  text-align: center;
+}
+
+.admin-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-btn {
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-muted, #f3f4f6);
+  border: 1px solid var(--border-default, #e5e7eb);
+  border-radius: 8px;
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-primary, #111);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.admin-btn:hover {
+  background: var(--accent-red, #dc2626);
+  color: white;
+  border-color: var(--accent-red, #dc2626);
+  transform: translateY(-1px);
 }
 
 /* Work Button */

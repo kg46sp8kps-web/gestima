@@ -16,6 +16,7 @@
 
 import { computed } from 'vue'
 import { Package, Settings, DollarSign, FileText } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   context?: {
@@ -68,7 +69,7 @@ function handleDrawingRightClick(event: MouseEvent) {
       @click="handleMaterial"
       title="Materiál"
     >
-      <Package :size="32" class="action-icon" />
+      <Package :size="ICON_SIZE.XLARGE" class="action-icon" />
       <span class="action-label">Materiál</span>
     </button>
 
@@ -78,7 +79,7 @@ function handleDrawingRightClick(event: MouseEvent) {
       @click="handleOperations"
       title="Operace"
     >
-      <Settings :size="32" class="action-icon" />
+      <Settings :size="ICON_SIZE.XLARGE" class="action-icon" />
       <span class="action-label">Operace</span>
     </button>
 
@@ -88,7 +89,7 @@ function handleDrawingRightClick(event: MouseEvent) {
       @click="handlePricing"
       title="Ceny"
     >
-      <DollarSign :size="32" class="action-icon" />
+      <DollarSign :size="ICON_SIZE.XLARGE" class="action-icon" />
       <span class="action-label">Ceny</span>
     </button>
 
@@ -99,7 +100,7 @@ function handleDrawingRightClick(event: MouseEvent) {
       @contextmenu="handleDrawingRightClick"
       title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
     >
-      <FileText :size="32" class="action-icon" />
+      <FileText :size="ICON_SIZE.XLARGE" class="action-icon" />
       <span class="action-label">Výkres</span>
     </button>
   </div>

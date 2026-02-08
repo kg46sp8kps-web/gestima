@@ -206,19 +206,28 @@ async def link_material_to_operation(
         )
 
     # Create link
-    consumed_quantity = request.consumed_quantity if request else None
-    await db.execute(
-        material_operation_link.insert().values(
-            material_input_id=material_id,
-            operation_id=operation_id,
-            consumed_quantity=consumed_quantity
+    try:
+        consumed_quantity = request.consumed_quantity if request else None
+        await db.execute(
+            material_operation_link.insert().values(
+                material_input_id=material_id,
+                operation_id=operation_id,
+                consumed_quantity=consumed_quantity
+            )
         )
-    )
 
-    await db.commit()
-    logger.info(f"Linked material {material_id} to operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
+        await db.commit()
+        logger.info(f"Linked material {material_id} to operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
 
-    return {"message": "Link created successfully"}
+        return {"message": "Link created successfully"}
+    except IntegrityError as e:
+        await db.rollback()
+        logger.error(f"Integrity error linking material {material_id} to operation {operation_id}: {e}")
+        raise HTTPException(status_code=409, detail="Chyba při vytváření vazby - neplatná reference")
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error linking material: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při vytváření vazby")
 
 
 @router.delete("/{operation_id}/unlink-material/{material_id}", status_code=204)
@@ -230,20 +239,27 @@ async def unlink_material_from_operation(
 ):
     """Odebrat vazbu operace → materiál"""
 
-    result = await db.execute(
-        delete(material_operation_link).where(
-            and_(
-                material_operation_link.c.material_input_id == material_id,
-                material_operation_link.c.operation_id == operation_id
+    try:
+        result = await db.execute(
+            delete(material_operation_link).where(
+                and_(
+                    material_operation_link.c.material_input_id == material_id,
+                    material_operation_link.c.operation_id == operation_id
+                )
             )
         )
-    )
 
-    if result.rowcount == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="Link not found"
-        )
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Link not found"
+            )
 
-    await db.commit()
-    logger.info(f"Unlinked material {material_id} from operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
+        await db.commit()
+        logger.info(f"Unlinked material {material_id} from operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error unlinking material: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při odebírání vazby")

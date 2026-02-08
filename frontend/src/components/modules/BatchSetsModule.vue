@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ClipboardList } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 </script>
 
 <template>
   <div class="module-placeholder">
     <h2>
-      <ClipboardList :size="24" class="inline-icon" />
+      <ClipboardList :size="ICON_SIZE.LARGE" class="inline-icon" />
       Batch Sets
     </h2>
     <p>Batch Sets module will go here</p>

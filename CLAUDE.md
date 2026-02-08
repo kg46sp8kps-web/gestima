@@ -1,24 +1,27 @@
 # CLAUDE.md - GESTIMA AI Rules
 
-**Version:** 5.0 | **Lines:** 70 | **Full docs:** [docs/](docs/)
+**Version:** 6.0 | **Full docs:** [docs/](docs/)
 
 ---
 
-## MODE DETECTION (před každým úkolem)
+## MODE DETECTION (automatické — AI rozhoduje sám)
 
-### SINGLE AGENT ← tento chat stačí
+### SINGLE AGENT ← udělej sám, nepoužívej Task tool
 - Typo, bug fix, single-line změna
 - Otázka, vysvětlení
-- 1-2 soubory
+- 1-2 soubory, jeden stack (jen backend NEBO jen frontend)
 - "Rychle udělej X"
 
-### ŠÉFÍK MODE ← multi-agent orchestrace
+### ŠÉFÍK MODE ← automaticky aktivuj multi-agent orchestraci
 - Nová feature (3+ soubory)
-- Backend + Frontend + Tests
-- Schema/model změna
-- Architektura
+- Backend + Frontend současně
+- Schema/model změna (backend → migrace → frontend update)
+- Architektura, refaktoring napříč moduly
 
-**Aktivace:** Řekni "Aktivuji ŠÉFÍK mode" → [docs/agents/AGENT-INSTRUCTIONS.md](docs/agents/AGENT-INSTRUCTIONS.md)
+**AUTO-DETEKCE:** AI MUSÍ sám rozhodnout režim podle úkolu. Uživatel NEMUSÍ říkat "aktivuj ŠÉFÍKA".
+**Manuální override:** Uživatel může říct "aktivuj ŠÉFÍKA" nebo "udělej sám" pro přepsání auto-detekce.
+**Agent definice:** [.claude/agents/](/.claude/agents/) (backend.md, frontend.md, qa.md, auditor.md, devops.md, sefik.md)
+**Orchestrace:** [docs/agents/AGENT-INSTRUCTIONS.md](docs/agents/AGENT-INSTRUCTIONS.md)
 
 ---
 
@@ -106,7 +109,8 @@ python gestima.py run|test|seed-demo
 | Need | Location |
 |------|----------|
 | **Core rules** | [docs/core/RULES.md](docs/core/RULES.md) |
-| **Agents** | [docs/agents/](docs/agents/) |
+| **Agent definitions** | [.claude/agents/](/.claude/agents/) |
+| **Agent orchestrace** | [docs/agents/AGENT-INSTRUCTIONS.md](docs/agents/AGENT-INSTRUCTIONS.md) |
 | **Anti-patterns** | [docs/reference/ANTI-PATTERNS.md](docs/reference/ANTI-PATTERNS.md) |
 | **Design system** | [docs/reference/DESIGN-SYSTEM.md](docs/reference/DESIGN-SYSTEM.md) |
 | **Architecture** | [docs/reference/ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) |
@@ -117,5 +121,45 @@ python gestima.py run|test|seed-demo
 
 ---
 
-**Version:** 5.1 (2026-02-02)
+## ENFORCEMENT (6 vrstev automatického vynucování)
+
+```
+Dokumentace (.md) = "měl bys"  → AI MŮŽE ignorovat
+Hook (exit 2)     = "MUSÍŠ"   → AI NEMŮŽE obejít
+```
+
+### Vrstva 1: Static Analysis (PreToolUse Edit/Write)
+
+| Hook | BLOCKING rules | Scope |
+|------|---------------|-------|
+| `validate_edit.py` | L-008 transaction, L-009 Field(), L-042 secrets, L-043 bare except, L-044 print/debug | `app/**/*.py` |
+| `validate_frontend.py` | L-036 >300 LOC, L-044 console.log, L-049 `any` type | `*.vue`, `*.ts` |
+| `validate_docs.py` | L-040 docs mimo `docs/` | `*.md` |
+
+### Vrstva 2: Version Control (PreToolUse Bash)
+
+| Hook | Co kontroluje |
+|------|---------------|
+| `commit_guard.py` | Sensitive files (.env), debug v diff, commit message, CHANGELOG, Co-Authored-By |
+
+### Vrstva 3: Definition of Done (Stop hook)
+
+| Hook | Co kontroluje |
+|------|---------------|
+| `definition_of_done.py` | Testy pro změněné services/routers, migrace pro modely, build freshness, response_model |
+
+### Vrstva 4–6: Context + Permissions + Memory
+
+| Vrstva | Mechanism |
+|--------|-----------|
+| Context injection | `session-context.sh` (prompty), `inject_subagent_context.py` (subagenty) |
+| Agent permissions | `disallowedTools` ve frontmatter (Auditor: no Edit/Write/Bash) |
+| Persistent memory | Learning Agent → `CLAUDE.local.md` (automaticky po každé session) |
+
+**Detaily:** [docs/core/RULES.md](docs/core/RULES.md) | **Agent pokrytí:** [docs/agents/AGENTS.md](docs/agents/AGENTS.md)
+
+---
+
+**Version:** 7.0 (2026-02-04)
+**Enforcement:** 14 hook souborů, 6 vrstev, 26 automatických kontrol
 **Detailní pravidla:** [docs/core/RULES.md](docs/core/RULES.md)

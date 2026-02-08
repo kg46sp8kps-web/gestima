@@ -4,9 +4,10 @@
  * Actions: Delete, Rename, Toggle Favorite, Set as Default
  */
 
-import { ref } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import { Star, Trash2, Edit3, Check, X, FolderOpen } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import { confirm, alert } from '@/composables/useDialog'
 
 interface Props {
@@ -21,6 +22,23 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const store = useWindowsStore()
+
+// Keyboard handler
+const handleKeydown = (e: KeyboardEvent) => {
+  if (!props.show) return
+  // Only handle Escape when not editing (editing has its own keyboard handlers)
+  if (e.key === 'Escape' && !editingLayoutId.value) {
+    handleClose()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 // Rename state
 const editingLayoutId = ref<string | null>(null)
@@ -106,7 +124,7 @@ function handleClose() {
         <div class="modal-header">
           <h2>Manage Layouts</h2>
           <button class="close-btn" @click="handleClose" title="Close">
-            <X :size="20" />
+            <X :size="ICON_SIZE.STANDARD" />
           </button>
         </div>
 
@@ -144,14 +162,14 @@ function handleClose() {
                     @click="confirmRename"
                     title="Confirm"
                   >
-                    <Check :size="16" />
+                    <Check :size="ICON_SIZE.SMALL" />
                   </button>
                   <button
                     class="action-btn btn-secondary"
                     @click="cancelRename"
                     title="Cancel"
                   >
-                    <X :size="16" />
+                    <X :size="ICON_SIZE.SMALL" />
                   </button>
                 </template>
                 <template v-else>
@@ -161,7 +179,7 @@ function handleClose() {
                     @click="loadLayout(layout.id)"
                     title="Load Layout"
                   >
-                    <FolderOpen :size="16" />
+                    <FolderOpen :size="ICON_SIZE.SMALL" />
                   </button>
 
                   <!-- Toggle Favorite -->
@@ -171,7 +189,7 @@ function handleClose() {
                     @click="toggleFavorite(layout.id)"
                     title="Toggle Favorite"
                   >
-                    <Star :size="16" :fill="layout.favorite ? 'currentColor' : 'none'" />
+                    <Star :size="ICON_SIZE.SMALL" :fill="layout.favorite ? 'currentColor' : 'none'" />
                   </button>
 
                   <!-- Set as Default -->
@@ -181,7 +199,7 @@ function handleClose() {
                     @click="setAsDefault(layout.id)"
                     title="Set as Default"
                   >
-                    <Check :size="16" />
+                    <Check :size="ICON_SIZE.SMALL" />
                   </button>
 
                   <!-- Rename -->
@@ -190,7 +208,7 @@ function handleClose() {
                     @click="startRename(layout.id, layout.name)"
                     title="Rename"
                   >
-                    <Edit3 :size="16" />
+                    <Edit3 :size="ICON_SIZE.SMALL" />
                   </button>
 
                   <!-- Delete -->
@@ -199,7 +217,7 @@ function handleClose() {
                     @click="deleteLayout(layout.id)"
                     title="Delete"
                   >
-                    <Trash2 :size="16" />
+                    <Trash2 :size="ICON_SIZE.SMALL" />
                   </button>
                 </template>
               </div>

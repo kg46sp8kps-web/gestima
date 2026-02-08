@@ -146,12 +146,14 @@ async def calculate_stock_cost_from_part(
     result = MaterialCost()
 
     # ADR-024: Get material data from first MaterialInput
-    if not part.material_inputs:
-        logger.warning(f"Part {part.id} has no material_inputs, returning zero cost")
+    # CRITICAL: Filter out soft-deleted material_inputs (data integrity fix)
+    active_material_inputs = [mi for mi in part.material_inputs if not mi.deleted_at]
+    if not active_material_inputs:
+        logger.warning(f"Part {part.id} has no active material_inputs, returning zero cost")
         return result
 
-    # Use first material input for calculations (primary material)
-    material_input = part.material_inputs[0]
+    # Use first active material input for calculations (primary material)
+    material_input = active_material_inputs[0]
 
     # Get price_category and material_group from MaterialInput
     price_category = material_input.price_category
@@ -518,7 +520,8 @@ async def calculate_part_price(
     from sqlalchemy import select
     from app.models.work_center import WorkCenter
 
-    work_center_ids = {op.work_center_id for op in part.operations if op.work_center_id and not op.is_coop}
+    # CRITICAL: Filter out soft-deleted operations (data integrity fix)
+    work_center_ids = {op.work_center_id for op in part.operations if op.work_center_id and not op.is_coop and not op.deleted_at}
     work_centers_dict = {}
     if work_center_ids:
         work_centers_result = await db.execute(
@@ -527,6 +530,10 @@ async def calculate_part_price(
         work_centers_dict = {wc.id: wc for wc in work_centers_result.scalars().all()}
 
     for op in part.operations:
+        # CRITICAL: Skip soft-deleted operations (data integrity fix)
+        if op.deleted_at:
+            continue
+
         if op.is_coop:
             # Kooperace - zpracujeme později
             result.coop_cost_raw += op.coop_price

@@ -107,7 +107,13 @@ export const usePartsStore = defineStore('parts', () => {
       ui.showSuccess('Díl aktualizován')
       return updatedPart
     } catch (error: any) {
-      ui.showError(error.message || 'Chyba při aktualizaci dílu')
+      // Handle version conflict - auto-reload data
+      if (error.response?.status === 409) {
+        await fetchPart(partNumber)
+        ui.showWarning('Data byla změněna. Načtena aktuální verze - zkuste změnu znovu.')
+      } else {
+        ui.showError(error.message || 'Chyba při aktualizaci dílu')
+      }
       throw error
     } finally {
       loading.value = false

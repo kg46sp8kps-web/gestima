@@ -18,6 +18,7 @@
 
 import { computed } from 'vue'
 import * as Icons from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Action {
   id: string
@@ -65,7 +66,7 @@ function handleAction(actionId: string) {
     >
       <component
         :is="getIconComponent(action.icon)"
-        :size="24"
+        :size="ICON_SIZE.LARGE"
         :color="action.color"
         class="action-icon"
       />

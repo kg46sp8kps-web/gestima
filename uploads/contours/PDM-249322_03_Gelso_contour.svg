@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="525.0" height="217.5"
+     viewBox="0 0 525.0 217.5">
+
+  <!-- Grid -->
+  <defs>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#eee" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="525.0" height="217.5" fill="url(#grid)"/>
+
+  <!-- Rotation Axis (z-axis at r=0) -->
+  <line x1="40" y1="177.5" x2="485.0" y2="177.5"
+        stroke="gray" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+  <text x="35" y="172.5" font-size="10" fill="gray" text-anchor="end">r=0</text>
+
+  <!-- Bounding Box (Polotovar) -->
+  <rect x="40.0" y="40.0" width="445.0" height="137.5"
+        fill="none" stroke="blue" stroke-width="1" stroke-dasharray="10,5" opacity="0.3"/>
+  <text x="262.5" y="35.0" font-size="10" fill="blue" text-anchor="middle">
+    Polotovar Ø55.0 × L89.0
+  </text>
+
+  <!-- Contour (Red Line) -->
+  <polyline points="40.0,40.0 70.0,40.0 70.0,162.5 432.5,110.0 445.0,110.0 457.5,105.0 467.5,105.0 485.0,130.0 " fill="none" stroke="red" stroke-width="2"/>
+
+  <!-- Contour Points (markers) -->
+  <circle cx="40.0" cy="40.0" r="3" fill="red"/>
+  <text x="45.0" y="35.0" font-size="8" fill="black">
+    P0 (z=0.0, r=27.5)
+  </text>
+  <circle cx="70.0" cy="40.0" r="3" fill="red"/>
+  <text x="75.0" y="35.0" font-size="8" fill="black">
+    P1 (z=6.0, r=27.5)
+  </text>
+  <circle cx="70.0" cy="162.5" r="3" fill="red"/>
+  <text x="75.0" y="157.5" font-size="8" fill="black">
+    P2 (z=6.0, r=3.0)
+  </text>
+  <circle cx="432.5" cy="110.0" r="3" fill="red"/>
+  <text x="437.5" y="105.0" font-size="8" fill="black">
+    P3 (z=78.5, r=13.5)
+  </text>
+  <circle cx="445.0" cy="110.0" r="3" fill="red"/>
+  <text x="450.0" y="105.0" font-size="8" fill="black">
+    P4 (z=81.0, r=13.5)
+  </text>
+  <circle cx="457.5" cy="105.0" r="3" fill="red"/>
+  <text x="462.5" y="100.0" font-size="8" fill="black">
+    P5 (z=83.5, r=14.5)
+  </text>
+  <circle cx="467.5" cy="105.0" r="3" fill="red"/>
+  <text x="472.5" y="100.0" font-size="8" fill="black">
+    P6 (z=85.5, r=14.5)
+  </text>
+  <circle cx="485.0" cy="130.0" r="3" fill="red"/>
+  <text x="490.0" y="125.0" font-size="8" fill="black">
+    P7 (z=89.0, r=9.5)
+  </text>
+
+  <!-- Dimensions -->
+  <text x="40" y="20" font-size="12" fill="black" font-weight="bold">
+    Contour: 8 points | Range: z=[0.0, 89.0], r=[0.0, 27.5]
+  </text>
+
+</svg>

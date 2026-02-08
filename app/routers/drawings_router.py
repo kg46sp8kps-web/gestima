@@ -73,20 +73,63 @@ async def list_part_drawings(
     )
     drawings = result.scalars().all()
 
-    # Find primary ID
+    # Build response with file_exists check + auto-cleanup orphans
     primary_id = None
+    response_drawings = []
+    orphan_count = 0
+
     for drawing in drawings:
         if drawing.is_primary:
             primary_id = drawing.id
-            break
+
+        # Check if file physically exists on disk
+        file_exists = Path(drawing.file_path).exists() if drawing.file_path else False
+
+        if not file_exists:
+            orphan_count += 1
+            logger.warning(
+                f"Orphan drawing record: id={drawing.id}, "
+                f"file_path={drawing.file_path} (part={part_number})"
+            )
+
+        resp = DrawingResponse.model_validate(drawing)
+        resp.file_exists = file_exists
+        response_drawings.append(resp)
+
+    # Auto-cleanup: if primary drawing is orphan, promote next valid one
+    if primary_id and orphan_count > 0:
+        primary_orphan = any(
+            d.id == primary_id and not d.file_exists for d in response_drawings
+        )
+        if primary_orphan:
+            # Find first non-orphan drawing of same file_type to promote
+            orphan_drawing = next(d for d in response_drawings if d.id == primary_id)
+            for d in response_drawings:
+                if d.id != primary_id and d.file_exists and d.file_type == orphan_drawing.file_type:
+                    # Promote in DB
+                    try:
+                        new_primary = await drawing_service.set_primary_drawing(d.id, db)
+                        if orphan_drawing.file_type == "pdf":
+                            part.drawing_path = new_primary.file_path
+                        await db.commit()
+                        primary_id = d.id
+                        d.is_primary = True
+                        orphan_drawing.is_primary = False
+                        logger.info(
+                            f"Auto-promoted drawing {d.id} (orphan primary {orphan_drawing.id} "
+                            f"had missing file, part={part_number})"
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to auto-promote drawing: {e}")
+                    break
 
     logger.debug(
         f"Listed {len(drawings)} drawings for part {part_number} "
-        f"(primary_id={primary_id})"
+        f"(primary_id={primary_id}, orphans={orphan_count})"
     )
 
     return DrawingListResponse(
-        drawings=[DrawingResponse.model_validate(d) for d in drawings],
+        drawings=response_drawings,
         primary_id=primary_id
     )
 
@@ -136,24 +179,31 @@ async def upload_drawing(
             detail="Neplatná revize. Použijte formát A-Z (1-2 znaky)."
         )
 
-    # SECURITY: Validate PDF
+    # SECURITY: Auto-detect and validate file type (PDF or STEP)
     try:
-        await drawing_service.validate_pdf(file)
-        file_size = await drawing_service.validate_file_size(file)
+        file_type = drawing_service.detect_file_type(file.filename or "unknown")
+        if file_type == "pdf":
+            await drawing_service.validate_pdf(file)
+            file_size = await drawing_service.validate_file_size(file)
+        elif file_type == "step":
+            await drawing_service.validate_step(file)
+            file_size = await drawing_service.validate_file_size(file, max_size=drawing_service.MAX_STEP_FILE_SIZE)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"PDF validation failed for {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail="Chyba při validaci PDF souboru")
+        logger.error(f"File validation failed for {part_number}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Chyba při validaci souboru")
 
-    # Generate filename: {part_number}_{timestamp}_{revision}.pdf
+    # Generate filename: {part_number}_{timestamp}_{revision}.{ext}
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     safe_part_number = drawing_service.sanitize_part_number(part_number)
-    new_filename = f"{safe_part_number}_{timestamp}_{revision}.pdf"
+    ext = Path(file.filename).suffix.lower() if file.filename else '.pdf'
+    new_filename = f"{safe_part_number}_{timestamp}_{revision}{ext}"
     file_path_abs = drawing_service.DRAWINGS_DIR / new_filename
     file_path_rel = f"drawings/{new_filename}"
 
     # Transaction handling (L-008)
+    committed = False
     try:
         # Save file to disk
         with file_path_abs.open("wb") as buffer:
@@ -163,16 +213,17 @@ async def upload_drawing(
         # Calculate hash
         file_hash = await drawing_service.calculate_file_hash(file_path_abs)
 
-        # Check if this is first drawing (auto-primary)
+        # Check if this is first drawing of this file_type (auto-primary per type)
         result = await db.execute(
             select(Drawing)
             .where(
                 Drawing.part_id == part.id,
+                Drawing.file_type == file_type,
                 Drawing.deleted_at.is_(None)
             )
         )
-        existing_drawings = result.scalars().all()
-        is_first_drawing = len(existing_drawings) == 0
+        existing_of_type = result.scalars().all()
+        is_first_of_type = len(existing_of_type) == 0
 
         # Create drawing record
         drawing = await drawing_service.save_drawing_record(
@@ -181,38 +232,40 @@ async def upload_drawing(
             filename=file.filename or new_filename,
             file_size=file_size,
             file_hash=file_hash,
-            is_primary=is_first_drawing,  # Auto-primary if first
+            is_primary=is_first_of_type,  # Auto-primary if first of this type
             revision=revision,
             created_by=current_user.username,
-            db=db
+            db=db,
+            file_type=file_type
         )
 
         await db.commit()
+        committed = True
         await db.refresh(drawing)
 
-        # Sync Part.drawing_path with primary drawing (Phase A compatibility)
-        if is_first_drawing:
+        # Sync Part.drawing_path with primary PDF drawing only (Phase A compatibility)
+        if is_first_of_type and file_type == "pdf":
             part.drawing_path = file_path_rel
             part.updated_by = current_user.username
             await db.commit()
 
         logger.info(
             f"Uploaded drawing: part={part_number}, file='{file.filename}', "
-            f"size={file_size}, hash={file_hash[:8]}..., primary={is_first_drawing}, "
+            f"size={file_size}, hash={file_hash[:8]}..., primary={is_first_of_type}, "
             f"revision={revision}, user={current_user.username}"
         )
 
         return DrawingResponse.model_validate(drawing)
 
     except HTTPException:
-        # Rollback file on DB error
-        if file_path_abs.exists():
+        # Rollback file only if DB was NOT committed (prevents orphaned DB records)
+        if not committed and file_path_abs.exists():
             file_path_abs.unlink()
         await db.rollback()
         raise
     except Exception as e:
-        # Rollback file on any error
-        if file_path_abs.exists():
+        # Rollback file only if DB was NOT committed (prevents orphaned DB records)
+        if not committed and file_path_abs.exists():
             file_path_abs.unlink()
         await db.rollback()
         logger.error(f"Failed to upload drawing for {part_number}: {e}", exc_info=True)
@@ -272,9 +325,10 @@ async def set_primary_drawing(
         drawing = await drawing_service.set_primary_drawing(drawing_id, db)
         drawing.updated_by = current_user.username
 
-        # Sync Part.drawing_path with new primary drawing (Phase A compatibility)
-        part.drawing_path = drawing.file_path
-        part.updated_by = current_user.username
+        # Sync Part.drawing_path only for PDF primary (Phase A compatibility)
+        if drawing.file_type == "pdf":
+            part.drawing_path = drawing.file_path
+            part.updated_by = current_user.username
 
         await db.commit()
         await db.refresh(drawing)
@@ -351,22 +405,25 @@ async def delete_drawing(
         drawing.deleted_by = current_user.username
         drawing.version += 1
 
-        # If was primary, auto-promote next oldest
+        # If was primary, auto-promote next oldest of same file_type
+        deleted_file_type = drawing.file_type or "pdf"
         if was_primary:
-            promoted = await drawing_service.auto_promote_primary(part.id, db)
+            promoted = await drawing_service.auto_promote_primary(part.id, db, file_type=deleted_file_type)
             if promoted:
                 promoted.updated_by = current_user.username
-                # Sync Part.drawing_path with new primary (Phase A compatibility)
-                part.drawing_path = promoted.file_path
-                part.updated_by = current_user.username
+                # Sync Part.drawing_path only for PDF primary (Phase A compatibility)
+                if deleted_file_type == "pdf":
+                    part.drawing_path = promoted.file_path
+                    part.updated_by = current_user.username
                 logger.info(
                     f"Auto-promoted drawing {promoted.id} to primary after delete "
-                    f"(part={part_number})"
+                    f"(part={part_number}, type={deleted_file_type})"
                 )
             else:
-                # No more drawings - clear Part.drawing_path
-                part.drawing_path = None
-                part.updated_by = current_user.username
+                # No more drawings of this type
+                if deleted_file_type == "pdf":
+                    part.drawing_path = None
+                    part.updated_by = current_user.username
 
         await db.commit()
 
@@ -442,16 +499,20 @@ async def get_drawing_file(
 
     logger.debug(f"Serving drawing file: {drawing.filename} (part={part_number})")
 
+    # Determine media type based on file_type
+    media_type = "application/pdf" if drawing.file_type == "pdf" else "application/step"
+
     # RFC 5987: Encode filename for Unicode support in Content-Disposition header
     # Use ASCII fallback + UTF-8 encoded version for Czech characters (háčky, čárky)
     encoded_filename = quote(drawing.filename, safe='')
+    ascii_fallback = drawing.filename.encode('ascii', 'ignore').decode('ascii') or f'drawing{Path(drawing.filename).suffix}'
 
     return FileResponse(
         path=file_path,
-        media_type="application/pdf",
+        media_type=media_type,
         filename=drawing.filename,
         headers={
-            "Content-Disposition": f"inline; filename=\"{drawing.filename.encode('ascii', 'ignore').decode('ascii') or 'drawing.pdf'}\"; filename*=UTF-8''{encoded_filename}"
+            "Content-Disposition": f"inline; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded_filename}"
         }
     )
 
@@ -511,14 +572,18 @@ async def get_primary_drawing_legacy(
 
     logger.debug(f"Serving primary drawing: {primary_drawing.filename} (part={part_number})")
 
+    # Determine media type based on file_type
+    media_type = "application/pdf" if primary_drawing.file_type == "pdf" else "application/step"
+
     # RFC 5987: Encode filename for Unicode support
     encoded_filename = quote(primary_drawing.filename, safe='')
+    ascii_fallback = primary_drawing.filename.encode('ascii', 'ignore').decode('ascii') or f'drawing{Path(primary_drawing.filename).suffix}'
 
     return FileResponse(
         path=file_path,
-        media_type="application/pdf",
+        media_type=media_type,
         filename=primary_drawing.filename,
         headers={
-            "Content-Disposition": f"inline; filename=\"{primary_drawing.filename.encode('ascii', 'ignore').decode('ascii') or 'drawing.pdf'}\"; filename*=UTF-8''{encoded_filename}"
+            "Content-Disposition": f"inline; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded_filename}"
         }
     )

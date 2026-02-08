@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>3D Feature Coloring Test</title>
+<style>
+body { font-family: -apple-system, sans-serif; margin: 0; background: #1a1a2e; color: #ccc; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { color: #fff; font-size: 20px; }
+.files { display: flex; flex-wrap: wrap; gap: 6px; margin: 15px 0; }
+.files button { padding: 5px 10px; background: #2b6cb0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.files button:hover { background: #3182ce; }
+.files button.active { background: #ed8936; }
+.info { padding: 10px; background: #222; border-radius: 6px; margin: 10px 0; font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.face-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.face-table th { text-align: left; padding: 4px 8px; background: #333; font-size: 11px; color: #aaa; }
+.face-table td { padding: 4px 8px; border-bottom: 1px solid #333; font-size: 11px; }
+.face-table tr:hover { background: #2a2a3e; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Manufacturing Feature Classification — Edge Convexity Analysis</h1>
+
+<div class="info" id="info">Logging in...</div>
+<div class="legend" id="legend"></div>
+<div class="files" id="files"></div>
+
+<table class="face-table" id="faceTable" style="display:none">
+<thead>
+<tr><th>#</th><th>Type</th><th>Inner</th><th>Mfg Feature</th><th>Radius</th><th>Concave</th><th>Convex</th><th>Smooth</th><th>BBox Center</th></tr>
+</thead>
+<tbody id="faceBody"></tbody>
+</table>
+</div>
+
+<script>
+async function init() {
+  // Login
+  try {
+    await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'demo', password: 'demo' }),
+      credentials: 'include',
+    });
+  } catch(e) {
+    document.getElementById('info').textContent = 'Login failed: ' + e.message;
+    return;
+  }
+
+  // Fetch files
+  const resp = await fetch('/api/feature-recognition-batch/step-files', { credentials: 'include' });
+  const data = await resp.json();
+  
+  const container = document.getElementById('files');
+  for (const fname of data.files || []) {
+    const btn = document.createElement('button');
+    btn.textContent = fname.replace('.ipt.step', '').replace('.stp', '').replace('.step', '');
+    btn.onclick = () => { loadFeatures(fname, btn); };
+    container.appendChild(btn);
+  }
+  document.getElementById('info').textContent = `${data.files?.length || 0} STEP files. Click to analyze.`;
+}
+
+async function loadFeatures(filename, btn) {
+  document.querySelectorAll('.files button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('info').innerHTML = `<b>Analyzing ${filename}...</b> (edge convexity computation)`;
+
+  try {
+    const resp = await fetch(`/api/feature-recognition-batch/step-face-features/${encodeURIComponent(filename)}`, { credentials: 'include' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+
+    // Info
+    document.getElementById('info').innerHTML = `
+      <b>${filename}</b> — <b>${data.part_type}</b> | ${data.n_faces} faces | ${data.n_manifold_edges} manifold edges | axis=${data.rotation_axis || '-'}
+    `;
+
+    // Legend
+    const used = [...new Set(data.faces.map(f => f.mfg_feature))];
+    document.getElementById('legend').innerHTML = used.map(label => {
+      const count = data.faces.filter(f => f.mfg_feature === label).length;
+      const color = data.color_map[label] || '#ccc';
+      return `<div class="legend-item"><span class="swatch" style="background:${color}"></span>${label} (${count})</div>`;
+    }).join('');
+
+    // Face table
+    const tbody = document.getElementById('faceBody');
+    tbody.innerHTML = '';
+    document.getElementById('faceTable').style.display = 'table';
+    
+    for (const f of data.faces) {
+      const color = data.color_map[f.mfg_feature] || '#ccc';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${f.idx}</td>
+        <td>${f.type}</td>
+        <td>${f.is_inner ? '✓' : ''}</td>
+        <td><span class="swatch" style="background:${color};width:10px;height:10px;vertical-align:middle"></span> <b>${f.mfg_feature}</b></td>
+        <td>${f.radius != null ? 'Ø' + (f.radius * 2).toFixed(1) : '-'}</td>
+        <td style="color:#e53e3e">${f.edge_convexity.concave || ''}</td>
+        <td style="color:#48bb78">${f.edge_convexity.convex || ''}</td>
+        <td style="color:#a0aec0">${f.edge_convexity.smooth || ''}</td>
+        <td style="font-size:10px;color:#666">${f.bbox_center.map(v => v.toFixed(1)).join(', ')}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  } catch(e) {
+    document.getElementById('info').textContent = 'Error: ' + e.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

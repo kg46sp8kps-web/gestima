@@ -1,0 +1,32 @@
+GESTIMA BATCH ESTIMATION - DETERMINISM TEST LOG
+======================================================================
+
+Total files processed: 37
+Determinism tests: 5 samples
+All deterministic: YES
+
+File: 0304663_D00043519_000.1_3D.stp
+Status: PASS
+Times: 142.11, 142.11, 142.11 min
+Variance: 0.0000
+
+File: 0347039_D00114455_000_000.step
+Status: PASS
+Times: 96.05, 96.05, 96.05 min
+Variance: 0.0000
+
+File: 10138363-01_21.03.2024.stp
+Status: PASS
+Times: 296.41, 296.41, 296.41 min
+Variance: 0.0000
+
+File: 10383459_7f06bbe6.stp
+Status: PASS
+Times: 586.43, 586.43, 586.43 min
+Variance: 0.0000
+
+File: 3DM_90057637_000_00.stp
+Status: PASS
+Times: 104.60, 104.60, 104.60 min
+Variance: 0.0000
+

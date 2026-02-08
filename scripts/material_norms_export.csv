@@ -1,0 +1,83 @@
+w_nr,csn,en_iso,aisi,material_group_id,mapping_reason
+1.0036,11373,S235JRG1,,5,ČSN 11373 → Ocel konstrukční
+1.0038,11375,S235JR(G2),,5,ČSN 11375 → Ocel konstrukční
+1.0039,11375,S235JRH,,5,ČSN 11375 → Ocel konstrukční
+1.0050,11500,E295,,5,ČSN 11500 → Ocel konstrukční
+1.0060,11600,E335,,5,ČSN 11600 → Ocel konstrukční
+1.0070,11700,E360,,5,ČSN 11700 → Ocel konstrukční
+1.0330,11321,DC01,,5,ČSN 11321 → Ocel konstrukční
+1.0501,12040,C35,,5,ČSN 12040 → Ocel konstrukční
+1.0503,12050,C45,,5,ČSN 12050 → Ocel konstrukční
+1.0535,12060,C55,,5,ČSN 12060 → Ocel konstrukční
+1.0570,11523,S355J2G3,,5,ČSN 11523 → Ocel konstrukční
+1.0577,11503,S355J2,,5,ČSN 11503 → Ocel konstrukční
+1.0715,11109,11SMn30,,4,ČSN 11109 → Ocel automatová
+1.0762,,ETG100,,5,W.Nr 1.0762 → Ocel konstrukční (fallback)
+1.1141,12023,C15E,,5,ČSN 12023 → Ocel konstrukční
+1.1213,12051,C53,,5,ČSN 12051 → Ocel konstrukční
+1.1545,19191,C105U,,7,ČSN 19191 → Ocel nástrojová
+1.1730,19083,C45U,,7,ČSN 19083 → Ocel nástrojová
+1.2080,19436,X210Cr12,,7,ČSN 19436 → Ocel nástrojová
+1.2083,17024,X40Cr14,,8,ČSN 17024 → Nerez
+1.2101,19452,62SiMnCr4,,7,ČSN 19452 → Ocel nástrojová
+1.2162,19487,21MnCr5,,7,ČSN 19487 → Ocel nástrojová
+1.2210,19421,115CrV3,,7,ČSN 19421 → Ocel nástrojová
+1.2311,19520,40CrMnMo7,,7,ČSN 19520 → Ocel nástrojová
+1.2316,,,,7,W.Nr 1.2316 → Ocel nástrojová (fallback)
+1.2379,19573,X153CrMoV12,,7,ČSN 19573 → Ocel nástrojová
+1.2436,19437,X210CrW12,,7,ČSN 19437 → Ocel nástrojová
+1.2721,19614,50NiCr13,,7,ČSN 19614 → Ocel nástrojová
+1.2842,19312 (19313),90MnCrV8,,7,ČSN 19312(19313) → Ocel nástrojová
+1.3343,19830,HS6-5-2C,,7,ČSN 19830 → Ocel nástrojová
+1.3355,19824,HS18-0-1,,7,ČSN 19824 → Ocel nástrojová
+1.3505,14109,100Cr6,,6,ČSN 14109 → Ocel legovaná
+1.3912,17745,FeNi36,,8,ČSN 17745 → Nerez
+1.4021,17022,X20Cr13,,8,ČSN 17022 → Nerez
+1.4034,17029,X46Cr 13,420,8,ČSN 17029 → Nerez
+1.4057,17145,X19CrNi17-2,,8,ČSN 17145 → Nerez
+1.4104,17140,X14CrMoS17,,8,ČSN 17140 → Nerez
+1.4112,17042 (17151),X90CrMoV18,,8,ČSN 17042(17151) → Nerez
+1.4301,17240 (17241),X5CrNi18-10,304,8,ČSN 17240(17241) → Nerez
+1.4305,17243,X8CrNiS18-9,303,8,ČSN 17243 → Nerez
+1.4404,17346,GX2CrNiMoN17-11-2,316,8,ČSN 17346 → Nerez
+1.4418,,X4CrNiMo16-5-1,,8,W.Nr 1.4418 → Nerez (fallback)
+1.4435,17349,X2CrNiMo18-14-3,316L,8,ČSN 17349 → Nerez
+1.4541,17247,X6CrNiTi18-10,321,8,ČSN 17247 → Nerez
+1.4542,,X5CrNiCuNb 16-4,630,8,W.Nr 1.4542 → Nerez (fallback)
+1.4571,17347 (17348),X6CrNiMoTi17-12-2,316Ti,8,ČSN 17347(17348) → Nerez
+1.4878,17248,X8CrNiTi18-10,321,8,ČSN 17248 → Nerez
+1.5122,13240,,,6,ČSN 13240 → Ocel legovaná
+1.5713,16240,,3135,6,ČSN 16240 → Ocel legovaná
+1.5752,16420,15NiCr13,3310,6,ČSN 16420 → Ocel legovaná
+1.5864,16640,,,6,ČSN 16640 → Ocel legovaná
+1.6582,16342 (16343),34CrNiMo6,4340,6,ČSN 16342(16343) → Ocel legovaná
+1.7131,14220,16MnCr5,5115,6,ČSN 14220 → Ocel legovaná
+1.7225,15341,42CrMo4,4140,6,ČSN 15341 → Ocel legovaná
+1.7707,15241 (15240),30CrMoV9,- (6135),6,ČSN 15241(15240) → Ocel legovaná
+1.7733,15236,24CrMoV5-5,,6,ČSN 15236 → Ocel legovaná
+1.8159,15260,51CrV4,6150,6,ČSN 15260 → Ocel legovaná
+1.8162,15231,,,6,ČSN 15231 → Ocel legovaná
+1.8519,15330,31CrMoV9,,6,ČSN 15330 → Ocel legovaná
+2.0060,42 3001,CW004A,,2,W.Nr 2.0060 → Měď
+2.0280,42 3212,CW506L,,2,W.Nr 2.0280 → Měď
+2.0321,42 3213,CW508L,,2,W.Nr 2.0321 → Měď
+2.0401,,CW614N,,2,W.Nr 2.0401 → Měď
+2.0966,42 3047,CW307G,,2,W.Nr 2.0966 → Měď
+2.0975,,W307G,,2,W.Nr 2.0975 → Měď
+2.1030,42 3018,CW453K,,3,W.Nr 2.1030 → Mosaz
+2.1053,,CC493K,,3,W.Nr 2.1053 → Mosaz
+2.1090,,CC493K,,3,W.Nr 2.1090 → Mosaz
+2.1182,,CC496K,,3,W.Nr 2.1182 → Mosaz
+2.1293,,CW106C,,3,W.Nr 2.1293 → Mosaz
+3.0615,,AW 6012,,1,W.Nr 3.0615 → Hliník
+3.1325,424201,AW 2017,,1,W.Nr 3.1325 → Hliník
+3.1355,424203,AW 2024,,1,W.Nr 3.1355 → Hliník
+3.1645,( 42 4254 ),AW 2007,,1,W.Nr 3.1645 → Hliník
+3.2306,,AW-6060,,1,W.Nr 3.2306 → Hliník
+3.2315,424400,AW 6082,,1,W.Nr 3.2315 → Hliník
+3.3206,42 4401,AW 6060,,1,W.Nr 3.3206 → Hliník
+3.3535,424413,AW 5754,,1,W.Nr 3.3535 → Hliník
+3.3547,424415,AW 5083,,1,W.Nr 3.3547 → Hliník
+3.4345,,AW 7022,,1,W.Nr 3.4345 → Hliník
+3.4365,424222,AW 7075,,1,W.Nr 3.4365 → Hliník
+3.C330,,AW 7021,,1,W.Nr 3.C330 → Hliník

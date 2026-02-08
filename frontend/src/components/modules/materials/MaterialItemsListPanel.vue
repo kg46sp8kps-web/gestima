@@ -10,11 +10,13 @@
  * - Create & Import buttons
  */
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Plus, Upload, Package } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 import type { MaterialItem, MaterialGroup, StockShape } from '@/types/material'
 import type { Column } from '@/components/ui/DataTable.vue'
 import { getMaterialItems, getMaterialGroups } from '@/api/materials'
+import { useDebounceFn } from '@vueuse/core'
 
 import DataTable from '@/components/ui/DataTable.vue'
 import ColumnChooser from '@/components/ui/ColumnChooser.vue'
@@ -44,6 +46,32 @@ const selectedItemNumber = ref<string | null>(null)
 const sortKey = ref('code')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 
+// Debounced versions for performance
+const debouncedSearchQuery = ref('')
+const debouncedFilterGroupId = ref<number | null>(null)
+const debouncedFilterShape = ref<StockShape | null>(null)
+const debouncedFilterSupplier = ref<string | null>(null)
+
+// Debounce functions
+const updateSearchDebounced = useDebounceFn((value: string) => {
+  debouncedSearchQuery.value = value
+}, 300)
+
+const updateFiltersDebounced = useDebounceFn(() => {
+  debouncedFilterGroupId.value = filterGroupId.value
+  debouncedFilterShape.value = filterShape.value
+  debouncedFilterSupplier.value = filterSupplier.value
+}, 200)
+
+// Watch for changes and trigger debounced updates
+watch(searchQuery, (newValue) => {
+  updateSearchDebounced(newValue)
+})
+
+watch([filterGroupId, filterShape, filterSupplier], () => {
+  updateFiltersDebounced()
+})
+
 // Column definitions
 const defaultColumns: Column[] = [
   { key: 'code', label: 'KÓD', sortable: true, visible: true, format: 'text' },
@@ -62,9 +90,9 @@ const columns = ref<Column[]>(defaultColumns)
 const filteredItems = computed(() => {
   let result = [...items.value]
 
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
+  // Search filter (debounced)
+  if (debouncedSearchQuery.value) {
+    const query = debouncedSearchQuery.value.toLowerCase()
     result = result.filter(item =>
       item.code.toLowerCase().includes(query) ||
       item.name.toLowerCase().includes(query) ||
@@ -73,20 +101,20 @@ const filteredItems = computed(() => {
     )
   }
 
-  // Material group filter
-  if (filterGroupId.value) {
-    result = result.filter(item => item.material_group_id === filterGroupId.value)
+  // Material group filter (debounced)
+  if (debouncedFilterGroupId.value) {
+    result = result.filter(item => item.material_group_id === debouncedFilterGroupId.value)
   }
 
-  // Shape filter
-  if (filterShape.value) {
-    result = result.filter(item => item.shape === filterShape.value)
+  // Shape filter (debounced)
+  if (debouncedFilterShape.value) {
+    result = result.filter(item => item.shape === debouncedFilterShape.value)
   }
 
-  // Supplier filter
-  if (filterSupplier.value) {
+  // Supplier filter (debounced)
+  if (debouncedFilterSupplier.value) {
     result = result.filter(item =>
-      item.supplier?.toLowerCase() === filterSupplier.value?.toLowerCase()
+      item.supplier?.toLowerCase() === debouncedFilterSupplier.value?.toLowerCase()
     )
   }
 
@@ -165,10 +193,8 @@ function handleImport() {
   console.log('Import material items')
 }
 
-function handleColumnsUpdate(updatedColumns: Column[]) {
-  columns.value = updatedColumns
-
-  // Save to localStorage
+// Debounced localStorage save
+const saveColumnsToStorage = useDebounceFn((updatedColumns: Column[]) => {
   const visibility = updatedColumns.reduce((acc, col) => {
     acc[col.key] = col.visible ?? true
     return acc
@@ -178,12 +204,24 @@ function handleColumnsUpdate(updatedColumns: Column[]) {
 
   localStorage.setItem('materialItemListColumns', JSON.stringify(visibility))
   localStorage.setItem('materialItemListColumns_order', JSON.stringify(order))
+}, 500)
+
+function handleColumnsUpdate(updatedColumns: Column[]) {
+  columns.value = updatedColumns
+  // Save to localStorage (debounced)
+  saveColumnsToStorage(updatedColumns)
 }
 
 // Lifecycle
 onMounted(() => {
   loadItems()
   loadGroups()
+
+  // Initialize debounced values
+  debouncedSearchQuery.value = searchQuery.value
+  debouncedFilterGroupId.value = filterGroupId.value
+  debouncedFilterShape.value = filterShape.value
+  debouncedFilterSupplier.value = filterSupplier.value
 
   // Load saved column settings
   const savedVisibility = localStorage.getItem('materialItemListColumns')
@@ -225,11 +263,11 @@ defineExpose({
     <div class="panel-header">
       <h3 class="panel-title">Materiálové položky</h3>
       <div class="header-actions">
-        <button class="btn btn-icon-sm" @click="handleImport" title="Import">
-          <Upload :size="16" />
+        <button class="icon-btn icon-btn-sm" @click="handleImport" title="Import">
+          <Upload :size="ICON_SIZE.STANDARD" />
         </button>
         <button class="btn btn-primary btn-sm" @click="handleCreate">
-          <Plus :size="16" />
+          <Plus :size="ICON_SIZE.STANDARD" />
           Nová položka
         </button>
       </div>
@@ -284,8 +322,12 @@ defineExpose({
         :loading="isLoading"
         :rowClickable="true"
         :selected="selectedItems"
+        :sortKey="sortKey"
+        :sortDirection="sortDirection"
+        emptyText="Žádné materiálové položky"
         @row-click="handleRowClick"
         @sort="handleSort"
+        @update:columns="handleColumnsUpdate"
       >
         <!-- Custom cell templates -->
         <template #cell-shape="{ value }">
@@ -312,7 +354,7 @@ defineExpose({
 
     <!-- Empty state (when no items at all) -->
     <div v-if="!loading && !hasItems" class="empty-state">
-      <Package :size="48" class="empty-icon" />
+      <Package :size="ICON_SIZE.XLARGE" class="empty-icon" />
       <p class="empty-title">Žádné materiálové položky</p>
       <p class="empty-hint">Začněte importem katalogu nebo vytvořte položku ručně</p>
     </div>
@@ -326,8 +368,9 @@ defineExpose({
   flex-direction: column;
   gap: var(--space-3);
   height: 100%;
-  padding: var(--space-4);
-  background: var(--bg-base);
+  overflow: hidden;
+  container-type: inline-size;
+  container-name: material-items-container;
 }
 
 /* === HEADER === */
@@ -336,17 +379,19 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .panel-title {
   margin: 0;
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
 
 .header-actions {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
 }
 
@@ -355,23 +400,24 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .search-input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  color: var(--text-primary);
   background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: all var(--duration-fast);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
+  background: var(--state-focus-bg);
+  border-color: var(--state-focus-border);
 }
 
 .filters {
@@ -383,24 +429,34 @@ defineExpose({
   flex: 1;
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  color: var(--text-primary);
   background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
+  cursor: pointer;
   transition: all var(--duration-fast);
+}
+
+.filter-select:hover {
+  border-color: var(--color-primary);
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: var(--color-primary);
+  background: var(--state-focus-bg);
+  border-color: var(--state-focus-border);
 }
 
 /* === TABLE === */
 .table-container {
   flex: 1;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+  container-name: materials-table;
+  --density-cell-py: var(--space-4);
+  --density-cell-px: var(--space-4);
 }
 
 /* === CUSTOM CELLS === */
@@ -444,44 +500,53 @@ defineExpose({
 
 /* === BUTTONS === */
 .btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
+  padding: 0;
+  width: 28px;
+  height: 28px;
   background: transparent;
-  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--duration-fast);
+  flex-shrink: 0;
 }
 
 .btn:hover {
-  border-color: var(--color-primary);
+  background: var(--bg-surface);
   color: var(--color-primary);
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.btn:active {
+  transform: scale(0.95);
 }
 
 .btn-primary {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: white;
+  width: auto;
+  padding: var(--space-2) var(--space-3);
 }
 
 .btn-primary:hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
+  transform: scale(1.05);
 }
 
 .btn-sm {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-3);
+  width: auto;
+  height: auto;
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
 
-.btn-icon-sm {
-  padding: var(--space-1);
-  min-width: 28px;
-}
 </style>
