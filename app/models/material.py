@@ -71,7 +71,7 @@ class MaterialPriceCategory(Base, AuditMixin):
     name = Column(String(200), nullable=False)                            # "Hliník - tyč kruhová"
 
     # FK → MaterialGroup (Migration 2026-01-26: pro auto-assign hustoty)
-    material_group_id = Column(Integer, ForeignKey("material_groups.id"), nullable=True, index=True)
+    material_group_id = Column(Integer, ForeignKey("material_groups.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Cutting parameters (Migration 2026-02-08) - nullable for old records
     iso_group = Column(String(5), index=True, nullable=True)              # P, M, K, N, S, H

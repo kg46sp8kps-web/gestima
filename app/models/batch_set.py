@@ -36,7 +36,7 @@ class BatchSet(Base, AuditMixin):
 
     # Freeze metadata
     frozen_at = Column(DateTime, nullable=True, index=True)
-    frozen_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    frozen_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     # Relationships
     part = relationship("Part", back_populates="batch_sets")

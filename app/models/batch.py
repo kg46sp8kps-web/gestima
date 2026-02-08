@@ -37,7 +37,7 @@ class Batch(Base, AuditMixin):
     # Freeze metadata (ADR-012: Minimal Snapshot)
     is_frozen = Column(Boolean, default=False, nullable=False, index=True)
     frozen_at = Column(DateTime, nullable=True)
-    frozen_by_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    frozen_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Snapshot (minimal - pouze ceny a metadata)
     snapshot_data = Column(JSON, nullable=True)

@@ -13,6 +13,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, update, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import SQLAlchemyError
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_role
@@ -189,9 +193,17 @@ async def create_material_input(
         updated_by=current_user.username
     )
 
-    db.add(material)
-    await db.commit()
-    await db.refresh(material)
+    try:
+        db.add(material)
+        await db.commit()
+        await db.refresh(material)
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Failed to create MaterialInput: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create material input"
+        )
 
     return material
 
@@ -255,8 +267,16 @@ async def update_material_input(
             detail="Optimistic lock failed"
         )
 
-    await db.commit()
-    await db.refresh(updated_material, ["operations"])
+    try:
+        await db.commit()
+        await db.refresh(updated_material, ["operations"])
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Failed to update MaterialInput {material_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update material input"
+        )
 
     # Calculate weight and price (same logic as list endpoint)
     mat_dict = {
@@ -324,7 +344,15 @@ async def delete_material_input(
             detail=f"MaterialInput {material_id} not found"
         )
 
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Failed to delete MaterialInput {material_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete material input"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -388,15 +416,22 @@ async def link_material_to_operation(
 
     # Create link
     consumed_quantity = request.consumed_quantity if request else None
-    await db.execute(
-        material_operation_link.insert().values(
-            material_input_id=material_id,
-            operation_id=operation_id,
-            consumed_quantity=consumed_quantity
+    try:
+        await db.execute(
+            material_operation_link.insert().values(
+                material_input_id=material_id,
+                operation_id=operation_id,
+                consumed_quantity=consumed_quantity
+            )
         )
-    )
-
-    await db.commit()
+        await db.commit()
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Failed to link MaterialInput {material_id} to Operation {operation_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create link"
+        )
 
     return {"message": "Link created successfully"}
 
@@ -425,7 +460,15 @@ async def unlink_material_from_operation(
             detail="Link not found"
         )
 
-    await db.commit()
+    try:
+        await db.commit()
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Failed to unlink MaterialInput {material_id} from Operation {operation_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to remove link"
+        )
 
 
 @router.get("/operations/{operation_id}/materials", response_model=List[MaterialInputResponse])

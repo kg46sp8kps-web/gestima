@@ -4,11 +4,14 @@ Drawing Parser Service - Extract manufacturing data from SVG/PDF/STEP
 """
 
 import re
+import logging
 from typing import Dict, List, Optional
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
 from app.services.feature_utils import deduplicate_features
+
+logger = logging.getLogger(__name__)
 
 
 class DrawingParser:
@@ -317,26 +320,26 @@ def test_parser():
     parser = DrawingParser()
     result = parser.parse_svg('stuetzfuss_contour.svg')
 
-    print("=" * 60)
-    print("PARSED DRAWING DATA")
-    print("=" * 60)
+    logger.debug("=" * 60)
+    logger.debug("PARSED DRAWING DATA")
+    logger.debug("=" * 60)
 
-    print("\n📋 METADATA:")
+    logger.debug("\n📋 METADATA:")
     for key, value in result.get('metadata', {}).items():
-        print(f"  {key}: {value}")
+        logger.debug(f"  {key}: {value}")
 
-    print(f"\n🔧 FEATURES FOUND: {len(result.get('features', []))}")
+    logger.debug(f"\n🔧 FEATURES FOUND: {len(result.get('features', []))}")
     for i, feature in enumerate(result.get('features', []), 1):
-        print(f"  {i}. {feature['type']}: {feature['raw_text']}")
+        logger.debug(f"  {i}. {feature['type']}: {feature['raw_text']}")
 
-    print(f"\n⚙️  SUGGESTED OPERATIONS: {len(result.get('suggested_operations', []))}")
+    logger.debug(f"\n⚙️  SUGGESTED OPERATIONS: {len(result.get('suggested_operations', []))}")
     for i, op in enumerate(result.get('suggested_operations', []), 1):
-        print(f"  {i}. {op['operation_type']}")
-        print(f"     Tool: {op['tool']}")
-        print(f"     Time: ~{op['estimated_time_min']} min")
+        logger.debug(f"  {i}. {op['operation_type']}")
+        logger.debug(f"     Tool: {op['tool']}")
+        logger.debug(f"     Time: ~{op['estimated_time_min']} min")
 
-    print(f"\n✅ CONFIDENCE: {result.get('confidence', 0)*100}%")
-    print("=" * 60)
+    logger.debug(f"\n✅ CONFIDENCE: {result.get('confidence', 0)*100}%")
+    logger.debug("=" * 60)
 
     return result
 
