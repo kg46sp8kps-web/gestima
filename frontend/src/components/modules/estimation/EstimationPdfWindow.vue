@@ -30,7 +30,7 @@ const pdfUrl = computed(() => {
 const displayFilename = computed(() => {
   if (!props.windowTitle) return ''
   const parts = props.windowTitle.split('|')
-  return parts[0].replace('Výkres: ', '')
+  return (parts[0] ?? '').replace('Výkres: ', '')
 })
 
 // Verify PDF exists

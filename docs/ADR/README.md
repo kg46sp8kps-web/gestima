@@ -51,6 +51,7 @@ Každý ADR obsahuje:
 | 033 | Surface Treatment Integration for Material Items | Implementováno | 2026-02-04 |
 | 034 | Infor Item Code Parsing Patterns | Implementováno | 2026-02-04 |
 | 040 | Physics-Based Machining Time Estimation | Implemented | 2026-02-08 |
+| 041 | ML-Based Machining Time Estimation | Přijato (Phase 1-6) | 2026-02-09 |
 | VIS-001 | Soft Delete for Future Modules | Přijato | 2026-01-25 |
 | VIS-002 | Quotes Workflow & Snapshot Protection | Implementováno | 2026-01-31 |
 
@@ -61,7 +62,7 @@ Každý ADR obsahuje:
 | 002 | Snapshot Pattern (původní návrh) | Nahrazeno ADR-012 (Minimal Snapshot) - implementována minimal verze místo full snapshot |
 | 017-v1 | 7-Digit Random Numbering | Nahrazeno ADR-017 v2.0 (8-digit) - rozšíření na 100 prefixů |
 | 039 | Vision Hybrid Pipeline | DEPRECATED (2026-02-08) - Nahrazeno ADR-040 (Physics-Based MRR). Feature Recognition pipeline smazán (~2500 LOC). Archivováno v `docs/archive/deprecated-2026-02-08/` |
-| 041 | Batch Machining Time Estimation | DEPRECATED (2026-02-08) - Unified do ADR-040. Batch estimation sloučen do main pipeline. Archivováno v `docs/archive/deprecated-2026-02-08/` |
+| 041-v1 | Batch Machining Time Estimation | DEPRECATED (2026-02-08) - Unified do ADR-040. Batch estimation sloučen do main pipeline. Archivováno v `docs/archive/deprecated-2026-02-08/` |
 
 ## Kdy vytvořit nový ADR?
 

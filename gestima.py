@@ -10,6 +10,10 @@ import subprocess
 import getpass
 import asyncio
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables FIRST
+load_dotenv()
 
 # Get project directory
 PROJECT_DIR = Path(__file__).parent

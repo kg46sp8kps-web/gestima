@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import type { MachiningTimeEstimation } from '@/types/estimation'
 import type { MaterialGroup } from '@/types/material'
-import { Clock } from 'lucide-vue-next'
+import { Clock, FileText, AlertTriangle } from 'lucide-vue-next'
 import TimeBreakdownWidget from './TimeBreakdownWidget.vue'
 import GeometryInfoWidget from './GeometryInfoWidget.vue'
 import ConstraintsWidget from './ConstraintsWidget.vue'
@@ -28,15 +28,15 @@ const windowsStore = useWindowsStore()
 const { reEstimate, loading: estimating } = useMachiningTimeEstimation()
 
 const availableMaterials = ref<MaterialGroup[]>([])
-const selectedMaterialCode = ref<string>(props.result.breakdown.material)
+const selectedMaterialCode = ref<string>(props.result.breakdown?.material ?? '')
 const loadingMaterials = ref(false)
 const localResult = ref<MachiningTimeEstimation>(props.result)
 const pdfMapping = ref<Record<string, string>>({})
 
-const totalTimeDisplay = computed(() => localResult.value.total_time_min.toFixed(2))
+const totalTimeDisplay = computed(() => (localResult.value.total_time_min ?? 0).toFixed(2))
 
 const hasConstraints = computed(() =>
-  localResult.value.breakdown.critical_constraints?.length > 0
+  (localResult.value.breakdown?.critical_constraints?.length ?? 0) > 0
 )
 
 onMounted(async () => {
@@ -48,15 +48,14 @@ async function loadPdfMapping() {
   try {
     const response = await fetch('/uploads/drawings/step_pdf_mapping.json')
     pdfMapping.value = await response.json()
-    console.log('✅ PDF mapping loaded:', Object.keys(pdfMapping.value).length, 'entries')
   } catch (error) {
-    console.error('❌ Failed to load PDF mapping:', error)
+    // Silently fail - PDF mapping is optional
   }
 }
 
 watch(() => props.result, (newResult) => {
   localResult.value = newResult
-  selectedMaterialCode.value = newResult.breakdown.material
+  selectedMaterialCode.value = newResult.breakdown?.material ?? ''
 
   // Auto-update PDF window title if already open
   updatePdfWindow()
@@ -89,12 +88,12 @@ async function loadMaterials() {
 }
 
 async function handleMaterialChange() {
-  if (selectedMaterialCode.value === localResult.value.breakdown.material) return
+  if (selectedMaterialCode.value === (localResult.value.breakdown?.material ?? '')) return
 
   const newEstimate = await reEstimate(
     localResult.value.filename,
     selectedMaterialCode.value,
-    localResult.value.breakdown.stock_type || 'bbox'
+    localResult.value.breakdown?.stock_type ?? 'bbox'
   )
 
   if (newEstimate) {
@@ -102,7 +101,7 @@ async function handleMaterialChange() {
     emit('updated', newEstimate)
     uiStore.showSuccess('Machining time re-estimated')
   } else {
-    selectedMaterialCode.value = localResult.value.breakdown.material
+    selectedMaterialCode.value = localResult.value.breakdown?.material ?? ''
     uiStore.showError('Failed to re-estimate machining time')
   }
 }
@@ -135,7 +134,7 @@ function openPdfInWindow() {
         @click="openPdfInWindow"
       >
         <div class="drawing-header-content">
-          <span class="drawing-label">📄 Výkres</span>
+          <span class="drawing-label"><FileText :size="14" class="inline-icon" /> Výkres</span>
           <span class="drawing-filename">{{ localResult.filename }}</span>
         </div>
         <span class="toggle-icon">▶</span>
@@ -174,19 +173,19 @@ function openPdfInWindow() {
     </div>
 
     <TimeBreakdownWidget
-      :roughing-main="localResult.roughing_time_main"
-      :roughing-aux="localResult.roughing_time_aux"
-      :finishing-main="localResult.finishing_time_main"
-      :finishing-aux="localResult.finishing_time_aux"
+      :roughing-main="localResult.roughing_time_main ?? 0"
+      :roughing-aux="localResult.roughing_time_aux ?? 0"
+      :finishing-main="localResult.finishing_time_main ?? 0"
+      :finishing-aux="localResult.finishing_time_aux ?? 0"
     />
 
     <GeometryInfoWidget
-      :material="localResult.breakdown.material"
-      :stock-volume-mm3="localResult.breakdown.stock_volume_mm3"
-      :part-volume-mm3="localResult.breakdown.part_volume_mm3"
-      :material-to-remove-mm3="localResult.breakdown.material_to_remove_mm3"
-      :material-removal-percent="(localResult.breakdown.material_to_remove_mm3 / localResult.breakdown.stock_volume_mm3 * 100)"
-      :surface-area-mm2="localResult.breakdown.surface_area_mm2"
+      :material="localResult.breakdown?.material ?? 'N/A'"
+      :stock-volume-mm3="localResult.breakdown?.stock_volume_mm3 ?? 0"
+      :part-volume-mm3="localResult.breakdown?.part_volume_mm3 ?? 0"
+      :material-to-remove-mm3="localResult.breakdown?.material_to_remove_mm3 ?? 0"
+      :material-removal-percent="(localResult.breakdown?.material_to_remove_mm3 ?? 0) / (localResult.breakdown?.stock_volume_mm3 ?? 1) * 100"
+      :surface-area-mm2="localResult.breakdown?.surface_area_mm2 ?? 0"
     />
 
     <div class="calculation-section">
@@ -197,32 +196,32 @@ function openPdfInWindow() {
         <div class="calc-formula">
           <div class="formula-line">
             <span class="formula-label">Objem k odebrání:</span>
-            <span class="formula-value">{{ (localResult.breakdown.material_to_remove_mm3 / 1000).toFixed(2) }} cm³</span>
+            <span class="formula-value">{{ ((localResult.breakdown?.material_to_remove_mm3 ?? 0) / 1000).toFixed(2) }} cm³</span>
           </div>
           <div class="formula-line">
-            <span class="formula-label">MRR ({{ localResult.breakdown.material }}):</span>
-            <span class="formula-value">{{ localResult.breakdown.mrr_roughing_cm3_min }} cm³/min</span>
+            <span class="formula-label">MRR ({{ localResult.breakdown?.material ?? 'N/A' }}):</span>
+            <span class="formula-value">{{ localResult.breakdown?.mrr_roughing_cm3_min ?? 0 }} cm³/min</span>
           </div>
           <div class="formula-divider">÷</div>
           <div class="formula-line result">
             <span class="formula-label">Základní čas hrubování:</span>
-            <span class="formula-value">{{ (localResult.breakdown.material_to_remove_mm3 / 1000 / localResult.breakdown.mrr_roughing_cm3_min).toFixed(2) }} min</span>
+            <span class="formula-value">{{ ((localResult.breakdown?.material_to_remove_mm3 ?? 0) / 1000 / (localResult.breakdown?.mrr_roughing_cm3_min ?? 1)).toFixed(2) }} min</span>
           </div>
-          <div class="formula-line" v-if="localResult.breakdown.constraint_multiplier > 1">
+          <div class="formula-line" v-if="(localResult.breakdown?.constraint_multiplier ?? 1) > 1">
             <span class="formula-label">× Constraint penalty:</span>
-            <span class="formula-value warning">{{ localResult.breakdown.constraint_multiplier.toFixed(2) }}×</span>
+            <span class="formula-value warning">{{ (localResult.breakdown?.constraint_multiplier ?? 1).toFixed(2) }}×</span>
           </div>
           <div class="formula-line">
             <span class="formula-label">= Hlavní čas hrubování:</span>
-            <span class="formula-value">{{ localResult.roughing_time_main.toFixed(2) }} min</span>
+            <span class="formula-value">{{ (localResult.roughing_time_main ?? 0).toFixed(2) }} min</span>
           </div>
           <div class="formula-line">
             <span class="formula-label">+ Vedlejší čas (přejezdy, 20%):</span>
-            <span class="formula-value">{{ localResult.roughing_time_aux.toFixed(2) }} min</span>
+            <span class="formula-value">{{ (localResult.roughing_time_aux ?? 0).toFixed(2) }} min</span>
           </div>
           <div class="formula-line final">
             <span class="formula-label">= CELKEM hrubování:</span>
-            <span class="formula-value highlight">{{ localResult.roughing_time_min.toFixed(2) }} min</span>
+            <span class="formula-value highlight">{{ (localResult.roughing_time_min ?? 0).toFixed(2) }} min</span>
           </div>
         </div>
       </div>
@@ -232,24 +231,24 @@ function openPdfInWindow() {
         <div class="calc-formula">
           <div class="formula-line">
             <span class="formula-label">Plocha povrchu:</span>
-            <span class="formula-value">{{ (localResult.breakdown.surface_area_mm2 / 100).toFixed(2) }} cm²</span>
+            <span class="formula-value">{{ ((localResult.breakdown?.surface_area_mm2 ?? 0) / 100).toFixed(2) }} cm²</span>
           </div>
           <div class="formula-line">
             <span class="formula-label">Finishing rate:</span>
-            <span class="formula-value">{{ localResult.breakdown.finishing_rate_cm2_min }} cm²/min</span>
+            <span class="formula-value">{{ localResult.breakdown?.finishing_rate_cm2_min ?? 0 }} cm²/min</span>
           </div>
           <div class="formula-divider">÷</div>
           <div class="formula-line result">
             <span class="formula-label">Hlavní čas dokončování:</span>
-            <span class="formula-value">{{ localResult.finishing_time_main.toFixed(2) }} min</span>
+            <span class="formula-value">{{ (localResult.finishing_time_main ?? 0).toFixed(2) }} min</span>
           </div>
           <div class="formula-line">
             <span class="formula-label">+ Vedlejší čas (přejezdy, 15%):</span>
-            <span class="formula-value">{{ localResult.finishing_time_aux.toFixed(2) }} min</span>
+            <span class="formula-value">{{ (localResult.finishing_time_aux ?? 0).toFixed(2) }} min</span>
           </div>
           <div class="formula-line final">
             <span class="formula-label">= CELKEM dokončování:</span>
-            <span class="formula-value highlight">{{ localResult.finishing_time_min.toFixed(2) }} min</span>
+            <span class="formula-value highlight">{{ (localResult.finishing_time_min ?? 0).toFixed(2) }} min</span>
           </div>
         </div>
       </div>
@@ -259,23 +258,23 @@ function openPdfInWindow() {
         <div class="calc-formula">
           <div class="formula-line">
             <span class="formula-label">Hrubování (hlavní + vedlejší):</span>
-            <span class="formula-value">{{ localResult.roughing_time_min.toFixed(2) }} min</span>
+            <span class="formula-value">{{ (localResult.roughing_time_min ?? 0).toFixed(2) }} min</span>
           </div>
           <div class="formula-line">
             <span class="formula-label">Dokončování (hlavní + vedlejší):</span>
-            <span class="formula-value">{{ localResult.finishing_time_min.toFixed(2) }} min</span>
+            <span class="formula-value">{{ (localResult.finishing_time_min ?? 0).toFixed(2) }} min</span>
           </div>
           <div class="formula-divider">+</div>
           <div class="formula-line final">
             <span class="formula-label">= CELKEM:</span>
-            <span class="formula-value highlight">{{ localResult.total_time_min.toFixed(2) }} min</span>
+            <span class="formula-value highlight">{{ (localResult.total_time_min ?? 0).toFixed(2) }} min</span>
           </div>
         </div>
       </div>
 
-      <div v-if="localResult.breakdown.critical_constraints?.length > 0" class="constraints-info">
-        <div class="constraint-item" v-for="constraint in localResult.breakdown.critical_constraints" :key="constraint">
-          <span class="constraint-icon">⚠️</span>
+      <div v-if="(localResult.breakdown?.critical_constraints?.length ?? 0) > 0" class="constraints-info">
+        <div class="constraint-item" v-for="constraint in (localResult.breakdown?.critical_constraints ?? [])" :key="constraint">
+          <AlertTriangle :size="16" class="constraint-icon" />
           <span class="constraint-text">{{ constraint }}</span>
         </div>
       </div>
@@ -283,8 +282,8 @@ function openPdfInWindow() {
 
     <ConstraintsWidget
       v-if="hasConstraints"
-      :constraints="localResult.breakdown.critical_constraints"
-      :multiplier="localResult.breakdown.constraint_multiplier"
+      :constraints="localResult.breakdown?.critical_constraints ?? []"
+      :multiplier="localResult.breakdown?.constraint_multiplier ?? 1"
     />
   </div>
 </template>

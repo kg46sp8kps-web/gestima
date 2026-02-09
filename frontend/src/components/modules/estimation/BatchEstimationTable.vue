@@ -26,19 +26,19 @@ const sortedResults = computed(() => {
     let bVal: string | number
 
     if (sortKey.value === 'removal') {
-      aVal = a.breakdown.material_to_remove_mm3
-      bVal = b.breakdown.material_to_remove_mm3
+      aVal = a.breakdown?.material_to_remove_mm3 ?? 0
+      bVal = b.breakdown?.material_to_remove_mm3 ?? 0
     } else {
       const key = sortKey.value as keyof MachiningTimeEstimation
       const rawA = a[key]
       const rawB = b[key]
 
-      if (typeof rawA === 'object' || typeof rawB === 'object') {
+      if (typeof rawA === 'object' || typeof rawB === 'object' || rawA === undefined || rawB === undefined || typeof rawA === 'boolean' || typeof rawB === 'boolean') {
         return 0
       }
 
-      aVal = rawA
-      bVal = rawB
+      aVal = rawA as string | number
+      bVal = rawB as string | number
     }
 
     if (typeof aVal === 'string') {
@@ -114,14 +114,14 @@ function getSortIcon(key: keyof MachiningTimeEstimation | 'removal') {
         <tbody>
           <tr v-for="result in sortedResults" :key="result.filename" :class="{ selected: selectedFilename === result.filename }" @click="selectResult(result)">
             <td class="filename">{{ result.filename }}</td>
-            <td class="material-cell">{{ result.breakdown.material }}</td>
-            <td class="numeric">{{ volumeInCm3(result.breakdown.material_to_remove_mm3) }}</td>
-            <td class="numeric">{{ result.roughing_time_min.toFixed(2) }}</td>
-            <td class="numeric">{{ result.finishing_time_min.toFixed(2) }}</td>
-            <td class="numeric total-time">{{ result.total_time_min.toFixed(2) }}</td>
+            <td class="material-cell">{{ result.breakdown?.material ?? 'N/A' }}</td>
+            <td class="numeric">{{ volumeInCm3(result.breakdown?.material_to_remove_mm3 ?? 0) }}</td>
+            <td class="numeric">{{ (result.roughing_time_min ?? 0).toFixed(2) }}</td>
+            <td class="numeric">{{ (result.finishing_time_min ?? 0).toFixed(2) }}</td>
+            <td class="numeric total-time">{{ (result.total_time_min ?? 0).toFixed(2) }}</td>
             <td class="numeric">
-              <span v-if="result.breakdown.constraint_multiplier > 1" class="constraint-badge" :class="{ critical: result.breakdown.constraint_multiplier >= 2.0, warning: result.breakdown.constraint_multiplier >= 1.5 && result.breakdown.constraint_multiplier < 2.0 }">
-                {{ result.breakdown.constraint_multiplier.toFixed(2) }}x
+              <span v-if="(result.breakdown?.constraint_multiplier ?? 1) > 1" class="constraint-badge" :class="{ critical: (result.breakdown?.constraint_multiplier ?? 1) >= 2.0, warning: (result.breakdown?.constraint_multiplier ?? 1) >= 1.5 && (result.breakdown?.constraint_multiplier ?? 1) < 2.0 }">
+                {{ (result.breakdown?.constraint_multiplier ?? 1).toFixed(2) }}x
               </span>
             </td>
           </tr>

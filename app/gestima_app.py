@@ -44,6 +44,7 @@ from app.routers import (
     infor_router,  # Infor CloudSuite Industrial integration
     step_router,  # OCCT Raw Geometry Extraction (ADR-042)
     machining_time_router,  # ADR-040: Machining Time Estimation
+    estimation_router,  # Phase 2-3: ML Training Data Collection
 )
 from app.database import async_session, engine, close_db
 
@@ -245,6 +246,7 @@ app.include_router(module_defaults_router.router, prefix="/api", tags=["Module D
 app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
 app.include_router(step_router.router, tags=["STEP"])  # OCCT Raw Geometry (prefix in router)
 app.include_router(machining_time_router.router, prefix="/api/machining-time", tags=["Machining Time"])  # ADR-040
+app.include_router(estimation_router.router)  # Phase 2-3: Manual time estimation (prefix in router)
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])

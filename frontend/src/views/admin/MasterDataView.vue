@@ -10,6 +10,7 @@ import { useOperationsStore } from '@/stores/operations'
 import { Trash2, CheckCircle, XCircle } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import MachiningTimeEstimationModule from '@/components/modules/estimation/MachiningTimeEstimationModule.vue'
+import ManualEstimationListModule from '@/components/modules/estimation/ManualEstimationListModule.vue'
 import type { MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialGroup, MaterialGroupCreate, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate, MaterialPriceTier, MaterialPriceTierCreate, MaterialPriceTierUpdate } from '@/types/material'
 import type { WorkCenter, WorkCenterCreate, WorkCenterUpdate, WorkCenterType } from '@/types/operation'
 import { confirm } from '@/composables/useDialog'
@@ -42,7 +43,8 @@ const tabs = [
   { label: 'Skupiny materiálů', icon: 'Tag' },
   { label: 'Cenové kategorie', icon: 'DollarSign' },
   { label: 'Pracoviště', icon: 'Factory' },
-  { label: 'Odhad strojních časů', icon: 'Clock' }
+  { label: 'Odhad strojních časů', icon: 'Clock' },
+  { label: 'ML Time Estimation', icon: 'Brain' }
 ]
 
 // Tab 0: Material Norms
@@ -1300,6 +1302,13 @@ onMounted(async () => {
         <template #tab-4>
           <div class="tab-content tab-content-full">
             <MachiningTimeEstimationModule />
+          </div>
+        </template>
+
+        <!-- Tab 5: ML Time Estimation (Manual Training Data Collection) -->
+        <template #tab-5>
+          <div class="tab-content tab-content-full">
+            <ManualEstimationListModule />
           </div>
         </template>
       </FormTabs>

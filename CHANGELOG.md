@@ -1,3 +1,121 @@
+## [1.26.0] - Proxy Features ML Architecture (2026-02-09)
+
+### Added
+- **ADR-042:** Proxy Features ML Architecture (replaces feature detection approach)
+- **GeometryFeatureExtractor:** `app/services/geometry_feature_extractor.py` (720 LOC)
+  - 50+ objective complexity metrics (volume, surface, edge, topology, ROT/PRI, complexity, material)
+  - **Key metrics:** internal_cavity_volume, inner_surface_ratio, concave_edge_ratio, max_feature_depth
+  - Deterministic output (same STEP → identical features every time)
+  - OCCT 7.9 API (pythonocc-core)
+- **PdfVisionService:** `app/services/pdf_vision_service.py` (180 LOC)
+  - Universal Vision context extraction (Quote + Parts + Manual Estimation modules)
+  - Extracts: part_number, material_designation, rot_pri_hint
+  - Claude Sonnet 4.5 Vision API (claude-sonnet-4-20250514)
+- **HybridPartClassifier:** `app/services/hybrid_part_classifier.py` (150 LOC)
+  - Confidence-based ROT/PRI classification (OCCT + Vision fusion)
+  - Decision logic: OCCT confident → trust OCCT, ambiguous → trust Vision, both ambiguous → default PRI
+- **VisionContext Schema:** `app/schemas/vision_context.py` (80 LOC)
+  - Pydantic schema for Vision extraction results
+- **InnerOuterLegend.vue:** Frontend legend component (inner/outer surface visualization, 95 LOC)
+
+### Changed
+- **GeometryFeaturesSchema:** Removed feature counts (pocket_count, hole_count), added proxy metrics
+  - Added: internal_cavity_volume_mm3, cavity_to_stock_ratio, max_feature_depth_mm
+  - Added: inner_surface_ratio, freeform_surface_ratio, restricted_access_surface_area_mm2
+  - Added: sharp_edge_ratio, feature_density_per_cm3, openness_ratio, undercut_surface_area_mm2
+- **Philosophy:** Shifted from "classify features" to "measure complexity"
+  - Old: "How many pockets/holes?" (unreliable with OCCT)
+  - New: "How complex?" (concave_edge_ratio, cavity_volume) → ML learns patterns
+
+### Deprecated
+- **ADR-041:** Feature Detection ML approach (archived to docs/archive/deprecated-2026-02-09/)
+  - Reason: OCCT cannot reliably classify pockets/holes/grooves (geometry ambiguity)
+  - Replacement: Proxy metrics (objective measurements ML can learn from)
+- **Phase 1 docs:** FEATURE-EXTRACTION-DESIGN.md, PHASE1-COMPLETION-REPORT.md (archived)
+
+### Technical Debt
+- TODO: Test proxy metrics extraction on 37-part dataset
+- TODO: Integrate PdfVisionService into Quote module
+- TODO: Add OCCT mesh loading to StepViewerInnerOuter.vue (currently placeholder geometry)
+
+---
+
+## [1.25.0] - 2026-02-09
+
+### Added — Phase 1-6: ML-Based Time Estimation Foundation
+
+**Phase 1: Feature Extraction**
+- `app/services/geometry_feature_extractor.py` — Extract 60+ geometric features from STEP files (646 LOC)
+- `app/schemas/geometry_features.py` — Pydantic schema (60+ fields with Field() validation, 138 LOC)
+- Surface area FIX for turning parts (excludes OD cylinder, 50% reduction)
+- Volume conservation validated (<1% error on all parts, achieved 0.000%)
+- Tests: `tests/services/test_geometry_feature_extractor.py` (12 tests, 100% passing, 241 LOC)
+- Documentation: `docs/phase1/FEATURE-EXTRACTION-DESIGN.md` (400+ lines)
+- Documentation: `docs/phase1/PHASE1-COMPLETION-REPORT.md` (460 lines)
+
+**Phase 2: Database Models**
+- `app/models/turning_estimation.py` — TurningEstimation model (79 columns, 92 LOC)
+- `app/models/milling_estimation.py` — MillingEstimation model (79 columns, 92 LOC)
+- Migration: `alembic/versions/b44b8f5e3c9e_turning_milling_estimations.py` (117 LOC)
+- Batch seed: `scripts/batch_extract_features_37_parts.py` (37 parts processed, 124 LOC)
+- Seeded data: 12 ROT parts + 25 PRI parts (auto-classified via rotational_score)
+
+**Phase 3: Backend API**
+- `app/routers/estimation_router.py` — 6 endpoints (320 LOC)
+  - POST `/api/estimation/extract-features/{filename}` — Extract + auto-classify + insert
+  - GET `/api/estimation/pending-estimates?part_type=ROT` — List pending estimates
+  - PATCH `/api/estimation/manual-estimate/{id}` — Submit time estimate
+  - POST `/api/estimation/import-actual-times` — Import CSV (ground truth)
+  - GET `/api/estimation/export-training-data?part_type=ROT` — Export for ML training
+  - GET `/api/estimation/similar-parts/{id}?limit=5` — Euclidean distance search
+- L-008 compliance (try/except/rollback on all endpoints)
+- L-009 compliance (Pydantic Field() validation on all schemas)
+- Tests: `tests/routers/test_estimation_router.py` (8 tests, 100% passing, 236 LOC)
+
+**Phase 4: Frontend UI**
+- `ManualEstimationListModule.vue` — Split-pane coordinator (177 LOC)
+- `ManualEstimationListPanel.vue` — Tabs + list (236 LOC)
+- `ManualEstimationDetailPanel.vue` — Features + form (160 LOC)
+- 3 widgets: `EstimationListItem.vue` (88 LOC), `SimilarPartsWidget.vue` (97 LOC), `EstimateFormWidget.vue` (95 LOC)
+- Registered in `WindowsView.vue` (`manual-estimation-list` module)
+- L-036 compliance (all components <300 LOC)
+
+**Phase 5: Validation**
+- Tests: `tests/routers/test_estimation_router.py` (8 tests, 100% passing)
+- Volume conservation: 0.000% max error (37 parts validated)
+- ROT/PRI classification: 12 ROT (0.61–0.97), 25 PRI (0.19–0.60)
+- Report: `docs/audits/2026-02-09-phase5-validation-report.md` (341 lines)
+
+**Phase 6: Documentation**
+- `docs/ADR/041-ml-time-estimation-architecture.md` — ML architecture decision (750+ lines)
+- `docs/guides/MANUAL-ESTIMATION-GUIDE.md` — User guide for shop floor (350+ lines)
+- CHANGELOG.md updated (this entry)
+
+### Changed
+- None
+
+### Deprecated
+- None (ADR-040 MRR model remains active until Phase 7 ML training complete)
+
+### Fixed
+- Surface area calculation for turning parts (now excludes OD cylinder, prevents 2× overestimate)
+
+### Removed
+- None
+
+### Technical Debt
+- 23 TypeScript type errors in frontend (pre-existing, defer to future PR)
+- L-009 validation: Missing type exports in `frontend/src/types/estimation.ts`
+
+### Notes
+- **Codebase addition:** ~3,500 LOC (26 new files)
+- **ML foundation complete:** Ready for Phase 7 (ML training) after 50+ samples collected
+- **Expected timeline:** 2-4 weeks production data collection before ML training
+- **Target accuracy:** ±10% (vs. current 50% with physics-based model)
+- **Tests:** 607+ backend tests passing (8 new estimation router tests)
+
+---
+
 ## [1.24.0] - 2026-02-08
 
 ### Changed - Major Cleanup: Machining Time Systems Consolidation

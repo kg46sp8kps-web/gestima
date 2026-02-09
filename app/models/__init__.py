@@ -81,6 +81,8 @@ from app.models.module_defaults import (
     ModuleDefaultsResponse
 )
 from app.models.drawing import Drawing
+from app.models.turning_estimation import TurningEstimation
+from app.models.milling_estimation import MillingEstimation
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
@@ -106,4 +108,5 @@ __all__ = [
     "ModuleLayout", "ModuleLayoutCreate", "ModuleLayoutUpdate", "ModuleLayoutResponse",
     "ModuleDefaults", "ModuleDefaultsCreate", "ModuleDefaultsUpdate", "ModuleDefaultsResponse",
     "Drawing",
+    "TurningEstimation", "MillingEstimation",
 ]

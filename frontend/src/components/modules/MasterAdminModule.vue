@@ -21,11 +21,12 @@ import PriceCategoriesPanel from './admin/PriceCategoriesPanel.vue'
 import WorkCentersPanel from './admin/WorkCentersPanel.vue'
 import VisionDebugModule from './admin/VisionDebugModule.vue'
 import MachiningTimeEstimationModule from './estimation/MachiningTimeEstimationModule.vue'
-import { Cloud, ClipboardList, Tag, DollarSign, Factory, Eye, Clock } from 'lucide-vue-next'
+import ManualEstimationListModule from './estimation/ManualEstimationListModule.vue'
+import { Cloud, ClipboardList, Tag, DollarSign, Factory, Eye, Clock, Brain } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 // Main tabs
-type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'vision' | 'machining-time'
+type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'vision' | 'machining-time' | 'ml-estimation'
 const activeMainTab = ref<MainTab>('infor')
 
 // Connection status from Infor panel
@@ -70,6 +71,10 @@ function handleConnectionChange(status: Record<string, unknown>) {
         <Clock :size="ICON_SIZE.STANDARD" />
         <span>Strojní časy</span>
       </button>
+      <button @click="activeMainTab = 'ml-estimation'" :class="['main-tab', { active: activeMainTab === 'ml-estimation' }]">
+        <Brain :size="ICON_SIZE.STANDARD" />
+        <span>ML Estimation</span>
+      </button>
     </div>
 
     <!-- TAB CONTENT -->
@@ -85,6 +90,7 @@ function handleConnectionChange(status: Record<string, unknown>) {
       <WorkCentersPanel v-else-if="activeMainTab === 'workcenters'" />
       <VisionDebugModule v-else-if="activeMainTab === 'vision'" />
       <MachiningTimeEstimationModule v-else-if="activeMainTab === 'machining-time'" />
+      <ManualEstimationListModule v-else-if="activeMainTab === 'ml-estimation'" />
     </div>
   </div>
 </template>

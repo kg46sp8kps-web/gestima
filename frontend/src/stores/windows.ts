@@ -16,6 +16,7 @@ export type WindowModule =
   | 'part-material'
   | 'part-drawing'
   | 'pdf-viewer'
+  | 'manual-estimation-list' // Manual Time Estimation (ML Training Data Collection)
   | 'batch-sets'
   | 'partners-list'
   | 'quotes-list'
@@ -92,9 +93,10 @@ export const useWindowsStore = defineStore('windows', () => {
         defaultHeight = defaults.default_height
         // TODO: Apply split positions and column widths from defaults.settings
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 404 is expected for new modules without saved defaults - use fallback silently
-      if (error?.response?.status !== 404) {
+      const errorObj = error as { response?: { status?: number } }
+      if (errorObj?.response?.status !== 404) {
         console.warn(`Failed to load defaults for ${module}, using fallback`, error)
       }
     }

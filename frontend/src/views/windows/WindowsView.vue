@@ -18,6 +18,7 @@ const PartTechnologyModule = defineAsyncComponent(() => import('@/components/mod
 const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
 const PartDrawingWindow = defineAsyncComponent(() => import('@/components/modules/parts/PartDrawingWindow.vue'))
 const EstimationPdfWindow = defineAsyncComponent(() => import('@/components/modules/estimation/EstimationPdfWindow.vue'))
+const ManualEstimationListModule = defineAsyncComponent(() => import('@/components/modules/estimation/ManualEstimationListModule.vue'))
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
 const PartnersListModule = defineAsyncComponent(() => import('@/components/modules/PartnersListModule.vue'))
 const QuotesListModule = defineAsyncComponent(() => import('@/components/modules/QuotesListModule.vue'))
@@ -38,6 +39,7 @@ function getModuleComponent(module: string) {
     case 'part-material': return PartMaterialModule
     case 'part-drawing': return PartDrawingWindow
     case 'pdf-viewer': return EstimationPdfWindow
+    case 'manual-estimation-list': return ManualEstimationListModule
     case 'batch-sets': return BatchSetsModule
     case 'partners-list': return PartnersListModule
     case 'quotes-list': return QuotesListModule
