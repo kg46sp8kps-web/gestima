@@ -1,0 +1,1186 @@
+{
+  "test_date": "2026-02-09T22:32:01.807029",
+  "total_files": 31,
+  "success_count": 31,
+  "error_count": 0,
+  "results": [
+    {
+      "filename": "0347039_D00114455_000_000.step",
+      "success": true,
+      "extraction_time_sec": 0.04,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 64317.3,
+        "removal_volume_mm3": 64317.3,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 1992.7,
+        "cavity_to_stock_ratio": 0.009,
+        "inner_surface_ratio": 0.426,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 15.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.2,
+        "cylindrical_surface_ratio": 0.138,
+        "planar_surface_ratio": 0.862,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.65
+      },
+      "time_estimate": {
+        "roughing_min": 643.2,
+        "finishing_min": 50.3,
+        "total_min": 693.4
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 808404.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.03,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 20815.2,
+        "removal_volume_mm3": 20815.2,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 19430.0,
+        "cavity_to_stock_ratio": 0.444,
+        "inner_surface_ratio": 0.423,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 28.5,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.346,
+        "cylindrical_surface_ratio": 0.399,
+        "planar_surface_ratio": 0.595,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 1.54
+      },
+      "time_estimate": {
+        "roughing_min": 208.2,
+        "finishing_min": 18.7,
+        "total_min": 226.9
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 808405.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 5295.1,
+        "removal_volume_mm3": 5295.1,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 487.3,
+        "cavity_to_stock_ratio": 0.026,
+        "inner_surface_ratio": 0.447,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 11.3,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.44,
+        "cylindrical_surface_ratio": 0.48,
+        "planar_surface_ratio": 0.501,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 2.46
+      },
+      "time_estimate": {
+        "roughing_min": 53.0,
+        "finishing_min": 5.8,
+        "total_min": 58.7
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810663.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 41697.8,
+        "removal_volume_mm3": 41697.8,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 27018.2,
+        "cavity_to_stock_ratio": 0.308,
+        "inner_surface_ratio": 0.269,
+        "concave_edge_ratio": 0.246,
+        "max_feature_depth_mm": 48.5,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.55,
+        "cylindrical_surface_ratio": 0.583,
+        "planar_surface_ratio": 0.354,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.34
+      },
+      "time_estimate": {
+        "roughing_min": 417.0,
+        "finishing_min": 21.4,
+        "total_min": 438.4
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810664.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 26429.7,
+        "removal_volume_mm3": 26429.7,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 79062.6,
+        "cavity_to_stock_ratio": 0.873,
+        "inner_surface_ratio": 0.444,
+        "concave_edge_ratio": 0.245,
+        "max_feature_depth_mm": 75.5,
+        "openness_ratio": 0.796,
+        "rotational_score": 0.239,
+        "cylindrical_surface_ratio": 0.14,
+        "planar_surface_ratio": 0.85,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.68
+      },
+      "time_estimate": {
+        "roughing_min": 264.3,
+        "finishing_min": 19.0,
+        "total_min": 283.3
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810665.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 8879.1,
+        "removal_volume_mm3": 8879.1,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 7036.6,
+        "cavity_to_stock_ratio": 0.464,
+        "inner_surface_ratio": 0.188,
+        "concave_edge_ratio": 0.237,
+        "max_feature_depth_mm": 87.8,
+        "openness_ratio": 0.977,
+        "rotational_score": 0.95,
+        "cylindrical_surface_ratio": 0.932,
+        "planar_surface_ratio": 0.047,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 1.58
+      },
+      "time_estimate": {
+        "roughing_min": 88.8,
+        "finishing_min": 8.2,
+        "total_min": 97.0
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810666.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.09,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 253617.8,
+        "removal_volume_mm3": 253617.8,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 673082.6,
+        "cavity_to_stock_ratio": 1.0,
+        "inner_surface_ratio": 0.396,
+        "concave_edge_ratio": 0.248,
+        "max_feature_depth_mm": 198.0,
+        "openness_ratio": 0.717,
+        "rotational_score": 0.792,
+        "cylindrical_surface_ratio": 0.736,
+        "planar_surface_ratio": 0.251,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.18
+      },
+      "time_estimate": {
+        "roughing_min": 2536.2,
+        "finishing_min": 73.1,
+        "total_min": 2609.3
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810669.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.02,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 310812.4,
+        "removal_volume_mm3": 310812.4,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 697125.2,
+        "cavity_to_stock_ratio": 1.0,
+        "inner_surface_ratio": 0.131,
+        "concave_edge_ratio": 0.241,
+        "max_feature_depth_mm": 460.0,
+        "openness_ratio": 0.91,
+        "rotational_score": 0.942,
+        "cylindrical_surface_ratio": 0.927,
+        "planar_surface_ratio": 0.069,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.07
+      },
+      "time_estimate": {
+        "roughing_min": 3108.1,
+        "finishing_min": 96.9,
+        "total_min": 3205.1
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810670.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 10604.5,
+        "removal_volume_mm3": 10604.5,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 5245.7,
+        "cavity_to_stock_ratio": 0.141,
+        "inner_surface_ratio": 0.193,
+        "concave_edge_ratio": 0.238,
+        "max_feature_depth_mm": 26.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.612,
+        "cylindrical_surface_ratio": 0.588,
+        "planar_surface_ratio": 0.373,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 1.13
+      },
+      "time_estimate": {
+        "roughing_min": 106.0,
+        "finishing_min": 9.5,
+        "total_min": 115.6
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810671.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 4856.3,
+        "removal_volume_mm3": 4856.3,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 0.0,
+        "cavity_to_stock_ratio": 0.0,
+        "inner_surface_ratio": 0.061,
+        "concave_edge_ratio": 0.238,
+        "max_feature_depth_mm": 0.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.742,
+        "cylindrical_surface_ratio": 0.851,
+        "planar_surface_ratio": 0.122,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 2.68
+      },
+      "time_estimate": {
+        "roughing_min": 48.6,
+        "finishing_min": 3.7,
+        "total_min": 52.3
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810686.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.03,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 42187.3,
+        "removal_volume_mm3": 42187.3,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 87871.3,
+        "cavity_to_stock_ratio": 0.409,
+        "inner_surface_ratio": 0.339,
+        "concave_edge_ratio": 0.247,
+        "max_feature_depth_mm": 94.0,
+        "openness_ratio": 0.943,
+        "rotational_score": 0.199,
+        "cylindrical_surface_ratio": 0.155,
+        "planar_surface_ratio": 0.622,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.69
+      },
+      "time_estimate": {
+        "roughing_min": 421.9,
+        "finishing_min": 41.8,
+        "total_min": 463.7
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810688.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 59370.8,
+        "removal_volume_mm3": 59370.8,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 29685.4,
+        "cavity_to_stock_ratio": 0.404,
+        "inner_surface_ratio": 0.393,
+        "concave_edge_ratio": 0.244,
+        "max_feature_depth_mm": 6.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.028,
+        "cylindrical_surface_ratio": 0.025,
+        "planar_surface_ratio": 0.975,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.25
+      },
+      "time_estimate": {
+        "roughing_min": 593.7,
+        "finishing_min": 53.4,
+        "total_min": 647.1
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810690.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.0,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 11996.6,
+        "removal_volume_mm3": 11996.6,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 5998.3,
+        "cavity_to_stock_ratio": 0.186,
+        "inner_surface_ratio": 0.399,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 104.8,
+        "openness_ratio": 0.987,
+        "rotational_score": 0.98,
+        "cylindrical_surface_ratio": 0.974,
+        "planar_surface_ratio": 0.026,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.33
+      },
+      "time_estimate": {
+        "roughing_min": 120.0,
+        "finishing_min": 17.9,
+        "total_min": 137.9
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810691.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.02,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 3537.7,
+        "removal_volume_mm3": 3537.7,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 4549.4,
+        "cavity_to_stock_ratio": 0.142,
+        "inner_surface_ratio": 0.168,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 29.2,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.495,
+        "cylindrical_surface_ratio": 0.335,
+        "planar_surface_ratio": 0.53,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 5.65
+      },
+      "time_estimate": {
+        "roughing_min": 35.4,
+        "finishing_min": 3.9,
+        "total_min": 39.3
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810695.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 33116.6,
+        "removal_volume_mm3": 33116.6,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 90381.4,
+        "cavity_to_stock_ratio": 1.0,
+        "inner_surface_ratio": 0.073,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 300.0,
+        "openness_ratio": 0.952,
+        "rotational_score": 0.299,
+        "cylindrical_surface_ratio": 0.299,
+        "planar_surface_ratio": 0.701,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.48
+      },
+      "time_estimate": {
+        "roughing_min": 331.2,
+        "finishing_min": 30.6,
+        "total_min": 361.8
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810715.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 22734.8,
+        "removal_volume_mm3": 22734.8,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 14981.0,
+        "cavity_to_stock_ratio": 0.427,
+        "inner_surface_ratio": 0.349,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 25.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.281,
+        "cylindrical_surface_ratio": 0.22,
+        "planar_surface_ratio": 0.722,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.53
+      },
+      "time_estimate": {
+        "roughing_min": 227.3,
+        "finishing_min": 12.8,
+        "total_min": 240.2
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810716.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.02,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 15005.3,
+        "removal_volume_mm3": 15005.3,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 11777.3,
+        "cavity_to_stock_ratio": 0.426,
+        "inner_surface_ratio": 0.512,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 45.8,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.487,
+        "cylindrical_surface_ratio": 0.407,
+        "planar_surface_ratio": 0.525,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.93
+      },
+      "time_estimate": {
+        "roughing_min": 150.1,
+        "finishing_min": 11.1,
+        "total_min": 161.1
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810717.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 14702.6,
+        "removal_volume_mm3": 14702.6,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 12082.7,
+        "cavity_to_stock_ratio": 0.448,
+        "inner_surface_ratio": 0.354,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 45.8,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.364,
+        "cylindrical_surface_ratio": 0.258,
+        "planar_surface_ratio": 0.672,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.82
+      },
+      "time_estimate": {
+        "roughing_min": 147.0,
+        "finishing_min": 10.8,
+        "total_min": 157.8
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810718.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 57937.5,
+        "removal_volume_mm3": 57937.5,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 35348.2,
+        "cavity_to_stock_ratio": 0.491,
+        "inner_surface_ratio": 0.323,
+        "concave_edge_ratio": 0.238,
+        "max_feature_depth_mm": 108.3,
+        "openness_ratio": 0.935,
+        "rotational_score": 0.238,
+        "cylindrical_surface_ratio": 0.097,
+        "planar_surface_ratio": 0.903,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.16
+      },
+      "time_estimate": {
+        "roughing_min": 579.4,
+        "finishing_min": 25.7,
+        "total_min": 605.1
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810833.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.0,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 3220.3,
+        "removal_volume_mm3": 3220.3,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 1133.9,
+        "cavity_to_stock_ratio": 0.162,
+        "inner_surface_ratio": 0.238,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 17.8,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.637,
+        "cylindrical_surface_ratio": 0.677,
+        "planar_surface_ratio": 0.323,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 1.24
+      },
+      "time_estimate": {
+        "roughing_min": 32.2,
+        "finishing_min": 3.6,
+        "total_min": 35.8
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810834.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.0,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 1791.4,
+        "removal_volume_mm3": 1791.4,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 895.7,
+        "cavity_to_stock_ratio": 0.18,
+        "inner_surface_ratio": 0.436,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 7.2,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.717,
+        "cylindrical_surface_ratio": 0.646,
+        "planar_surface_ratio": 0.354,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 2.23
+      },
+      "time_estimate": {
+        "roughing_min": 17.9,
+        "finishing_min": 2.8,
+        "total_min": 20.7
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810857.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.0,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 1204.0,
+        "removal_volume_mm3": 1204.0,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 0.0,
+        "cavity_to_stock_ratio": 0.0,
+        "inner_surface_ratio": 0.181,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 0.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.626,
+        "cylindrical_surface_ratio": 0.53,
+        "planar_surface_ratio": 0.457,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 5.81
+      },
+      "time_estimate": {
+        "roughing_min": 12.0,
+        "finishing_min": 2.4,
+        "total_min": 14.4
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810872.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.0,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 201.1,
+        "removal_volume_mm3": 201.1,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 75.4,
+        "cavity_to_stock_ratio": 0.157,
+        "inner_surface_ratio": 0.475,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 16.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.17,
+        "cylindrical_surface_ratio": 0.2,
+        "planar_surface_ratio": 0.8,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 19.89
+      },
+      "time_estimate": {
+        "roughing_min": 2.0,
+        "finishing_min": 1.0,
+        "total_min": 3.0
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 810935.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 1558.9,
+        "removal_volume_mm3": 1558.9,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 428.0,
+        "cavity_to_stock_ratio": 0.139,
+        "inner_surface_ratio": 0.29,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 10.5,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.578,
+        "cylindrical_surface_ratio": 0.566,
+        "planar_surface_ratio": 0.434,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 7.06
+      },
+      "time_estimate": {
+        "roughing_min": 15.6,
+        "finishing_min": 2.0,
+        "total_min": 17.6
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811181.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.16,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 679970.2,
+        "removal_volume_mm3": 679970.2,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 756317.1,
+        "cavity_to_stock_ratio": 0.848,
+        "inner_surface_ratio": 0.526,
+        "concave_edge_ratio": 0.249,
+        "max_feature_depth_mm": 195.0,
+        "openness_ratio": 0.968,
+        "rotational_score": 0.018,
+        "cylindrical_surface_ratio": 0.019,
+        "planar_surface_ratio": 0.974,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.21
+      },
+      "time_estimate": {
+        "roughing_min": 6799.7,
+        "finishing_min": 576.9,
+        "total_min": 7376.6
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811182.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 38787.3,
+        "removal_volume_mm3": 38787.3,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 19668.6,
+        "cavity_to_stock_ratio": 0.368,
+        "inner_surface_ratio": 0.923,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 45.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.252,
+        "cylindrical_surface_ratio": 0.231,
+        "planar_surface_ratio": 0.761,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.41
+      },
+      "time_estimate": {
+        "roughing_min": 387.9,
+        "finishing_min": 21.5,
+        "total_min": 409.4
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811183.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.02,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 84183.0,
+        "removal_volume_mm3": 84183.0,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 126541.0,
+        "cavity_to_stock_ratio": 1.0,
+        "inner_surface_ratio": 0.797,
+        "concave_edge_ratio": 0.244,
+        "max_feature_depth_mm": 125.0,
+        "openness_ratio": 0.9,
+        "rotational_score": 0.288,
+        "cylindrical_surface_ratio": 0.221,
+        "planar_surface_ratio": 0.777,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 0.24
+      },
+      "time_estimate": {
+        "roughing_min": 841.8,
+        "finishing_min": 35.5,
+        "total_min": 877.3
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811185.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 5368.7,
+        "removal_volume_mm3": 5368.7,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 323.3,
+        "cavity_to_stock_ratio": 0.048,
+        "inner_surface_ratio": 0.382,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 22.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.12,
+        "cylindrical_surface_ratio": 0.084,
+        "planar_surface_ratio": 0.901,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 2.98
+      },
+      "time_estimate": {
+        "roughing_min": 53.7,
+        "finishing_min": 4.8,
+        "total_min": 58.5
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811186.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.02,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 11811.2,
+        "removal_volume_mm3": 11811.2,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 3651.5,
+        "cavity_to_stock_ratio": 0.216,
+        "inner_surface_ratio": 0.447,
+        "concave_edge_ratio": 0.245,
+        "max_feature_depth_mm": 22.0,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.352,
+        "cylindrical_surface_ratio": 0.279,
+        "planar_surface_ratio": 0.704,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 1.61
+      },
+      "time_estimate": {
+        "roughing_min": 118.1,
+        "finishing_min": 9.4,
+        "total_min": 127.6
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811187.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.01,
+      "part_type": "PRI",
+      "metrics": {
+        "part_volume_mm3": 9061.4,
+        "removal_volume_mm3": 9061.4,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 20845.9,
+        "cavity_to_stock_ratio": 1.0,
+        "inner_surface_ratio": 0.63,
+        "concave_edge_ratio": 0.241,
+        "max_feature_depth_mm": 310.0,
+        "openness_ratio": 0.976,
+        "rotational_score": 0.081,
+        "cylindrical_surface_ratio": 0.026,
+        "planar_surface_ratio": 0.974,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 1.21
+      },
+      "time_estimate": {
+        "roughing_min": 90.6,
+        "finishing_min": 16.3,
+        "total_min": 107.0
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    },
+    {
+      "filename": "JR 811198.ipt.step",
+      "success": true,
+      "extraction_time_sec": 0.0,
+      "part_type": "ROT",
+      "metrics": {
+        "part_volume_mm3": 344.8,
+        "removal_volume_mm3": 344.8,
+        "removal_ratio": 0.5,
+        "internal_cavity_volume_mm3": 129.3,
+        "cavity_to_stock_ratio": 0.157,
+        "inner_surface_ratio": 0.386,
+        "concave_edge_ratio": 0.25,
+        "max_feature_depth_mm": 5.6,
+        "openness_ratio": 1.0,
+        "rotational_score": 0.827,
+        "cylindrical_surface_ratio": 0.909,
+        "planar_surface_ratio": 0.091,
+        "freeform_surface_ratio": 0.0,
+        "sharp_edge_ratio": 0.3,
+        "feature_density_per_cm3": 11.6
+      },
+      "time_estimate": {
+        "roughing_min": 3.4,
+        "finishing_min": 1.1,
+        "total_min": 4.5
+      },
+      "validations": {
+        "part_volume_positive": true,
+        "removal_volume_valid": true,
+        "removal_ratio_valid": true,
+        "cavity_ratio_valid": true,
+        "inner_surface_ratio_valid": true,
+        "concave_edge_ratio_valid": true,
+        "rotational_score_valid": true
+      },
+      "all_valid": true
+    }
+  ]
+}

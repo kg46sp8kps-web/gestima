@@ -587,7 +587,8 @@ class GeometryFeatureExtractor:
                    (bbox['z_max'] - bbox['z_min'])
         stock_volume = bbox_vol * 1.2  # Placeholder
 
-        cavity_to_stock_ratio = cavity_volume / stock_volume if stock_volume > 0 else 0.0
+        # Clamp to [0.0, 1.0] - cavity can't exceed stock (approximation may overestimate)
+        cavity_to_stock_ratio = min(1.0, cavity_volume / stock_volume) if stock_volume > 0 else 0.0
 
         # Depth statistics
         avg_depth = sum(depths) / len(depths) if depths else 0.0
