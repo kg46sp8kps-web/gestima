@@ -12,15 +12,15 @@
 - 1-2 soubory, jeden stack (jen backend NEBO jen frontend)
 - "Rychle udělej X"
 
-### ŠÉFÍK MODE ← automaticky aktivuj multi-agent orchestraci
+### CARTMAN MODE ← automaticky aktivuj multi-agent orchestraci
 - Nová feature (3+ soubory)
 - Backend + Frontend současně
 - Schema/model změna (backend → migrace → frontend update)
 - Architektura, refaktoring napříč moduly
 
-**AUTO-DETEKCE:** AI MUSÍ sám rozhodnout režim podle úkolu. Uživatel NEMUSÍ říkat "aktivuj ŠÉFÍKA".
-**Manuální override:** Uživatel může říct "aktivuj ŠÉFÍKA" nebo "udělej sám" pro přepsání auto-detekce.
-**Agent definice:** [.claude/agents/](/.claude/agents/) (backend.md, frontend.md, qa.md, auditor.md, devops.md, sefik.md)
+**AUTO-DETEKCE:** AI MUSÍ sám rozhodnout režim podle úkolu. Uživatel NEMUSÍ říkat "aktivuj CARTMANA".
+**Manuální override:** Uživatel může říct "aktivuj CARTMANA" nebo "udělej sám" pro přepsání auto-detekce.
+**Agent definice:** [.claude/agents/](/.claude/agents/) (backend.md, frontend.md, qa.md, auditor.md, devops.md, cartman.md)
 **Orchestrace:** [docs/agents/AGENT-INSTRUCTIONS.md](docs/agents/AGENT-INSTRUCTIONS.md)
 
 ---
@@ -99,8 +99,34 @@ Tests:    pytest + Vitest
 ## COMMANDS
 
 ```bash
-python gestima.py run|test|seed-demo
+python gestima.py dev              # Backend + Vite dev (development, :5173)
+python gestima.py run              # Pouze backend (produkce, :8000)
+python gestima.py test|seed-demo
 ```
+
+### `seed-demo` — Kompletní seed flow (po smazání DB)
+
+Pořadí seedování (záleží na pořadí kvůli FK vazbám):
+
+| # | Co | Script/funkce | Počet |
+|---|-----|---------------|-------|
+| 1 | DB schema | `alembic upgrade head` | — |
+| 2 | MaterialGroups (+ cutting data) | `scripts/seed_material_groups.py` | 9 skupin |
+| 3 | PriceCategories | `scripts/seed_price_categories.py` | 43 kategorií |
+| 4 | PriceTiers (Kč/kg) | `scripts/seed_price_tiers.py` | 129 stupňů (43×3) |
+| 5 | MaterialNorms (Infor data) | `scripts/seed_material_norms_complete.py` | 82 norem |
+| 6 | CuttingConditions (low/mid/high) | `cutting_conditions_catalog.seed_cutting_conditions_to_db()` | 288 záznamů |
+| 7 | WorkCenters | `scripts/seed_work_centers.py` | pracoviště |
+| 8 | MaterialItems | `scripts/seed_material_items.py` | materiály |
+| 9 | Demo parts | `scripts/seed_demo_parts.py` | demo díly |
+| 10 | Admin user | inline v `gestima.py` | 1 user |
+
+**Pravidla pro seed scripty:**
+- Data MUSÍ být **inline** (žádné CSV/JSON závislosti)
+- MUSÍ být **idempotentní** — **UPSERT** (UPDATE existing + INSERT new). **NIKDY DELETE ALL + INSERT** (rozbije auto-increment ID → FK v child tabulkách ukazují na neexistující záznamy!)
+- Data MUSÍ pocházet z **reálného Infor exportu** (ne AI-generovaná!)
+- MaterialGroups seed MUSÍ obsahovat **cutting parametry** (ISO, MRR, Vc, f, penalties)
+- PriceCategories seed MUSÍ synchronizovat `material_group_id` + `shape` na existujících záznamech
 
 ---
 
@@ -161,6 +187,6 @@ Hook (exit 2)     = "MUSÍŠ"   → AI NEMŮŽE obejít
 
 ---
 
-**Version:** 7.0 (2026-02-04)
+**Version:** 7.1 (2026-02-13)
 **Enforcement:** 14 hook souborů, 6 vrstev, 26 automatických kontrol
 **Detailní pravidla:** [docs/core/RULES.md](docs/core/RULES.md)

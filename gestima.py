@@ -1,4 +1,4 @@
-#!/Users/lofas/miniforge3/envs/gestima-prod/bin/python
+#!/usr/bin/env python3
 """
 GESTIMA - CLI helper pro spouštění a správu aplikace
 Použití: python3 gestima.py [command]
@@ -7,6 +7,7 @@ Použití: python3 gestima.py [command]
 import os
 import sys
 import subprocess
+import signal
 import getpass
 import asyncio
 from pathlib import Path
@@ -18,62 +19,14 @@ load_dotenv()
 # Get project directory
 PROJECT_DIR = Path(__file__).parent
 
-# Use conda gestima-prod environment (has pythonocc-core)
-CONDA_ENV_PYTHON = Path("/Users/lofas/miniforge3/envs/gestima-prod/bin/python")
-CONDA_ENV_PIP = Path("/Users/lofas/miniforge3/envs/gestima-prod/bin/pip")
-
-# Fallback to local venv if conda not available
-VENV_DIR = PROJECT_DIR / "venv"
-VENV_PYTHON = CONDA_ENV_PYTHON if CONDA_ENV_PYTHON.exists() else VENV_DIR / "bin" / "python"
-VENV_PIP = CONDA_ENV_PIP if CONDA_ENV_PIP.exists() else VENV_DIR / "bin" / "pip"
-
 class Gestima:
     """CLI helper pro GESTIMA"""
 
     @staticmethod
-    def check_venv() -> bool:
-        """Zkontroluj, že venv existuje a je aktivní"""
-        if not VENV_DIR.exists():
-            print("❌ Virtual environment not found. Run: python3 gestima.py setup")
-            return False
-        return True
-
-    @staticmethod
-    def setup():
-        """Inicializuj venv a instaluj dependencies"""
-        print("📦 GESTIMA Setup")
-        print("")
-
-        # Vytvoř venv
-        if not VENV_DIR.exists():
-            print("✓ Creating virtual environment...")
-            subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
-        else:
-            print("✓ Virtual environment already exists")
-
-        # Upgrade pip
-        print("✓ Upgrading pip...")
-        subprocess.run([str(VENV_PIP), "install", "--upgrade", "pip", "setuptools", "wheel"], check=True)
-
-        # Instaluj dependencies
-        print("✓ Installing dependencies...")
-        requirements = PROJECT_DIR / "requirements.txt"
-        subprocess.run([str(VENV_PIP), "install", "-r", str(requirements)], check=True)
-
-        print("")
-        print("✅ Setup complete!")
-        print("")
-        print("Next steps:")
-        print("  python3 gestima.py run")
-        print("")
-
-    @staticmethod
     def run():
-        """Spusť aplikaci"""
-        if not Gestima.check_venv():
-            sys.exit(1)
+        """Spusť aplikaci (produkce — servíruje built frontend)"""
 
-        print("🚀 GESTIMA 1.0 - Starting...")
+        print("🚀 GESTIMA - Production mode")
         print("📍 URL: http://localhost:8000")
         print("📊 API Docs: http://localhost:8000/docs")
         print("")
@@ -82,25 +35,77 @@ class Gestima:
 
         os.chdir(PROJECT_DIR)
         subprocess.run([
-            str(VENV_PYTHON), "-m", "uvicorn",
+            sys.executable, "-m", "uvicorn",
+            "app.gestima_app:app",
+            "--host", "0.0.0.0",
+            "--port", "8000"
+        ])
+
+    @staticmethod
+    def dev():
+        """Spusť backend + frontend dev server (jeden příkaz)"""
+
+        print("🚀 GESTIMA DEV - Starting backend + frontend...")
+        print("📍 Backend:  http://localhost:8000  (uvicorn --reload)")
+        print("📍 Frontend: http://localhost:5173  (vite dev)")
+        print("📊 API Docs: http://localhost:8000/docs")
+        print("")
+        print("Press CTRL+C to stop both")
+        print("")
+
+        os.chdir(PROJECT_DIR)
+
+        frontend_dir = PROJECT_DIR / "frontend"
+        if not (frontend_dir / "node_modules").exists():
+            print("📦 Installing frontend dependencies...")
+            subprocess.run(["npm", "install"], cwd=str(frontend_dir), check=True)
+
+        backend = subprocess.Popen([
+            sys.executable, "-m", "uvicorn",
             "app.gestima_app:app",
             "--reload",
             "--host", "0.0.0.0",
             "--port", "8000"
         ])
 
+        frontend = subprocess.Popen(
+            ["npx", "vite", "dev"],
+            cwd=str(frontend_dir)
+        )
+
+        def shutdown(signum, frame):
+            print("\n⏳ Stopping...")
+            frontend.terminate()
+            backend.terminate()
+
+        signal.signal(signal.SIGINT, shutdown)
+        signal.signal(signal.SIGTERM, shutdown)
+
+        try:
+            # Wait for either to exit
+            while True:
+                be_exit = backend.poll()
+                fe_exit = frontend.poll()
+                if be_exit is not None or fe_exit is not None:
+                    break
+                import time
+                time.sleep(0.5)
+        finally:
+            frontend.terminate()
+            backend.terminate()
+            frontend.wait()
+            backend.wait()
+            print("👋 GESTIMA DEV stopped")
+
     @staticmethod
     def test(*args):
         """Spusť testy"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("🧪 Running tests...")
         print("")
 
         os.chdir(PROJECT_DIR)
         test_args = list(args) if args else []
-        subprocess.run([str(VENV_PYTHON), "-m", "pytest", "-v"] + test_args)
+        subprocess.run([sys.executable, "-m", "pytest", "-v"] + test_args)
 
     @staticmethod
     def test_critical():
@@ -111,23 +116,17 @@ class Gestima:
 
     @staticmethod
     def shell():
-        """Aktivuj interactive shell s venv"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
+        """Aktivuj interactive shell"""
         print("🐚 GESTIMA Interactive Shell")
         print("Type 'exit()' to quit")
         print("")
 
         os.chdir(PROJECT_DIR)
-        subprocess.run([str(VENV_PYTHON)])
+        subprocess.run([sys.executable])
 
     @staticmethod
     def create_admin():
         """Vytvoř prvního admin uživatele"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("👤 GESTIMA - Create Admin User")
         print("")
 
@@ -168,7 +167,7 @@ class Gestima:
         # Run async function
         os.chdir(PROJECT_DIR)
         result = subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             f"""
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -207,15 +206,12 @@ asyncio.run(_create_admin())
     @staticmethod
     def backup():
         """Vytvoř zálohu databáze"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("💾 GESTIMA - Backup Database")
         print("")
 
         os.chdir(PROJECT_DIR)
         result = subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             """
 from app.services.backup_service import create_backup, list_backups
 
@@ -234,9 +230,6 @@ for b in list_backups():
     @staticmethod
     def seed_demo():
         """Resetuj databázi a vytvoř kompletní demo environment"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("🌱 GESTIMA - Seed Demo Environment")
         print("")
         print("⚠️  WARNING: This will RESET the database!")
@@ -254,7 +247,7 @@ for b in list_backups():
 
         # Init DB schema
         result = subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             """
 import asyncio
 from app.database import init_db
@@ -270,21 +263,48 @@ print("✅ Database schema initialized")
         # Seed materials (V4: 8-digit codes, canonical seeds)
         print("✓ Seeding material groups (9 categories)...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_material_groups.py"
+            sys.executable, "scripts/seed_material_groups.py"
         ])
         if result.returncode != 0:
             sys.exit(1)
 
         print("✓ Seeding material price categories (43 categories)...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_price_categories.py"
+            sys.executable, "scripts/seed_price_categories.py"
         ])
         if result.returncode != 0:
             sys.exit(1)
 
-        print("✓ Seeding material norms (83 conversion entries)...")
+        print("✓ Seeding material price tiers (43 × 3 weight tiers)...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_material_norms_complete.py"
+            sys.executable, "scripts/seed_price_tiers.py"
+        ])
+        if result.returncode != 0:
+            sys.exit(1)
+
+        print("✓ Seeding material norms (82 conversion entries)...")
+        result = subprocess.run([
+            sys.executable, "scripts/seed_material_norms_complete.py"
+        ])
+        if result.returncode != 0:
+            sys.exit(1)
+
+        # Seed cutting conditions catalog (low/mid/high per operation per material)
+        print("✓ Seeding cutting conditions catalog (low/mid/high)...")
+        result = subprocess.run([
+            sys.executable, "-c",
+            """
+import asyncio
+from app.database import async_session
+from app.services.cutting_conditions_catalog import seed_cutting_conditions_to_db
+
+async def _seed():
+    async with async_session() as db:
+        count = await seed_cutting_conditions_to_db(db)
+        print(f"✅ Cutting conditions seeded: {count} records")
+
+asyncio.run(_seed())
+"""
         ])
         if result.returncode != 0:
             sys.exit(1)
@@ -292,7 +312,7 @@ print("✅ Database schema initialized")
         # Seed work centers (ADR-021: machines → work_centers)
         print("✓ Seeding work centers...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_work_centers.py"
+            sys.executable, "scripts/seed_work_centers.py"
         ])
 
         if result.returncode != 0:
@@ -301,7 +321,7 @@ print("✅ Database schema initialized")
         # Seed material items (concrete stock items)
         print("✓ Seeding material items (stock inventory)...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_material_items.py"
+            sys.executable, "scripts/seed_material_items.py"
         ])
 
         if result.returncode != 0:
@@ -310,7 +330,7 @@ print("✅ Database schema initialized")
         # Seed demo parts
         print("✓ Seeding demo parts...")
         result = subprocess.run([
-            str(VENV_PYTHON), "scripts/seed_demo_parts.py"
+            sys.executable, "scripts/seed_demo_parts.py"
         ])
 
         if result.returncode != 0:
@@ -319,7 +339,7 @@ print("✅ Database schema initialized")
         # Create demo admin user
         print("✓ Creating demo admin user...")
         result = subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             """
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -367,15 +387,12 @@ asyncio.run(_create_demo_admin())
     @staticmethod
     def clean_demo():
         """Smaž všechny demo data (parts s notes obsahující 'DEMO')"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("🧹 GESTIMA - Clean Demo Data")
         print("")
 
         os.chdir(PROJECT_DIR)
         result = subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             """
 import asyncio
 from sqlalchemy import select, delete
@@ -418,15 +435,12 @@ asyncio.run(_clean())
     @staticmethod
     def backup_list():
         """Zobraz dostupné zálohy"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("💾 GESTIMA - Available Backups")
         print("")
 
         os.chdir(PROJECT_DIR)
         subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             """
 from app.services.backup_service import list_backups
 
@@ -442,9 +456,6 @@ else:
     @staticmethod
     def restore(backup_name: str):
         """Obnov databázi ze zálohy"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("💾 GESTIMA - Restore Database")
         print("")
         print(f"⚠️  WARNING: This will OVERWRITE the current database!")
@@ -458,7 +469,7 @@ else:
 
         os.chdir(PROJECT_DIR)
         result = subprocess.run([
-            str(VENV_PYTHON), "-c",
+            sys.executable, "-c",
             f"""
 from pathlib import Path
 from app.config import settings
@@ -486,9 +497,6 @@ print("⚠️  Restart the application to apply changes.")
     @staticmethod
     def deploy():
         """Deploy workflow helper (git pull + restart instructions)"""
-        if not Gestima.check_venv():
-            sys.exit(1)
-
         print("🚀 GESTIMA - Deploy Workflow")
         print("")
         print("This will pull latest code from Git and guide you through restart.")
@@ -534,8 +542,8 @@ print("⚠️  Restart the application to apply changes.")
         print("Usage: python3 gestima.py [command]")
         print("")
         print("Commands:")
-        print("  setup           Inicializuj venv a instaluj dependencies")
-        print("  run             Spusť aplikaci (http://localhost:8000)")
+        print("  dev             Backend + Frontend dev server (jeden příkaz)")
+        print("  run             Pouze backend (produkce, servíruje built frontend)")
         print("")
         print("Dev/Prod Workflow:")
         print("  seed-demo       Reset DB + seed kompletní demo environment")
@@ -555,17 +563,17 @@ print("⚠️  Restart the application to apply changes.")
         print("  test-critical   Spusť pouze kritické testy")
         print("")
         print("Other:")
-        print("  shell           Interactive Python shell s venv")
+        print("  shell           Interactive Python shell")
         print("  help            Zobraz tuto zprávu")
         print("")
         print("Examples:")
         print("")
         print("  # First-time setup")
-        print("  python3 gestima.py setup")
         print("  python3 gestima.py seed-demo          # Reset DB + demo data + demo admin")
-        print("  python3 gestima.py run")
+        print("  python3 gestima.py dev                # Backend + Vite dev")
         print("")
         print("  # Development workflow")
+        print("  python3 gestima.py dev                # Backend :8000 + Vite :5173")
         print("  python3 gestima.py test               # Run tests")
         print("  git commit && git push")
         print("")
@@ -593,8 +601,8 @@ def main():
     command = sys.argv[1]
     args = sys.argv[2:]
 
-    if command == "setup":
-        Gestima.setup()
+    if command == "dev":
+        Gestima.dev()
     elif command == "run":
         Gestima.run()
     elif command == "create-admin":

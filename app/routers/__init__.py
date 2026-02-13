@@ -1,6 +1,6 @@
 """GESTIMA - API routers"""
 
-from app.routers import (
+from . import (
     auth_router,
     parts_router,
     drawings_router,  # Multiple drawings per part support
@@ -12,7 +12,6 @@ from app.routers import (
     material_inputs_router,  # ADR-024
     partners_router,
     data_router,
-    pages_router,
     misc_router,
     work_centers_router,
     config_router,
@@ -23,6 +22,8 @@ from app.routers import (
     module_layouts_router,  # ADR-031: Visual Editor
     module_defaults_router,  # ADR-031: Module Defaults
     infor_router,  # Infor CloudSuite Industrial integration
-    step_router,  # OCCT Raw Geometry Extraction (ADR-042)
-    machining_time_router,  # ADR-040: Machining Time Estimation
+    step_router,  # STEP file serving
+    cutting_conditions_router,  # Cutting conditions catalog (v1.28.0)
+    accounting_router,  # CsiXls accounting integration
+    time_vision_router,  # TimeVision AI estimation
 )

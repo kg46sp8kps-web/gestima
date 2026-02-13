@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
-# Jinja2Templates removed - archived in legacy-alpinejs-v1.6.1/ (2026-01-31)
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -32,7 +31,6 @@ from app.routers import (
     work_centers_router,
     config_router,
     data_router,
-    pages_router,
     misc_router,
     admin_router,
     quotes_router,
@@ -42,9 +40,10 @@ from app.routers import (
     module_layouts_router,  # ADR-031: Visual Editor
     module_defaults_router,  # ADR-031: Module Defaults
     infor_router,  # Infor CloudSuite Industrial integration
-    step_router,  # OCCT Raw Geometry Extraction (ADR-042)
-    machining_time_router,  # ADR-040: Machining Time Estimation
-    estimation_router,  # Phase 2-3: ML Training Data Collection
+    step_router,  # STEP file serving (download, file listing)
+    cutting_conditions_router,  # Cutting conditions catalog (v1.28.0)
+    accounting_router,  # CsiXls accounting integration
+    time_vision_router,  # TimeVision AI estimation
 )
 from app.database import async_session, engine, close_db
 
@@ -84,18 +83,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
 
         # === H-3: Content Security Policy ===
-        # Pragmatic approach: unsafe-inline + unsafe-eval pro Alpine.js + HTMX
-        # Note: Alpine.js REQUIRES 'unsafe-eval' for reactivity (new AsyncFunction)
-        # CSP nonces (stricter) plánované v v2.0 (ADR-XXX)
+        # Vue SPA: unsafe-inline for styles, unsafe-eval for dev (Vite HMR)
         csp_policy = "; ".join([
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Alpine.js eval + HTMX inline
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # Vite dev HMR
             "style-src 'self' 'unsafe-inline'",   # Inline styles
-            "img-src 'self' data:",               # Allow data: URIs for inline images
+            "img-src 'self' data:",               # data: URIs for inline images
             "font-src 'self'",
-            "connect-src 'self'",                 # HTMX AJAX
-            "frame-src 'self'",                   # Allow iframes from same origin (PDF preview)
-            "frame-ancestors 'self'",             # Allow this content in iframes from same origin
+            "connect-src 'self'",                 # API calls
+            "frame-src 'self'",                   # iframes (PDF preview)
+            "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",
         ])
@@ -192,27 +189,7 @@ if uploads_dir.exists():
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="vue-assets")
-    # Serve WASM and JS files from dist root (occt-import-js for 3D STEP viewer)
-    wasm_file = frontend_dist / "occt-import-js.wasm"
-    occt_js = frontend_dist / "occt-import-js.js"
-    if wasm_file.exists() or occt_js.exists():
-        from starlette.responses import FileResponse as StarletteFileResponse
-
-        @app.get("/occt-import-js.wasm", include_in_schema=False)
-        async def serve_occt_wasm():
-            return StarletteFileResponse(
-                str(wasm_file), media_type="application/wasm"
-            )
-
-        @app.get("/occt-import-js.js", include_in_schema=False)
-        async def serve_occt_js():
-            return StarletteFileResponse(
-                str(occt_js), media_type="application/javascript"
-            )
-        logger.info("✅ OCCT WASM/JS files mounted for 3D STEP viewer")
     logger.info(f"✅ Vue SPA assets mounted: {frontend_dist / 'assets'}")
-
-# Jinja2 templates archived (2026-01-31) - see archive/legacy-alpinejs-v1.6.1/
 
 # Favicon route (zabrání 404 chybám)
 @app.get("/favicon.ico", include_in_schema=False)
@@ -244,15 +221,14 @@ app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=
 app.include_router(module_layouts_router.router, prefix="/api", tags=["Module Layouts"])  # ADR-031
 app.include_router(module_defaults_router.router, prefix="/api", tags=["Module Defaults"])  # ADR-031
 app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
-app.include_router(step_router.router, tags=["STEP"])  # OCCT Raw Geometry (prefix in router)
-app.include_router(machining_time_router.router, prefix="/api/machining-time", tags=["Machining Time"])  # ADR-040
-app.include_router(estimation_router.router)  # Phase 2-3: Manual time estimation (prefix in router)
+app.include_router(step_router.router, tags=["STEP"])  # STEP file serving (prefix in router)
+app.include_router(cutting_conditions_router.router, tags=["Cutting Conditions"])  # v1.28.0
+app.include_router(accounting_router.router, tags=["Accounting"])  # CsiXls integration
+app.include_router(time_vision_router.router, tags=["TimeVision"])  # TimeVision AI estimation (prefix in router)
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
 app.include_router(admin_router.router, prefix="/admin", tags=["Admin"])
-# pages_router disabled - Vue SPA handles all frontend routes
-# app.include_router(pages_router.router, tags=["Pages"])
 
 
 # ============================================================================
@@ -477,7 +453,7 @@ async def serve_vue_spa(full_path: str):
     MUST BE LAST! All API routes are handled by routers above.
     Exceptions:
     - /api/* → API routes (handled by routers)
-    - /static/* → Jinja2 assets (handled by StaticFiles)
+    - /static/* → Static assets (handled by StaticFiles)
     - /assets/* → Vue assets (handled by StaticFiles)
     - /health, /docs, /redoc → FastAPI built-ins
     """
