@@ -1,17 +1,16 @@
-// GESTIMA Design System v1.0 (MUST be first!)
+// GESTIMA Design System v4.0 (tokens + components — MUST be first!)
 import './assets/css/design-system.css'
 
 // Tailwind utilities (no base reset - design-system.css handles that)
 import './assets/css/tailwind.css'
 
-// Import GESTIMA CSS globally
-// NOTE: variables.css and theme.css are replaced by design-system.css
+// Base layout (body, main-content, autofill)
 import './assets/css/base.css'
-import './assets/css/layout.css'
-import './assets/css/components.css'
-import './assets/css/forms.css'
 
-// Shared module styles (split-pane, grid-layout, widgets)
+// Layout (split panels)
+import './assets/css/layout.css'
+
+// Shared module styles (split-pane, grid-layout, widgets, ribbon)
 import './assets/css/modules/_shared.css'
 
 import { createApp } from 'vue'

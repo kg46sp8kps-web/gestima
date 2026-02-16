@@ -1,79 +1,16 @@
 /**
- * Drawings API - PDF drawing management
+ * Drawings API - PDF/STEP drawing management
  *
- * Endpoints (Phase B - Multiple Drawings):
- * - POST /api/uploads/temp - Upload temp file (returns temp_id)
+ * Endpoints:
  * - GET /api/parts/{pn}/drawings - List all drawings for part
  * - POST /api/parts/{pn}/drawings - Upload new drawing
  * - PUT /api/parts/{pn}/drawings/{id}/primary - Set drawing as primary
  * - DELETE /api/parts/{pn}/drawings/{id} - Delete specific drawing
  * - GET /api/parts/{pn}/drawings/{id} - Get specific drawing URL
- *
- * Legacy endpoints (Phase A - Single Drawing):
- * - POST /api/parts/{pn}/drawing - Upload drawing (deprecated)
- * - GET /api/parts/{pn}/drawing - Get primary drawing URL (deprecated)
- * - DELETE /api/parts/{pn}/drawing - Delete drawing (deprecated)
  */
 
 import { apiClient } from './client'
 import type { Drawing, DrawingListResponse, DrawingResponse } from '@/types/drawing'
-
-export interface TempUploadResponse {
-  temp_id: string
-  filename: string
-  size: number
-}
-
-export interface DrawingUploadResponse {
-  message: string
-  drawing_path: string
-  version: number
-}
-
-/**
- * Upload file to temporary storage
- * Used in create form before part is created
- */
-export async function uploadTemp(file: File): Promise<TempUploadResponse> {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await apiClient.post<TempUploadResponse>(
-    '/uploads/temp',
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
-  )
-
-  return response.data
-}
-
-/**
- * Upload drawing directly to part (LEGACY - Phase A)
- * @deprecated Use uploadDrawing instead
- */
-export async function uploadToPart(
-  partNumber: string,
-  file: File
-): Promise<DrawingUploadResponse> {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await apiClient.post<DrawingUploadResponse>(
-    `/parts/${partNumber}/drawing`,
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
-  )
-
-  return response.data
-}
 
 // ============================================================================
 // PHASE B - MULTIPLE DRAWINGS API
@@ -140,33 +77,17 @@ export async function deleteDrawingById(
 /**
  * Get drawing URL for specific drawing or primary
  * @param partNumber Part number
- * @param drawingId Optional drawing ID. If not provided, returns primary drawing URL
+ * @param drawingId Optional drawing ID. If not provided, returns primary (legacy)
  */
 export function getDrawingUrl(partNumber: string, drawingId?: number): string {
   if (drawingId !== undefined) {
     return `/api/parts/${partNumber}/drawings/${drawingId}`
   }
-  // Legacy: primary drawing URL
+  // Legacy: primary drawing URL via drawings_router
   return `/api/parts/${partNumber}/drawing`
 }
 
-/**
- * Delete drawing from part (LEGACY - Phase A)
- * @deprecated Use deleteDrawingById instead
- */
-export async function deleteDrawing(partNumber: string): Promise<void> {
-  await apiClient.delete(`/parts/${partNumber}/drawing`)
-}
-
 export const drawingsApi = {
-  // Temp upload (used in create form)
-  uploadTemp,
-
-  // Legacy API (Phase A)
-  uploadToPart,
-  deleteDrawing,
-
-  // New API (Phase B)
   listDrawings,
   uploadDrawing,
   setPrimaryDrawing,

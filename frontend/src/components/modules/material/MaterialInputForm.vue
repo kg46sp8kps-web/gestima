@@ -441,7 +441,7 @@ onMounted(async () => {
 }
 
 .placeholder-icon {
-  font-size: 24px;
+  font-size: var(--text-3xl);
   flex-shrink: 0;
 }
 

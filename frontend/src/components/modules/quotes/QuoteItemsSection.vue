@@ -40,7 +40,7 @@ const emit = defineEmits<Emits>()
 
 <template>
   <div class="items-section">
-    <h2><Package :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
+    <h2><Package :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Položky nabídky</h2>
     <div class="items-table-wrapper">
       <table class="items-table">
         <thead>

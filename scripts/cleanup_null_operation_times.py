@@ -6,7 +6,6 @@ Problem: Operations with NULL setup_time_min/operation_time_min cause ResponseVa
 Fix: Set NULL values to defaults (setup_time_min=30.0, operation_time_min=0.0)
 
 Created: 2026-01-26
-Issue: https://github.com/anthropics/claude-code/issues/XXX
 """
 
 import asyncio

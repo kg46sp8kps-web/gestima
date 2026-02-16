@@ -119,7 +119,7 @@ function handleSort(column: Column) {
 }
 
 .data-table th.sorted {
-  color: var(--accent-primary);
+  color: var(--brand);
 }
 
 .th-content {

@@ -65,7 +65,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -95,22 +95,23 @@ const handleClick = (event: MouseEvent) => {
 
 /* === VARIANTS === */
 
-/* Primary (RED!) - Business & Professional */
+/* Primary - Ghost with brand accent on hover */
 .btn-primary {
-  background: var(--color-primary); /* Dark red #991b1b */
-  color: white;
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  color: var(--text-body);
+  border-color: var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover); /* Logo red #E84545 */
-  border-color: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn-primary:active:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  background: var(--brand-muted);
+  border-color: var(--brand);
+  color: var(--brand-text);
   transform: translateY(1px);
 }
 
@@ -126,14 +127,17 @@ const handleClick = (event: MouseEvent) => {
   border-color: var(--border-strong);
 }
 
-/* Danger (PINK!) */
+/* Danger - Ghost with red accent on hover */
 .btn-danger {
-  background: var(--color-danger);
-  color: white;
+  background: transparent;
+  color: var(--text-body);
+  border-color: var(--border-default);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--color-danger-hover);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--status-error);
+  color: var(--status-error);
 }
 
 /* Ghost */
@@ -162,12 +166,7 @@ const handleClick = (event: MouseEvent) => {
   border-radius: 50%;
   border-top-color: transparent;
   animation: spin 0.6s linear infinite;
-  color: white;
-}
-
-.btn-secondary .btn-spinner,
-.btn-ghost .btn-spinner {
-  color: var(--color-primary);
+  color: var(--brand-text);
 }
 
 @keyframes spin {

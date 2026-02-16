@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * PartDetailPanel.vue - Part detail with UI-BIBLE pattern
+ * PartDetailPanel.vue - Part detail with Design System patterns
  *
  * Pattern: Info Ribbon + Icon Toolbar + Action Buttons Grid
- * @see docs/guides/UI-BIBLE-V8.md
+ * @see docs/reference/DESIGN-SYSTEM.md
  */
 
 import { ref } from 'vue'
@@ -13,7 +13,8 @@ import DrawingsManagementModal from './DrawingsManagementModal.vue'
 import CopyPartModal from './CopyPartModal.vue'
 import { updatePart, deletePart } from '@/api/parts'
 import { useAuthStore } from '@/stores/auth'
-import { Edit, Copy, Trash2, Package, Settings, DollarSign, FileText, Save, X } from 'lucide-vue-next'
+import { Edit, Copy, Trash2, Save, X } from 'lucide-vue-next'
+import { MaterialIcon, OperationsIcon, PricingIcon, DrawingIcon } from '@/config/icons'
 import { ICON_SIZE } from '@/config/design'
 import { confirm, alert } from '@/composables/useDialog'
 
@@ -118,6 +119,25 @@ function handleCopySuccess() {
   emit('refresh')
 }
 
+// Source badge helpers
+function sourceDotClass(source: string): string {
+  switch (source) {
+    case 'infor_import': return 'badge-dot-brand'
+    case 'manual': return 'badge-dot-ok'
+    case 'quote_request': return 'badge-dot-warn'
+    default: return 'badge-dot-neutral'
+  }
+}
+
+function sourceLabel(source: string): string {
+  switch (source) {
+    case 'infor_import': return 'Infor Import'
+    case 'manual': return 'Manuální'
+    case 'quote_request': return 'Poptávka'
+    default: return source
+  }
+}
+
 function handleDrawingClick() {
   if (props.part.drawing_path) {
     emit('open-drawing')
@@ -198,6 +218,16 @@ function handleOpenDrawing(drawingId?: number) {
         </div>
 
         <div class="info-card">
+          <label>Zdroj</label>
+          <span class="value">
+            <span class="badge">
+              <span class="badge-dot" :class="sourceDotClass(part.source)"></span>
+              {{ sourceLabel(part.source) }}
+            </span>
+          </span>
+        </div>
+
+        <div class="info-card">
           <label>Created By</label>
           <span class="value">{{ part.created_by_name || '-' }}</span>
         </div>
@@ -250,17 +280,17 @@ function handleOpenDrawing(drawingId?: number) {
 
       <div class="actions-grid">
         <button class="action-button" @click="$emit('open-material')" title="Materiál">
-          <Package :size="ICON_SIZE.XLARGE" class="action-icon" />
+          <MaterialIcon :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Materiál</span>
         </button>
 
         <button class="action-button" @click="$emit('open-operations')" title="Operace">
-          <Settings :size="ICON_SIZE.XLARGE" class="action-icon" />
+          <OperationsIcon :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Operace</span>
         </button>
 
         <button class="action-button" @click="$emit('open-pricing')" title="Ceny">
-          <DollarSign :size="ICON_SIZE.XLARGE" class="action-icon" />
+          <PricingIcon :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Ceny</span>
         </button>
 
@@ -270,7 +300,7 @@ function handleOpenDrawing(drawingId?: number) {
           @contextmenu="handleDrawingRightClick"
           title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
         >
-          <FileText :size="ICON_SIZE.XLARGE" class="action-icon" />
+          <DrawingIcon :size="ICON_SIZE.XLARGE" class="action-icon" />
           <span class="action-label">Výkres</span>
         </button>
       </div>
@@ -310,7 +340,7 @@ function handleOpenDrawing(drawingId?: number) {
   position: relative;
   padding: var(--space-5);
   background: var(--bg-surface);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-default);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-6);
   transition: all var(--duration-normal);
@@ -348,6 +378,33 @@ function handleOpenDrawing(drawingId?: number) {
   color: var(--text-primary);
 }
 
+/* === SOURCE BADGE (Gestima badge-dot pattern) === */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-full);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  line-height: 1.3;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.badge-dot-ok      { background: var(--status-ok); }
+.badge-dot-brand   { background: var(--brand); }
+.badge-dot-warn    { background: var(--status-warn); }
+.badge-dot-neutral { background: var(--text-disabled); }
+
 /* === ICON TOOLBAR === */
 .icon-toolbar {
   display: flex;
@@ -358,7 +415,7 @@ function handleOpenDrawing(drawingId?: number) {
   margin-bottom: calc(-1 * var(--space-5) + 2px);
   padding-top: 2px;
   padding-bottom: 2px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .icon-btn {
@@ -381,7 +438,7 @@ function handleOpenDrawing(drawingId?: number) {
 }
 
 .icon-btn-danger:hover {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 /* === EDIT INPUTS === */
@@ -392,7 +449,7 @@ function handleOpenDrawing(drawingId?: number) {
   font-weight: 600;
   color: var(--text-primary);
   background: var(--bg-base);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: all var(--duration-fast);
 }
@@ -407,7 +464,7 @@ function handleOpenDrawing(drawingId?: number) {
 .actions-section {
   margin-top: var(--space-6);
   padding-top: var(--space-5);
-  border-top: 2px solid var(--border-color);
+  border-top: 2px solid var(--border-default);
 }
 
 .actions-section h4 {
@@ -463,20 +520,25 @@ function handleOpenDrawing(drawingId?: number) {
 
 /* Primary action (Save) */
 .action-button-primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: transparent;
+  border-color: var(--border-default);
 }
 
 .action-button-primary .action-icon,
 .action-button-primary .action-label {
-  color: white;
+  color: var(--text-primary);
 }
 
 .action-button-primary:hover {
-  background: #7f1d1d;
-  border-color: #7f1d1d;
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.15);
+}
+
+.action-button-primary:hover .action-icon,
+.action-button-primary:hover .action-label {
+  color: var(--color-brand, #991b1b);
 }
 
 /* Secondary action (Cancel) */

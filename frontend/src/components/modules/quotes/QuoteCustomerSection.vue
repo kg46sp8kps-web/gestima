@@ -35,7 +35,7 @@ function updateField(field: keyof Customer, value: string) {
 
 <template>
   <div class="customer-section">
-    <h2><User :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
+    <h2><User :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Zákazník</h2>
     <div class="customer-info">
       <div class="form-row">
         <div class="form-field">
@@ -111,9 +111,9 @@ function updateField(field: keyof Customer, value: string) {
 }
 
 .form-field label {
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--palette-neutral-300);
+  color: var(--text-body);
 }
 
 .match-result {

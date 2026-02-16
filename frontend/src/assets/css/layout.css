@@ -1,105 +1,53 @@
 /* ============================================================================
-   GESTIMA - Layout
+   GESTIMA - Layout (split panels)
+   Ribbon pattern is in modules/_shared.css
    ============================================================================ */
 
 /* === SPLIT LAYOUT === */
 .split-layout {
-    display: flex;
-    flex: 1;
-    gap: 0;
-    align-items: stretch;
-    height: 100%;
-    overflow: hidden;
+  display: flex;
+  flex: 1;
+  gap: 0;
+  align-items: stretch;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* === LEFT PANEL === */
 .left-panel {
-    width: 320px;
-    min-width: 320px;
-    background: transparent;
-    padding: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
+  width: 320px;
+  min-width: 320px;
+  background: transparent;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* === RIGHT PANEL === */
 .right-panel {
-    flex: 1;
-    padding: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
+  flex: 1;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
-/* === RIGHT PANEL - STICKY TIME === */
 .right-panel-sticky {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--bg-primary);
-    padding-bottom: 0.75rem;
-    flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg-base);
+  padding-bottom: var(--space-3);
+  flex-shrink: 0;
 }
 
-/* === RIGHT PANEL - SCROLLABLE CONTENT === */
 .right-panel-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-/* === RIBBONS === */
-.ribbon {
-    background-color: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    overflow: hidden;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;
-}
-
-.ribbon-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.8rem;
-    min-height: 38px;
-    cursor: pointer;
-    background: transparent;
-}
-
-.ribbon-header:hover {
-    background: rgba(255,255,255,0.03);
-}
-
-.ribbon-title {
-    font-size: var(--text-base);
-    font-weight: 600;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.ribbon-toggle {
-    font-size: var(--text-2xs);
-    color: var(--text-muted);
-}
-
-.ribbon-body {
-    padding: 0.8rem;
-    border-top: 1px solid #2a2a2a;
-    background: transparent;
-}
-
-/* Ribbon body s vnořenými sekcemi - bez paddingu */
-.ribbon-body-sections {
-    padding: 0;
-    border-top: none;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }

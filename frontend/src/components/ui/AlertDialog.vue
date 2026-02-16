@@ -10,10 +10,10 @@
     <template #header>
       <div class="alert-header">
         <div class="alert-icon" :class="`alert-icon-${options?.type}`">
-          <XCircle v-if="options?.type === 'error'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-          <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-          <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
-          <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="2" />
+          <XCircle v-if="options?.type === 'error'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+          <Check v-else-if="options?.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+          <Info v-else-if="options?.type === 'info'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+          <AlertTriangle v-else-if="options?.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
         </div>
         <h3 class="alert-title">{{ options?.title }}</h3>
       </div>
@@ -26,7 +26,7 @@
     <template #footer>
       <button
         ref="okButtonRef"
-        class="icon-btn icon-btn-close"
+        class="icon-btn"
         @click="handleClose"
         title="Zavřít (ENTER/ESC)"
       >
@@ -41,12 +41,7 @@ import { computed, ref, watch, nextTick } from 'vue'
 import { XCircle, Check, Info, AlertTriangle, X } from 'lucide-vue-next'
 import Modal from './Modal.vue'
 import { useDialog } from '@/composables/useDialog'
-
-// Icon size constant (from Librarian report)
-const ICON_SIZE = {
-  STANDARD: 20,
-  LARGE: 24
-}
+import { ICON_SIZE } from '@/config/design'
 
 const { state, closeAlert } = useDialog()
 
@@ -94,7 +89,7 @@ watch(() => state.alert.visible, async (visible) => {
 }
 
 .alert-title {
-  font-size: var(--text-xl);
+  font-size: var(--text-md);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0;
@@ -112,23 +107,23 @@ watch(() => state.alert.visible, async (visible) => {
 }
 
 .alert-icon-error {
-  background: rgba(244, 63, 94, 0.15);
-  color: #f43f5e;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--status-error);
 }
 
 .alert-icon-success {
-  background: rgba(5, 150, 105, 0.15);
-  color: #059669;
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--status-ok);
 }
 
 .alert-icon-info {
-  background: rgba(37, 99, 235, 0.15);
-  color: #2563eb;
+  background: var(--brand-subtle);
+  color: var(--brand-text);
 }
 
 .alert-icon-warning {
-  background: rgba(217, 119, 6, 0.15);
-  color: #d97706;
+  background: rgba(234, 179, 8, 0.1);
+  color: var(--status-warn);
 }
 
 /* === MESSAGE === */
@@ -137,39 +132,5 @@ watch(() => state.alert.visible, async (visible) => {
   color: var(--text-body);
   line-height: var(--leading-relaxed);
   white-space: pre-line;
-}
-
-/* === ICON BUTTON === */
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
-.icon-btn:hover {
-  background: var(--state-hover);
-  color: var(--text-primary);
-}
-
-.icon-btn:focus-visible {
-  outline: 2px solid var(--state-focus-border);
-  outline-offset: 2px;
-}
-
-.icon-btn-close {
-  color: var(--text-secondary);
-}
-
-.icon-btn-close:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
 }
 </style>

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.models.material import MaterialPriceCategory, MaterialPriceTier, MaterialItem, MaterialGroup
+from app.models.material_input import MaterialInput
 from app.models.enums import StockShape
 from app.models.part import Part
 from app.services.price_calculator import get_price_per_kg_for_weight, calculate_stock_cost_from_part
@@ -165,24 +166,40 @@ async def test_batch_pricing_with_tiers(db_session):
     db_session.add(item)
     await db_session.flush()
 
-    # Create part
+    # Create part (ADR-024: no material fields on Part)
     part = Part(
         part_number="TEST-PART",
         name="Test díl",
-        material_item_id=item.id,
-        stock_diameter=20.0,
-        stock_length=100.0,
         created_by="test"
     )
     db_session.add(part)
     await db_session.flush()
 
-    # Load part with relations
+    # Create MaterialInput (ADR-024: material data here)
+    mi = MaterialInput(
+        part_id=part.id,
+        seq=1,
+        price_category_id=category.id,
+        material_item_id=item.id,
+        stock_shape=StockShape.ROUND_BAR,
+        stock_diameter=20.0,
+        stock_length=100.0,
+        quantity=1,
+        created_by="test"
+    )
+    db_session.add(mi)
+    await db_session.flush()
+
+    # Load part with material_inputs relations (ADR-024)
     result = await db_session.execute(
         select(Part)
         .options(
-            selectinload(Part.material_item).selectinload(MaterialItem.group),
-            selectinload(Part.material_item).selectinload(MaterialItem.price_category).selectinload(MaterialPriceCategory.tiers)
+            selectinload(Part.material_inputs)
+            .selectinload(MaterialInput.material_item)
+            .selectinload(MaterialItem.group),
+            selectinload(Part.material_inputs)
+            .selectinload(MaterialInput.price_category)
+            .selectinload(MaterialPriceCategory.tiers)
         )
         .where(Part.id == part.id)
     )

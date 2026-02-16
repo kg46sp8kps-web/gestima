@@ -27,12 +27,13 @@ const props = defineProps<{
 }>()
 
 // SVG colors - using design system compliant values
+// Note: These are hardcoded for SVG rendering in JS context where CSS vars don't work
 const SVG_COLORS = {
-  background: 'rgb(26, 26, 46)',   // --color-bg-primary equivalent
-  centerline: 'rgb(68, 68, 68)',   // gray
-  outerContour: 'rgb(79, 195, 247)',  // light blue
-  innerContour: 'rgb(239, 83, 80)',   // red
-  label: 'rgb(170, 170, 170)',     // gray
+  background: 'rgb(26, 26, 46)',   // --bg-base equivalent (dark theme)
+  centerline: 'rgb(38, 38, 38)',   // --border-default (#262626)
+  outerContour: 'rgb(79, 195, 247)',  // light blue (SVG visualization specific)
+  innerContour: 'rgb(239, 83, 80)',   // red (SVG visualization specific)
+  label: 'rgb(163, 163, 163)',     // --text-secondary (#a3a3a3)
 }
 
 function contourToSvgPath(points: ContourPoint[], scale: number, offsetX: number, cy: number, offsetZ: number): string {

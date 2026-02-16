@@ -161,7 +161,7 @@ function handleCancel() {
 }
 
 .module-name {
-  color: var(--palette-primary);
+  color: var(--brand);
   font-weight: var(--font-semibold);
 }
 
@@ -185,7 +185,7 @@ function handleCancel() {
 }
 
 .check-icon {
-  color: var(--palette-success);
+  color: var(--status-ok);
   flex-shrink: 0;
 }
 

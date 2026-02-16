@@ -1,7 +1,7 @@
 """
 Performance tests - měření latence API endpoints.
 
-Target: < 100ms pro všechny operace (CLAUDE.md pravidlo #8)
+Target: < 100ms pro všechny operace
 """
 import pytest
 import pytest_asyncio
@@ -13,6 +13,7 @@ from app.dependencies import get_current_user, get_db
 from app.models import User, UserRole
 from app.models.part import Part
 from app.models.material import MaterialGroup, MaterialItem, MaterialPriceCategory, MaterialPriceTier
+from app.models.material_input import MaterialInput
 from app.models.enums import StockShape
 from app.database import Base
 
@@ -91,15 +92,29 @@ async def setup_test_data(test_engine):
         session.add(material_item)
         await session.flush()
 
-        # Create Part with id=1
+        # Create Part (ADR-024: no material fields on Part)
         part = Part(
             part_number="1000100",  # ADR-017
             name="Test Part for Performance",
-            material_item_id=material_item.id,
             length=100.0,
             created_by="test"
         )
         session.add(part)
+        await session.flush()
+
+        # Create MaterialInput (ADR-024: material data here)
+        mi = MaterialInput(
+            part_id=part.id,
+            seq=1,
+            price_category_id=price_category.id,
+            material_item_id=material_item.id,
+            stock_shape=StockShape.ROUND_BAR,
+            stock_diameter=50.0,
+            stock_length=100.0,
+            quantity=1,
+            created_by="test"
+        )
+        session.add(mi)
         await session.commit()
 
 

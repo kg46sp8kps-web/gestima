@@ -115,12 +115,12 @@ function handleWindowClick(windowId: string) {
 
 function getLinkingGroupColor(group: string | null): string {
   const colors: Record<string, string> = {
-    red: '#ef4444',
-    blue: '#3b82f6',
-    green: '#10b981',
-    yellow: '#f59e0b'
+    red: 'var(--link-group-red)',
+    blue: 'var(--link-group-blue)',
+    green: 'var(--link-group-green)',
+    yellow: 'var(--link-group-yellow)'
   }
-  return colors[group || ''] || '#6b7280'
+  return colors[group || ''] || 'var(--link-group-neutral)'
 }
 
 const currentDate = computed(() => {
@@ -225,7 +225,7 @@ function nextMonth() {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 0.25rem 1rem;
+  padding: var(--space-1) var(--space-4);
   gap: var(--space-3);
   height: 32px;
   z-index: 10000;
@@ -310,11 +310,11 @@ function nextMonth() {
 }
 
 .brand-red {
-  color: #E84545; /* Logo red */
+  color: var(--brand-hover);
 }
 
 .brand-gray {
-  color: #ffffff; /* Pure white */
+  color: var(--text-primary);
 }
 
 .footer-motto {
@@ -398,7 +398,7 @@ function nextMonth() {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: var(--space-0\.5);
 }
 
 .calendar-weekday {
@@ -426,7 +426,7 @@ function nextMonth() {
 }
 
 .calendar-day.is-today {
-  background: #E84545;
+  background: var(--brand-hover);
   color: white;
   font-weight: var(--font-bold);
 }

@@ -94,7 +94,7 @@ function formatCurrency(value: number): string {
           <input type="file" accept=".step,.stp" class="hidden-input" @change="(e) => handleItemFile(index, e, 'step')" />
         </label>
         <button v-if="item.stepFile" class="remove-file-btn" @click="emit('file-remove', index, 'step')" title="Odstranit STEP">
-          <X :size="12" />
+          <X :size="ICON_SIZE.SMALL" />
         </button>
 
         <label class="file-btn" :class="{ 'has-file': item.pdfFile }">
@@ -103,7 +103,7 @@ function formatCurrency(value: number): string {
           <input type="file" accept=".pdf" class="hidden-input" @change="(e) => handleItemFile(index, e, 'pdf')" />
         </label>
         <button v-if="item.pdfFile" class="remove-file-btn" @click="emit('file-remove', index, 'pdf')" title="Odstranit PDF">
-          <X :size="12" />
+          <X :size="ICON_SIZE.SMALL" />
         </button>
       </div>
     </td>

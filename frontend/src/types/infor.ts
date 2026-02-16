@@ -140,3 +140,100 @@ export interface MaterialImportExecuteResponse {
   skipped_count: number
   errors: string[]
 }
+
+/**
+ * === INFOR JOBS IMPORT TYPES (ADR-045) ===
+ * Types for importing Parts, Operations (routing), and ProductionRecords from Infor SLJobs/SLJobRoutes
+ */
+
+/**
+ * Staged Part row (SLJobs → Part)
+ */
+export interface StagedPartRow {
+  row_index: number
+  infor_data: Record<string, unknown>
+  mapped_data: {
+    article_number: string
+    name: string
+    drawing_number?: string
+    customer_revision?: string
+  }
+  validation: {
+    is_valid: boolean
+    is_duplicate: boolean
+    errors: string[]
+    warnings: string[]
+  }
+  duplicate_action?: 'skip' | 'update'
+}
+
+/**
+ * Staged Routing row (SLJobs → Operation)
+ */
+export interface StagedRoutingRow {
+  row_index: number
+  infor_data: Record<string, unknown>
+  mapped_data: {
+    article_number: string
+    part_id: number
+    seq: number
+    name: string
+    setup_time_min: number
+    sched_time_min: number | null
+    operation_time_min: number
+    manning_coefficient: number
+    infor_wc_code: string | null
+    work_center_id: number | null
+  }
+  validation: {
+    is_valid: boolean
+    is_duplicate: boolean
+    errors: string[]
+    warnings: string[]
+    wc_warning?: string
+  }
+}
+
+/**
+ * Staged Production row (SLJobRoutes → ProductionRecord)
+ */
+export interface StagedProductionRow {
+  row_index: number
+  infor_data: Record<string, unknown>
+  mapped_data: {
+    article_number: string
+    infor_order_number: string
+    operation_seq: number
+    batch_quantity: number | null
+    planned_time_min: number | null
+    actual_time_min: number | null
+    infor_wc_code: string
+    work_center_id: number | null
+    production_date: string | null
+  }
+  validation: {
+    is_valid: boolean
+    is_duplicate: boolean
+    errors: string[]
+    warnings: string[]
+    wc_warning?: string
+  }
+}
+
+/**
+ * Work Center mapping (Infor WC code → Gestima WC number)
+ */
+export interface WcMapping {
+  [inforCode: string]: string
+}
+
+/**
+ * Generic import execute response
+ */
+export interface ImportExecuteResponse {
+  success: boolean
+  created_count: number
+  updated_count: number
+  skipped_count: number
+  errors: string[]
+}

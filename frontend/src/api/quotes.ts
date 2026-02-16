@@ -171,7 +171,7 @@ export async function deleteQuoteItem(
 // ============================================================================
 
 /**
- * Parse PDF quote request with Claude Vision AI
+ * Parse PDF quote request with AI Vision
  *
  * Rate limit: 10 requests/hour per user
  * Max file size: 10 MB
@@ -193,7 +193,7 @@ export async function parseQuoteRequest(file: File): Promise<QuoteRequestReview>
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      // 60 seconds timeout (Claude API can take 30s + processing)
+      // 60 seconds timeout (AI API can take 30s + processing)
       timeout: 60000
     }
   )

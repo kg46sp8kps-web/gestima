@@ -15,8 +15,6 @@ export type WindowModule =
   | 'part-technology' // Unified view: Material + Operations + Features
   | 'part-material'
   | 'part-drawing'
-  | 'pdf-viewer'
-  | 'manual-estimation-list' // Manual Time Estimation (ML Training Data Collection)
   | 'batch-sets'
   | 'partners-list'
   | 'quotes-list'
@@ -24,7 +22,9 @@ export type WindowModule =
   | 'manufacturing-items'
   | 'material-items-list'
   | 'master-admin' // Master Admin (Infor, Material Norms, Pracoviště)
-  | 'feature-recognition' // Feature Recognition Testing
+  | 'accounting' // Účetnictví (CsiXls)
+  | 'time-vision' // TimeVision AI time estimation
+  | 'file-manager' // File Manager (ADR-044)
 
 export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
 
@@ -389,7 +389,6 @@ export const useWindowsStore = defineStore('windows', () => {
       }
 
       await saveModuleDefaults(data)
-      console.log(`Saved defaults for ${win.module}`)
     } catch (error) {
       console.error('Failed to save module defaults:', error)
     }

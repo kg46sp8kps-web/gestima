@@ -183,7 +183,7 @@ onMounted(() => {
 /* === RESIZE HANDLE === */
 .resize-handle {
   flex-shrink: 0;
-  background: var(--border-color);
+  background: var(--border-default);
   transition: background var(--duration-fast);
   position: relative;
   z-index: 10;

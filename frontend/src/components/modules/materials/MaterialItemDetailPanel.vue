@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Material Item Detail Panel - Info Ribbon pattern (UI-BIBLE Pattern 2)
+ * Material Item Detail Panel - Info Ribbon pattern (Design System Pattern 7.3)
  *
  * Displays selected material item with inline edit capability
  * Icon toolbar at bottom: Edit | Copy | Delete
@@ -302,7 +302,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   position: relative;
   padding: var(--space-5);
   background: var(--bg-surface);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-default);
   border-radius: var(--radius-lg);
   transition: all var(--duration-normal);
 }
@@ -317,7 +317,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   margin-bottom: calc(-1 * var(--space-5) + 2px);
   padding-top: var(--space-3);
   padding-bottom: 2px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .icon-btn {
@@ -340,7 +340,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 }
 
 .icon-btn-danger:hover {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .icon-btn-primary {
@@ -388,7 +388,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   font-weight: 600;
   color: var(--text-primary);
   background: var(--bg-base);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: all var(--duration-fast);
 }

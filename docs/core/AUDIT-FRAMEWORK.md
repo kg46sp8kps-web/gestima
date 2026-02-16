@@ -215,7 +215,7 @@
 
 #### 7.3 ADR Documentation
 - [ ] **ADR created** - nová architektonická rozhodnutí zdokumentována
-- [ ] **ADR archived** - deprecated ADRs přesunuty do `docs/archive/`
+- [ ] **ADR archived** - deprecated ADRs označeny v `docs/ADR/README.md`
 - [ ] **ADR index** - `docs/ADR/README.md` obsahuje všechny aktivní ADRs
 
 #### 7.4 Session Documentation

@@ -18,19 +18,17 @@ class TestPartValidations:
         # part_number není součástí PartCreate (auto-generated v backendu)
         assert not hasattr(part, 'part_number') or part.part_number is None
 
-    def test_article_number_required(self):
-        """article_number je REQUIRED (ADR-024 update)"""
+    def test_article_number_has_default(self):
+        """article_number has default empty string (ADR-024)"""
         from app.models.part import PartCreate
-        with pytest.raises(ValidationError) as exc_info:
-            PartCreate(name="Test díl")  # Missing article_number
-        assert "article_number" in str(exc_info.value)
+        part = PartCreate()  # Both article_number and name have defaults
+        assert part.article_number == ""
 
-    def test_name_required(self):
-        """name je REQUIRED v PartCreate"""
+    def test_name_has_default(self):
+        """name has default empty string (ADR-024)"""
         from app.models.part import PartCreate
-        with pytest.raises(ValidationError) as exc_info:
-            PartCreate(article_number="ART-TEST")  # Missing name
-        assert "name" in str(exc_info.value)
+        part = PartCreate()
+        assert part.name == ""
 
     def test_article_number_max_length(self):
         """article_number má max 50 znaků"""

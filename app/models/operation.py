@@ -34,6 +34,8 @@ class Operation(Base, AuditMixin):
     setup_time_locked = Column(Boolean, default=False)
     operation_time_locked = Column(Boolean, default=False)
 
+    ai_estimation_id = Column(Integer, ForeignKey("time_vision_estimations.id", ondelete="SET NULL"), nullable=True)
+
     manning_coefficient = Column(Float, default=100.0)  # Koeficient plnění v %
     machine_utilization_coefficient = Column(Float, default=100.0)  # Koeficient využití strojů v %
 
@@ -77,6 +79,7 @@ class OperationBase(BaseModel):
 
 class OperationCreate(OperationBase):
     part_id: int = Field(..., gt=0, description="ID dílu")
+    ai_estimation_id: Optional[int] = Field(None, gt=0, description="ID AI odhadu z TimeVision")
 
 
 class OperationUpdate(BaseModel):
@@ -90,6 +93,7 @@ class OperationUpdate(BaseModel):
     operation_time_min: Optional[float] = Field(None, ge=0)
     setup_time_locked: Optional[bool] = None
     operation_time_locked: Optional[bool] = None
+    ai_estimation_id: Optional[int] = Field(None, gt=0)
     manning_coefficient: Optional[float] = Field(None, ge=0, le=200)
     machine_utilization_coefficient: Optional[float] = Field(None, ge=0, le=200)
     is_coop: Optional[bool] = None
@@ -105,9 +109,9 @@ class OperationResponse(OperationBase):
 
     id: int
     part_id: int
-    feature_recognition_id: Optional[int] = None
     setup_time_locked: bool
     operation_time_locked: bool
+    ai_estimation_id: Optional[int] = None
     version: int
     created_at: datetime
     updated_at: datetime

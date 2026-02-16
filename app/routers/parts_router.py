@@ -3,16 +3,11 @@
 from __future__ import annotations
 
 import logging
-import shutil
-import uuid
 from datetime import datetime
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from fastapi.responses import FileResponse
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import get_db
@@ -24,25 +19,17 @@ from app.models.material import MaterialItem, MaterialPriceCategory
 from app.models.material_input import MaterialInput
 from app.models.operation import Operation
 from app.models.batch import Batch
+from app.models.quote import QuoteItem
 from app.services.price_calculator import (
     calculate_stock_cost_from_part,
     calculate_part_price,
     calculate_series_pricing,
     PriceBreakdown
 )
-from app.services.drawing_service import DrawingService
-from app.schemas.upload import DrawingUploadResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# Drawing storage directory (kept for backwards compatibility)
-DRAWINGS_DIR = Path("uploads/drawings")
-DRAWINGS_DIR.mkdir(parents=True, exist_ok=True)
-
-# Drawing service (security-focused file operations)
-drawing_service = DrawingService()
 
 
 async def copy_part_relations(
@@ -163,15 +150,18 @@ async def copy_part_relations(
     await safe_commit(db, target_part, "kopírování relací dílu")
 
 
-@router.get("/", response_model=List[PartResponse])
+@router.get("/")
 async def get_parts(
     skip: int = Query(0, ge=0, description="Počet záznamů k přeskočení"),
     limit: int = Query(100, ge=1, le=500, description="Max počet záznamů"),
+    status: Optional[str] = Query(None, description="Filtr statusu (draft, active, archived, quote)"),
+    source: Optional[str] = Query(None, description="Filtr zdroje (manual, infor_import, quote_request)"),
+    search: Optional[str] = Query(None, description="Hledat v article_number, name, part_number"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List všech dílů s pagination (default limit=100, max=500)"""
-    result = await db.execute(
+    """List dílů s pagination, status filtrem a vyhledáváním. Vrací {parts, total}."""
+    query = (
         select(Part)
         .options(
             selectinload(Part.material_inputs),
@@ -179,7 +169,41 @@ async def get_parts(
             selectinload(Part.batches)
         )
         .where(Part.deleted_at.is_(None))
-        .order_by(Part.updated_at.desc())
+    )
+
+    # Status filter
+    if status:
+        query = query.where(Part.status == status)
+
+    # Source filter
+    if source:
+        query = query.where(Part.source == source)
+
+    # Search filter
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
+        search_filters = [
+            Part.part_number.ilike(search_term),
+            Part.name.ilike(search_term),
+            Part.article_number.ilike(search_term),
+            Part.drawing_number.ilike(search_term),
+        ]
+        if search.strip().isdigit():
+            search_filters.append(Part.id == int(search.strip()))
+        query = query.where(or_(*search_filters))
+
+    # Count total (before pagination)
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+
+    # Get paginated results — stable sort by article_number ASC for smooth infinite scroll
+    # (NULLs last so items without article_number appear at the end)
+    result = await db.execute(
+        query.order_by(
+            func.coalesce(Part.article_number, 'zzz').asc(),
+            Part.id.asc()
+        )
         .offset(skip)
         .limit(limit)
     )
@@ -196,65 +220,6 @@ async def get_parts(
         users_map = {}
 
     # Build response with created_by_name
-    response = []
-    for part in parts:
-        part_dict = PartResponse.model_validate(part).model_dump()
-        part_dict['created_by_name'] = users_map.get(part.created_by) if part.created_by else None
-        response.append(PartResponse(**part_dict))
-
-    return response
-
-
-@router.get("/search")
-async def search_parts(
-    search: str = Query("", description="Hledat v ID, číslo výkresu, article number"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Filtrování dílů s multi-field search"""
-    query = select(Part).options(
-        selectinload(Part.material_inputs),
-        selectinload(Part.operations),
-        selectinload(Part.batches)
-    ).where(Part.deleted_at.is_(None))
-
-    if search.strip():
-        search_term = f"%{search.strip()}%"
-        filters = [
-            Part.part_number.ilike(search_term),
-            Part.name.ilike(search_term),
-            Part.article_number.ilike(search_term)
-        ]
-
-        # Pokud je search digit, přidat ID search
-        if search.strip().isdigit():
-            filters.append(Part.id == int(search.strip()))
-
-        query = query.where(or_(*filters))
-
-    # Count total
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar()
-
-    # Get paginated results
-    query = query.order_by(Part.updated_at.desc()).offset(skip).limit(limit)
-    result = await db.execute(query)
-    parts = result.scalars().all()
-
-    # Get creator usernames for all parts
-    creator_usernames = {p.created_by for p in parts if p.created_by}
-    if creator_usernames:
-        users_result = await db.execute(
-            select(User).where(User.username.in_(creator_usernames))
-        )
-        users_map = {u.username: u.username for u in users_result.scalars().all()}
-    else:
-        users_map = {}
-
-    # Convert to Pydantic models with created_by_name
     parts_response = []
     for part in parts:
         part_dict = PartResponse.model_validate(part).model_dump()
@@ -303,42 +268,26 @@ async def create_part(
         logger.error(f"Failed to generate part number: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo dílu. Zkuste to znovu.")
 
-    # Handle temp_drawing_id if provided
-    final_drawing_path = data.drawing_path  # Fallback to old field
-    if data.temp_drawing_id:
-        try:
-            # Move temp file to permanent storage
-            final_drawing_path = await drawing_service.move_temp_to_permanent(
-                data.temp_drawing_id,
-                part_number
-            )
-            logger.info(f"Moved temp drawing {data.temp_drawing_id} → {final_drawing_path}")
-        except HTTPException as e:
-            # If temp file not found, log warning but don't fail part creation
-            logger.warning(f"Temp drawing {data.temp_drawing_id} not found, skipping: {e.detail}")
-            final_drawing_path = None
-
     # Create part with auto-generated number + defaults
+    # NOTE: Drawings are added via POST /api/parts/{part_number}/drawings/ (drawings_router)
     part = Part(
         part_number=part_number,
         article_number=data.article_number,
-        drawing_path=final_drawing_path,
         name=data.name,
+        drawing_number=data.drawing_number,
         customer_revision=data.customer_revision,
         notes=data.notes,
-        # Defaults from SQL schema
         revision="A",
         status="active",
         length=0.0
     )
-    set_audit(part, current_user.username)  # Audit trail helper (db_helpers.py)
+    set_audit(part, current_user.username)
     db.add(part)
 
     part = await safe_commit(db, part, "vytváření dílu")
     logger.info(f"Created part: {part.part_number}", extra={
         "part_id": part.id,
         "user": current_user.username,
-        "has_drawing": bool(final_drawing_path)
     })
 
     # Copy relations from source part if requested
@@ -410,22 +359,17 @@ async def duplicate_part(
         logger.error(f"Failed to generate part number for duplicate: {e}")
         raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo dílu")
 
-    # Create duplicate with new part_number
+    # Create duplicate with new part_number (ADR-024: material fields are in MaterialInput)
     new_part = Part(
         part_number=new_part_number,
         article_number=original.article_number,
         name=f"{original.name} (kopie)" if original.name else None,
-        material_item_id=original.material_item_id,
-        price_category_id=original.price_category_id,
-        stock_shape=original.stock_shape,
+        revision=original.revision,
+        customer_revision=original.customer_revision,
+        drawing_number=original.drawing_number,
         length=original.length,
         notes=original.notes,
-        drawing_path=original.drawing_path,
-        stock_diameter=original.stock_diameter,
-        stock_length=original.stock_length,
-        stock_width=original.stock_width,
-        stock_height=original.stock_height,
-        stock_wall_thickness=original.stock_wall_thickness
+        status="draft",
     )
     set_audit(new_part, current_user.username)
     db.add(new_part)
@@ -634,39 +578,6 @@ async def get_stock_cost(
     return cost
 
 
-@router.post("/{part_number}/copy-material-geometry")
-async def copy_material_geometry(
-    part_number: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
-):
-    """Zkopíruje rozměry z MaterialItem do Part.stock_*"""
-    result = await db.execute(
-        select(Part)
-        .options(joinedload(Part.material_inputs).joinedload(MaterialInput.material_item))
-        .where(Part.part_number == part_number)
-    )
-    part = result.scalar_one_or_none()
-    if not part:
-        raise HTTPException(status_code=404, detail="Díl nenalezen")
-
-    if not part.material_item:
-        raise HTTPException(status_code=400, detail="Díl nemá přiřazený materiál")
-
-    mi = part.material_item
-    part.stock_diameter = mi.diameter
-    part.stock_width = mi.width
-    part.stock_height = mi.thickness
-    part.stock_wall_thickness = mi.wall_thickness
-    # stock_length se nekopíruje - uživatel musí zadat délku polotovaru
-
-    set_audit(part, current_user.username, is_update=True)
-
-    part = await safe_commit(db, part, "kopírování geometrie")
-    logger.info(f"Copied material geometry for part {part_number}", extra={"part_number": part_number, "user": current_user.username})
-    return {"message": "Geometrie zkopírována", "version": part.version}
-
-
 # ============================================================================
 # PRICING ENDPOINTS (ADR-016)
 # ============================================================================
@@ -827,176 +738,5 @@ async def get_series_pricing(
     return [PriceBreakdownResponse.from_breakdown(b) for b in breakdowns]
 
 
-# ============================================================================
-# DRAWING ENDPOINTS
-# ============================================================================
-
-@router.post("/{part_number}/drawing", response_model=DrawingUploadResponse, status_code=201)
-async def upload_part_drawing(
-    part_number: str,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
-):
-    """
-    Upload PDF drawing to part.
-    Replaces existing drawing if present.
-
-    Security checks:
-    - PDF validation via magic bytes (not just MIME type)
-    - File size limit (10MB)
-    - Path traversal prevention
-
-    Returns:
-        DrawingUploadResponse: part_number, filename, drawing_path, size, uploaded_at
-    """
-    # Find part first
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
-    part = result.scalar_one_or_none()
-    if not part:
-        raise HTTPException(status_code=404, detail="Díl nenalezen")
-
-    # SECURITY: Validate PDF using DrawingService (magic bytes check!)
-    # This also validates file size and sanitizes part_number
-    try:
-        # Delete old drawing if exists
-        if part.drawing_path:
-            try:
-                await drawing_service.delete_drawing(part_number)
-            except HTTPException:
-                # Old drawing missing - that's okay, continue
-                pass
-
-        # Save new drawing (with security validations)
-        drawing_path, file_size = await drawing_service.save_permanent(file, part_number)
-
-        # Update part in transaction
-        part.drawing_path = drawing_path
-        set_audit(part, current_user.username, is_update=True)
-
-        part = await safe_commit(db, part, "nahrávání výkresu")
-        logger.info(f"Drawing uploaded for part {part_number}", extra={
-            "part_number": part_number,
-            "user": current_user.username,
-            "size": file_size
-        })
-
-        return DrawingUploadResponse(
-            part_number=part_number,
-            filename=file.filename or "drawing.pdf",
-            drawing_path=drawing_path,
-            size=file_size,
-            uploaded_at=datetime.utcnow()
-        )
-
-    except HTTPException:
-        # Re-raise validation errors from DrawingService
-        raise
-    except Exception as e:
-        logger.error(f"Failed to upload drawing for part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to save drawing")
-    finally:
-        await file.close()
-
-
-@router.get("/{part_number}/drawing")
-async def get_part_drawing(
-    part_number: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Serve PDF drawing for viewing/download.
-    Returns FileResponse with proper Content-Type and filename.
-
-    Security:
-    - Path traversal prevention via DrawingService
-    - File existence validation
-    """
-    # Verify part exists
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
-    part = result.scalar_one_or_none()
-    if not part:
-        raise HTTPException(status_code=404, detail="Díl nenalezen")
-
-    if not part.drawing_path:
-        raise HTTPException(status_code=404, detail="Drawing not found for this part")
-
-    # Use drawing_path from DB (Phase B compatible - supports timestamped filenames)
-    drawing_path = Path(part.drawing_path)
-
-    # Validate file exists on disk — auto-cleanup orphan reference
-    if not drawing_path.exists():
-        logger.warning(
-            f"Drawing file missing for part {part_number}: {part.drawing_path}. "
-            f"Auto-cleaning Part.drawing_path."
-        )
-        try:
-            part.drawing_path = None
-            part.updated_by = "system:auto-cleanup"
-            await db.commit()
-        except Exception as e:
-            logger.error(f"Failed to auto-cleanup drawing_path for {part_number}: {e}")
-        raise HTTPException(
-            status_code=404,
-            detail="Soubor výkresu nebyl nalezen na disku"
-        )
-
-    return FileResponse(
-        path=str(drawing_path),
-        media_type="application/pdf",
-        filename=f"{part_number}_drawing.pdf",
-        headers={
-            "Content-Disposition": f'inline; filename="{part_number}_drawing.pdf"'
-        }
-    )
-
-
-@router.delete("/{part_number}/drawing", status_code=204)
-async def delete_part_drawing(
-    part_number: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
-):
-    """
-    Delete part drawing file.
-
-    Security:
-    - Path traversal prevention via DrawingService
-    - Transaction handling (file + DB update)
-
-    Returns:
-        204 No Content on success
-    """
-    # Verify part exists
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
-    part = result.scalar_one_or_none()
-    if not part:
-        raise HTTPException(status_code=404, detail="Díl nenalezen")
-
-    if not part.drawing_path:
-        raise HTTPException(status_code=404, detail="No drawing to delete")
-
-    # SECURITY: Use DrawingService to delete file (validates path)
-    try:
-        await drawing_service.delete_drawing(part_number)
-
-        # Update part in transaction
-        part.drawing_path = None
-        set_audit(part, current_user.username, is_update=True)
-
-        part = await safe_commit(db, part, "mazání výkresu")
-        logger.info(f"Drawing deleted for part {part_number}", extra={
-            "part_number": part_number,
-            "user": current_user.username
-        })
-
-        # 204 No Content (no response body needed)
-        return None
-
-    except HTTPException:
-        # Re-raise DrawingService errors
-        raise
-    except Exception as e:
-        logger.error(f"Failed to delete drawing for part {part_number}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to delete drawing")
+    # NOTE: Drawing endpoints moved to drawings_router.py
+    # Legacy single-drawing endpoints removed — use /api/parts/{part_number}/drawings/ instead

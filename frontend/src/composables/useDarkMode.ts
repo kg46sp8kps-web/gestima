@@ -4,7 +4,7 @@
  */
 
 import { ref, watch, onMounted } from 'vue';
-import type { ThemeMode } from '@/design/tokens';
+type ThemeMode = 'dark' | 'light';
 
 const STORAGE_KEY = 'gestima_theme_mode';
 const isDark = ref<boolean>(true); // Default: dark (existing style)

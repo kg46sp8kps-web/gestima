@@ -12,7 +12,7 @@ from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKe
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
-from app.models.enums import StockShape, PartStatus
+from app.models.enums import StockShape, PartStatus, PartSource
 
 if TYPE_CHECKING:
     from app.models.material import MaterialItemWithGroupResponse, MaterialPriceCategoryWithGroupResponse
@@ -32,7 +32,7 @@ class Part(Base, AuditMixin):
     customer_revision = Column(String(50), nullable=True)      # Zákaznická revize (zobrazená na výkresu)
     drawing_number = Column(String(50), nullable=True)         # Číslo výkresu (zobrazené v hlavičce)
     status = Column(String(20), default="active", nullable=False)  # Lifecycle status (validated by Pydantic)
-
+    source = Column(String(20), default="manual", nullable=False)  # Původ dílu: manual, infor_import, quote_request
     # Rozměry dílu (ne polotovaru!)
     length = Column(Float, default=0.0)  # mm - délka obráběné části
 
@@ -55,6 +55,12 @@ class Part(Base, AuditMixin):
         back_populates="part",
         cascade="all, delete-orphan",
         order_by="Drawing.is_primary.desc(), Drawing.created_at.desc()"
+    )
+    production_records = relationship(
+        "ProductionRecord",
+        back_populates="part",
+        cascade="all, delete-orphan",
+        order_by="ProductionRecord.production_date.desc()"
     )
 
     @property
@@ -81,6 +87,7 @@ class PartBase(BaseModel):
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     status: PartStatus = Field(PartStatus.ACTIVE, description="Status dílu (default: active)")
+    source: PartSource = Field(PartSource.MANUAL, description="Původ dílu (manual, infor_import, quote_request)")
     length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
     notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
@@ -88,8 +95,6 @@ class PartBase(BaseModel):
 class PartCreate(BaseModel):
     """Create new part - simplified (part_number auto-generated 10XXXXXX)"""
     article_number: str = Field("", max_length=50, description="Dodavatelské číslo")
-    drawing_path: Optional[str] = Field(None, max_length=500, description="Cesta k výkresu (deprecated, use temp_drawing_id)")
-    temp_drawing_id: Optional[str] = Field(None, description="UUID temp file to move to permanent storage")
     name: str = Field("", max_length=200, description="Název dílu")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")

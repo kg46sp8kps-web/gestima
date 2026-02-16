@@ -15,6 +15,9 @@ L-038: No emoji in production UI
 L-044: No console.log/debug in production code
 L-049: No 'any' type in TypeScript
 UI:    No new Views (deprecated)
+DS4-001: No filled/solid buttons (background-color on btn)
+DS4-002: No chromatic colors except brand #991b1b (no green/blue/yellow in UI)
+DS4-003: No font-size below 11px
 
 RULES ENFORCED (WARNING):
 CSS:   No hardcoded padding/margin → use design tokens
@@ -59,8 +62,17 @@ def main():
     is_test_file = '/__tests__/' in file_path or '.spec.' in file_path or '.test.' in file_path
 
     # ─── Get content to check ────────────────────────────
+    # PreToolUse+Write: content from JSON (file not on disk yet)
+    # PreToolUse+Edit: check new_string (what's about to be written)
+    # PostToolUse: read file from disk (safety net - check final result)
     if hook_event == "PreToolUse" and tool_name == "Write":
         content = tool_input.get("content", "")
+    elif hook_event == "PreToolUse" and tool_name == "Edit":
+        new_string = tool_input.get("new_string", "")
+        if new_string:
+            content = new_string
+        else:
+            sys.exit(0)
     else:
         try:
             with open(file_path, 'r') as f:
@@ -150,6 +162,82 @@ def main():
                         print("Use proper TypeScript types instead of 'any'.", file=sys.stderr)
                         print("Options: unknown, Record<string, unknown>, specific interface, generic", file=sys.stderr)
                         sys.exit(2)
+
+        # DS4-001: No filled/solid buttons (BLOCKING)
+        # Track <style> section for DS4-001 and DS4-002
+        ds_in_style = False
+        in_btn_rule = False
+        for i, line in enumerate(lines):
+            if '<style' in line:
+                ds_in_style = True
+            elif '</style>' in line:
+                ds_in_style = False
+                in_btn_rule = False
+            if not ds_in_style:
+                in_btn_rule = False
+                continue
+            stripped = line.strip()
+            if stripped.startswith('/*') or stripped.startswith('//'):
+                continue
+            # Track if we're inside a .btn rule block
+            if re.search(r'\.btn[^{]*\{', stripped):
+                in_btn_rule = True
+            if '}' in stripped:
+                in_btn_rule = False
+            # Check background inside btn rules
+            if in_btn_rule and re.search(r'background(-color)?\s*:', stripped):
+                bg_value = re.sub(r'background(-color)?\s*:\s*', '', stripped).rstrip(';').strip()
+                if bg_value not in ('transparent', 'none', 'inherit', 'unset') and not bg_value.startswith('var(--bg'):
+                    print(f"DS4-001 VIOLATION: Filled/solid button in {file_path} (line {i+1})", file=sys.stderr)
+                    print(f"  {stripped}", file=sys.stderr)
+                    print("", file=sys.stderr)
+                    print("DS v4.0: Buttons MUST be ghost style (transparent background).", file=sys.stderr)
+                    print("Allowed: background: transparent; or background: var(--bg-*);", file=sys.stderr)
+                    print("See: skill gestima-design-system or frontend/template.html", file=sys.stderr)
+                    sys.exit(2)
+
+        # DS4-002: No chromatic colors except brand (BLOCKING)
+        ds_in_style2 = False
+        chromatic_names = ['green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'cyan', 'teal', 'indigo', 'violet', 'lime', 'fuchsia']
+        for i, line in enumerate(lines):
+            if '<style' in line:
+                ds_in_style2 = True
+            elif '</style>' in line:
+                ds_in_style2 = False
+            if not ds_in_style2:
+                continue
+            stripped = line.strip()
+            if stripped.startswith('/*') or stripped.startswith('//'):
+                continue
+            line_lower = line.lower()
+            # Skip var() references and comments
+            if 'var(--' in line or 'lucide' in line_lower:
+                continue
+            # Allow in dataviz contexts
+            if any(dv in line_lower for dv in ['chart', 'graph', 'dataviz', 'price-bar', 'progress']):
+                continue
+            for color_name in chromatic_names:
+                if re.search(rf'\b{color_name}\b', line_lower):
+                    print(f"DS4-002 VIOLATION: Chromatic color '{color_name}' in {file_path} (line {i+1})", file=sys.stderr)
+                    print(f"  {stripped[:80]}", file=sys.stderr)
+                    print("", file=sys.stderr)
+                    print("DS v4.0: Only 3 colors allowed: black + red (#991b1b) + gray.", file=sys.stderr)
+                    print("Chromatic colors ONLY in dataviz (charts, graphs, price bars).", file=sys.stderr)
+                    print("See: skill gestima-design-system", file=sys.stderr)
+                    sys.exit(2)
+
+        # DS4-003: No font-size below 11px (BLOCKING)
+        for i, line in enumerate(lines):
+            match = re.search(r'font-size:\s*(\d+)px', line)
+            if match:
+                size = int(match.group(1))
+                if size < 11 and 'var(--' not in line:
+                    print(f"DS4-003 VIOLATION: Font-size {size}px is below minimum 11px in {file_path} (line {i+1})", file=sys.stderr)
+                    print(f"  {line.strip()}", file=sys.stderr)
+                    print("", file=sys.stderr)
+                    print("DS v4.0: Minimum font-size is 11px.", file=sys.stderr)
+                    print("Use design tokens: var(--text-xs)=11px, var(--text-sm)=12px, var(--text-base)=13px", file=sys.stderr)
+                    sys.exit(2)
 
         # L-036 (CSS): Hardcoded padding/margin with px (WARNING only)
         for i, line in enumerate(lines):

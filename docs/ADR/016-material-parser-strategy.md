@@ -313,8 +313,8 @@ class AISearchService:
 
 ## References
 
-- [VISION.md](../VISION.md) - Roadmap, modules, timeline
-- [VIS-007](../VISION.md#vis-007-single-database-no-microservices) - In-house only policy
+- VISION.md (removed, available in git history) - Roadmap, modules, timeline
+- VIS-007: In-house only policy (single database, no microservices)
 - [ADR-015](015-material-norm-mapping.md) - MaterialNorm design (DB lookup foundation)
 - [CLAUDE.md - WZORY](../../CLAUDE.md#wzory) - Regex pattern examples
 - [L-013](../../CLAUDE.md#l-013-debounced-race--nan) - Debounce pattern (applied to parser)

@@ -498,7 +498,7 @@ onMounted(async () => {
   padding: var(--space-3);
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .panel-header h2 {
@@ -526,7 +526,7 @@ onMounted(async () => {
 .form-group textarea {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-primary);
@@ -555,18 +555,21 @@ onMounted(async () => {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn-secondary {
   background: var(--bg-raised);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .btn-danger {
@@ -591,7 +594,7 @@ onMounted(async () => {
   gap: var(--space-2);
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .spacer {
@@ -610,7 +613,7 @@ onMounted(async () => {
   padding: var(--space-4);
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .section-title {
@@ -619,7 +622,7 @@ onMounted(async () => {
   font-weight: 600;
   color: var(--text-primary);
   padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 h3.section-title {
@@ -630,7 +633,7 @@ h3.section-title {
   padding: var(--space-4);
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .tiers-header {
@@ -647,7 +650,7 @@ h3.section-title {
 }
 
 .tiers-table {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -661,7 +664,7 @@ h3.section-title {
 .tier-table td {
   padding: var(--space-2);
   text-align: left;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .tier-table th {

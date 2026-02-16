@@ -17,7 +17,7 @@
       <!-- Coming Soon -->
       <div class="coming-soon-section">
         <div class="coming-soon-icon">
-          <BarChart3 :size="48" />
+          <BarChart3 :size="ICON_SIZE.HERO" />
         </div>
         <h2>Dashboard</h2>
         <p class="coming-soon-text">
@@ -69,7 +69,7 @@ function goToWork() {
 <style scoped>
 .dashboard-view {
   padding: 2rem;
-  background: var(--bg-default, #f9fafb);
+  background: var(--bg-base);
   min-height: 100%;
   display: flex;
   align-items: center;
@@ -87,10 +87,11 @@ function goToWork() {
 
 /* Welcome Card */
 .welcome-card {
-  background: linear-gradient(135deg, var(--accent-red, #dc2626) 0%, #991b1b 100%);
-  border-radius: 16px;
+  background: transparent;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-2xl);
   padding: 2rem;
-  color: white;
+  color: var(--text-primary);
   width: 100%;
 }
 
@@ -110,11 +111,11 @@ function goToWork() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   background: rgba(255, 255, 255, 0.15);
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  margin-top: 1.5rem;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  margin-top: var(--space-5);
 }
 
 .user-greeting {
@@ -128,8 +129,8 @@ function goToWork() {
 
 .user-role-badge {
   background: rgba(255, 255, 255, 0.25);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   text-transform: uppercase;
   font-weight: 600;
@@ -137,9 +138,9 @@ function goToWork() {
 
 /* Coming Soon */
 .coming-soon-section {
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-default, #e5e7eb);
-  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-2xl);
   padding: 2rem;
   width: 100%;
 }
@@ -149,18 +150,18 @@ function goToWork() {
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .coming-soon-section h2 {
   margin: 0 0 0.5rem;
   font-size: var(--text-4xl);
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
 }
 
 .coming-soon-text {
   margin: 0 0 1.5rem;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-secondary);
   font-size: var(--text-xl);
 }
 
@@ -170,61 +171,61 @@ function goToWork() {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .coming-soon-features li {
-  color: var(--text-secondary, #374151);
+  color: var(--text-secondary);
   font-size: var(--text-lg);
-  padding: 0.5rem 1rem;
-  background: var(--bg-muted, #f3f4f6);
-  border-radius: 8px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border-radius: var(--radius-lg);
 }
 
 .coming-soon-features li::before {
   content: '◦ ';
-  color: var(--accent-red, #dc2626);
+  color: var(--brand);
 }
 
 /* Admin Section */
 .admin-section {
   width: 100%;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-default, #e5e7eb);
-  border-radius: 16px;
-  padding: 1.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-5);
 }
 
 .admin-title {
   margin: 0 0 1rem;
   font-size: var(--text-2xl);
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
   text-align: center;
 }
 
 .admin-buttons {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .admin-btn {
-  padding: 0.75rem 1.25rem;
-  background: var(--bg-muted, #f3f4f6);
-  border: 1px solid var(--border-default, #e5e7eb);
-  border-radius: 8px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   font-size: var(--text-lg);
   font-weight: 500;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: left;
 }
 
 .admin-btn:hover {
-  background: var(--accent-red, #dc2626);
+  background: var(--brand);
   color: white;
-  border-color: var(--accent-red, #dc2626);
+  border-color: var(--brand);
   transform: translateY(-1px);
 }
 
@@ -232,12 +233,12 @@ function goToWork() {
 .work-button {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 3rem;
-  background: var(--accent-red, #dc2626);
+  gap: var(--space-3);
+  padding: var(--space-4) 3rem;
+  background: var(--brand);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   font-size: var(--text-4xl);
   font-weight: 600;
   cursor: pointer;
@@ -246,7 +247,7 @@ function goToWork() {
 }
 
 .work-button:hover {
-  background: #b91c1c;
+  background: var(--brand-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
 }

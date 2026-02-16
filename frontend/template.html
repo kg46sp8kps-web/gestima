@@ -2,249 +2,185 @@
 <html lang="cs" data-density="compact">
 <head>
   <meta charset="UTF-8">
-  <title>GESTIMA Design System v2.0 - Complete Showcase</title>
-  <!-- Google Fonts: FINAL — Space Grotesk + Space Mono -->
+  <title>GESTIMA Design System v4.0 - Minimal Dark</title>
+  <!-- Google Fonts: Space Grotesk + Space Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     /* ================================================================
-       GESTIMA DESIGN SYSTEM - EXACT TOKENS FROM design-system.css
+       GESTIMA DESIGN SYSTEM v4.0 — MINIMAL DARK
+       Filozofie: cerna + cervena + sediva. Barvy POUZE kde nesou informaci.
        ================================================================ */
     :root {
-      /* ── PRIMARY (Red) ── */
-      --palette-primary: #991b1b;
-      --palette-primary-hover: #b91c1c;
-      --palette-primary-active: #7f1d1d;
-      --palette-primary-text: #fca5a5;
+      /* ── BRAND ── */
+      --brand: #991b1b;
+      --brand-hover: #b91c1c;
+      --brand-active: #7f1d1d;
+      --brand-text: #fca5a5;
+      --brand-subtle: rgba(153, 27, 27, 0.1);
+      --brand-muted: rgba(153, 27, 27, 0.2);
 
-      /* ── SEMANTIC COLORS ── */
-      --color-primary: var(--palette-primary);
-      --color-primary-hover: var(--palette-primary-hover);
-      --color-danger: #f43f5e;
-      --color-danger-hover: #e11d48;
-      --color-success: #059669;
-      --color-success-hover: #047857;
-      --color-warning: #d97706;
-      --color-warning-hover: #b45309;
-      --color-info: #2563eb;
-      --color-info-hover: #1d4ed8;
-
-      /* ── BACKGROUNDS ── */
-      --bg-deepest: #000000;
+      /* ── NEUTRALS (jediny barevny system) ── */
+      --black: #000000;
       --bg-base: #0a0a0a;
-      --bg-surface: #141414;
-      --bg-raised: #1a1a1a;
       --bg-input: #0f0f0f;
       --bg-subtle: #111111;
+      --bg-surface: #141414;
+      --bg-raised: #1a1a1a;
+      --bg-elevated: #1f1f1f;
 
-      /* ── TEXT ── */
-      --text-primary: #ffffff;
-      --text-body: #f5f5f5;
-      --text-secondary: #a3a3a3;
-      --text-tertiary: #737373;
-      --text-disabled: #525252;
-      --text-inverse: #0a0a0a;
-      --text-on-primary: #ffffff;
-
-      /* ── BORDERS ── */
       --border-subtle: #1a1a1a;
-      --border-default: #2a2a2a;
-      --border-strong: #404040;
-      --border-focus: #2563eb;
-      --border-width: 1px;
+      --border-default: #262626;
+      --border-strong: #3a3a3a;
 
-      /* ── STATES ── */
-      --state-hover: rgba(255, 255, 255, 0.05);
-      --state-active: rgba(255, 255, 255, 0.08);
-      --state-selected: rgba(153, 27, 27, 0.15);
-      --state-focus-bg: rgba(37, 99, 235, 0.25);
-      --state-focus-border: #2563eb;
+      --text-primary: #ffffff;
+      --text-body: #e5e5e5;
+      --text-secondary: #a3a3a3;
+      --text-muted: #737373;
+      --text-disabled: #404040;
 
-      /* ── ACCENT ── */
-      --accent-subtle: rgba(153, 27, 27, 0.1);
-      --accent-muted: rgba(153, 27, 27, 0.2);
-      --accent-strong: #991b1b;
+      /* ── INTERACTIVE STATES ── */
+      --hover: rgba(255, 255, 255, 0.04);
+      --active: rgba(255, 255, 255, 0.08);
+      --selected: rgba(255, 255, 255, 0.06);
+      --focus-ring: rgba(255, 255, 255, 0.5);
+      --focus-bg: rgba(255, 255, 255, 0.03);
 
-      /* ── TYPOGRAPHY (FINAL: Space Grotesk + Space Mono) ── */
+      /* ── STATUS (jedine mista kde je barva mimo brand) ── */
+      --status-ok: #22c55e;
+      --status-error: #ef4444;
+      --status-warn: #eab308;
+
+      /* ── TYPOGRAPHY ── */
       --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --font-mono: 'Space Mono', 'SF Mono', 'Fira Code', Consolas, monospace;
 
-      --text-2xs: 9px;
-      --text-xs: 11px;
-      --text-sm: 12px;
-      --text-base: 13px;
-      --text-md: 14px;
-      --text-lg: 16px;
-      --text-xl: 18px;
-      --text-2xl: 20px;
-      --text-3xl: 24px;
+      --text-2xs: 11px;
+      --text-xs: 13px;
+      --text-sm: 14px;
+      --text-base: 15px;
+      --text-md: 16px;
+      --text-lg: 18px;
+      --text-xl: 20px;
+      --text-2xl: 22px;
 
       --font-normal: 400;
       --font-medium: 500;
       --font-semibold: 600;
       --font-bold: 700;
 
-      --leading-none: 1;
-      --leading-tight: 1.25;
-      --leading-normal: 1.5;
-
-      /* ── SPACING (4pt grid) ── */
-      --space-0: 0;
-      --space-px: 1px;
-      --space-0-5: 2px;
+      /* ── SPACING (same tokens as design-system.css) ── */
       --space-1: 4px;
-      --space-1-5: 6px;
-      --space-2: 8px;
-      --space-2-5: 10px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 20px;
-      --space-6: 24px;
-      --space-8: 32px;
-      --space-10: 36px;
-      --space-12: 40px;
+      --space-2: 6px;
+      --space-3: 8px;
+      --space-4: 12px;
+      --space-5: 16px;
+      --space-6: 20px;
+      --space-8: 24px;
 
       /* ── RADIUS ── */
-      --radius-sm: 2px;
-      --radius-md: 4px;
-      --radius-lg: 6px;
-      --radius-xl: 8px;
-      --radius-2xl: 12px;
+      --radius-sm: 3px;
+      --radius-md: 5px;
+      --radius-lg: 8px;
+      --radius-xl: 12px;
       --radius-full: 9999px;
 
       /* ── SHADOWS ── */
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-      --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
-      --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.6);
-      --shadow-glow: 0 0 0 2px rgba(153, 27, 27, 0.3);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
+      --shadow-xl: 0 12px 40px rgba(0,0,0,0.7);
 
       /* ── TRANSITIONS ── */
-      --duration-fast: 100ms;
-      --duration-normal: 150ms;
-      --duration-slow: 300ms;
-      --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
-      --transition-fast: all 100ms cubic-bezier(0.4, 0, 0.2, 1);
-      --transition-normal: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --t-fast: 100ms var(--ease);
+      --t-normal: 150ms var(--ease);
+      --t-slow: 300ms var(--ease);
 
-      /* ── DENSITY (compact default) ── */
-      --density-cell-padding-y: 2px;
-      --density-cell-padding-x: 8px;
-      --density-cell-font-size: var(--text-xs);
-      --density-row-height: 28px;
-      --density-header-height: 32px;
-      --density-input-height: 28px;
-      --density-input-font-size: var(--text-sm);
-      --density-panel-padding: var(--space-3);
-      --density-section-gap: var(--space-3);
-      --density-window-content-padding: var(--space-2);
+      /* ── DENSITY ── */
+      --cell-py: 3px;
+      --cell-px: 10px;
+      --row-h: 30px;
+      --input-h: 30px;
     }
 
-    /* ── GLOBAL RESET ── */
+    /* ── RESET ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html {
       font-family: var(--font-sans);
       font-size: var(--text-base);
-      line-height: var(--leading-normal);
+      line-height: 1.5;
       color: var(--text-body);
       background: var(--bg-base);
       -webkit-font-smoothing: antialiased;
     }
-
-    ::selection { background: var(--accent-muted); color: var(--text-primary); }
-
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    body { padding: 0; }
+    ::selection { background: var(--brand-muted); color: var(--text-primary); }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-full); }
     ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
-
-    body { padding: 0; }
 
     /* ================================================================
        TEMPLATE LAYOUT
        ================================================================ */
     .template-header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-default);
-      padding: var(--space-4) var(--space-6);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: var(--space-3) var(--space-6);
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .template-header .logo {
-      font-size: var(--text-lg);
-      font-weight: var(--font-bold);
-      letter-spacing: 0.05em;
-    }
-    .template-header .logo .g { color: #E84545; }
-    .template-header .logo .m { color: var(--text-primary); }
-    .template-header .version {
-      font-size: var(--text-xs);
-      color: var(--text-tertiary);
-      font-family: var(--font-mono);
+    .logo { font-size: var(--text-lg); font-weight: var(--font-bold); letter-spacing: 0.08em; }
+    .logo .g { color: #dc2626; }
+    .logo .m { color: var(--text-primary); }
+    .header-right { display: flex; align-items: center; gap: var(--space-3); }
+    .header-tag {
+      font-family: var(--font-mono); font-size: var(--text-xs);
+      color: var(--text-muted); background: var(--bg-raised);
+      padding: 2px 8px; border-radius: var(--radius-md); border: 1px solid var(--border-default);
     }
 
     .template-nav {
-      position: sticky;
-      top: 49px;
-      z-index: 99;
-      background: var(--bg-subtle);
+      position: sticky; top: 42px; z-index: 99;
+      background: rgba(17,17,17,0.9);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border-subtle);
       padding: var(--space-2) var(--space-6);
-      display: flex;
-      gap: var(--space-3);
-      overflow-x: auto;
+      display: flex; gap: var(--space-1); overflow-x: auto;
     }
     .template-nav a {
-      color: var(--text-tertiary);
-      text-decoration: none;
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-md);
-      white-space: nowrap;
-      transition: var(--transition-fast);
+      color: var(--text-muted); text-decoration: none;
+      font-size: var(--text-xs); font-weight: var(--font-medium);
+      padding: var(--space-1) var(--space-2); border-radius: var(--radius-md);
+      white-space: nowrap; transition: all var(--t-fast);
     }
-    .template-nav a:hover {
-      color: var(--text-primary);
-      background: var(--state-hover);
-    }
+    .template-nav a:hover { color: var(--text-primary); background: var(--hover); }
 
-    .template-body { padding: var(--space-6); max-width: 1400px; margin: 0 auto; }
+    .template-body { padding: var(--space-6); max-width: 1200px; margin: 0 auto; }
 
     .section-title {
-      font-size: var(--text-xl);
-      font-weight: var(--font-bold);
+      font-size: var(--text-xl); font-weight: var(--font-bold);
       color: var(--text-primary);
       margin: var(--space-8) 0 var(--space-4);
       padding-bottom: var(--space-2);
-      border-bottom: 2px solid var(--border-default);
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
+      border-bottom: 1px solid var(--border-default);
+      display: flex; align-items: center; gap: var(--space-2);
     }
     .section-title:first-child { margin-top: 0; }
     .section-title .num {
-      font-family: var(--font-mono);
-      font-size: var(--text-sm);
-      color: var(--palette-primary-text);
-      background: var(--accent-subtle);
-      padding: var(--space-0-5) var(--space-2);
-      border-radius: var(--radius-md);
+      font-family: var(--font-mono); font-size: var(--text-xs);
+      color: var(--brand-text); background: var(--brand-subtle);
+      padding: 2px 8px; border-radius: var(--radius-md);
     }
-
     .subsection {
-      font-size: var(--text-md);
-      font-weight: var(--font-semibold);
-      color: var(--text-secondary);
-      margin: var(--space-5) 0 var(--space-3);
+      font-size: var(--text-md); font-weight: var(--font-semibold);
+      color: var(--text-secondary); margin: var(--space-5) 0 var(--space-3);
     }
-
     .card {
       background: var(--bg-surface);
       border: 1px solid var(--border-default);
@@ -252,695 +188,414 @@
       padding: var(--space-4);
       margin-bottom: var(--space-4);
     }
-
-    .row {
-      display: flex;
-      gap: var(--space-3);
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: var(--space-3);
-    }
+    .row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--space-3); }
     .row:last-child { margin-bottom: 0; }
-
     .col { display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
-
-    .label {
-      font-size: var(--text-2xs);
-      color: var(--text-tertiary);
-      font-family: var(--font-mono);
-      text-align: center;
-    }
-
+    .label { font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono); text-align: center; }
     code {
-      background: var(--bg-raised);
-      padding: 1px var(--space-1);
-      border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: var(--text-xs);
-      color: var(--palette-primary-text);
+      background: var(--bg-raised); padding: 1px 6px;
+      border-radius: var(--radius-sm); font-family: var(--font-mono);
+      font-size: var(--text-xs); color: var(--brand-text);
     }
-
-    .note {
-      font-size: var(--text-xs);
-      color: var(--text-tertiary);
-      margin-top: var(--space-2);
-    }
+    .note { font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-2); }
 
     /* ================================================================
-       1. COLOR PALETTE
-       ================================================================ */
-    .color-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: var(--space-3);
-    }
-    .swatch { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
-    .swatch-color {
-      width: 64px;
-      height: 40px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-default);
-    }
-    .swatch-name { font-size: var(--text-2xs); color: var(--text-secondary); }
-    .swatch-hex { font-size: 9px; color: var(--text-tertiary); font-family: var(--font-mono); }
-
-    .bg-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: var(--space-3);
-    }
-    .bg-swatch {
-      height: 56px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-strong);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-    }
-    .bg-swatch span { font-size: 9px; font-family: var(--font-mono); }
-    .bg-swatch .name { color: var(--text-secondary); }
-
-    /* ================================================================
-       2. TYPOGRAPHY
-       ================================================================ */
-    .type-scale { display: flex; flex-direction: column; gap: var(--space-3); }
-    .type-row {
-      display: flex;
-      align-items: baseline;
-      gap: var(--space-4);
-      padding: var(--space-2) 0;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .type-label {
-      width: 100px;
-      font-family: var(--font-mono);
-      font-size: var(--text-2xs);
-      color: var(--text-tertiary);
-      flex-shrink: 0;
-    }
-
-    /* ================================================================
-       3. BUTTONS
+       BUTTONS — 3 varianty: primary (cervena), secondary (ghost), destructive
        ================================================================ */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-1);
-      font-family: inherit;
-      font-weight: var(--font-medium);
-      border-radius: var(--radius-md);
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: var(--transition-fast);
-      white-space: nowrap;
-      user-select: none;
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-1); font-family: inherit; font-weight: var(--font-medium);
+      border-radius: var(--radius-md); border: 1px solid transparent;
+      cursor: pointer; transition: all var(--t-fast);
+      white-space: nowrap; user-select: none;
+      padding: var(--space-1) var(--space-3); font-size: var(--text-sm); height: 30px;
     }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .btn-sm { padding: var(--space-0-5) var(--space-2); font-size: var(--text-xs); height: 28px; }
-    .btn-md { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); height: 32px; }
+    .btn-primary {
+      background: transparent; color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--hover); border-color: var(--border-strong);
+    }
 
-    .btn-primary { background: var(--color-primary); color: var(--text-on-primary); border-color: var(--color-primary); }
-    .btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+    .btn-secondary {
+      background: transparent; color: var(--text-secondary);
+      border-color: var(--border-default);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--hover); color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
 
-    .btn-secondary { background: transparent; color: var(--text-secondary); border-color: var(--border-default); }
-    .btn-secondary:hover:not(:disabled) { background: var(--state-hover); color: var(--text-primary); border-color: var(--border-strong); }
+    .btn-destructive {
+      background: transparent; color: var(--status-error);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-destructive:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.1); border-color: var(--status-error);
+    }
 
-    .btn-danger { background: var(--color-danger); color: var(--text-on-primary); border-color: var(--color-danger); }
-    .btn-danger:hover:not(:disabled) { background: var(--color-danger-hover); }
-
-    .btn-ghost { background: transparent; color: var(--text-secondary); border-color: transparent; }
-    .btn-ghost:hover:not(:disabled) { background: var(--state-hover); color: var(--text-body); }
-
-    /* ── ICON BUTTONS ── */
+    /* ── ICON BUTTONS — default sedive, hover bile. Barva POUZE pro dangerous akce ── */
     .icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      border: 1px solid transparent;
-      background: transparent;
-      cursor: pointer;
-      border-radius: var(--radius-md);
-      transition: var(--transition-fast);
-      color: var(--text-secondary);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; padding: 0;
+      border: 1px solid transparent; background: transparent;
+      cursor: pointer; border-radius: var(--radius-md);
+      transition: all var(--t-fast); color: var(--text-muted);
     }
-    .icon-btn:hover:not(:disabled) { background: var(--state-hover); border-color: var(--border-default); color: var(--text-primary); }
-    .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .icon-btn svg { width: 20px; height: 20px; stroke-width: 2; }
+    .icon-btn:hover:not(:disabled) {
+      background: var(--hover); color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+    .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .icon-btn svg { width: 18px; height: 18px; stroke-width: 1.8; }
 
     .icon-btn-sm { width: 24px; height: 24px; }
-    .icon-btn-sm svg { width: 16px; height: 16px; }
-    .icon-btn-lg { width: 48px; height: 48px; }
-    .icon-btn-lg svg { width: 24px; height: 24px; }
+    .icon-btn-sm svg { width: 14px; height: 14px; }
 
-    .icon-btn-primary:hover:not(:disabled) { color: var(--color-primary); background: rgba(153, 27, 27, 0.15); border-color: var(--color-primary); }
-    .icon-btn-danger:hover:not(:disabled) { color: var(--color-danger); background: rgba(244, 63, 94, 0.15); border-color: var(--color-danger); }
-    .icon-btn-success:hover:not(:disabled) { color: var(--color-success); background: rgba(5, 150, 105, 0.15); border-color: var(--color-success); }
-    .icon-btn-warning:hover:not(:disabled) { color: var(--color-warning); background: rgba(217, 119, 6, 0.15); border-color: var(--color-warning); }
+    /* Akcentovane icon buttony — POUZE pro specialni akce */
+    .icon-btn-brand:hover:not(:disabled) {
+      color: var(--brand-text); background: var(--brand-subtle);
+    }
+    .icon-btn-danger:hover:not(:disabled) {
+      color: var(--status-error); background: rgba(239, 68, 68, 0.1);
+    }
 
-    /* ── ACTION BUTTONS (grid cards) ── */
-    .action-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-2);
+    /* ── ACTION CARDS (nahrazuji barvou action-btn) ── */
+    .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
+    .action-card {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: var(--space-1); padding: var(--space-4); min-height: 80px;
+      background: var(--bg-raised); border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg); color: var(--text-muted);
+      cursor: pointer; transition: all var(--t-normal);
     }
-    .action-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-1);
-      padding: var(--space-3);
-      min-height: 80px;
-      background: var(--bg-surface);
-      border: 2px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: var(--transition-fast);
+    .action-card:hover {
+      border-color: var(--brand); color: var(--text-primary);
+      background: var(--bg-elevated);
+      box-shadow: 0 0 20px rgba(153, 27, 27, 0.08);
+      transform: translateY(-1px);
     }
-    .action-btn:hover {
-      border-color: var(--color-primary);
-      color: var(--text-primary);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-    .action-btn svg { width: 24px; height: 24px; stroke-width: 1.5; }
-    .action-btn .btn-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
+    .action-card svg { width: 24px; height: 24px; stroke-width: 1.5; }
+    .action-card span { font-size: var(--text-xs); font-weight: var(--font-medium); }
 
     /* ================================================================
-       4. BADGES
+       BADGES — monochromaticke s teckou (dot) pro status
        ================================================================ */
     .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: var(--space-0-5) var(--space-2);
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-      border-radius: var(--radius-full);
-      line-height: 1;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; font-size: var(--text-xs);
+      font-weight: var(--font-medium); border-radius: var(--radius-full);
+      background: var(--bg-raised); color: var(--text-secondary);
+      border: 1px solid var(--border-default); line-height: 1.3;
     }
-    .badge-success { background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(5, 150, 105, 0.3); }
-    .badge-danger { background: rgba(244, 63, 94, 0.2); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3); }
-    .badge-warning { background: rgba(217, 119, 6, 0.2); color: #fcd34d; border: 1px solid rgba(217, 119, 6, 0.3); }
-    .badge-info { background: rgba(37, 99, 235, 0.2); color: #93c5fd; border: 1px solid rgba(37, 99, 235, 0.3); }
-    .badge-neutral { background: rgba(115, 115, 115, 0.2); color: var(--text-secondary); border: 1px solid rgba(115, 115, 115, 0.3); }
-
-    /* Status badges (quotes) */
-    .status-draft { background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
-    .status-sent { background: rgba(59,130,246,0.2); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
-    .status-approved { background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
-    .status-rejected { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-full); flex-shrink: 0;
+    }
+    .badge-dot-ok { background: var(--status-ok); }
+    .badge-dot-error { background: var(--status-error); }
+    .badge-dot-warn { background: var(--status-warn); }
+    .badge-dot-neutral { background: var(--text-disabled); }
+    .badge-dot-brand { background: var(--brand); }
 
     /* ================================================================
-       5. FORM INPUTS
+       FORMS — flat, minimalni
        ================================================================ */
-    .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
+    .form-group { display: flex; flex-direction: column; gap: 3px; }
     .form-label {
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: var(--text-xs); font-weight: var(--font-medium);
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
-
     input[type="text"], input[type="number"], input[type="email"],
     select, textarea {
-      background: var(--bg-input);
-      border: var(--border-width) solid var(--border-default);
-      border-radius: var(--radius-md);
-      color: var(--text-body);
-      font-family: inherit;
-      font-size: var(--density-input-font-size);
-      padding: var(--space-1) var(--space-2);
-      height: var(--density-input-height);
-      transition: var(--transition-fast);
-      outline: none;
-      width: 100%;
+      background: var(--bg-input); border: 1px solid var(--border-default);
+      border-radius: var(--radius-md); color: var(--text-body);
+      font-family: inherit; font-size: var(--text-sm);
+      padding: var(--space-1) var(--space-2); height: var(--input-h);
+      transition: all var(--t-fast); outline: none; width: 100%;
     }
     input:focus, select:focus, textarea:focus {
-      border-color: var(--state-focus-border);
-      background: var(--state-focus-bg);
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+      border-color: var(--focus-ring); background: var(--focus-bg);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
     }
     input::placeholder { color: var(--text-disabled); }
     textarea { height: auto; min-height: 60px; resize: vertical; }
-
-    /* ── FLAT SELECT (no native 3D) ── */
     select {
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
+      -webkit-appearance: none; -moz-appearance: none; appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      padding-right: 28px;
-      cursor: pointer;
+      background-repeat: no-repeat; background-position: right 8px center;
+      padding-right: 28px; cursor: pointer;
     }
     select:focus {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     }
-
-    /* ── NO SPINNERS on number inputs ── */
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
+    input[type="number"] { -moz-appearance: textfield; }
     input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
     /* ================================================================
-       6. DATA TABLE
+       DATA TABLE — minimalni, ciste cary
        ================================================================ */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    .data-table { width: 100%; border-collapse: collapse; }
     .data-table thead { background: var(--bg-subtle); }
     .data-table th {
-      padding: var(--density-cell-padding-y) var(--density-cell-padding-x);
-      font-size: var(--text-xs);
-      font-weight: var(--font-semibold);
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 2px solid var(--border-default);
-      text-align: left;
-      white-space: nowrap;
+      padding: var(--cell-py) var(--cell-px);
+      font-size: var(--text-xs); font-weight: var(--font-semibold);
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.05em; text-align: left; white-space: nowrap;
+      border-bottom: 1px solid var(--border-default);
     }
     .data-table td {
-      padding: var(--density-cell-padding-y) var(--density-cell-padding-x);
-      font-size: var(--density-cell-font-size);
+      padding: var(--cell-py) var(--cell-px);
+      font-size: var(--text-xs); color: var(--text-body);
       border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-body);
     }
-    .data-table tr:hover td { background: var(--state-hover); }
-    .data-table tr.selected td { background: var(--state-selected); }
-    .data-table .col-num {
-      font-family: var(--font-mono);
-      text-align: right;
-    }
-    .data-table .col-currency {
-      font-family: var(--font-mono);
-      text-align: right;
-      white-space: nowrap;
-    }
+    .data-table tr:hover td { background: var(--hover); }
+    .data-table tr.selected td { background: var(--selected); }
+    .col-num { font-family: var(--font-mono); text-align: right; }
+    .col-currency { font-family: var(--font-mono); text-align: right; white-space: nowrap; }
 
     /* ================================================================
-       7. INFO RIBBON
+       INFO RIBBON
        ================================================================ */
     .info-ribbon {
-      background: var(--bg-surface);
-      border: 2px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4);
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg); padding: var(--space-4);
     }
     .info-ribbon.edit-mode {
-      border-color: var(--color-primary);
-      box-shadow: var(--shadow-glow);
+      background: var(--bg-raised);
+      border-color: var(--border-strong);
     }
     .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: var(--space-3);
     }
     .info-item { display: flex; flex-direction: column; gap: 2px; }
-    .info-item .info-label {
-      font-size: var(--text-2xs);
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    .info-label {
+      font-size: var(--text-xs); color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
     }
-    .info-item .info-value {
-      font-size: var(--text-sm);
-      color: var(--text-primary);
-      font-weight: var(--font-medium);
-    }
-    .info-item .info-value.mono {
-      font-family: var(--font-mono);
-    }
+    .info-value { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-medium); }
+    .info-value.mono { font-family: var(--font-mono); }
 
     .icon-toolbar {
-      display: flex;
-      gap: var(--space-1);
-      justify-content: flex-end;
-      margin-top: -18px;
-      margin-right: var(--space-2);
-      position: relative;
-      z-index: 2;
+      display: flex; gap: var(--space-1);
+      justify-content: flex-end; margin-top: -16px;
+      margin-right: var(--space-2); position: relative; z-index: 2;
     }
 
     /* ================================================================
-       8. MODAL / DIALOG
+       MODAL / DIALOG
        ================================================================ */
     .modal-demo {
-      background: var(--bg-raised);
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      max-width: 500px;
-      overflow: hidden;
+      background: var(--bg-raised); border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+      max-width: 460px; overflow: hidden;
     }
     .modal-header {
       padding: var(--space-3) var(--space-4);
       border-bottom: 1px solid var(--border-default);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .modal-header .modal-title-row {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-    }
-    .modal-header .modal-icon {
-      color: var(--color-danger);
-    }
-    .modal-header .modal-icon svg { width: 20px; height: 20px; }
-    .modal-title {
-      font-size: var(--text-md);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-    }
-    .modal-body {
-      padding: var(--space-4);
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
+    .modal-title-row { display: flex; align-items: center; gap: var(--space-2); }
+    .modal-icon { color: var(--text-muted); }
+    .modal-icon svg { width: 18px; height: 18px; }
+    .modal-title { font-size: var(--text-md); font-weight: var(--font-semibold); color: var(--text-primary); }
+    .modal-body { padding: var(--space-4); font-size: var(--text-sm); color: var(--text-secondary); }
     .modal-footer {
       padding: var(--space-3) var(--space-4);
       border-top: 1px solid var(--border-default);
-      display: flex;
-      justify-content: flex-end;
-      gap: var(--space-2);
+      display: flex; justify-content: flex-end; gap: var(--space-2);
     }
-
-    /* Dialog (horizontal icon layout) */
-    .dialog-content {
-      display: flex;
-      gap: var(--space-4);
-      align-items: flex-start;
-    }
+    .dialog-content { display: flex; gap: var(--space-3); align-items: flex-start; }
     .dialog-icon {
-      flex-shrink: 0;
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-lg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-shrink: 0; width: 36px; height: 36px;
+      border-radius: var(--radius-md); display: flex;
+      align-items: center; justify-content: center;
+      background: rgba(239, 68, 68, 0.1); color: var(--status-error);
     }
-    .dialog-icon svg { width: 24px; height: 24px; }
-    .dialog-icon-danger { background: rgba(244, 63, 94, 0.15); color: var(--color-danger); }
-    .dialog-icon-warning { background: rgba(217, 119, 6, 0.15); color: var(--color-warning); }
-    .dialog-icon-info { background: rgba(37, 99, 235, 0.15); color: var(--color-info); }
+    .dialog-icon svg { width: 20px; height: 20px; }
     .dialog-text { flex: 1; }
     .dialog-text h3 { font-size: var(--text-md); color: var(--text-primary); margin-bottom: var(--space-1); }
-    .dialog-text p { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-normal); }
+    .dialog-text p { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; }
 
     /* ================================================================
-       9. TOAST NOTIFICATIONS
+       TOAST — monochromaticke s barevnou levou carou
        ================================================================ */
-    .toast-demo {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
-      max-width: 420px;
-    }
+    .toast-stack { display: flex; flex-direction: column; gap: var(--space-3); max-width: 400px; }
     .toast {
-      background: #1f2937;
-      color: #f9fafb;
-      border-radius: var(--radius-xl);
-      padding: var(--space-3) var(--space-4);
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      position: relative;
+      background: var(--bg-raised); color: var(--text-body);
+      border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+      box-shadow: var(--shadow-md); display: flex; align-items: center;
+      gap: var(--space-3); border-left: 3px solid var(--border-strong);
     }
-    .toast-success { border-left: 4px solid #10b981; }
-    .toast-error { border-left: 4px solid #ef4444; }
-    .toast-warning { border-left: 4px solid #f59e0b; }
-    .toast-info { border-left: 4px solid #3b82f6; }
+    .toast-ok { border-left-color: var(--status-ok); }
+    .toast-error { border-left-color: var(--status-error); }
+    .toast-warn { border-left-color: var(--status-warn); }
     .toast-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; background: var(--bg-elevated); color: var(--text-secondary);
     }
-    .toast-icon svg { width: 18px; height: 18px; }
-    .toast-success .toast-icon { background: #065f46; color: #6ee7b7; }
-    .toast-error .toast-icon { background: #7f1d1d; color: #fca5a5; }
-    .toast-warning .toast-icon { background: #78350f; color: #fcd34d; }
-    .toast-info .toast-icon { background: #1e3a5f; color: #93c5fd; }
+    .toast-icon svg { width: 16px; height: 16px; }
     .toast-body { flex: 1; }
-    .toast-title { font-weight: var(--font-semibold); font-size: var(--text-sm); }
-    .toast-message { font-size: var(--text-xs); color: #9ca3af; margin-top: 2px; }
+    .toast-title { font-weight: var(--font-semibold); font-size: var(--text-sm); color: var(--text-primary); }
+    .toast-message { font-size: var(--text-xs); color: var(--text-muted); margin-top: 1px; }
 
     /* ================================================================
-       10. FLOATING WINDOW
+       FLOATING WINDOW
        ================================================================ */
     .window-demo {
-      position: relative;
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-      background: var(--bg-base);
-      width: 100%;
-      max-width: 500px;
+      position: relative; border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+      overflow: hidden; background: var(--bg-base); max-width: 380px; width: 100%;
     }
-    .window-demo.active { border-color: var(--border-strong); box-shadow: var(--shadow-xl); }
+    .window-demo.active { border-color: var(--border-strong); box-shadow: var(--shadow-lg); }
     .window-titlebar {
-      height: 36px;
-      background: var(--bg-surface);
+      height: 34px; background: var(--bg-surface);
       border-bottom: 1px solid var(--border-default);
-      display: flex;
-      align-items: center;
-      padding: 0 var(--space-2);
-      gap: var(--space-2);
+      display: flex; align-items: center; padding: 0 var(--space-2); gap: var(--space-2);
       user-select: none;
     }
-    .window-link-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: var(--radius-full);
-      flex-shrink: 0;
-    }
+    .window-dot { width: 7px; height: 7px; border-radius: var(--radius-full); flex-shrink: 0; }
     .window-title {
-      flex: 1;
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      color: var(--text-primary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      flex: 1; font-size: var(--text-xs); font-weight: var(--font-medium);
+      color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .window-controls { display: flex; gap: 2px; }
-    .window-control {
-      width: 20px;
-      height: 20px;
-      border-radius: var(--radius-sm);
-      background: transparent;
-      border: none;
-      color: var(--text-tertiary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
+    .window-controls { display: flex; gap: 1px; }
+    .window-ctrl {
+      width: 20px; height: 20px; border-radius: var(--radius-sm);
+      background: transparent; border: none; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
-    .window-control:hover { background: var(--state-hover); color: var(--text-primary); }
-    .window-control.close:hover { background: var(--color-danger); color: white; }
-    .window-control svg { width: 14px; height: 14px; }
-    .window-content {
-      padding: var(--density-window-content-padding);
-      min-height: 120px;
-    }
+    .window-ctrl:hover { background: var(--hover); color: var(--text-primary); }
+    .window-ctrl.close:hover { background: var(--status-error); color: white; }
+    .window-ctrl svg { width: 12px; height: 12px; }
+    .window-content { padding: var(--space-3); min-height: 80px; }
 
     /* ================================================================
-       11. SPLIT PANE LAYOUT
+       SPLIT PANE
        ================================================================ */
     .split-demo {
-      display: flex;
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      height: 300px;
+      display: flex; border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg); overflow: hidden; height: 280px;
     }
     .split-list {
-      width: 45%;
-      border-right: 1px solid var(--border-default);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      width: 45%; border-right: 1px solid var(--border-default);
+      display: flex; flex-direction: column; overflow: hidden;
     }
     .split-list-header {
-      padding: var(--space-2) var(--space-3);
-      background: var(--bg-surface);
+      padding: var(--space-2) var(--space-3); background: var(--bg-surface);
       border-bottom: 1px solid var(--border-default);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
     }
     .split-list-header .title {
-      font-size: var(--text-sm);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
+      font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-primary);
     }
     .split-list-body { flex: 1; overflow-y: auto; }
     .split-list-item {
-      padding: var(--space-2) var(--space-3);
-      font-size: var(--text-xs);
-      color: var(--text-body);
-      border-bottom: 1px solid var(--border-subtle);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3); font-size: var(--text-xs);
+      color: var(--text-body); border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer; display: flex; align-items: center; gap: var(--space-2);
     }
-    .split-list-item:hover { background: var(--state-hover); }
-    .split-list-item.selected { background: var(--state-selected); }
-    .split-list-item .item-code {
-      font-family: var(--font-mono);
-      color: var(--text-primary);
-      font-weight: var(--font-medium);
+    .split-list-item:hover { background: var(--hover); }
+    .split-list-item.selected { background: var(--selected); }
+    .item-code { font-family: var(--font-mono); color: var(--text-primary); font-weight: var(--font-medium); }
+    .item-name { color: var(--text-secondary); flex: 1; }
+    .split-detail { flex: 1; overflow-y: auto; padding: var(--space-3); }
+    .resize-handle {
+      width: 3px; background: var(--border-default);
+      cursor: col-resize; flex-shrink: 0;
     }
-    .split-list-item .item-name { color: var(--text-secondary); flex: 1; }
-
-    .split-detail {
-      flex: 1;
-      overflow-y: auto;
-      padding: var(--density-panel-padding);
-    }
-    .resize-handle-demo {
-      width: 4px;
-      background: var(--border-default);
-      cursor: col-resize;
-      flex-shrink: 0;
-    }
-    .resize-handle-demo:hover { background: var(--color-primary); }
+    .resize-handle:hover { background: var(--brand); }
 
     /* ================================================================
-       12. PRICE BAR
+       PRICE BAR — barevne segmenty (dataviz = barvy povoleny)
        ================================================================ */
-    .price-bar {
-      display: flex;
-      height: 24px;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-    }
-    .segment-mat { background: #16a34a; }
-    .segment-mach { background: #2563eb; }
-    .segment-setup { background: #ca8a04; }
-    .segment-coop { background: #9333ea; }
+    .price-bar { display: flex; height: 22px; border-radius: var(--radius-sm); overflow: hidden; gap: 1px; }
+    .seg-material { background: #3b82f6; }
+    .seg-machine { background: var(--brand-hover); }
+    .seg-setup { background: #f59e0b; }
+    .seg-coop { background: #6b7280; }
 
-    .price-legend {
-      display: flex;
-      gap: var(--space-4);
-      margin-top: var(--space-2);
-    }
+    .price-legend { display: flex; gap: var(--space-4); margin-top: var(--space-2); }
     .price-legend-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-1);
-      font-size: var(--text-xs);
-      color: var(--text-secondary);
+      display: flex; align-items: center; gap: var(--space-1);
+      font-size: var(--text-xs); color: var(--text-secondary);
     }
-    .price-legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: var(--radius-sm);
-    }
+    .price-legend-dot { width: 10px; height: 10px; border-radius: var(--radius-sm); }
 
     /* ================================================================
-       13. WINDOW LINK COLORS
-       ================================================================ */
-    .link-colors-grid {
-      display: flex;
-      gap: var(--space-4);
-      align-items: center;
-    }
-    .link-color-item { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
-    .link-dot-lg {
-      width: 20px;
-      height: 20px;
-      border-radius: var(--radius-full);
-    }
-
-    /* ================================================================
-       SPACING & RADIUS DEMO
-       ================================================================ */
-    .spacing-demo {
-      display: flex;
-      align-items: flex-end;
-      gap: var(--space-3);
-      flex-wrap: wrap;
-    }
-    .spacing-block {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-1);
-    }
-    .spacing-visual {
-      background: var(--accent-muted);
-      border: 1px solid var(--color-primary);
-      border-radius: var(--radius-sm);
-    }
-    .radius-demo {
-      display: flex;
-      gap: var(--space-4);
-      align-items: center;
-    }
-    .radius-block {
-      width: 48px;
-      height: 48px;
-      background: var(--accent-muted);
-      border: 1px solid var(--color-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* ================================================================
-       RECOMMENDATION / PROBLEM BOXES
+       CALLOUTS — monochromaticke s levou carou
        ================================================================ */
     .callout {
-      border-radius: var(--radius-md);
-      padding: var(--space-3);
-      margin-top: var(--space-3);
-      font-size: var(--text-sm);
+      border-radius: var(--radius-md); padding: var(--space-3); margin-top: var(--space-3);
+      font-size: var(--text-sm); background: var(--bg-raised);
+      border: 1px solid var(--border-default); border-left: 3px solid var(--border-strong);
+      color: var(--text-secondary);
     }
-    .callout-success { background: rgba(5, 150, 105, 0.1); border: 1px solid rgba(5, 150, 105, 0.3); color: #6ee7b7; }
-    .callout-danger { background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); color: #fda4af; }
-    .callout-info { background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); color: #93c5fd; }
-    .callout h4 { margin-bottom: var(--space-1); font-size: var(--text-sm); }
+    .callout-ok { border-left-color: var(--status-ok); }
+    .callout-error { border-left-color: var(--status-error); }
+    .callout-brand { border-left-color: var(--brand); }
+    .callout h4 { margin-bottom: var(--space-1); font-size: var(--text-sm); color: var(--text-primary); }
     .callout ul { padding-left: var(--space-4); }
     .callout li { margin: var(--space-1) 0; }
 
     /* ================================================================
-       UTILITY
+       PALETTE THEME SWITCHER (pro porovnani)
        ================================================================ */
+    .theme-switcher {
+      display: flex; gap: var(--space-2); margin-bottom: var(--space-4);
+    }
+    .theme-btn {
+      padding: var(--space-1) var(--space-3); font-size: var(--text-xs);
+      font-weight: var(--font-medium); font-family: inherit;
+      background: var(--bg-raised); color: var(--text-muted);
+      border: 1px solid var(--border-default); border-radius: var(--radius-md);
+      cursor: pointer; transition: all var(--t-fast);
+    }
+    .theme-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+    .theme-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+    /* ── COLOR SHOWCASE ── */
+    .color-row { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+    .color-chip {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .color-block {
+      width: 56px; height: 32px; border-radius: var(--radius-md);
+      border: 1px solid var(--border-strong);
+    }
+    .color-name { font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono); }
+
+    /* BG showcase */
+    .bg-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-2); }
+    .bg-chip {
+      height: 48px; border-radius: var(--radius-md); border: 1px solid var(--border-strong);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    }
+    .bg-chip span { font-size: var(--text-xs); font-family: var(--font-mono); }
+
+    /* ── SPACING DEMO ── */
+    .spacing-demo { display: flex; align-items: flex-end; gap: var(--space-3); flex-wrap: wrap; }
+    .sp-block { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+    .sp-visual { background: var(--brand-muted); border: 1px solid var(--brand); border-radius: 2px; }
+    .radius-demo { display: flex; gap: var(--space-4); align-items: center; }
+    .r-block {
+      width: 44px; height: 44px; background: var(--brand-muted);
+      border: 1px solid var(--brand); display: flex;
+      align-items: center; justify-content: center;
+    }
+
+    /* ── UTILITY ── */
     .text-mono { font-family: var(--font-mono); }
-    .flex-between { display: flex; justify-content: space-between; align-items: center; }
-    .gap-2 { gap: var(--space-2); }
-    .gap-3 { gap: var(--space-3); }
     .mt-2 { margin-top: var(--space-2); }
     .mt-3 { margin-top: var(--space-3); }
     .mb-3 { margin-bottom: var(--space-3); }
-
-
   </style>
 </head>
 <body>
@@ -950,18 +605,16 @@
      ================================================================ -->
 <div class="template-header">
   <div class="logo"><span class="g">GESTI</span><span class="m">MA</span></div>
-  <div style="display: flex; align-items: center; gap: var(--space-3);">
-    <span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-tertiary); background: var(--bg-raised); padding: 2px 8px; border-radius: var(--radius-md);">Space Grotesk + Space Mono</span>
-    <span class="version">Design System v3.0</span>
+  <div class="header-right">
+    <span class="header-tag">Space Grotesk + Space Mono</span>
+    <span style="font-size: var(--text-xs); color: var(--text-muted);">Design System v4.0</span>
   </div>
 </div>
 
-<!-- ================================================================
-     NAV
-     ================================================================ -->
+<!-- NAV -->
 <div class="template-nav">
-  <a href="#colors">Barvy</a>
-  <a href="#backgrounds">Pozadi</a>
+  <a href="#philosophy">Filosofie</a>
+  <a href="#palette">Paleta</a>
   <a href="#typography">Typografie</a>
   <a href="#spacing">Spacing</a>
   <a href="#buttons">Tlacitka</a>
@@ -969,344 +622,229 @@
   <a href="#forms">Formulare</a>
   <a href="#table">Tabulka</a>
   <a href="#ribbon">Info Ribbon</a>
-  <a href="#modal">Modal/Dialog</a>
+  <a href="#modal">Modal</a>
   <a href="#toast">Toasty</a>
-  <a href="#window">Floating Window</a>
+  <a href="#window">Window</a>
   <a href="#split">Split Pane</a>
   <a href="#pricebar">Price Bar</a>
+  <a href="#alt">Alt palety</a>
   <a href="#rules">Pravidla</a>
 </div>
 
 <div class="template-body">
 
 <!-- ================================================================
-     1. COLOR PALETTE
+     01. DESIGN PHILOSOPHY
      ================================================================ -->
-<h2 class="section-title" id="colors"><span class="num">01</span> Barevna paleta</h2>
+<h2 class="section-title" id="philosophy"><span class="num">01</span> Filosofie designu</h2>
 
 <div class="card">
-  <div class="subsection">Semanticke barvy</div>
-  <div class="color-grid">
-    <div class="swatch">
-      <div class="swatch-color" style="background: #991b1b;"></div>
-      <span class="swatch-name">Primary</span>
-      <span class="swatch-hex">#991b1b</span>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4);">
+    <div>
+      <div style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); margin-bottom: var(--space-2);">3 barvy</div>
+      <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
+        <div style="width: 40px; height: 40px; background: var(--bg-base); border: 1px solid var(--border-strong); border-radius: var(--radius-md);"></div>
+        <div style="width: 40px; height: 40px; background: var(--brand); border-radius: var(--radius-md);"></div>
+        <div style="width: 40px; height: 40px; background: var(--text-secondary); border-radius: var(--radius-md);"></div>
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--text-muted);">Cerna. Cervena. Sediva. Vse ostatni je informacni (status).</p>
     </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #b91c1c;"></div>
-      <span class="swatch-name">Primary Hover</span>
-      <span class="swatch-hex">#b91c1c</span>
+    <div>
+      <div style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); margin-bottom: var(--space-2);">Informace &gt; dekorace</div>
+      <p style="font-size: var(--text-xs); color: var(--text-muted); line-height: 1.6;">Barva neni dekorace. Kazda barva musi nest informaci. Zelena = OK, cervena = smazat/chyba, zluta = pozor. Jinak seda.</p>
     </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #fca5a5;"></div>
-      <span class="swatch-name">Primary Text</span>
-      <span class="swatch-hex">#fca5a5</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #f43f5e;"></div>
-      <span class="swatch-name">Danger</span>
-      <span class="swatch-hex">#f43f5e</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #059669;"></div>
-      <span class="swatch-name">Success</span>
-      <span class="swatch-hex">#059669</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #d97706;"></div>
-      <span class="swatch-name">Warning</span>
-      <span class="swatch-hex">#d97706</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #2563eb;"></div>
-      <span class="swatch-name">Info / Focus</span>
-      <span class="swatch-hex">#2563eb</span>
-    </div>
-  </div>
-
-  <div class="subsection">Text barvy</div>
-  <div class="color-grid">
-    <div class="swatch">
-      <div class="swatch-color" style="background: #ffffff; border-color: #404040;"></div>
-      <span class="swatch-name">Primary</span>
-      <span class="swatch-hex">#ffffff</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #f5f5f5; border-color: #404040;"></div>
-      <span class="swatch-name">Body</span>
-      <span class="swatch-hex">#f5f5f5</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #a3a3a3;"></div>
-      <span class="swatch-name">Secondary</span>
-      <span class="swatch-hex">#a3a3a3</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #737373;"></div>
-      <span class="swatch-name">Tertiary</span>
-      <span class="swatch-hex">#737373</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #525252;"></div>
-      <span class="swatch-name">Disabled</span>
-      <span class="swatch-hex">#525252</span>
-    </div>
-  </div>
-
-  <div class="subsection">Border barvy</div>
-  <div class="color-grid">
-    <div class="swatch">
-      <div class="swatch-color" style="background: #1a1a1a;"></div>
-      <span class="swatch-name">Subtle</span>
-      <span class="swatch-hex">#1a1a1a</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #2a2a2a;"></div>
-      <span class="swatch-name">Default</span>
-      <span class="swatch-hex">#2a2a2a</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #404040;"></div>
-      <span class="swatch-name">Strong</span>
-      <span class="swatch-hex">#404040</span>
-    </div>
-    <div class="swatch">
-      <div class="swatch-color" style="background: #2563eb;"></div>
-      <span class="swatch-name">Focus</span>
-      <span class="swatch-hex">#2563eb</span>
+    <div>
+      <div style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); margin-bottom: var(--space-2);">Flat + blur</div>
+      <p style="font-size: var(--text-xs); color: var(--text-muted); line-height: 1.6;">Zadny 3D, zadne gradienty. Hloubka pres backdrop-filter blur, jemne shadows a bordery. Moderny, cisty.</p>
     </div>
   </div>
 </div>
 
 <!-- ================================================================
-     2. BACKGROUNDS
+     02. COLOR PALETTE
      ================================================================ -->
-<h2 class="section-title" id="backgrounds"><span class="num">02</span> Pozadi (Backgrounds)</h2>
+<h2 class="section-title" id="palette"><span class="num">02</span> Barevna paleta</h2>
 
 <div class="card">
-  <div class="bg-grid">
-    <div class="bg-swatch" style="background: #000000;">
-      <span class="name" style="color: #525252;">bg-deepest</span>
-      <span style="color: #404040;">#000000</span>
+  <div class="subsection">Brand (jedina chromaticka barva v UI)</div>
+  <div class="color-row">
+    <div class="color-chip">
+      <div class="color-block" style="background: #7f1d1d;"></div>
+      <span class="color-name">active</span>
     </div>
-    <div class="bg-swatch" style="background: #0a0a0a;">
-      <span class="name" style="color: #737373;">bg-base</span>
-      <span style="color: #525252;">#0a0a0a</span>
+    <div class="color-chip">
+      <div class="color-block" style="background: #991b1b;"></div>
+      <span class="color-name">brand</span>
     </div>
-    <div class="bg-swatch" style="background: #0f0f0f;">
-      <span class="name" style="color: #737373;">bg-input</span>
-      <span style="color: #525252;">#0f0f0f</span>
+    <div class="color-chip">
+      <div class="color-block" style="background: #b91c1c;"></div>
+      <span class="color-name">hover</span>
     </div>
-    <div class="bg-swatch" style="background: #111111;">
-      <span class="name" style="color: #737373;">bg-subtle</span>
-      <span style="color: #525252;">#111111</span>
+    <div class="color-chip">
+      <div class="color-block" style="background: #fca5a5;"></div>
+      <span class="color-name">text</span>
     </div>
-    <div class="bg-swatch" style="background: #141414;">
-      <span class="name" style="color: #a3a3a3;">bg-surface</span>
-      <span style="color: #737373;">#141414</span>
+    <div class="color-chip">
+      <div class="color-block" style="background: rgba(153,27,27,0.2); border-color: var(--brand);"></div>
+      <span class="color-name">muted</span>
     </div>
-    <div class="bg-swatch" style="background: #1a1a1a;">
-      <span class="name" style="color: #a3a3a3;">bg-raised</span>
-      <span style="color: #737373;">#1a1a1a</span>
+    <div class="color-chip">
+      <div class="color-block" style="background: rgba(153,27,27,0.1); border-color: var(--brand);"></div>
+      <span class="color-name">subtle</span>
     </div>
   </div>
-  <p class="note">Hierarchie: deepest &lt; base &lt; input &lt; subtle &lt; surface &lt; raised</p>
+
+  <div class="subsection">Backgrounds (neutraly)</div>
+  <div class="bg-row">
+    <div class="bg-chip" style="background: #0a0a0a;">
+      <span style="color: var(--text-disabled);">base</span>
+      <span style="color: var(--text-disabled);">#0a0a0a</span>
+    </div>
+    <div class="bg-chip" style="background: #0f0f0f;">
+      <span style="color: var(--text-muted);">input</span>
+      <span style="color: var(--text-disabled);">#0f0f0f</span>
+    </div>
+    <div class="bg-chip" style="background: #111111;">
+      <span style="color: var(--text-muted);">subtle</span>
+      <span style="color: var(--text-disabled);">#111111</span>
+    </div>
+    <div class="bg-chip" style="background: #141414;">
+      <span style="color: var(--text-secondary);">surface</span>
+      <span style="color: var(--text-muted);">#141414</span>
+    </div>
+    <div class="bg-chip" style="background: #1a1a1a;">
+      <span style="color: var(--text-secondary);">raised</span>
+      <span style="color: var(--text-muted);">#1a1a1a</span>
+    </div>
+    <div class="bg-chip" style="background: #1f1f1f;">
+      <span style="color: var(--text-secondary);">elevated</span>
+      <span style="color: var(--text-muted);">#1f1f1f</span>
+    </div>
+  </div>
+
+  <div class="subsection">Text + Borders</div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+    <div class="color-row" style="margin: 0;">
+      <div class="color-chip"><div class="color-block" style="background: #fff; border-color: #404040;"></div><span class="color-name">primary</span></div>
+      <div class="color-chip"><div class="color-block" style="background: #e5e5e5; border-color: #404040;"></div><span class="color-name">body</span></div>
+      <div class="color-chip"><div class="color-block" style="background: #a3a3a3;"></div><span class="color-name">secondary</span></div>
+      <div class="color-chip"><div class="color-block" style="background: #737373;"></div><span class="color-name">muted</span></div>
+      <div class="color-chip"><div class="color-block" style="background: #404040;"></div><span class="color-name">disabled</span></div>
+    </div>
+    <div class="color-row" style="margin: 0;">
+      <div class="color-chip"><div class="color-block" style="background: #1a1a1a;"></div><span class="color-name">border-subtle</span></div>
+      <div class="color-chip"><div class="color-block" style="background: #262626;"></div><span class="color-name">border-default</span></div>
+      <div class="color-chip"><div class="color-block" style="background: #3a3a3a;"></div><span class="color-name">border-strong</span></div>
+      <div class="color-chip"><div class="color-block" style="background: rgba(255,255,255,0.5); border-color: #555;"></div><span class="color-name">focus-ring</span></div>
+    </div>
+  </div>
+
+  <div class="subsection">Status (pouzivat POUZE pro statusy)</div>
+  <div class="color-row">
+    <div class="color-chip"><div class="color-block" style="background: #22c55e;"></div><span class="color-name">ok</span></div>
+    <div class="color-chip"><div class="color-block" style="background: #ef4444;"></div><span class="color-name">error</span></div>
+    <div class="color-chip"><div class="color-block" style="background: #eab308;"></div><span class="color-name">warn</span></div>
+  </div>
+  <p class="note">Status barvy se pouzivaji POUZE jako tecky v badges a levy border v toastech/calloutech. NIKDY jako pozadi tlacitka. Dataviz (grafy, price bar) = jedine misto kde jsou dalsi barvy povoleny.</p>
 </div>
 
 <!-- ================================================================
-     3. TYPOGRAPHY
+     03. TYPOGRAPHY
      ================================================================ -->
 <h2 class="section-title" id="typography"><span class="num">03</span> Typografie</h2>
 
 <div class="card">
-  <div class="subsection">Velikosti pisma</div>
-  <div class="type-scale">
-    <div class="type-row">
-      <span class="type-label">2xs / 9px</span>
-      <span style="font-size: 9px; color: var(--text-primary);">Micro text - cisla radku, labely</span>
+  <div class="subsection">Velikosti</div>
+  <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+    <div style="display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-1) 0; border-bottom: 1px solid var(--border-subtle);">
+      <span class="label" style="width: 80px;">xs / 11px</span>
+      <span style="font-size: 11px; color: var(--text-primary);">Table cells, badges, toolbar, labely (MINIMUM)</span>
     </div>
-    <div class="type-row">
-      <span class="type-label">xs / 11px</span>
-      <span style="font-size: 11px; color: var(--text-primary);">Table cells, badges, toolbar text</span>
+    <div style="display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-1) 0; border-bottom: 1px solid var(--border-subtle);">
+      <span class="label" style="width: 80px;">sm / 12px</span>
+      <span style="font-size: 12px; color: var(--text-primary);">Inputs, form labels, compact body</span>
     </div>
-    <div class="type-row">
-      <span class="type-label">sm / 12px</span>
-      <span style="font-size: 12px; color: var(--text-primary);">Input text, form labels, body compact</span>
+    <div style="display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-1) 0; border-bottom: 1px solid var(--border-subtle);">
+      <span class="label" style="width: 80px;">base / 13px</span>
+      <span style="font-size: 13px; color: var(--text-primary);">Default body text</span>
     </div>
-    <div class="type-row">
-      <span class="type-label">base / 13px</span>
-      <span style="font-size: 13px; color: var(--text-primary);">Default body text - zakladni velikost</span>
-    </div>
-    <div class="type-row">
-      <span class="type-label">md / 14px</span>
+    <div style="display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-1) 0; border-bottom: 1px solid var(--border-subtle);">
+      <span class="label" style="width: 80px;">md / 14px</span>
       <span style="font-size: 14px; color: var(--text-primary);">Modal titles, section headers</span>
     </div>
-    <div class="type-row">
-      <span class="type-label">lg / 16px</span>
+    <div style="display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-1) 0; border-bottom: 1px solid var(--border-subtle);">
+      <span class="label" style="width: 80px;">lg / 16px</span>
       <span style="font-size: 16px; color: var(--text-primary);">Logo, main headings</span>
     </div>
-    <div class="type-row">
-      <span class="type-label">xl / 18px</span>
-      <span style="font-size: 18px; color: var(--text-primary);">Page titles, large headings</span>
-    </div>
-    <div class="type-row">
-      <span class="type-label">2xl / 20px</span>
-      <span style="font-size: 20px; color: var(--text-primary);">Section titles in this document</span>
+    <div style="display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-1) 0;">
+      <span class="label" style="width: 80px;">xl / 18px</span>
+      <span style="font-size: 18px; color: var(--text-primary);">Page titles</span>
     </div>
   </div>
 
-  <div class="subsection mt-3">Font families</div>
+  <div class="subsection mt-3">Rodiny</div>
   <div style="display: flex; flex-direction: column; gap: var(--space-2);">
     <div>
-      <span class="label" style="display: block; margin-bottom: 2px;">--font-sans (default)</span>
-      <span style="font-family: var(--font-sans); font-size: var(--text-md); color: var(--text-primary);">
-        The quick brown fox jumps over the lazy dog. 0123456789
-      </span>
+      <span class="label" style="display: block; margin-bottom: 2px;">--font-sans (UI text)</span>
+      <span style="font-size: var(--text-md); color: var(--text-primary);">Stutzfuss 55x120 | Kalkulace nabidky Q-2024-0042</span>
     </div>
     <div>
-      <span class="label" style="display: block; margin-bottom: 2px;">--font-mono (cisla, kod, ceny)</span>
-      <span style="font-family: var(--font-mono); font-size: var(--text-md); color: var(--text-primary);">
-        1 234 567,89 CZK | 10383459 | Ø55.0 x 120mm
-      </span>
+      <span class="label" style="display: block; margin-bottom: 2px;">--font-mono (cisla, kody, ceny)</span>
+      <span style="font-family: var(--font-mono); font-size: var(--text-md); color: var(--text-primary);">10383459 | 1 234,50 CZK | Ø55.0 x 120mm</span>
     </div>
   </div>
 
-  <div class="subsection mt-3">Font weights</div>
+  <div class="subsection mt-3">Vahy</div>
   <div class="row">
-    <div class="col">
-      <span style="font-weight: 400; font-size: var(--text-md); color: var(--text-primary);">Regular 400</span>
-      <span class="label">--font-normal</span>
-    </div>
-    <div class="col">
-      <span style="font-weight: 500; font-size: var(--text-md); color: var(--text-primary);">Medium 500</span>
-      <span class="label">--font-medium</span>
-    </div>
-    <div class="col">
-      <span style="font-weight: 600; font-size: var(--text-md); color: var(--text-primary);">Semibold 600</span>
-      <span class="label">--font-semibold</span>
-    </div>
-    <div class="col">
-      <span style="font-weight: 700; font-size: var(--text-md); color: var(--text-primary);">Bold 700</span>
-      <span class="label">--font-bold</span>
-    </div>
+    <div class="col"><span style="font-weight: 400; font-size: var(--text-md); color: var(--text-primary);">Regular</span><span class="label">400</span></div>
+    <div class="col"><span style="font-weight: 500; font-size: var(--text-md); color: var(--text-primary);">Medium</span><span class="label">500</span></div>
+    <div class="col"><span style="font-weight: 600; font-size: var(--text-md); color: var(--text-primary);">Semibold</span><span class="label">600</span></div>
+    <div class="col"><span style="font-weight: 700; font-size: var(--text-md); color: var(--text-primary);">Bold</span><span class="label">700</span></div>
   </div>
 </div>
 
 <!-- ================================================================
-     4. SPACING & RADIUS
+     04. SPACING & RADIUS
      ================================================================ -->
 <h2 class="section-title" id="spacing"><span class="num">04</span> Spacing & Radius</h2>
 
 <div class="card">
-  <div class="subsection">4pt Grid Spacing</div>
+  <div class="subsection">4pt Grid</div>
   <div class="spacing-demo">
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 2px; height: 20px;"></div>
-      <span class="label">0.5 / 2px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 4px; height: 20px;"></div>
-      <span class="label">1 / 4px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 8px; height: 20px;"></div>
-      <span class="label">2 / 8px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 12px; height: 20px;"></div>
-      <span class="label">3 / 12px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 16px; height: 20px;"></div>
-      <span class="label">4 / 16px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 20px; height: 20px;"></div>
-      <span class="label">5 / 20px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 24px; height: 20px;"></div>
-      <span class="label">6 / 24px</span>
-    </div>
-    <div class="spacing-block">
-      <div class="spacing-visual" style="width: 32px; height: 20px;"></div>
-      <span class="label">8 / 32px</span>
-    </div>
+    <div class="sp-block"><div class="sp-visual" style="width: 4px; height: 20px;"></div><span class="label">4</span></div>
+    <div class="sp-block"><div class="sp-visual" style="width: 8px; height: 20px;"></div><span class="label">8</span></div>
+    <div class="sp-block"><div class="sp-visual" style="width: 12px; height: 20px;"></div><span class="label">12</span></div>
+    <div class="sp-block"><div class="sp-visual" style="width: 16px; height: 20px;"></div><span class="label">16</span></div>
+    <div class="sp-block"><div class="sp-visual" style="width: 20px; height: 20px;"></div><span class="label">20</span></div>
+    <div class="sp-block"><div class="sp-visual" style="width: 24px; height: 20px;"></div><span class="label">24</span></div>
+    <div class="sp-block"><div class="sp-visual" style="width: 32px; height: 20px;"></div><span class="label">32</span></div>
   </div>
 
-  <div class="subsection mt-3">Border Radius</div>
+  <div class="subsection mt-3">Radius</div>
   <div class="radius-demo">
-    <div class="col">
-      <div class="radius-block" style="border-radius: 2px;"></div>
-      <span class="label">sm / 2px</span>
-    </div>
-    <div class="col">
-      <div class="radius-block" style="border-radius: 4px;"></div>
-      <span class="label">md / 4px</span>
-    </div>
-    <div class="col">
-      <div class="radius-block" style="border-radius: 6px;"></div>
-      <span class="label">lg / 6px</span>
-    </div>
-    <div class="col">
-      <div class="radius-block" style="border-radius: 8px;"></div>
-      <span class="label">xl / 8px</span>
-    </div>
-    <div class="col">
-      <div class="radius-block" style="border-radius: 12px;"></div>
-      <span class="label">2xl / 12px</span>
-    </div>
-    <div class="col">
-      <div class="radius-block" style="border-radius: 9999px;"></div>
-      <span class="label">full / pill</span>
-    </div>
+    <div class="col"><div class="r-block" style="border-radius: 3px;"></div><span class="label">sm / 3</span></div>
+    <div class="col"><div class="r-block" style="border-radius: 5px;"></div><span class="label">md / 5</span></div>
+    <div class="col"><div class="r-block" style="border-radius: 8px;"></div><span class="label">lg / 8</span></div>
+    <div class="col"><div class="r-block" style="border-radius: 12px;"></div><span class="label">xl / 12</span></div>
+    <div class="col"><div class="r-block" style="border-radius: 9999px;"></div><span class="label">full</span></div>
   </div>
 </div>
 
 <!-- ================================================================
-     5. BUTTONS
+     05. BUTTONS
      ================================================================ -->
 <h2 class="section-title" id="buttons"><span class="num">05</span> Tlacitka</h2>
 
 <div class="card">
-  <div class="subsection">Text Buttons <code>.btn</code></div>
+  <div class="subsection">Text Buttons — POUZE 3 varianty</div>
   <div class="row">
-    <div class="col">
-      <button class="btn btn-md btn-primary">Primary</button>
-      <span class="label">.btn-primary</span>
-    </div>
-    <div class="col">
-      <button class="btn btn-md btn-secondary">Secondary</button>
-      <span class="label">.btn-secondary</span>
-    </div>
-    <div class="col">
-      <button class="btn btn-md btn-danger">Danger</button>
-      <span class="label">.btn-danger</span>
-    </div>
-    <div class="col">
-      <button class="btn btn-md btn-ghost">Ghost</button>
-      <span class="label">.btn-ghost</span>
-    </div>
-    <div class="col">
-      <button class="btn btn-md btn-primary" disabled>Disabled</button>
-      <span class="label">:disabled</span>
-    </div>
+    <div class="col"><button class="btn btn-primary">Primary</button><span class="label">brand</span></div>
+    <div class="col"><button class="btn btn-secondary">Secondary</button><span class="label">ghost border</span></div>
+    <div class="col"><button class="btn btn-destructive">Smazat</button><span class="label">destructive</span></div>
+    <div class="col"><button class="btn btn-primary" disabled>Disabled</button><span class="label">disabled</span></div>
   </div>
 
-  <div class="row mt-2">
-    <div class="col">
-      <button class="btn btn-sm btn-primary">Small 28px</button>
-      <span class="label">.btn-sm</span>
-    </div>
-    <div class="col">
-      <button class="btn btn-md btn-primary">Medium 32px</button>
-      <span class="label">.btn-md</span>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="subsection">Icon Buttons <code>.icon-btn</code> + <code>&lt;IconButton&gt;</code></div>
+  <div class="subsection mt-3">Icon Buttons — default sedy, hover bily</div>
   <div class="row">
     <div class="col">
       <button class="icon-btn">
@@ -1315,16 +853,10 @@
       <span class="label">default</span>
     </div>
     <div class="col">
-      <button class="icon-btn icon-btn-primary">
+      <button class="icon-btn icon-btn-brand">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <span class="label">primary</span>
-    </div>
-    <div class="col">
-      <button class="icon-btn icon-btn-success">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
-      </button>
-      <span class="label">success</span>
+      <span class="label">brand</span>
     </div>
     <div class="col">
       <button class="icon-btn icon-btn-danger">
@@ -1333,95 +865,59 @@
       <span class="label">danger</span>
     </div>
     <div class="col">
-      <button class="icon-btn icon-btn-warning">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </button>
-      <span class="label">warning</span>
-    </div>
-    <div class="col">
       <button class="icon-btn" disabled>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
       <span class="label">disabled</span>
     </div>
   </div>
+  <p class="note">Icon buttons jsou default SEDE. Brand hover pro pridat/edit, danger hover pro smazat. Zadne zelene, oranzove, modre varianty.</p>
 
-  <div class="subsection mt-3">Icon Button Sizes</div>
-  <div class="row">
-    <div class="col">
-      <button class="icon-btn icon-btn-sm icon-btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <span class="label">sm 24px</span>
-    </div>
-    <div class="col">
-      <button class="icon-btn icon-btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <span class="label">md 36px (default)</span>
-    </div>
-    <div class="col">
-      <button class="icon-btn icon-btn-lg icon-btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <span class="label">lg 48px</span>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="subsection">Action Buttons (grid karty pro hlavni akce)</div>
+  <div class="subsection mt-3">Action Cards</div>
   <div class="action-grid" style="max-width: 500px;">
-    <button class="action-btn">
+    <button class="action-card">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <span class="btn-label">Vykresy</span>
+      <span>Vykresy</span>
     </button>
-    <button class="action-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      <span class="btn-label">Operace</span>
+    <button class="action-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Operace</span>
     </button>
-    <button class="action-btn">
+    <button class="action-card">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-      <span class="btn-label">Ceny</span>
+      <span>Ceny</span>
     </button>
-    <button class="action-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="23 7 16 12 16 2 23 7"/></svg>
-      <span class="btn-label">Kopirovat</span>
+    <button class="action-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span>Kopirovat</span>
     </button>
   </div>
 </div>
 
 <!-- ================================================================
-     6. BADGES
+     06. BADGES
      ================================================================ -->
 <h2 class="section-title" id="badges"><span class="num">06</span> Badges & Statusy</h2>
 
 <div class="card">
-  <div class="subsection">Sematic Badges</div>
+  <div class="subsection">Monochromaticke badges s teckou</div>
   <div class="row">
-    <span class="badge badge-success">Success</span>
-    <span class="badge badge-danger">Danger</span>
-    <span class="badge badge-warning">Warning</span>
-    <span class="badge badge-info">Info</span>
-    <span class="badge badge-neutral">Neutral</span>
+    <span class="badge"><span class="badge-dot badge-dot-ok"></span>Active</span>
+    <span class="badge"><span class="badge-dot badge-dot-error"></span>Rejected</span>
+    <span class="badge"><span class="badge-dot badge-dot-warn"></span>Pending</span>
+    <span class="badge"><span class="badge-dot badge-dot-brand"></span>Draft</span>
+    <span class="badge"><span class="badge-dot badge-dot-neutral"></span>Inactive</span>
   </div>
-
-  <div class="subsection mt-3">Quote Status Badges</div>
-  <div class="row">
-    <span class="badge status-draft">Draft</span>
-    <span class="badge status-sent">Sent</span>
-    <span class="badge status-approved">Approved</span>
-    <span class="badge status-rejected">Rejected</span>
-  </div>
+  <p class="note">Badge je VZDY sedy. Status se rozlisuje POUZE teckou. Zadne barevne pozadi, zadne barevne bordery.</p>
 </div>
 
 <!-- ================================================================
-     7. FORM INPUTS
+     07. FORMS
      ================================================================ -->
-<h2 class="section-title" id="forms"><span class="num">07</span> Formulare (Forms)</h2>
+<h2 class="section-title" id="forms"><span class="num">07</span> Formulare</h2>
 
 <div class="card">
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); max-width: 700px;">
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); max-width: 600px;">
     <div class="form-group">
       <label class="form-label">Cislo dilu</label>
       <input type="text" value="10383459" style="font-family: var(--font-mono);">
@@ -1447,30 +943,22 @@
       <input type="number" value="120.0" style="font-family: var(--font-mono);">
     </div>
     <div class="form-group">
-      <label class="form-label">Pocet kusu</label>
+      <label class="form-label">Pocet</label>
       <input type="number" value="150" style="font-family: var(--font-mono);">
     </div>
   </div>
 
-  <div class="subsection mt-3">Fokus stav (modry focus ring)</div>
-  <div style="max-width: 300px;">
+  <div class="subsection mt-3">Focus stav</div>
+  <div style="max-width: 250px;">
     <div class="form-group">
       <label class="form-label">Aktivni input</label>
-      <input type="text" placeholder="Sem klikni..." style="border-color: var(--state-focus-border); background: var(--state-focus-bg); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);">
-    </div>
-  </div>
-
-  <div class="subsection mt-3">Textarea</div>
-  <div style="max-width: 400px;">
-    <div class="form-group">
-      <label class="form-label">Poznamka</label>
-      <textarea placeholder="Vlozte poznamku k dilu..." rows="3"></textarea>
+      <input type="text" placeholder="Klikni sem..." style="border-color: var(--focus-ring); background: var(--focus-bg); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);">
     </div>
   </div>
 </div>
 
 <!-- ================================================================
-     8. DATA TABLE
+     08. DATA TABLE
      ================================================================ -->
 <h2 class="section-title" id="table"><span class="num">08</span> Data Table</h2>
 
@@ -1478,86 +966,54 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th>Cislo dilu</th>
-        <th>Nazev</th>
-        <th>Material</th>
-        <th style="text-align: right;">Prumer</th>
-        <th style="text-align: right;">Delka</th>
-        <th>Status</th>
-        <th style="text-align: right;">Cena/ks</th>
+        <th>Cislo dilu</th><th>Nazev</th><th>Material</th>
+        <th style="text-align: right;">Prumer</th><th style="text-align: right;">Delka</th>
+        <th>Status</th><th style="text-align: right;">Cena/ks</th>
       </tr>
     </thead>
     <tbody>
       <tr class="selected">
-        <td class="col-num">10383459</td>
-        <td>Stutzfuss</td>
-        <td>1.4301</td>
-        <td class="col-num">55.0</td>
-        <td class="col-num">120.0</td>
-        <td><span class="badge badge-success">Active</span></td>
+        <td class="col-num">10383459</td><td>Stutzfuss</td><td>1.4301</td>
+        <td class="col-num">55.0</td><td class="col-num">120.0</td>
+        <td><span class="badge"><span class="badge-dot badge-dot-ok"></span>Active</span></td>
         <td class="col-currency">1 234,50 CZK</td>
       </tr>
       <tr>
-        <td class="col-num">10316500</td>
-        <td>Achse Vorderrad</td>
-        <td>S355J2</td>
-        <td class="col-num">30.0</td>
-        <td class="col-num">85.0</td>
-        <td><span class="badge badge-info">Draft</span></td>
+        <td class="col-num">10316500</td><td>Achse Vorderrad</td><td>S355J2</td>
+        <td class="col-num">30.0</td><td class="col-num">85.0</td>
+        <td><span class="badge"><span class="badge-dot badge-dot-brand"></span>Draft</span></td>
         <td class="col-currency">567,00 CZK</td>
       </tr>
       <tr>
-        <td class="col-num">10700212</td>
-        <td>Halter Buchse</td>
-        <td>AlMg3</td>
-        <td class="col-num">42.0</td>
-        <td class="col-num">65.0</td>
-        <td><span class="badge badge-warning">Pending</span></td>
+        <td class="col-num">10700212</td><td>Halter Buchse</td><td>AlMg3</td>
+        <td class="col-num">42.0</td><td class="col-num">65.0</td>
+        <td><span class="badge"><span class="badge-dot badge-dot-warn"></span>Pending</span></td>
         <td class="col-currency">892,30 CZK</td>
       </tr>
       <tr>
-        <td class="col-num">10450001</td>
-        <td>Flansch Platte</td>
-        <td>C45</td>
-        <td class="col-num">80.0</td>
-        <td class="col-num">25.0</td>
-        <td><span class="badge badge-danger">Rejected</span></td>
+        <td class="col-num">10450001</td><td>Flansch Platte</td><td>C45</td>
+        <td class="col-num">80.0</td><td class="col-num">25.0</td>
+        <td><span class="badge"><span class="badge-dot badge-dot-error"></span>Rejected</span></td>
         <td class="col-currency">2 145,00 CZK</td>
       </tr>
     </tbody>
   </table>
-  <p class="note">Cisla a ceny: <code>font-mono</code> + <code>text-align: right</code> | Selected row: <code>state-selected</code> (primary-tinted)</p>
 </div>
 
 <!-- ================================================================
-     9. INFO RIBBON
+     09. INFO RIBBON
      ================================================================ -->
-<h2 class="section-title" id="ribbon"><span class="num">09</span> Info Ribbon + Icon Toolbar</h2>
+<h2 class="section-title" id="ribbon"><span class="num">09</span> Info Ribbon + Toolbar</h2>
 
 <div class="card">
-  <div class="subsection">View mode (default)</div>
+  <div class="subsection">View mode</div>
   <div class="info-ribbon">
     <div class="info-grid">
-      <div class="info-item">
-        <span class="info-label">Cislo dilu</span>
-        <span class="info-value mono">10383459</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Nazev</span>
-        <span class="info-value">Stutzfuss 55x120</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Material</span>
-        <span class="info-value">1.4301 - X5CrNi18-10</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Prumer x Delka</span>
-        <span class="info-value mono">Ø55.0 x 120.0 mm</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Status</span>
-        <span class="info-value"><span class="badge badge-success">Active</span></span>
-      </div>
+      <div class="info-item"><span class="info-label">Cislo dilu</span><span class="info-value mono">10383459</span></div>
+      <div class="info-item"><span class="info-label">Nazev</span><span class="info-value">Stutzfuss 55x120</span></div>
+      <div class="info-item"><span class="info-label">Material</span><span class="info-value">1.4301</span></div>
+      <div class="info-item"><span class="info-label">Rozmery</span><span class="info-value mono">Ø55.0 x 120.0 mm</span></div>
+      <div class="info-item"><span class="info-label">Status</span><span class="info-value"><span class="badge"><span class="badge-dot badge-dot-ok"></span>Active</span></span></div>
     </div>
   </div>
   <div class="icon-toolbar">
@@ -1572,34 +1028,13 @@
     </button>
   </div>
 
-  <div class="subsection mt-3">Edit mode (red glow border)</div>
+  <div class="subsection mt-3">Edit mode (svetlejsi pozadi + silnejsi border)</div>
   <div class="info-ribbon edit-mode">
     <div class="info-grid">
-      <div class="info-item">
-        <span class="info-label">Cislo dilu</span>
-        <span class="info-value mono">10383459</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Nazev</span>
-        <input type="text" value="Stutzfuss 55x120" style="height: 24px; font-size: var(--text-sm);">
-      </div>
-      <div class="info-item">
-        <span class="info-label">Prumer [mm]</span>
-        <input type="number" value="55.0" style="height: 24px; font-size: var(--text-sm); font-family: var(--font-mono);">
-      </div>
-      <div class="info-item">
-        <span class="info-label">Delka [mm]</span>
-        <input type="number" value="120.0" style="height: 24px; font-size: var(--text-sm); font-family: var(--font-mono);">
-      </div>
+      <div class="info-item"><span class="info-label">Cislo dilu</span><span class="info-value mono">10383459</span></div>
+      <div class="info-item"><span class="info-label">Nazev</span><input type="text" value="Stutzfuss 55x120" style="height: 24px; font-size: var(--text-sm);"></div>
+      <div class="info-item"><span class="info-label">Prumer</span><input type="number" value="55.0" style="height: 24px; font-size: var(--text-sm); font-family: var(--font-mono);"></div>
     </div>
-  </div>
-  <div class="icon-toolbar">
-    <button class="icon-btn icon-btn-sm icon-btn-success">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
-    </button>
-    <button class="icon-btn icon-btn-sm icon-btn-danger">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
   </div>
 </div>
 
@@ -1609,12 +1044,12 @@
 <h2 class="section-title" id="modal"><span class="num">10</span> Modal & Dialog</h2>
 
 <div class="card">
-  <div class="subsection">Confirm Dialog (horizontal icon layout)</div>
+  <div class="subsection">Confirm Dialog</div>
   <div class="modal-demo" style="margin-bottom: var(--space-4);">
     <div class="modal-header">
       <div class="modal-title-row">
         <span class="modal-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
         </span>
         <span class="modal-title">Smazat dil</span>
       </div>
@@ -1624,48 +1059,43 @@
     </div>
     <div class="modal-body">
       <div class="dialog-content">
-        <div class="dialog-icon dialog-icon-danger">
+        <div class="dialog-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </div>
         <div class="dialog-text">
           <h3>Opravdu smazat?</h3>
-          <p>Dil <strong>10383459 - Stutzfuss</strong> bude trvale odstranen vcetne vsech operaci a cen. Tuto akci nelze vratit.</p>
+          <p>Dil <strong style="color: var(--text-primary);">10383459 - Stutzfuss</strong> bude trvale odstranen. Tuto akci nelze vratit.</p>
         </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="icon-btn icon-btn-danger" title="Smazat">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-      </button>
-      <button class="icon-btn" title="Zrusit">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn btn-secondary">Zrusit</button>
+      <button class="btn btn-destructive">Smazat</button>
     </div>
   </div>
 
   <div class="subsection">Standard Modal</div>
   <div class="modal-demo">
     <div class="modal-header">
-      <span class="modal-title">Kopirovat dil</span>
+      <div class="modal-title-row">
+        <span class="modal-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </span>
+        <span class="modal-title">Kopirovat dil</span>
+      </div>
       <button class="icon-btn icon-btn-sm">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <div class="modal-body">
       <div style="display: grid; gap: var(--space-3);">
-        <div class="form-group">
-          <label class="form-label">Nove cislo dilu</label>
-          <input type="text" value="10383460" style="font-family: var(--font-mono);">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Novy nazev</label>
-          <input type="text" value="Stutzfuss 55x120 (kopie)">
-        </div>
+        <div class="form-group"><label class="form-label">Nove cislo</label><input type="text" value="10383460" style="font-family: var(--font-mono);"></div>
+        <div class="form-group"><label class="form-label">Novy nazev</label><input type="text" value="Stutzfuss 55x120 (kopie)"></div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm btn-secondary">Zrusit</button>
-      <button class="btn btn-sm btn-primary">Kopirovat</button>
+      <button class="btn btn-secondary">Zrusit</button>
+      <button class="btn btn-primary">Kopirovat</button>
     </div>
   </div>
 </div>
@@ -1676,47 +1106,36 @@
 <h2 class="section-title" id="toast"><span class="num">11</span> Toast Notifications</h2>
 
 <div class="card">
-  <div class="toast-demo">
-    <div class="toast toast-success">
+  <div class="toast-stack">
+    <div class="toast toast-ok">
       <div class="toast-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="toast-body">
         <div class="toast-title">Dil ulozen</div>
-        <div class="toast-message">Stutzfuss 55x120 byl uspesne ulozen.</div>
+        <div class="toast-message">Stutzfuss 55x120 uspesne ulozen.</div>
       </div>
     </div>
-
     <div class="toast toast-error">
       <div class="toast-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
       </div>
       <div class="toast-body">
-        <div class="toast-title">Chyba pri ukladani</div>
-        <div class="toast-message">Nepodarilo se ulozit zmeny. Zkuste to znovu.</div>
+        <div class="toast-title">Chyba</div>
+        <div class="toast-message">Nepodarilo se ulozit zmeny.</div>
       </div>
     </div>
-
-    <div class="toast toast-warning">
+    <div class="toast toast-warn">
       <div class="toast-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </div>
       <div class="toast-body">
         <div class="toast-title">Material nenalezen</div>
-        <div class="toast-message">Kod 10120001 neni v katalogu. Pouzit vychozi cenu?</div>
-      </div>
-    </div>
-
-    <div class="toast toast-info">
-      <div class="toast-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      </div>
-      <div class="toast-body">
-        <div class="toast-title">Import dokoncen</div>
-        <div class="toast-message">Importovano 42 materialu z Infor LN.</div>
+        <div class="toast-message">Kod 10120001 neni v katalogu.</div>
       </div>
     </div>
   </div>
+  <p class="note mt-2">Toast je VZDY sedy. Status pouze pres levy border (3px). Ikony same — sedy neutral.</p>
 </div>
 
 <!-- ================================================================
@@ -1726,332 +1145,216 @@
 
 <div class="card">
   <div style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
-    <!-- Active window -->
-    <div class="window-demo active" style="max-width: 350px;">
+    <div class="window-demo active">
       <div class="window-titlebar">
-        <div class="window-link-dot" style="background: #ef4444;"></div>
+        <div class="window-dot" style="background: var(--brand);"></div>
         <span class="window-title">Dily - 10383459</span>
         <div class="window-controls">
-          <button class="window-control">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <button class="window-control">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-          </button>
-          <button class="window-control close">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <button class="window-ctrl"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="window-ctrl"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+          <button class="window-ctrl close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
       </div>
-      <div class="window-content" style="font-size: var(--text-xs); color: var(--text-secondary);">
-        Active window (border-strong, shadow-xl)
-      </div>
+      <div class="window-content" style="font-size: var(--text-xs); color: var(--text-muted);">Active window — stronger border, larger shadow</div>
     </div>
 
-    <!-- Inactive window -->
-    <div class="window-demo" style="max-width: 350px;">
+    <div class="window-demo">
       <div class="window-titlebar">
-        <div class="window-link-dot" style="background: #3b82f6;"></div>
+        <div class="window-dot" style="background: var(--text-disabled);"></div>
         <span class="window-title">Nabidky - Q-2024-0042</span>
         <div class="window-controls">
-          <button class="window-control">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <button class="window-control">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-          </button>
-          <button class="window-control close">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <button class="window-ctrl"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="window-ctrl"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+          <button class="window-ctrl close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
       </div>
-      <div class="window-content" style="font-size: var(--text-xs); color: var(--text-secondary);">
-        Inactive window (border-default, shadow-lg)
-      </div>
-    </div>
-  </div>
-
-  <div class="subsection mt-3">Window Link Colors</div>
-  <div class="link-colors-grid">
-    <div class="link-color-item">
-      <div class="link-dot-lg" style="background: #ef4444;"></div>
-      <span class="label">Red</span>
-    </div>
-    <div class="link-color-item">
-      <div class="link-dot-lg" style="background: #3b82f6;"></div>
-      <span class="label">Blue</span>
-    </div>
-    <div class="link-color-item">
-      <div class="link-dot-lg" style="background: #10b981;"></div>
-      <span class="label">Green</span>
-    </div>
-    <div class="link-color-item">
-      <div class="link-dot-lg" style="background: #f59e0b;"></div>
-      <span class="label">Yellow</span>
-    </div>
-    <div class="link-color-item">
-      <div class="link-dot-lg" style="background: #6b7280;"></div>
-      <span class="label">Unlinked</span>
+      <div class="window-content" style="font-size: var(--text-xs); color: var(--text-muted);">Inactive window — softer border</div>
     </div>
   </div>
 </div>
 
 <!-- ================================================================
-     13. SPLIT PANE LAYOUT
+     13. SPLIT PANE
      ================================================================ -->
-<h2 class="section-title" id="split"><span class="num">13</span> Split Pane Module Layout</h2>
+<h2 class="section-title" id="split"><span class="num">13</span> Split Pane Module</h2>
 
 <div class="card">
   <div class="split-demo">
     <div class="split-list">
       <div class="split-list-header">
         <span class="title">Dily</span>
-        <button class="icon-btn icon-btn-sm icon-btn-primary">
+        <button class="icon-btn icon-btn-sm icon-btn-brand">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
       <div class="split-list-body">
         <div class="split-list-item selected">
-          <span class="item-code">10383459</span>
-          <span class="item-name">Stutzfuss</span>
-          <span class="badge badge-success" style="font-size: 9px; padding: 1px 6px;">Active</span>
+          <span class="item-code">10383459</span><span class="item-name">Stutzfuss</span>
+          <span class="badge" style="font-size: 11px; padding: 1px 6px;"><span class="badge-dot badge-dot-ok"></span>Active</span>
         </div>
         <div class="split-list-item">
-          <span class="item-code">10316500</span>
-          <span class="item-name">Achse Vorderrad</span>
-          <span class="badge badge-info" style="font-size: 9px; padding: 1px 6px;">Draft</span>
+          <span class="item-code">10316500</span><span class="item-name">Achse Vorderrad</span>
+          <span class="badge" style="font-size: 11px; padding: 1px 6px;"><span class="badge-dot badge-dot-brand"></span>Draft</span>
         </div>
         <div class="split-list-item">
-          <span class="item-code">10700212</span>
-          <span class="item-name">Halter Buchse</span>
-          <span class="badge badge-warning" style="font-size: 9px; padding: 1px 6px;">Pending</span>
+          <span class="item-code">10700212</span><span class="item-name">Halter Buchse</span>
+          <span class="badge" style="font-size: 11px; padding: 1px 6px;"><span class="badge-dot badge-dot-warn"></span>Pending</span>
         </div>
         <div class="split-list-item">
-          <span class="item-code">10450001</span>
-          <span class="item-name">Flansch Platte</span>
-          <span class="badge badge-neutral" style="font-size: 9px; padding: 1px 6px;">Inactive</span>
-        </div>
-        <div class="split-list-item">
-          <span class="item-code">10550032</span>
-          <span class="item-name">Welle Lager</span>
-          <span class="badge badge-success" style="font-size: 9px; padding: 1px 6px;">Active</span>
+          <span class="item-code">10450001</span><span class="item-name">Flansch Platte</span>
+          <span class="badge" style="font-size: 11px; padding: 1px 6px;"><span class="badge-dot badge-dot-neutral"></span>Inactive</span>
         </div>
       </div>
     </div>
-    <div class="resize-handle-demo"></div>
+    <div class="resize-handle"></div>
     <div class="split-detail">
       <div class="info-ribbon" style="margin-bottom: var(--space-3);">
         <div class="info-grid" style="grid-template-columns: repeat(2, 1fr);">
-          <div class="info-item">
-            <span class="info-label">Cislo dilu</span>
-            <span class="info-value mono">10383459</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Nazev</span>
-            <span class="info-value">Stutzfuss 55x120</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Material</span>
-            <span class="info-value">1.4301</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Rozmery</span>
-            <span class="info-value mono">Ø55 x 120mm</span>
-          </div>
+          <div class="info-item"><span class="info-label">Cislo dilu</span><span class="info-value mono">10383459</span></div>
+          <div class="info-item"><span class="info-label">Nazev</span><span class="info-value">Stutzfuss 55x120</span></div>
+          <div class="info-item"><span class="info-label">Material</span><span class="info-value">1.4301</span></div>
+          <div class="info-item"><span class="info-label">Rozmery</span><span class="info-value mono">Ø55 x 120mm</span></div>
         </div>
       </div>
-      <div style="font-size: var(--text-xs); color: var(--text-tertiary);">
-        Detail panel content...
-      </div>
+      <div style="font-size: var(--text-xs); color: var(--text-muted);">Detail panel...</div>
     </div>
   </div>
-  <p class="note">Split-pane: <code>ListPanel (50%)</code> | <code>resize-handle (4px)</code> | <code>DetailPanel (flex: 1)</code></p>
 </div>
 
 <!-- ================================================================
      14. PRICE BAR
      ================================================================ -->
-<h2 class="section-title" id="pricebar"><span class="num">14</span> Price Bar (cena breakdown)</h2>
+<h2 class="section-title" id="pricebar"><span class="num">14</span> Price Bar</h2>
 
 <div class="card">
   <div style="max-width: 500px;">
     <div class="price-bar">
-      <div class="segment-mat" style="width: 35%;"></div>
-      <div class="segment-mach" style="width: 40%;"></div>
-      <div class="segment-setup" style="width: 15%;"></div>
-      <div class="segment-coop" style="width: 10%;"></div>
+      <div class="seg-material" style="width: 35%;"></div>
+      <div class="seg-machine" style="width: 40%;"></div>
+      <div class="seg-setup" style="width: 15%;"></div>
+      <div class="seg-coop" style="width: 10%;"></div>
     </div>
     <div class="price-legend">
-      <div class="price-legend-item">
-        <div class="price-legend-dot" style="background: #16a34a;"></div>
-        <span>Material 35%</span>
-      </div>
-      <div class="price-legend-item">
-        <div class="price-legend-dot" style="background: #2563eb;"></div>
-        <span>Strojni 40%</span>
-      </div>
-      <div class="price-legend-item">
-        <div class="price-legend-dot" style="background: #ca8a04;"></div>
-        <span>Priprava 15%</span>
-      </div>
-      <div class="price-legend-item">
-        <div class="price-legend-dot" style="background: #9333ea;"></div>
-        <span>Kooperace 10%</span>
-      </div>
+      <div class="price-legend-item"><div class="price-legend-dot" style="background: #3b82f6;"></div><span>Material 35%</span></div>
+      <div class="price-legend-item"><div class="price-legend-dot" style="background: var(--brand-hover);"></div><span>Strojni 40%</span></div>
+      <div class="price-legend-item"><div class="price-legend-dot" style="background: #f59e0b;"></div><span>Priprava 15%</span></div>
+      <div class="price-legend-item"><div class="price-legend-dot" style="background: #6b7280;"></div><span>Kooperace 10%</span></div>
     </div>
   </div>
+  <p class="note">Price bar pouziva barevne segmenty — dataviz je jedine misto kde jsou barvy povoleny. Modra (material), cervena (strojni), zluta (priprava), seda (kooperace).</p>
 </div>
 
 <!-- ================================================================
-     15. OPTIMIZED PALETTE & INPUT FIXES
+     15. ALTERNATIVNI PALETY (pro porovnani)
      ================================================================ -->
-<h2 class="section-title" id="optimized"><span class="num">15</span> Optimalizovana paleta + Opravy vstupu</h2>
+<h2 class="section-title" id="alt"><span class="num">15</span> Alternativni palety</h2>
 
 <div class="card">
-  <div class="subsection">Zredukovaná paleta — 18 barev misto 36+</div>
-  <p style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: var(--space-3);">
-    Audit odhalil 3 paralelni barevne systemy (design-system.css, theme.css, variables.css) s 36+ hex hodnotami.
-    Navrh: <strong style="color: var(--text-primary);">JEDEN system, 18 tokenu.</strong>
+  <p style="font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-4);">
+    Gestima = cervena. Ale pro inspiraci — 2 alternativni palety se stejnou filosofii (1 chromaticka barva + neutraly).
   </p>
 
-  <!-- Reduced palette table -->
-  <table class="data-table" style="margin-bottom: var(--space-4);">
-    <thead>
-      <tr><th>Token</th><th>Hodnota</th><th>Ukazka</th><th>Pouziti</th></tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="4" style="font-weight: var(--font-semibold); color: var(--text-primary); background: var(--bg-subtle); padding: 4px 8px;">BACKGROUNDS (6)</td></tr>
-      <tr><td><code>--bg-base</code></td><td class="col-num">#0a0a0a</td><td><div style="width:40px;height:16px;background:#0a0a0a;border:1px solid var(--border-strong);border-radius:2px;"></div></td><td>Hlavni pozadi stranky</td></tr>
-      <tr><td><code>--bg-input</code></td><td class="col-num">#0f0f0f</td><td><div style="width:40px;height:16px;background:#0f0f0f;border:1px solid var(--border-strong);border-radius:2px;"></div></td><td>Input fieldy</td></tr>
-      <tr><td><code>--bg-subtle</code></td><td class="col-num">#111111</td><td><div style="width:40px;height:16px;background:#111111;border:1px solid var(--border-strong);border-radius:2px;"></div></td><td>Table header, nav</td></tr>
-      <tr><td><code>--bg-surface</code></td><td class="col-num">#141414</td><td><div style="width:40px;height:16px;background:#141414;border:1px solid var(--border-strong);border-radius:2px;"></div></td><td>Karty, panely, titlebar</td></tr>
-      <tr><td><code>--bg-raised</code></td><td class="col-num">#1a1a1a</td><td><div style="width:40px;height:16px;background:#1a1a1a;border:1px solid var(--border-strong);border-radius:2px;"></div></td><td>Modal, dropdown, tooltip</td></tr>
-      <tr><td style="color:var(--color-danger);"><code><s>--bg-deepest</s></code></td><td class="col-num" style="color:var(--text-disabled);">#000000</td><td></td><td style="color:var(--color-danger);">ODSTRANIT — redundantni s bg-base</td></tr>
-
-      <tr><td colspan="4" style="font-weight: var(--font-semibold); color: var(--text-primary); background: var(--bg-subtle); padding: 4px 8px;">TEXT (4)</td></tr>
-      <tr><td><code>--text-primary</code></td><td class="col-num">#ffffff</td><td><span style="color:#ffffff;">Nadpisy</span></td><td>Headings, aktivni prvky</td></tr>
-      <tr><td><code>--text-body</code></td><td class="col-num">#f5f5f5</td><td><span style="color:#f5f5f5;">Bežný text</span></td><td>Zakladni text</td></tr>
-      <tr><td><code>--text-secondary</code></td><td class="col-num">#a3a3a3</td><td><span style="color:#a3a3a3;">Sekundarni</span></td><td>Labely, popisy</td></tr>
-      <tr><td><code>--text-disabled</code></td><td class="col-num">#525252</td><td><span style="color:#525252;">Disabled</span></td><td>Placeholder, neaktivni</td></tr>
-
-      <tr><td colspan="4" style="font-weight: var(--font-semibold); color: var(--text-primary); background: var(--bg-subtle); padding: 4px 8px;">BORDERS (3)</td></tr>
-      <tr><td><code>--border-subtle</code></td><td class="col-num">#1a1a1a</td><td><div style="width:40px;border-top:2px solid #1a1a1a;margin-top:8px;"></div></td><td>Radky tabulky</td></tr>
-      <tr><td><code>--border-default</code></td><td class="col-num">#2a2a2a</td><td><div style="width:40px;border-top:2px solid #2a2a2a;margin-top:8px;"></div></td><td>Inputy, karty, panely</td></tr>
-      <tr><td><code>--border-strong</code></td><td class="col-num">#404040</td><td><div style="width:40px;border-top:2px solid #404040;margin-top:8px;"></div></td><td>Aktivni okno, modal</td></tr>
-
-      <tr><td colspan="4" style="font-weight: var(--font-semibold); color: var(--text-primary); background: var(--bg-subtle); padding: 4px 8px;">SEMANTIC (5) — jediny zdroj pravdy</td></tr>
-      <tr><td><code>--color-primary</code></td><td class="col-num">#991b1b</td><td><div style="width:40px;height:16px;background:#991b1b;border-radius:2px;"></div></td><td>Brand, CTA, selection</td></tr>
-      <tr><td><code>--color-danger</code></td><td class="col-num">#f43f5e</td><td><div style="width:40px;height:16px;background:#f43f5e;border-radius:2px;"></div></td><td>Smazat, chyba, error</td></tr>
-      <tr><td><code>--color-success</code></td><td class="col-num">#059669</td><td><div style="width:40px;height:16px;background:#059669;border-radius:2px;"></div></td><td>Ulozeno, OK, aktivni</td></tr>
-      <tr><td><code>--color-warning</code></td><td class="col-num">#d97706</td><td><div style="width:40px;height:16px;background:#d97706;border-radius:2px;"></div></td><td>Upozorneni, pending</td></tr>
-      <tr><td><code>--color-info</code></td><td class="col-num">#2563eb</td><td><div style="width:40px;height:16px;background:#2563eb;border-radius:2px;"></div></td><td>Focus ring, info, draft</td></tr>
-    </tbody>
-  </table>
-
-  <div class="callout callout-danger mb-3">
-    <h4>K ODSTRANENI z codebase</h4>
-    <ul>
-      <li><code>theme.css</code> — paralelni system, duplikuje design-system.css</li>
-      <li><code>variables.css</code> — treti system, duplicitni tokeny</li>
-      <li><code>--bg-deepest (#000000)</code> — nikde pouzity, redundantni</li>
-      <li><code>--text-tertiary (#737373)</code> — sjednotit s <code>--text-secondary</code> nebo <code>--text-disabled</code></li>
-      <li>Vsechny <code>--palette-*-light</code> rgba varianty — definovane ale nikdy pouzite</li>
-      <li>Zakomentovane alternativni palety (Blue/Green/Purple)</li>
-    </ul>
-  </div>
-</div>
-
-<div class="card">
-  <div class="subsection">Flat Select & No Spinners</div>
-  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4); max-width: 700px;">
-    <div class="form-group">
-      <label class="form-label">Flat Select</label>
-      <select>
-        <option>1.4301 - X5CrNi18-10</option>
-        <option>S355J2 - E355</option>
-        <option>AlMg3 - EN AW-5754</option>
-        <option>C45 - 1.0503</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Cislo bez sipek</label>
-      <input type="number" value="55.0" style="font-family: var(--font-mono);">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Cena bez sipek</label>
-      <input type="number" value="1234.50" style="font-family: var(--font-mono);">
+  <!-- ALT 1: Cyan/Teal -->
+  <div class="subsection">ALT A: Cyan Industrial</div>
+  <div style="display: flex; gap: var(--space-3); margin-bottom: var(--space-3);">
+    <div style="display: flex; flex-direction: column; gap: var(--space-2); flex: 1;">
+      <div style="display: flex; gap: var(--space-2);">
+        <div class="color-chip"><div class="color-block" style="background: #0e7490;"></div><span class="color-name">brand</span></div>
+        <div class="color-chip"><div class="color-block" style="background: #06b6d4;"></div><span class="color-name">hover</span></div>
+        <div class="color-chip"><div class="color-block" style="background: #67e8f9;"></div><span class="color-name">text</span></div>
+      </div>
+      <div style="display: flex; gap: var(--space-2); align-items: center;">
+        <button style="padding: 4px 12px; font-size: 11px; font-family: inherit; font-weight: 500; background: #0e7490; color: #fff; border: 1px solid #0e7490; border-radius: 5px; cursor: pointer;">Primary</button>
+        <button style="padding: 4px 12px; font-size: 11px; font-family: inherit; font-weight: 500; background: transparent; color: #a3a3a3; border: 1px solid #262626; border-radius: 5px; cursor: pointer;">Secondary</button>
+        <span style="display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; font-size: 11px; background: #1a1a1a; color: #a3a3a3; border: 1px solid #262626; border-radius: 99px;"><span style="width:6px;height:6px;border-radius:99px;background:#22c55e;"></span>Active</span>
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--text-muted);">Tech/SaaS vibe. Coolnejsi, mensi urgence. Skvele pro dashboard heavy apps.</p>
     </div>
   </div>
-  <p class="note" style="margin-top: var(--space-3);">
-    <code>appearance: none</code> na select + SVG chevron | <code>-webkit-appearance: none</code> na number input
-  </p>
-</div>
 
+  <!-- ALT 2: Amber/Gold -->
+  <div class="subsection">ALT B: Amber Machinist</div>
+  <div style="display: flex; gap: var(--space-3);">
+    <div style="display: flex; flex-direction: column; gap: var(--space-2); flex: 1;">
+      <div style="display: flex; gap: var(--space-2);">
+        <div class="color-chip"><div class="color-block" style="background: #b45309;"></div><span class="color-name">brand</span></div>
+        <div class="color-chip"><div class="color-block" style="background: #d97706;"></div><span class="color-name">hover</span></div>
+        <div class="color-chip"><div class="color-block" style="background: #fcd34d;"></div><span class="color-name">text</span></div>
+      </div>
+      <div style="display: flex; gap: var(--space-2); align-items: center;">
+        <button style="padding: 4px 12px; font-size: 11px; font-family: inherit; font-weight: 500; background: #b45309; color: #fff; border: 1px solid #b45309; border-radius: 5px; cursor: pointer;">Primary</button>
+        <button style="padding: 4px 12px; font-size: 11px; font-family: inherit; font-weight: 500; background: transparent; color: #a3a3a3; border: 1px solid #262626; border-radius: 5px; cursor: pointer;">Secondary</button>
+        <span style="display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; font-size: 11px; background: #1a1a1a; color: #a3a3a3; border: 1px solid #262626; border-radius: 99px;"><span style="width:6px;height:6px;border-radius:99px;background:#22c55e;"></span>Active</span>
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--text-muted);">CNC panel feel. Teplejsi, vice strojirna. Amber = vystraha = opatrnost = presnost.</p>
+    </div>
+  </div>
+</div>
 
 <!-- ================================================================
      16. DESIGN RULES
      ================================================================ -->
-<h2 class="section-title" id="rules"><span class="num">16</span> Design pravidla (ke schvaleni)</h2>
+<h2 class="section-title" id="rules"><span class="num">16</span> Pravidla (ke schvaleni)</h2>
 
 <div class="card">
-  <div class="callout callout-success mb-3">
-    <h4>SCHVALENY standard</h4>
+  <div class="callout callout-ok mb-3">
+    <h4>SCHVALENO</h4>
     <ul>
-      <li><strong>Font:</strong> <code>Space Grotesk</code> (UI text) + <code>Space Mono</code> (cisla, ceny, kody) — latin-ext pro CZ diakritiku</li>
-      <li><strong>Flat inputs:</strong> <code>appearance: none</code> na select + no spinners na number input</li>
-      <li><strong>Icon buttons:</strong> <code>&lt;IconButton&gt;</code> komponenta pro VSECHNY icon akce</li>
-      <li><strong>Icon sizes:</strong> SMALL=16, STANDARD=20, LARGE=24, XLARGE=32</li>
-      <li><strong>Text buttons:</strong> <code>.btn-primary</code> / <code>.btn-secondary</code> pro modaly a formulare</li>
-      <li><strong>Focus:</strong> MODRY ring (#2563eb) - NIKDY cerveny!</li>
-      <li><strong>Selected row:</strong> <code>state-selected</code> = rgba(153,27,27,0.15)</li>
-      <li><strong>Edit mode:</strong> Red glow border (<code>shadow-glow</code>)</li>
-      <li><strong>Numbers/ceny:</strong> <code>font-mono</code> + <code>text-align: right</code></li>
-      <li><strong>Layout:</strong> Split-pane (ListPanel | DetailPanel) uvnitr FloatingWindow</li>
-      <li><strong>Dialogs:</strong> Horizontal layout (icon vlevo, text vpravo)</li>
-      <li><strong>Container queries:</strong> <code>container-type: inline-size</code> (NE media queries!)</li>
+      <li><strong>Paleta:</strong> cerna + cervena + sediva. Status barvy (ok/error/warn) POUZE pro tecky a levy border.</li>
+      <li><strong>Font:</strong> Space Grotesk (UI) + Space Mono (cisla, ceny, kody)</li>
+      <li><strong>Buttons:</strong> 3 varianty — primary (brand), secondary (ghost), destructive</li>
+      <li><strong>Icon Buttons:</strong> Default sedy, hover bily. Brand/danger POUZE pro specialni akce.</li>
+      <li><strong>Badges:</strong> Monochromaticke (sedy bg) s barevnou teckou pro status</li>
+      <li><strong>Toasty:</strong> Sedy bg, barevny levy border (3px)</li>
+      <li><strong>Focus:</strong> Bily/svetle sedy ring — subtilni, nerusici</li>
+      <li><strong>Selected row:</strong> Neutralni white-tinted rgba(255,255,255,0.06)</li>
+      <li><strong>Edit mode:</strong> Svetlejsi pozadi (bg-raised) + silnejsi border</li>
+      <li><strong>Price bar:</strong> Barevne segmenty (dataviz = jedine misto s multi-color)</li>
+      <li><strong>Min font:</strong> 13px (zadny text mensi nez --text-xs, --text-2xs = 11px pro specialni pripady)</li>
+      <li><strong>Inputs:</strong> Flat select (appearance: none), no spinners na number</li>
+      <li><strong>Layout:</strong> Split-pane (ListPanel | DetailPanel) ve FloatingWindow</li>
+      <li><strong>Container queries</strong> (NE media queries)</li>
+      <li><strong>Backdrop blur</strong> na sticky header/nav</li>
     </ul>
   </div>
 
-  <div class="callout callout-danger mb-3">
+  <div class="callout callout-error mb-3">
     <h4>ZAKAZANO</h4>
     <ul>
-      <li>Hardcoded icon sizes (<code>:size="15"</code>, <code>:size="18"</code>)</li>
-      <li>Custom button tridy (<code>.action-btn-custom</code>, <code>.toolbar-btn</code>)</li>
-      <li>Cerveny focus ring (focus = MODRY!)</li>
-      <li>Media queries pro responsive (pouzit container queries)</li>
-      <li>Views pro nove features (pouzit Modules ve FloatingWindow)</li>
-      <li>Native 3D select (<code>appearance</code>) — vsechny selecty musi byt flat</li>
-      <li>Sipky na number inputech (spinners) — <code>-webkit-appearance: none</code></li>
-      <li>Duplicitni barevne systemy (<code>theme.css</code>, <code>variables.css</code>) — POUZE <code>design-system.css</code></li>
+      <li>Barevne pozadi na badges (badge-success, badge-danger, badge-warning, badge-info)</li>
+      <li>Barevne tlacitka krome brand a destructive (zadne btn-success, btn-warning, btn-info)</li>
+      <li>Barevne icon buttony krome brand a danger (zadne icon-btn-success, icon-btn-warning)</li>
+      <li>Native 3D select, number spinners</li>
+      <li>Cerveny/modry focus ring (pouzit bily subtilni)</li>
+      <li>Cervene zvyrazneni selected row (pouzit neutralni sedy)</li>
+      <li>Cerveny ramecek na edit mode (pouzit svetlejsi bg)</li>
+      <li>Font mensi nez 11px</li>
+      <li>Media queries (pouzit container queries)</li>
+      <li>Views pro features (pouzit Modules ve FloatingWindow)</li>
+      <li>Duplicitni barevne systemy (theme.css, variables.css) — POUZE design-system.css</li>
     </ul>
   </div>
 
-  <div class="callout callout-info">
-    <h4>MAPPING: Akce → Komponenta</h4>
+  <div class="callout callout-brand">
+    <h4>MAPPING: Akce &rarr; Komponenta</h4>
     <table class="data-table" style="margin-top: var(--space-2);">
-      <thead>
-        <tr><th>Akce</th><th>Komponenta</th><th>Variant</th><th>Ikona (Lucide)</th></tr>
-      </thead>
+      <thead><tr><th>Akce</th><th>Komponenta</th><th>Hover</th><th>Ikona</th></tr></thead>
       <tbody>
-        <tr><td>Pridat</td><td><code>IconButton</code></td><td>primary</td><td>Plus</td></tr>
+        <tr><td>Pridat</td><td><code>IconButton</code></td><td>brand</td><td>Plus</td></tr>
         <tr><td>Upravit</td><td><code>IconButton</code></td><td>default</td><td>Edit</td></tr>
         <tr><td>Smazat</td><td><code>IconButton</code></td><td>danger</td><td>Trash2</td></tr>
-        <tr><td>Ulozit</td><td><code>IconButton</code></td><td>success</td><td>Save / Check</td></tr>
-        <tr><td>Zrusit</td><td><code>IconButton</code></td><td>danger</td><td>X</td></tr>
+        <tr><td>Ulozit</td><td><code>IconButton</code></td><td>default</td><td>Check</td></tr>
+        <tr><td>Zrusit</td><td><code>IconButton</code></td><td>default</td><td>X</td></tr>
         <tr><td>Kopirovat</td><td><code>IconButton</code></td><td>default</td><td>Copy</td></tr>
-        <tr><td>Refresh</td><td><code>IconButton</code></td><td>default</td><td>RefreshCw</td></tr>
-        <tr><td>Filter</td><td><code>IconButton</code></td><td>default</td><td>Filter</td></tr>
-        <tr><td>Download</td><td><code>IconButton</code></td><td>default</td><td>Download</td></tr>
-        <tr><td>Upload</td><td><code>IconButton</code></td><td>primary</td><td>Upload</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <!-- FOOTER -->
-<div style="text-align: center; padding: var(--space-8) 0; color: var(--text-tertiary); font-size: var(--text-xs);">
-  <span class="logo" style="font-size: var(--text-md);"><span class="g" style="color: #E84545;">GESTI</span><span class="m" style="color: var(--text-primary);">MA</span></span>
-  &nbsp;&mdash;&nbsp; Design System v2.0 &nbsp;&mdash;&nbsp; 2026-02-05
+<div style="text-align: center; padding: var(--space-8) 0; color: var(--text-disabled); font-size: var(--text-xs);">
+  <span class="logo" style="font-size: var(--text-md);"><span class="g">GESTI</span><span class="m">MA</span></span>
+  &nbsp;&mdash;&nbsp; Design System v4.0 Minimal Dark &nbsp;&mdash;&nbsp; 2026-02-11
 </div>
 
 </div><!-- /template-body -->

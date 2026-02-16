@@ -78,7 +78,7 @@ const emit = defineEmits<{
 .input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-primary);

@@ -176,7 +176,7 @@ class MaterialItemBase(BaseModel):
 - ✅ Simple (single nullable field)
 - ✅ Backward compatible (existing items = NULL)
 - ✅ No enum constraints (handles unknown codes like "St", "EP")
-- ✅ Matches archived doc recommendation (docs/archive/MATERIAL-CATALOG-IMPORT.md:267)
+- ✅ Matches original material catalog analysis (available in git history)
 
 **Cons:**
 - ❌ No validation (accepts any string)
@@ -339,7 +339,7 @@ item = MaterialItem(
 
 **Rationale:**
 - ✅ Aligns with user's question (P = lisovaný fits at item level)
-- ✅ Matches archived doc recommendation (docs/archive/MATERIAL-CATALOG-IMPORT.md:267)
+- ✅ Matches original material catalog analysis (available in git history)
 - ✅ Minimal implementation (1 field + migration)
 - ✅ Extensible (can migrate to FK lookup table in Phase 2)
 - ✅ 98.8% of surface codes are already documented
@@ -416,7 +416,7 @@ item = MaterialItem(
 ## 📚 References
 
 - [INFOR_MATERIAL_CODE_MAPPING.md](../../INFOR_MATERIAL_CODE_MAPPING.md) - Comprehensive reference
-- [docs/archive/MATERIAL-CATALOG-IMPORT.md](../archive/MATERIAL-CATALOG-IMPORT.md) - Previous analysis
+- Material catalog analysis - available in git history
 - [ADR-011: Material Hierarchy](011-material-hierarchy.md) - Two-tier system
 - [ADR-014: Material Price Tiers](014-material-price-tiers.md) - Pricing structure
 - [ADR-015: Material Norm Mapping](015-material-norm-mapping.md) - W.Nr lookup

@@ -110,7 +110,7 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
           {{ fetchingFields ? 'Loading...' : 'Fetch Fields' }}
         </button>
       </div>
-      <small class="help-text warning-text"><AlertTriangle :size="12" /> Use exact case</small>
+      <small class="help-text warning-text"><AlertTriangle :size="ICON_SIZE.SMALL" /> Use exact case</small>
     </div>
     <InforFieldSelector
       v-if="availableFields.length > 0"
@@ -145,14 +145,14 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
 .browser-tab { padding: var(--space-4); max-width: 1200px; overflow: auto; }
 .form-group { margin-bottom: var(--space-3); }
 .form-group label { display: block; font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); margin-bottom: var(--space-1); }
-.input { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm); }
+.input { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm); }
 .input:focus { outline: none; border-color: var(--color-primary); }
 .input-with-button { display: flex; gap: var(--space-2); }
 .input-with-button .input { flex: 1; }
 .btn { padding: var(--space-2) var(--space-4); border: none; border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 500; cursor: pointer; transition: all var(--duration-fast); display: inline-flex; align-items: center; gap: var(--space-2); }
-.btn-primary { background: var(--color-primary); color: white; }
-.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
-.btn-secondary { background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-color); }
+.btn-primary { background: transparent; color: var(--text-primary); border: 1px solid var(--border-default); }
+.btn-primary:hover:not(:disabled) { background: var(--brand-subtle); border-color: var(--brand); color: var(--brand-text); }
+.btn-secondary { background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-default); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .case-warning { color: var(--color-primary); font-size: var(--text-sm); font-weight: 600; }
 .help-text { display: block; margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }

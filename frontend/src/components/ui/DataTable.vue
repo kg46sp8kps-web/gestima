@@ -7,7 +7,7 @@
     <div v-else-if="!data || data.length === 0" class="data-table-empty">
       <slot name="empty">
         <div class="empty-icon">
-          <Inbox :size="48" :stroke-width="1.5" />
+          <Inbox :size="ICON_SIZE.HERO" :stroke-width="1.5" />
         </div>
         <p class="empty-text">{{ emptyText }}</p>
       </slot>
@@ -71,6 +71,7 @@ import { Inbox } from 'lucide-vue-next'
 import DataTableHeader from './DataTableHeader.vue'
 import DataTableBody from './DataTableBody.vue'
 import DataTablePagination from './DataTablePagination.vue'
+import { ICON_SIZE } from '@/config/design'
 
 export interface Column {
   key: string

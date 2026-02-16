@@ -113,7 +113,7 @@ const totalMaterialCost = computed(() => {
 
       <!-- Empty state -->
       <div v-else-if="materialInputs.length === 0" class="empty-state">
-        <Boxes :size="24" class="empty-icon" />
+        <Boxes :size="ICON_SIZE.LARGE" class="empty-icon" />
         <span class="empty-text">Žádný materiál</span>
       </div>
 
@@ -184,16 +184,18 @@ const totalMaterialCost = computed(() => {
   width: 24px;
   height: 24px;
   padding: 0;
-  background: var(--color-primary);
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .btn-add-icon:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
 }
 
 .btn-add-icon:disabled {

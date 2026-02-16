@@ -210,7 +210,7 @@ async function executeDelete() {
   <div class="partner-detail-panel">
     <!-- Empty State -->
     <div v-if="!partner" class="empty">
-      <Building2 :size="48" class="empty-icon" />
+      <Building2 :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Vyberte partnera pro zobrazení detailů</p>
       <button class="btn-primary" @click="openCreateForm">
         + Vytvořit nového partnera
@@ -620,8 +620,8 @@ async function executeDelete() {
 }
 
 .tab-button.active {
-  color: var(--palette-primary);
-  border-bottom-color: var(--palette-primary);
+  color: var(--brand);
+  border-bottom-color: var(--brand);
 }
 
 .tab-content {
@@ -660,7 +660,7 @@ async function executeDelete() {
 }
 
 .required {
-  color: var(--palette-danger);
+  color: var(--status-error);
 }
 
 .form-input,
@@ -730,12 +730,15 @@ async function executeDelete() {
 }
 
 .btn-primary {
-  background: var(--palette-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover {
-  background: var(--palette-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn-primary:disabled {
@@ -755,11 +758,11 @@ async function executeDelete() {
 
 .btn-danger {
   background: var(--palette-danger-light, rgba(244, 63, 94, 0.15));
-  color: var(--palette-danger);
+  color: var(--status-error);
 }
 
 .btn-danger:hover {
-  background: var(--palette-danger);
+  background: var(--status-error);
   color: white;
 }
 

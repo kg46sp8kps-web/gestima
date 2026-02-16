@@ -19,7 +19,7 @@ defineProps<Props>()
 
 <template>
   <div class="summary-panel">
-    <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
+    <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Přehled poptávky</h2>
     <div class="summary-grid">
       <div class="summary-item">
         <span class="summary-label">Celkem položek:</span>

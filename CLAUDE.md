@@ -141,7 +141,6 @@ Pořadí seedování (záleží na pořadí kvůli FK vazbám):
 | **Anti-patterns** | [docs/reference/ANTI-PATTERNS.md](docs/reference/ANTI-PATTERNS.md) |
 | **Design system** | [docs/reference/DESIGN-SYSTEM.md](docs/reference/DESIGN-SYSTEM.md) |
 | **Architecture** | [docs/reference/ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) |
-| **Vision** | [docs/reference/VISION.md](docs/reference/VISION.md) |
 | **Status** | [docs/status/STATUS.md](docs/status/STATUS.md) |
 | **ADRs** | [docs/ADR/](docs/ADR/) |
 | **Guides** | [docs/guides/README.md](docs/guides/README.md) (Drag&drop, Testing, Deployment) |

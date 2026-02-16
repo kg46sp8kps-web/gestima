@@ -219,14 +219,14 @@ defineExpose({
 .confidence-segment {
   flex: 1;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--border-default);
   transition: all var(--transition-normal) var(--ease-out);
 }
 
 .confidence-segment.segment-low {
-  background: var(--palette-danger);
-  box-shadow: 0 0 4px var(--palette-danger);
+  background: var(--status-error);
+  box-shadow: 0 0 4px var(--status-error);
 }
 
 .confidence-segment.segment-medium {

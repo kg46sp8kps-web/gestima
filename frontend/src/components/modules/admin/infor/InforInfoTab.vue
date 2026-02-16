@@ -82,7 +82,7 @@ async function getIdoInfo() {
 
 .input {
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-primary);
@@ -112,12 +112,15 @@ async function getIdoInfo() {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn:disabled {
@@ -130,7 +133,7 @@ async function getIdoInfo() {
   background: var(--bg-surface);
   border-radius: var(--radius-md);
   margin-top: var(--space-4);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .json-preview {

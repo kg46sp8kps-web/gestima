@@ -76,7 +76,7 @@ function handleDragLeave() {
       @dragenter.prevent="handleDragEnter"
       @dragleave.prevent="handleDragLeave"
     >
-      <FileUp :size="48" class="upload-icon" />
+      <FileUp :size="ICON_SIZE.HERO" class="upload-icon" />
       <h2>Nahrajte PDF poptávky</h2>
       <p>Klikněte nebo přetáhněte PDF sem</p>
       <p class="upload-hint">Maximum 10 MB</p>
@@ -91,10 +91,10 @@ function handleDragLeave() {
 
     <!-- Info panel -->
     <div class="info-panel">
-      <h3><Info :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
+      <h3><Info :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Jak to funguje?</h3>
       <ul>
         <li>Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
-        <li>Claude AI Sonnet 4.5 extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
+        <li>AI Vision extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
         <li>Systém hledá existující zákazníky a díly v databázi</li>
         <li>Automaticky přiřadí ceny z vhodných zamražených dávek</li>
         <li>Vy zkontrolujete, upravíte a potvrdíte → vytvoří se nabídka</li>

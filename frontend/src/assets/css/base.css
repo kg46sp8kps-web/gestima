@@ -1,66 +1,46 @@
 /* ============================================================================
-   GESTIMA - Base Styles
+   GESTIMA - Base Layout (body, main-content, autofill)
+   Reset & typography handled by design-system.css
    ============================================================================ */
 
-/* === RESET === */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
 html {
-    min-width: 1000px;
-    overflow-x: auto;
+  min-width: 1000px;
+  overflow-x: auto;
 }
 
 body {
-    /* Font, colors, sizes from design-system.css */
-    height: 100vh;
-    min-width: 1000px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden; /* No page scroll */
+  height: 100vh;
+  min-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
-/* === MAIN CONTENT === */
 .main-content {
-    width: 95%;
-    min-width: 1000px;
-    margin: 0 auto;
-    padding: 1rem 2rem;
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    box-sizing: border-box;
-    overflow-y: auto;  /* Vertikální scroll v main contentu */
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
+  width: 95%;
+  min-width: 1000px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* === NAV === */
-nav {
-    flex-shrink: 0;  /* Navbar se nezmenší */
-}
-
-/* === FOOTER === */
-footer {
-    flex-shrink: 0;  /* Footer se nezmenší */
-}
-
-/* === NAV LINKS HOVER === */
-nav a:hover {
-    background: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* === INPUT FOCUS === */
-/* NOTE: Focus styles managed by design-system.css (blue focus state) */
+nav { flex-shrink: 0; }
+footer { flex-shrink: 0; }
 
 /* Chrome/Safari autofill fix */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset !important;
-    -webkit-text-fill-color: var(--text-primary) !important;
-    transition: background-color 5000s ease-in-out 0s;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

@@ -111,52 +111,65 @@ const isDisabled = computed(() => props.disabled || props.loading)
   min-height: 40px;
 }
 
-/* Variants */
+/* Variants — ALL ghost pattern (DS v4.0 Minimal Dark) */
 .base-button--primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.base-button--primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.base-button--secondary {
-  background: var(--color-secondary);
-  color: white;
-}
-
-.base-button--secondary:hover:not(:disabled) {
-  background: var(--color-secondary-hover);
-}
-
-.base-button--danger {
-  background: var(--color-danger);
-  color: white;
-}
-
-.base-button--danger:hover:not(:disabled) {
-  background: var(--color-danger-hover);
-}
-
-.base-button--success {
-  background: var(--color-success);
-  color: white;
-}
-
-.base-button--success:hover:not(:disabled) {
-  background: var(--color-success-hover);
-}
-
-.base-button--ghost {
   background: transparent;
   color: var(--text-body);
   border: 1px solid var(--border-default);
 }
 
-.base-button--ghost:hover:not(:disabled) {
-  background: var(--state-hover);
+.base-button--primary:hover:not(:disabled) {
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
+}
+
+.base-button--secondary {
+  background: transparent;
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+}
+
+.base-button--secondary:hover:not(:disabled) {
+  background: var(--hover);
   border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.base-button--danger {
+  background: transparent;
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+}
+
+.base-button--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+
+.base-button--success {
+  background: transparent;
+  color: var(--text-body);
+  border: 1px solid var(--border-default);
+}
+
+.base-button--success:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--status-ok);
+  color: var(--status-ok);
+}
+
+.base-button--ghost {
+  background: transparent;
+  color: var(--text-body);
+  border: 1px solid transparent;
+}
+
+.base-button--ghost:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
 }
 
 /* States */

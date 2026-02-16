@@ -1,5 +1,8 @@
 /**
- * Parts Store - Manages parts list and CRUD operations
+ * Parts Store - Manages parts list with infinite scroll (lazy loading)
+ *
+ * fetchParts() = reset + load first batch
+ * fetchMore()  = append next batch (called by IntersectionObserver in UI)
  */
 
 import { defineStore } from 'pinia'
@@ -7,6 +10,9 @@ import { ref, computed } from 'vue'
 import type { Part, PartCreate, PartUpdate } from '@/types/part'
 import * as partsApi from '@/api/parts'
 import { useUiStore } from './ui'
+
+const PAGE_SIZE = 200   // First load — enough rows to fill any screen
+const BATCH_SIZE = 50   // Incremental loads — small + fast for smooth scroll
 
 export const usePartsStore = defineStore('parts', () => {
   const ui = useUiStore()
@@ -16,38 +22,68 @@ export const usePartsStore = defineStore('parts', () => {
   const currentPart = ref<Part | null>(null)
   const total = ref(0)
   const loading = ref(false)
+  const loadingMore = ref(false)
   const searchQuery = ref('')
-  const skip = ref(0)
-  const limit = ref(50)
+  const statusFilter = ref<string | undefined>(undefined)
+
+  // True only on first load when parts list is empty (shows skeleton/spinner)
+  // After first load, refreshes happen silently in background
+  const initialLoading = computed(() => loading.value && parts.value.length === 0)
 
   // Computed
   const hasParts = computed(() => parts.value.length > 0)
-  const hasMore = computed(() => skip.value + limit.value < total.value)
-  const currentPage = computed(() => Math.floor(skip.value / limit.value) + 1)
-  const totalPages = computed(() => Math.ceil(total.value / limit.value))
+  const hasMore = computed(() => parts.value.length < total.value)
+  const allLoaded = computed(() => !hasMore.value && total.value > 0)
 
-  // Actions
+  // Legacy computed (kept for backwards compat)
+  const skip = computed(() => parts.value.length)
+  const limit = ref(PAGE_SIZE)
+  const currentPage = computed(() => Math.floor(parts.value.length / PAGE_SIZE) + 1)
+  const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
+
+  /**
+   * Fetch parts — resets list and loads first batch.
+   * Called on mount, filter change, search change.
+   */
   async function fetchParts() {
     loading.value = true
     try {
-      if (searchQuery.value.trim()) {
-        const response = await partsApi.searchParts(
-          searchQuery.value,
-          skip.value,
-          limit.value
-        )
-        parts.value = response.parts
-        total.value = response.total
-      } else {
-        const data = await partsApi.getParts(skip.value, limit.value)
-        parts.value = data
-        total.value = data.length // Simple pagination without total count
-      }
+      const response = await partsApi.getParts(
+        0,
+        PAGE_SIZE,
+        statusFilter.value,
+        searchQuery.value.trim() || undefined
+      )
+      parts.value = response.parts
+      total.value = response.total
     } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání dílů')
+      ui.showError(error.message || 'Chyba pri nacitani dilu')
       throw error
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * Fetch more parts — appends next batch.
+   * Called by IntersectionObserver when user scrolls to bottom.
+   */
+  async function fetchMore() {
+    if (loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+    try {
+      const response = await partsApi.getParts(
+        parts.value.length,
+        BATCH_SIZE,
+        statusFilter.value,
+        searchQuery.value.trim() || undefined
+      )
+      parts.value.push(...response.parts)
+      total.value = response.total
+    } catch (error: any) {
+      ui.showError(error.message || 'Chyba pri nacitani dalsich dilu')
+    } finally {
+      loadingMore.value = false
     }
   }
 
@@ -57,7 +93,7 @@ export const usePartsStore = defineStore('parts', () => {
       currentPart.value = await partsApi.getPart(partNumber)
       return currentPart.value
     } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání dílu')
+      ui.showError(error.message || 'Chyba pri nacitani dilu')
       throw error
     } finally {
       loading.value = false
@@ -78,10 +114,10 @@ export const usePartsStore = defineStore('parts', () => {
       const newPart = await partsApi.createPart(data, copyFrom)
       parts.value.unshift(newPart)
       total.value++
-      ui.showSuccess(copyFrom ? 'Díl zkopírován' : 'Díl vytvořen')
+      ui.showSuccess(copyFrom ? 'Dil zkopirovan' : 'Dil vytvoren')
       return newPart
     } catch (error: any) {
-      ui.showError(error.message || 'Chyba při vytváření dílu')
+      ui.showError(error.message || 'Chyba pri vytvareni dilu')
       throw error
     } finally {
       loading.value = false
@@ -104,15 +140,15 @@ export const usePartsStore = defineStore('parts', () => {
         currentPart.value = updatedPart
       }
 
-      ui.showSuccess('Díl aktualizován')
+      ui.showSuccess('Dil aktualizovan')
       return updatedPart
     } catch (error: any) {
       // Handle version conflict - auto-reload data
       if (error.response?.status === 409) {
         await fetchPart(partNumber)
-        ui.showWarning('Data byla změněna. Načtena aktuální verze - zkuste změnu znovu.')
+        ui.showWarning('Data byla zmenena. Nactena aktualni verze - zkuste zmenu znovu.')
       } else {
-        ui.showError(error.message || 'Chyba při aktualizaci dílu')
+        ui.showError(error.message || 'Chyba pri aktualizaci dilu')
       }
       throw error
     } finally {
@@ -126,10 +162,10 @@ export const usePartsStore = defineStore('parts', () => {
       const newPart = await partsApi.duplicatePart(partNumber)
       parts.value.unshift(newPart)
       total.value++
-      ui.showSuccess(`Díl duplikován: ${newPart.part_number}`)
+      ui.showSuccess(`Dil duplikovan: ${newPart.part_number}`)
       return newPart
     } catch (error: any) {
-      ui.showError(error.message || 'Chyba při duplikaci dílu')
+      ui.showError(error.message || 'Chyba pri duplikaci dilu')
       throw error
     } finally {
       loading.value = false
@@ -153,9 +189,9 @@ export const usePartsStore = defineStore('parts', () => {
         currentPart.value = null
       }
 
-      ui.showSuccess('Díl smazán')
+      ui.showSuccess('Dil smazan')
     } catch (error: any) {
-      ui.showError(error.message || 'Chyba při mazání dílu')
+      ui.showError(error.message || 'Chyba pri mazani dilu')
       throw error
     } finally {
       loading.value = false
@@ -164,41 +200,27 @@ export const usePartsStore = defineStore('parts', () => {
 
   function setSearchQuery(query: string) {
     searchQuery.value = query
-    skip.value = 0 // Reset to first page
   }
 
+  function setStatusFilter(status: string | undefined) {
+    statusFilter.value = status
+  }
+
+  // Legacy pagination methods (kept for backwards compat)
   function nextPage() {
-    if (hasMore.value) {
-      skip.value += limit.value
-      fetchParts()
-    }
+    if (hasMore.value) fetchMore()
   }
 
-  function prevPage() {
-    if (skip.value > 0) {
-      skip.value = Math.max(0, skip.value - limit.value)
-      fetchParts()
-    }
-  }
-
-  function goToPage(page: number) {
-    skip.value = (page - 1) * limit.value
-    fetchParts()
-  }
-
-  function setLimit(newLimit: number) {
-    limit.value = newLimit
-    skip.value = 0
-    fetchParts()
-  }
+  function prevPage() { /* no-op in infinite scroll */ }
+  function goToPage(_page: number) { /* no-op in infinite scroll */ }
+  function setLimit(_newLimit: number) { /* no-op in infinite scroll */ }
 
   function reset() {
     parts.value = []
     currentPart.value = null
     total.value = 0
     searchQuery.value = ''
-    skip.value = 0
-    limit.value = 50
+    statusFilter.value = undefined
   }
 
   return {
@@ -207,22 +229,28 @@ export const usePartsStore = defineStore('parts', () => {
     currentPart,
     total,
     loading,
+    loadingMore,
     searchQuery,
+    statusFilter,
     skip,
     limit,
     // Computed
     hasParts,
     hasMore,
+    allLoaded,
+    initialLoading,
     currentPage,
     totalPages,
     // Actions
     fetchParts,
+    fetchMore,
     fetchPart,
     createPart,
     updatePart,
     duplicatePart,
     deletePart,
     setSearchQuery,
+    setStatusFilter,
     nextPage,
     prevPage,
     goToPage,

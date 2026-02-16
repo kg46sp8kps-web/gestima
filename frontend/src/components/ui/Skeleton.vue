@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<Props>(), {
     var(--skeleton-base) 75%
   );
   background-size: 200% 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-animated {
@@ -64,19 +64,19 @@ const props = withDefaults(defineProps<Props>(), {
 .skeleton-text {
   height: 1em;
   min-height: 12px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Row variant - table row height (existing: 48px from specs) */
 .skeleton-row {
   height: 48px;
   border-radius: 0; /* Rows = no radius */
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 /* Circle variant - avatar, icons */
 .skeleton-circle {
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   width: var(--size, 32px);
   height: var(--size, 32px);
 }

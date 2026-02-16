@@ -88,14 +88,13 @@ async def db_session():
 @pytest.fixture
 def sample_part_data():
     """
-    Sample Part data factory (ADR-011).
-    Usage: sample_part_data(material_item_id=session.test_material_item.id)
+    Sample Part data factory (ADR-024: no material fields on Part).
+    Usage: sample_part_data()
     """
-    def _create(material_item_id=1):
+    def _create():
         return {
             "part_number": "TEST-001",
             "name": "Testovací hřídel",
-            "material_item_id": material_item_id,
             "length": 120.0,
         }
     return _create

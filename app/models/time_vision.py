@@ -20,6 +20,12 @@ class TimeVisionEstimation(Base, AuditMixin):
     pdf_filename = Column(String(255), nullable=False)
     pdf_path = Column(String(500), nullable=False)
 
+    # ADR-044 Phase 2: FileManager integration
+    file_id = Column(Integer, ForeignKey("file_records.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # ADR-045: Direct Part ↔ TimeVision relationship (replaces filename matching)
+    part_id = Column(Integer, ForeignKey("parts.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # AI provider: "openai" (base GPT-4o), "openai_ft" (fine-tuned)
     ai_provider = Column(String(20), default="openai", nullable=False)
     # Full model identifier (e.g. "ft:gpt-4o-2024-08-06:kovo-rybka:gestima-v1:D8oakyjH")
@@ -66,8 +72,16 @@ class TimeVisionEstimation(Base, AuditMixin):
     # calibrated = human estimate filled, verified = actual production time filled
     status = Column(String(20), default="pending", nullable=False, index=True)
 
+    # Feature Extraction (v2 estimation pipeline)
+    estimation_type = Column(String(20), nullable=False, default="time_v1", server_default="time_v1", index=True)
+    features_json = Column(Text, nullable=True)  # AI-extracted features JSON
+    features_corrected_json = Column(Text, nullable=True)  # Human-corrected features (ground truth for FT)
+    calculated_time_min = Column(Float, nullable=True)  # Deterministic calculation from features
+
     # Relationships
     material_group = relationship("MaterialGroup", foreign_keys=[material_group_id])
+    file_record = relationship("FileRecord", foreign_keys=[file_id])
+    part = relationship("Part", foreign_keys=[part_id])
 
 
 # ========== PYDANTIC SCHEMAS ==========
@@ -122,6 +136,29 @@ class SimilarPartMatch(BaseModel):
     actual_time_min: float
     similarity_score: float = Field(ge=0, le=1)
     score_breakdown: dict = Field(default_factory=dict)
+    file_id: Optional[int] = None
+
+
+class FeatureItem(BaseModel):
+    """Single feature extracted from drawing"""
+    type: str = Field(..., min_length=1, max_length=100, description="Feature type (e.g. hole, slot, thread)")
+    count: int = Field(1, gt=0, description="Number of instances")
+    detail: str = Field("", max_length=500, description="Feature details (dimensions, notes)")
+    location: Optional[str] = Field(None, max_length=100, description="Feature location on part")
+
+
+class FeaturesExtractionResult(BaseModel):
+    """Structured feature extraction from drawing PDF"""
+    model_config = ConfigDict(from_attributes=True)
+
+    drawing_number: Optional[str] = Field(None, max_length=100)
+    part_name: Optional[str] = Field(None, max_length=200)
+    part_type: Optional[str] = Field(None, max_length=20)
+    material: Optional[dict] = Field(None, description="Material information")
+    overall_dimensions: Optional[dict] = Field(None, description="Overall part dimensions")
+    features: List[FeatureItem] = Field(default_factory=list, description="List of features")
+    general_notes: List[str] = Field(default_factory=list, description="General notes")
+    feature_summary: Optional[dict] = Field(None, description="Feature summary/statistics")
 
 
 class TimeVisionResponse(BaseModel):
@@ -133,6 +170,8 @@ class TimeVisionResponse(BaseModel):
     status: str
     ai_provider: str = Field(default="openai")
     ai_model: Optional[str] = None
+    file_id: Optional[int] = None
+    part_id: Optional[int] = None
 
     part_type: Optional[str] = None
     complexity: Optional[str] = None
@@ -160,6 +199,12 @@ class TimeVisionResponse(BaseModel):
     actual_notes: Optional[str] = None
     human_estimate_min: Optional[float] = None
 
+    # Feature extraction (v2 pipeline)
+    estimation_type: str = Field(default="time_v1")
+    features_json: Optional[str] = None
+    features_corrected_json: Optional[str] = None
+    calculated_time_min: Optional[float] = None
+
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     version: int = Field(default=0)
@@ -174,6 +219,8 @@ class TimeVisionListItem(BaseModel):
     status: str
     ai_provider: str = Field(default="openai")
     ai_model: Optional[str] = None
+    file_id: Optional[int] = None
+    part_id: Optional[int] = None
     part_type: Optional[str] = None
     complexity: Optional[str] = None
     material_detected: Optional[str] = None
@@ -182,6 +229,10 @@ class TimeVisionListItem(BaseModel):
     human_estimate_min: Optional[float] = None
     confidence: Optional[str] = None
     created_at: Optional[datetime] = None
+
+    # Feature extraction (v2 pipeline)
+    estimation_type: str = Field(default="time_v1")
+    calculated_time_min: Optional[float] = None
 
 
 class TimeVisionActualTimeUpdate(BaseModel):

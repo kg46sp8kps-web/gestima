@@ -81,8 +81,23 @@ from app.models.module_defaults import (
     ModuleDefaultsResponse
 )
 from app.models.drawing import Drawing
-from app.models.turning_estimation import TurningEstimation
-from app.models.milling_estimation import MillingEstimation
+from app.models.file_record import FileRecord, FileLink
+from app.models.production_record import (
+    ProductionRecord,
+    ProductionRecordCreate,
+    ProductionRecordUpdate,
+    ProductionRecordResponse,
+)
+from app.models.time_vision import (
+    TimeVisionEstimation,
+    TimeVisionResponse,
+    TimeVisionListItem,
+    TimeVisionActualTimeUpdate,
+    VisionExtractionResult,
+    TimeEstimationResult,
+    OperationBreakdown,
+    SimilarPartMatch,
+)
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
@@ -108,5 +123,8 @@ __all__ = [
     "ModuleLayout", "ModuleLayoutCreate", "ModuleLayoutUpdate", "ModuleLayoutResponse",
     "ModuleDefaults", "ModuleDefaultsCreate", "ModuleDefaultsUpdate", "ModuleDefaultsResponse",
     "Drawing",
-    "TurningEstimation", "MillingEstimation",
+    "FileRecord", "FileLink",
+    "TimeVisionEstimation", "TimeVisionResponse", "TimeVisionListItem", "TimeVisionActualTimeUpdate",
+    "VisionExtractionResult", "TimeEstimationResult", "OperationBreakdown", "SimilarPartMatch",
+    "ProductionRecord", "ProductionRecordCreate", "ProductionRecordUpdate", "ProductionRecordResponse",
 ]

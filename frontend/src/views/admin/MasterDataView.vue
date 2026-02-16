@@ -9,8 +9,6 @@ import { useUiStore } from '@/stores/ui'
 import { useOperationsStore } from '@/stores/operations'
 import { Trash2, CheckCircle, XCircle } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
-import MachiningTimeEstimationModule from '@/components/modules/estimation/MachiningTimeEstimationModule.vue'
-import ManualEstimationListModule from '@/components/modules/estimation/ManualEstimationListModule.vue'
 import type { MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialGroup, MaterialGroupCreate, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate, MaterialPriceTier, MaterialPriceTierCreate, MaterialPriceTierUpdate } from '@/types/material'
 import type { WorkCenter, WorkCenterCreate, WorkCenterUpdate, WorkCenterType } from '@/types/operation'
 import { confirm } from '@/composables/useDialog'
@@ -42,9 +40,7 @@ const tabs = [
   { label: 'Normy materiálů', icon: 'ClipboardList' },
   { label: 'Skupiny materiálů', icon: 'Tag' },
   { label: 'Cenové kategorie', icon: 'DollarSign' },
-  { label: 'Pracoviště', icon: 'Factory' },
-  { label: 'Odhad strojních časů', icon: 'Clock' },
-  { label: 'ML Time Estimation', icon: 'Brain' }
+  { label: 'Pracoviště', icon: 'Factory' }
 ]
 
 // Tab 0: Material Norms
@@ -1297,20 +1293,6 @@ onMounted(async () => {
             </Modal>
           </div>
         </template>
-
-        <!-- Tab 4: Machining Time Estimation -->
-        <template #tab-4>
-          <div class="tab-content tab-content-full">
-            <MachiningTimeEstimationModule />
-          </div>
-        </template>
-
-        <!-- Tab 5: ML Time Estimation (Manual Training Data Collection) -->
-        <template #tab-5>
-          <div class="tab-content tab-content-full">
-            <ManualEstimationListModule />
-          </div>
-        </template>
       </FormTabs>
     </div>
   </div>
@@ -1426,9 +1408,9 @@ onMounted(async () => {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--accent-primary);
+  border-color: var(--brand);
   background: var(--bg-surface);
-  box-shadow: 0 0 0 3px var(--accent-primary-bg);
+  box-shadow: 0 0 0 3px var(--brand-subtle);
 }
 
 .form-hint {
@@ -1508,8 +1490,8 @@ onMounted(async () => {
 }
 
 .data-table tbody tr.new-row {
-  background: var(--accent-primary-bg);
-  border-left: 3px solid var(--accent-primary);
+  background: var(--brand-subtle);
+  border-left: 3px solid var(--brand);
 }
 
 .editable-cell {
@@ -1520,8 +1502,8 @@ onMounted(async () => {
 }
 
 .editable-cell:hover {
-  background: var(--accent-primary-bg);
-  box-shadow: 0 0 0 1px var(--accent-primary);
+  background: var(--brand-subtle);
+  box-shadow: 0 0 0 1px var(--brand);
 }
 
 .editable-cell input {
@@ -1532,18 +1514,18 @@ onMounted(async () => {
 .inline-input {
   width: 100%;
   padding: var(--space-1) var(--space-2);
-  border: 2px solid var(--accent-primary);
+  border: 2px solid var(--brand);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   background: var(--bg-surface);
   color: var(--text-primary);
-  box-shadow: 0 0 0 3px var(--accent-primary-bg);
+  box-shadow: 0 0 0 3px var(--brand-subtle);
 }
 
 .inline-input:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 4px var(--accent-primary-bg);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-subtle);
 }
 
 .empty-cell {

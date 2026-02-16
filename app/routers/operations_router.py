@@ -84,12 +84,7 @@ async def update_operation(
         logger.warning(f"Version conflict updating operation {operation_id}: expected {data.version}, got {operation.version}", extra={"operation_id": operation_id, "user": current_user.username})
         raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
 
-    # Locked field validation - nelze měnit zamčené hodnoty (ADR-021)
     update_data = data.model_dump(exclude_unset=True, exclude={'version'})
-    if operation.setup_time_locked and 'setup_time_min' in update_data:
-        raise HTTPException(status_code=400, detail="Čas seřízení (tp) je uzamčen a nelze jej změnit")
-    if operation.operation_time_locked and 'operation_time_min' in update_data:
-        raise HTTPException(status_code=400, detail="Čas operace (tj) je uzamčen a nelze jej změnit")
 
     # Update fields (exclude version - it's auto-incremented by event listener)
     for key, value in update_data.items():

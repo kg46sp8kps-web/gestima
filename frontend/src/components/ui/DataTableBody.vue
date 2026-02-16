@@ -155,11 +155,11 @@ function isSelected(row: Record<string, unknown>): boolean {
 }
 
 .data-table tbody tr.selected {
-  background: var(--accent-subtle);
+  background: var(--brand-subtle);
 }
 
 .data-table tbody tr.selected:hover {
-  background: var(--accent-muted);
+  background: var(--text-tertiary);
 }
 
 .data-table tbody tr.highlighted {

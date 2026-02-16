@@ -8,7 +8,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useWindowsStore } from '@/stores/windows'
-import { Menu, X, Package, DollarSign, Cog, Box, Layers, LayoutGrid, Users, FileText, Database, Scan } from 'lucide-vue-next'
+import { Menu, X, Package, DollarSign, Cog, Box, Layers, LayoutGrid, Users, FileText, Database, Calculator, Zap, FolderOpen } from 'lucide-vue-next'
 import ManageLayoutsModal from '@/components/modals/ManageLayoutsModal.vue'
 import AppMainMenu from './AppMainMenu.vue'
 import AppSearchBar from './AppSearchBar.vue'
@@ -42,8 +42,10 @@ const availableModules = [
   { value: 'quotes-list', label: 'Nabídky', icon: FileText },
   { value: 'manufacturing-items', label: 'Vyráběné položky', icon: Package },
   { value: 'material-items-list', label: 'Materiálové položky', icon: Box },
-  { value: 'feature-recognition', label: 'Feature Recognition', icon: Scan },
   { value: 'master-admin', label: 'Admin', icon: Database },
+  { value: 'accounting', label: 'Účetnictví', icon: Calculator },
+  { value: 'time-vision', label: 'TimeVision', icon: Zap },
+  { value: 'file-manager', label: 'File Manager', icon: FolderOpen },
   { value: 'template', label: 'Template (Demo)', icon: LayoutGrid }
 ]
 

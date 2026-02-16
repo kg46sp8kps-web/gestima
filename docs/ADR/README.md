@@ -50,19 +50,21 @@ Každý ADR obsahuje:
 | 032 | Infor Material Import System with Generic Base | Implementováno | 2026-02-03 |
 | 033 | Surface Treatment Integration for Material Items | Implementováno | 2026-02-04 |
 | 034 | Infor Item Code Parsing Patterns | Implementováno | 2026-02-04 |
-| 040 | Physics-Based Machining Time Estimation | Implemented | 2026-02-08 |
-| 041 | ML-Based Machining Time Estimation | Přijato (Phase 1-6) | 2026-02-09 |
-| VIS-001 | Soft Delete for Future Modules | Přijato | 2026-01-25 |
-| VIS-002 | Quotes Workflow & Snapshot Protection | Implementováno | 2026-01-31 |
+| 035 | TimeVision Calibrated Estimation | Implementováno | 2026-02-09 |
+| 043 | TimeVision → Technology Integration | Implementováno | 2026-02-14 |
+| 044 | File Manager | Implementováno (Phase 2a) | 2026-02-15 |
+| 045 | Feature-Based Time Calculation | DRAFT | 2026-02-16 |
+| 046 | Infor Connector | DRAFT | 2026-02-16 |
 
 ## Archivované ADRs
 
 | ID | Název | Důvod archivace |
 |----|-------|-----------------|
-| 002 | Snapshot Pattern (původní návrh) | Nahrazeno ADR-012 (Minimal Snapshot) - implementována minimal verze místo full snapshot |
-| 017-v1 | 7-Digit Random Numbering | Nahrazeno ADR-017 v2.0 (8-digit) - rozšíření na 100 prefixů |
-| 039 | Vision Hybrid Pipeline | DEPRECATED (2026-02-08) - Nahrazeno ADR-040 (Physics-Based MRR). Feature Recognition pipeline smazán (~2500 LOC). Archivováno v `docs/archive/deprecated-2026-02-08/` |
-| 041-v1 | Batch Machining Time Estimation | DEPRECATED (2026-02-08) - Unified do ADR-040. Batch estimation sloučen do main pipeline. Archivováno v `docs/archive/deprecated-2026-02-08/` |
+| 002 | Snapshot Pattern (původní návrh) | Nahrazeno ADR-012 (Minimal Snapshot) |
+| 017-v1 | 7-Digit Random Numbering | Nahrazeno ADR-017 v2.0 (8-digit) |
+| 039 | Vision Hybrid Pipeline | DEPRECATED (2026-02-08) — nahrazeno ADR-040 |
+| 040 | Physics-Based MRR | DEPRECATED — nahrazeno ADR-035/045 |
+| 041 | ML-Based Machining Time | DEPRECATED (2026-02-08) — unified do ADR-035 |
 
 ## Kdy vytvořit nový ADR?
 

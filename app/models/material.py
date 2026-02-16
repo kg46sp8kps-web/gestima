@@ -69,6 +69,7 @@ class MaterialPriceCategory(Base, AuditMixin):
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(8), unique=True, nullable=False, index=True)     # "20900000" (8-digit: 20900000-20909999)
     name = Column(String(200), nullable=False)                            # "Hliník - tyč kruhová"
+    shape = Column(String(20), nullable=True, index=True)                 # StockShape value for robust matching
 
     # FK → MaterialGroup (Migration 2026-01-26: pro auto-assign hustoty)
     material_group_id = Column(Integer, ForeignKey("material_groups.id", ondelete="SET NULL"), nullable=True, index=True)

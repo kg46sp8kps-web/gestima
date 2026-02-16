@@ -9,7 +9,16 @@
           data-testid="toast"
           @click="ui.removeToast(toast.id)"
         >
-          <div class="toast-message">{{ toast.message }}</div>
+          <div class="toast-icon">
+            <CheckCircle2 v-if="toast.type === 'success'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+            <XCircle v-else-if="toast.type === 'error'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+            <AlertTriangle v-else-if="toast.type === 'warning'" :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+            <Info v-else :size="ICON_SIZE.STANDARD" :stroke-width="1.8" />
+          </div>
+          <div class="toast-content">
+            <div v-if="toast.title" class="toast-title">{{ toast.title }}</div>
+            <div class="toast-message">{{ toast.message }}</div>
+          </div>
           <button class="toast-close" @click.stop="ui.removeToast(toast.id)">
             <X :size="ICON_SIZE.SMALL" :stroke-width="2" />
           </button>
@@ -21,7 +30,7 @@
 
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
-import { X } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 const ui = useUiStore()
@@ -35,53 +44,64 @@ const ui = useUiStore()
   z-index: 10003;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
   pointer-events: none;
 }
 
 .toast {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: var(--space-3);
   min-width: 300px;
   max-width: 500px;
-  padding: 1rem;
-  background-color: #1f2937;
-  color: #f9fafb;
-  border-radius: 8px;
-  border-left: 4px solid;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-raised);
+  color: var(--text-body);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
   pointer-events: all;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--t-fast);
 }
 
 .toast:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-1px);
 }
 
-/* Border colors by type */
-.toast-success {
-  border-left-color: var(--color-success);
+/* Border-left colors by type */
+.toast-success { border-left-color: var(--status-ok); }
+.toast-error { border-left-color: var(--status-error); }
+.toast-warning { border-left-color: var(--status-warn); }
+.toast-info { border-left-color: var(--text-muted); }
+
+/* Icon colors */
+.toast-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--text-muted);
+}
+.toast-success .toast-icon { color: var(--status-ok); }
+.toast-error .toast-icon { color: var(--status-error); }
+.toast-warning .toast-icon { color: var(--status-warn); }
+
+.toast-content {
+  flex: 1;
+  min-width: 0;
 }
 
-.toast-error {
-  border-left-color: var(--color-danger);
-}
-
-.toast-warning {
-  border-left-color: var(--color-warning);
-}
-
-.toast-info {
-  border-left-color: var(--color-info);
+.toast-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  line-height: 1.3;
 }
 
 .toast-message {
-  flex: 1;
-  color: #f9fafb;
-  font-size: var(--text-xl);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
@@ -89,7 +109,7 @@ const ui = useUiStore()
   flex-shrink: 0;
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-disabled);
   cursor: pointer;
   padding: 0;
   width: 20px;
@@ -97,11 +117,11 @@ const ui = useUiStore()
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  transition: color var(--t-fast);
 }
 
 .toast-close:hover {
-  color: #f9fafb;
+  color: var(--text-primary);
 }
 
 /* Toast animations */

@@ -58,6 +58,22 @@ data/archive/
 # Claude Code memory (lokální learning data)
 .claude/memory/
 
-# Environment variables (pokud budou v budoucnu)
+# Environment variables
 .env
 .env.local
+
+# User uploads and drawings (runtime data, not source code)
+uploads/
+drawings/
+
+# Frontend build output served by backend
+app/static/assets/
+app/static/index.html
+app/static/favicon.ico
+app/static/logo.png
+
+# Node modules
+node_modules/
+
+# Vitest
+coverage/

@@ -40,10 +40,14 @@ from app.routers import (
     module_layouts_router,  # ADR-031: Visual Editor
     module_defaults_router,  # ADR-031: Module Defaults
     infor_router,  # Infor CloudSuite Industrial integration
+    infor_import_router,  # Infor Jobs import (Parts, Operations, ProductionRecords)
     step_router,  # STEP file serving (download, file listing)
     cutting_conditions_router,  # Cutting conditions catalog (v1.28.0)
     accounting_router,  # CsiXls accounting integration
     time_vision_router,  # TimeVision AI estimation
+    technology_builder_router,  # Technology Builder (Phase 1)
+    files_router,  # Centralized File Manager (ADR-044)
+    production_records_router,  # Production records (Infor actual times)
 )
 from app.database import async_session, engine, close_db
 
@@ -211,20 +215,20 @@ app.include_router(partners_router.router, prefix="/api/partners", tags=["Partne
 app.include_router(quotes_router.router, prefix="/api/quotes", tags=["Quotes"])
 app.include_router(quote_items_router.router, prefix="/api", tags=["Quote Items"])
 
-# Test/Mock endpoints (DEBUG only)
-if settings.DEBUG:
-    from app.routers import quotes_router_test
-    app.include_router(quotes_router_test.router, prefix="/api/quotes-test", tags=["Quotes Test"])
 app.include_router(uploads_router.router, prefix="/api/uploads", tags=["Uploads"])
 # Machines router removed - replaced by WorkCenters (ADR-021)
 app.include_router(work_centers_router.router, prefix="/api/work-centers", tags=["Work Centers"])
 app.include_router(module_layouts_router.router, prefix="/api", tags=["Module Layouts"])  # ADR-031
 app.include_router(module_defaults_router.router, prefix="/api", tags=["Module Defaults"])  # ADR-031
 app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
+app.include_router(infor_import_router.router, tags=["Infor Import"])  # Infor Jobs import (prefix in router)
 app.include_router(step_router.router, tags=["STEP"])  # STEP file serving (prefix in router)
 app.include_router(cutting_conditions_router.router, tags=["Cutting Conditions"])  # v1.28.0
 app.include_router(accounting_router.router, tags=["Accounting"])  # CsiXls integration
 app.include_router(time_vision_router.router, tags=["TimeVision"])  # TimeVision AI estimation (prefix in router)
+app.include_router(technology_builder_router.router, tags=["Technology Builder"])  # Technology Builder (Phase 1)
+app.include_router(files_router.router, tags=["Files"])  # Centralized File Manager (ADR-044, prefix in router)
+app.include_router(production_records_router.router, prefix="/api/production-records", tags=["Production Records"])
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
 app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])

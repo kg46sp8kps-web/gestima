@@ -142,8 +142,26 @@ async def seed_price_categories_v2(db: AsyncSession):
             .where(MaterialPriceCategory.code == cat_data['code'])
         )
 
-        if existing.scalar_one_or_none():
-            print(f"⏭️  [{cat_data['code']}] Already exists: {cat_data['name']}")
+        shape_value = cat_data['shape'].value if cat_data.get('shape') else None
+
+        existing_record = existing.scalar_one_or_none()
+        if existing_record:
+            # Always sync material_group_id and shape (idempotent)
+            updated_fields = []
+            if existing_record.material_group_id != material_group.id:
+                existing_record.material_group_id = material_group.id
+                updated_fields.append(f"group_id: {existing_record.material_group_id} → {material_group.id}")
+            if existing_record.shape != shape_value:
+                existing_record.shape = shape_value
+                updated_fields.append(f"shape: → {shape_value}")
+            if existing_record.name != cat_data['name']:
+                existing_record.name = cat_data['name']
+                updated_fields.append(f"name: → {cat_data['name']}")
+
+            if updated_fields:
+                print(f"🔄 [{cat_data['code']}] Updated: {', '.join(updated_fields)}")
+            else:
+                print(f"⏭️  [{cat_data['code']}] Already correct: {cat_data['name']}")
             skipped_count += 1
             continue
 
@@ -151,6 +169,7 @@ async def seed_price_categories_v2(db: AsyncSession):
         new_category = MaterialPriceCategory(
             code=cat_data['code'],
             name=cat_data['name'],
+            shape=shape_value,
             material_group_id=material_group.id
         )
 

@@ -21,6 +21,7 @@
 
 import { ref, computed } from 'vue'
 import { AlertTriangle, FileText, Upload } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   modelValue: File | null
@@ -193,7 +194,7 @@ function removeFile() {
       <!-- Error state -->
       <div v-else-if="errorMessage" class="state-content">
         <span class="state-icon error">
-          <AlertTriangle :size="48" :stroke-width="2" />
+          <AlertTriangle :size="ICON_SIZE.HERO" :stroke-width="2" />
         </span>
         <p class="state-label error">{{ errorMessage }}</p>
         <button type="button" @click.stop="removeFile" class="btn-remove">
@@ -204,7 +205,7 @@ function removeFile() {
       <!-- Success state (file selected) -->
       <div v-else-if="hasFile" class="state-content">
         <span class="state-icon success">
-          <FileText :size="48" :stroke-width="2" />
+          <FileText :size="ICON_SIZE.HERO" :stroke-width="2" />
         </span>
         <p class="state-label success">{{ fileName }}</p>
         <p class="file-size">{{ fileSize }}</p>
@@ -216,7 +217,7 @@ function removeFile() {
       <!-- Idle state (empty) -->
       <div v-else class="state-content">
         <span class="state-icon">
-          <Upload :size="48" :stroke-width="2" />
+          <Upload :size="ICON_SIZE.HERO" :stroke-width="2" />
         </span>
         <p class="state-label">{{ label }}</p>
         <p class="state-hint">Max size: {{ (maxSize / (1024 * 1024)).toFixed(1) }} MB</p>
@@ -253,7 +254,7 @@ function removeFile() {
 .drop-area:focus {
   outline: none;
   border-color: var(--state-focus-border);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px var(--brand-subtle);
 }
 
 .drop-area.is-dragging {

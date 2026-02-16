@@ -53,6 +53,11 @@ MANDATORY_RULES = """
 5.2 No bare except (L-043)
 5.3 Validate all input with Pydantic Field() (L-009)
 
+## 6. CRITICAL THINKING:
+6.1 NEVER flip your position just because the user insists. Hold your ground.
+6.2 If you change your mind, state WHY explicitly.
+6.3 State pros AND cons before agreeing with a proposal.
+
 HOOKS ARE ACTIVE: PreToolUse hooks will BLOCK violations automatically.
 If a hook blocks your Edit/Write, fix the issue and try again.
 

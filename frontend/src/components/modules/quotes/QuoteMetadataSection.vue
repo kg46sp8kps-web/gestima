@@ -30,7 +30,7 @@ function updateField(field: keyof Metadata, value: string | number) {
 
 <template>
   <div class="metadata-section">
-    <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
+    <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Detaily nabídky</h2>
     <div class="form-row">
       <div class="form-field">
         <label>Název nabídky *</label>
@@ -106,21 +106,21 @@ function updateField(field: keyof Metadata, value: string | number) {
 }
 
 .form-field label {
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--palette-neutral-300);
+  color: var(--text-body);
 }
 
 .form-input,
 .form-textarea {
   width: 100%;
   padding: var(--space-3);
-  background: var(--palette-neutral-800);
-  border: 1px solid var(--palette-neutral-600);
+  background: var(--border-default);
+  border: 1px solid var(--text-muted);
   border-radius: var(--radius-sm);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
   font-family: inherit;
-  font-size: var(--font-size-base);
+  font-size: var(--text-base);
 }
 
 .form-textarea {
@@ -130,6 +130,6 @@ function updateField(field: keyof Metadata, value: string | number) {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--palette-neutral-400);
+  border-color: var(--text-secondary);
 }
 </style>

@@ -22,12 +22,9 @@ Tento dokument obsahuje detailní popisy všech anti-patternů (L-001 až L-021)
 | L-009 | Pydantic bez validací | Field() vždy |
 | L-010 | Záplatování bugů | Opravit root cause |
 | L-011 | CSS conflicts | Inline override global CSS |
-| L-012 | HTMX boost + Alpine | NEPOUŽÍVAT hx-boost s Alpine.js |
 | L-013 | Debounced race + NaN | Sequence tracking + isNaN() |
-| L-014 | Alpine x-show null errors | Použít x-if místo x-show |
 | L-015 | **Změna validace → fit data** | **READ ADRs! Fix DATA, ne validaci** |
 | L-016 | Regex partial match | Použít `\b` word boundaries |
-| L-017 | Alpine Proxy race condition | JSON.parse(JSON.stringify()) snapshot |
 | L-018 | `select()` na `input[type="number"]` | Použít data-fresh pattern |
 | L-019 | Debounce data loss při rychlém opuštění | beforeunload warning + sync flush |
 | L-020 | Module name collision | Jen JEDNA implementace per modul |
@@ -138,25 +135,6 @@ IF bug:
 
 ---
 
-### L-012: HTMX Boost + Alpine.js = NEPOUŽÍVAT
-
-**Rozhodnutí:** `hx-boost` je v GESTIMA **VYPNUTÝ**.
-
-**Proč:**
-- HTMX při AJAX navigaci NESPOUŠTÍ `<script>` tagy
-- Alpine komponenty se nezaregistrují
-- CSS/layout se chová jinak než při full page load
-
-**HTMX používáme pro:**
-- Dynamické načítání fragmentů (`hx-get`, `hx-post`)
-- Inline editing
-- Partial updates
-
-**HTMX NEPOUŽÍVÁME pro:**
-- Globální SPA-like navigaci (`hx-boost`)
-
----
-
 ### L-013: Debounced Updates - Race Condition + NaN Handling
 
 **Problém:** Stale API responses přijdou v nesprávném pořadí.
@@ -188,36 +166,6 @@ const normalizeValue = (value, defaultValue) => {
     }
     return value;
 };
-```
-
----
-
-### L-014: Alpine.js x-show with Null Object Properties
-
-**Problém:** Alpine.js evaluuje VŠECHNY expressions, i když parent má `x-show="false"`.
-
-**❌ ŠPATNĚ:**
-```html
-<div x-show="parseResult && parseResult.confidence > 0">
-    <span x-text="parseResult.confidence"></span>  <!-- Evaluuje se! -->
-</div>
-```
-
-**✅ SPRÁVNĚ:**
-```html
-<template x-if="parseResult && parseResult.confidence > 0">
-    <div>
-        <span x-text="parseResult.confidence"></span>  <!-- Jen když existuje -->
-    </div>
-</template>
-```
-
-**Rule of thumb:**
-```
-IF (používáš object.property V child elements):
-    → Použij x-if na parent
-ELSE:
-    → x-show je OK
 ```
 
 ---
@@ -259,27 +207,6 @@ IF ValidationError:
 
 // ✅ SPRÁVNĚ
 /\b[67]\d{3}\b/  // Matchne pouze 6000-7999
-```
-
----
-
-### L-017: Alpine Proxy Race Condition
-
-**Problém:** Alpine.js objekty jsou Proxy - mění se v reálném čase.
-
-**Řešení:** Snapshot před asynchronní operací.
-
-```javascript
-// ❌ ŠPATNĚ
-setTimeout(() => {
-    sendAPI(op);  // op se mezitím změnil!
-}, 250);
-
-// ✅ SPRÁVNĚ
-const snapshot = JSON.parse(JSON.stringify(op));
-setTimeout(() => {
-    sendAPI(snapshot);  // Kopie, stabilní
-}, 250);
 ```
 
 ---
@@ -333,7 +260,7 @@ async init() {
 **Problém:** Když VÍCE souborů exportuje do `window.foo`, poslední přepíše předchozí.
 
 **Symptomy:**
-- Alpine.js errors: `statusFilter is not defined`
+- Runtime errors: `statusFilter is not defined`
 - Všechny properties undefined
 - Page prázdná i když backend vrací data
 

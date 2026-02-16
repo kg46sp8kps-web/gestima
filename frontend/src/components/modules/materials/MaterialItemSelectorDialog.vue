@@ -165,7 +165,7 @@ watch(() => props.visible, (visible) => {
         </div>
 
         <div v-else-if="filteredItems.length === 0" class="empty-state">
-          <Package :size="48" />
+          <Package :size="ICON_SIZE.HERO" />
           <p>Žádné položky nenalezeny</p>
         </div>
 
@@ -349,7 +349,7 @@ watch(() => props.visible, (visible) => {
 
 .meta-tag {
   font-size: var(--text-xs);
-  padding: 2px 6px;
+  padding: var(--space-0\.5) var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
   color: var(--text-tertiary);

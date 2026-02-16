@@ -5,14 +5,14 @@
  * LOC TARGET: <200 LOC
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Operation, CuttingMode, WorkCenter } from '@/types/operation'
 import type { LinkingGroup } from '@/stores/windows'
 import type { MaterialInputWithOperations } from '@/types/material'
 import CuttingModeButtons from '@/components/ui/CuttingModeButtons.vue'
 import CoopSettings from '@/components/ui/CoopSettings.vue'
 import MaterialLinksInfo from '@/components/ui/MaterialLinksInfo.vue'
-import { Trash2, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { Trash2, ChevronDown, ChevronRight, AlertTriangle, RotateCcw } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 interface Props {
@@ -34,6 +34,7 @@ interface Emits {
   (e: 'link-material', materialId: number): void
   (e: 'unlink-material', materialId: number): void
   (e: 'select'): void
+  (e: 'restore-ai-time'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -43,6 +44,21 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+// Track if operation time was modified by user (for AI reload button)
+const timeModified = ref(false)
+// Track last user-set value to distinguish user edits from external updates
+const lastUserTime = ref<number | null>(null)
+
+// Fix #3: Reset timeModified when operation_time_min changes externally
+// (e.g. AI panel update, restore from parent, store reload)
+watch(() => props.operation.operation_time_min, (newVal) => {
+  if (lastUserTime.value !== null && newVal !== lastUserTime.value) {
+    // External change (not from user input) — reset modified flag
+    timeModified.value = false
+    lastUserTime.value = null
+  }
+})
 
 // Compute max work center name width for dropdown sizing
 const maxWorkCenterWidth = computed(() => {
@@ -75,7 +91,16 @@ const timeSums = computed(() => {
 
 function handleTimeInput(field: 'setup_time_min' | 'operation_time_min', event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
+  if (field === 'operation_time_min' && props.operation.ai_estimation_id) {
+    timeModified.value = true
+    lastUserTime.value = value
+  }
   emit('update-field', field, value)
+}
+
+function handleRestoreAITime() {
+  timeModified.value = false
+  emit('restore-ai-time')
 }
 
 function handleWorkCenterChange(event: Event) {
@@ -98,7 +123,15 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   >
     <!-- Seq -->
     <td class="col-seq">
-      <span class="op-seq">{{ operation.seq }}</span>
+      <div class="seq-cell">
+        <span class="op-seq">{{ operation.seq }}</span>
+        <AlertTriangle
+          v-if="operation.ai_estimation_id"
+          :size="ICON_SIZE.SMALL"
+          class="ai-indicator"
+          title="Existuje AI odhad"
+        />
+      </div>
     </td>
 
     <!-- Work Center -->
@@ -129,22 +162,30 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
         @focus="($event.target as HTMLInputElement).select()"
         @input="handleTimeInput('setup_time_min', $event)"
         class="time-input"
-        :disabled="operation.setup_time_locked"
       />
     </td>
 
-    <!-- tj - operation time -->
+    <!-- tj - operation time (with AI restore button) -->
     <td class="col-time" @click.stop>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        :value="operation.operation_time_min"
-        @focus="($event.target as HTMLInputElement).select()"
-        @input="handleTimeInput('operation_time_min', $event)"
-        class="time-input"
-        :disabled="operation.operation_time_locked"
-      />
+      <div class="time-with-restore">
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          :value="operation.operation_time_min"
+          @focus="($event.target as HTMLInputElement).select()"
+          @input="handleTimeInput('operation_time_min', $event)"
+          class="time-input"
+        />
+        <button
+          v-if="operation.ai_estimation_id && timeModified"
+          class="restore-btn"
+          @click="handleRestoreAITime"
+          title="Vrátit AI čas"
+        >
+          <RotateCcw :size="ICON_SIZE.SMALL" />
+        </button>
+      </div>
     </td>
 
     <!-- Ko coefficient -->
@@ -319,9 +360,55 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .time-input:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
-  background: var(--bg-muted);
+}
+
+/* Time input with restore button beside it */
+.time-with-restore {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0\.5);
+}
+
+.time-with-restore .time-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.restore-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: var(--transition-fast);
+}
+
+.restore-btn:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Seq cell with AI indicator */
+.seq-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-0\.5);
+}
+
+.ai-indicator {
+  color: var(--status-ok);
+  flex-shrink: 0;
 }
 
 /* Coefficient Inputs */
@@ -407,7 +494,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   background: var(--color-warning);
   color: white;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: var(--font-semibold);
 }
 

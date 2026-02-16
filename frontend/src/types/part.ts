@@ -5,40 +5,25 @@
 /**
  * Part status - matches backend PartStatus enum
  */
-export type PartStatus = 'draft' | 'active' | 'archived'
+export type PartStatus = 'draft' | 'active' | 'archived' | 'quote'
 
 /**
- * Stock shape - matches backend StockShape enum
+ * Part source - matches backend PartSource enum
  */
-export type StockShape =
-  | 'round_bar'     // Tyč kruhová
-  | 'square_bar'    // Tyč čtvercová
-  | 'flat_bar'      // Tyč plochá
-  | 'hexagonal_bar' // Tyč šestihranná
-  | 'plate'         // Plech
-  | 'tube'          // Trubka
-  | 'casting'       // Odlitek
-  | 'forging'       // Výkovek
+export type PartSource = 'manual' | 'infor_import' | 'quote_request'
 
 export interface PartBase {
   part_number: string
   article_number: string | null
-  drawing_path: string | null
   name: string
   revision: string | null
   customer_revision: string | null
   drawing_number: string | null
+  drawing_path: string | null
   status: PartStatus
-  notes: string
-  material_item_id: number | null
-  price_category_id: number | null
+  source: PartSource
   length: number
-  stock_shape: StockShape | null
-  stock_diameter: number | null
-  stock_length: number | null
-  stock_width: number | null
-  stock_height: number | null
-  stock_wall_thickness: number | null
+  notes: string
 }
 
 export interface Part extends PartBase {
@@ -54,7 +39,6 @@ export interface Part extends PartBase {
  */
 export interface PartCreate {
   article_number?: string
-  drawing_path?: string | null
   name?: string
   customer_revision?: string | null
   drawing_number?: string | null

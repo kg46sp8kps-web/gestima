@@ -7,6 +7,7 @@
  */
 
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface ContourResult {
   filename: string
@@ -39,9 +40,9 @@ const emit = defineEmits<{
       :class="['file-item', { active: selectedFilename === r.filename, failed: !r.success }]"
       @click="emit('select', r.filename)"
     >
-      <CheckCircle v-if="r.profile" :size="14" class="icon-ok" />
-      <AlertTriangle v-else-if="r.success && !r.profile" :size="14" class="icon-warn" />
-      <XCircle v-else :size="14" class="icon-err" />
+      <CheckCircle v-if="r.profile" :size="ICON_SIZE.SMALL" class="icon-ok" />
+      <AlertTriangle v-else-if="r.success && !r.profile" :size="ICON_SIZE.SMALL" class="icon-warn" />
+      <XCircle v-else :size="ICON_SIZE.SMALL" class="icon-err" />
       <span class="fname">{{ r.filename }}</span>
       <span v-if="r.rotation_axis" class="axis-badge">{{ r.rotation_axis.toUpperCase() }}</span>
     </button>
@@ -52,7 +53,7 @@ const emit = defineEmits<{
 .file-list {
   width: 240px;
   min-width: 200px;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-default);
   overflow-y: auto;
   padding: var(--space-1);
 }
@@ -89,8 +90,8 @@ const emit = defineEmits<{
 .icon-err { color: var(--color-danger); }
 
 .axis-badge {
-  padding: 0 4px;
-  border-radius: 3px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
   background: var(--bg-hover);
   font-size: var(--text-2xs);
   font-weight: 600;

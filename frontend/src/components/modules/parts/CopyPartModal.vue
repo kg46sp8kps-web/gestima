@@ -84,7 +84,6 @@ async function handleConfirm() {
       name: props.sourcePart.name,
       customer_revision: props.sourcePart.customer_revision,
       drawing_number: props.sourcePart.drawing_number,
-      drawing_path: props.sourcePart.drawing_path,
       notes: props.sourcePart.notes
     }
 

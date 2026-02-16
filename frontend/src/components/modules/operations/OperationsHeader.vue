@@ -1,14 +1,17 @@
 <script setup lang="ts">
 /**
  * Operations Header Component
- * Displays part info and operations count
+ * Displays part info, operations count, and AI time warning
  */
 
 import type { Part } from '@/types/part'
+import { Sparkles } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   part: Part | null
   operationsCount: number
+  hasAIEstimation?: boolean
 }
 
 defineProps<Props>()
@@ -24,6 +27,10 @@ defineProps<Props>()
       <h2 class="placeholder">Vyberte díl</h2>
     </div>
     <div class="header-meta">
+      <span v-if="hasAIEstimation" class="ai-time-badge" title="Existuje AI odhad času">
+        <Sparkles :size="ICON_SIZE.SMALL" />
+        AI odhad
+      </span>
       <span class="count-badge">{{ operationsCount }} operací</span>
     </div>
   </div>
@@ -63,6 +70,18 @@ defineProps<Props>()
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
+}
+
+.ai-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--brand-text);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
 }
 
 .count-badge {

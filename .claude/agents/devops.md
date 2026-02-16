@@ -6,20 +6,6 @@ tools: Read, Edit, Bash, Grep, Glob
 disallowedTools: Write, Task
 skills:
   - gestima-rules
-hooks:
-  PreToolUse:
-    - matcher: "Edit"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/validate-edit.sh"
-    - matcher: "Edit"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/validate-docs.sh"
-    - matcher: "Bash"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/commit-guard.sh"
 ---
 
 # DevOps Manager — Gestima

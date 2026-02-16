@@ -100,16 +100,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Component Showcase (Design System)
-  {
-    path: '/showcase',
-    name: 'component-showcase',
-    component: () => import('@/views/ComponentShowcase.vue'),
-    meta: {
-      title: 'Design System Showcase'
-    }
-  },
-
   // Settings
   {
     path: '/settings',

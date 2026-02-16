@@ -7,6 +7,7 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 import { alert } from '@/composables/useDialog'
 import { ArrowRight } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 const props = defineProps<{
   isConnected: boolean
@@ -71,7 +72,7 @@ function useIdoForBrowse(idoName: string) {
           <div v-for="ido in foundIdos" :key="ido" class="ido-item">
             <span class="ido-name">{{ ido }}</span>
             <button @click="useIdoForBrowse(ido)" class="btn-link">
-              Browse <ArrowRight :size="14" />
+              Browse <ArrowRight :size="ICON_SIZE.SMALL" />
             </button>
           </div>
         </div>
@@ -114,7 +115,7 @@ function useIdoForBrowse(idoName: string) {
 .input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-primary);
@@ -140,12 +141,15 @@ function useIdoForBrowse(idoName: string) {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn:disabled {

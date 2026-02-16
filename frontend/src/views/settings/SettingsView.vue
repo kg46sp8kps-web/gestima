@@ -697,7 +697,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 
 .spacing-box {
   background: var(--color-info);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   min-width: 4px;
 }
 
@@ -725,13 +725,15 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-default);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn-secondary {

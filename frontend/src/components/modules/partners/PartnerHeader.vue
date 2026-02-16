@@ -98,8 +98,9 @@ const contactInfo = computed(() => {
 
 .partner-badge {
   padding: var(--space-1) var(--space-3);
-  background: var(--palette-primary);
-  color: white;
+  background: var(--brand-subtle);
+  color: var(--brand-text);
+  border: 1px solid var(--brand);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);

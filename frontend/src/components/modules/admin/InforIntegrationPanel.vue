@@ -18,7 +18,12 @@ import InforDiscoveryTab from './infor/InforDiscoveryTab.vue'
 import InforBrowserTab from './infor/InforBrowserTab.vue'
 import InforInfoTab from './infor/InforInfoTab.vue'
 import InforMaterialImportPanel from '../infor/InforMaterialImportPanel.vue'
-import { Plug, Search, Globe, Info, Download, Lock } from 'lucide-vue-next'
+import InforPurchasePricesTab from './infor/InforPurchasePricesTab.vue'
+import InforPartsImportTab from './infor/InforPartsImportTab.vue'
+import InforRoutingImportTab from './infor/InforRoutingImportTab.vue'
+import InforProductionImportTab from './infor/InforProductionImportTab.vue'
+import { Plug, Search, Globe, Info, Download, DollarSign, Lock, Package, Route, Factory } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 const props = defineProps<{
   isConnected: boolean
@@ -29,7 +34,7 @@ const emit = defineEmits<{
 }>()
 
 // Sub-tabs
-type InforSubTab = 'connection' | 'discovery' | 'browser' | 'info' | 'import'
+type InforSubTab = 'connection' | 'discovery' | 'browser' | 'info' | 'import' | 'prices' | 'parts' | 'routing' | 'production'
 const activeInforTab = ref<InforSubTab>('connection')
 
 // Connection status (local)
@@ -58,22 +63,34 @@ function handleBrowseIdo(idoName: string) {
     <!-- SUB TABS -->
     <div class="sub-tabs">
       <button @click="activeInforTab = 'connection'" :class="['sub-tab', { active: activeInforTab === 'connection' }]">
-        <Plug :size="14" /> Connection
+        <Plug :size="ICON_SIZE.SMALL" /> Connection
       </button>
       <button @click="activeInforTab = 'discovery'" :class="['sub-tab', { active: activeInforTab === 'discovery' }]">
-        <Search :size="14" /> Discovery
+        <Search :size="ICON_SIZE.SMALL" /> Discovery
       </button>
       <button @click="activeInforTab = 'browser'" :class="['sub-tab', { active: activeInforTab === 'browser' }]">
-        <Globe :size="14" /> Browser
+        <Globe :size="ICON_SIZE.SMALL" /> Browser
       </button>
       <button @click="activeInforTab = 'info'" :class="['sub-tab', { active: activeInforTab === 'info' }]">
-        <Info :size="14" /> Info
+        <Info :size="ICON_SIZE.SMALL" /> Info
       </button>
       <button @click="activeInforTab = 'import'" :class="['sub-tab', { active: activeInforTab === 'import' }]">
-        <Download :size="14" /> Import
+        <Download :size="ICON_SIZE.SMALL" /> Import
+      </button>
+      <button @click="activeInforTab = 'prices'" :class="['sub-tab', { active: activeInforTab === 'prices' }]">
+        <DollarSign :size="ICON_SIZE.SMALL" /> Nákupní ceny
+      </button>
+      <button @click="activeInforTab = 'parts'" :class="['sub-tab', { active: activeInforTab === 'parts' }]">
+        <Package :size="ICON_SIZE.SMALL" /> Položky
+      </button>
+      <button @click="activeInforTab = 'routing'" :class="['sub-tab', { active: activeInforTab === 'routing' }]">
+        <Route :size="ICON_SIZE.SMALL" /> Technologie
+      </button>
+      <button @click="activeInforTab = 'production'" :class="['sub-tab', { active: activeInforTab === 'production' }]">
+        <Factory :size="ICON_SIZE.SMALL" /> VP záznamy
       </button>
       <div class="security-note">
-        <Lock :size="12" /> READ-ONLY
+        <Lock :size="ICON_SIZE.SMALL" /> READ-ONLY
       </div>
     </div>
 
@@ -99,6 +116,26 @@ function handleBrowseIdo(idoName: string) {
       <div v-else-if="activeInforTab === 'import'" class="import-tab">
         <InforMaterialImportPanel :is-connected="localIsConnected || props.isConnected" />
       </div>
+
+      <InforPurchasePricesTab
+        v-else-if="activeInforTab === 'prices'"
+        :is-connected="localIsConnected || props.isConnected"
+      />
+
+      <InforPartsImportTab
+        v-else-if="activeInforTab === 'parts'"
+        :is-connected="localIsConnected || props.isConnected"
+      />
+
+      <InforRoutingImportTab
+        v-else-if="activeInforTab === 'routing'"
+        :is-connected="localIsConnected || props.isConnected"
+      />
+
+      <InforProductionImportTab
+        v-else-if="activeInforTab === 'production'"
+        :is-connected="localIsConnected || props.isConnected"
+      />
     </div>
   </div>
 </template>
@@ -117,7 +154,7 @@ function handleBrowseIdo(idoName: string) {
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .sub-tab {

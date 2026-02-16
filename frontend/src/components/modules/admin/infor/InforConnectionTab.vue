@@ -115,12 +115,15 @@ defineExpose({ testConnection, isConnected })
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn:disabled {
@@ -147,7 +150,7 @@ defineExpose({ testConnection, isConnected })
   padding: var(--space-3);
   background: var(--bg-surface);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .info-card.full-width {

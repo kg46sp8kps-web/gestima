@@ -42,12 +42,10 @@ def mock_user():
 
 @pytest_asyncio.fixture
 async def sample_part(db_session):
-    """Create a sample part for testing"""
-    # Use materials already seeded by conftest's db_session fixture
+    """Create a sample part for testing (ADR-024: no material fields on Part)"""
     part = Part(
         part_number="1000001",
         name="Test Part",
-        material_item_id=db_session.test_material_item.id,
         created_by="testuser",
         updated_by="testuser"
     )
@@ -308,12 +306,10 @@ async def test_feature_concurrent_updates_one_fails(db_session, sample_feature, 
 @pytest.mark.asyncio
 async def test_version_auto_increments_on_db_update(db_session):
     """Test: SQLAlchemy event listener auto-increments version on update"""
-    # Use materials already seeded by conftest's db_session fixture
-    # Create part
+    # Create part (ADR-024: no material fields on Part)
     part = Part(
         part_number="TEST-VERSION",
         name="Test",
-        material_item_id=db_session.test_material_item.id,
         created_by="test",
         updated_by="test"
     )

@@ -243,7 +243,7 @@ onMounted(() => { loadGroups() })
   padding: var(--space-3);
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .panel-header h2 {
@@ -257,7 +257,7 @@ onMounted(() => { loadGroups() })
   display: flex;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .form-tabs button {
@@ -272,8 +272,8 @@ onMounted(() => { loadGroups() })
 }
 
 .form-tabs button.active {
-  color: var(--accent-blue);
-  border-bottom-color: var(--accent-blue);
+  color: var(--color-info);
+  border-bottom-color: var(--color-info);
 }
 
 .form-actions {
@@ -282,7 +282,7 @@ onMounted(() => { loadGroups() })
   gap: var(--space-2);
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .spacer {

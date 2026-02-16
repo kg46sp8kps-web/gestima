@@ -262,8 +262,8 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 }
 .spinner { width: 24px; height: 24px; border: 2px solid var(--border-default); border-radius: 50%; border-top-color: var(--color-primary); animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.empty-icon { font-size: 48px; opacity: 0.5; }
-.empty-state p { margin: 0; font-size: var(--text-base); color: var(--text-secondary); }
+.empty-icon { font-size: var(--text-7xl); opacity: 0.5; }
+.empty-state p { margin: 0; font-size: var(--text-md); color: var(--text-secondary); }
 .materials-list { display: flex; flex-direction: column; gap: var(--space-1); overflow-y: auto; }
 /* Material row - grid layout: Icon | Dimensions | Category | Info | Operations | Actions */
 .material-row {
@@ -397,12 +397,12 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 .operation-chip-compact {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 6px;
+  gap: var(--space-0\.5);
+  padding: var(--space-0\.5) var(--space-2);
   background: var(--palette-info, rgba(37, 99, 235, 0.2));
   border: 1px solid var(--palette-info);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   color: var(--text-primary);
@@ -420,7 +420,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
   cursor: pointer;
   padding: 0;
   margin-left: 2px;
-  font-size: 14px;
+  font-size: var(--text-sm);
   line-height: 1;
   transition: color var(--transition-fast);
 }
@@ -432,11 +432,11 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 .operation-select-compact {
   min-width: 40px;
   max-width: 50px;
-  padding: 2px 4px;
+  padding: var(--space-0\.5) var(--space-1);
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   color: var(--text-body);

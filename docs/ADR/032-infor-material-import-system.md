@@ -252,7 +252,7 @@ async def test_material_pattern(data: dict):
 - All Lucide icons (no emojis)
 - Icon-only buttons with tooltips
 - Transparent button backgrounds (hover shows bg)
-- UI-BIBLE V8 design tokens
+- Design System v4.0 tokens
 - Resizable split panels
 
 ### 9. Validation Rules
@@ -355,7 +355,7 @@ async def execute_import(self, rows: List[Dict], db: AsyncSession) -> Dict:
 7. **Safe updates** - Duplicates only update catalog fields (supplier, stock), never core fields
 8. **Debugging** - Pattern Test modal for troubleshooting parsing logic
 9. **Extensible** - Easy to add new importers (CustomerImporter, OrderImporter, etc.)
-10. **Clean UI** - Lucide icons, UI-BIBLE V8 tokens, responsive split-pane
+10. **Clean UI** - Lucide icons, Design System v4.0 tokens, responsive split-pane
 
 ### Negative
 
@@ -433,4 +433,4 @@ End-to-end test:
 - Infor API Client: `app/services/infor_api_client.py`
 - Material Models: `app/models/material.py`
 - NumberGenerator: `app/services/number_generator.py`
-- UI-BIBLE V8: [docs/guides/UI-BIBLE-V8.md](../guides/UI-BIBLE-V8.md)
+- Design System: [docs/reference/DESIGN-SYSTEM.md](../reference/DESIGN-SYSTEM.md)

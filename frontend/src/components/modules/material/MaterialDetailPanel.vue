@@ -294,7 +294,7 @@ async function executeDelete() {
 
     <!-- Empty state -->
     <div v-else-if="materialInputs.length === 0" class="empty">
-      <Package :size="48" class="empty-icon" />
+      <Package :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Žádné materiály</p>
       <p class="hint">Přidejte materiál kliknutím na tlačítko výše</p>
     </div>
@@ -623,7 +623,7 @@ async function executeDelete() {
   width: 24px;
   height: 24px;
   border: 2px solid var(--border-default);
-  border-top-color: var(--palette-primary);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -711,7 +711,7 @@ async function executeDelete() {
 .quantity-badge {
   font-size: var(--text-xs);
   padding: var(--space-1) var(--space-2);
-  background: var(--palette-primary);
+  background: var(--brand);
   color: white;
   border-radius: var(--radius-sm);
   font-weight: var(--font-semibold);
@@ -770,7 +770,7 @@ async function executeDelete() {
 }
 
 .required {
-  color: var(--palette-danger);
+  color: var(--status-error);
 }
 
 .form-input,
@@ -835,7 +835,7 @@ async function executeDelete() {
 }
 
 .unlink-btn:hover {
-  color: var(--palette-danger);
+  color: var(--status-error);
 }
 
 .form-actions {
@@ -852,7 +852,7 @@ async function executeDelete() {
   padding: var(--space-4);
   margin-top: var(--space-4);
   background: var(--palette-success-light);
-  border: 1px solid var(--palette-success);
+  border: 1px solid var(--status-ok);
   border-radius: var(--radius-lg);
 }
 
@@ -893,12 +893,15 @@ async function executeDelete() {
 }
 
 .btn-primary {
-  background: var(--palette-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover {
-  background: var(--palette-primary-hover);
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
 }
 
 .btn-primary:disabled {
@@ -918,11 +921,11 @@ async function executeDelete() {
 
 .btn-danger {
   background: var(--palette-danger-light, rgba(244, 63, 94, 0.15));
-  color: var(--palette-danger);
+  color: var(--status-error);
 }
 
 .btn-danger:hover {
-  background: var(--palette-danger);
+  background: var(--status-error);
   color: white;
 }
 

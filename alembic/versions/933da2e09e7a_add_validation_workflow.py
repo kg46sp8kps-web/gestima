@@ -1,7 +1,7 @@
 """add_validation_workflow
 
 Revision ID: 933da2e09e7a
-Revises: 14ae23df5813
+Revises: 09d8cd5db466
 Create Date: 2026-02-09 11:02:43.011251
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '933da2e09e7a'
-down_revision: Union[str, Sequence[str], None] = '14ae23df5813'
+down_revision: Union[str, Sequence[str], None] = '09d8cd5db466'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

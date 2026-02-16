@@ -12,16 +12,11 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import AlertDialog from '@/components/ui/AlertDialog.vue'
-import CssDebugOverlay from '@/components/dev/CssDebugOverlay.vue'
-
 const route = useRoute()
 const ui = useUiStore()
 
 // Initialize dark mode (will load from localStorage)
 const { isDark } = useDarkMode()
-
-// Dev mode check for CSS Debug Overlay
-const isDev = import.meta.env.DEV
 
 // Initialize design tokens from localStorage
 function initDesignTokens() {
@@ -77,8 +72,6 @@ const isLoginPage = computed(() => route.name === 'login')
     <ConfirmDialog />
     <AlertDialog />
 
-    <!-- CSS Debug Overlay (Ctrl+Shift+D) -->
-    <CssDebugOverlay v-if="isDev" />
   </div>
 </template>
 

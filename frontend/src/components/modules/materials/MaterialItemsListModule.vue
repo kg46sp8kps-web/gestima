@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Material Items List Module - Split-pane layout (UI-BIBLE Pattern 1)
+ * Material Items List Module - Split-pane layout (Design System Pattern 7.2)
  *
  * LEFT: Material items list (DataTable)
  * RIGHT: Material item detail (Info Ribbon)
@@ -178,7 +178,7 @@ const resizeCursor = computed(() =>
 /* === RESIZE HANDLE === */
 .resize-handle {
   flex-shrink: 0;
-  background: var(--border-color);
+  background: var(--border-default);
   transition: background var(--duration-fast);
   position: relative;
   z-index: 10;

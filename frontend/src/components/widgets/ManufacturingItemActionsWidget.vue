@@ -9,7 +9,8 @@
  */
 
 import { computed } from 'vue'
-import { Edit, Settings, Package, DollarSign, FileText } from 'lucide-vue-next'
+import { Edit } from 'lucide-vue-next'
+import { OperationsIcon, MaterialIcon, PricingIcon, DrawingIcon } from '@/config/icons'
 import { ICON_SIZE } from '@/config/design'
 import type { Part } from '@/types/part'
 
@@ -37,22 +38,22 @@ const actions = computed(() => [
   {
     id: 'operations',
     label: 'Operace',
-    icon: Settings
+    icon: OperationsIcon
   },
   {
     id: 'materials',
     label: 'Materiály',
-    icon: Package
+    icon: MaterialIcon
   },
   {
     id: 'pricing',
     label: 'Kalkulace',
-    icon: DollarSign
+    icon: PricingIcon
   },
   {
     id: 'drawing',
     label: 'Výkres',
-    icon: FileText
+    icon: DrawingIcon
   }
 ])
 
@@ -95,7 +96,7 @@ function handleDrawingRightClick(event: MouseEvent) {
         @contextmenu="handleDrawingRightClick"
         title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
       >
-        <component :is="FileText" :size="ICON_SIZE.STANDARD" class="action-icon" />
+        <component :is="DrawingIcon" :size="ICON_SIZE.STANDARD" class="action-icon" />
         <span class="action-label">Výkres</span>
       </button>
     </div>
@@ -162,9 +163,9 @@ function handleDrawingRightClick(event: MouseEvent) {
   cursor: not-allowed;
 }
 
-/* RED Lucide icon */
+/* Brand Lucide icon */
 .action-icon {
-  color: var(--color-primary); /* Red (#991b1b) */
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 

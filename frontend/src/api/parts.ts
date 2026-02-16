@@ -13,26 +13,19 @@ import type {
 } from '@/types/part'
 
 /**
- * Get all parts with pagination
+ * Get parts with pagination, optional status filter and search.
+ * Returns { parts, total, skip, limit }.
  */
-export async function getParts(skip = 0, limit = 100): Promise<Part[]> {
-  const response = await apiClient.get<Part[]>('/parts/', {
-    params: { skip, limit }
-  })
-  return response.data
-}
-
-/**
- * Search parts by query (searches part_number, name, article_number)
- */
-export async function searchParts(
-  search: string,
+export async function getParts(
   skip = 0,
-  limit = 50
+  limit = 100,
+  status?: string,
+  search?: string
 ): Promise<PartsSearchResponse> {
-  const response = await apiClient.get<PartsSearchResponse>('/parts/search', {
-    params: { search, skip, limit }
-  })
+  const params: Record<string, unknown> = { skip, limit }
+  if (status) params.status = status
+  if (search) params.search = search
+  const response = await apiClient.get<PartsSearchResponse>('/parts/', { params })
   return response.data
 }
 
@@ -109,18 +102,6 @@ export async function getStockCost(
 ): Promise<StockCostResponse> {
   const response = await apiClient.get<StockCostResponse>(
     `/parts/${partNumber}/stock-cost`
-  )
-  return response.data
-}
-
-/**
- * Copy material geometry from MaterialItem to Part.stock_*
- */
-export async function copyMaterialGeometry(
-  partNumber: string
-): Promise<{ message: string; version: number }> {
-  const response = await apiClient.post<{ message: string; version: number }>(
-    `/parts/${partNumber}/copy-material-geometry`
   )
   return response.data
 }

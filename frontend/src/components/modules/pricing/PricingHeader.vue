@@ -64,8 +64,9 @@ const frozenSetsCount = computed(() => {
 
 .part-badge {
   padding: var(--space-1) var(--space-3);
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);

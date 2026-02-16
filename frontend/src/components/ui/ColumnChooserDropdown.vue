@@ -171,7 +171,7 @@ function handleDragEnd() {
 }
 
 .column-option.drag-over {
-  background: var(--accent-subtle);
+  background: var(--brand-subtle);
   border-top: 2px solid var(--palette-info);
 }
 

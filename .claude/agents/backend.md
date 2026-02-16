@@ -9,24 +9,6 @@ skills:
   - gestima-rules
   - gestima-backend-patterns
   - gestima-anti-patterns
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/validate-edit.sh"
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/validate-docs.sh"
-    - matcher: "Bash"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/commit-guard.sh"
-  Stop:
-    - hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/definition-of-done.sh"
 ---
 
 # Backend Architect — Gestima

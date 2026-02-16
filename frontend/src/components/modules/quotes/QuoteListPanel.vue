@@ -217,7 +217,7 @@ function formatCurrency(value: number): string {
     <!-- Empty State -->
     <div v-else-if="!hasQuotes" class="empty-list">
       <div class="empty-icon">
-        <ClipboardList :size="48" :stroke-width="1.5" />
+        <ClipboardList :size="ICON_SIZE.HERO" :stroke-width="1.5" />
       </div>
       <p>Žádné nabídky</p>
     </div>

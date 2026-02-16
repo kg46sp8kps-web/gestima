@@ -70,9 +70,16 @@ def main():
 
     # ─── Get content to check ────────────────────────────
     # PreToolUse+Write: content from JSON (file not on disk yet)
-    # PostToolUse or Edit: read file from disk
+    # PreToolUse+Edit: check new_string (what's about to be written)
+    # PostToolUse: read file from disk (safety net - check final result)
     if hook_event == "PreToolUse" and tool_name == "Write":
         content = tool_input.get("content", "")
+    elif hook_event == "PreToolUse" and tool_name == "Edit":
+        new_string = tool_input.get("new_string", "")
+        if new_string:
+            content = new_string
+        else:
+            sys.exit(0)
     else:
         try:
             with open(file_path, 'r') as f:

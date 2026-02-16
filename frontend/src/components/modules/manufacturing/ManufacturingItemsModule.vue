@@ -6,7 +6,7 @@
  * RIGHT: Part detail
  */
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useWindowsStore } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
@@ -16,7 +16,8 @@ import CopyPartModal from '@/components/modules/parts/CopyPartModal.vue'
 import DrawingsManagementModal from '@/components/modules/parts/DrawingsManagementModal.vue'
 import type { Part, PartUpdate } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
-import { Package, Settings, DollarSign, FileText, Edit, Trash2, Save, X, Copy } from 'lucide-vue-next'
+import { Edit, Trash2, Save, X, Copy } from 'lucide-vue-next'
+import { MaterialIcon, OperationsIcon, PricingIcon, DrawingIcon } from '@/config/icons'
 import { updatePart, createPart, deletePart } from '@/api/parts'
 import { ICON_SIZE } from '@/config/design'
 import type { PartCreate } from '@/types/part'
@@ -56,10 +57,49 @@ const editForm = ref({
   name: '',
   drawing_number: '',
   customer_revision: '',
+  status: 'active' as string,
   material: '',
   weight_kg: null as number | null,
   description: ''
 })
+
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    draft: 'Rozpracovaný',
+    active: 'Aktivní',
+    archived: 'Archivovaný',
+    quote: 'Nabídka'
+  }
+  return labels[status] || status
+}
+
+function statusDotClass(status: string): string {
+  switch (status) {
+    case 'active': return 'badge-dot-ok'
+    case 'draft': return 'badge-dot-warn'
+    case 'quote': return 'badge-dot-brand'
+    case 'archived': return 'badge-dot-neutral'
+    default: return 'badge-dot-neutral'
+  }
+}
+
+function sourceDotClass(source: string): string {
+  switch (source) {
+    case 'infor_import': return 'badge-dot-brand'
+    case 'manual': return 'badge-dot-ok'
+    case 'quote_request': return 'badge-dot-warn'
+    default: return 'badge-dot-neutral'
+  }
+}
+
+function sourceDisplayLabel(source: string): string {
+  switch (source) {
+    case 'infor_import': return 'Infor Import'
+    case 'manual': return 'Manuální'
+    case 'quote_request': return 'Poptávka'
+    default: return source
+  }
+}
 
 // Copy modal
 const showCopyModal = ref(false)
@@ -67,9 +107,8 @@ const showCopyModal = ref(false)
 // Drawings modal
 const showDrawingsModal = ref(false)
 
-// Load parts and setup
-onMounted(async () => {
-  // Load saved panel size
+// Load panel size on mount (PartListPanel handles fetchParts itself)
+onMounted(() => {
   const stored = localStorage.getItem('manufacturingItemsPanelSize')
   if (stored) {
     const size = parseInt(stored, 10)
@@ -77,19 +116,18 @@ onMounted(async () => {
       panelSize.value = size
     }
   }
+})
 
-  // Load parts
-  await partsStore.fetchParts()
-
-  // Auto-select if partNumber provided
-  if (props.partNumber) {
+// Auto-select part when parts are loaded (reacts to PartListPanel's fetch)
+watch(() => partsStore.parts.length, (len) => {
+  if (len > 0 && props.partNumber && !selectedPart.value) {
     const part = partsStore.parts.find(p => p.part_number === props.partNumber)
     if (part) {
       selectedPart.value = part
       listPanelRef.value?.setSelection(part.id)
     }
   }
-})
+}, { immediate: true })
 
 // Handle part selection
 function handleSelectPart(part: Part) {
@@ -164,6 +202,7 @@ function startEdit() {
     name: selectedPart.value.name || '',
     drawing_number: selectedPart.value.drawing_number || '',
     customer_revision: selectedPart.value.customer_revision || '',
+    status: selectedPart.value.status || 'active',
     material: selectedPart.value.material || '',
     weight_kg: selectedPart.value.weight_kg,
     description: selectedPart.value.description || ''
@@ -227,6 +266,7 @@ async function saveEdit() {
         name: editForm.value.name || null,
         drawing_number: editForm.value.drawing_number || null,
         customer_revision: editForm.value.customer_revision || null,
+        status: editForm.value.status as any,
         version: selectedPart.value.version
       }
 
@@ -437,16 +477,44 @@ const resizeCursor = computed(() =>
             <span v-else class="value">{{ selectedPart.customer_revision || '-' }}</span>
           </div>
           <div class="info-card">
+            <label>Status</label>
+            <select v-if="isEditing" v-model="editForm.status" class="edit-input">
+              <option value="draft">Rozpracovaný</option>
+              <option value="active">Aktivní</option>
+              <option value="archived">Archivovaný</option>
+              <option value="quote">Nabídka</option>
+            </select>
+            <span v-else class="value">
+              <span class="badge">
+                <span class="badge-dot" :class="statusDotClass(selectedPart.status)"></span>
+                {{ statusLabel(selectedPart.status) }}
+              </span>
+            </span>
+          </div>
+          <div class="info-card">
+            <label>Zdroj</label>
+            <span class="value">
+              <span class="badge">
+                <span class="badge-dot" :class="sourceDotClass(selectedPart.source)"></span>
+                {{ sourceDisplayLabel(selectedPart.source) }}
+              </span>
+            </span>
+          </div>
+          <div class="info-card">
+            <label>Vytvořeno</label>
+            <span class="value">{{ new Date(selectedPart.created_at).toLocaleDateString() }}</span>
+          </div>
+        </div>
+
+        <!-- Material & weight (read-only, separate section) -->
+        <div v-if="selectedPart.material || selectedPart.weight_kg" class="material-ribbon">
+          <div class="info-card">
             <label>Materiál</label>
             <span class="value">{{ selectedPart.material || '-' }}</span>
           </div>
           <div class="info-card">
             <label>Hmotnost</label>
             <span class="value">{{ selectedPart.weight_kg ? `${selectedPart.weight_kg} kg` : '-' }}</span>
-          </div>
-          <div class="info-card">
-            <label>Vytvořeno</label>
-            <span class="value">{{ new Date(selectedPart.created_at).toLocaleDateString() }}</span>
           </div>
         </div>
 
@@ -490,15 +558,15 @@ const resizeCursor = computed(() =>
         <!-- Normal mode: All actions -->
         <div class="actions-grid">
           <button class="action-button" @click="openMaterialWindow" title="Materiál">
-            <Package :size="ICON_SIZE.LARGE" class="action-icon" />
+            <MaterialIcon :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Materiál</span>
           </button>
           <button class="action-button" @click="openOperationsWindow" title="Operace">
-            <Settings :size="ICON_SIZE.LARGE" class="action-icon" />
+            <OperationsIcon :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Operace</span>
           </button>
           <button class="action-button" @click="openPricingWindow" title="Ceny">
-            <DollarSign :size="ICON_SIZE.LARGE" class="action-icon" />
+            <PricingIcon :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Ceny</span>
           </button>
           <button
@@ -507,7 +575,7 @@ const resizeCursor = computed(() =>
             @contextmenu="handleDrawingRightClick"
             title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
           >
-            <FileText :size="ICON_SIZE.LARGE" class="action-icon" />
+            <DrawingIcon :size="ICON_SIZE.LARGE" class="action-icon" />
             <span class="action-label">Výkres</span>
           </button>
         </div>
@@ -579,7 +647,7 @@ const resizeCursor = computed(() =>
 /* === RESIZE HANDLE === */
 .resize-handle {
   flex-shrink: 0;
-  background: var(--border-color);
+  background: var(--border-default);
   transition: background var(--duration-fast);
   position: relative;
   z-index: 10;
@@ -603,7 +671,7 @@ const resizeCursor = computed(() =>
   position: relative;
   padding: var(--space-5);
   background: var(--bg-surface);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-default);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-6);
   transition: all var(--duration-normal);
@@ -624,7 +692,7 @@ const resizeCursor = computed(() =>
   margin-bottom: calc(-1 * var(--space-5) + 2px);
   padding-top: var(--space-3);
   padding-bottom: 2px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .icon-btn {
@@ -647,7 +715,7 @@ const resizeCursor = computed(() =>
 }
 
 .icon-btn-danger:hover {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .icon-btn-primary {
@@ -691,10 +759,47 @@ const resizeCursor = computed(() =>
   color: var(--text-primary);
 }
 
+/* Material ribbon (separate from main info) */
+.material-ribbon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+
+/* Source badge (Gestima badge-dot pattern) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-full);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  line-height: 1.3;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.badge-dot-ok      { background: var(--status-ok); }
+.badge-dot-brand   { background: var(--brand); }
+.badge-dot-warn    { background: var(--status-warn); }
+.badge-dot-neutral { background: var(--text-disabled); }
+
 .description {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .description label {
@@ -723,7 +828,7 @@ const resizeCursor = computed(() =>
   font-weight: 600;
   color: var(--text-primary);
   background: var(--bg-base);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: all var(--duration-fast);
 }
@@ -745,7 +850,7 @@ const resizeCursor = computed(() =>
 .actions-section {
   margin-top: var(--space-6);
   padding-top: var(--space-5);
-  border-top: 2px solid var(--border-color);
+  border-top: 2px solid var(--border-default);
 }
 
 .actions-section h4 {
@@ -790,7 +895,7 @@ const resizeCursor = computed(() =>
 }
 
 .action-button:hover {
-  border-color: var(--color-primary);
+  border-color: var(--border-strong);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -807,20 +912,25 @@ const resizeCursor = computed(() =>
 
 /* Primary action (Save) */
 .action-button-primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: transparent;
+  border-color: var(--border-default);
 }
 
 .action-button-primary .action-icon,
 .action-button-primary .action-label {
-  color: white;
+  color: var(--text-primary);
 }
 
 .action-button-primary:hover {
-  background: #7f1d1d;
-  border-color: #7f1d1d;
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.15);
+}
+
+.action-button-primary:hover .action-icon,
+.action-button-primary:hover .action-label {
+  color: var(--color-brand, #991b1b);
 }
 
 /* Secondary action (Edit, Cancel) */
@@ -834,12 +944,12 @@ const resizeCursor = computed(() =>
 
 /* Danger action (Delete) */
 .action-button-danger .action-icon {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .action-button-danger:hover {
-  border-color: #ef4444;
-  background: #fef2f2;
+  border-color: var(--status-error);
+  background: rgba(239, 68, 68, 0.05);
 }
 
 /* === EMPTY STATE === */

@@ -30,6 +30,7 @@ export interface Operation {
   operation_time_min: number;
   setup_time_locked: boolean;
   operation_time_locked: boolean;
+  ai_estimation_id: number | null;
   manning_coefficient: number;
   machine_utilization_coefficient: number;
   is_coop: boolean;
@@ -53,6 +54,7 @@ export interface OperationCreate {
   cutting_mode?: CuttingMode;
   setup_time_min?: number;
   operation_time_min?: number;
+  ai_estimation_id?: number | null;
   is_coop?: boolean;
   coop_type?: string | null;
   coop_price?: number;
@@ -72,6 +74,7 @@ export interface OperationUpdate {
   operation_time_min?: number;
   setup_time_locked?: boolean;
   operation_time_locked?: boolean;
+  ai_estimation_id?: number | null;
   manning_coefficient?: number;
   machine_utilization_coefficient?: number;
   is_coop?: boolean;

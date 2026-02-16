@@ -11,26 +11,31 @@ import { useOperationsStore } from '@/stores/operations'
 import { useMaterialsStore } from '@/stores/materials'
 import { useWindowsStore } from '@/stores/windows'
 import { operationsApi } from '@/api/operations'
+import { fetchEstimationById } from '@/api/time-vision'
 import type { Operation, CuttingMode } from '@/types/operation'
+import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import { OPERATION_TYPE_MAP } from '@/types/operation'
 import OperationRow from './OperationRow.vue'
 import { confirm } from '@/composables/useDialog'
-import { Settings, Plus, Wand2 } from 'lucide-vue-next'
+import { Settings, Plus, Sparkles, AlertTriangle } from 'lucide-vue-next'
 import draggable from 'vuedraggable'
 import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   partId: number | null
+  part: Part | null
   linkingGroup?: LinkingGroup
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  part: null,
   linkingGroup: null
 })
 
 const emit = defineEmits<{
   'select-operation': [operation: Operation | null]
+  'toggle-ai-panel': []
 }>()
 
 const operationsStore = useOperationsStore()
@@ -40,6 +45,7 @@ const windowsStore = useWindowsStore()
 // Local state
 const expandedOps = reactive<Record<number, boolean>>({})
 const selectedOperationId = ref<number | null>(null)
+const aiTimeModified = ref(false)
 
 // Debounce timers per operation
 const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
@@ -50,6 +56,9 @@ const sortedOperations = computed(() => operationsStore.getSortedOperations(prop
 const loading = computed(() => operationsStore.getContext(props.linkingGroup).loading)
 const activeWorkCenters = computed(() => operationsStore.activeWorkCenters)
 const saving = computed(() => operationsStore.saving)
+
+// AI estimation indicator
+const hasAIEstimation = computed(() => operations.value.some(op => op.ai_estimation_id != null))
 
 // Material inputs for linking
 const materialInputs = computed(() => materialsStore.getContext(props.linkingGroup).materialInputs)
@@ -64,6 +73,7 @@ watch(sortedOperations, (newOps) => {
 
 // Watch partId change
 watch(() => props.partId, async (newPartId) => {
+  aiTimeModified.value = false
   if (newPartId) {
     await loadData(newPartId)
   }
@@ -93,12 +103,35 @@ function debouncedUpdateOperation(op: Operation, field: keyof Operation, value: 
   const existingTimer = debounceTimers.get(op.id)
   if (existingTimer) clearTimeout(existingTimer)
 
+  // Mark AI time as modified (warning turns red)
+  if (field === 'operation_time_min' && op.ai_estimation_id) {
+    aiTimeModified.value = true
+  }
+
   const timer = setTimeout(async () => {
     debounceTimers.delete(op.id)
     await operationsStore.updateOperation(op.id, { [field]: value }, props.linkingGroup)
   }, 500)
 
   debounceTimers.set(op.id, timer)
+}
+
+// Restore AI-estimated time from TimeVision
+async function restoreAITime(op: Operation) {
+  if (!op.ai_estimation_id) return
+  try {
+    const est = await fetchEstimationById(op.ai_estimation_id)
+    if (est?.estimated_time_min != null) {
+      await operationsStore.updateOperation(
+        op.id,
+        { operation_time_min: est.estimated_time_min },
+        props.linkingGroup,
+      )
+      aiTimeModified.value = false
+    }
+  } catch {
+    // Silent fail
+  }
 }
 
 // Handle work center change
@@ -222,15 +255,10 @@ function selectOperation(op: Operation) {
   }
 }
 
-// Open FR window linked to current part
-function handleOpenFR() {
-  if (!props.partId) return
-  windowsStore.openWindow('feature-recognition', 'Feature Recognition', props.linkingGroup || undefined)
-}
-
-// Expose operationsCount for parent
+// Expose for parent
 defineExpose({
-  operationsCount: computed(() => operations.value.length)
+  operationsCount: computed(() => operations.value.length),
+  resetAIWarning() { aiTimeModified.value = false },
 })
 </script>
 
@@ -239,17 +267,26 @@ defineExpose({
     <!-- Header with Add + AI buttons -->
     <div class="panel-header">
       <h3>Operace</h3>
+      <span
+        v-if="hasAIEstimation"
+        class="ai-info"
+        :class="{ 'is-modified': aiTimeModified }"
+        :title="aiTimeModified ? 'AI čas byl upraven' : 'Operace obsahuje AI odhad'"
+      >
+        <AlertTriangle :size="ICON_SIZE.SMALL" />
+        Existuje AI čas
+      </span>
       <div class="header-actions">
         <button
-          class="btn-ai"
-          @click="handleOpenFR"
-          :disabled="!partId || loading"
-          title="Feature Recognition - otevřít okno pro AI analýzu"
+          class="icon-btn"
+          @click="emit('toggle-ai-panel')"
+          :disabled="!partId"
+          title="AI odhad času z výkresu"
         >
-          <Wand2 :size="ICON_SIZE.STANDARD" />
+          <Sparkles :size="ICON_SIZE.STANDARD" />
         </button>
         <button
-          class="btn-add-icon"
+          class="icon-btn"
           @click="handleAddOperation"
           :disabled="!partId || loading"
           title="Přidat operaci"
@@ -267,7 +304,7 @@ defineExpose({
 
     <!-- Empty -->
     <div v-else-if="operations.length === 0" class="empty">
-      <Settings :size="48" class="empty-icon" />
+      <Settings :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Žádné operace</p>
       <p class="hint">Klikni na "+ Přidat operaci" pro začátek</p>
     </div>
@@ -316,6 +353,7 @@ defineExpose({
               @link-material="(matId) => handleLinkMaterial(op.id, matId)"
               @unlink-material="(matId) => handleUnlinkMaterial(op.id, matId)"
               @select="selectOperation(op)"
+              @restore-ai-time="restoreAITime(op)"
             />
           </template>
         </draggable>
@@ -354,54 +392,22 @@ defineExpose({
   gap: var(--space-2);
 }
 
-.btn-add-icon {
+/* AI estimation info label */
+.ai-info {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-fast);
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
-.btn-add-icon:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+.ai-info.is-modified {
+  color: var(--color-danger);
+  font-weight: var(--font-semibold);
 }
 
-.btn-add-icon:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-ai {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-ai:hover:not(:disabled) {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  transform: scale(1.05);
-}
-
-.btn-ai:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 /* === LOADING === */
 .loading {

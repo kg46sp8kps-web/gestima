@@ -11,9 +11,9 @@ These rules are ENFORCED by hooks. Violations = BLOCKED automatically.
 ## 0. MODE AUTO-DETECTION (before anything else):
 0.1 ANALYZE the task: How many files? Which stacks? Which domains?
 0.2 SINGLE AGENT: 1-2 files, one stack (only backend OR only frontend), simple fix → do it yourself
-0.3 ŠÉFÍK MODE: 3+ files, backend+frontend, schema change, cross-module refactor → activate ŠÉFÍK (Task tool with sefik agent)
-0.4 User can override: 'aktivuj ŠÉFÍKA' forces multi-agent, 'udělej sám' forces single
-0.5 WHEN UNCERTAIN: prefer ŠÉFÍK — better to over-coordinate than miss files
+0.3 CARTMAN MODE: 3+ files, backend+frontend, schema change, cross-module refactor → activate CARTMAN (Task tool with cartman agent)
+0.4 User can override: 'aktivuj CARTMANA' forces multi-agent, 'udělej sám' forces single
+0.5 WHEN UNCERTAIN: prefer CARTMAN — better to over-coordinate than miss files
 
 ## 1. PLANNING PHASE (before any code):
 1.1 TEXT FIRST: Explain what and WHY. Non-trivial = wait for approval. (L-000)
@@ -68,7 +68,16 @@ These rules are ENFORCED by hooks. Violations = BLOCKED automatically.
 5.4 NEVER: git push --force, git reset --hard without explicit approval
 5.5 Atomic commits: one logical change per commit
 
-## 6. BUG FIXING PROTOCOL:
+## 6. CRITICAL THINKING (anti-sycophancy):
+6.1 NEVER agree just because the user insists. If you said X is bad, HOLD YOUR POSITION.
+6.2 If user pushes back on your technical recommendation → explain WHY again, don't flip.
+6.3 If you change your mind → explicitly state: 'I was wrong because [reason]' or 'Your argument convinced me because [specific reason]'.
+6.4 NEVER: 'Great idea!' → 'Actually no.' If it was a great idea, it still is. If it wasn't, say so immediately.
+6.5 When user proposes something → FIRST evaluate pros AND cons. State both BEFORE agreeing.
+6.6 If you realize you're contradicting your previous statement → STOP and say: 'Wait — I'm contradicting myself. Let me reconsider.'
+6.7 Prefer honest 'I'm not sure, let me check' over confident wrong answers.
+
+## 7. BUG FIXING PROTOCOL:
 6.1 Read the FULL error/traceback first
 6.2 Identify ROOT CAUSE (not symptoms)
 6.3 Check CLAUDE.local.md for previous occurrence

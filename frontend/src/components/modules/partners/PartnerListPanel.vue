@@ -124,7 +124,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
     <!-- Empty State -->
     <div v-else-if="!hasPartners" class="empty-list">
       <div class="empty-icon">
-        <Building2 :size="48" :stroke-width="1.5" />
+        <Building2 :size="ICON_SIZE.HERO" :stroke-width="1.5" />
       </div>
       <p>Žádní partneři</p>
     </div>
@@ -183,9 +183,9 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  background: var(--palette-primary);
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -194,7 +194,9 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .btn-create:hover {
-  background: var(--palette-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .filter-tabs {
@@ -222,8 +224,8 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .tab-button.active {
-  color: var(--palette-primary);
-  border-bottom-color: var(--palette-primary);
+  color: var(--brand);
+  border-bottom-color: var(--brand);
 }
 
 .search-input {
@@ -255,7 +257,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   width: 24px;
   height: 24px;
   border: 2px solid var(--border-default);
-  border-top-color: var(--palette-primary);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -309,7 +311,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 
 .partner-item.active {
   background: var(--state-selected);
-  border-color: var(--palette-primary);
+  border-color: var(--brand);
 }
 
 .partner-header {
@@ -322,7 +324,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 .partner-number {
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
-  color: var(--palette-primary);
+  color: var(--brand);
 }
 
 .partner-badges {

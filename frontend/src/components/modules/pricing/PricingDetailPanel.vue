@@ -201,7 +201,7 @@ watch(displayedBatches, (newBatches) => {
 
     <!-- Empty -->
     <div v-else-if="displayedBatches.length === 0 && batchSets.length === 0" class="empty">
-      <DollarSign :size="48" class="empty-icon" />
+      <DollarSign :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Žádné cenové dávky</p>
       <p class="hint">Přidejte první dávku pro výpočet ceny</p>
       <div class="empty-add">
@@ -582,9 +582,9 @@ watch(displayedBatches, (newBatches) => {
 
 .add-btn {
   padding: var(--space-2) var(--space-3);
-  background: var(--color-primary);
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   font-weight: var(--font-bold);
@@ -593,7 +593,9 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .add-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
 }
 
 .add-btn:disabled {
@@ -782,7 +784,7 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .freeze-btn:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--palette-info-bg);
 }
 
 .freeze-btn:disabled {
@@ -791,11 +793,11 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .freeze-icon {
-  color: rgb(147, 197, 253);
+  color: var(--palette-info);
 }
 
 .freeze-btn:hover:not(:disabled) .freeze-icon {
-  color: rgb(96, 165, 250);
+  color: var(--palette-info);
 }
 
 /* Batches Table */
@@ -888,27 +890,27 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .cost-segment.material {
-  background: #8b5cf6; /* Purple */
+  background: var(--chart-wages);
 }
 
 .cost-segment.coop {
-  background: #f59e0b; /* Orange */
+  background: var(--chart-setup);
 }
 
 .cost-segment.setup {
-  background: #3b82f6; /* Blue */
+  background: var(--chart-material);
 }
 
 .cost-segment.machining {
-  background: #10b981; /* Green */
+  background: var(--chart-revenue);
 }
 
 .cost-segment.overhead {
-  background: #ef4444; /* Red */
+  background: var(--chart-expenses);
 }
 
 .cost-segment.margin {
-  background: #06b6d4; /* Cyan */
+  background: var(--chart-energy);
 }
 
 .price-highlight {
@@ -954,12 +956,15 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
 }
 
 .btn-primary:disabled {

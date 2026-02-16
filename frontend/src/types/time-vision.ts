@@ -2,15 +2,25 @@
  * TimeVision - Types for AI machining time estimation
  */
 
+export interface DrawingEstimationInfo {
+  estimation_id: number | null
+  status: string | null
+  ai_provider: string | null
+  ai_model: string | null
+}
+
 export interface DrawingFileInfo {
   filename: string
   size_bytes: number
   has_estimation: boolean
+  file_id: number | null
   estimation_id: number | null
   status: string | null
   has_openai_estimation: boolean
   ai_provider: string | null
   ai_model: string | null
+  v1: DrawingEstimationInfo | null
+  v2: DrawingEstimationInfo | null
 }
 
 export interface VisionExtraction {
@@ -47,9 +57,45 @@ export interface SimilarPartMatch {
   score_breakdown: Record<string, number>
 }
 
+export interface FeatureItem {
+  type: string
+  count: number
+  detail: string
+  location?: string
+  time_sec?: number
+}
+
+export interface FeaturesExtraction {
+  drawing_number?: string
+  part_name?: string
+  part_type?: string
+  material?: {
+    designation: string
+    standard?: string
+    group?: string
+  }
+  overall_dimensions?: {
+    max_diameter_mm?: number | null
+    max_length_mm?: number | null
+    max_width_mm?: number | null
+    max_height_mm?: number | null
+  }
+  features: FeatureItem[]
+  general_notes?: string[]
+  feature_summary?: {
+    total_features: number
+    holes_total: number
+    threads_total: number
+    tight_tolerances: number
+    surface_finish_count: number
+  }
+}
+
 export interface TimeVisionEstimation {
   id: number
   pdf_filename: string
+  file_id: number | null
+  part_id: number | null
   status: 'pending' | 'extracted' | 'estimated' | 'calibrated' | 'verified'
 
   part_type: string | null
@@ -78,6 +124,11 @@ export interface TimeVisionEstimation {
   actual_notes: string | null
   human_estimate_min: number | null
 
+  estimation_type: string
+  features_json?: string
+  features_corrected_json?: string
+  calculated_time_min?: number | null
+
   created_at: string | null
   updated_at: string | null
   version: number
@@ -88,6 +139,8 @@ export interface TimeVisionEstimation {
 export interface TimeVisionListItem {
   id: number
   pdf_filename: string
+  file_id: number | null
+  part_id: number | null
   status: string
   part_type: string | null
   complexity: string | null
@@ -99,4 +152,6 @@ export interface TimeVisionListItem {
   created_at: string | null
   ai_provider: string
   ai_model: string | null
+  estimation_type: string
+  calculated_time_min?: number | null
 }

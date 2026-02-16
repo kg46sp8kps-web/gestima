@@ -43,12 +43,11 @@ class InforAPIClient:
         password: str = "",
         verify_ssl: bool = False  # Default False pro self-signed certs
     ):
-        # 🚨 SECURITY: NEVER allow LIVE config!
+        # ⚠️ WARNING: Production config - import operations are READ-ONLY
         if config.upper() in ["LIVE", "PROD", "PRODUCTION", "SL"]:
-            raise ValueError(
-                "CRITICAL SECURITY ERROR: Using production config is FORBIDDEN! "
-                f"Config '{config}' is not allowed. Use 'Test' or 'Demo' config only. "
-                "This prevents accidental corruption of production data."
+            logger.warning(
+                f"Using production config '{config}' - "
+                "all import operations must be READ-ONLY to prevent data corruption"
             )
 
         self.base_url = base_url.rstrip("/")

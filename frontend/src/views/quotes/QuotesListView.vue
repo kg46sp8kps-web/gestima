@@ -387,7 +387,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .page-header h1 {
@@ -413,7 +413,7 @@ onMounted(() => {
 /* Status badges */
 .status-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   font-size: var(--text-xl);
   font-weight: 500;
 }

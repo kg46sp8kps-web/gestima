@@ -153,7 +153,7 @@ async function handleConfirm() {
   <div class="panel">
     <div v-if="quotesStore.aiParsing" class="loading">
       <div class="spinner"></div>
-      <p>Claude AI Sonnet 4.5 analyzuje PDF...</p>
+      <p>AI analyzuje PDF...</p>
       <p class="hint">Trvá cca 10-30 sekund podle velikosti PDF</p>
     </div>
 

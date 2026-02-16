@@ -175,7 +175,7 @@ partsStore.fetchParts()
   <div class="quote-detail-panel">
     <!-- Empty State -->
     <div v-if="!quote" class="empty">
-      <FileText :size="48" class="empty-icon" />
+      <FileText :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Vyberte nabídku pro zobrazení detailů</p>
     </div>
 
@@ -513,7 +513,7 @@ partsStore.fetchParts()
   justify-content: flex-end;
   gap: var(--space-3);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 /* Forms */
@@ -549,7 +549,7 @@ partsStore.fetchParts()
 .form-input,
 .form-textarea {
   padding: var(--space-3);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   background: var(--bg-input);
@@ -587,7 +587,7 @@ partsStore.fetchParts()
   padding: var(--space-3);
   background: rgba(115, 115, 115, 0.1);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
@@ -628,7 +628,7 @@ partsStore.fetchParts()
 .items-table td {
   padding: var(--space-3);
   text-align: left;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .items-table th {
@@ -709,9 +709,9 @@ partsStore.fetchParts()
 
 .snapshot-info {
   padding: var(--space-3);
-  background: var(--palette-info-light, rgba(59, 130, 246, 0.1));
+  background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-md);
-  border: 1px solid var(--palette-info, #3b82f6);
+  border: 1px solid var(--border-strong);
 }
 
 .snapshot-info p {
@@ -736,12 +736,15 @@ partsStore.fetchParts()
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -754,7 +757,7 @@ partsStore.fetchParts()
 .btn-secondary {
   background: var(--bg-surface);
   color: var(--text-primary);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-default);
 }
 
 .btn-secondary:hover:not(:disabled) {

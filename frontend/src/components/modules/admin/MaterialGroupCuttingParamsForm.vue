@@ -116,7 +116,7 @@ const model = defineModel<CuttingParams>({ required: true })
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   padding-bottom: var(--space-2);
 }
 

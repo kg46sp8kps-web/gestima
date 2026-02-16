@@ -100,7 +100,7 @@ const filteredFields = computed(() => {
 <style scoped>
 .field-selector {
   margin: var(--space-4) 0;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
 }
@@ -110,7 +110,7 @@ const filteredFields = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: var(--space-3);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   background: var(--bg-raised);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
@@ -152,7 +152,7 @@ const filteredFields = computed(() => {
 
 .field-search {
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .field-checkboxes {
@@ -189,7 +189,7 @@ const filteredFields = computed(() => {
 .input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-primary);

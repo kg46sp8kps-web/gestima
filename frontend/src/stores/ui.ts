@@ -17,6 +17,7 @@ export type DensityLevel = 'compact' | 'comfortable'
 export interface Toast {
   id: number
   message: string
+  title?: string
   type: ToastType
   duration: number
 }

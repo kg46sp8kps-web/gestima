@@ -28,7 +28,8 @@ bcrypt==4.1.3
 slowapi>=0.1.9
 
 # === AI SERVICES ===
-anthropic>=0.40.0  # Claude AI for quote request parsing
+# anthropic>=0.40.0  # REMOVED: Claude AI integration deprecated (2026-02-13)
+openai>=1.0.0  # OpenAI GPT-4o vision for parallel estimation line
 pymupdf>=1.24.0  # PDF parsing and manipulation
 pypdf>=4.0.0  # PDF reading and merging
 reportlab>=4.0.0  # PDF generation for annotations

@@ -2,8 +2,9 @@
 
 ## NESMÍŠ
 
-- Používat smazané/archivované services (viz app/services/archive/)
+- Používat smazané services
 - Dělat DELETE ALL + INSERT v seed scriptech (rozbije FK)
+- Duplikovat sdílené datové struktury (typy, enumy, katalogy) — VŽDY definuj JEDNOU v jednom souboru a všude importuj. Při multi-agent orchestraci NEJDŘÍV vytvoř sdílený kontrakt, POTOM spouštěj agenty.
 - Přidávat sem historické záznamy — tento soubor MUSÍ zůstat pod 50 řádků
 
 ## MUSÍŠ
@@ -14,23 +15,59 @@
 
 ## STAV
 
-- v1.29.0 (2026-02-13)
+- v2.0.0 (2026-02-16)
 - Fine-tuned model AKTIVNÍ: `ft:gpt-4o-2024-08-06:kovo-rybka:gestima-v1:D8oakyjH`
-- Kompaktní prompt pro FT model (bez referenčních tabulek), plný prompt pro base
 - ai_provider: `openai_ft` (fine-tuned) nebo `openai` (base)
-- Claude pipeline KOMPLETNĚ ODSTRANĚN (archivováno v app/services/archive/)
-- Anthropic SDK/API key ODSTRANĚN z projektu
-- Conda/pythonocc/OCCT KOMPLETNĚ ODSTRANĚNY (step_raw_extractor, step_parser smazány)
+- 3 časy: estimated_time_min (AI), human_estimate_min (člověk), actual_time_min (výroba)
+- Status lifecycle: estimated → calibrated (human odhad) → verified (produkční čas)
+- TimeVision integrace v Technologii: AI panel + ML ribbon, BEZ lockování, BEZ auto-sync
+- **Technology Builder Phase 1 AKTIVNÍ** — viz sekce níže
+
+## TECHNOLOGY BUILDER (Phase 1)
+
+- POST /api/technology/generate — 3 operace: OP10 Řezání, OP20 Strojní (AI), OP100 QC
+- Řezání: výška_řezu/posuv z cutting_conditions DB (reálné tabulky, NE AI), stroj BOMAR STG240A
+- UPSERT by seq — uživatelovy ruční operace nedotčeny, auto-regen při změně materiálu
 
 ## MATERIÁLOVÝ IMPORT
 
 - Infor item → W.Nr extraction → MaterialNorm → MaterialGroup → Shape → PriceCategory
 - PriceCategory matching přes `shape` sloupec (ne keyword matching)
 - Chybějící PriceCategory = ERROR (import blokován, ne tichý fallback)
-- Seed data: 9 groups, 82 norms, 43 categories (se shape), 129 tiers, 288 cutting conditions
+- Seed data: 9 groups, 82 norms, 43 categories (se shape), 129 tiers, 315 cutting conditions (288+27 sawing)
+
+## FILE MANAGER (ADR-044)
+
+- Phase 2a DONE: file_id FK na TimeVision, 68 FileRecords, 73 FileLinks, preview endpoint
+- Phase 2b PENDING: drawings_router, uploads_router, FileManagerModule UI
+- Preview: `/api/files/{id}/preview` (bez auth, PDF only) | Download: `/download` (s auth)
+- TimeVision PDF: vždy filename-based endpoint (pdf.js nemůže auth)
+- Migrace: `python scripts/migrate_timevision_files.py` | Spec: docs/ADR/044-file-manager.md
+- **PLÁN:** Manufacturing Item dostane file_id FK (primární výkres), TimeVision jen z Technologie (ne standalone)
+- **HYBRID stav:** TimeVision má dual identity (pdf_filename + file_id), Drawing model nemá file_id vůbec
+- **CÍLOVÝ stav:** Všichni konzumenti jen file_id FK → FileRecord, Drawing model buď file_id FK nebo nahrazen FileLink
+
+## UI DESIGN SYSTEM v4.0 (2026-02-16)
+
+- **Zdroj pravdy:** `frontend/template.html` (vizuální) + `design-system.css` (runtime)
+- **Docs:** `docs/reference/DESIGN-SYSTEM.md` (patterns, BEZ hardcoded tokenů)
+- Ghost buttons ONLY, WHITE focus ring, neutrální selected rows
+- Ikony: `ICON_SIZE.*` z `@/config/design`, aliasy z `@/config/icons`
+
+## INFOR ROUTING IMPORT (Krok 2)
+
+- IDO: `SLJobRoutes`, default filter `Type = 'S'` (jen standardní postup, NE výrobní příkazy)
+- Grupování po `DerJobItem` (article_number) → Part lookup → Operations UPSERT by seq
+- **WC Mapper:** exact match + prefix fallback (KOO1→KOO→80000016), `warmup_cache()` pro batch
+- **Mapping:** 19 entries v config.py (PS/PSa/PSm/PSv→SAW, KOO→KOOPERACE, viz `INFOR_WC_MAPPING`)
+- **Skip pravidla:** CLO*, CADCAM, ObsDate → `_skip=True` (neimportuje se)
+- **Kooperace:** KOO* → `is_coop=True`, type="coop", op_time=0, manning=100%
+- **Časy:** `operation_time_min = 60/DerRunMchHrs` (ks/hod→min/ks), `manning = (Mch/Lbr)*100`
+- **Batch:** preview 5000/batch, execute 2000/batch, `postWithRetry()` na 429
+- **UI:** Virtual scroll (60 visible rows), Set-based selection pro 210k+ řádků
+- **NEXT:** Import z VP (výrobních příkazů) — nový filtr, jiná logika
 
 ## TECH DEBT
 
-- 4 komponenty > 300 LOC
-- 17 pre-existing TS errors
-- A/B test base vs fine-tuned zatím neproveden
+- 45 Vue komponent > 300 LOC (L-036), file_service.py 855 LOC
+- ~26 pre-existing padajících testů (Part fixtures po ADR-024 — opraveno z 58)

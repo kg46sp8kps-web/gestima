@@ -38,9 +38,9 @@ class CuttingConditionBase(BaseModel):
     operation_type: str = Field(..., max_length=50, description="Typ operace (turning, milling, drilling)")
     operation: str = Field(..., max_length=50, description="Operace (hrubovani, dokoncovani)")
     mode: str = Field(..., max_length=10, description="Režim (low, mid, high)")
-    Vc: float = Field(..., gt=0, description="Řezná rychlost (m/min)")
+    Vc: Optional[float] = Field(None, gt=0, description="Řezná rychlost (m/min)")
     f: float = Field(..., gt=0, description="Posuv (mm/ot nebo mm/zub)")
-    Ap: float = Field(..., gt=0, description="Hloubka řezu (mm)")
+    Ap: Optional[float] = Field(None, gt=0, description="Hloubka řezu (mm)")
     notes: Optional[str] = Field(None, max_length=1000)
 
 

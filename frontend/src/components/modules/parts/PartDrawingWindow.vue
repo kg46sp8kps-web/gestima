@@ -90,12 +90,16 @@ const hasDrawing = computed(() => {
   return !!currentPart.value.drawing_path
 })
 
-// Verify drawing file exists on server (HEAD request, no body download)
+// Verify drawing file exists on server (GET with Range to avoid full download)
 async function verifyDrawingExists(url: string) {
   if (!url) return
   try {
-    const response = await fetch(url, { method: 'HEAD' })
-    if (!response.ok) {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Range': 'bytes=0-0' }
+    })
+    // 200 = full response, 206 = partial content — both mean file exists
+    if (!response.ok && response.status !== 206) {
       drawingLoadError.value = true
     }
   } catch {
@@ -187,21 +191,21 @@ onMounted(async () => {
   <div class="part-drawing-window">
     <!-- No part selected -->
     <div v-if="!currentPart" class="empty-state">
-      <FileText :size="64" class="empty-icon" />
+      <FileText :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>No part selected</p>
       <p class="empty-hint">Open from Part Main window</p>
     </div>
 
     <!-- Drawing file missing on disk (orphan record) -->
     <div v-else-if="drawingLoadError" class="empty-state">
-      <AlertTriangle :size="64" class="empty-icon error-icon" />
+      <AlertTriangle :size="ICON_SIZE.HERO" class="empty-icon error-icon" />
       <p>Soubor výkresu chybí na disku</p>
       <p class="empty-hint">Nahrajte výkres znovu přes Správu výkresů (pravý klik)</p>
     </div>
 
     <!-- No drawing available -->
     <div v-else-if="!hasDrawing" class="empty-state">
-      <AlertTriangle :size="64" class="empty-icon" />
+      <AlertTriangle :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Žádný výkres</p>
       <p class="empty-hint">{{ currentPart.article_number || currentPart.part_number }}</p>
     </div>
@@ -275,9 +279,9 @@ onMounted(async () => {
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: white;
-  background: var(--color-primary);
-  border: none;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition-fast);
@@ -285,7 +289,9 @@ onMounted(async () => {
 }
 
 .btn-download:hover {
-  background: var(--color-primary-hover);
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
 }
 
 /* PDF Viewer */
@@ -324,7 +330,7 @@ onMounted(async () => {
 }
 
 .error-icon {
-  color: #f43f5e;
+  color: var(--status-error);
   opacity: 0.7;
 }
 

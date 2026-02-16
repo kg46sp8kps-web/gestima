@@ -343,7 +343,7 @@ function handleClose() {
 
 .rename-input:focus {
   outline: none;
-  border-color: var(--palette-primary);
+  border-color: var(--brand);
 }
 
 .layout-actions {
@@ -372,25 +372,25 @@ function handleClose() {
 }
 
 .btn-load:hover {
-  color: #3b82f6;
-  border-color: #3b82f6;
+  color: var(--color-info);
+  border-color: var(--color-info);
   background: rgba(59, 130, 246, 0.1);
 }
 
 .btn-favorite.active {
-  color: #f59e0b;
-  border-color: #f59e0b;
+  color: var(--status-warn);
+  border-color: var(--status-warn);
 }
 
 .btn-default.active {
-  color: #10b981;
-  border-color: #10b981;
+  color: var(--status-ok);
+  border-color: var(--status-ok);
   background: rgba(16, 185, 129, 0.1);
 }
 
 .btn-success {
-  color: #10b981;
-  border-color: #10b981;
+  color: var(--status-ok);
+  border-color: var(--status-ok);
 }
 
 .btn-success:hover {
@@ -398,13 +398,13 @@ function handleClose() {
 }
 
 .btn-edit:hover {
-  color: #3b82f6;
-  border-color: #3b82f6;
+  color: var(--color-info);
+  border-color: var(--color-info);
 }
 
 .btn-delete:hover {
-  color: #ef4444;
-  border-color: #ef4444;
+  color: var(--status-error);
+  border-color: var(--status-error);
   background: rgba(239, 68, 68, 0.1);
 }
 

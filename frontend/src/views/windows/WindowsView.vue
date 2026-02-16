@@ -7,6 +7,7 @@ import { onMounted } from 'vue'
 import { useWindowsStore } from '@/stores/windows'
 import FloatingWindow from '@/components/windows/FloatingWindow.vue'
 import { LayoutGrid } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 // Module components (lazy loaded)
 import { defineAsyncComponent } from 'vue'
@@ -17,8 +18,6 @@ const PartOperationsModule = defineAsyncComponent(() => import('@/components/mod
 const PartTechnologyModule = defineAsyncComponent(() => import('@/components/modules/PartTechnologyModule.vue'))
 const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
 const PartDrawingWindow = defineAsyncComponent(() => import('@/components/modules/parts/PartDrawingWindow.vue'))
-const EstimationPdfWindow = defineAsyncComponent(() => import('@/components/modules/estimation/EstimationPdfWindow.vue'))
-const ManualEstimationListModule = defineAsyncComponent(() => import('@/components/modules/estimation/ManualEstimationListModule.vue'))
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
 const PartnersListModule = defineAsyncComponent(() => import('@/components/modules/PartnersListModule.vue'))
 const QuotesListModule = defineAsyncComponent(() => import('@/components/modules/QuotesListModule.vue'))
@@ -26,6 +25,9 @@ const QuoteFromRequestModule = defineAsyncComponent(() => import('@/components/m
 const ManufacturingItemsModule = defineAsyncComponent(() => import('@/components/modules/manufacturing/ManufacturingItemsModule.vue'))
 const MaterialItemsListModule = defineAsyncComponent(() => import('@/components/modules/materials/MaterialItemsListModule.vue'))
 const MasterAdminModule = defineAsyncComponent(() => import('@/components/modules/MasterAdminModule.vue'))
+const AccountingModule = defineAsyncComponent(() => import('@/components/modules/AccountingModule.vue'))
+const TimeVisionModule = defineAsyncComponent(() => import('@/components/modules/TimeVisionModule.vue'))
+const FileManagerModule = defineAsyncComponent(() => import('@/components/modules/files/FileManagerModule.vue'))
 
 const store = useWindowsStore()
 
@@ -38,8 +40,6 @@ function getModuleComponent(module: string) {
     case 'part-technology': return PartTechnologyModule
     case 'part-material': return PartMaterialModule
     case 'part-drawing': return PartDrawingWindow
-    case 'pdf-viewer': return EstimationPdfWindow
-    case 'manual-estimation-list': return ManualEstimationListModule
     case 'batch-sets': return BatchSetsModule
     case 'partners-list': return PartnersListModule
     case 'quotes-list': return QuotesListModule
@@ -47,6 +47,9 @@ function getModuleComponent(module: string) {
     case 'manufacturing-items': return ManufacturingItemsModule
     case 'material-items-list': return MaterialItemsListModule
     case 'master-admin': return MasterAdminModule
+    case 'accounting': return AccountingModule
+    case 'time-vision': return TimeVisionModule
+    case 'file-manager': return FileManagerModule
     default: return null
   }
 }
@@ -82,7 +85,7 @@ onMounted(() => {
 
     <!-- Empty State -->
     <div v-if="store.windows.length === 0" class="empty-state">
-      <LayoutGrid :size="64" :stroke-width="1" class="empty-icon" />
+      <LayoutGrid :size="ICON_SIZE.HERO" :stroke-width="1" class="empty-icon" />
       <h2>No Windows Open</h2>
       <p>Use search or menu to open modules</p>
     </div>

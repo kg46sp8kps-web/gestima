@@ -32,7 +32,7 @@ const hasDrawing = computed(() => !!item.value?.drawing_path)
   <div class="widget-root">
     <!-- Empty state -->
     <div v-if="!item" class="empty-state">
-      <Package :size="48" class="empty-icon" />
+      <Package :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Vyberte položku ze seznamu</p>
     </div>
 

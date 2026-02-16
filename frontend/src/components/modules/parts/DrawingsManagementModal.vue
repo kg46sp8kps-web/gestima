@@ -253,7 +253,7 @@ function openDrawing(drawing: Drawing) {
           >
             <!-- Broken file warning -->
             <span v-if="!drawing.file_exists" class="badge badge-broken" title="Soubor chybí na disku">
-              <AlertTriangle :size="12" />
+              <AlertTriangle :size="ICON_SIZE.SMALL" />
               Chybí soubor
             </span>
 
@@ -271,7 +271,7 @@ function openDrawing(drawing: Drawing) {
 
             <!-- Primary badge -->
             <span v-if="drawing.is_primary && drawing.file_exists" class="badge">
-              <Star :size="12" :fill="'currentColor'" />
+              <Star :size="ICON_SIZE.SMALL" :fill="'currentColor'" />
               Primary
             </span>
 
@@ -344,7 +344,7 @@ function openDrawing(drawing: Drawing) {
           >
             <!-- Broken file warning -->
             <span v-if="!drawing.file_exists" class="badge badge-broken" title="Soubor chybí na disku">
-              <AlertTriangle :size="12" />
+              <AlertTriangle :size="ICON_SIZE.SMALL" />
               Chybí soubor
             </span>
 
@@ -362,7 +362,7 @@ function openDrawing(drawing: Drawing) {
 
             <!-- Primary badge -->
             <span v-if="drawing.is_primary && drawing.file_exists" class="badge">
-              <Star :size="12" :fill="'currentColor'" />
+              <Star :size="ICON_SIZE.SMALL" :fill="'currentColor'" />
               Primary
             </span>
 
@@ -465,7 +465,7 @@ function openDrawing(drawing: Drawing) {
 }
 
 .card.broken {
-  border-color: #f43f5e;
+  border-color: var(--status-error);
   background: rgba(244, 63, 94, 0.05);
   opacity: 0.75;
 }
@@ -514,8 +514,8 @@ function openDrawing(drawing: Drawing) {
   right: var(--space-2);
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px var(--space-2);
+  gap: var(--space-1);
+  padding: var(--space-0\.5) var(--space-2);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-success);
@@ -525,21 +525,21 @@ function openDrawing(drawing: Drawing) {
 }
 
 .badge-broken {
-  color: #f43f5e;
-  border-color: #f43f5e;
+  color: var(--status-error);
+  border-color: var(--status-error);
   background: rgba(244, 63, 94, 0.1);
 }
 
 .thumb.disabled {
   cursor: not-allowed;
   opacity: 0.5;
-  color: #f43f5e;
+  color: var(--status-error);
 }
 
 .thumb.disabled:hover {
   background: transparent;
   border-color: var(--border-default);
-  color: #f43f5e;
+  color: var(--status-error);
 }
 
 .actions {

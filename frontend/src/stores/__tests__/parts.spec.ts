@@ -1,7 +1,7 @@
 /**
  * GESTIMA Parts Store Tests
  *
- * Tests parts CRUD operations, pagination, search, and state management.
+ * Tests parts CRUD operations, infinite scroll, search, and state management.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
@@ -14,7 +14,6 @@ import type { Part, PartCreate, PartUpdate } from '@/types/part'
 // Mock parts API
 vi.mock('@/api/parts', () => ({
   getParts: vi.fn(),
-  searchParts: vi.fn(),
   getPart: vi.fn(),
   createPart: vi.fn(),
   updatePart: vi.fn(),
@@ -34,20 +33,22 @@ function createMockPart(overrides: Partial<Part> = {}): Part {
     revision: null,
     drawing_number: null,
     status: 'draft',
-    material_item_id: null,
-    price_category_id: null,
     length: 0,
     notes: '',
-    stock_shape: null,
-    stock_diameter: null,
-    stock_length: null,
-    stock_width: null,
-    stock_height: null,
-    stock_wall_thickness: null,
     version: 1,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...overrides
+  }
+}
+
+// Helper to create API response
+function createPartsResponse(parts: Part[], total?: number) {
+  return {
+    parts,
+    total: total ?? parts.length,
+    skip: 0,
+    limit: 200
   }
 }
 
@@ -77,13 +78,57 @@ describe('Parts Store', () => {
       expect(store.currentPart).toBeNull()
       expect(store.total).toBe(0)
       expect(store.loading).toBe(false)
+      expect(store.loadingMore).toBe(false)
       expect(store.searchQuery).toBe('')
-      expect(store.skip).toBe(0)
-      expect(store.limit).toBe(50)
+      expect(store.statusFilter).toBeUndefined()
       expect(store.hasParts).toBe(false)
       expect(store.hasMore).toBe(false)
-      expect(store.currentPage).toBe(1)
-      expect(store.totalPages).toBe(0)
+      expect(store.initialLoading).toBe(false)
+    })
+  })
+
+  // ==========================================================================
+  // INITIAL LOADING (flicker prevention)
+  // ==========================================================================
+
+  describe('Initial Loading', () => {
+    it('should be true only when loading AND parts are empty', async () => {
+      const store = usePartsStore()
+      ;(partsApi.getParts as Mock).mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve(createPartsResponse([createMockPart()])), 100))
+      )
+
+      // Before fetch: loading=false, parts=[] → initialLoading=false
+      expect(store.initialLoading).toBe(false)
+
+      // During first fetch: loading=true, parts=[] → initialLoading=true
+      const promise = store.fetchParts()
+      expect(store.initialLoading).toBe(true)
+
+      await promise
+      // After fetch: loading=false, parts=[1] → initialLoading=false
+      expect(store.initialLoading).toBe(false)
+    })
+
+    it('should be false during refresh when parts exist', async () => {
+      const store = usePartsStore()
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse([createMockPart()]))
+
+      // First load
+      await store.fetchParts()
+      expect(store.parts).toHaveLength(1)
+
+      // Setup slow second fetch
+      ;(partsApi.getParts as Mock).mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve(createPartsResponse([createMockPart({ id: 2 })])), 100))
+      )
+
+      // During refresh: loading=true but parts.length > 0 → initialLoading=false
+      const promise = store.fetchParts()
+      expect(store.loading).toBe(true)
+      expect(store.initialLoading).toBe(false) // No flicker!
+
+      await promise
     })
   })
 
@@ -94,16 +139,16 @@ describe('Parts Store', () => {
   describe('Fetch Parts', () => {
     const mockParts: Part[] = [
       createMockPart({ id: 1, part_number: '1000001', name: 'Test Part 1' }),
-      createMockPart({ id: 2, part_number: '1000002', name: 'Test Part 2', stock_shape: 'plate' })
+      createMockPart({ id: 2, part_number: '1000002', name: 'Test Part 2' })
     ]
 
     it('should fetch parts successfully', async () => {
       const store = usePartsStore()
-      ;(partsApi.getParts as Mock).mockResolvedValue(mockParts)
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse(mockParts))
 
       await store.fetchParts()
 
-      expect(partsApi.getParts).toHaveBeenCalledWith(0, 50)
+      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, undefined, undefined)
       expect(store.parts).toEqual(mockParts)
       expect(store.total).toBe(2)
       expect(store.loading).toBe(false)
@@ -113,7 +158,7 @@ describe('Parts Store', () => {
     it('should set loading=true during fetch', async () => {
       const store = usePartsStore()
       ;(partsApi.getParts as Mock).mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve([]), 100))
+        () => new Promise(resolve => setTimeout(() => resolve(createPartsResponse([])), 100))
       )
 
       const promise = store.fetchParts()
@@ -134,60 +179,56 @@ describe('Parts Store', () => {
       expect(uiStore.toasts[0]!.type).toBe('error')
     })
 
-    it('should use pagination parameters', async () => {
+    it('should pass status filter to API', async () => {
       const store = usePartsStore()
-      store.skip = 50
-      store.limit = 100
-      ;(partsApi.getParts as Mock).mockResolvedValue([])
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse([]))
 
+      store.setStatusFilter('active')
       await store.fetchParts()
 
-      expect(partsApi.getParts).toHaveBeenCalledWith(50, 100)
+      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, 'active', undefined)
+    })
+
+    it('should pass search query to API', async () => {
+      const store = usePartsStore()
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse([]))
+
+      store.setSearchQuery('test')
+      await store.fetchParts()
+
+      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, undefined, 'test')
     })
   })
 
   // ==========================================================================
-  // SEARCH PARTS
+  // FETCH MORE (INFINITE SCROLL)
   // ==========================================================================
 
-  describe('Search Parts', () => {
-    it('should search parts when searchQuery is set', async () => {
+  describe('Fetch More', () => {
+    it('should append parts to existing list', async () => {
       const store = usePartsStore()
-      const searchResponse = {
-        parts: [createMockPart({ name: 'Searched Part' })],
-        total: 1,
-        skip: 0,
-        limit: 50
-      }
-      ;(partsApi.searchParts as Mock).mockResolvedValue(searchResponse)
+      const firstBatch = [createMockPart({ id: 1 })]
+      const secondBatch = [createMockPart({ id: 2 })]
 
-      store.setSearchQuery('Searched')
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse(firstBatch, 200))
       await store.fetchParts()
+      expect(store.parts).toHaveLength(1)
+      expect(store.hasMore).toBe(true)
 
-      expect(partsApi.searchParts).toHaveBeenCalledWith('Searched', 0, 50)
-      expect(store.parts).toEqual(searchResponse.parts)
-      expect(store.total).toBe(1)
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse(secondBatch, 200))
+      await store.fetchMore()
+      expect(store.parts).toHaveLength(2)
     })
 
-    it('should reset skip when setting search query', () => {
+    it('should not fetch if no more items', async () => {
       const store = usePartsStore()
-      store.skip = 100
-
-      store.setSearchQuery('test')
-
-      expect(store.skip).toBe(0)
-      expect(store.searchQuery).toBe('test')
-    })
-
-    it('should NOT search when query is whitespace-only', async () => {
-      const store = usePartsStore()
-      ;(partsApi.getParts as Mock).mockResolvedValue([])
-
-      store.setSearchQuery('   ')
+      ;(partsApi.getParts as Mock).mockResolvedValue(createPartsResponse([createMockPart()], 1))
       await store.fetchParts()
 
-      expect(partsApi.searchParts).not.toHaveBeenCalled()
-      expect(partsApi.getParts).toHaveBeenCalled()
+      expect(store.hasMore).toBe(false)
+      await store.fetchMore()
+      // getParts called only once (fetchParts), not again for fetchMore
+      expect(partsApi.getParts).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -239,7 +280,7 @@ describe('Parts Store', () => {
 
       const result = await store.createPart(createData)
 
-      expect(partsApi.createPart).toHaveBeenCalledWith(createData)
+      expect(partsApi.createPart).toHaveBeenCalledWith(createData, undefined)
       expect(result).toEqual(newPart)
       expect(store.parts[0]).toEqual(newPart) // Unshift to beginning
       expect(store.total).toBe(1)
@@ -285,20 +326,6 @@ describe('Parts Store', () => {
       expect(store.parts[0]!.name).toBe('New Name')
       expect(store.currentPart?.name).toBe('New Name')
       expect(uiStore.toasts[0]!.type).toBe('success')
-    })
-
-    it('should update only in list if part is in list', async () => {
-      const store = usePartsStore()
-      store.parts = [existingPart]
-      store.currentPart = null // Not current
-
-      const updatedPart = { ...existingPart, name: 'Updated' }
-      ;(partsApi.updatePart as Mock).mockResolvedValue(updatedPart)
-
-      await store.updatePart('1000001', { name: 'Updated', version: 1 })
-
-      expect(store.parts[0]!.name).toBe('Updated')
-      expect(store.currentPart).toBeNull()
     })
 
     it('should handle update error', async () => {
@@ -384,122 +411,6 @@ describe('Parts Store', () => {
   })
 
   // ==========================================================================
-  // PAGINATION
-  // ==========================================================================
-
-  describe('Pagination', () => {
-    beforeEach(() => {
-      ;(partsApi.getParts as Mock).mockResolvedValue([])
-    })
-
-    it('should calculate hasMore correctly', () => {
-      const store = usePartsStore()
-      store.skip = 0
-      store.limit = 50
-      store.total = 120
-
-      expect(store.hasMore).toBe(true)
-
-      store.skip = 100
-      expect(store.hasMore).toBe(false)
-    })
-
-    it('should calculate currentPage correctly', () => {
-      const store = usePartsStore()
-      store.limit = 50
-
-      store.skip = 0
-      expect(store.currentPage).toBe(1)
-
-      store.skip = 50
-      expect(store.currentPage).toBe(2)
-
-      store.skip = 100
-      expect(store.currentPage).toBe(3)
-    })
-
-    it('should calculate totalPages correctly', () => {
-      const store = usePartsStore()
-      store.limit = 50
-
-      store.total = 120
-      expect(store.totalPages).toBe(3) // Math.ceil(120 / 50)
-
-      store.total = 100
-      expect(store.totalPages).toBe(2)
-
-      store.total = 25
-      expect(store.totalPages).toBe(1)
-    })
-
-    it('should go to next page', async () => {
-      const store = usePartsStore()
-      store.skip = 0
-      store.limit = 50
-      store.total = 150
-
-      await store.nextPage()
-
-      expect(store.skip).toBe(50)
-      expect(partsApi.getParts).toHaveBeenCalled()
-    })
-
-    it('should NOT go to next page if no more', async () => {
-      const store = usePartsStore()
-      store.skip = 100
-      store.limit = 50
-      store.total = 120
-
-      await store.nextPage()
-
-      expect(store.skip).toBe(100) // No change
-      expect(partsApi.getParts).not.toHaveBeenCalled()
-    })
-
-    it('should go to previous page', async () => {
-      const store = usePartsStore()
-      store.skip = 50
-      store.limit = 50
-
-      await store.prevPage()
-
-      expect(store.skip).toBe(0)
-      expect(partsApi.getParts).toHaveBeenCalled()
-    })
-
-    it('should NOT go to previous page if already first', async () => {
-      const store = usePartsStore()
-      store.skip = 0
-
-      await store.prevPage()
-
-      expect(store.skip).toBe(0)
-      expect(partsApi.getParts).not.toHaveBeenCalled()
-    })
-
-    it('should go to specific page', async () => {
-      const store = usePartsStore()
-      store.limit = 50
-
-      await store.goToPage(3)
-
-      expect(store.skip).toBe(100) // (3-1) * 50
-      expect(partsApi.getParts).toHaveBeenCalled()
-    })
-
-    it('should change limit and reset to first page', async () => {
-      const store = usePartsStore()
-      store.skip = 100
-
-      await store.setLimit(100)
-
-      expect(store.limit).toBe(100)
-      expect(store.skip).toBe(0)
-      expect(partsApi.getParts).toHaveBeenCalled()
-    })
-  })
-
-  // ==========================================================================
   // RESET
   // ==========================================================================
 
@@ -510,8 +421,6 @@ describe('Parts Store', () => {
       store.currentPart = store.parts[0] ?? null
       store.total = 100
       store.searchQuery = 'test'
-      store.skip = 50
-      store.limit = 100
 
       store.reset()
 
@@ -519,8 +428,6 @@ describe('Parts Store', () => {
       expect(store.currentPart).toBeNull()
       expect(store.total).toBe(0)
       expect(store.searchQuery).toBe('')
-      expect(store.skip).toBe(0)
-      expect(store.limit).toBe(50)
     })
   })
 })

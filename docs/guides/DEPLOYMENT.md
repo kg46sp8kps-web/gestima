@@ -907,7 +907,7 @@ robocopy C:\Gestima\backups "C:\Users\User\Dropbox\GESTIMA_Backups" /MIR
 
 ### Q: Kdy přejít na PostgreSQL?
 
-**A:** Viz [VISION.md](docs/VISION.md):
+**A:** Zvážit PostgreSQL pokud:
 - >10 concurrent users
 - Real-time MES v4.0 (Q3 2026)
 - Full-text search requirements
@@ -930,7 +930,7 @@ robocopy C:\Gestima\backups "C:\Users\User\Dropbox\GESTIMA_Backups" /MIR
 
 3. ✅ **Dokumentace**
    - Přečti [CLAUDE.md](CLAUDE.md) - AI development pravidla
-   - Přečti [VISION.md](docs/VISION.md) - Dlouhodobá roadmap
+   - Přečti [STATUS.md](../status/STATUS.md) - Aktuální stav projektu
 
 4. ✅ **Next Features**
    - Viz [NEXT-STEPS.md](docs/NEXT-STEPS.md) - Plánované features
@@ -941,7 +941,7 @@ robocopy C:\Gestima\backups "C:\Users\User\Dropbox\GESTIMA_Backups" /MIR
 
 - [ADR-018](docs/ADR/018-deployment-strategy.md) - Architektonické rozhodnutí deployment
 - [ADR-007](docs/ADR/007-https-caddy.md) - HTTPS pro public deployment
-- [VISION.md](docs/VISION.md) - Dlouhodobá roadmap (PostgreSQL v4.0)
+- [STATUS.md](../status/STATUS.md) - Stav projektu
 - [CLAUDE.md](CLAUDE.md) - AI development pravidla
 - [Git Documentation](https://git-scm.com/doc) - Oficiální Git docs
 

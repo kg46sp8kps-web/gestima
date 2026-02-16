@@ -18,7 +18,7 @@
         @drop.prevent="handleDrop"
       >
         <div v-if="!quotesStore.aiParsing" class="upload-content">
-          <FileUp :size="48" class="upload-icon" />
+          <FileUp :size="ICON_SIZE.HERO" class="upload-icon" />
           <h2>Nahrajte PDF poptávky</h2>
           <p>Přetáhněte soubor sem nebo klikněte pro výběr</p>
           <p class="upload-hint">Max 10 MB | AI parsování: 10×/hod</p>
@@ -34,17 +34,17 @@
 
         <div v-else class="upload-loading">
           <div class="spinner"></div>
-          <p>Claude AI analyzuje PDF...</p>
+          <p>AI analyzuje PDF...</p>
           <p class="upload-hint">Trvá cca 10-30 sekund</p>
         </div>
       </div>
 
       <!-- Info panel -->
       <div class="info-panel">
-        <h3><Info :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Jak to funguje?</h3>
+        <h3><Info :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Jak to funguje?</h3>
         <ul>
           <li>Nahraje se PDF s poptávkou (obsahuje zákazníka + díly + množství)</li>
-          <li>Claude Vision AI extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
+          <li>AI Vision extrahuje: firma, IČO, kontakt, díly, počty kusů</li>
           <li>Systém hledá existující zákazníky a díly v databázi</li>
           <li>Automaticky přiřadí ceny z vhodných zamražených dávek</li>
           <li>Vy zkontrolujete, upravíte a potvrdíte → vytvoří se nabídka</li>
@@ -60,7 +60,7 @@
     <div v-if="review && !quotesStore.loading" class="review-section">
       <!-- Summary stats -->
       <div class="summary-panel">
-        <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Přehled poptávky</h2>
+        <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Přehled poptávky</h2>
         <div class="summary-grid">
           <div class="summary-item">
             <span class="summary-label">Celkem položek:</span>
@@ -87,7 +87,7 @@
 
       <!-- Customer section -->
       <div class="customer-section">
-        <h2><User :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Zákazník</h2>
+        <h2><User :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Zákazník</h2>
         <div class="customer-info">
           <div class="form-row">
             <div class="form-field">
@@ -136,7 +136,7 @@
 
       <!-- Items table -->
       <div class="items-section">
-        <h2><Package :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Položky nabídky</h2>
+        <h2><Package :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Položky nabídky</h2>
         <div class="items-table-wrapper">
           <table class="items-table">
             <thead>
@@ -232,7 +232,7 @@
 
       <!-- Quote metadata -->
       <div class="metadata-section">
-        <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: 8px;" /> Detaily nabídky</h2>
+        <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Detaily nabídky</h2>
         <div class="form-row">
           <div class="form-field">
             <label>Název nabídky *</label>
@@ -508,7 +508,7 @@ onMounted(() => {
 .page-header h1 {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
 }
 
 .header-actions {
@@ -523,23 +523,23 @@ onMounted(() => {
 }
 
 .upload-dropzone {
-  border: 2px dashed var(--palette-neutral-600);
+  border: 2px dashed var(--text-muted);
   border-radius: var(--radius-md);
   padding: var(--space-12);
   text-align: center;
-  background: var(--palette-neutral-900);
+  background: var(--bg-subtle);
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .upload-dropzone:hover {
-  border-color: var(--palette-neutral-500);
-  background: var(--palette-neutral-800);
+  border-color: var(--text-secondary);
+  background: var(--border-default);
 }
 
 .upload-dropzone.is-dragging {
   border-color: var(--palette-accent-red);
-  background: var(--palette-neutral-800);
+  background: var(--border-default);
 }
 
 .upload-dropzone.is-uploading {
@@ -555,28 +555,28 @@ onMounted(() => {
 }
 
 .upload-icon {
-  color: var(--palette-neutral-500);
+  color: var(--text-secondary);
 }
 
 .upload-content h2 {
-  font-size: var(--font-size-xl);
+  font-size: var(--text-xl);
   font-weight: var(--font-weight-semibold);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
 }
 
 .upload-content p {
-  color: var(--palette-neutral-400);
+  color: var(--text-secondary);
 }
 
 .upload-hint {
-  font-size: var(--font-size-sm);
-  color: var(--palette-neutral-500);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--palette-neutral-700);
+  border: 4px solid var(--text-muted);
   border-top-color: var(--palette-accent-red);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -589,16 +589,16 @@ onMounted(() => {
 }
 
 .info-panel {
-  background: var(--palette-neutral-900);
-  border: 1px solid var(--palette-neutral-700);
+  background: var(--bg-subtle);
+  border: 1px solid var(--text-muted);
   border-radius: var(--radius-md);
   padding: var(--space-6);
 }
 
 .info-panel h3 {
-  font-size: var(--font-size-lg);
+  font-size: var(--text-lg);
   font-weight: var(--font-weight-semibold);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
   margin-bottom: var(--space-4);
 }
 
@@ -609,17 +609,17 @@ onMounted(() => {
 }
 
 .info-panel li {
-  color: var(--palette-neutral-300);
+  color: var(--text-body);
   padding: var(--space-2) 0;
 }
 
 .info-note {
   display: block;
   padding: var(--space-3);
-  background: var(--palette-neutral-800);
+  background: var(--border-default);
   border-radius: var(--radius-sm);
-  color: var(--palette-neutral-300);
-  font-size: var(--font-size-sm);
+  color: var(--text-body);
+  font-size: var(--text-sm);
 }
 
 /* Review section */
@@ -633,8 +633,8 @@ onMounted(() => {
 .customer-section,
 .items-section,
 .metadata-section {
-  background: var(--palette-neutral-900);
-  border: 1px solid var(--palette-neutral-700);
+  background: var(--bg-subtle);
+  border: 1px solid var(--text-muted);
   border-radius: var(--radius-md);
   padding: var(--space-6);
 }
@@ -643,9 +643,9 @@ onMounted(() => {
 .customer-section h2,
 .items-section h2,
 .metadata-section h2 {
-  font-size: var(--font-size-lg);
+  font-size: var(--text-lg);
   font-weight: var(--font-weight-semibold);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
   margin-bottom: var(--space-4);
 }
 
@@ -659,17 +659,17 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   padding: var(--space-3);
-  background: var(--palette-neutral-800);
+  background: var(--border-default);
   border-radius: var(--radius-sm);
 }
 
 .summary-label {
-  color: var(--palette-neutral-400);
+  color: var(--text-secondary);
 }
 
 .summary-value {
   font-weight: var(--font-weight-semibold);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
 }
 
 .summary-value.error {
@@ -696,21 +696,21 @@ onMounted(() => {
 }
 
 .form-field label {
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--palette-neutral-300);
+  color: var(--text-body);
 }
 
 .form-input,
 .form-textarea {
   width: 100%;
   padding: var(--space-3);
-  background: var(--palette-neutral-800);
-  border: 1px solid var(--palette-neutral-600);
+  background: var(--border-default);
+  border: 1px solid var(--text-muted);
   border-radius: var(--radius-sm);
-  color: var(--palette-neutral-50);
+  color: var(--text-primary);
   font-family: inherit;
-  font-size: var(--font-size-base);
+  font-size: var(--text-base);
 }
 
 .form-textarea {
@@ -720,7 +720,7 @@ onMounted(() => {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--palette-neutral-400);
+  border-color: var(--text-secondary);
 }
 
 .match-result {
@@ -729,7 +729,7 @@ onMounted(() => {
   gap: var(--space-2);
   padding: var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
 }
 
 .match-result.success {
@@ -747,36 +747,36 @@ onMounted(() => {
 /* Items table */
 .items-table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--palette-neutral-700);
+  border: 1px solid var(--text-muted);
   border-radius: var(--radius-sm);
 }
 
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
 }
 
 .items-table thead {
-  background: var(--palette-neutral-800);
+  background: var(--border-default);
 }
 
 .items-table th {
   padding: var(--space-3);
   text-align: left;
   font-weight: var(--font-weight-semibold);
-  color: var(--palette-neutral-300);
-  border-bottom: 1px solid var(--palette-neutral-700);
+  color: var(--text-body);
+  border-bottom: 1px solid var(--text-muted);
 }
 
 .items-table td {
   padding: var(--space-3);
-  color: var(--palette-neutral-200);
-  border-bottom: 1px solid var(--palette-neutral-800);
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .items-table tbody tr:hover {
-  background: var(--palette-neutral-850);
+  background: var(--bg-raised);
 }
 
 .items-table tbody tr.new-part {
@@ -790,9 +790,9 @@ onMounted(() => {
 
 .badge {
   display: inline-block;
-  padding: 2px 6px;
+  padding: var(--space-0\.5) var(--space-2);
   border-radius: var(--radius-xs);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   margin-left: var(--space-2);
@@ -807,10 +807,10 @@ onMounted(() => {
 .batch-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-xs);
-  font-size: var(--font-size-xs);
+  font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
 }
 
@@ -844,13 +844,13 @@ onMounted(() => {
 }
 
 .warning {
-  font-size: var(--font-size-xs);
+  font-size: var(--text-xs);
   color: var(--palette-warning-300);
 }
 
 .item-note {
-  font-size: var(--font-size-xs);
-  color: var(--palette-neutral-400);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -858,14 +858,14 @@ onMounted(() => {
 .batch-legend {
   margin-top: var(--space-4);
   padding: var(--space-4);
-  background: var(--palette-neutral-800);
+  background: var(--border-default);
   border-radius: var(--radius-sm);
 }
 
 .batch-legend h4 {
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--palette-neutral-300);
+  color: var(--text-body);
   margin-bottom: var(--space-3);
 }
 
@@ -879,8 +879,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--palette-neutral-300);
+  font-size: var(--text-sm);
+  color: var(--text-body);
 }
 
 .legend-item svg.exact {
@@ -912,7 +912,7 @@ onMounted(() => {
 }
 
 .creating-quote p {
-  font-size: var(--font-size-lg);
-  color: var(--palette-neutral-300);
+  font-size: var(--text-lg);
+  color: var(--text-body);
 }
 </style>

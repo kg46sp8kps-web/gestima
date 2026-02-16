@@ -201,7 +201,7 @@ const selectTab = (index: number) => {
 }
 
 .tab-button.active {
-  color: var(--accent-primary);
+  color: var(--brand);
 }
 
 /* Active indicator (horizontal) */
@@ -212,7 +212,7 @@ const selectTab = (index: number) => {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-primary);
+  background: var(--brand);
   border-radius: 1px 1px 0 0;
 }
 
@@ -247,7 +247,7 @@ const selectTab = (index: number) => {
   height: 18px;
   padding: 0 var(--space-1);
   border-radius: var(--radius-full);
-  background: var(--accent-primary);
+  background: var(--brand);
   color: white;
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);

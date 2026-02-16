@@ -284,7 +284,7 @@ schtasks /run /tn "GESTIMA"
 - Automatický deploy přes SSH (pokud získáš VPN)
 - Automated testing pipeline (GitHub Actions)
 
-**Timeline:** Viz [VISION.md](../VISION.md) - PostgreSQL evaluation v Q3 2026 (v4.0)
+**Timeline:** PostgreSQL evaluation plánováno pro Q3 2026 (v4.0)
 
 ## Checklist pro nového developera
 
@@ -313,7 +313,7 @@ schtasks /run /tn "GESTIMA"
 ## Reference
 
 - [DEPLOYMENT.md](../DEPLOYMENT.md) - Kompletní deployment guide
-- [VISION.md](../VISION.md) - Dlouhodobá roadmap (PostgreSQL v4.0)
+- PostgreSQL migration plánována v4.0 (VISION.md — removed, available in git history)
 - [ADR-007](007-https-caddy.md) - HTTPS pro public deployment
 - SQLite Network Share Warning: https://sqlite.org/whentouse.html
 

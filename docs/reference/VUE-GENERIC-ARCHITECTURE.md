@@ -633,7 +633,7 @@ TOTAL:                        1500 LOC  (all reusable!)
 
 - [CLAUDE.md](../CLAUDE.md) - Rule #14: NO FAT COMPONENTS
 - [ADR-024: MaterialInput Refactor](ADR/024-material-input-refactor.md) - Backend
-- [docs/VISION.md](VISION.md) - v4.0 Inventory, v5.0 Tech DB
+- VISION.md (removed, git history) - v4.0 Inventory, v5.0 Tech DB
 - [L-036: Fat Components Anti-Pattern](../CLAUDE.md#l-036)
 
 ---

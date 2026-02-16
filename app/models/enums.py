@@ -9,11 +9,19 @@ class UserRole(str, Enum):
     VIEWER = "viewer"
 
 
+class PartSource(str, Enum):
+    """Zdroj/původ dílu"""
+    MANUAL = "manual"              # Ručně vytvořen v Gestimě
+    INFOR_IMPORT = "infor_import"  # Importován z Infor ERP
+    QUOTE_REQUEST = "quote_request"  # Z poptávkového modulu (budoucí)
+
+
 class PartStatus(str, Enum):
     """Status dílu (lifecycle)"""
     DRAFT = "draft"        # Rozpracovaný (wizard nedokončen)
     ACTIVE = "active"      # Aktivní (v provozu)
     ARCHIVED = "archived"  # Archivovaný
+    QUOTE = "quote"        # Nabídka (importováno z Inforu)
 
 
 class StockType(str, Enum):

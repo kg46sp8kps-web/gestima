@@ -67,13 +67,11 @@ class TestNumberGeneratorSingle:
         price_category
     ):
         """Generator should avoid numbers already in database"""
-        # Create a part with known number (8-digit format)
+        # Create a part with known number (8-digit format, ADR-024: no material fields on Part)
         existing_number = "10123456"
         part = Part(
             part_number=existing_number,
             name="Test Part",
-            material_item_id=None,
-            price_category_id=price_category.id,
             created_by="test"
         )
         db_session.add(part)
@@ -160,7 +158,7 @@ class TestNumberGeneratorCollisions:
                 part = Part(
                     part_number=number,
                     name=f"Part {i}",
-                    price_category_id=price_category.id,
+
                     created_by="test"
                 )
                 db_session.add(part)
@@ -219,7 +217,6 @@ class TestNumberGeneratorEdgeCases:
         part = Part(
             part_number="10000000",
             name="Existing",
-            price_category_id=1,
             created_by="test"
         )
         db_session.add(part)
@@ -272,10 +269,9 @@ class TestNumberGeneratorIntegration:
         mock_user.username = "testuser"
         mock_user.role = UserRole.ADMIN
 
-        # Create part without specifying part_number
+        # Create part without specifying part_number (ADR-024: no material fields on Part)
         part_data = PartCreate(
             name="Test Part",
-            price_category_id=price_category.id,
             length=100.0
         )
 
@@ -286,7 +282,6 @@ class TestNumberGeneratorIntegration:
         part = Part(
             part_number=number,
             name="Test Part",
-            price_category_id=price_category.id,
             length=100.0,
             created_by="testuser"
         )

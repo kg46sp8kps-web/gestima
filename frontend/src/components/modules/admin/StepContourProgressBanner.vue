@@ -38,7 +38,7 @@ const progressPercent = computed(() => {
 .progress-banner {
   padding: var(--space-3) var(--space-4);
   background: var(--bg-raised);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .progress-content {
@@ -51,8 +51,8 @@ const progressPercent = computed(() => {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent-primary);
+  border: 2px solid var(--border-default);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -77,7 +77,7 @@ const progressPercent = computed(() => {
 
 .progress-fill {
   height: 100%;
-  background: var(--accent-primary);
+  background: var(--brand);
   transition: width 0.3s ease;
 }
 </style>

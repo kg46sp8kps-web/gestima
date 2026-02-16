@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Material Items List Panel - DataTable layout (UI-BIBLE Pattern 1)
+ * Material Items List Panel - DataTable layout (Design System Pattern 7.7)
  *
  * Features:
  * - DataTable with sortable columns
@@ -462,9 +462,9 @@ defineExpose({
 /* === CUSTOM CELLS === */
 .shape-badge {
   font-size: var(--text-xs);
-  padding: 2px var(--space-2);
+  padding: var(--space-0\.5) var(--space-2);
   background: var(--bg-raised);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
 }
@@ -528,16 +528,17 @@ defineExpose({
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
+  background: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
   width: auto;
   padding: var(--space-2) var(--space-3);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
   transform: scale(1.05);
 }
 

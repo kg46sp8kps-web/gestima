@@ -12,17 +12,20 @@
  * <CheckIcon :size="ICON_SIZE.STANDARD" />
  */
 export const ICON_SIZE = {
-  /** Standardní velikost pro ikony v tlačítkách, formulářích */
-  STANDARD: 20,
+  /** Standardní velikost pro ikony v tlačítkách, formulářích (matches DS --icon-size: 18px) */
+  STANDARD: 18,
 
   /** Malé ikony pro inline text, badges */
-  SMALL: 16,
+  SMALL: 14,
 
   /** Velké ikony pro headery, hlavní akce */
-  LARGE: 24,
+  LARGE: 22,
 
   /** Extra velké ikony pro empty states, ilustrace */
   XLARGE: 32,
+
+  /** Hero ikony pro prázdné stavy, velké ilustrace */
+  HERO: 48,
 } as const
 
 /**

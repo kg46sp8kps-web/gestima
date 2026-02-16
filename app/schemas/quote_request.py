@@ -3,7 +3,7 @@
 AI-powered quote request parsing from PDF.
 
 Workflow:
-1. Upload PDF → Claude Vision
+1. Upload PDF → AI Vision
 2. Extract customer + items
 3. Review & edit by user
 4. Match Parts + Batches

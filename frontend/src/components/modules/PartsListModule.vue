@@ -11,6 +11,7 @@ import { usePartsStore } from '@/stores/parts'
 import { useWindowContextStore } from '@/stores/windowContext'
 import type { LinkingGroup } from '@/stores/windows'
 import { Package, Calendar } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   standalone?: boolean
@@ -67,7 +68,7 @@ function formatDate(dateString: string) {
     </div>
     <div v-else-if="!hasParts" class="empty">
       <div class="empty-icon">
-        <Package :size="48" />
+        <Package :size="ICON_SIZE.HERO" />
       </div>
       <p>Žádné díly k zobrazení</p>
       <p class="hint">Vytvořte první díl pomocí tlačítka "+ Nový díl"</p>
@@ -87,7 +88,7 @@ function formatDate(dateString: string) {
         <p v-if="part.notes" class="part-notes">{{ part.notes }}</p>
         <div class="part-meta">
           <span class="meta-item">
-            <Calendar :size="12" class="meta-icon" />
+            <Calendar :size="ICON_SIZE.SMALL" class="meta-icon" />
             {{ formatDate(part.created_at) }}
           </span>
         </div>
@@ -118,7 +119,7 @@ function formatDate(dateString: string) {
   width: 40px;
   height: 40px;
   border: 3px solid var(--border-default);
-  border-top-color: var(--accent-primary);
+  border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: var(--space-4);
@@ -185,7 +186,7 @@ function formatDate(dateString: string) {
 }
 
 .part-card:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--brand);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -212,8 +213,8 @@ function formatDate(dateString: string) {
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
   font-family: var(--font-mono);
-  color: var(--accent-primary);
-  background: var(--accent-subtle);
+  color: var(--brand);
+  background: var(--brand-subtle);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }

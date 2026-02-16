@@ -38,12 +38,12 @@ function handleWindowClick(windowId: string) {
 // Get color for linking group dot
 function getLinkingGroupColor(group: string | null): string {
   const colors: Record<string, string> = {
-    red: '#ef4444',
-    blue: '#3b82f6',
-    green: '#10b981',
-    yellow: '#f59e0b'
+    red: 'var(--link-group-red)',
+    blue: 'var(--link-group-blue)',
+    green: 'var(--link-group-green)',
+    yellow: 'var(--link-group-yellow)'
   }
-  return colors[group || ''] || '#6b7280'
+  return colors[group || ''] || 'var(--link-group-neutral)'
 }
 
 // Current time
@@ -88,7 +88,7 @@ const currentTime = computed(() => {
     <!-- Status indicators (right side) -->
     <div class="taskbar-status">
       <div class="status-indicator">
-        <Circle :size="8" fill="#10b981" stroke="none" />
+        <Circle :size="8" fill="var(--status-ok)" stroke="none" />
         <span>System Operational</span>
       </div>
       <div class="status-time">
@@ -106,13 +106,13 @@ const currentTime = computed(() => {
   right: 0;
   height: 40px;
   background: var(--bg-surface);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-3);
   z-index: 999;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   backdrop-filter: blur(8px);
 }
 
@@ -130,7 +130,7 @@ const currentTime = computed(() => {
 }
 
 .taskbar-windows::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--border-default);
   border-radius: var(--radius-sm);
 }
 
@@ -140,7 +140,7 @@ const currentTime = computed(() => {
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: var(--text-sm);

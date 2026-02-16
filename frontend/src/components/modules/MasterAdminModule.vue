@@ -8,7 +8,6 @@
  * - MaterialGroupsPanel: Material groups CRUD
  * - PriceCategoriesPanel: Price categories with tiers
  * - WorkCentersPanel: Work centers CRUD
- * - VisionDebugModule: PDF annotation refinement
  *
  * Refactored from 2149 LOC to <200 LOC (L-036 compliant)
  */
@@ -19,15 +18,12 @@ import MaterialNormsPanel from './admin/MaterialNormsPanel.vue'
 import MaterialGroupsPanel from './admin/MaterialGroupsPanel.vue'
 import PriceCategoriesPanel from './admin/PriceCategoriesPanel.vue'
 import WorkCentersPanel from './admin/WorkCentersPanel.vue'
-import VisionDebugModule from './admin/VisionDebugModule.vue'
-import MachiningTimeEstimationModule from './estimation/MachiningTimeEstimationModule.vue'
-import ManualEstimationListModule from './estimation/ManualEstimationListModule.vue'
-import ProxyFeaturesTestPanel from './admin/ProxyFeaturesTestPanel.vue'
-import { Cloud, ClipboardList, Tag, DollarSign, Factory, Eye, Clock, Brain, FlaskConical } from 'lucide-vue-next'
+import CuttingConditionsCatalogPanel from './admin/CuttingConditionsCatalogPanel.vue'
+import { Cloud, ClipboardList, Tag, DollarSign, Factory, Gauge } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 // Main tabs
-type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'vision' | 'machining-time' | 'ml-estimation' | 'proxy-test'
+type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'cutting'
 const activeMainTab = ref<MainTab>('infor')
 
 // Connection status from Infor panel
@@ -64,21 +60,9 @@ function handleConnectionChange(status: Record<string, unknown>) {
         <Factory :size="ICON_SIZE.STANDARD" />
         <span>Pracoviste</span>
       </button>
-      <button @click="activeMainTab = 'vision'" :class="['main-tab', { active: activeMainTab === 'vision' }]">
-        <Eye :size="ICON_SIZE.STANDARD" />
-        <span>Vision Debug</span>
-      </button>
-      <button @click="activeMainTab = 'machining-time'" :class="['main-tab', { active: activeMainTab === 'machining-time' }]">
-        <Clock :size="ICON_SIZE.STANDARD" />
-        <span>Strojní časy</span>
-      </button>
-      <button @click="activeMainTab = 'ml-estimation'" :class="['main-tab', { active: activeMainTab === 'ml-estimation' }]">
-        <Brain :size="ICON_SIZE.STANDARD" />
-        <span>ML Estimation</span>
-      </button>
-      <button @click="activeMainTab = 'proxy-test'" :class="['main-tab', { active: activeMainTab === 'proxy-test' }]">
-        <FlaskConical :size="ICON_SIZE.STANDARD" />
-        <span>Proxy Test</span>
+      <button @click="activeMainTab = 'cutting'" :class="['main-tab', { active: activeMainTab === 'cutting' }]">
+        <Gauge :size="ICON_SIZE.STANDARD" />
+        <span>Řezné podmínky</span>
       </button>
     </div>
 
@@ -93,10 +77,7 @@ function handleConnectionChange(status: Record<string, unknown>) {
       <MaterialGroupsPanel v-else-if="activeMainTab === 'groups'" />
       <PriceCategoriesPanel v-else-if="activeMainTab === 'categories'" />
       <WorkCentersPanel v-else-if="activeMainTab === 'workcenters'" />
-      <VisionDebugModule v-else-if="activeMainTab === 'vision'" />
-      <MachiningTimeEstimationModule v-else-if="activeMainTab === 'machining-time'" />
-      <ManualEstimationListModule v-else-if="activeMainTab === 'ml-estimation'" />
-      <ProxyFeaturesTestPanel v-else-if="activeMainTab === 'proxy-test'" />
+      <CuttingConditionsCatalogPanel v-else-if="activeMainTab === 'cutting'" />
     </div>
   </div>
 </template>
@@ -115,7 +96,7 @@ function handleConnectionChange(status: Record<string, unknown>) {
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .main-tab {

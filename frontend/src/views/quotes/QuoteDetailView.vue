@@ -561,13 +561,13 @@ onMounted(() => {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .btn-back {
   padding: var(--spacing-sm) var(--spacing-md);
   background: none;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius);
   cursor: pointer;
   font-size: var(--text-xl);
@@ -601,7 +601,7 @@ onMounted(() => {
 /* Status badges */
 .status-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   font-size: var(--text-xl);
   font-weight: 500;
 }
@@ -632,7 +632,7 @@ onMounted(() => {
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
   background-color: var(--color-gray-50);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .total-item {
@@ -669,7 +669,7 @@ onMounted(() => {
 
 .form-card {
   background-color: var(--color-surface);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
@@ -697,7 +697,7 @@ onMounted(() => {
 .form-group textarea {
   width: 100%;
   padding: var(--spacing-sm);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius);
   font-size: var(--text-xl);
 }
@@ -755,7 +755,7 @@ onMounted(() => {
 
 .add-item-form {
   background-color: var(--color-surface);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
@@ -785,7 +785,7 @@ onMounted(() => {
 
 .snapshot-json {
   background-color: var(--color-gray-50);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--border-radius);
   padding: var(--spacing-md);
   font-size: var(--text-base);

@@ -55,7 +55,7 @@ def main():
     agent_type = data.get("agent_type", "")
 
     # Only apply to coding agents
-    coding_agents = ["backend", "frontend", "sefik"]
+    coding_agents = ["backend", "frontend", "cartman"]
     if agent_type and agent_type not in coding_agents:
         sys.exit(0)
 

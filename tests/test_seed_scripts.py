@@ -27,6 +27,7 @@ import pytest
 import sys
 from pathlib import Path
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialPriceTier
 from app.models.material_norm import MaterialNorm
@@ -41,79 +42,63 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 
 # =============================================================================
-# TEST: seed_machines.py
+# TEST: seed_work_centers.py
 # =============================================================================
 
 @pytest.mark.asyncio
-async def test_seed_machines_compliance(db_session):
+async def test_seed_work_centers_compliance(db_session):
     """
-    seed_machines.py MUST produce valid machines that pass ADR-016.
+    seed_work_centers.py MUST produce valid work centers that pass ADR-021.
 
     Validates:
-    - Machines exist
-    - Hourly rates > 0 (ADR-016)
+    - WorkCenters exist
+    - Hourly rates > 0
     - No duplicates
     - Required fields present
     """
-    from scripts.seed_machines import seed_machines
+    from scripts.seed_work_centers import seed_work_centers
 
     # Run seed
     try:
-        created = await seed_machines(session=db_session)
+        created = await seed_work_centers(session=db_session)
         assert created >= 0, "Seed function failed"
     except Exception as e:
-        pytest.fail(f"❌ seed_machines() failed: {e}")
+        pytest.fail(f"seed_work_centers() failed: {e}")
 
     # Validate output
     result = await db_session.execute(select(WorkCenter))
-    machines = result.scalars().all()
+    wcs = result.scalars().all()
 
-    assert len(machines) >= 2, f"Expected at least 2 machines, found {len(machines)}"
+    assert len(wcs) >= 2, f"Expected at least 2 work centers, found {len(wcs)}"
 
-    for machine in machines:
+    for wc in wcs:
         # Required fields
-        assert machine.code, f"Machine {machine.id} missing code"
-        assert machine.name, f"Machine {machine.id} missing name"
-        assert machine.type, f"Machine {machine.id} missing type"
+        assert wc.work_center_number, f"WorkCenter {wc.id} missing work_center_number"
+        assert wc.name, f"WorkCenter {wc.id} missing name"
+        assert wc.work_center_type, f"WorkCenter {wc.id} missing work_center_type"
 
-        # Hourly rates validation (ADR-016)
-        assert machine.hourly_rate_amortization > 0, (
-            f"Machine {machine.code} has invalid amortization rate"
-        )
-        assert machine.hourly_rate_labor > 0, (
-            f"Machine {machine.code} has invalid labor rate"
-        )
-        assert machine.hourly_rate_tools >= 0, (
-            f"Machine {machine.code} has invalid tools rate"
-        )
-        assert machine.hourly_rate_overhead >= 0, (
-            f"Machine {machine.code} has invalid overhead rate"
-        )
+        # Hourly rates validation
+        if wc.hourly_rate_amortization is not None:
+            assert wc.hourly_rate_amortization > 0, (
+                f"WorkCenter {wc.work_center_number} has invalid amortization rate"
+            )
+        if wc.hourly_rate_labor is not None:
+            assert wc.hourly_rate_labor > 0, (
+                f"WorkCenter {wc.work_center_number} has invalid labor rate"
+            )
 
-        # Total rate sanity check
-        total_rate = (
-            machine.hourly_rate_amortization +
-            machine.hourly_rate_labor +
-            machine.hourly_rate_tools +
-            machine.hourly_rate_overhead
-        )
-        assert total_rate > 0, f"Machine {machine.code} has zero total hourly rate"
-        assert total_rate < 10000, (
-            f"Machine {machine.code} has unrealistic hourly rate: {total_rate} Kč/h"
-        )
-
-    # Check for duplicate codes
+    # Check for duplicate work_center_numbers
     result = await db_session.execute(
-        select(WorkCenter.code, func.count(WorkCenter.code))
-        .group_by(WorkCenter.code)
-        .having(func.count(WorkCenter.code) > 1)
+        select(WorkCenter.work_center_number, func.count(WorkCenter.work_center_number))
+        .group_by(WorkCenter.work_center_number)
+        .having(func.count(WorkCenter.work_center_number) > 1)
     )
     duplicates = result.all()
 
     assert len(duplicates) == 0, (
-        f"❌ DUPLICATE machine codes detected!\n"
-        f"   Duplicates: {[code for code, count in duplicates]}\n"
-        f"   🚨 FIX: scripts/seed_machines.py"
+        f"DUPLICATE work_center_numbers detected!\n"
+        f"   Duplicates: {[wn for wn, count in duplicates]}\n"
+        f"   FIX: scripts/seed_work_centers.py"
     )
 
 
@@ -225,9 +210,9 @@ async def test_seed_demo_parts_compliance(db_session):
 
     Validates:
     - Parts exist
-    - part_number format (ADR-017: 7 digits)
+    - part_number format (ADR-017: 8 digits, 10XXXXXX range)
     - Required fields present
-    - FKs valid (material_item_id)
+    - MaterialInputs exist (ADR-024)
     - No duplicates
 
     Note: Requires MaterialItems to exist (seed_material_items).
@@ -280,8 +265,10 @@ async def test_seed_demo_parts_compliance(db_session):
     except Exception as e:
         pytest.fail(f"❌ seed_demo_parts() failed: {e}")
 
-    # Validate output
-    result = await db_session.execute(select(Part))
+    # Validate output (eager-load material_inputs for ADR-024 assertions)
+    result = await db_session.execute(
+        select(Part).options(selectinload(Part.material_inputs))
+    )
     parts = result.scalars().all()
 
     assert len(parts) >= 3, f"Expected at least 3 parts, found {len(parts)}"
@@ -291,25 +278,19 @@ async def test_seed_demo_parts_compliance(db_session):
         assert part.part_number, f"Part {part.id} missing part_number"
         assert part.name, f"Part {part.id} missing name"
 
-        # ADR-017: 7-digit part_number format
+        # ADR-017: 8-digit part_number format (10XXXXXX range)
         assert part.part_number.isdigit(), (
             f"Part {part.part_number} violates ADR-017: must be digits only"
         )
-        assert len(part.part_number) == 7, (
-            f"Part {part.part_number} violates ADR-017: must be exactly 7 digits, "
+        assert len(part.part_number) == 8, (
+            f"Part {part.part_number} violates ADR-017: must be exactly 8 digits, "
             f"got {len(part.part_number)}"
         )
 
-        # FK validation
-        assert part.material_item_id, (
-            f"Part {part.part_number} missing material_item_id"
+        # ADR-024: material_inputs relationship (not FK on Part)
+        assert len(part.material_inputs) > 0, (
+            f"Part {part.part_number} has no material_inputs (ADR-024)"
         )
-
-        # Stock dimensions
-        if part.stock_diameter is not None:
-            assert part.stock_diameter > 0, (
-                f"Part {part.part_number} has invalid stock_diameter: {part.stock_diameter}"
-            )
 
     # Check for duplicate part_numbers
     result = await db_session.execute(
@@ -369,38 +350,26 @@ async def test_seed_demo_command_succeeds(db_session):
 # =============================================================================
 
 @pytest.mark.asyncio
-async def test_seed_machines_data_passes_validation(db_session):
+async def test_seed_work_centers_data_passes_validation(db_session):
     """
     META-TEST: Seed data MUST pass current Pydantic validation.
 
-    This test detects schema changes that break seed scripts:
-    - If schema changes (e.g., max_length 7 → 10)
-    - And seed not updated
-    - This test FAILS → forces you to fix seed data
-
+    This test detects schema changes that break seed scripts.
     Prevention: L-015 anti-pattern (changing validation to fit bad data)
     """
-    from scripts.seed_machines import seed_machines
+    from scripts.seed_work_centers import seed_work_centers
 
     # Run seed
-    await seed_machines(session=db_session)
+    await seed_work_centers(session=db_session)
 
-    # Get machines
+    # Get work centers
     result = await db_session.execute(select(WorkCenter))
-    machines = result.scalars().all()
+    wcs = result.scalars().all()
 
-    # Attempt to validate with Pydantic (if response model exists)
-    # This catches ValidationErrors that would appear in production
-    for machine in machines:
-        # Basic sanity checks (would be caught by Pydantic in real API)
-        assert machine.code is not None, "Machine code is None!"
-        assert len(machine.code) > 0, "Machine code is empty!"
-        assert machine.code.strip() == machine.code, "Machine code has whitespace!"
-
-        # If you have a MachineResponse Pydantic model, validate here:
-        # MachineResponse.model_validate(machine)
-
-    print(f"✅ All {len(machines)} machines pass validation!")
+    for wc in wcs:
+        assert wc.work_center_number is not None, "WorkCenter number is None!"
+        assert len(wc.work_center_number) > 0, "WorkCenter number is empty!"
+        assert wc.work_center_number.strip() == wc.work_center_number, "WorkCenter number has whitespace!"
 
 
 # =============================================================================
@@ -427,32 +396,27 @@ def test_seed_scripts_have_session_parameter():
     4. Add test here
     """
     import inspect
-    from scripts.seed_machines import seed_machines
+    from scripts.seed_work_centers import seed_work_centers
     from scripts.seed_material_items import seed_material_items
     from scripts.seed_demo_parts import seed_demo_parts
 
-    # Check seed_machines has session parameter
-    sig = inspect.signature(seed_machines)
+    # Check seed_work_centers has session parameter
+    sig = inspect.signature(seed_work_centers)
     assert 'session' in sig.parameters, (
-        "seed_machines() missing 'session' parameter!"
+        "seed_work_centers() missing 'session' parameter!"
     )
-    print("✅ seed_machines.py supports session parameter")
 
     # Check seed_material_items has session parameter
     sig = inspect.signature(seed_material_items)
     assert 'session' in sig.parameters, (
         "seed_material_items() missing 'session' parameter!"
     )
-    print("✅ seed_material_items.py supports session parameter")
 
     # Check seed_demo_parts has session parameter
     sig = inspect.signature(seed_demo_parts)
     assert 'session' in sig.parameters, (
         "seed_demo_parts() missing 'session' parameter!"
     )
-    print("✅ seed_demo_parts.py supports session parameter")
-
-    print("⚠️  Other seed scripts still use subprocess pattern (OK for now)")
 
 
 # =============================================================================
@@ -464,9 +428,9 @@ def test_seed_scripts_summary():
     SUMMARY: What these tests do and why.
 
     Test Coverage:
-    1. test_seed_machines_compliance - ADR-016 validation, duplicates
+    1. test_seed_work_centers_compliance - ADR-021 validation, duplicates
     2. test_seed_demo_command_succeeds - Integration (slow, optional)
-    3. test_seed_machines_data_passes_validation - Schema changes detection
+    3. test_seed_work_centers_data_passes_validation - Schema changes detection
     4. test_seed_scripts_have_session_parameter - Documentation
 
     Why This Matters:

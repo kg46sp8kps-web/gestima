@@ -148,7 +148,7 @@ async function handleLogin() {
   min-height: 100vh;
   min-width: 0;
   background: var(--bg-primary);
-  padding: 20px;
+  padding: var(--space-6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,7 +179,7 @@ async function handleLogin() {
 }
 
 .logo-red {
-  color: var(--accent-red);
+  color: var(--brand);
 }
 
 .logo-black {
@@ -193,10 +193,10 @@ async function handleLogin() {
 
 .ribbon-header {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: var(--space-2) var(--space-3);
   cursor: default;
 }
 
@@ -210,7 +210,7 @@ async function handleLogin() {
 .ribbon-body {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   padding: 0;
 }
 
@@ -222,14 +222,14 @@ async function handleLogin() {
 
 .left-panel {
   width: 420px;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
 }
 
 .info-section {
   flex: 1;
-  padding: 0.8rem;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
 }
@@ -237,26 +237,26 @@ async function handleLogin() {
 .info-label {
   font-size: var(--text-xs);
   color: var(--text-muted);
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 .info-content {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: var(--space-3);
 }
 
 .info-item {
-  padding: 0.6rem;
+  padding: var(--space-2);
   background: var(--bg-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .info-title {
   font-size: var(--text-base);
   color: var(--text-primary);
   font-weight: 600;
-  margin-bottom: 0.3rem;
+  margin-bottom: var(--space-1);
 }
 
 .info-text {
@@ -267,7 +267,7 @@ async function handleLogin() {
 
 .right-panel {
   flex: 1;
-  padding: 1.5rem;
+  padding: var(--space-5);
   display: flex;
   align-items: center;
 }
@@ -280,23 +280,23 @@ async function handleLogin() {
 
 /* Form */
 .form-field {
-  margin-bottom: 1.2rem;
+  margin-bottom: var(--space-4);
 }
 
 .input {
   background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: var(--text-lg);
-  padding: 0.5rem 0.6rem;
+  padding: var(--space-2) var(--space-2);
   width: 100%;
   transition: border-color 0.2s;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--accent-red);
+  border-color: var(--brand);
 }
 
 .input:disabled {
@@ -307,23 +307,25 @@ async function handleLogin() {
 .btn-submit {
   width: 100%;
   justify-content: center;
-  background: var(--accent-red);
-  color: white;
-  padding: 0.65rem 1rem;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  padding: var(--space-2) var(--space-4);
   font-size: var(--text-lg);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  border: none;
-  border-radius: 5px;
+  gap: var(--space-1);
+  border-radius: var(--radius-md);
   font-weight: 500;
-  margin-top: 1.5rem;
-  transition: opacity 0.2s;
+  margin-top: var(--space-5);
+  transition: all 0.2s;
 }
 
 .btn-submit:hover:not(:disabled) {
-  opacity: 0.9;
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }
 
 .btn-submit:disabled {
@@ -339,7 +341,7 @@ async function handleLogin() {
 }
 
 .footer-quote {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
   font-style: italic;
   opacity: 0.8;
 }
@@ -348,7 +350,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .footer-separator {

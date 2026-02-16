@@ -15,16 +15,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  assetsInclude: ['**/*.wasm'],
   build: {
     chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'three-vendor': ['three'],
-        },
-      },
-    },
   },
   server: {
     port: 5173,
@@ -38,7 +30,7 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
-      // Proxy uploads for PDF/STEP file access (Vision Debug module)
+      // Proxy uploads for PDF/STEP file access
       '/uploads': {
         target: 'http://localhost:8000',
         changeOrigin: true,

@@ -5,6 +5,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useTimeVisionStore } from '@/stores/timeVision'
 import { FileText, Loader, CheckCircle, Clock, Zap, RefreshCw, Filter, ChevronDown } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   selectedFilename: string | null
@@ -75,35 +76,26 @@ function clearFilters() {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
-/** Extract a unique model key from ai_model string for filtering/grouping */
-function getModelKey(aiProvider: string | null, aiModel: string | null): string {
-  if (!aiProvider) return 'none'
-  if (aiProvider === 'openai_ft') {
-    const match = aiModel?.match(/gestima-(v\d+)/)
-    return match ? `ft_${match[1]}` : 'ft'
+/** Model filter key based on which model versions a drawing has */
+function getModelKeys(drawing: typeof store.drawings[0]): string[] {
+  const keys: string[] = []
+  if (drawing.v1) {
+    if (drawing.v1.ai_provider === 'openai_ft') keys.push('ft_v1')
+    else keys.push('v1')
   }
-  return 'base'
-}
-
-/** Human-readable label for a model key */
-function modelKeyLabel(key: string): string {
-  if (key === 'base') return '4o'
-  if (key.startsWith('ft_')) return `FT ${key.slice(3)}` // ft_v1 → FT v1
-  if (key === 'ft') return 'FT'
-  return key
+  if (drawing.v2) keys.push('v2')
+  return keys
 }
 
 const modelOptions = computed(() => {
   const keys = new Set<string>()
   for (const d of store.drawings) {
-    if (d.ai_provider) keys.add(getModelKey(d.ai_provider, d.ai_model))
+    for (const k of getModelKeys(d)) keys.add(k)
   }
-  // Sort: base first, then FT versions ascending
-  return [...keys].sort((a, b) => {
-    if (a === 'base') return -1
-    if (b === 'base') return 1
-    return a.localeCompare(b)
-  }).map(key => ({ value: key, label: modelKeyLabel(key) }))
+  return [...keys].sort().map(key => ({
+    value: key,
+    label: key === 'ft_v1' ? 'FT v1' : key === 'v1' ? 'V1 base' : 'V2 features',
+  }))
 })
 
 /** Get drawing status key (maps null/pending/extracted → 'new') */
@@ -114,13 +106,16 @@ function drawingStatusKey(status: string | null): string {
 
 const sortedDrawings = computed(() => {
   let filtered = store.drawings
-  // Status filter (multi-select, empty = show all)
+  // Status filter (multi-select, empty = show all) — match if ANY model has the status
   if (activeStatuses.value.size > 0) {
-    filtered = filtered.filter(d => activeStatuses.value.has(drawingStatusKey(d.status)))
+    filtered = filtered.filter(d => {
+      const statuses = [d.v1?.status, d.v2?.status, d.status].filter((s): s is string => !!s).map(drawingStatusKey)
+      return statuses.some(s => activeStatuses.value.has(s))
+    })
   }
   // Model filter (multi-select, empty = show all)
   if (activeModels.value.size > 0) {
-    filtered = filtered.filter(d => activeModels.value.has(getModelKey(d.ai_provider, d.ai_model)))
+    filtered = filtered.filter(d => getModelKeys(d).some(k => activeModels.value.has(k)))
   }
   return [...filtered].sort((a, b) => a.filename.localeCompare(b.filename))
 })
@@ -152,16 +147,6 @@ function getStatusLabel(status: string | null): string {
   }
 }
 
-function getModelLabel(aiProvider: string | null, aiModel: string | null): string | null {
-  if (!aiProvider) return null
-  if (aiProvider === 'openai_ft') {
-    // Extract version from model string like "ft:gpt-4o-...:gestima-v1:..."
-    const match = aiModel?.match(/gestima-(v\d+)/)
-    return match ? `FT ${match[1]}` : 'FT'
-  }
-  if (aiProvider === 'openai') return '4o'
-  return aiProvider
-}
 </script>
 
 <template>
@@ -178,7 +163,7 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
           @click="emit('processAll')"
           title="Odhadnout nové výkresy (bez OpenAI odhadu)"
         >
-          <RefreshCw :size="14" />
+          <RefreshCw :size="ICON_SIZE.SMALL" />
         </button>
       </div>
       <div ref="filterBarRef" class="filter-bar">
@@ -189,9 +174,9 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
             :class="{ active: activeStatuses.size > 0 }"
             @click.stop="toggleDropdown('status')"
           >
-            <Filter :size="11" />
+            <Filter :size="ICON_SIZE.SMALL" />
             <span class="dropdown-label">{{ statusSummary }}</span>
-            <ChevronDown :size="11" class="dropdown-arrow" :class="{ open: openDropdown === 'status' }" />
+            <ChevronDown :size="ICON_SIZE.SMALL" class="dropdown-arrow" :class="{ open: openDropdown === 'status' }" />
           </button>
           <div v-if="openDropdown === 'status'" class="dropdown-panel" @click.stop>
             <label
@@ -217,7 +202,7 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
             @click.stop="toggleDropdown('model')"
           >
             <span class="dropdown-label">{{ modelSummary }}</span>
-            <ChevronDown :size="11" class="dropdown-arrow" :class="{ open: openDropdown === 'model' }" />
+            <ChevronDown :size="ICON_SIZE.SMALL" class="dropdown-arrow" :class="{ open: openDropdown === 'model' }" />
           </button>
           <div v-if="openDropdown === 'model'" class="dropdown-panel" @click.stop>
             <label
@@ -254,7 +239,7 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
         @click="emit('select', drawing.filename)"
       >
         <div class="drawing-info">
-          <FileText :size="16" class="file-icon" />
+          <FileText :size="ICON_SIZE.STANDARD" class="file-icon" />
           <div class="drawing-meta">
             <span class="filename">{{ drawing.filename }}</span>
             <span class="size">{{ formatSize(drawing.size_bytes) }}</span>
@@ -262,22 +247,27 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
         </div>
 
         <div class="drawing-actions">
+          <!-- V1 badge -->
           <span
-            v-if="getModelLabel(drawing.ai_provider, drawing.ai_model)"
+            v-if="drawing.v1"
             class="model-badge"
-            :class="{ 'model-ft': drawing.ai_provider === 'openai_ft' }"
-            :title="drawing.ai_model ?? drawing.ai_provider ?? ''"
-          >{{ getModelLabel(drawing.ai_provider, drawing.ai_model) }}</span>
+            :class="{ 'model-ft': drawing.v1.ai_provider === 'openai_ft' }"
+            :title="'V1: ' + getStatusLabel(drawing.v1.status)"
+          >FT v1</span>
 
+          <!-- V1 status -->
           <span
-            v-if="drawing.status"
+            v-if="drawing.v1?.status"
             class="status-badge"
-            :style="{ color: getStatusColor(drawing.status) }"
-          >
-            <CheckCircle v-if="drawing.status === 'verified'" :size="14" />
-            <Clock v-else-if="drawing.status === 'estimated' || drawing.status === 'calibrated'" :size="14" />
-            {{ getStatusLabel(drawing.status) }}
-          </span>
+            :style="{ color: getStatusColor(drawing.v1.status) }"
+          >{{ getStatusLabel(drawing.v1.status) }}</span>
+
+          <!-- V2 badge -->
+          <span
+            v-if="drawing.v2"
+            class="model-badge model-v2"
+            :title="'V2: ' + getStatusLabel(drawing.v2.status)"
+          >FT v2</span>
 
           <button
             v-if="!store.openaiProcessing"
@@ -285,11 +275,11 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
             title="Zpracovat AI odhadem"
             @click.stop="emit('process', drawing.filename)"
           >
-            <Zap :size="14" />
+            <Zap :size="ICON_SIZE.SMALL" />
           </button>
           <Loader
             v-else
-            :size="14"
+            :size="ICON_SIZE.SMALL"
             class="spinner"
           />
         </div>
@@ -334,7 +324,7 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
   font-size: var(--text-xs);
   color: var(--text-muted);
   background: var(--bg-subtle);
-  padding: 2px 8px;
+  padding: var(--space-0\.5) var(--space-3);
   border-radius: var(--radius-sm);
 }
 .filter-bar {
@@ -348,8 +338,8 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
 .dropdown-trigger {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: var(--space-1);
+  padding: var(--space-0\.5) var(--space-3);
   font-size: var(--text-xs);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
@@ -381,7 +371,7 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
 }
 .dropdown-panel {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1));
   left: 0;
   min-width: 140px;
   background: var(--bg-surface);
@@ -389,13 +379,13 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
   border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   z-index: 50;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 .dropdown-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-4);
   font-size: var(--text-xs);
   cursor: pointer;
   transition: background 0.1s;
@@ -421,7 +411,7 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   transition: all 0.15s;
 }
@@ -501,9 +491,9 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
   flex-shrink: 0;
 }
 .model-badge {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
-  padding: 1px 5px;
+  padding: var(--space-px) var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--bg-subtle);
   color: var(--text-muted);
@@ -513,26 +503,32 @@ function getModelLabel(aiProvider: string | null, aiModel: string | null): strin
   background: rgba(var(--color-primary-rgb, 220 38 38), 0.1);
   color: var(--color-primary);
 }
+.model-badge.model-v2 {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
 .status-badge {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   font-size: var(--text-xs);
   font-weight: 500;
 }
 .btn-process {
   display: flex;
   align-items: center;
-  padding: 4px;
-  border: none;
-  background: var(--color-primary);
-  color: white;
+  padding: var(--space-1);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: all 0.15s;
 }
 .btn-process:hover {
-  opacity: 0.8;
+  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
+  border-color: var(--color-brand, #991b1b);
+  color: var(--color-brand, #991b1b);
 }
 .spinner {
   animation: spin 1s linear infinite;

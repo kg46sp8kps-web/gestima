@@ -345,11 +345,11 @@ function onResizeEnd() {
 // Linking group colors (CSS classes instead of emoji)
 type LinkingGroupKey = Exclude<LinkingGroup, null> | 'null'
 const linkingGroupColors: Record<LinkingGroupKey, string> = {
-  red: '#ef4444',
-  blue: '#3b82f6',
-  green: '#10b981',
-  yellow: '#f59e0b',
-  null: '#6b7280'
+  red: 'var(--link-group-red)',
+  blue: 'var(--link-group-blue)',
+  green: 'var(--link-group-green)',
+  yellow: 'var(--link-group-yellow)',
+  null: 'var(--link-group-neutral)'
 }
 
 // Computed
@@ -454,11 +454,11 @@ function setLinkingGroup(group: LinkingGroup) {
 
 // Color options with hex colors
 const colorOptions = [
-  { value: 'red' as LinkingGroup, color: '#ef4444', label: 'Red' },
-  { value: 'blue' as LinkingGroup, color: '#3b82f6', label: 'Blue' },
-  { value: 'green' as LinkingGroup, color: '#10b981', label: 'Green' },
-  { value: 'yellow' as LinkingGroup, color: '#f59e0b', label: 'Yellow' },
-  { value: null as LinkingGroup, color: '#6b7280', label: 'Unlinked' }
+  { value: 'red' as LinkingGroup, color: 'var(--link-group-red)', label: 'Red' },
+  { value: 'blue' as LinkingGroup, color: 'var(--link-group-blue)', label: 'Blue' },
+  { value: 'green' as LinkingGroup, color: 'var(--link-group-green)', label: 'Green' },
+  { value: 'yellow' as LinkingGroup, color: 'var(--link-group-yellow)', label: 'Yellow' },
+  { value: null as LinkingGroup, color: 'var(--link-group-neutral)', label: 'Unlinked' }
 ]
 </script>
 
@@ -511,7 +511,7 @@ const colorOptions = [
         <span class="window-title">
           {{ displayTitle }}
           <span v-if="window.linkingGroup && contextStore.getContext(window.linkingGroup).articleNumber" class="linked-part">
-            (<Link :size="12" :stroke-width="2" class="link-icon-inline" />
+            (<Link :size="ICON_SIZE.SMALL" :stroke-width="2" class="link-icon-inline" />
             {{ contextStore.getContext(window.linkingGroup).articleNumber }})
           </span>
         </span>
@@ -589,7 +589,7 @@ const colorOptions = [
 .floating-window {
   position: fixed;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   display: flex;
@@ -619,7 +619,7 @@ const colorOptions = [
   justify-content: space-between;
   padding: var(--space-2) var(--space-3);
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   cursor: move;
   user-select: none;
   backdrop-filter: blur(8px);
@@ -674,8 +674,8 @@ const colorOptions = [
   top: calc(100% + 4px);
   left: 0;
   min-width: 120px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--space-1);
@@ -706,11 +706,11 @@ const colorOptions = [
 }
 
 .color-option:hover {
-  background: var(--bg-primary, #f3f4f6);
+  background: var(--state-hover);
 }
 
 .color-option.is-active {
-  background: var(--accent-subtle, #fee2e2);
+  background: rgba(255, 255, 255, 0.1);
   font-weight: 500;
 }
 
@@ -745,7 +745,7 @@ const colorOptions = [
 .linked-part {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
@@ -774,8 +774,8 @@ const colorOptions = [
   top: calc(100% + 4px);
   right: 0;
   min-width: 180px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--space-1);
@@ -807,7 +807,7 @@ const colorOptions = [
 }
 
 .dropdown-item:hover {
-  background: var(--state-hover, #f3f4f6);
+  background: var(--state-hover);
 }
 
 .dropdown-item span:first-of-type {
@@ -847,7 +847,7 @@ const colorOptions = [
 }
 
 .btn-close:hover {
-  background: #ef4444;
+  background: var(--status-error);
   color: white;
 }
 
@@ -888,7 +888,7 @@ const colorOptions = [
 
 .window-content::-webkit-scrollbar-thumb {
   background: var(--border-light);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .window-content::-webkit-scrollbar-thumb:hover {

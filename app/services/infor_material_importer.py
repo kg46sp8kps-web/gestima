@@ -432,10 +432,31 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
     async def detect_price_category(
         self, material_group_id: Optional[int], shape: Optional[StockShape], db: AsyncSession
     ) -> Optional[int]:
-        """Detect PriceCategory from MaterialGroup + shape"""
+        """Detect PriceCategory from MaterialGroup + shape.
+
+        Matching priority:
+        1. Exact match by shape column (robust, no keyword guessing)
+        2. Keyword fallback in name (for categories without shape column yet)
+        3. None — caller must handle as error
+        """
         if not material_group_id or not shape:
             return None
 
+        shape_value = shape.value if isinstance(shape, StockShape) else shape
+
+        # 1. Try exact match by shape column (preferred)
+        result = await db.execute(
+            select(MaterialPriceCategory).where(
+                MaterialPriceCategory.material_group_id == material_group_id,
+                MaterialPriceCategory.shape == shape_value
+            )
+        )
+        category = result.scalar_one_or_none()
+        if category:
+            logger.info(f"PriceCategory found (shape match): {category.id} '{category.name}' for group {material_group_id} + shape {shape_value}")
+            return category.id
+
+        # 2. Keyword fallback in name (for legacy data without shape column)
         result = await db.execute(
             select(MaterialPriceCategory).where(
                 MaterialPriceCategory.material_group_id == material_group_id
@@ -444,29 +465,32 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
         categories = result.scalars().all()
 
         if not categories:
+            logger.warning(f"No PriceCategories exist for group_id={material_group_id}")
             return None
 
-        # Try to match shape from category name/code
         shape_keywords = {
             StockShape.ROUND_BAR: ["kruhov", "round", "kulatina"],
             StockShape.SQUARE_BAR: ["čtvercov", "square"],
             StockShape.FLAT_BAR: ["ploch", "flat"],
             StockShape.HEXAGONAL_BAR: ["šestihr", "hex"],
-            StockShape.PLATE: ["plech", "plate"],
+            StockShape.PLATE: ["plech", "plate", "deska"],
             StockShape.TUBE: ["trubka", "tube"],
         }
 
         keywords = shape_keywords.get(shape, [])
-        for category in categories:
-            name_lower = (category.name or "").lower()
-            code_lower = (category.code or "").lower()
+        for cat in categories:
+            name_lower = (cat.name or "").lower()
             for keyword in keywords:
-                if keyword in name_lower or keyword in code_lower:
-                    logger.info(f"PriceCategory found: {category.id} for group {material_group_id} + shape {shape}")
-                    return category.id
+                if keyword in name_lower:
+                    logger.info(f"PriceCategory found (keyword fallback): {cat.id} '{cat.name}' for group {material_group_id} + shape {shape_value}")
+                    return cat.id
 
-        # Fallback: return first category
-        return categories[0].id
+        # 3. No match — return None (import will show error)
+        logger.warning(
+            f"No PriceCategory found for group_id={material_group_id} + shape={shape_value}. "
+            f"Available categories: {[c.name for c in categories]}"
+        )
+        return None
 
     async def map_row_custom(
         self,
@@ -609,12 +633,13 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
             result.is_valid = False
             result.needs_manual_input["material_group_id"] = True
 
-        # PriceCategory validation
+        # PriceCategory validation — MUST be detected, otherwise wrong pricing
         if not mapped_data.get("price_category_id"):
-            result.warnings.append("PriceCategory not detected")
+            result.errors.append("PriceCategory not detected - no matching Group+Shape combination found")
+            result.is_valid = False
             result.needs_manual_input["price_category_id"] = True
 
-        # Dimension validation
+        # Dimension validation — range check
         for dim in ["diameter", "width", "thickness", "wall_thickness"]:
             value = mapped_data.get(dim)
             if value is not None:
@@ -625,5 +650,26 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
                 except (ValueError, TypeError):
                     result.errors.append(f"Invalid {dim}: not a number")
                     result.is_valid = False
+
+        # Shape-aware dimension validation — required dims per shape
+        shape = mapped_data.get("shape")
+        if shape:
+            REQUIRED_DIMS: dict[str, list[str]] = {
+                StockShape.ROUND_BAR.value: ["diameter"],
+                StockShape.SQUARE_BAR.value: ["width"],
+                StockShape.FLAT_BAR.value: ["width", "thickness"],
+                StockShape.HEXAGONAL_BAR.value: ["width"],
+                StockShape.PLATE.value: ["thickness"],
+                StockShape.TUBE.value: ["diameter", "wall_thickness"],
+            }
+
+            shape_val = shape.value if isinstance(shape, StockShape) else shape
+            required = REQUIRED_DIMS.get(shape_val, [])
+            missing = [d for d in required if not mapped_data.get(d)]
+            if missing:
+                result.errors.append(
+                    f"Missing required dimensions for {shape_val}: {', '.join(missing)}"
+                )
+                result.is_valid = False
 
         return result

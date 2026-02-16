@@ -132,6 +132,7 @@ def resolve_material_group(material_spec: str) -> Optional[str]:
     text_map = {
         "hliník": "20910000", "aluminium": "20910000", "aluminum": "20910000",
         "al": "20910000", "almg": "20910000", "alsi": "20910000",
+        "en aw": "20910000", "en aw-": "20910000", "alcu": "20910000",
         "měď": "20910001", "copper": "20910001", "cu-": "20910001",
         "mosaz": "20910002", "brass": "20910002", "cuzn": "20910002",
         "automatová": "20910003", "automatic": "20910003", "11smn": "20910003",
@@ -349,6 +350,29 @@ def _build_catalog() -> Dict[tuple, Dict[str, float]]:
                 "Vc": round(base["Vc"] * mf["Vc"], 1),
                 "f": round(base["f"] * mf["f"], 4),
                 "Ap": round(base["Ap"] * mf["Ap"], 3),
+            }
+
+    # === ŘEZÁNÍ (Pily) ===
+    # Posuv f = mm/min (rychlost posuvu pilového pásu)
+    # čas_řezání = výška_řezu_mm / f_mm_min
+    # Reference: tabulka doporučených posuvů pro bimetalové pásové pily (strojni-pily.eu)
+    # Hodnoty: střed rozsahu pro Ø50mm (interpolace ze sloupců 30 a 50)
+    _sawing_base = {
+        "20910000": {"f": 96},    # Hliník — sk. I (měkký, rychlé řezání)
+        "20910001": {"f": 96},    # Měď — sk. I
+        "20910002": {"f": 96},    # Mosaz — sk. I
+        "20910003": {"f": 96},    # Ocel automatová — sk. I (9S10, St37)
+        "20910004": {"f": 71},    # Ocel konstrukční — sk. II (C45, St50)
+        "20910005": {"f": 59},    # Ocel legovaná — sk. III (42CrMo4)
+        "20910006": {"f": 57},    # Ocel nástrojová — sk. IV (100Cr6)
+        "20910007": {"f": 23},    # Nerez — sk. VI (X5CrNi18-10)
+        "20910008": {"f": 120},   # Plasty — rychlejší než sk. I
+    }
+
+    for mat_code, base in _sawing_base.items():
+        for mode, mf in _mode_factors.items():
+            catalog[(mat_code, "sawing", "rezani", mode)] = {
+                "f": round(base["f"] * mf["f"], 1),
             }
 
     return catalog

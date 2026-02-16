@@ -221,8 +221,7 @@ gestima/
 | [CLAUDE.md](../CLAUDE.md) | Pravidla, workflow, anti-patterns |
 | [docs/patterns/](patterns/) | ANTI-PATTERNS.md, DEBUG-WORKFLOW.md |
 | [docs/ADR/](ADR/) | 23 architektonických rozhodnutí |
-| [docs/VISION.md](VISION.md) | 1-year roadmap |
-| [docs/STATUS.md](STATUS.md) | Aktuální stav projektu |
+| [docs/status/STATUS.md](../status/STATUS.md) | Aktuální stav projektu |
 
 ---
 

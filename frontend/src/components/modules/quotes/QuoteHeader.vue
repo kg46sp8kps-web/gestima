@@ -221,7 +221,7 @@ function formatCurrency(value: number): string {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5);
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--border-default);
   background: var(--bg-surface);
   flex-shrink: 0;
 }
@@ -257,8 +257,9 @@ function formatCurrency(value: number): string {
 
 .quote-number-badge {
   padding: var(--space-2) var(--space-3);
-  background: var(--color-primary);
-  color: white;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -275,22 +276,22 @@ function formatCurrency(value: number): string {
 }
 
 .status-badge.status-draft {
-  background: var(--bg-muted, #6b7280);
+  background: var(--bg-muted);
   color: white;
 }
 
 .status-badge.status-sent {
-  background: var(--palette-info, #3b82f6);
+  background: var(--color-info);
   color: white;
 }
 
 .status-badge.status-approved {
-  background: var(--palette-success, #10b981);
+  background: var(--status-ok);
   color: white;
 }
 
 .status-badge.status-rejected {
-  background: var(--palette-danger, #ef4444);
+  background: var(--status-error);
   color: white;
 }
 
@@ -301,7 +302,7 @@ function formatCurrency(value: number): string {
   padding: var(--space-3);
   background: var(--bg-raised);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .partner-label {
@@ -328,7 +329,7 @@ function formatCurrency(value: number): string {
   padding: var(--space-4);
   background: var(--bg-raised);
   border-radius: var(--radius-lg);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-default);
 }
 
 .total-item {
@@ -349,7 +350,7 @@ function formatCurrency(value: number): string {
 }
 
 .total-value.discount {
-  color: var(--palette-success, #10b981);
+  color: var(--status-ok);
 }
 
 .total-item.total-main {
@@ -370,7 +371,7 @@ function formatCurrency(value: number): string {
   align-items: center;
   justify-content: flex-end;
   padding-top: var(--space-2);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .btn-workflow {
@@ -397,7 +398,7 @@ function formatCurrency(value: number): string {
 }
 
 .btn-send:hover:not(:disabled) {
-  color: #1d4ed8;
+  color: var(--color-info);
   transform: scale(1.15);
 }
 
@@ -406,7 +407,7 @@ function formatCurrency(value: number): string {
 }
 
 .btn-approve:hover:not(:disabled) {
-  color: #047857;
+  color: var(--status-ok);
   transform: scale(1.15);
 }
 
@@ -415,7 +416,7 @@ function formatCurrency(value: number): string {
 }
 
 .btn-reject:hover:not(:disabled) {
-  color: #dc2626;
+  color: var(--status-error);
   transform: scale(1.15);
 }
 

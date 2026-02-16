@@ -10,6 +10,7 @@
  */
 
 import { FileText } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   src: string // PDF URL (not used for display, just for reference)
@@ -46,7 +47,7 @@ function handleClick() {
   >
     <!-- PDF Icon -->
     <div class="pdf-icon">
-      <FileText :size="48" :stroke-width="1.5" />
+      <FileText :size="ICON_SIZE.HERO" :stroke-width="1.5" />
     </div>
 
     <!-- Filename -->
