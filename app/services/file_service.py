@@ -1022,8 +1022,18 @@ class FileService:
 
         Returns:
             Path: Absolute path to directory
+
+        Raises:
+            HTTPException 400: Path traversal attempt detected
         """
+        if ".." in directory:
+            raise HTTPException(status_code=400, detail="Invalid directory (path traversal blocked)")
+
         target_dir = self.UPLOADS_DIR / directory
+
+        if not target_dir.resolve().is_relative_to(self.UPLOADS_DIR.resolve()):
+            raise HTTPException(status_code=400, detail="Invalid directory (path traversal blocked)")
+
         target_dir.mkdir(parents=True, exist_ok=True)
         return target_dir
 

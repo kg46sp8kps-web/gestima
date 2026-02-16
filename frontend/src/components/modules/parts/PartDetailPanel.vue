@@ -220,10 +220,8 @@ function handleOpenDrawing(drawingId?: number) {
         <div class="info-card">
           <label>Zdroj</label>
           <span class="value">
-            <span class="badge">
-              <span class="badge-dot" :class="sourceDotClass(part.source)"></span>
-              {{ sourceLabel(part.source) }}
-            </span>
+            <span class="dot" :class="sourceDotClass(part.source)"></span>
+            {{ sourceLabel(part.source) }}
           </span>
         </div>
 
@@ -373,30 +371,20 @@ function handleOpenDrawing(drawingId?: number) {
 }
 
 .info-card .value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--text-primary);
+  min-height: 24px;
 }
 
-/* === SOURCE BADGE (Gestima badge-dot pattern) === */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  border-radius: var(--radius-full);
-  background: var(--bg-raised);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  line-height: 1.3;
-}
-
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
+/* Inline color dot */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 

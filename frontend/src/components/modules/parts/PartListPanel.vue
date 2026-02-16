@@ -156,8 +156,8 @@ function getCellValue(part: Part, key: string): unknown {
 function statusDotClass(status: string): string {
   switch (status) {
     case 'active': return 'badge-dot-ok'
-    case 'draft': return 'badge-dot-brand'
-    case 'quote': return 'badge-dot-warn'
+    case 'draft': return 'badge-dot-warn'
+    case 'quote': return 'badge-dot-brand'
     case 'archived': return 'badge-dot-neutral'
     default: return 'badge-dot-neutral'
   }
@@ -299,24 +299,18 @@ defineExpose({
             <template v-if="col.key === 'article_number'">
               <span class="article-number">{{ getCellValue(partsStore.parts[virtualRow.index]!, col.key) || '—' }}</span>
             </template>
-            <!-- status: Gestima badge with dot -->
+            <!-- status: dot + text -->
             <template v-else-if="col.key === 'status'">
-              <span
-                v-if="getCellValue(partsStore.parts[virtualRow.index]!, col.key)"
-                class="badge"
-              >
-                <span class="badge-dot" :class="statusDotClass(String(getCellValue(partsStore.parts[virtualRow.index]!, col.key)))"></span>
+              <span v-if="getCellValue(partsStore.parts[virtualRow.index]!, col.key)" class="dot-value">
+                <span class="dot" :class="statusDotClass(String(getCellValue(partsStore.parts[virtualRow.index]!, col.key)))"></span>
                 {{ statusLabel_map(String(getCellValue(partsStore.parts[virtualRow.index]!, col.key))) }}
               </span>
               <span v-else>—</span>
             </template>
-            <!-- source: badge with dot -->
+            <!-- source: dot + text -->
             <template v-else-if="col.key === 'source'">
-              <span
-                v-if="getCellValue(partsStore.parts[virtualRow.index]!, col.key)"
-                class="badge"
-              >
-                <span class="badge-dot" :class="sourceDotClass(String(getCellValue(partsStore.parts[virtualRow.index]!, col.key)))"></span>
+              <span v-if="getCellValue(partsStore.parts[virtualRow.index]!, col.key)" class="dot-value">
+                <span class="dot" :class="sourceDotClass(String(getCellValue(partsStore.parts[virtualRow.index]!, col.key)))"></span>
                 {{ sourceLabel(String(getCellValue(partsStore.parts[virtualRow.index]!, col.key))) }}
               </span>
               <span v-else>—</span>
@@ -518,25 +512,17 @@ defineExpose({
   white-space: nowrap;
 }
 
-/* Status badge — Gestima badge pattern (monochromaticke s teckou) */
-.badge {
+/* Dot + text (inline, same font as cell) */
+.dot-value {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  border-radius: var(--radius-full);
-  background: var(--bg-raised);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  line-height: 1.3;
 }
 
-.badge-dot {
+.dot {
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-full);
+  border-radius: 50%;
   flex-shrink: 0;
 }
 

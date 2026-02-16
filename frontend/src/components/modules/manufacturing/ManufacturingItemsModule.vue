@@ -485,19 +485,15 @@ const resizeCursor = computed(() =>
               <option value="quote">Nabídka</option>
             </select>
             <span v-else class="value">
-              <span class="badge">
-                <span class="badge-dot" :class="statusDotClass(selectedPart.status)"></span>
-                {{ statusLabel(selectedPart.status) }}
-              </span>
+              <span class="dot" :class="statusDotClass(selectedPart.status)"></span>
+              {{ statusLabel(selectedPart.status) }}
             </span>
           </div>
           <div class="info-card">
             <label>Zdroj</label>
             <span class="value">
-              <span class="badge">
-                <span class="badge-dot" :class="sourceDotClass(selectedPart.source)"></span>
-                {{ sourceDisplayLabel(selectedPart.source) }}
-              </span>
+              <span class="dot" :class="sourceDotClass(selectedPart.source)"></span>
+              {{ sourceDisplayLabel(selectedPart.source) }}
             </span>
           </div>
           <div class="info-card">
@@ -754,10 +750,27 @@ const resizeCursor = computed(() =>
 }
 
 .info-card .value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--text-primary);
+  min-height: 24px;
 }
+
+/* Inline color dot (before Status / Zdroj text) */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badge-dot-ok      { background: var(--status-ok); }
+.badge-dot-brand   { background: var(--brand); }
+.badge-dot-warn    { background: var(--status-warn); }
+.badge-dot-neutral { background: var(--text-disabled); }
 
 /* Material ribbon (separate from main info) */
 .material-ribbon {
@@ -768,33 +781,6 @@ const resizeCursor = computed(() =>
   padding-top: var(--space-3);
   border-top: 1px solid var(--border-subtle, var(--border-default));
 }
-
-/* Source badge (Gestima badge-dot pattern) */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  border-radius: var(--radius-full);
-  background: var(--bg-raised);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  line-height: 1.3;
-}
-
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.badge-dot-ok      { background: var(--status-ok); }
-.badge-dot-brand   { background: var(--brand); }
-.badge-dot-warn    { background: var(--status-warn); }
-.badge-dot-neutral { background: var(--text-disabled); }
 
 .description {
   margin-top: var(--space-4);

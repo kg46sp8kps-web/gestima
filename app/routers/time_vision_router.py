@@ -97,7 +97,7 @@ class CalibrationUpdate(BaseModel):
 
 
 @router.get("/drawings", response_model=List[DrawingFileInfo])
-async def list_drawings(db: AsyncSession = Depends(get_db)):
+async def list_drawings(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """List PDF files in uploads/drawings directory."""
     if not DRAWINGS_DIR.exists():
         return []
@@ -223,6 +223,7 @@ async def list_estimations(
     estimation_type: Optional[str] = Query(None),
     filename: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List all estimations."""
     try:
@@ -251,6 +252,7 @@ async def get_estimations_by_part(
     part_id: int,
     estimation_type: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get all estimations for a specific Part (ADR-045)."""
     try:
@@ -277,6 +279,7 @@ async def get_estimations_by_part(
 async def get_estimation(
     estimation_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get full estimation detail."""
     try:
@@ -399,7 +402,7 @@ async def calibrate_estimation(
 
 
 @router.get("/batch-test-results")
-async def get_batch_test_results():
+async def get_batch_test_results(current_user: User = Depends(get_current_user)):
     """Serve batch test results from data/batch_test_results.json."""
     results_path = Path("data/batch_test_results.json")
     if not results_path.exists():

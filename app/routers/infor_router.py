@@ -347,7 +347,12 @@ async def get_items(
 
     # Načíst data
     try:
-        filter_expr = f"Item = '{item}'" if item else None
+        # Sanitize: strip quotes and special chars to prevent filter injection
+        if item:
+            safe_item = item.replace("'", "").replace('"', '').replace(";", "").strip()
+            filter_expr = f"Item = '{safe_item}'"
+        else:
+            filter_expr = None
 
         result = await client.load_collection(
             ido_name=working_ido,

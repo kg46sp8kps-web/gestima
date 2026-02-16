@@ -124,7 +124,7 @@ async def list_material_inputs(
                 mat_dict['price_per_kg'] = calc.price_per_kg
             except Exception as e:
                 # If calculation fails, leave as None
-                print(f"[MaterialInputs] Failed to calculate for material {mat.id}: {e}")
+                logger.warning("Failed to calculate for material %s: %s", mat.id, e)
                 mat_dict['weight_kg'] = None
                 mat_dict['cost_per_piece'] = None
                 mat_dict['price_per_kg'] = None
@@ -308,7 +308,7 @@ async def update_material_input(
             mat_dict['cost_per_piece'] = calc.total_cost / updated_material.quantity if updated_material.quantity > 0 else 0
             mat_dict['price_per_kg'] = calc.price_per_kg
         except Exception as e:
-            print(f"[MaterialInputs] Failed to calculate for material {material_id}: {e}")
+            logger.warning("Failed to calculate for material %s: %s", material_id, e)
 
     return mat_dict
 

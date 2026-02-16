@@ -36,7 +36,15 @@ async def get_step_file(
         404: File not found
     """
     try:
-        filepath = Path("uploads/drawings") / filename
+        # Path traversal protection
+        if ".." in filename or "/" in filename or "\\" in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+
+        filepath = UPLOADS_DIR / filename
+
+        # Verify resolved path stays within UPLOADS_DIR
+        if not filepath.resolve().is_relative_to(UPLOADS_DIR.resolve()):
+            raise HTTPException(status_code=400, detail="Invalid filename")
 
         if not filepath.exists():
             raise HTTPException(status_code=404, detail=f"File not found: {filename}")
