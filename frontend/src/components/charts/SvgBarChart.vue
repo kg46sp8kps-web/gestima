@@ -254,7 +254,7 @@ function getBarX(groupIndex: number, barIndex: number): number {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 

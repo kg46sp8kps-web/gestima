@@ -301,12 +301,12 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
 }
 .tool-btn.active {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border: 1px solid var(--color-brand, #991b1b);
-  color: var(--color-brand, #991b1b);
+  background: var(--brand-subtle);
+  border: 1px solid var(--brand);
+  color: var(--brand);
 }
 .zoom-label, .page-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   min-width: 40px;
   text-align: center;
@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
 }
 .pdf-error {
   color: var(--color-danger);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   padding: var(--space-2);
 }
 .no-pdf {

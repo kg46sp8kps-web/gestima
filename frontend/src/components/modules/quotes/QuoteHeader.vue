@@ -217,7 +217,7 @@ async function handleDelete() {
 }
 .quote-info { display: flex; flex-direction: column; gap: var(--space-3); }
 .quote-main { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
-.quote-main h2 { margin: 0; font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--text-primary); flex: 1; }
+.quote-main h2 { margin: 0; font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); flex: 1; }
 .quote-badges { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .quote-number-badge {
   padding: var(--space-2) var(--space-3); background: transparent;
@@ -244,7 +244,7 @@ async function handleDelete() {
 }
 .partner-label  { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--font-medium); }
 .partner-name   { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-semibold); }
-.partner-number { font-size: var(--text-xs); color: var(--text-secondary); }
+.partner-number { font-size: var(--text-sm); color: var(--text-secondary); }
 
 .totals-summary {
   display: flex; flex-direction: column; gap: var(--space-2);
@@ -257,7 +257,7 @@ async function handleDelete() {
 .total-value.discount { color: var(--status-ok); }
 .total-item.total-main { padding-top: var(--space-2); border-top: 1px solid var(--border-default); margin-top: var(--space-1); }
 .total-item.total-main .total-label,
-.total-item.total-main .total-value { font-size: var(--text-base); font-weight: var(--font-semibold); }
+.total-item.total-main .total-value { font-size: var(--text-sm); font-weight: var(--font-semibold); }
 
 .workflow-buttons {
   display: flex; gap: var(--space-3); align-items: center; justify-content: flex-end;

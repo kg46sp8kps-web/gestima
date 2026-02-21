@@ -199,13 +199,21 @@ async def _seed_material_norms_wrapper(session):
     pass
 
 
+def _validate_identifier(name: str) -> str:
+    """Validate SQL identifier against injection (only alphanumeric + underscore)."""
+    import re
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+        raise ValueError(f"Invalid SQL identifier: {name}")
+    return name
+
+
 async def _migrate_parts_stock_columns(conn):
     """Add stock_* columns to parts table (v1.2.0 migration)"""
     # Check existing columns
     result = await conn.execute(text("PRAGMA table_info(parts)"))
     existing_columns = {row[1] for row in result.fetchall()}
 
-    # Columns to add
+    # Columns to add (hardcoded safe identifiers, validated for defense-in-depth)
     new_columns = [
         ("stock_diameter", "REAL"),
         ("stock_length", "REAL"),
@@ -216,6 +224,8 @@ async def _migrate_parts_stock_columns(conn):
 
     for col_name, col_type in new_columns:
         if col_name not in existing_columns:
+            _validate_identifier(col_name)
+            _validate_identifier(col_type)
             await conn.execute(text(f"ALTER TABLE parts ADD COLUMN {col_name} {col_type}"))
 
     # Make material_item_id nullable if it isn't
@@ -249,7 +259,12 @@ async def _migrate_machines_hourly_rate(conn):
 
     for col_name, col_type, default_value in new_columns:
         if col_name not in existing_columns:
-            await conn.execute(text(f"ALTER TABLE machines ADD COLUMN {col_name} {col_type} DEFAULT {default_value}"))
+            _validate_identifier(col_name)
+            _validate_identifier(col_type)
+            await conn.execute(
+                text(f"ALTER TABLE machines ADD COLUMN {col_name} {col_type} DEFAULT :default_val"),
+                {"default_val": default_value}
+            )
 
     # If old hourly_rate column exists, migrate data
     if "hourly_rate" in existing_columns and "hourly_rate_amortization" in existing_columns:
@@ -355,7 +370,8 @@ async def _migrate_entity_numbers(conn):
                             used_numbers.add(number)
                             break
                     await conn.execute(
-                        text(f"UPDATE parts SET part_number = '{number}' WHERE id = {part_id}")
+                        text("UPDATE parts SET part_number = :num WHERE id = :pid"),
+                        {"num": number, "pid": part_id}
                     )
         else:
             # Column exists - check if it needs length migration (from VARCHAR(50) to VARCHAR(7))
@@ -387,7 +403,8 @@ async def _migrate_entity_numbers(conn):
                             used_numbers.add(number)
                             break
                     await conn.execute(
-                        text(f"UPDATE material_items SET material_number = '{number}' WHERE id = {material_id}")
+                        text("UPDATE material_items SET material_number = :num WHERE id = :mid"),
+                        {"num": number, "mid": material_id}
                     )
 
     # === BATCHES: batch_number ===
@@ -414,7 +431,8 @@ async def _migrate_entity_numbers(conn):
                             used_numbers.add(number)
                             break
                     await conn.execute(
-                        text(f"UPDATE batches SET batch_number = '{number}' WHERE id = {batch_id}")
+                        text("UPDATE batches SET batch_number = :num WHERE id = :bid"),
+                        {"num": number, "bid": batch_id}
                     )
 
 
@@ -440,22 +458,27 @@ async def _migrate_deleted_at_indexes(conn):
     ]
 
     for table in tables_with_deleted_at:
+        _validate_identifier(table)
+        index_name = f'ix_{table}_deleted_at'
+        _validate_identifier(index_name)
+
         # Check if table exists
         result = await conn.execute(
-            text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name=:tbl"),
+            {"tbl": table}
         )
         if not result.fetchone():
             continue
 
         # Check if index exists
-        index_name = f'ix_{table}_deleted_at'
         result = await conn.execute(
-            text(f"SELECT name FROM sqlite_master WHERE type='index' AND name='{index_name}'")
+            text("SELECT name FROM sqlite_master WHERE type='index' AND name=:idx"),
+            {"idx": index_name}
         )
         if result.fetchone():
             continue  # Index already exists
 
-        # Create index
+        # Create index (DDL — identifiers validated above, cannot use bind params)
         await conn.execute(text(f"CREATE INDEX {index_name} ON {table}(deleted_at)"))
 
 

@@ -228,7 +228,7 @@ function openDrawing(drawing: Drawing) {
             type="file"
             accept="application/pdf"
             multiple
-            style="display: none"
+            class="file-input-hidden"
             @change="onFileInputChange"
           />
 
@@ -319,7 +319,7 @@ function openDrawing(drawing: Drawing) {
             type="file"
             accept=".step,.stp"
             multiple
-            style="display: none"
+            class="file-input-hidden"
             @change="onFileInputChange"
           />
 
@@ -401,7 +401,7 @@ function openDrawing(drawing: Drawing) {
 }
 
 .section-title {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0 0 var(--space-3) 0;
@@ -461,12 +461,12 @@ function openDrawing(drawing: Drawing) {
 
 .card.primary {
   border-color: var(--color-success);
-  background: rgba(5, 150, 105, 0.05);
+  background: var(--status-ok-bg);
 }
 
 .card.broken {
   border-color: var(--status-error);
-  background: rgba(244, 63, 94, 0.05);
+  background: var(--status-error-bg);
   opacity: 0.75;
 }
 
@@ -503,7 +503,7 @@ function openDrawing(drawing: Drawing) {
 
 .rev {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-family: var(--font-mono);
 }
@@ -511,7 +511,7 @@ function openDrawing(drawing: Drawing) {
 .badge-broken {
   color: var(--status-error);
   border-color: var(--status-error);
-  background: rgba(244, 63, 94, 0.1);
+  background: var(--status-error-bg);
 }
 
 .thumb.disabled {
@@ -534,10 +534,14 @@ function openDrawing(drawing: Drawing) {
 
 /* Icon buttons use global .icon-btn classes from design-system.css */
 
-@media (max-width: 768px) {
+@container (max-width: 768px) {
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+.file-input-hidden {
+  display: none;
 }
 
 /* Upload Zone */
@@ -565,7 +569,7 @@ function openDrawing(drawing: Drawing) {
 
 .upload-zone.dragging {
   border-color: var(--color-success);
-  background: rgba(5, 150, 105, 0.1);
+  background: var(--status-ok-bg);
   transform: scale(1.02);
 }
 
@@ -576,14 +580,14 @@ function openDrawing(drawing: Drawing) {
 
 .upload-label {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   text-align: center;
 }
 
 .upload-hint {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 </style>

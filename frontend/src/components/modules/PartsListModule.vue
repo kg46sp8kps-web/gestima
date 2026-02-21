@@ -135,12 +135,12 @@ function selectPart(partNumber: string) {
 
 .empty p {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .hint {
-  margin-top: var(--space-2) !important;
-  font-size: var(--text-sm) !important;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
 
@@ -181,7 +181,7 @@ function selectPart(partNumber: string) {
 
 .part-name {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   flex: 1;
@@ -192,7 +192,7 @@ function selectPart(partNumber: string) {
 
 .article-number {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
   color: var(--brand);
   background: var(--brand-subtle);
@@ -219,7 +219,7 @@ function selectPart(partNumber: string) {
 }
 
 .meta-item {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   display: flex;
   align-items: center;

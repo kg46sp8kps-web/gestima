@@ -67,7 +67,7 @@ const emit = defineEmits<{
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -93,7 +93,7 @@ const emit = defineEmits<{
   padding: 0 var(--space-1);
   border-radius: var(--radius-sm);
   background: var(--bg-hover);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-info);
 }

@@ -197,7 +197,7 @@ partsStore.fetchParts()
 }
 
 .empty p {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .detail-content {

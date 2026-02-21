@@ -514,7 +514,7 @@ onMounted(async () => {
 
 .btn-sm {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 /* Form Actions */
@@ -548,7 +548,7 @@ onMounted(async () => {
 
 .section-title {
   margin: var(--space-4) 0 var(--space-3) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   padding-bottom: var(--space-2);
@@ -575,7 +575,7 @@ h3.section-title {
 
 .tiers-header h3 {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
@@ -599,7 +599,7 @@ h3.section-title {
 
 .tier-table th {
   background: var(--bg-raised);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -611,7 +611,7 @@ h3.section-title {
 }
 
 .editable-cell:hover {
-  background: rgba(153, 27, 27, 0.1);
+  background: var(--brand-subtle);
 }
 
 .inline-input {
@@ -625,7 +625,7 @@ h3.section-title {
 }
 
 .new-row {
-  background: rgba(153, 27, 27, 0.05);
+  background: var(--brand-subtle);
 }
 
 .empty-cell {

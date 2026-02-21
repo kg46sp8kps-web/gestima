@@ -145,7 +145,7 @@ function formatCzk(value: number): string {
 
 .prefix-btn {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--bg-input);
@@ -185,7 +185,7 @@ function formatCzk(value: number): string {
 }
 
 .stats {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -215,7 +215,7 @@ function formatCzk(value: number): string {
   background: var(--bg-surface);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   border-bottom: 2px solid var(--border-default);
@@ -255,7 +255,7 @@ thead .sticky-col {
 
 .mono {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -266,7 +266,7 @@ thead .sticky-col {
 .empty-row {
   text-align: center;
   color: var(--text-tertiary);
-  padding: var(--space-8) !important;
+  padding: var(--space-8);
 }
 
 tr:hover td {

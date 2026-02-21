@@ -302,6 +302,7 @@ export interface MaterialParseResult {
   suggested_price_category_id: number | null
   suggested_price_category_code: string | null
   suggested_price_category_name: string | null
+  suggested_price_per_kg: number | null
 
   // MaterialItem - konkrétní položka (když najde přesnou shodu)
   suggested_material_item_id: number | null
@@ -421,4 +422,28 @@ export interface PartMaterialUpdate {
   stock_height?: number
   stock_wall_thickness?: number
   version: number
+}
+
+// =============================================================================
+// Parsed Material (from text parser or manual input)
+// Simplified type for Technology Builder material selector
+// =============================================================================
+
+export interface ParsedMaterial {
+  item_code?: string
+  item_description?: string
+  w_nr?: string
+  material_group?: string
+  material_group_id?: number
+  shape?: string
+  diameter?: number
+  width?: number
+  height?: number
+  length?: number
+  thickness?: number
+  price_category?: string
+  price_category_id?: number
+  price_per_kg?: number
+  match_type?: string
+  weight_kg?: number
 }

@@ -152,7 +152,7 @@ function getStatusText(row: MappingRow): string {
 }
 
 .help-text {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-top: var(--space-1);
 }
@@ -209,7 +209,7 @@ function getStatusText(row: MappingRow): string {
 
 .input:focus {
   outline: none;
-  border-color: var(--color-brand);
+  border-color: var(--border-strong);
 }
 
 .status-cell {
@@ -220,18 +220,18 @@ function getStatusText(row: MappingRow): string {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 
 .status-badge.ok {
-  background: rgba(34, 197, 94, 0.12);
-  color: rgb(34, 197, 94);
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
 }
 
 .status-badge.incomplete {
-  background: rgba(251, 146, 60, 0.12);
-  color: rgb(251, 146, 60);
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
 }
 
 .actions-cell {

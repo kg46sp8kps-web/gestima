@@ -217,7 +217,7 @@ function downloadTrainingData() {
   display: inline-flex; align-items: center; gap: var(--space-1);
   padding: var(--space-0\.5) var(--space-2); background: var(--bg-subtle);
   color: var(--text-secondary); border-radius: var(--radius-sm);
-  font-size: var(--text-xs); font-weight: 600;
+  font-size: var(--text-sm); font-weight: 600;
 }
 .empty-icon { color: var(--text-muted); opacity: 0.5; }
 .info-grid {
@@ -226,7 +226,7 @@ function downloadTrainingData() {
 }
 .info-item { display: flex; flex-direction: column; gap: var(--space-px); }
 .info-item label {
-  font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase;
+  font-size: var(--text-sm); color: var(--text-muted); text-transform: uppercase;
 }
 .info-item span { font-size: var(--text-sm); font-weight: 500; }
 .dims-row {
@@ -242,7 +242,7 @@ function downloadTrainingData() {
 .mode-select {
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-default); border-radius: var(--radius-sm);
-  font-size: var(--text-xs); background: var(--bg-input); color: var(--text-primary);
+  font-size: var(--text-sm); background: var(--bg-input); color: var(--text-primary);
 }
 .actions {
   display: flex; gap: var(--space-2); flex-wrap: wrap;
@@ -257,16 +257,16 @@ function downloadTrainingData() {
   display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);
 }
 .progress-label { flex: 1; font-size: var(--text-sm); font-weight: 500; }
-.progress-pct { font-size: var(--text-xs); color: var(--text-muted); }
+.progress-pct { font-size: var(--text-sm); color: var(--text-muted); }
 .progress-track {
   height: 4px; background: var(--bg-subtle); border-radius: var(--radius-sm); overflow: hidden;
 }
 .progress-fill {
-  height: 100%; background: var(--color-primary); border-radius: var(--radius-sm); transition: width 0.4s ease;
+  height: 100%; background: var(--brand); border-radius: var(--radius-sm); transition: width 0.4s ease;
 }
 .error-bar {
   padding: var(--space-2) var(--space-3);
-  background: rgba(244, 63, 94, 0.1); color: var(--color-danger);
+  background: var(--palette-danger-light); color: var(--status-error);
   font-size: var(--text-sm); border-radius: var(--radius-sm); margin-bottom: var(--space-3);
 }
 </style>

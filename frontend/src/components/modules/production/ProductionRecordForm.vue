@@ -105,7 +105,7 @@ function handleCancel() {
 .form-field { display: flex; flex-direction: column; gap: var(--space-1); }
 .form-field.full-width { grid-column: span 2; }
 .form-field label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -121,7 +121,7 @@ function handleCancel() {
 .input-sm:focus {
   outline: none;
   border-color: var(--border-strong);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--active);
 }
 .form-actions {
   display: flex;

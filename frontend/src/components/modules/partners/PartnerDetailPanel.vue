@@ -396,7 +396,7 @@ async function executeDelete() {
             </div>
 
             <div class="form-row">
-              <div class="form-group" style="flex: 2;">
+              <div class="form-group city-field">
                 <label>Město</label>
                 <input
                   v-model="editForm.city"
@@ -406,7 +406,7 @@ async function executeDelete() {
                   maxlength="100"
                 />
               </div>
-              <div class="form-group" style="flex: 1;">
+              <div class="form-group postal-field">
                 <label>PSČ</label>
                 <input
                   v-model="editForm.postal_code"
@@ -568,7 +568,7 @@ async function executeDelete() {
 }
 
 .empty p {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 /* Detail Content */
@@ -613,6 +613,14 @@ async function executeDelete() {
 .form-row {
   display: flex;
   gap: var(--space-3);
+}
+
+.city-field {
+  flex: 2;
+}
+
+.postal-field {
+  flex: 1;
 }
 
 .required {

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.database import get_db
-from app.db_helpers import set_audit, safe_commit
+from app.db_helpers import set_audit, safe_commit, soft_delete
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse, ChangeModeRequest
@@ -109,7 +109,7 @@ async def delete_operation(
         raise HTTPException(status_code=404, detail="Operace nenalezena")
 
     operation_type = operation.type
-    await db.delete(operation)
+    await soft_delete(db, operation, deleted_by=current_user.username)
 
     await safe_commit(db, action="mazání operace", integrity_error_msg="Nelze smazat operaci - existují závislé záznamy (features)")
     logger.info(f"Deleted operation: {operation_type}", extra={"operation_id": operation_id, "user": current_user.username})
@@ -211,7 +211,7 @@ async def link_material_to_operation(
             )
         )
 
-        await db.commit()
+        await safe_commit(db, action="vytváření vazby materiálu")
         logger.info(f"Linked material {material_id} to operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
 
         return {"message": "Link created successfully"}
@@ -250,7 +250,7 @@ async def unlink_material_from_operation(
                 detail="Link not found"
             )
 
-        await db.commit()
+        await safe_commit(db, action="odebrání vazby materiálu")
         logger.info(f"Unlinked material {material_id} from operation {operation_id}", extra={"operation_id": operation_id, "material_id": material_id, "user": current_user.username})
     except HTTPException:
         raise

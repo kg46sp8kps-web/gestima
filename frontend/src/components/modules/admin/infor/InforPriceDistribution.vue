@@ -127,30 +127,30 @@ async function applySuggested() {
 <style scoped>
 .dist-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .dist-title { font-weight: var(--font-medium); font-size: var(--text-sm); color: var(--text-primary); }
-.dist-stats { display: flex; gap: var(--space-4); font-size: var(--text-xs); color: var(--text-secondary); flex-wrap: wrap; }
+.dist-stats { display: flex; gap: var(--space-4); font-size: var(--text-sm); color: var(--text-secondary); flex-wrap: wrap; }
 .dist-stats b { color: var(--text-primary); font-family: var(--font-mono); }
 .dist-bar-wrap { padding: var(--space-2) 0; }
-.dist-bar { position: relative; height: 28px; background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); }
+.dist-bar { position: relative; height: 28px; background: var(--hover); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); }
 .dist-range { position: absolute; top: 2px; bottom: 2px; background: var(--palette-info-bg); border-radius: var(--radius-sm); }
 .dist-marker { position: absolute; top: 0; bottom: 0; width: 2px; }
 .dist-median { background: var(--palette-info); }
 .dist-tier-line { background: var(--status-error); }
 .dist-suggested { background: var(--status-ok); border-left: 1px dashed var(--status-ok); width: 3px; opacity: 0.9; }
-.dist-label { position: absolute; top: -16px; left: -12px; font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.dist-label { position: absolute; top: -16px; left: -12px; font-size: var(--text-sm); color: var(--text-tertiary); white-space: nowrap; }
 .tier-label { color: var(--status-error); }
 .suggested-label { color: var(--status-ok); top: auto; bottom: -16px; }
-.dist-bar-labels { display: flex; justify-content: space-between; font-size: var(--text-2xs); color: var(--text-tertiary); margin-top: 2px; }
-.dist-hint, .dist-empty { font-size: var(--text-xs); color: var(--text-tertiary); font-style: italic; }
+.dist-bar-labels { display: flex; justify-content: space-between; font-size: var(--text-sm); color: var(--text-tertiary); margin-top: 2px; }
+.dist-hint, .dist-empty { font-size: var(--text-sm); color: var(--text-tertiary); font-style: italic; }
 .red-text { color: var(--status-error); }
 .green-text { color: var(--status-ok); }
-.suggestions { padding: var(--space-3); background: rgba(34,197,94,0.05); border: 1px solid rgba(34,197,94,0.2); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-2); }
-.suggest-title { font-size: var(--text-xs); font-weight: var(--font-medium); color: var(--text-primary); }
-.suggest-row { display: flex; gap: var(--space-3); font-size: var(--text-xs); align-items: center; }
+.suggestions { padding: var(--space-3); background: var(--status-ok-bg); border: 1px solid var(--palette-success-light); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-2); }
+.suggest-title { font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-primary); }
+.suggest-row { display: flex; gap: var(--space-3); font-size: var(--text-sm); align-items: center; }
 .suggest-change { font-family: var(--font-mono); color: var(--text-primary); }
 .old-val { color: var(--status-error); text-decoration: line-through; }
 .new-val { color: var(--status-ok); font-weight: var(--font-medium); }
 .suggest-reason { color: var(--text-tertiary); }
-.btn-apply { align-self: flex-start; padding: var(--space-2) var(--space-3); font-size: var(--text-xs); background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); border-radius: var(--radius-md); color: var(--status-ok); cursor: pointer; transition: var(--transition-fast); margin-top: var(--space-1); }
-.btn-apply:hover:not(:disabled) { background: rgba(34,197,94,0.25); }
+.btn-apply { align-self: flex-start; padding: var(--space-2) var(--space-3); font-size: var(--text-sm); background: var(--palette-success-light); border: 1px solid var(--palette-success-light); border-radius: var(--radius-md); color: var(--status-ok); cursor: pointer; transition: var(--transition-fast); margin-top: var(--space-1); }
+.btn-apply:hover:not(:disabled) { background: var(--palette-success-light); }
 .btn-apply:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

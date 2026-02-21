@@ -252,7 +252,7 @@ function handleClose() {
 
 .modal-header h2 {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -310,7 +310,7 @@ function handleClose() {
 }
 
 .name-text {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-primary);
   font-weight: 500;
 }
@@ -322,7 +322,7 @@ function handleClose() {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   transition: all var(--duration-fast) var(--ease-out);
 }
 
@@ -359,7 +359,7 @@ function handleClose() {
 .btn-load:hover {
   color: var(--color-info);
   border-color: var(--color-info);
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--palette-info-bg);
 }
 
 .btn-favorite.active {
@@ -370,7 +370,7 @@ function handleClose() {
 .btn-default.active {
   color: var(--status-ok);
   border-color: var(--status-ok);
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--status-ok-bg);
 }
 
 .btn-edit:hover {
@@ -381,7 +381,7 @@ function handleClose() {
 .btn-delete:hover {
   color: var(--status-error);
   border-color: var(--status-error);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--status-error-bg);
 }
 
 /* Transition */

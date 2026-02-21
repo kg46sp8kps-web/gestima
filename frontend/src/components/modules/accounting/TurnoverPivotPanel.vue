@@ -206,7 +206,7 @@ function analyticsLabel(r: TurnoverRecord): string {
   background: var(--bg-surface);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   border-bottom: 2px solid var(--border-default);
@@ -251,7 +251,7 @@ thead .sticky-col {
 
 .mono {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -272,13 +272,13 @@ thead .sticky-col {
 }
 
 .expand-icon {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   margin-right: var(--space-1);
   color: var(--text-tertiary);
 }
 
 .detail-row td {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   background: var(--bg-deepest);
 }
@@ -289,12 +289,12 @@ thead .sticky-col {
 
 .detail-label {
   font-style: italic;
-  padding-left: var(--space-6) !important;
+  padding-left: var(--space-6);
 }
 
 .empty-row {
   text-align: center;
   color: var(--text-tertiary);
-  padding: var(--space-8) !important;
+  padding: var(--space-8);
 }
 </style>

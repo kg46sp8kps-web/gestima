@@ -172,10 +172,10 @@ onMounted(loadData)
 
 .error-bar {
   padding: var(--space-3) var(--space-5);
-  background: rgba(244, 63, 94, 0.1);
+  background: var(--palette-danger-light);
   color: var(--color-danger);
   font-size: var(--text-sm);
-  border-bottom: 1px solid rgba(244, 63, 94, 0.2);
+  border-bottom: 1px solid var(--palette-danger-light);
   display: flex;
   align-items: center;
   gap: var(--space-2);

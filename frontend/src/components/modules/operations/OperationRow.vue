@@ -12,7 +12,9 @@ import type { MaterialInputWithOperations } from '@/types/material'
 import CuttingModeButtons from '@/components/ui/CuttingModeButtons.vue'
 import CoopSettings from '@/components/ui/CoopSettings.vue'
 import MaterialLinksInfo from '@/components/ui/MaterialLinksInfo.vue'
-import { Trash2, ChevronDown, ChevronRight, AlertTriangle, RotateCcw } from 'lucide-vue-next'
+import TypeAheadSelect from '@/components/TypeAheadSelect.vue'
+import type { TypeAheadOption } from '@/components/TypeAheadSelect.vue'
+import { Trash2, ChevronDown, ChevronRight, AlertTriangle, RotateCcw, GripVertical } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 interface Props {
@@ -49,6 +51,19 @@ const emit = defineEmits<Emits>()
 const timeModified = ref(false)
 // Track last user-set value to distinguish user edits from external updates
 const lastUserTime = ref<number | null>(null)
+// Track WorkCenter editing state
+const editingWorkCenter = ref(false)
+// Track seq editing
+const editingSeq = ref(false)
+const editingSeqValue = ref<number>(0)
+
+// WorkCenter options for TypeAheadSelect
+const workCenterOptions = computed<TypeAheadOption[]>(() =>
+  props.workCenters.map(wc => ({
+    value: wc.id,
+    label: `${wc.work_center_number} — ${wc.name}`
+  }))
+)
 
 // Fix #3: Reset timeModified when operation_time_min changes externally
 // (e.g. AI panel update, restore from parent, store reload)
@@ -108,6 +123,31 @@ function handleWorkCenterChange(event: Event) {
   emit('update-work-center', value ? Number(value) : null)
 }
 
+function handleWorkCenterSelect(value: string | number | null) {
+  editingWorkCenter.value = false
+  emit('update-work-center', value ? Number(value) : null)
+}
+
+function handleWorkCenterCancel() {
+  editingWorkCenter.value = false
+}
+
+function startEditSeq() {
+  editingSeq.value = true
+  editingSeqValue.value = props.operation.seq
+}
+
+function saveSeq() {
+  if (editingSeqValue.value !== props.operation.seq) {
+    emit('update-field', 'seq', editingSeqValue.value)
+  }
+  editingSeq.value = false
+}
+
+function cancelSeq() {
+  editingSeq.value = false
+}
+
 function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilization_coefficient', event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
   emit('update-field', field, value)
@@ -121,10 +161,28 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
     :class="{ 'is-coop': operation.is_coop, 'is-expanded': expanded, 'is-selected': selected }"
     @click="emit('select')"
   >
+    <!-- Drag handle -->
+    <td class="col-drag drag-handle" @click.stop>
+      <GripVertical :size="ICON_SIZE.SMALL" />
+    </td>
+
     <!-- Seq -->
-    <td class="col-seq">
+    <td class="col-seq" @dblclick.stop="startEditSeq">
       <div class="seq-cell">
-        <span class="op-seq">{{ operation.seq }}</span>
+        <input
+          v-if="editingSeq"
+          v-model.number="editingSeqValue"
+          type="number"
+          class="seq-input"
+          min="1"
+          step="10"
+          @click.stop
+          @blur="saveSeq"
+          @keydown.enter="saveSeq"
+          @keydown.escape="cancelSeq"
+          @focus="($event.target as HTMLInputElement).select()"
+        />
+        <span v-else class="op-seq">{{ operation.seq }}</span>
         <AlertTriangle
           v-if="operation.ai_estimation_id"
           :size="ICON_SIZE.SMALL"
@@ -135,22 +193,24 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
     </td>
 
     <!-- Work Center -->
-    <td class="col-workcenter" @click.stop>
-      <select
-        :value="operation.work_center_id"
-        @change="handleWorkCenterChange"
-        class="wc-select"
-        :style="{ width: maxWorkCenterWidth + 'px' }"
+    <td class="col-workcenter">
+      <div v-if="editingWorkCenter" class="typeahead-wrapper" @click.stop>
+        <TypeAheadSelect
+          :options="workCenterOptions"
+          :model-value="operation.work_center_id"
+          placeholder="Začni psát..."
+          @select="handleWorkCenterSelect"
+          @cancel="handleWorkCenterCancel"
+        />
+      </div>
+      <div
+        v-else
+        class="wc-display"
+        :title="workCenters.find(w => w.id === operation.work_center_id)?.name || 'Klikni pro výběr'"
+        @click.stop="editingWorkCenter = true"
       >
-        <option :value="null">- Pracoviště -</option>
-        <option
-          v-for="wc in workCenters"
-          :key="wc.id"
-          :value="wc.id"
-        >
-          {{ wc.name }}
-        </option>
-      </select>
+        {{ workCenters.find(w => w.id === operation.work_center_id)?.work_center_number || '—' }}
+      </div>
     </td>
 
     <!-- tp - setup time -->
@@ -259,7 +319,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 
   <!-- Expanded settings row -->
   <tr v-if="expanded" class="expanded-row">
-    <td colspan="10" class="expanded-cell">
+    <td colspan="11" class="expanded-cell">
       <div class="op-settings">
         <!-- Material Links ONLY -->
         <MaterialLinksInfo
@@ -294,8 +354,8 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .operation-row.is-selected {
-  background: var(--state-selected);
-  border-left: 3px solid var(--color-primary);
+  background: var(--selected);
+  border-left: 3px solid var(--border-strong);
 }
 
 .operation-row.is-selected:hover {
@@ -309,6 +369,61 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   vertical-align: middle;
 }
 
+/* Drag handle */
+.col-drag {
+  width: 30px;
+  text-align: center;
+  cursor: grab;
+  padding: var(--space-1);
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
+.col-drag:hover {
+  opacity: 1;
+  color: var(--text-secondary);
+}
+
+.col-drag:active {
+  cursor: grabbing;
+}
+
+/* Seq input */
+.seq-input {
+  width: 50px;
+  padding: 2px 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-mono);
+  text-align: center;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* WorkCenter display and typeahead */
+.wc-display {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.wc-display:hover {
+  background: var(--state-hover);
+}
+
+.typeahead-wrapper {
+  position: relative;
+  min-width: 200px;
+}
+
 /* Seq column */
 .col-seq {
   text-align: center;
@@ -317,7 +432,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 .op-seq {
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
 }
 
@@ -328,7 +443,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
 }
@@ -347,7 +462,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   text-align: right;
@@ -395,7 +510,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 
 .restore-btn:hover {
   opacity: 1;
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--status-error-bg);
 }
 
 /* Seq cell with AI indicator */
@@ -419,7 +534,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   text-align: right;
@@ -434,7 +549,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 /* Sum values */
 .sum-value {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
 }
@@ -494,7 +609,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   background: var(--color-warning);
   color: white;
   border-radius: var(--radius-sm);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 
@@ -508,7 +623,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .expanded-cell {
-  padding: 0 !important;
+  padding: 0;
 }
 
 .op-settings {
@@ -525,7 +640,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .setting-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-medium);
 }

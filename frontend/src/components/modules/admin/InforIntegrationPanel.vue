@@ -26,7 +26,8 @@ import InforJobMaterialsImportTab from './infor/InforJobMaterialsImportTab.vue'
 import DrawingImportPanel from './DrawingImportPanel.vue'
 import InforDocumentImportTab from './infor/InforDocumentImportTab.vue'
 import FtDataDebugTab from './infor/FtDataDebugTab.vue'
-import { Plug, Search, Globe, Info, Download, DollarSign, Lock, Package, Route, Factory, FileText, Layers, Brain } from 'lucide-vue-next'
+import InforSyncDashboardTab from './infor/InforSyncDashboardTab.vue'
+import { Plug, Search, Globe, Info, Download, DollarSign, Lock, Package, Route, Factory, FileText, Layers, Brain, RefreshCw } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 const props = defineProps<{
@@ -48,7 +49,7 @@ const emit = defineEmits<{
 }>()
 
 // Sub-tabs
-type InforSubTab = 'connection' | 'discovery' | 'browser' | 'info' | 'import' | 'prices' | 'parts' | 'routing' | 'job-materials' | 'production' | 'drawings' | 'documents' | 'ft-data'
+type InforSubTab = 'connection' | 'discovery' | 'browser' | 'info' | 'import' | 'prices' | 'parts' | 'routing' | 'job-materials' | 'production' | 'drawings' | 'documents' | 'ft-data' | 'sync'
 const activeInforTab = ref<InforSubTab>('connection')
 
 // Connection status (local)
@@ -115,6 +116,9 @@ function handleBrowseIdo(idoName: string) {
       <button @click="activeInforTab = 'ft-data'" :class="['sub-tab', { active: activeInforTab === 'ft-data' }]">
         <Brain :size="ICON_SIZE.SMALL" /> FT Data
       </button>
+      <button @click="activeInforTab = 'sync'" :class="['sub-tab', { active: activeInforTab === 'sync' }]">
+        <RefreshCw :size="ICON_SIZE.SMALL" /> Sync
+      </button>
       <div class="security-note">
         <Lock :size="ICON_SIZE.SMALL" /> READ-ONLY
       </div>
@@ -176,6 +180,8 @@ function handleBrowseIdo(idoName: string) {
       />
 
       <FtDataDebugTab v-else-if="activeInforTab === 'ft-data'" />
+
+      <InforSyncDashboardTab v-else-if="activeInforTab === 'sync'" />
     </div>
   </div>
 </template>
@@ -205,7 +211,7 @@ function handleBrowseIdo(idoName: string) {
   border: none;
   background: transparent;
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -219,7 +225,7 @@ function handleBrowseIdo(idoName: string) {
 
 .sub-tab.active {
   color: var(--color-primary);
-  background: rgba(153, 27, 27, 0.1);
+  background: var(--brand-subtle);
 }
 
 .security-note {
@@ -227,7 +233,7 @@ function handleBrowseIdo(idoName: string) {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   padding: var(--space-1) var(--space-2);
   background: var(--bg-raised);

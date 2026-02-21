@@ -98,10 +98,12 @@ function handleSort(column: Column) {
   padding: var(--density-cell-py, var(--space-3)) var(--density-cell-px, var(--space-4));
   text-align: left;
   font-weight: var(--font-semibold);
-  font-size: var(--density-font-sm, var(--text-xs));
+  font-size: var(--density-font-sm, var(--text-sm));
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   user-select: none;
   transition: var(--transition-fast);
 }

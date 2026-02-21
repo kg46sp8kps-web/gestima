@@ -77,7 +77,7 @@ const handleClick = (event: MouseEvent) => {
 /* === SIZES === */
 .btn-sm {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   height: 32px;
 }
 
@@ -89,7 +89,7 @@ const handleClick = (event: MouseEvent) => {
 
 .btn-lg {
   padding: var(--space-2) var(--space-4);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   height: 44px;
 }
 
@@ -135,7 +135,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--palette-danger-light);
   border-color: var(--status-error);
   color: var(--status-error);
 }

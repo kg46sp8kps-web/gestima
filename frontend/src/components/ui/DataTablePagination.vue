@@ -96,6 +96,7 @@ function handlePerPageChange(event: Event) {
   border-top: 1px solid var(--border-default);
   background: var(--bg-subtle);
   flex-wrap: wrap;
+  container-type: inline-size;
 }
 
 .pagination-info {
@@ -152,7 +153,7 @@ function handlePerPageChange(event: Event) {
   font-size: var(--text-sm);
 }
 
-@media (max-width: 768px) {
+@container (max-width: 768px) {
   .data-table-pagination {
     flex-direction: column;
     gap: var(--space-3);

@@ -320,12 +320,12 @@ function getStatusLabel(status: string | null): string {
   gap: var(--space-2);
 }
 .panel-header h3 {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   margin: 0;
 }
 .count {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   background: var(--bg-subtle);
   padding: var(--space-0\.5) var(--space-3);
@@ -344,7 +344,7 @@ function getStatusLabel(status: string | null): string {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-0\.5) var(--space-3);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
@@ -390,7 +390,7 @@ function getStatusLabel(status: string | null): string {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-1) var(--space-4);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: background 0.1s;
   color: var(--text-primary);
@@ -415,7 +415,7 @@ function getStatusLabel(status: string | null): string {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   transition: all 0.15s;
 }
@@ -433,7 +433,7 @@ function getStatusLabel(status: string | null): string {
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 .btn-process-all:hover:not(:disabled) {
   background: var(--state-hover);
@@ -459,8 +459,8 @@ function getStatusLabel(status: string | null): string {
   background: var(--state-hover);
 }
 .drawing-item.selected {
-  background: var(--state-selected);
-  border-left: 3px solid var(--color-primary);
+  background: var(--selected);
+  border-left: 3px solid var(--border-strong);
 }
 .drawing-info {
   display: flex;
@@ -485,7 +485,7 @@ function getStatusLabel(status: string | null): string {
   white-space: nowrap;
 }
 .size {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 .drawing-actions {
@@ -495,7 +495,7 @@ function getStatusLabel(status: string | null): string {
   flex-shrink: 0;
 }
 .model-badge {
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   padding: var(--space-px) var(--space-2);
   border-radius: var(--radius-sm);
@@ -504,8 +504,8 @@ function getStatusLabel(status: string | null): string {
   letter-spacing: 0.02em;
 }
 .model-badge.model-ft {
-  background: rgba(var(--color-primary-rgb, 220 38 38), 0.1);
-  color: var(--color-primary);
+  background: var(--brand-subtle);
+  color: var(--brand);
 }
 .model-badge.model-v2 {
   background: var(--bg-subtle);
@@ -515,7 +515,7 @@ function getStatusLabel(status: string | null): string {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 .btn-process {
@@ -530,8 +530,8 @@ function getStatusLabel(status: string | null): string {
   transition: all 0.15s;
 }
 .btn-process:hover {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  color: var(--color-brand, #991b1b);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 </style>

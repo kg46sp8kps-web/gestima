@@ -19,7 +19,7 @@ defineProps<Props>()
 
 <template>
   <div class="summary-panel">
-    <h2><BarChart3 :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Přehled poptávky</h2>
+    <h2><BarChart3 :size="ICON_SIZE.STANDARD" class="section-icon" /> Přehled poptávky</h2>
     <div class="summary-grid">
       <div class="summary-item">
         <span class="summary-label">Celkem položek:</span>
@@ -59,6 +59,11 @@ defineProps<Props>()
   color: var(--text-primary);
 }
 
+.section-icon {
+  display: inline;
+  margin-right: var(--space-3);
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -77,7 +82,7 @@ defineProps<Props>()
 }
 
 .summary-value {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }

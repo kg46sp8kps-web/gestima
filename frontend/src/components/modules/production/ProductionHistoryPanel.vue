@@ -343,11 +343,11 @@ async function handleDeleteRecord(id: number) {
 }
 .chevron { transition: transform 0.2s; color: var(--text-tertiary); }
 .filter-badge {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-primary);
   padding: 0 var(--space-1);
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--palette-info-bg);
   border-radius: var(--radius-sm);
 }
 .record-badge {
@@ -360,7 +360,7 @@ async function handleDeleteRecord(id: number) {
   background: var(--bg-raised);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -370,7 +370,7 @@ async function handleDeleteRecord(id: number) {
   gap: var(--space-1);
   margin-left: auto;
   font-family: var(--font-mono, monospace);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -378,12 +378,12 @@ async function handleDeleteRecord(id: number) {
 .cs-item.highlight { color: var(--text-primary); font-weight: 700; }
 .cs-sep { color: var(--text-tertiary); }
 .panel-content { padding: 0 var(--space-3) var(--space-3); }
-.error-bar { padding: var(--space-2) var(--space-3); background: rgba(153, 27, 27, 0.1); color: var(--color-brand); border-radius: var(--radius-sm); font-size: var(--text-sm); margin-bottom: var(--space-3); }
+.error-bar { padding: var(--space-2) var(--space-3); background: var(--brand-subtle); color: var(--brand); border-radius: var(--radius-sm); font-size: var(--text-sm); margin-bottom: var(--space-3); }
 .summary-ribbon { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-2) var(--space-3); background: var(--bg-raised); border-radius: var(--radius-sm); margin-bottom: var(--space-3); }
-.summary-item { display: flex; gap: var(--space-1); font-size: var(--text-xs); }
+.summary-item { display: flex; gap: var(--space-1); font-size: var(--text-sm); }
 .summary-label { color: var(--text-tertiary); }
 .summary-value { font-weight: 600; color: var(--text-primary); font-family: var(--font-mono, monospace); }
 .empty-icon { opacity: 0.5; }
 .btn-add { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-md); font-size: var(--text-sm); cursor: pointer; color: var(--text-primary); width: 100%; justify-content: center; }
-.btn-add:hover { border-color: var(--color-brand); color: var(--color-brand); }
+.btn-add:hover { border-color: var(--brand); color: var(--brand); }
 </style>

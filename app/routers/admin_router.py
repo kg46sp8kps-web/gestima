@@ -17,12 +17,16 @@ logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models import (
-    User, MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialNormResponse,
-    MaterialGroup, SystemConfig
+    User, UserCreate, UserUpdate, UserResponse, PasswordChange,
+    MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialNormResponse,
+    MaterialGroup, MaterialGroupResponse, MaterialGroupCreate, MaterialGroupUpdate,
+    MaterialPriceCategory, MaterialPriceCategoryResponse, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate,
+    SystemConfig
 )
 from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
 from app.db_helpers import set_audit, safe_commit
+from app.services.auth_service import get_password_hash
 from app.services.material_mapping import search_norms
 
 router = APIRouter()
@@ -37,7 +41,7 @@ router = APIRouter()
 #     pass
 
 
-@router.get("/api/material-groups", response_model=List[Dict[str, Any]])
+@router.get("/api/material-groups", response_model=List[MaterialGroupResponse])
 async def api_get_material_groups(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
@@ -46,7 +50,6 @@ async def api_get_material_groups(
     API: Get all MaterialGroups (for dropdown in forms).
     """
     try:
-        from app.models.material import MaterialGroupResponse
         result = await db.execute(
             select(MaterialGroup)
             .where(MaterialGroup.deleted_at.is_(None))
@@ -276,17 +279,15 @@ async def admin_material_catalog_redirect():
 
 # ========== MaterialGroup CRUD ==========
 
-@router.post("/api/material-groups", response_model="MaterialGroupResponse")
+@router.post("/api/material-groups", response_model=MaterialGroupResponse)
 async def api_create_material_group(
-    data: "MaterialGroupCreate",
+    data: MaterialGroupCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
-) -> "MaterialGroupResponse":
+) -> MaterialGroupResponse:
     """
     API: Create new MaterialGroup.
     """
-    from app.models.material import MaterialGroupCreate, MaterialGroupResponse
-
     # Check code uniqueness
     result = await db.execute(
         select(MaterialGroup).where(MaterialGroup.code == data.code.upper())
@@ -308,18 +309,16 @@ async def api_create_material_group(
     return MaterialGroupResponse.model_validate(group)
 
 
-@router.put("/api/material-groups/{group_id}", response_model="MaterialGroupResponse")
+@router.put("/api/material-groups/{group_id}", response_model=MaterialGroupResponse)
 async def api_update_material_group(
     group_id: int,
-    data: "MaterialGroupUpdate",
+    data: MaterialGroupUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
-) -> "MaterialGroupResponse":
+) -> MaterialGroupResponse:
     """
     API: Update MaterialGroup (optimistic locking).
     """
-    from app.models.material import MaterialGroupUpdate, MaterialGroupResponse
-
     result = await db.execute(
         select(MaterialGroup).where(MaterialGroup.id == group_id)
     )
@@ -391,17 +390,15 @@ async def api_delete_material_group(
 
 # ========== MaterialPriceCategory CRUD ==========
 
-@router.post("/api/material-price-categories", response_model="MaterialPriceCategoryResponse")
+@router.post("/api/material-price-categories", response_model=MaterialPriceCategoryResponse)
 async def api_create_material_price_category(
-    data: "MaterialPriceCategoryCreate",
+    data: MaterialPriceCategoryCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
-) -> "MaterialPriceCategoryResponse":
+) -> MaterialPriceCategoryResponse:
     """
     API: Create new MaterialPriceCategory.
     """
-    from app.models.material import MaterialPriceCategoryCreate, MaterialPriceCategoryResponse, MaterialPriceCategory
-
     # Check code uniqueness
     result = await db.execute(
         select(MaterialPriceCategory).where(MaterialPriceCategory.code == data.code.upper())
@@ -422,18 +419,16 @@ async def api_create_material_price_category(
     return MaterialPriceCategoryResponse.model_validate(category)
 
 
-@router.put("/api/material-price-categories/{category_id}", response_model="MaterialPriceCategoryResponse")
+@router.put("/api/material-price-categories/{category_id}", response_model=MaterialPriceCategoryResponse)
 async def api_update_material_price_category(
     category_id: int,
-    data: "MaterialPriceCategoryUpdate",
+    data: MaterialPriceCategoryUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
-) -> "MaterialPriceCategoryResponse":
+) -> MaterialPriceCategoryResponse:
     """
     API: Update MaterialPriceCategory (optimistic locking).
     """
-    from app.models.material import MaterialPriceCategoryUpdate, MaterialPriceCategoryResponse, MaterialPriceCategory
-
     result = await db.execute(
         select(MaterialPriceCategory).where(MaterialPriceCategory.id == category_id)
     )
@@ -483,8 +478,6 @@ async def api_delete_material_price_category(
 
     Note: Soft delete (set deleted_at, deleted_by) instead of hard delete.
     """
-    from app.models.material import MaterialPriceCategory
-
     result = await db.execute(
         select(MaterialPriceCategory).where(MaterialPriceCategory.id == category_id)
     )
@@ -500,3 +493,160 @@ async def api_delete_material_price_category(
 
     await safe_commit(db, action="mazání MaterialPriceCategory")
     return {"message": f"MaterialPriceCategory '{category.code}' smazána"}
+
+
+# ========== USER MANAGEMENT ==========
+
+@router.get("/api/users", response_model=List[UserResponse])
+async def api_list_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """API: List all active users (soft-delete filtered)."""
+    try:
+        result = await db.execute(
+            select(User)
+            .where(User.deleted_at.is_(None))
+            .order_by(User.username)
+        )
+        users = result.scalars().all()
+        return [UserResponse.model_validate(u) for u in users]
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching users: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při načítání uživatelů")
+
+
+@router.post("/api/users", response_model=UserResponse)
+async def api_create_user(
+    data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+) -> UserResponse:
+    """API: Create new user."""
+    # Check duplicate username
+    result = await db.execute(
+        select(User).where(User.username == data.username)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"Uživatel '{data.username}' již existuje")
+
+    # Check duplicate email
+    if data.email:
+        result = await db.execute(
+            select(User).where(User.email == data.email)
+        )
+        if result.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail=f"Email '{data.email}' je již použit")
+
+    user = User(
+        username=data.username,
+        email=data.email,
+        hashed_password=get_password_hash(data.password),
+        role=data.role,
+        is_active=True
+    )
+    set_audit(user, current_user.username, is_update=False)
+    db.add(user)
+
+    user = await safe_commit(db, user, "vytváření uživatele")
+    return UserResponse.model_validate(user)
+
+
+@router.put("/api/users/{user_id}", response_model=UserResponse)
+async def api_update_user(
+    user_id: int,
+    data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+) -> UserResponse:
+    """API: Update user (optimistic locking)."""
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Uživatel ID {user_id} nenalezen")
+
+    # Optimistic locking
+    if user.version != data.version:
+        raise HTTPException(
+            status_code=409,
+            detail="Uživatel byl změněn jiným uživatelem. Obnovte stránku a zkuste znovu."
+        )
+
+    # Prevent self-deactivation
+    if user.id == current_user.id and data.is_active is False:
+        raise HTTPException(status_code=400, detail="Nemůžete deaktivovat vlastní účet")
+
+    # Prevent self role change
+    if user.id == current_user.id and data.role is not None and data.role != user.role:
+        raise HTTPException(status_code=400, detail="Nemůžete změnit vlastní roli")
+
+    # Update fields
+    if data.email is not None:
+        if data.email:
+            # Check email uniqueness
+            result = await db.execute(
+                select(User).where(User.email == data.email, User.id != user_id)
+            )
+            if result.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail=f"Email '{data.email}' je již použit")
+        user.email = data.email
+
+    if data.role is not None:
+        user.role = data.role
+
+    if data.is_active is not None:
+        user.is_active = data.is_active
+
+    set_audit(user, current_user.username, is_update=True)
+
+    user = await safe_commit(db, user, "aktualizace uživatele")
+    return UserResponse.model_validate(user)
+
+
+@router.put("/api/users/{user_id}/password")
+async def api_change_user_password(
+    user_id: int,
+    data: PasswordChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """API: Change user password (admin only)."""
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Uživatel ID {user_id} nenalezen")
+
+    user.hashed_password = get_password_hash(data.password)
+    set_audit(user, current_user.username, is_update=True)
+
+    await safe_commit(db, user, "změna hesla uživatele")
+    return {"message": f"Heslo uživatele '{user.username}' bylo změněno"}
+
+
+@router.delete("/api/users/{user_id}")
+async def api_delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """API: Soft delete user."""
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Nemůžete smazat vlastní účet")
+
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Uživatel ID {user_id} nenalezen")
+
+    from datetime import datetime
+    user.deleted_at = datetime.utcnow()
+    user.deleted_by = current_user.username
+
+    await safe_commit(db, action="mazání uživatele")
+    return {"message": f"Uživatel '{user.username}' smazán"}

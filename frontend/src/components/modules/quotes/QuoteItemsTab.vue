@@ -155,7 +155,7 @@ async function deleteItem(itemId: number) {
 
 .items-table th {
   background: var(--bg-surface);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -184,7 +184,7 @@ async function deleteItem(itemId: number) {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  background: rgba(115, 115, 115, 0.1);
+  background: var(--bg-raised);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);

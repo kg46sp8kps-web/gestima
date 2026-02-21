@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
 from app.database import get_db
+from app.db_helpers import safe_commit
 from app.models.time_vision import (
     TimeVisionEstimation,
     TimeVisionResponse,
@@ -331,7 +332,7 @@ async def update_actual_time(
     record.status = "verified"
 
     try:
-        await db.commit()
+        await safe_commit(db, action="aktualizace skutečného času odhadu")
         await db.refresh(record)
         return TimeVisionResponse.model_validate(record)
     except Exception as exc:
@@ -392,7 +393,7 @@ async def calibrate_estimation(
         record.actual_notes = data.actual_notes
 
     try:
-        await db.commit()
+        await safe_commit(db, action="kalibrace odhadu")
         await db.refresh(record)
         return TimeVisionResponse.model_validate(record)
     except Exception as exc:
@@ -443,7 +444,7 @@ async def delete_estimation(
     record.deleted_at = datetime.utcnow()
 
     try:
-        await db.commit()
+        await safe_commit(db, action="mazání odhadu")
         return {"detail": "Estimation deleted"}
     except Exception as exc:
         await db.rollback()
@@ -599,7 +600,7 @@ async def process_drawing_openai(
                 logger.info(f"Created new estimation for {filename}")
 
             try:
-                await db.commit()
+                await safe_commit(db, action="uložení OpenAI odhadu")
                 await db.refresh(record)
             except Exception as exc:
                 await db.rollback()
@@ -754,7 +755,7 @@ async def process_features(
                 logger.info(f"Created new features estimation for {filename}")
 
             try:
-                await db.commit()
+                await safe_commit(db, action="uložení odhadu features")
                 await db.refresh(record)
             except Exception as exc:
                 await db.rollback()
@@ -813,7 +814,7 @@ async def save_corrected_features(
     record.updated_at = datetime.utcnow()
 
     try:
-        await db.commit()
+        await safe_commit(db, action="uložení opravených features")
         await db.refresh(record)
         return TimeVisionResponse.model_validate(record)
     except Exception as exc:
@@ -885,7 +886,7 @@ async def calculate_time_from_features(
     try:
         record.calculated_time_min = calc_result["calculated_time_min"]
         record.updated_at = datetime.utcnow()
-        await db.commit()
+        await safe_commit(db, action="uložení vypočteného času")
     except Exception as exc:
         await db.rollback()
         logger.error("Failed to save calculated time: %s", exc)

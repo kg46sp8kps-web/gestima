@@ -216,7 +216,7 @@ async function handleSave() {
   border-top: 1px solid var(--border-default);
 }
 .actual-time-form h4 {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   color: var(--text-muted);
   margin: 0 0 var(--space-3) 0;
@@ -233,7 +233,7 @@ async function handleSave() {
   gap: var(--space-0\.5);
 }
 .deviation-item label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   text-transform: uppercase;
 }
@@ -250,7 +250,7 @@ async function handleSave() {
   margin-bottom: var(--space-3);
 }
 .field-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   text-transform: uppercase;
   font-weight: 500;

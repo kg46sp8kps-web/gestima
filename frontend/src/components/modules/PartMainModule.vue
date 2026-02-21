@@ -387,11 +387,11 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 .empty .empty-icon {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   margin-bottom: var(--space-2);
 }
 
 .empty p {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 </style>

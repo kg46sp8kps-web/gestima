@@ -150,6 +150,7 @@ const selectTab = (index: number) => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  container-type: inline-size;
 }
 
 .form-tabs-vertical {
@@ -234,7 +235,7 @@ const selectTab = (index: number) => {
 
 /* === TAB ICON === */
 .tab-icon {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   line-height: 1;
 }
 
@@ -249,7 +250,7 @@ const selectTab = (index: number) => {
   border-radius: var(--radius-full);
   background: var(--brand);
   color: white;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 
@@ -278,7 +279,7 @@ const selectTab = (index: number) => {
 }
 
 /* === RESPONSIVE === */
-@media (max-width: 768px) {
+@container (max-width: 768px) {
   .form-tabs-vertical {
     flex-direction: column;
   }

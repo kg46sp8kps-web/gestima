@@ -383,7 +383,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 .ctx-name {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-normal);
   color: var(--text-secondary);
   white-space: nowrap;

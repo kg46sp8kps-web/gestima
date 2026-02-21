@@ -310,7 +310,7 @@ async def delete_module_layout(
         layout.deleted_at = datetime.utcnow()
         layout.deleted_by = current_user.username
 
-        await db.commit()
+        await safe_commit(db, action="mazání rozložení modulu")
 
         logger.info(f"Soft deleted module layout {id}")
         return None
@@ -373,7 +373,7 @@ async def set_default_layout(
         layout.is_default = True
         set_audit(layout, current_user.username, is_update=True)
 
-        await db.commit()
+        await safe_commit(db, action="nastavení výchozího rozložení modulu")
         await db.refresh(layout)
 
         logger.info(f"Set module layout {id} as default")

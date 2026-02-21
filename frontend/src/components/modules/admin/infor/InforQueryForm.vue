@@ -79,6 +79,6 @@ const emit = defineEmits<{
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--border-strong);
 }
 </style>

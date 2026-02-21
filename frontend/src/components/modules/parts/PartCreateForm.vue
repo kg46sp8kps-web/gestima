@@ -172,7 +172,7 @@ function handleCancel() {
 
 .part-create-form h2 {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -205,7 +205,7 @@ function handleCancel() {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   background: var(--bg-input);
   color: var(--text-body);
   transition: var(--transition-fast);
@@ -238,9 +238,9 @@ function handleCancel() {
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  color: var(--color-danger);
-  background: rgba(244, 63, 94, 0.05);
-  border: 1px solid var(--color-danger);
+  color: var(--palette-danger);
+  background: var(--status-error-bg);
+  border: 1px solid var(--palette-danger);
   border-radius: var(--radius-sm);
 }
 

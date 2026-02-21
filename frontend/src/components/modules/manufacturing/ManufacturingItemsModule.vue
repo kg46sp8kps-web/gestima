@@ -307,7 +307,7 @@ const resizeCursor = computed(() =>
 
 /* second-panel nemá padding — PartDetailPanel si spravuje vlastní */
 .second-panel {
-  padding: 0 !important;
+  padding: 0;
 }
 
 /* Bez rámečku — v Manufacturing detail panel nemá border */
@@ -328,6 +328,6 @@ const resizeCursor = computed(() =>
 }
 
 .empty p {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 </style>

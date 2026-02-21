@@ -136,7 +136,7 @@ const emit = defineEmits<{
 
 .prefix-btn {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--bg-input);
@@ -167,7 +167,7 @@ const emit = defineEmits<{
 }
 
 .stats {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   white-space: nowrap;
 }

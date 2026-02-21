@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 
 from app.models.enums import StockShape
-from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialItem
+from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialItem, MaterialPriceTier
 from app.models.material_norm import MaterialNorm
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ class ParseResult(BaseModel):
     suggested_price_category_id: Optional[int] = None
     suggested_price_category_code: Optional[str] = None
     suggested_price_category_name: Optional[str] = None
+    suggested_price_per_kg: Optional[float] = None
 
     suggested_material_item_id: Optional[int] = None
     suggested_material_item_code: Optional[str] = None
@@ -276,6 +277,17 @@ class MaterialParserService:
                 result.suggested_price_category_code = price_cat.code
                 result.suggested_price_category_name = price_cat.name
                 result.confidence += 0.05
+
+                # Load first tier (cheapest) as baseline price
+                tier_result = await self.db.execute(
+                    select(MaterialPriceTier)
+                    .where(MaterialPriceTier.price_category_id == price_cat.id)
+                    .order_by(MaterialPriceTier.min_weight)
+                    .limit(1)
+                )
+                tier = tier_result.scalar_one_or_none()
+                if tier:
+                    result.suggested_price_per_kg = tier.price_per_kg
             else:
                 # WARNING: Nenalezena cenová kategorie pro tento materiál + tvar
                 shape_label = {
@@ -307,8 +319,37 @@ class MaterialParserService:
                 result.suggested_material_item_id = item.id
                 result.suggested_material_item_code = item.code
                 result.suggested_material_item_name = item.name
-                # MaterialItem má FK na PriceCategory - použij ji
+                # MaterialItem má FK na PriceCategory - reload full category + tier
                 result.suggested_price_category_id = item.price_category_id
+
+                # Reload price category with name
+                cat_result = await self.db.execute(
+                    select(MaterialPriceCategory)
+                    .where(MaterialPriceCategory.id == item.price_category_id)
+                )
+                price_cat = cat_result.scalar_one_or_none()
+                if price_cat:
+                    result.suggested_price_category_code = price_cat.code
+                    result.suggested_price_category_name = price_cat.name
+
+                    # Load first tier for price
+                    tier_result = await self.db.execute(
+                        select(MaterialPriceTier)
+                        .where(MaterialPriceTier.price_category_id == price_cat.id)
+                        .order_by(MaterialPriceTier.min_weight)
+                        .limit(1)
+                    )
+                    tier = tier_result.scalar_one_or_none()
+                    if tier:
+                        result.suggested_price_per_kg = tier.price_per_kg
+
+                    # Clear stale "category not found" warning from step 4
+                    # — MaterialItem resolved the price category successfully
+                    result.warnings = [
+                        w for w in result.warnings
+                        if "cenová kategorie" not in w.lower()
+                    ]
+
                 result.confidence += 0.05
 
         return result
@@ -574,40 +615,17 @@ class MaterialParserService:
         """
         Najde MaterialPriceCategory podle MaterialGroup + Shape.
 
-        Mapping keywords:
-        - ROUND_BAR → "KRUHOVA" nebo "KULATINA"
-        - SQUARE_BAR → "CTYRHRANNA", "ČTYŘHRAN", "CTVEREC", "ČTVEREC", "ČTVERCOVÁ"
-        - FLAT_BAR → "PLOCHÁ" nebo "PLOCHA"
-        - HEXAGONAL_BAR → "SESTIHRAN" nebo "ŠESTIHRAN"
-        - PLATE → "PLECH"
-        - TUBE → "TRUBKA"
+        Používá sloupec `shape` (StockShape enum value) pro spolehlivý matching.
+        Fallback: keyword search v názvu (pro starší záznamy bez shape sloupce).
         """
-        shape_keywords = {
-            StockShape.ROUND_BAR: ["KRUHOVA", "KULATINA"],
-            StockShape.SQUARE_BAR: ["CTYRHRANNA", "ČTYŘHRAN", "CTVEREC", "ČTVEREC", "ČTVERCOVÁ"],
-            StockShape.FLAT_BAR: ["PLOCHÁ", "PLOCHA"],
-            StockShape.HEXAGONAL_BAR: ["SESTIHRAN", "ŠESTIHRAN"],
-            StockShape.PLATE: ["PLECH"],
-            StockShape.TUBE: ["TRUBKA"],
-        }
+        logger.debug(f"_find_price_category: Looking for material_group_id={material_group_id}, shape={shape}")
 
-        keywords = shape_keywords.get(shape, [])
-        if not keywords:
-            logger.debug(f"_find_price_category: No keywords for shape {shape}")
-            return None
-
-        # Query DB (search in NAME, not code - code is numeric)
-        conditions = [
-            MaterialPriceCategory.name.ilike(f"%{kw}%") for kw in keywords
-        ]
-
-        logger.debug(f"_find_price_category: Looking for material_group_id={material_group_id}, shape={shape}, keywords={keywords}")
-
+        # Primary: exact match on shape column (reliable, no diacritics issues)
         result = await self.db.execute(
             select(MaterialPriceCategory)
             .where(
                 MaterialPriceCategory.material_group_id == material_group_id,
-                or_(*conditions),
+                MaterialPriceCategory.shape == shape.value,
                 MaterialPriceCategory.deleted_at.is_(None)
             )
             .limit(1)
@@ -616,10 +634,10 @@ class MaterialParserService:
         category = result.scalar_one_or_none()
         if category:
             logger.debug(f"_find_price_category: Found category: {category.code} ({category.name})")
-        else:
-            logger.debug(f"_find_price_category: NO CATEGORY FOUND for material_group_id={material_group_id}, shape={shape}")
+            return category
 
-        return category
+        logger.debug(f"_find_price_category: NO CATEGORY FOUND for material_group_id={material_group_id}, shape={shape}")
+        return None
 
     async def _find_material_item(
         self,

@@ -236,6 +236,7 @@ class MaterialGroupResponse(MaterialGroupBase):
 class MaterialPriceCategoryBase(BaseModel):
     code: str = Field(..., min_length=8, max_length=8, description="Kód kategorie (8-digit: 20900000-20909999)")
     name: str = Field(..., max_length=200, description="Název kategorie")
+    shape: Optional[str] = Field(None, max_length=20, description="StockShape value for robust matching")
     material_group_id: Optional[int] = Field(None, gt=0, description="ID materiálové skupiny")
 
     # Cutting parameters (optional)
@@ -263,6 +264,7 @@ class MaterialPriceCategoryCreate(MaterialPriceCategoryBase):
 class MaterialPriceCategoryUpdate(BaseModel):
     code: Optional[str] = Field(None, min_length=8, max_length=8)
     name: Optional[str] = Field(None, max_length=200)
+    shape: Optional[str] = Field(None, max_length=20)
     material_group_id: Optional[int] = Field(None, gt=0)
 
     # Cutting parameters (optional)

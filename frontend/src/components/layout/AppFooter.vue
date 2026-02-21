@@ -79,12 +79,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWindowsStore } from '@/stores/windows'
 
 const route = useRoute()
 const windowsStore = useWindowsStore()
+
+// Live clock
+const now = ref(new Date())
+let clockTimer: ReturnType<typeof setInterval>
+
+onMounted(() => {
+  clockTimer = setInterval(() => {
+    now.value = new Date()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  clearInterval(clockTimer)
+})
 
 // Calendar state
 const showCalendar = ref(false)
@@ -124,13 +138,11 @@ function getLinkingGroupColor(group: string | null): string {
 }
 
 const currentDate = computed(() => {
-  const now = new Date()
-  return now.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return now.value.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
 })
 
 const currentTime = computed(() => {
-  const now = new Date()
-  return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return now.value.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 })
 
 const monthLabel = computed(() => {
@@ -257,7 +269,7 @@ function nextMonth() {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   white-space: nowrap;
@@ -299,13 +311,13 @@ function nextMonth() {
   align-items: center;
   gap: 0.4rem;
   color: var(--text-secondary);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   justify-self: center;
   white-space: nowrap;
 }
 
 .footer-brand {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -333,7 +345,7 @@ function nextMonth() {
   align-items: center;
   gap: 0.4rem;
   color: var(--text-secondary);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   justify-self: end;
   font-family: monospace;
   font-weight: 500;
@@ -382,7 +394,7 @@ function nextMonth() {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   cursor: pointer;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
@@ -403,7 +415,7 @@ function nextMonth() {
 
 .calendar-weekday {
   text-align: center;
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-semibold);
   padding: var(--space-1);
@@ -415,7 +427,7 @@ function nextMonth() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: default;
@@ -448,4 +460,5 @@ function nextMonth() {
 .calendar-fade-leave-to {
   opacity: 0;
 }
+
 </style>

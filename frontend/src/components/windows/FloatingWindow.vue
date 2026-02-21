@@ -19,6 +19,9 @@ const props = defineProps<Props>()
 const store = useWindowsStore()
 const contextStore = useWindowContextStore()
 
+// Entrance animation state
+const isEntering = ref(true)
+
 // Drag state
 const isDragging = ref(false)
 const dragStartX = ref(0)
@@ -112,6 +115,11 @@ onMounted(() => {
     width: props.window.width,
     height: props.window.height
   }
+
+  // End entrance animation after it plays
+  setTimeout(() => {
+    isEntering.value = false
+  }, 250)
 })
 
 onBeforeUnmount(() => {
@@ -149,7 +157,13 @@ const getMinWidth = () => {
     .trim()
   return cssValue ? parseInt(cssValue, 10) : 300
 }
-const MIN_HEIGHT = 200
+const getMinHeight = () => {
+  const cssValue = getComputedStyle(document.documentElement)
+    .getPropertyValue('--density-window-min-height')
+    .trim()
+  return cssValue ? parseInt(cssValue, 10) : 220
+}
+const MIN_HEIGHT = getMinHeight()
 
 // Drag handlers
 function startDrag(event: MouseEvent) {
@@ -466,7 +480,8 @@ const colorOptions = [
     :class="{
       'is-dragging': isDragging,
       'is-resizing': isResizing,
-      'is-maximized': window.maximized
+      'is-maximized': window.maximized,
+      'is-entering': isEntering
     }"
     :style="windowStyle"
     @mousedown="handleFocus"
@@ -596,6 +611,10 @@ const colorOptions = [
   transition: box-shadow var(--duration-normal) var(--ease-out);
 }
 
+.floating-window.is-entering {
+  animation: g-scale-in 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 .floating-window:hover {
   box-shadow: var(--shadow-xl);
 }
@@ -682,7 +701,7 @@ const colorOptions = [
 
 /* Teleported color dropdown (fixed positioning) */
 .color-dropdown-teleported {
-  position: fixed !important;
+  position: fixed;
   top: auto;
   left: auto;
 }
@@ -696,7 +715,7 @@ const colorOptions = [
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);
   width: 100%;
@@ -708,7 +727,7 @@ const colorOptions = [
 }
 
 .color-option.is-active {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active);
   font-weight: 500;
 }
 
@@ -730,7 +749,7 @@ const colorOptions = [
 
 .window-title {
   font-weight: 600;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -782,7 +801,7 @@ const colorOptions = [
 
 /* Teleported settings dropdown (fixed positioning) */
 .settings-dropdown-teleported {
-  position: fixed !important;
+  position: fixed;
   top: auto;
   left: auto;
 }
@@ -824,7 +843,7 @@ const colorOptions = [
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   line-height: 1;
   border-radius: var(--radius-sm);
   cursor: pointer;

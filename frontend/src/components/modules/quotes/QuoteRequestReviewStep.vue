@@ -213,7 +213,7 @@ function handleConfirm() {
 }
 .items-section h3 {
   margin: 0 0 var(--space-3) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -221,7 +221,7 @@ function handleConfirm() {
 .items-table { width: 100%; border-collapse: collapse; }
 .items-table th {
   background: var(--bg-surface);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
@@ -238,10 +238,10 @@ function handleConfirm() {
 .col-mono { font-family: var(--font-mono); font-weight: var(--font-semibold); }
 .col-right { text-align: right; }
 .text-muted { color: var(--text-tertiary); }
-.badge-ok  { background: rgba(34,197,94,0.15);  color: var(--color-success); }
-.badge-warn{ background: rgba(234,179,8,0.15);  color: var(--palette-warning); }
-.badge-new { background: rgba(37,99,235,0.15);  color: var(--color-info); }
-.badge-info{ background: rgba(115,115,115,0.15);color: var(--text-secondary); }
+.badge-ok  { background: var(--bg-raised);  color: var(--status-ok); }
+.badge-warn{ background: var(--bg-raised);  color: var(--status-warn); }
+.badge-new { background: var(--bg-raised);  color: var(--palette-info); }
+.badge-info{ background: var(--bg-raised);color: var(--text-secondary); }
 .actions {
   display: flex;
   justify-content: space-between;

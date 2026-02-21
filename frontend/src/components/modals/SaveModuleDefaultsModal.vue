@@ -142,14 +142,14 @@ function handleCancel() {
 /* === MODAL CONTENT === */
 
 .modal-title {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0;
 }
 
 .description {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-body);
   line-height: 1.5;
   margin: 0;

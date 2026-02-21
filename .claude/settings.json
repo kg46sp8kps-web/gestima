@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "bash .claude/hooks/validate-frontend.sh \"$CLAUDE_FILE_PATH\""
+      },
+      {
+        "matcher": "Edit|Write",
+        "command": "bash .claude/hooks/validate-backend.sh \"$CLAUDE_FILE_PATH\""
+      },
+      {
+        "matcher": "Write",
+        "command": "bash .claude/hooks/validate-wiring.sh \"$CLAUDE_FILE_PATH\""
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python3 gestima.py test*)",
+      "Bash(npm run build -C frontend)",
+      "Bash(npm run lint -C frontend)",
+      "Bash(npm run test:* -C frontend)"
+    ]
+  }
+}

@@ -140,7 +140,7 @@ defineExpose({ testConnection, isConnected })
 }
 
 .info-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   margin-bottom: var(--space-1);
   text-transform: uppercase;
@@ -148,31 +148,31 @@ defineExpose({ testConnection, isConnected })
 }
 
 .info-value {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-primary);
 }
 
 .info-value.mono {
   font-family: 'Monaco', monospace;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   word-break: break-all;
 }
 
 .info-value.success {
-  color: var(--color-success);
+  color: var(--status-ok);
 }
 
 .info-value.error {
-  color: var(--color-danger);
+  color: var(--status-error);
 }
 
 .error-box {
   padding: var(--space-3);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--status-error-bg);
+  border: 1px solid var(--palette-danger-light);
   border-radius: var(--radius-md);
-  color: var(--color-danger);
+  color: var(--status-error);
   font-size: var(--text-sm);
   margin-top: var(--space-4);
 }

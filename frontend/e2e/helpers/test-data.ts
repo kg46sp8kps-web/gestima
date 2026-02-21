@@ -69,15 +69,7 @@ export function generateQuoteData(overrides?: Partial<{
  */
 export const TEST_CREDENTIALS = {
   admin: {
-    username: 'admin',
-    password: 'admin123',
-  },
-  operator: {
-    username: 'operator',
-    password: 'operator123',
-  },
-  viewer: {
-    username: 'viewer',
-    password: 'viewer123',
+    username: 'demo',
+    password: 'demo123',
   },
 };

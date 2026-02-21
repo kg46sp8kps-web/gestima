@@ -144,7 +144,7 @@ const filteredFields = computed(() => {
   background: transparent;
   border: none;
   color: var(--color-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   cursor: pointer;
   padding: var(--space-1) var(--space-2);
   text-decoration: underline;
@@ -181,7 +181,7 @@ const filteredFields = computed(() => {
 }
 
 .field-type {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-family: monospace;
 }
@@ -198,6 +198,6 @@ const filteredFields = computed(() => {
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--border-strong);
 }
 </style>

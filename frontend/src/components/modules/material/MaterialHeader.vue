@@ -60,7 +60,7 @@ const primaryMaterial = computed(() => props.materialInputs[0] || null)
 
 .part-info h2 {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }

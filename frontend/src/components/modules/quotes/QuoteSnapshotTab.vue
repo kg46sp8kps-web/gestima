@@ -68,7 +68,7 @@ defineProps<{
 
 .snapshot-content h4 {
   margin: 0 0 var(--space-2) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -110,7 +110,7 @@ defineProps<{
 
 .snapshot-info {
   padding: var(--space-3);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
 }

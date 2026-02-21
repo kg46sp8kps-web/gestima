@@ -794,7 +794,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 }
 
 h4 {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0 0 var(--space-4) 0;
@@ -861,13 +861,13 @@ h4 {
 .help-text {
   display: block;
   margin-top: var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.4;
 }
 
 .help-text-inline {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-left: var(--space-2);
 }
@@ -892,7 +892,7 @@ h4 {
   padding: var(--space-2) var(--space-3);
   text-align: left;
   font-weight: var(--font-semibold);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -956,9 +956,9 @@ h4 {
 
 .badge-valid {
   padding: var(--space-2) var(--space-3);
-  background: rgba(34, 197, 94, 0.12);
+  background: var(--status-ok-bg);
   color: var(--palette-success-hover);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  border: 1px solid var(--palette-success-light);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -969,9 +969,9 @@ h4 {
 
 .badge-error {
   padding: var(--space-2) var(--space-3);
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--status-error-bg);
   color: var(--palette-danger-hover);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--palette-danger-light);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -982,9 +982,9 @@ h4 {
 
 .badge-duplicate {
   padding: var(--space-2) var(--space-3);
-  background: rgba(251, 146, 60, 0.12);
+  background: var(--status-warn-bg);
   color: var(--status-warn);
-  border: 1px solid rgba(251, 146, 60, 0.3);
+  border: 1px solid var(--palette-warning-light);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -994,15 +994,15 @@ h4 {
 }
 
 .row-valid {
-  background: rgba(34, 197, 94, 0.08);
+  background: var(--status-ok-bg);
 }
 
 .row-error {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--status-error-bg);
 }
 
 .row-duplicate {
-  background: rgba(251, 146, 60, 0.12);
+  background: var(--status-warn-bg);
 }
 
 .status-cell {
@@ -1040,7 +1040,7 @@ h4 {
   text-align: center;
   padding: var(--space-12);
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   background: var(--bg-muted);
   border-radius: var(--radius-md);
   margin: var(--space-4) 0;
@@ -1100,7 +1100,7 @@ h4 {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
 }
 
@@ -1153,7 +1153,7 @@ h4 {
 }
 
 .field-badge {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   padding: var(--space-0\.5) var(--space-2);
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -1177,7 +1177,7 @@ h4 {
 
 .modal-header h3 {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -1187,7 +1187,7 @@ h4 {
 .btn-close {
   background: none;
   border: none;
-  font-size: var(--text-4xl);
+  font-size: var(--text-lg);
   color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
@@ -1226,7 +1226,7 @@ h4 {
   align-items: center;
   gap: var(--space-2);
   font-weight: var(--font-semibold);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-primary);
   margin-bottom: var(--space-2);
 }
@@ -1255,13 +1255,13 @@ h4 {
 }
 
 .result-item.success {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.3);
+  background: var(--status-ok-bg);
+  border-color: var(--palette-success-light);
 }
 
 .result-label {
   display: block;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
   margin-bottom: var(--space-1);
@@ -1288,9 +1288,9 @@ h4 {
 
 .not-found-item {
   padding: var(--space-1) var(--space-2);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--status-error-bg);
   color: var(--status-error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--palette-danger-light);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   font-weight: 500;

@@ -151,7 +151,7 @@ defineExpose({
 
 .input-error-state:focus {
   border-color: var(--color-danger);
-  background: rgba(244, 63, 94, 0.1);
+  background: var(--palette-danger-light);
 }
 
 /* DISABLED STATE */
@@ -169,12 +169,12 @@ defineExpose({
 
 /* COLLABORATIVE EDITING STATES */
 .editing-self {
-  background: rgba(37, 99, 235, 0.2) !important;
+  background: var(--state-editing-self);
   border-color: var(--color-info);
 }
 
 .editing-other {
-  background: rgba(153, 27, 27, 0.2) !important;
+  background: var(--state-editing-other);
   border-color: var(--color-primary);
 }
 
@@ -197,13 +197,13 @@ input[type="number"] {
 
 /* === MESSAGES === */
 .input-error {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-danger);
   margin-top: calc(-1 * var(--space-1));
 }
 
 .input-hint {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-top: calc(-1 * var(--space-1));
 }

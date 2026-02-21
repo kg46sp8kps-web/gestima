@@ -22,8 +22,8 @@ test.describe('Settings', () => {
   })
 
   test('should show account info', async ({ page }) => {
-    // Username should be displayed
-    const usernameDisplay = page.locator('.info-value, .user-name, .account-info').filter({ hasText: 'admin' })
+    // Username should be displayed (user is "demo")
+    const usernameDisplay = page.locator('.info-value').filter({ hasText: 'demo' })
     await expect(usernameDisplay.first()).toBeVisible({ timeout: TIMEOUTS.API_LOAD })
   })
 
@@ -60,10 +60,12 @@ test.describe('Settings', () => {
   })
 
   test('should save all settings', async ({ page }) => {
-    // Find save button
+    // Find save button in page header
     const saveBtn = page.locator('.btn-primary', { hasText: /uložit|save/i })
     if (await saveBtn.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)) {
-      await saveBtn.first().click()
+      // Scroll save button into view and click with force (header may overlap)
+      await saveBtn.first().scrollIntoViewIfNeeded()
+      await saveBtn.first().click({ force: true })
       await page.waitForTimeout(TIMEOUTS.DEBOUNCE)
 
       // Success notification/toast should appear

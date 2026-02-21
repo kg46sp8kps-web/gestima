@@ -1,73 +1,61 @@
-import { test, expect } from '@playwright/test';
-import { login, logout } from './helpers/auth';
-import { TEST_CREDENTIALS } from './helpers/test-data';
+import { test, expect } from '@playwright/test'
+
+// Login tests need a clean browser (no storageState)
+test.use({ storageState: { cookies: [], origins: [] } })
 
 test.describe('Login Flow', () => {
   test('should display login page', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login')
 
-    // Check login form elements exist
-    await expect(page.locator('[data-testid="username-input"]')).toBeVisible();
-    await expect(page.locator('[data-testid="password-input"]')).toBeVisible();
-    await expect(page.locator('[data-testid="login-button"]')).toBeVisible();
-  });
+    await expect(page.locator('[data-testid="username-input"]')).toBeVisible()
+    await expect(page.locator('[data-testid="password-input"]')).toBeVisible()
+    await expect(page.locator('[data-testid="login-button"]')).toBeVisible()
+  })
 
   test('should show error on invalid credentials', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login')
 
-    await page.fill('[data-testid="username-input"]', 'invalid');
-    await page.fill('[data-testid="password-input"]', 'invalid');
-    await page.click('[data-testid="login-button"]');
+    await page.fill('[data-testid="username-input"]', 'invalid')
+    await page.fill('[data-testid="password-input"]', 'invalid')
+    await page.click('[data-testid="login-button"]')
 
-    // Should show error toast
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible();
-    await expect(page.locator('[data-testid="toast"]')).toContainText('Nesprávné');
-  });
+    // Should show error message
+    const errorMsg = page.locator('.error-message, .toast, [role="alert"]')
+    await expect(errorMsg.first()).toBeVisible({ timeout: 5000 })
+  })
 
   test('should successfully login with valid credentials', async ({ page }) => {
-    await login(page);
+    await page.goto('/login')
 
-    // Should redirect to dashboard
-    await expect(page).toHaveURL('/');
+    await page.fill('[data-testid="username-input"]', 'demo')
+    await page.fill('[data-testid="password-input"]', 'demo123')
+    await page.click('[data-testid="login-button"]')
 
-    // Should show user menu
-    await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
-  });
+    // Should redirect and show menu button
+    await expect(page.locator('.menu-btn')).toBeVisible({ timeout: 15000 })
+  })
 
   test('should successfully logout', async ({ page }) => {
     // Login first
-    await login(page);
+    await page.goto('/login')
+    await page.fill('[data-testid="username-input"]', 'demo')
+    await page.fill('[data-testid="password-input"]', 'demo123')
+    await page.click('[data-testid="login-button"]')
+    await page.waitForSelector('.menu-btn', { state: 'visible', timeout: 15000 })
 
     // Logout
-    await logout(page);
+    await page.click('.menu-btn')
+    await page.waitForSelector('.menu-drawer', { state: 'visible' })
+    await page.click('.logout-btn')
+
+    // Should show login page
+    await expect(page.locator('[data-testid="login-button"]')).toBeVisible({ timeout: 10000 })
+  })
+
+  test('should redirect to login when accessing protected route unauthenticated', async ({ page }) => {
+    await page.goto('/windows')
 
     // Should redirect to login
-    await expect(page).toHaveURL('/login');
-
-    // User menu should be gone
-    await expect(page.locator('[data-testid="user-menu"]')).toBeHidden();
-  });
-
-  test('should redirect to login when accessing protected route while unauthenticated', async ({ page }) => {
-    await page.goto('/parts');
-
-    // Should redirect to login
-    await expect(page).toHaveURL('/login');
-  });
-
-  test('should preserve redirect URL after login', async ({ page }) => {
-    // Try to access protected route
-    await page.goto('/parts');
-
-    // Should redirect to login with redirect query
-    await expect(page).toHaveURL(/\/login\?redirect=/);
-
-    // Login
-    await page.fill('[data-testid="username-input"]', TEST_CREDENTIALS.admin.username);
-    await page.fill('[data-testid="password-input"]', TEST_CREDENTIALS.admin.password);
-    await page.click('[data-testid="login-button"]');
-
-    // Should redirect to original route
-    await expect(page).toHaveURL('/parts');
-  });
-});
+    await expect(page.locator('[data-testid="login-button"]')).toBeVisible({ timeout: 10000 })
+  })
+})

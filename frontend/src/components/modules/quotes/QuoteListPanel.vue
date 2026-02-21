@@ -233,7 +233,7 @@ function getStatusBadge(status: QuoteStatus): { icon: Component; label: string; 
 .quote-item.active { background: var(--state-selected); border-color: var(--palette-primary); }
 
 .quote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-1); }
-.quote-number { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--palette-primary); }
+.quote-number { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--palette-primary); }
 .status-badge { display: flex; align-items: center; justify-content: center; color: var(--_badge-color, var(--text-secondary)); }
 .status-gray { --_badge-color: var(--text-secondary); }
 .status-blue { --_badge-color: var(--color-info); }
@@ -241,5 +241,5 @@ function getStatusBadge(status: QuoteStatus): { icon: Component; label: string; 
 .status-red { --_badge-color: var(--color-danger); }
 .quote-title { display: block; font-size: var(--text-sm); color: var(--text-body); font-weight: var(--font-medium); margin-bottom: var(--space-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quote-meta { display: flex; justify-content: flex-end; }
-.quote-total { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--text-secondary); }
+.quote-total { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-secondary); }
 </style>

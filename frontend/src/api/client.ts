@@ -66,6 +66,9 @@ export const adminClient = axios.create({
   }
 })
 
+// Guard against multiple 401 redirects firing at once
+let isRedirectingToLogin = false
+
 // Shared interceptor logic
 const requestInterceptor = (config: InternalAxiosRequestConfig) => {
   return config
@@ -100,10 +103,26 @@ const responseErrorInterceptor = (error: AxiosError) => {
 
   // Handle specific status codes
   switch (status) {
-    case 401:
-      // Unauthorized - will be handled by router guard
-      console.warn('[API] Unauthorized - redirecting to login')
+    case 401: {
+      // Skip redirect for auth endpoints (avoid loops)
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/me')
+      if (!isAuthEndpoint && !isRedirectingToLogin) {
+        isRedirectingToLogin = true
+        // Dynamic imports to avoid circular dependencies
+        Promise.all([
+          import('@/stores/auth'),
+          import('@/stores/ui'),
+          import('@/router')
+        ]).then(([{ useAuthStore }, { useUiStore }, { default: router }]) => {
+          useAuthStore().clearAuth()
+          useUiStore().showWarning('Session vypršela. Přihlaste se znovu.')
+          router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
+          // Reset guard after redirect completes
+          setTimeout(() => { isRedirectingToLogin = false }, 1000)
+        })
+      }
       break
+    }
 
     case 403:
       console.warn('[API] Forbidden - insufficient permissions')

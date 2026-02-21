@@ -245,14 +245,14 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 <style scoped>
 .material-input-list { display: flex; flex-direction: column; gap: var(--space-3); height: 100%; overflow: hidden; }
 .list-header { display: flex; align-items: center; gap: var(--space-2); }
-.list-header h4 { margin: 0; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--text-primary); }
+.list-header h4 { margin: 0; font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-primary); }
 .count-badge {
   display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;
   padding: 0 var(--space-1); background: var(--bg-raised); border: 1px solid var(--border-default);
-  border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--font-medium);
+  border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: var(--font-medium);
   color: var(--text-secondary);
 }
-.empty-icon { font-size: var(--text-7xl); opacity: 0.5; }
+.empty-icon { font-size: var(--text-lg); opacity: 0.5; }
 .materials-list { display: flex; flex-direction: column; gap: var(--space-1); overflow-y: auto; }
 /* Material row - grid layout: Icon | Dimensions | Category | Info | Operations | Actions */
 .material-row {
@@ -271,9 +271,9 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 
 /* Editing state - persistent highlight */
 .material-row-editing {
-  background: var(--palette-info-light, rgba(37, 99, 235, 0.15)) !important;
-  border-left: 4px solid var(--color-primary) !important;
-  padding-left: calc(var(--space-3) - 4px) !important;
+  background: var(--selected);
+  border-left: 4px solid var(--border-strong);
+  padding-left: calc(var(--space-3) - 4px);
 }
 
 /* Shape icon */
@@ -301,7 +301,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 }
 
 .dim-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-medium);
   font-family: var(--font-mono);
@@ -315,7 +315,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   text-align: right;
@@ -338,7 +338,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
   align-items: center;
 }
 .category-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-medium);
   white-space: nowrap;
@@ -366,7 +366,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
 .price { color: var(--palette-success); }
 .operations {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   padding: var(--space-1) var(--space-2);
   background: var(--bg-surface);
@@ -388,10 +388,10 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
   align-items: center;
   gap: var(--space-0\.5);
   padding: var(--space-0\.5) var(--space-2);
-  background: var(--palette-info, rgba(37, 99, 235, 0.2));
+  background: var(--palette-info);
   border: 1px solid var(--palette-info);
   border-radius: var(--radius-sm);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   color: var(--text-primary);
@@ -425,7 +425,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   color: var(--text-body);

@@ -139,7 +139,7 @@ function openModuleItem(value: string, label: string) {
   color: var(--text-primary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  font-size: var(--text-xl);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
@@ -192,7 +192,7 @@ function openModuleItem(value: string, label: string) {
 .user-name {
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-sm);
 }
 
 .user-role {
@@ -211,7 +211,7 @@ function openModuleItem(value: string, label: string) {
   border-radius: var(--radius-md);
   color: var(--text-primary);
   text-decoration: none;
-  font-size: var(--text-xl);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
@@ -231,7 +231,7 @@ function openModuleItem(value: string, label: string) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);

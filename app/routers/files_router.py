@@ -36,6 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.db_helpers import safe_commit
 from app.models.file_record import FileRecord, FileLink
 from app.models.user import User
 from app.dependencies import get_current_user
@@ -152,7 +153,7 @@ async def upload_file(
             )
 
         # 3. Commit
-        await db.commit()
+        await safe_commit(db, action="nahrání souboru")
         await db.refresh(record)
 
         logger.info(
@@ -253,7 +254,7 @@ async def delete_orphaned_files_bulk(
             await file_service.delete(record.id, db, deleted_by=current_user.username)
             deleted_count += 1
 
-        await db.commit()
+        await safe_commit(db, action="hromadné mazání osiřelých souborů")
 
         logger.info(
             f"Bulk deleted {deleted_count} orphaned files "
@@ -427,7 +428,7 @@ async def delete_file(
     """
     try:
         await file_service.delete(file_id, db, deleted_by=current_user.username)
-        await db.commit()
+        await safe_commit(db, action="mazání souboru")
 
         logger.info(f"Deleted file: id={file_id}, user={current_user.username}")
 
@@ -480,7 +481,7 @@ async def link_file_to_entity(
             created_by=current_user.username
         )
 
-        await db.commit()
+        await safe_commit(db, action="propojení souboru s entitou")
         await db.refresh(link)
 
         logger.info(
@@ -530,7 +531,7 @@ async def unlink_file_from_entity(
     """
     try:
         await file_service.unlink(file_id, entity_type, entity_id, db)
-        await db.commit()
+        await safe_commit(db, action="odpojení souboru od entity")
 
         logger.info(
             f"Unlinked file from entity: file_id={file_id}, "
@@ -580,7 +581,7 @@ async def set_file_as_primary(
     """
     try:
         await file_service.set_primary(file_id, entity_type, entity_id, db)
-        await db.commit()
+        await safe_commit(db, action="nastavení primárního souboru")
 
         # Re-fetch link to get updated is_primary
         result = await db.execute(

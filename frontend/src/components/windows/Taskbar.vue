@@ -204,12 +204,12 @@ const currentTime = computed(() => {
   align-items: center;
   gap: var(--space-2);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .status-time {
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
   font-weight: var(--font-medium);
   min-width: 42px;

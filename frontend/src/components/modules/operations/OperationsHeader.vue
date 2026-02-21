@@ -102,7 +102,7 @@ function toggle() {
 
 .part-info h2 {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -125,10 +125,10 @@ function toggle() {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  background: rgba(139, 92, 246, 0.1);
+  background: var(--palette-info-bg);
   color: var(--brand-text);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 

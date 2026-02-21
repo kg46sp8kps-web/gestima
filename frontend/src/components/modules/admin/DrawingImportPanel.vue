@@ -223,7 +223,7 @@ checkStatus()
           :class="['stat-chip', 'stat-ready', { active: statusFilter === 'ready' }]"
           @click="statusFilter = 'ready'"
         >
-          <CheckCircle :size="12" />
+          <CheckCircle :size="ICON_SIZE.SMALL" />
           Pripraveno {{ preview.ready }}
         </button>
         <button
@@ -236,7 +236,7 @@ checkStatus()
           :class="['stat-chip', 'stat-nomatch', { active: statusFilter === 'no_match' }]"
           @click="statusFilter = 'no_match'"
         >
-          <XCircle :size="12" />
+          <XCircle :size="ICON_SIZE.SMALL" />
           Bez shody {{ preview.unmatched }}
         </button>
         <button
@@ -299,11 +299,11 @@ checkStatus()
           <div class="col-folder mono">{{ folder.folder_name }}</div>
           <div class="col-part mono">{{ folder.matched_part_number ?? '-' }}</div>
           <div class="col-files">
-            <FileText :size="12" v-if="folder.pdf_files.length" />
+            <FileText :size="ICON_SIZE.SMALL" v-if="folder.pdf_files.length" />
             {{ folder.pdf_files.length }}
           </div>
           <div class="col-files">
-            <Box :size="12" v-if="folder.step_files.length" />
+            <Box :size="ICON_SIZE.SMALL" v-if="folder.step_files.length" />
             {{ folder.step_files.length }}
           </div>
           <div class="col-primary mono" :title="folder.primary_pdf ?? ''">
@@ -388,7 +388,7 @@ checkStatus()
 }
 
 .panel-header h3 {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   margin: 0;
 }
@@ -405,7 +405,7 @@ checkStatus()
   padding: var(--space-2) var(--space-4);
   background: var(--bg-raised);
   border-radius: var(--radius-md);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .status-item {
@@ -439,7 +439,7 @@ checkStatus()
   align-items: center;
   gap: 4px;
   padding: var(--space-1) var(--space-3);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   background: transparent;
@@ -460,7 +460,7 @@ checkStatus()
 }
 
 .stat-skip {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 
@@ -480,7 +480,7 @@ checkStatus()
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border-bottom: 1px solid var(--border-subtle);
   cursor: default;
 }
@@ -521,7 +521,7 @@ checkStatus()
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
 }
 
 .col-status {
@@ -539,7 +539,7 @@ checkStatus()
 }
 
 .selection-info {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 
@@ -565,7 +565,7 @@ checkStatus()
 .result-stats {
   display: flex;
   gap: var(--space-4);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -575,7 +575,7 @@ checkStatus()
 }
 
 .error-list {
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   max-height: 120px;
   overflow-y: auto;

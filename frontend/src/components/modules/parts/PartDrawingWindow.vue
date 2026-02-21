@@ -305,9 +305,9 @@ onMounted(async () => {
 }
 
 .btn-download:hover {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  color: var(--color-brand, #991b1b);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 /* PDF Viewer */

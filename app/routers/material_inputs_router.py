@@ -19,6 +19,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from app.database import get_db
+from app.db_helpers import safe_commit
 from app.dependencies import get_current_user, require_role
 from app.models.material_input import (
     MaterialInput,
@@ -203,7 +204,7 @@ async def create_material_input(
 
     try:
         db.add(material)
-        await db.commit()
+        await safe_commit(db, action="vytváření materiálového vstupu")
         await db.refresh(material)
     except SQLAlchemyError as e:
         await db.rollback()
@@ -276,7 +277,7 @@ async def update_material_input(
         )
 
     try:
-        await db.commit()
+        await safe_commit(db, action="aktualizace materiálového vstupu")
         await db.refresh(updated_material, ["operations", "material_item", "price_category"])
     except SQLAlchemyError as e:
         await db.rollback()
@@ -353,7 +354,7 @@ async def delete_material_input(
         )
 
     try:
-        await db.commit()
+        await safe_commit(db, action="mazání materiálového vstupu")
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error(f"Failed to delete MaterialInput {material_id}: {e}")
@@ -432,7 +433,7 @@ async def link_material_to_operation(
                 consumed_quantity=consumed_quantity
             )
         )
-        await db.commit()
+        await safe_commit(db, action="vytváření vazby materiálu na operaci")
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error(f"Failed to link MaterialInput {material_id} to Operation {operation_id}: {e}")
@@ -469,7 +470,7 @@ async def unlink_material_from_operation(
         )
 
     try:
-        await db.commit()
+        await safe_commit(db, action="odebrání vazby materiálu od operace")
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error(f"Failed to unlink MaterialInput {material_id} from Operation {operation_id}: {e}")

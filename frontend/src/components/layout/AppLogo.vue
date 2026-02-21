@@ -49,7 +49,7 @@ function handleLogoClick() {
 }
 
 .logo-text {
-  font-size: calc(var(--text-2xl) * 2);
+  font-size: calc(var(--text-lg) * 2);
   font-weight: 700;
   letter-spacing: 0.5px;
 }

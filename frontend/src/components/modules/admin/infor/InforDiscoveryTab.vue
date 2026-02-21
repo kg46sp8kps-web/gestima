@@ -105,8 +105,8 @@ function useIdoForBrowse(idoName: string) {
 .btn-link {
   background: transparent;
   border: none;
-  color: var(--color-primary);
-  font-size: var(--text-xs);
+  color: var(--brand);
+  font-size: var(--text-sm);
   cursor: pointer;
   padding: var(--space-1) var(--space-2);
   text-decoration: underline;
@@ -124,8 +124,8 @@ function useIdoForBrowse(idoName: string) {
 
 .found-box {
   padding: var(--space-4);
-  background: rgba(5, 150, 105, 0.1);
-  border: 1px solid rgba(5, 150, 105, 0.3);
+  background: var(--status-ok-bg);
+  border: 1px solid var(--palette-success-light);
   border-radius: var(--radius-md);
 }
 
@@ -172,7 +172,7 @@ function useIdoForBrowse(idoName: string) {
   background: var(--bg-raised);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: 'Monaco', monospace;
 }
 </style>

@@ -29,4 +29,5 @@ from . import (
     production_records_router,  # Production records (Infor actual times)
     drawing_import_router,  # Drawing import from network share (ADR-044)
     ft_debug_router,  # FT Debug — fine-tuning data inspection
+    infor_sync_router,  # Infor Smart Polling Sync
 )

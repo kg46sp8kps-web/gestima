@@ -148,8 +148,8 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
 .browser-tab { padding: var(--space-4); max-width: 1200px; overflow: auto; }
 .input-with-button { display: flex; gap: var(--space-2); }
 .input-with-button .input { flex: 1; }
-.case-warning { color: var(--color-primary); font-size: var(--text-sm); font-weight: 600; }
-.help-text { display: block; margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }
-.warning-text { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-warning); }
-.error-box { padding: var(--space-3); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); color: var(--color-danger); font-size: var(--text-sm); margin-top: var(--space-4); }
+.case-warning { color: var(--brand); font-size: var(--text-sm); font-weight: 600; }
+.help-text { display: block; margin-top: var(--space-1); font-size: var(--text-sm); color: var(--text-secondary); }
+.warning-text { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--status-warn); }
+.error-box { padding: var(--space-3); background: var(--status-error-bg); border: 1px solid var(--palette-danger-light); border-radius: var(--radius-md); color: var(--status-error); font-size: var(--text-sm); margin-top: var(--space-4); }
 </style>

@@ -235,16 +235,16 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 <style scoped>
 .root { display: flex; flex-direction: column; height: 100%; gap: var(--space-4); padding: var(--space-4); background: var(--bg-base); }
 .toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.filter-label { font-size: var(--text-xs); color: var(--text-secondary); }
+.filter-label { font-size: var(--text-sm); color: var(--text-secondary); }
 .year-select { padding: var(--space-1) var(--space-2); font-size: var(--text-sm); background: var(--bg-input); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); }
-.cached-badge, .date-range { font-size: var(--text-xs); color: var(--text-tertiary); }
-.cached-badge { padding: var(--space-1) var(--space-2); background: rgba(255,255,255,0.1); border-radius: var(--radius-sm); }
+.cached-badge, .date-range { font-size: var(--text-sm); color: var(--text-tertiary); }
+.cached-badge { padding: var(--space-1) var(--space-2); background: var(--active); border-radius: var(--radius-sm); }
 .date-range { margin-left: auto; }
-.legend { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); padding: var(--space-2) var(--space-3); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); flex-wrap: wrap; }
+.legend { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary); padding: var(--space-2) var(--space-3); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); flex-wrap: wrap; }
 .results { display: flex; flex-direction: column; gap: var(--space-4); flex: 1; overflow: auto; }
 .summary-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-3); }
 .card { padding: var(--space-3); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
-.card-label { font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: var(--space-1); }
+.card-label { font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-1); }
 .card-value { font-size: var(--text-lg); font-family: var(--font-mono); color: var(--text-primary); }
 .data-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .data-table th { padding: var(--space-2); text-align: left; font-weight: var(--font-medium); color: var(--text-secondary); border-bottom: 1px solid var(--border-default); background: var(--bg-surface); position: sticky; top: 0; white-space: nowrap; }
@@ -254,33 +254,33 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 .sortable:hover { color: var(--text-primary); }
 .col-check { width: 32px; text-align: center; }
 .cat-name { font-weight: var(--font-medium); color: var(--text-primary); }
-.cat-group { font-size: var(--text-xs); color: var(--text-tertiary); }
+.cat-group { font-size: var(--text-sm); color: var(--text-tertiary); }
 .clickable { cursor: pointer; }
 .clickable:hover .cat-name { text-decoration: underline; }
-.row-selected { background: rgba(59,130,246,0.08); }
+.row-selected { background: var(--selected); }
 .tier-cell { min-width: 150px; }
-.tier-label-row { font-size: var(--text-2xs); color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: var(--space-px); }
-.tier-content { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); font-family: var(--font-mono); }
+.tier-label-row { font-size: var(--text-sm); color: var(--text-tertiary); font-family: var(--font-mono); margin-bottom: var(--space-px); }
+.tier-content { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-sm); font-family: var(--font-mono); }
 .real-price { color: var(--text-primary); font-weight: var(--font-medium); }
 .arrow, .unit, .tier-meta, .th-sub { color: var(--text-tertiary); }
 .current-price { color: var(--text-secondary); }
-.unit, .tier-meta, .th-sub { font-size: var(--text-2xs); }
+.unit, .tier-meta, .th-sub { font-size: var(--text-sm); }
 .th-sub { display: block; font-weight: normal; }
 .tier-meta { margin-top: var(--space-0\.5); }
-.diff-badge { padding: var(--space-px) var(--space-1); border-radius: var(--radius-sm); font-size: var(--text-2xs); font-weight: var(--font-medium); }
-.diff-badge.cheaper { background: rgba(34,197,94,0.15); color: rgb(34,197,94); }
-.diff-badge.expensive { background: rgba(239,68,68,0.15); color: rgb(239,68,68); }
-.warning-icon { color: var(--color-warning); }
-.expand-row td { background: var(--bg-surface); padding: var(--space-3) !important; }
+.diff-badge { padding: var(--space-px) var(--space-1); border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: var(--font-medium); }
+.diff-badge.cheaper { background: var(--bg-raised); color: var(--status-ok); }
+.diff-badge.expensive { background: var(--bg-raised); color: var(--status-error); }
+.warning-icon { color: var(--status-warn); }
+.expand-row td { background: var(--bg-surface); padding: var(--space-3); }
 /* Unmatched & misc */
 .unmatched-section { padding-top: var(--space-4); border-top: 1px solid var(--border-default); }
 .unmatched-toggle { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); background: transparent; border: none; color: var(--text-primary); font-size: var(--text-sm); cursor: pointer; }
 .unmatched-toggle:hover { color: var(--text-secondary); }
 .unmatched-list { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); }
-.unmatched-item { display: grid; grid-template-columns: 140px 1fr 220px 120px; gap: var(--space-3); padding: var(--space-2); background: var(--bg-surface); border-radius: var(--radius-sm); font-size: var(--text-xs); }
+.unmatched-item { display: grid; grid-template-columns: 140px 1fr 220px 120px; gap: var(--space-3); padding: var(--space-2); background: var(--bg-surface); border-radius: var(--radius-sm); font-size: var(--text-sm); }
 .ui-code { font-family: var(--font-mono); color: var(--text-primary); }
 .ui-desc, .text-secondary { color: var(--text-secondary); }
-.ui-reason { color: var(--color-warning); }
+.ui-reason { color: var(--status-warn); }
 .ui-cost { font-family: var(--font-mono); color: var(--text-primary); text-align: right; }
 .empty-icon { color: var(--text-tertiary); }
 .text-right { text-align: right; }

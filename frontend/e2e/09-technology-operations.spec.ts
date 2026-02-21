@@ -115,8 +115,8 @@ test.describe('Technology & Operations', () => {
       await partRow.click()
       await page.waitForTimeout(TIMEOUTS.DEBOUNCE)
 
-      // Look for the material parser input
-      const parserInput = floatingWindow.locator('input[placeholder*="D20"], input[placeholder*="materiál"], .parser-input')
+      // Look for the material parser input (.parser-field is the actual <input> inside .parser-input div)
+      const parserInput = floatingWindow.locator('.parser-field, input[placeholder*="D20"], input[placeholder*="materiál"]')
       if (await parserInput.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)) {
         await parserInput.first().fill('D20 1.4301 100mm')
         await page.waitForTimeout(200)

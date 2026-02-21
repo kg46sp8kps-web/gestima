@@ -20,11 +20,12 @@ import MaterialGroupsPanel from './admin/MaterialGroupsPanel.vue'
 import PriceCategoriesPanel from './admin/PriceCategoriesPanel.vue'
 import WorkCentersPanel from './admin/WorkCentersPanel.vue'
 import CuttingConditionsCatalogPanel from './admin/CuttingConditionsCatalogPanel.vue'
-import { Cloud, ClipboardList, Tag, DollarSign, Factory, Gauge } from 'lucide-vue-next'
+import UsersPanel from './admin/UsersPanel.vue'
+import { Cloud, ClipboardList, Tag, DollarSign, Factory, Gauge, Users } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 // Main tabs
-type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'cutting'
+type MainTab = 'infor' | 'norms' | 'groups' | 'categories' | 'workcenters' | 'cutting' | 'users'
 const activeMainTab = ref<MainTab>('infor')
 
 // Connection status from Infor panel
@@ -75,6 +76,10 @@ function handleConnectionChange(status: ConnectionStatus | null) {
         <Gauge :size="ICON_SIZE.STANDARD" />
         <span>Řezné podmínky</span>
       </button>
+      <button @click="activeMainTab = 'users'" :class="['main-tab', { active: activeMainTab === 'users' }]" data-testid="admin-users-tab">
+        <Users :size="ICON_SIZE.STANDARD" />
+        <span>Uživatelé</span>
+      </button>
     </div>
 
     <!-- TAB CONTENT -->
@@ -89,6 +94,7 @@ function handleConnectionChange(status: ConnectionStatus | null) {
       <PriceCategoriesPanel v-else-if="activeMainTab === 'categories'" />
       <WorkCentersPanel v-else-if="activeMainTab === 'workcenters'" />
       <CuttingConditionsCatalogPanel v-else-if="activeMainTab === 'cutting'" />
+      <UsersPanel v-else-if="activeMainTab === 'users'" />
     </div>
   </div>
 </template>

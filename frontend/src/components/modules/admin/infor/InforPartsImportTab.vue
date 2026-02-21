@@ -260,20 +260,20 @@ h4 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--
 .toolbar { display: flex; gap: var(--space-2); margin: var(--space-3) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--space-3); }
 .summary { display: flex; gap: var(--space-3); margin-bottom: var(--space-2); }
-.badge-valid { padding: var(--space-1) var(--space-2); background: rgba(34, 197, 94, 0.12); color: rgb(34, 197, 94); border-radius: var(--radius-md); font-size: var(--text-xs); display: inline-flex; align-items: center; gap: var(--space-1); }
-.badge-error { padding: var(--space-1) var(--space-2); background: rgba(239, 68, 68, 0.12); color: rgb(239, 68, 68); border-radius: var(--radius-md); font-size: var(--text-xs); display: inline-flex; align-items: center; gap: var(--space-1); }
-.badge-dup { padding: var(--space-1) var(--space-2); background: rgba(251, 146, 60, 0.12); color: rgb(251, 146, 60); border-radius: var(--radius-md); font-size: var(--text-xs); display: inline-flex; align-items: center; gap: var(--space-1); }
+.badge-valid { padding: var(--space-1) var(--space-2); background: var(--status-ok-bg); color: var(--status-ok); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
+.badge-error { padding: var(--space-1) var(--space-2); background: var(--status-error-bg); color: var(--status-error); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
+.badge-dup { padding: var(--space-1) var(--space-2); background: var(--status-warn-bg); color: var(--status-warn); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
 .table-scroll { overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); max-height: 400px; }
 .staging-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .staging-table th { background: var(--bg-surface); padding: var(--space-2) var(--space-3); text-align: left; font-weight: var(--font-semibold); color: var(--text-secondary); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; }
 .staging-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-subtle); }
 .staging-table tbody tr { cursor: pointer; transition: background var(--duration-fast); }
 .staging-table tbody tr:hover { background: var(--state-hover); }
-.row-error { background: rgba(239, 68, 68, 0.08); }
-.row-dup { background: rgba(251, 146, 60, 0.08); }
+.row-error { background: var(--status-error-bg); }
+.row-dup { background: var(--status-warn-bg); }
 .status-cell { text-align: center; }
-.icon-valid { color: rgb(34, 197, 94); }
-.icon-error { color: rgb(239, 68, 68); }
-.icon-dup { color: rgb(251, 146, 60); }
-.errors-cell { max-width: 300px; color: rgb(239, 68, 68); font-size: var(--text-xs); }
+.icon-valid { color: var(--status-ok); }
+.icon-error { color: var(--status-error); }
+.icon-dup { color: var(--status-warn); }
+.errors-cell { max-width: 300px; color: var(--status-error); font-size: var(--text-sm); }
 </style>

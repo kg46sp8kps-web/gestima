@@ -293,7 +293,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 }
 
 .empty p {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 /* === ICON TOOLBAR === */
@@ -323,7 +323,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 }
 
 .info-card label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -331,7 +331,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 }
 
 .info-card .value {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -340,7 +340,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 .edit-input {
   width: 100%;
   padding: var(--space-2);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   background: var(--bg-base);
@@ -351,7 +351,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 
 .edit-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 </style>

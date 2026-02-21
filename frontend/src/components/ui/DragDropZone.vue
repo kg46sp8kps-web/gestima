@@ -265,7 +265,7 @@ function removeFile() {
 
 .drop-area.has-error {
   border-color: var(--color-danger);
-  background: rgba(244, 63, 94, 0.05);
+  background: var(--status-error-bg);
 }
 
 .drop-area.is-disabled {
@@ -302,7 +302,7 @@ function removeFile() {
 }
 
 .state-label {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-body);
 }

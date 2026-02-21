@@ -23,16 +23,17 @@
   color: var(--text-secondary);
   text-align: center;
   height: 100%;
+  animation: g-fade-in var(--duration-slow) var(--ease) both;
 }
 
 .empty-icon {
-  font-size: var(--text-7xl); /* 48px */
+  font-size: var(--text-lg); /* 48px */
   margin-bottom: var(--space-2);
   color: var(--text-tertiary);
 }
 
 .empty-state p {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
 
@@ -78,7 +79,7 @@
 }
 
 .ribbon-title {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary);
 }
@@ -86,6 +87,7 @@
 .ribbon-body {
   padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border-default);
+  animation: g-fade-slide-up var(--duration-slow) var(--ease) both;
 }
 
 /* === MODULE HEADER === */
@@ -97,10 +99,11 @@
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
+  animation: g-fade-in var(--duration-normal) var(--ease) both;
 }
 
 .module-title {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -162,4 +165,5 @@
   padding: var(--space-4);
   color: var(--text-tertiary);
   font-size: var(--text-sm);
+  animation: g-fade-in var(--duration-normal) var(--ease) both;
 }

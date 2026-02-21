@@ -133,7 +133,7 @@ function fmtPct(val: number | null | undefined): string {
       <div v-for="group in jobGroups" :key="group.key" class="job-group">
         <div class="mt-row" @click="toggleJob(group.key)">
           <div class="mt-expand">
-            <component :is="expandedJobs.has(group.key) ? ChevronDown : ChevronRight" :size="12" class="chevron-icon" />
+            <component :is="expandedJobs.has(group.key) ? ChevronDown : ChevronRight" :size="ICON_SIZE.SMALL" class="chevron-icon" />
           </div>
           <div class="mt-order">{{ group.orderNumber }}</div>
           <div class="mt-batch mono">{{ group.batchQuantity ?? '—' }}</div>
@@ -192,7 +192,7 @@ function fmtPct(val: number | null | undefined): string {
         <!-- Job summary row (collapsible) -->
         <div class="job-row" @click="toggleJob(group.key)">
           <div class="jh-expand">
-            <component :is="expandedJobs.has(group.key) ? ChevronDown : ChevronRight" :size="12" class="chevron-icon" />
+            <component :is="expandedJobs.has(group.key) ? ChevronDown : ChevronRight" :size="ICON_SIZE.SMALL" class="chevron-icon" />
           </div>
           <div class="jh-order">{{ group.orderNumber }}</div>
           <div class="jh-batch mono">{{ group.batchQuantity ?? '—' }}</div>
@@ -253,7 +253,7 @@ function fmtPct(val: number | null | undefined): string {
   color: var(--text-tertiary);
   text-transform: uppercase;
   border-bottom: 1px solid var(--border-default);
-  font-size: 9px;
+  font-size: var(--text-sm);
 }
 
 .mt-row {
@@ -270,14 +270,14 @@ function fmtPct(val: number | null | undefined): string {
 .mt-ops { text-align: center; }
 .mt-val { text-align: right; }
 .mt-pct { text-align: right; }
-.mt-date { font-size: 9px; color: var(--text-tertiary); }
+.mt-date { font-size: var(--text-sm); color: var(--text-tertiary); }
 
 /* Sub-rows in machine-type filter mode (narrower columns) */
 .op-header-row.mt-sub, .op-row.mt-sub {
   grid-template-columns: 32px 1fr 48px 52px 48px 52px 44px 28px;
 }
 
-.records-table { margin-bottom: var(--space-2); overflow-x: auto; font-size: var(--text-xs); }
+.records-table { margin-bottom: var(--space-2); overflow-x: auto; font-size: var(--text-sm); }
 .mono { font-family: var(--font-mono, monospace); font-variant-numeric: tabular-nums; }
 .highlight { font-weight: 600; color: var(--text-primary); }
 .highlight-header { font-weight: 700; }
@@ -322,7 +322,7 @@ function fmtPct(val: number | null | undefined): string {
   text-transform: uppercase;
   background: var(--bg-raised);
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 9px;
+  font-size: var(--text-sm);
 }
 
 .op-row {
@@ -352,5 +352,5 @@ function fmtPct(val: number | null | undefined): string {
 }
 .op-row:hover .btn-icon,
 .job-row:hover .btn-icon { opacity: 1; }
-.btn-icon:hover { color: var(--color-brand); background: rgba(153, 27, 27, 0.1); }
+.btn-icon:hover { color: var(--brand); background: var(--brand-subtle); }
 </style>

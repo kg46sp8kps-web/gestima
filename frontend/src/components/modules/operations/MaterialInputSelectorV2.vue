@@ -11,7 +11,7 @@
  *    - Obecný MaterialPriceCategory (když nenajde konkrétní položku)
  */
 
-import { computed, watch, ref, onMounted } from 'vue'
+import { computed, watch, ref, onMounted, onUnmounted } from 'vue'
 import { useMaterialsStore } from '@/stores/materials'
 import { useOperationsStore } from '@/stores/operations'
 import { parseMaterialDescription } from '@/api/materials'
@@ -20,6 +20,9 @@ import { ICON_SIZE } from '@/config/design'
 import type { LinkingGroup } from '@/stores/windows'
 import type { MaterialInputCreate } from '@/types/material'
 import type { MaterialInputWithOperations, MaterialParseResult } from '@/types/material'
+import type { ParsedMaterial } from '@/types/material'
+import MaterialManualInput from './MaterialManualInput.vue'
+import { SHAPE_TO_STOCK_SHAPE } from './materialConstants'
 
 interface Props {
   partId: number | null
@@ -43,6 +46,9 @@ const selectedMaterialId = ref<number | null>(null)
 const expandedMaterialId = ref<number | null>(null)
 const editingLengthId = ref<number | null>(null)
 const tempLength = ref<number | null>(null)
+const addingNew = ref(false) // True = zobrazí parser pro přidání nového materiálu
+const showManualInput = ref(false) // True = zobrazí manuální input dropdown
+const parserWrapperRef = ref<HTMLElement | null>(null)
 
 // Computed
 const materialInputs = computed(() => materialsStore.getContext(props.linkingGroup).materialInputs)
@@ -65,11 +71,7 @@ async function handleParse() {
   try {
     const result = await parseMaterialDescription(parserText.value)
     parseResult.value = result
-
-    // Auto-confirm if high confidence
-    if (result.confidence >= 0.7) {
-      await handleConfirmParse()
-    }
+    // REMOVED: Auto-confirm - uživatel chce vždy preview
   } catch (error) {
     console.error('Failed to parse material:', error)
   } finally {
@@ -112,9 +114,11 @@ async function handleConfirmParse() {
   try {
     await materialsStore.createMaterialInput(payload, props.linkingGroup)
 
-    // Reset parser
+    // Reset parser a skryj ho (změní se na materiál řádek)
     parserText.value = ''
     parseResult.value = null
+    addingNew.value = false
+    showManualInput.value = false
 
     // Reload materials
     if (props.partId) {
@@ -128,6 +132,92 @@ async function handleConfirmParse() {
 // Cancel parse
 function handleCancelParse() {
   parseResult.value = null
+  parserText.value = ''
+  addingNew.value = false
+  showManualInput.value = false
+}
+
+// Click outside to close parser
+function handleClickOutside(event: MouseEvent) {
+  if (!addingNew.value || !parserWrapperRef.value) return
+
+  const target = event.target as Node
+  if (!parserWrapperRef.value.contains(target)) {
+    // Clicked outside - cancel if no text or parse result
+    if (!parserText.value.trim() && !parseResult.value) {
+      addingNew.value = false
+    }
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+})
+
+// Add new material (zobrazí parser)
+function handleAddNew() {
+  addingNew.value = true
+  parseResult.value = null
+  parserText.value = ''
+  showManualInput.value = false
+}
+
+// Toggle manual input
+function toggleManualInput() {
+  showManualInput.value = !showManualInput.value
+}
+
+// Handle manual material creation
+async function handleManualCreate(mat: ParsedMaterial) {
+  if (!props.partId) return
+  if (!mat.shape) {
+    console.error('Shape is required')
+    return
+  }
+  if (!mat.price_category_id) {
+    console.error('Price category ID is required')
+    return
+  }
+
+  // Map Infor shape code to StockShape enum
+  const stockShape = SHAPE_TO_STOCK_SHAPE[mat.shape]
+  if (!stockShape) {
+    console.error(`Unknown shape: ${mat.shape}`)
+    return
+  }
+
+  const payload: MaterialInputCreate = {
+    part_id: props.partId,
+    seq: materialInputs.value.length * 10 + 10,
+    stock_shape: stockShape,
+    stock_diameter: mat.diameter,
+    stock_width: mat.width,
+    stock_height: mat.height,
+    stock_wall_thickness: mat.thickness,
+    stock_length: mat.length,
+    quantity: 1,
+    price_category_id: mat.price_category_id,
+    material_item_id: null
+  }
+
+  try {
+    await materialsStore.createMaterialInput(payload, props.linkingGroup)
+
+    // Reset a skryj parser
+    addingNew.value = false
+    showManualInput.value = false
+
+    // Reload materials
+    if (props.partId) {
+      await materialsStore.loadMaterialInputs(props.partId, props.linkingGroup)
+    }
+  } catch (error) {
+    console.error('Failed to create manual material:', error)
+  }
 }
 
 // Format material label for display — returns { code, name } separately
@@ -204,24 +294,83 @@ async function deleteMaterial(materialId: number) {
 const totalMaterialCost = computed(() => {
   return materialInputs.value.reduce((sum, mat) => sum + (mat.cost_per_piece || 0), 0)
 })
+
+// Calculate estimated weight from parse result
+const estimatedWeight = computed(() => {
+  if (!parseResult.value) return null
+
+  const pr = parseResult.value
+  const density = pr.suggested_material_group_density
+  if (!density) return null
+
+  let volumeCm3 = 0
+
+  // Round bar: π * (d/2)² * L
+  if (pr.diameter && pr.length) {
+    const radiusCm = (pr.diameter / 10) / 2  // mm → cm, then radius
+    const lengthCm = pr.length / 10  // mm → cm
+    volumeCm3 = Math.PI * radiusCm * radiusCm * lengthCm
+  }
+  // Square/rectangular bar: w * h * L
+  else if (pr.width && pr.height && pr.length) {
+    volumeCm3 = (pr.width / 10) * (pr.height / 10) * (pr.length / 10)
+  }
+  // Square bar (single dimension): w * w * L
+  else if (pr.width && pr.length) {
+    volumeCm3 = (pr.width / 10) * (pr.width / 10) * (pr.length / 10)
+  }
+  // Plate: w * h * t
+  else if (pr.width && pr.height && pr.thickness) {
+    volumeCm3 = (pr.width / 10) * (pr.height / 10) * (pr.thickness / 10)
+  }
+
+  if (volumeCm3 === 0) return null
+
+  // density is kg/dm³ = kg/L = kg/1000cm³
+  // So weight = volumeCm3 * density / 1000
+  const weightKg = (volumeCm3 / 1000) * density
+  return weightKg
+})
+
+// Shapes that have a length dimension (plates/castings don't)
+const SHAPES_WITHOUT_LENGTH = new Set(['plate', 'casting'])
+
+function hasLength(stockShape: string | null | undefined): boolean {
+  return !SHAPES_WITHOUT_LENGTH.has(stockShape ?? '')
+}
+
+// Expose methods for parent component
+defineExpose({
+  handleAddNew
+})
 </script>
 
 <template>
   <div class="material-input-selector-v2">
     <div v-if="!hideHeader" class="selector-header">
       <label class="selector-label">Materiál</label>
+      <button
+        class="btn-add-material"
+        @click="handleAddNew"
+        :disabled="addingNew"
+        :title="materialInputs.length > 0 ? 'Přidat další materiál' : 'Přidat materiál'"
+      >
+        <Plus :size="ICON_SIZE.SMALL" />
+      </button>
     </div>
 
-    <!-- PARSER INPUT (hlavní řádek) -->
-    <div class="parser-input">
-      <input
-        v-model="parserText"
-        type="text"
-        class="parser-field"
-        placeholder="Např: D20 1.4301 100mm (stiskni Enter)"
-        :disabled="loading || parsing"
-        @keyup.enter="handleParse"
-      />
+    <!-- PARSER INPUT (jen když přidáváme nový) -->
+    <div v-if="addingNew" ref="parserWrapperRef" class="parser-wrapper">
+      <div class="parser-input">
+        <input
+          v-model="parserText"
+          type="text"
+          class="parser-field"
+          placeholder="Např: D20 1.4301 100mm (stiskni Enter)"
+          :disabled="loading || parsing"
+          @keyup.enter="handleParse"
+          @keyup.esc="handleCancelParse"
+        />
       <button
         v-if="parsing"
         class="btn-parse"
@@ -238,52 +387,110 @@ const totalMaterialCost = computed(() => {
       >
         <Plus :size="ICON_SIZE.STANDARD" />
       </button>
-    </div>
-
-    <!-- PARSE RESULT PREVIEW (po parsingu před potvrzením) -->
-    <div v-if="parseResult && parseResult.confidence >= 0.4" class="parse-preview">
-      <div class="preview-header">
-        <span class="preview-label">Rozpoznáno:</span>
-        <span class="preview-confidence">{{ Math.round(parseResult.confidence * 100) }}%</span>
-      </div>
-      <div class="preview-content">
-        <div class="preview-values">
-          <span v-if="parseResult.shape" class="preview-item">{{ parseResult.shape }}</span>
-          <span v-if="parseResult.diameter" class="preview-item">Ø{{ parseResult.diameter }}</span>
-          <span v-if="parseResult.width" class="preview-item">{{ parseResult.width }}mm</span>
-          <span v-if="parseResult.height" class="preview-item">×{{ parseResult.height }}mm</span>
-          <span v-if="parseResult.length" class="preview-item">L{{ parseResult.length }}mm</span>
-          <span v-if="parseResult.material_norm" class="preview-item">{{ parseResult.material_norm }}</span>
-        </div>
-        <div class="preview-type">
-          <span v-if="parseResult.suggested_material_item_id" class="type-badge item">
-            {{ parseResult.suggested_material_item_name || `Položka #${parseResult.suggested_material_item_id}` }}
-          </span>
-          <span v-else-if="parseResult.suggested_price_category_id" class="type-badge category">
-            {{ parseResult.suggested_price_category_name || 'Obecný materiál' }}
-          </span>
-        </div>
-        <div v-if="parseResult.suggested_material_group_name" class="preview-group">
-          <span class="preview-item">{{ parseResult.suggested_material_group_name }}</span>
-        </div>
-        <div v-if="parseResult.warnings?.length" class="preview-warnings">
-          <span v-for="w in parseResult.warnings" :key="w" class="preview-warning">{{ w }}</span>
-        </div>
-      </div>
-      <div class="preview-actions">
-        <button class="btn-cancel" @click="handleCancelParse" title="Zrušit">
-          <X :size="ICON_SIZE.SMALL" />
-        </button>
-        <button class="btn-confirm" @click="handleConfirmParse" title="Potvrdit">
-          <Check :size="ICON_SIZE.SMALL" />
-          Potvrdit
+        <button
+          class="btn-cancel-parser"
+          @click="handleCancelParse"
+          title="Zrušit"
+        >
+          <X :size="ICON_SIZE.STANDARD" />
         </button>
       </div>
-    </div>
 
-    <!-- LOW CONFIDENCE WARNING -->
-    <div v-else-if="parseResult && parseResult.confidence < 0.4" class="parse-warning">
-      Nepodařilo se rozpoznat materiál. Zkuste jiný formát nebo zadejte ručně.
+      <!-- PARSE RESULT PREVIEW (po parsingu před potvrzením) -->
+      <div
+        v-if="parseResult && parseResult.confidence >= 0.4"
+        class="parse-preview"
+        tabindex="0"
+        @keyup.enter="handleConfirmParse"
+      >
+        <div class="preview-header">
+          <span class="preview-label">Naparsováno - zkontrolujte:</span>
+          <span class="preview-confidence">{{ Math.round(parseResult.confidence * 100) }}%</span>
+        </div>
+        <div class="preview-content">
+          <!-- Kód položky (pokud je konkrétní MaterialItem) -->
+          <div v-if="parseResult.suggested_material_item_code" class="preview-row">
+            <span class="preview-label-sm">Kód položky:</span>
+            <span class="preview-value">{{ parseResult.suggested_material_item_code }}</span>
+          </div>
+
+          <!-- Rozměry -->
+          <div class="preview-row">
+            <span class="preview-label-sm">Rozměry:</span>
+            <div class="preview-values">
+              <span v-if="parseResult.shape" class="preview-item">{{ parseResult.shape }}</span>
+              <span v-if="parseResult.diameter" class="preview-item">Ø{{ parseResult.diameter }}</span>
+              <span v-if="parseResult.width" class="preview-item">{{ parseResult.width }}mm</span>
+              <span v-if="parseResult.height" class="preview-item">×{{ parseResult.height }}mm</span>
+              <span v-if="parseResult.length" class="preview-item">L{{ parseResult.length }}mm</span>
+              <span v-if="parseResult.material_norm" class="preview-item">{{ parseResult.material_norm }}</span>
+            </div>
+          </div>
+
+          <!-- Materiálová skupina -->
+          <div v-if="parseResult.suggested_material_group_name" class="preview-row">
+            <span class="preview-label-sm">Skupina:</span>
+            <span class="preview-value">{{ parseResult.suggested_material_group_name }}</span>
+          </div>
+
+          <!-- Hmotnost polotovaru -->
+          <div v-if="estimatedWeight" class="preview-row">
+            <span class="preview-label-sm">Hmotnost:</span>
+            <span class="preview-value preview-weight">{{ estimatedWeight.toFixed(2) }} kg</span>
+          </div>
+
+          <!-- Cena za kg -->
+          <div v-if="parseResult.suggested_price_per_kg" class="preview-row">
+            <span class="preview-label-sm">Cena/kg:</span>
+            <span class="preview-value preview-price">{{ parseResult.suggested_price_per_kg.toFixed(0) }} Kč</span>
+          </div>
+
+          <!-- Typ položky/kategorie -->
+          <div class="preview-row">
+            <span class="preview-label-sm">Kategorie:</span>
+            <div class="preview-type">
+              <span v-if="parseResult.suggested_material_item_id" class="type-badge item">
+                {{ parseResult.suggested_material_item_name || `Položka #${parseResult.suggested_material_item_id}` }}
+              </span>
+              <span v-else-if="parseResult.suggested_price_category_id" class="type-badge category">
+                {{ parseResult.suggested_price_category_name || 'Obecný materiál' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Varování -->
+          <div v-if="parseResult.warnings?.length" class="preview-warnings">
+            <span v-for="w in parseResult.warnings" :key="w" class="preview-warning">{{ w }}</span>
+          </div>
+        </div>
+        <div class="preview-actions">
+          <button class="btn-cancel" @click="handleCancelParse" title="Zrušit">
+            <X :size="ICON_SIZE.SMALL" />
+          </button>
+          <button class="btn-confirm" @click="handleConfirmParse" title="Potvrdit (nebo stiskni Enter)">
+            <Check :size="ICON_SIZE.SMALL" />
+            Potvrdit
+          </button>
+        </div>
+      </div>
+
+      <!-- LOW CONFIDENCE WARNING -->
+      <div v-else-if="parseResult && parseResult.confidence < 0.4" class="parse-warning">
+        Nepodařilo se rozpoznat materiál. Zkuste jiný formát nebo <button class="link-btn" @click="toggleManualInput">zadejte ručně</button>.
+      </div>
+
+      <!-- MANUAL INPUT TOGGLE (když není parse result) -->
+      <div v-if="!parseResult" class="manual-input-toggle">
+        <button class="link-btn" @click="toggleManualInput">
+          {{ showManualInput ? 'Skrýt manuální zadání' : 'Nebo zadejte ručně' }}
+        </button>
+      </div>
+
+      <!-- MANUAL INPUT (collapsible) -->
+      <MaterialManualInput
+        v-if="showManualInput && !parseResult"
+        @create="handleManualCreate"
+      />
     </div>
 
     <!-- MATERIAL LIST (potvrzené materiály) -->
@@ -301,30 +508,32 @@ const totalMaterialCost = computed(() => {
               <span v-if="getMaterialCode(material)" class="material-code">{{ getMaterialCode(material) }}</span>
               <span v-if="getMaterialCode(material)" class="material-sep">·</span>
               <span class="material-name">{{ getMaterialName(material) }}</span>
-              <span class="material-sep">·</span>
-              <span v-if="editingLengthId === material.id" class="length-edit" @click.stop>
-                <input
-                  v-model.number="tempLength"
-                  type="number"
-                  class="length-input"
-                  @keyup.enter="saveLength(material)"
-                  @keyup.esc="cancelEditLength"
-                />
-                <button class="btn-icon-sm" @click="saveLength(material)" title="Uložit">
-                  <Check :size="ICON_SIZE.SMALL" />
+              <template v-if="hasLength(material.stock_shape)">
+                <span class="material-sep">·</span>
+                <span v-if="editingLengthId === material.id" class="length-edit" @click.stop>
+                  <input
+                    v-model.number="tempLength"
+                    type="number"
+                    class="length-input"
+                    @keyup.enter="saveLength(material)"
+                    @keyup.esc="cancelEditLength"
+                  />
+                  <button class="btn-icon-sm" @click="saveLength(material)" title="Uložit">
+                    <Check :size="ICON_SIZE.SMALL" />
+                  </button>
+                  <button class="btn-icon-sm" @click="cancelEditLength" title="Zrušit">
+                    <X :size="ICON_SIZE.SMALL" />
+                  </button>
+                </span>
+                <button
+                  v-else
+                  class="length-inline-btn"
+                  @click.stop="startEditLength(material)"
+                  title="Klikni pro úpravu délky"
+                >
+                  <span class="param-key">L=</span>{{ material.stock_length || 0 }}<span class="param-unit">mm</span>
                 </button>
-                <button class="btn-icon-sm" @click="cancelEditLength" title="Zrušit">
-                  <X :size="ICON_SIZE.SMALL" />
-                </button>
-              </span>
-              <button
-                v-else
-                class="length-inline-btn"
-                @click.stop="startEditLength(material)"
-                title="Klikni pro úpravu délky"
-              >
-                <span class="param-key">L=</span>{{ material.stock_length || 0 }}<span class="param-unit">mm</span>
-              </button>
+              </template>
             </div>
           </div>
 
@@ -366,7 +575,7 @@ const totalMaterialCost = computed(() => {
             <span class="dropdown-label">Kód:</span>
             <span class="dropdown-value">{{ material.material_item.code }}</span>
           </div>
-          <div class="dropdown-section">
+          <div v-if="hasLength(material.stock_shape)" class="dropdown-section">
             <span class="dropdown-label">Délka:</span>
             <div v-if="editingLengthId === material.id" class="length-edit" @click.stop>
               <input
@@ -426,11 +635,6 @@ const totalMaterialCost = computed(() => {
       </div>
     </div>
 
-    <!-- Empty state -->
-    <div v-else-if="!loading && !initialLoading && !parseResult" class="empty-state">
-      <span class="empty-text">Zadejte materiál výše</span>
-    </div>
-
     <!-- Loading state (only on first load — no flash on part switch) -->
     <div v-if="initialLoading" class="loading-state">
       <div class="spinner"></div>
@@ -464,6 +668,39 @@ const totalMaterialCost = computed(() => {
   letter-spacing: 0.5px;
 }
 
+.btn-add-material {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+}
+
+.btn-add-material:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.btn-add-material:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Parser wrapper (for click-outside detection) */
+.parser-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 /* Parser input */
 .parser-input {
   display: flex;
@@ -476,15 +713,15 @@ const totalMaterialCost = computed(() => {
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  background: var(--bg-base);
+  font-size: var(--text-sm);
+  background: var(--bg-input);
   color: var(--text-primary);
   transition: var(--transition-fast);
 }
 
 .parser-field:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--border-strong);
 }
 
 .parser-field:disabled {
@@ -516,14 +753,35 @@ const totalMaterialCost = computed(() => {
   cursor: not-allowed;
 }
 
+.btn-cancel-parser {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-cancel-parser:hover {
+  background: var(--bg-base);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
 /* Parse preview */
 .parse-preview {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-2);
-  background: var(--bg-info-subtle);
-  border: 1px solid var(--color-info);
+  background: var(--bg-elevated);
+  border: 1px solid var(--focus-ring);
   border-radius: var(--radius-md);
 }
 
@@ -534,14 +792,14 @@ const totalMaterialCost = computed(() => {
 }
 
 .preview-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
   text-transform: uppercase;
 }
 
 .preview-confidence {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
   color: var(--color-success);
 }
@@ -550,6 +808,38 @@ const totalMaterialCost = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.preview-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.preview-label-sm {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.preview-value {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+.preview-weight {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.preview-price {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  color: var(--color-success);
 }
 
 .preview-values {
@@ -562,7 +852,7 @@ const totalMaterialCost = computed(() => {
   padding: var(--space-1) var(--space-2);
   background: var(--bg-base);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary);
 }
@@ -584,14 +874,14 @@ const totalMaterialCost = computed(() => {
 }
 
 .preview-warning {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-warning);
 }
 
 .type-badge {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 
@@ -665,7 +955,7 @@ const totalMaterialCost = computed(() => {
 .material-item {
   display: flex;
   flex-direction: column;
-  background: var(--bg-base);
+  background: var(--bg-raised);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
 }
@@ -708,7 +998,7 @@ const totalMaterialCost = computed(() => {
 .material-code {
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -722,7 +1012,7 @@ const totalMaterialCost = computed(() => {
   align-items: center;
   line-height: 1;
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   flex-shrink: 0;
   user-select: none;
 }
@@ -730,7 +1020,7 @@ const totalMaterialCost = computed(() => {
 .material-name {
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-regular);
   color: var(--text-secondary);
   line-height: 1;
@@ -746,7 +1036,7 @@ const totalMaterialCost = computed(() => {
   border: none;
   padding: 0;
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -762,14 +1052,14 @@ const totalMaterialCost = computed(() => {
 }
 
 .param-key {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-regular);
   color: var(--text-secondary);
   margin-right: 2px;
 }
 
 .param-unit {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-regular);
   color: var(--text-secondary);
   margin-left: 2px;
@@ -788,7 +1078,7 @@ const totalMaterialCost = computed(() => {
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
   color: var(--text-primary);
   box-sizing: border-box;
@@ -799,7 +1089,7 @@ const totalMaterialCost = computed(() => {
   outline: none;
   border-color: var(--focus-ring);
   background: var(--focus-bg);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1px var(--active);
 }
 
 .btn-icon-sm {
@@ -874,13 +1164,13 @@ const totalMaterialCost = computed(() => {
 }
 
 .dropdown-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
 }
 
 .dropdown-value {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-primary);
 }
 
@@ -888,7 +1178,7 @@ const totalMaterialCost = computed(() => {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 
@@ -945,7 +1235,7 @@ const totalMaterialCost = computed(() => {
 }
 
 .total-value {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
   color: var(--color-primary);
   font-family: var(--font-mono);
@@ -955,6 +1245,30 @@ const totalMaterialCost = computed(() => {
 
 .empty-text {
   color: var(--text-secondary);
+}
+
+/* Manual input toggle */
+.manual-input-toggle {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  transition: var(--transition-fast);
+}
+
+.link-btn:hover {
+  color: var(--color-primary-hover);
+  text-decoration: none;
 }
 
 /* Spinner */

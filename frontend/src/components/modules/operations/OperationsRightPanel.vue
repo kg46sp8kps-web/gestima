@@ -44,6 +44,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 // State
 const detailPanelRef = ref<InstanceType<typeof OperationsDetailPanel> | null>(null)
+const materialSelectorRef = ref<InstanceType<typeof MaterialInputSelectorV2> | null>(null)
 const showAIPanel = ref(false)
 const productionHistoryCollapsed = ref(true)
 const mlCollapsed = ref(true)
@@ -346,9 +347,20 @@ defineExpose({
         <component :is="materialCollapsed ? ChevronRight : ChevronDown" :size="ICON_SIZE.SMALL" class="ribbon-chevron" />
         <span class="section-ribbon-title">Materiál</span>
         <span v-if="materialsCount > 0" class="section-ribbon-badge">{{ materialsCount }}</span>
+        <div class="ribbon-actions" @click.stop>
+          <button
+            class="icon-btn"
+            @click="materialSelectorRef?.handleAddNew()"
+            :disabled="!partId"
+            title="Přidat materiál"
+          >
+            <Plus :size="ICON_SIZE.STANDARD" />
+          </button>
+        </div>
       </div>
       <div v-if="!materialCollapsed" class="section-ribbon-body">
         <MaterialInputSelectorV2
+          ref="materialSelectorRef"
           :partId="partId"
           :linkingGroup="linkingGroup"
           :hideHeader="true"
@@ -686,7 +698,7 @@ defineExpose({
 .section-ribbon-badge {
   margin-left: var(--space-1);
   padding: 0 var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
   font-weight: var(--font-semibold);
   color: var(--text-tertiary);
@@ -794,7 +806,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   margin-left: auto;
 }
@@ -806,7 +818,7 @@ defineExpose({
   gap: 2px;
   margin-left: var(--space-2);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
 }
 
@@ -855,7 +867,7 @@ defineExpose({
 }
 
 .ml-time-col label {
-  font-size: 9px;
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -879,26 +891,26 @@ defineExpose({
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   text-align: right;
 }
 
 .ml-time-col.teal .ml-input {
-  background: rgba(20, 184, 166, 0.08);
-  border-color: rgba(20, 184, 166, 0.3);
+  background: var(--status-ok-bg);
+  border-color: var(--palette-success-light);
   color: var(--status-ok);
 }
 
-.ml-time-col.blue .ml-input { border-color: rgba(59, 130, 246, 0.3); }
-.ml-time-col.blue .ml-input:focus { border-color: var(--color-info); outline: none; background: rgba(59, 130, 246, 0.05); }
-.ml-time-col.amber .ml-input { border-color: rgba(245, 158, 11, 0.3); }
-.ml-time-col.amber .ml-input:focus { border-color: var(--status-warn); outline: none; background: rgba(245, 158, 11, 0.05); }
+.ml-time-col.blue .ml-input { border-color: var(--palette-info-bg); }
+.ml-time-col.blue .ml-input:focus { border-color: var(--border-strong); outline: none; background: var(--palette-info-bg); }
+.ml-time-col.amber .ml-input { border-color: var(--palette-warning-light); }
+.ml-time-col.amber .ml-input:focus { border-color: var(--border-strong); outline: none; background: var(--status-warn-bg); }
 .ml-input:disabled { opacity: 0.8; cursor: not-allowed; }
 
 .ml-unit {
-  font-size: 9px;
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
@@ -923,13 +935,13 @@ defineExpose({
 }
 
 .ml-deviation-item label {
-  font-size: 9px;
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
 .ml-deviation-item span {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
 }
@@ -948,7 +960,7 @@ defineExpose({
   padding: 2px var(--space-1);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   background: var(--bg-input);
   color: var(--text-primary);
   flex-shrink: 0;
@@ -966,7 +978,7 @@ defineExpose({
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: inherit;
 }
 
@@ -984,7 +996,7 @@ defineExpose({
   color: white;
   border: none;
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
   white-space: nowrap;
@@ -1036,7 +1048,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   margin-left: auto;
 }
@@ -1047,7 +1059,7 @@ defineExpose({
   gap: var(--space-1);
   margin-left: var(--space-2);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
 }
 
@@ -1080,7 +1092,7 @@ defineExpose({
 }
 
 .tv-summary-item label {
-  font-size: 9px;
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -1121,12 +1133,12 @@ defineExpose({
 }
 
 .tv-op-name {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .tv-op-time {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
   font-weight: var(--font-medium);
   color: var(--text-primary);
@@ -1139,7 +1151,7 @@ defineExpose({
 }
 
 .tv-reasoning-text {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.4;
   white-space: pre-wrap;

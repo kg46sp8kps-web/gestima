@@ -74,10 +74,10 @@ function fmt(val: number | null | undefined): string {
   border-bottom: 1px solid var(--border-default);
 }
 .ribbon-row:hover { background: var(--state-hover); }
-.ribbon-row.active { border-left-color: var(--color-primary); background: rgba(var(--color-primary-rgb, 220 38 38), 0.04); }
+.ribbon-row.active { border-left-color: var(--border-strong); background: var(--selected); }
 .row-label {
   width: 24px;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--text-muted);
   flex-shrink: 0;
@@ -90,7 +90,7 @@ function fmt(val: number | null | undefined): string {
   gap: 0;
 }
 .cell-label {
-  font-size: 9px;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   color: var(--text-muted);
   letter-spacing: 0.03em;

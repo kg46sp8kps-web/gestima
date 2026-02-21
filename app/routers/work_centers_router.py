@@ -8,7 +8,7 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.db_helpers import set_audit, safe_commit
+from app.db_helpers import set_audit, safe_commit, soft_delete
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.enums import WorkCenterType
@@ -332,7 +332,7 @@ async def delete_work_center(
         raise HTTPException(status_code=404, detail="Pracoviště nenalezeno")
 
     work_center_name = work_center.name
-    await db.delete(work_center)
+    await soft_delete(db, work_center, deleted_by=current_user.username)
 
     await safe_commit(
         db,

@@ -1,5 +1,6 @@
 # Python
 venv/
+venv-test/
 __pycache__/
 *.pyc
 *.pyo
@@ -16,7 +17,9 @@ build/
 *.db-wal
 *.db-shm
 *.db.backup*
+*.db.bak
 gestima.db.backup_*
+gestima_*.db.bak
 
 # Backups (gzipped DB backups)
 backups/
@@ -61,6 +64,7 @@ data/archive/
 # Environment variables
 .env
 .env.local
+.env.test
 
 # User uploads and drawings (runtime data, not source code)
 uploads/

@@ -226,6 +226,7 @@ function toggleAll() {
   align-items: center;
   justify-content: center;
   min-height: 120px;
+  animation: g-fade-in var(--duration-fast) var(--ease) both;
 }
 
 .data-table-empty {
@@ -235,6 +236,7 @@ function toggleAll() {
   justify-content: center;
   padding: var(--space-10);
   color: var(--text-secondary);
+  animation: g-fade-in var(--duration-normal) var(--ease) both;
 }
 
 .empty-icon {
@@ -244,13 +246,14 @@ function toggleAll() {
 }
 
 .empty-text {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   margin: 0;
 }
 
 .data-table-container {
   overflow-x: auto;
   flex: 1;
+  animation: g-fade-in var(--duration-normal) var(--ease) both;
 }
 
 .data-table {

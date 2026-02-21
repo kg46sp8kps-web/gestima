@@ -118,8 +118,8 @@ function onCancel() {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid var(--color-info);
+  background: var(--palette-info-bg);
+  border: 1px solid var(--palette-info);
   border-radius: var(--radius-lg);
   color: var(--text-body);
   font-size: var(--text-sm);

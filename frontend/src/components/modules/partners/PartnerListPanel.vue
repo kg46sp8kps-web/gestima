@@ -250,7 +250,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .partner-number {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--brand);
 }

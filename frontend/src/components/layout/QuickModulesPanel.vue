@@ -182,7 +182,7 @@ function closeSelector() {
 
 .selector-header {
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -228,7 +228,7 @@ function closeSelector() {
 }
 
 .selector-reset:hover {
-  background: rgba(244, 63, 94, 0.1);
+  background: var(--palette-danger-light);
 }
 
 .selector-backdrop {

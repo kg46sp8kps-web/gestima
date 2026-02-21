@@ -218,7 +218,7 @@ async function handleConfirm() {
 
 .info-text {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-body);
 }
 
@@ -249,7 +249,7 @@ async function handleConfirm() {
 }
 
 .checkbox-item span {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-body);
   user-select: none;
 }
@@ -271,7 +271,7 @@ async function handleConfirm() {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   background: var(--bg-input);
   color: var(--text-body);
   transition: var(--transition-fast);

@@ -18,6 +18,7 @@ from app.models.part import Part
 from app.models.operation import Operation
 from app.models.production_record import ProductionRecord
 from app.database import get_db
+from app.db_helpers import safe_commit
 from app.dependencies import require_role
 from app.models.user import User, UserRole
 from app.services.infor_part_importer import PartImporter
@@ -935,7 +936,7 @@ async def execute_job_materials_import(
 
                     total_created += 1
 
-                await db.commit()
+                await safe_commit(db, action="import materiálů zakázky")
 
             except Exception as part_error:
                 await db.rollback()

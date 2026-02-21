@@ -92,7 +92,7 @@ async function getIdoInfo() {
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--border-strong);
 }
 
 .flex-1 {
@@ -110,7 +110,7 @@ async function getIdoInfo() {
 
 .json-preview {
   font-family: 'Monaco', monospace;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-primary);
   overflow-x: auto;
   margin: 0;

@@ -82,11 +82,13 @@ onMounted(() => {
     </div>
 
     <!-- Empty State -->
-    <div v-if="store.windows.length === 0" class="empty-state">
-      <LayoutGrid :size="ICON_SIZE.HERO" :stroke-width="1" class="empty-icon" />
-      <h2>No Windows Open</h2>
-      <p>Use search or menu to open modules</p>
-    </div>
+    <Transition name="fade">
+      <div v-if="store.windows.length === 0" class="empty-state">
+        <LayoutGrid :size="ICON_SIZE.HERO" :stroke-width="1" class="empty-icon" />
+        <h2>No Windows Open</h2>
+        <p>Use search or menu to open modules</p>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -113,6 +115,17 @@ onMounted(() => {
   margin-bottom: var(--space-5);
   opacity: 0.3;
   color: var(--text-tertiary);
+}
+
+/* Empty state transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--duration-slow) var(--ease);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 </style>

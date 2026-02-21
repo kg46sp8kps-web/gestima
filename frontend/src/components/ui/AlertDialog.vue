@@ -89,7 +89,7 @@ watch(() => state.alert.visible, async (visible) => {
 }
 
 .alert-title {
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0;
@@ -107,12 +107,12 @@ watch(() => state.alert.visible, async (visible) => {
 }
 
 .alert-icon-error {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--status-error-bg);
   color: var(--status-error);
 }
 
 .alert-icon-success {
-  background: rgba(34, 197, 94, 0.1);
+  background: var(--status-ok-bg);
   color: var(--status-ok);
 }
 
@@ -122,13 +122,13 @@ watch(() => state.alert.visible, async (visible) => {
 }
 
 .alert-icon-warning {
-  background: rgba(234, 179, 8, 0.1);
+  background: var(--status-warn-bg);
   color: var(--status-warn);
 }
 
 /* === MESSAGE === */
 .alert-message {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-body);
   line-height: var(--leading-relaxed);
   white-space: pre-line;

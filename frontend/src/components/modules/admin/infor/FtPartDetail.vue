@@ -162,22 +162,22 @@ function normClass(ratio: number | null): string {
 .ft-detail { padding: var(--space-4); }
 .detail-header { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3); flex-wrap: wrap; }
 .detail-title { font-weight: 600; font-size: var(--text-sm); color: var(--text-primary); }
-.detail-meta { font-size: var(--text-xs); color: var(--text-secondary); }
-.ops-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+.detail-meta { font-size: var(--text-sm); color: var(--text-secondary); }
+.ops-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-bottom: var(--space-2); }
 .ops-table th { background: var(--bg-surface); padding: var(--space-1) var(--space-2); text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-default); white-space: nowrap; }
 .ops-table td { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
-.cat-badge { font-weight: 600; font-size: var(--text-xs); color: var(--text-primary); }
+.cat-badge { font-weight: 600; font-size: var(--text-sm); color: var(--text-primary); }
 .mono { font-variant-numeric: tabular-nums; font-family: var(--font-mono, monospace); }
-.cv-high { color: var(--color-danger); font-weight: 600; }
-.norm-ok { color: rgb(34, 197, 94); }
-.norm-warn { color: rgb(234, 179, 8); font-weight: 600; }
-.norm-extreme { color: var(--color-danger); font-weight: 600; }
+.cv-high { color: var(--status-error); font-weight: 600; }
+.norm-ok { color: var(--status-ok); }
+.norm-warn { color: var(--status-warn); font-weight: 600; }
+.norm-extreme { color: var(--status-error); font-weight: 600; }
 .detail-actions { display: flex; gap: var(--space-2); margin: var(--space-3) 0; }
 .inference-result { margin-top: var(--space-3); padding: var(--space-3); background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-default); }
 .inference-header { display: flex; gap: var(--space-4); font-size: var(--text-sm); margin-bottom: var(--space-2); flex-wrap: wrap; align-items: center; }
-.inference-meta { font-size: var(--text-xs); color: var(--text-tertiary); }
-.match-ok { color: rgb(34, 197, 94); font-weight: 600; }
-.match-fail { color: rgb(239, 68, 68); font-weight: 600; }
-.delta-pos { color: rgb(239, 68, 68); }
-.delta-neg { color: rgb(34, 197, 94); }
+.inference-meta { font-size: var(--text-sm); color: var(--text-tertiary); }
+.match-ok { color: var(--status-ok); font-weight: 600; }
+.match-fail { color: var(--status-error); font-weight: 600; }
+.delta-pos { color: var(--status-error); }
+.delta-neg { color: var(--status-ok); }
 </style>

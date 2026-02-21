@@ -131,7 +131,7 @@ function handleDaysInput(event: Event) {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-3);
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--status-warn-bg);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-warning);
 }
@@ -143,7 +143,7 @@ function handleDaysInput(event: Event) {
 }
 
 .coop-field label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 

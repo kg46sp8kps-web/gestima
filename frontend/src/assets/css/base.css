@@ -4,13 +4,13 @@
    ============================================================================ */
 
 html {
-  min-width: 1000px;
+  min-width: 800px;
   overflow-x: auto;
 }
 
 body {
   height: 100vh;
-  min-width: 1000px;
+  min-width: 800px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -19,7 +19,7 @@ body {
 
 .main-content {
   width: 95%;
-  min-width: 1000px;
+  min-width: 800px;
   margin: 0 auto;
   padding: var(--space-4) var(--space-6);
   position: relative;

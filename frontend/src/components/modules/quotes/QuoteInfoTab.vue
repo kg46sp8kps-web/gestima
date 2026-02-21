@@ -149,7 +149,7 @@ const props = defineProps<{
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  background: rgba(115, 115, 115, 0.1);
+  background: var(--bg-raised);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);

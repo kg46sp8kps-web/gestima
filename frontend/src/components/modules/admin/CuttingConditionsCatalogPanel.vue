@@ -155,17 +155,17 @@ onMounted(loadPivot)
 .seed-btn { padding: var(--space-2) var(--space-4); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-primary); font-size: var(--text-sm); cursor: pointer; border-radius: var(--radius-md); transition: all var(--duration-fast); }
 .seed-btn:hover { background: var(--state-hover); }
 .seed-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.error-bar { padding: var(--space-2) var(--space-3); background: var(--palette-danger-light, rgba(244, 63, 94, 0.15)); color: var(--palette-danger); border-radius: var(--radius-md); font-size: var(--text-sm); }
+.error-bar { padding: var(--space-2) var(--space-3); background: var(--palette-danger-light); color: var(--palette-danger); border-radius: var(--radius-md); font-size: var(--text-sm); }
 .loading { text-align: center; padding: var(--space-6); color: var(--text-secondary); }
 .table-wrapper { flex: 1; overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); }
-.pivot-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.pivot-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .pivot-table th, .pivot-table td { padding: var(--space-1) var(--space-2); border: 1px solid var(--border-default); white-space: nowrap; }
 .pivot-table thead th { background: var(--bg-surface); position: sticky; top: 0; z-index: 2; text-align: center; }
 .sticky-col { position: sticky; left: 0; z-index: 3; background: var(--bg-surface); font-weight: 600; min-width: 120px; }
 thead .sticky-col { z-index: 4; }
 .material-name { font-weight: 500; color: var(--text-primary); }
-.op-label { font-weight: 600; font-size: var(--text-xs); }
-.op-fields { font-weight: 400; color: var(--text-secondary); font-size: 10px; }
+.op-label { font-weight: 600; font-size: var(--text-sm); }
+.op-fields { font-weight: 400; color: var(--text-secondary); font-size: var(--text-sm); }
 .cell { cursor: pointer; text-align: center; transition: background var(--duration-fast); color: var(--text-primary); }
 .cell:hover { background: var(--state-hover); }
 .cell.modified { background: var(--palette-warning-light); }

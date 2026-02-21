@@ -521,7 +521,7 @@ watch(displayedBatches, (newBatches) => {
   background: var(--bg-input);
   color: var(--text-primary);
   text-align: center;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .empty-input:focus {
@@ -572,16 +572,16 @@ watch(displayedBatches, (newBatches) => {
   color: var(--text-primary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .add-btn:hover:not(:disabled) {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  color: var(--color-brand, #991b1b);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .add-btn:disabled {
@@ -668,7 +668,7 @@ watch(displayedBatches, (newBatches) => {
 
 .sets-value {
   font-weight: var(--font-semibold);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-primary);
 }
 
@@ -793,7 +793,7 @@ watch(displayedBatches, (newBatches) => {
 .batches-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .batches-table th,
@@ -821,11 +821,11 @@ watch(displayedBatches, (newBatches) => {
 }
 
 .batches-table tr.is-frozen {
-  background: rgba(5, 150, 105, 0.05);
+  background: var(--status-ok-bg);
 }
 
 .batches-table tr.is-default {
-  background: rgba(37, 99, 235, 0.05);
+  background: var(--palette-info-bg);
 }
 
 .col-qty {
@@ -849,7 +849,7 @@ watch(displayedBatches, (newBatches) => {
 
 .col-actions {
   width: 80px;
-  text-align: center !important;
+  text-align: center;
 }
 
 .col-breakdown {
@@ -906,7 +906,7 @@ watch(displayedBatches, (newBatches) => {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   padding: var(--space-1);
   opacity: 0.7;
   transition: var(--transition-fast);
@@ -947,7 +947,7 @@ watch(displayedBatches, (newBatches) => {
 
 .detail-section h4 {
   margin: 0 0 var(--space-3) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -998,6 +998,6 @@ watch(displayedBatches, (newBatches) => {
 
 .cost-detail-item .percent {
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 </style>

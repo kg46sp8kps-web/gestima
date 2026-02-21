@@ -390,7 +390,7 @@ onMounted(() => {
 
 .section-title {
   margin: var(--space-4) 0 var(--space-3) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   padding-bottom: var(--space-2);

@@ -150,7 +150,7 @@ const isPdf = computed(() => props.file?.file_type === 'pdf')
 }
 
 .hint {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   margin-top: var(--space-1);
 }

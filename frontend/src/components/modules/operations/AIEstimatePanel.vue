@@ -388,14 +388,14 @@ function confidenceClass(confidence: string | null): string {
 }
 
 .hint {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
 
 .icon-warning { color: var(--color-warning); }
 
 .step-info {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
 
@@ -418,7 +418,7 @@ function confidenceClass(confidence: string | null): string {
 .drawing-info .filename {
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   word-break: break-all;
 }
 
@@ -443,9 +443,9 @@ function confidenceClass(confidence: string | null): string {
   justify-content: space-between;
   align-items: center;
   padding: var(--space-4);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1));
+  background: linear-gradient(135deg, var(--palette-info-bg), var(--palette-info-bg));
   border-radius: var(--radius-md);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid var(--border-default);
 }
 
 .result-label {
@@ -455,7 +455,7 @@ function confidenceClass(confidence: string | null): string {
 }
 
 .result-value {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--brand-text);
   font-family: var(--font-mono);
@@ -491,7 +491,7 @@ function confidenceClass(confidence: string | null): string {
 /* Breakdown */
 .breakdown-section h5 {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -548,7 +548,7 @@ function confidenceClass(confidence: string | null): string {
   background: none;
   border: none;
   color: var(--color-danger);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: bold;
   cursor: pointer;
   padding: 0;
@@ -576,6 +576,6 @@ function confidenceClass(confidence: string | null): string {
   background: var(--color-warning-bg);
   color: var(--color-warning);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 </style>

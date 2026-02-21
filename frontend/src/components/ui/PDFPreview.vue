@@ -112,7 +112,7 @@ function handleClick() {
 }
 
 .pdf-hint {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   margin: 0;
   opacity: 0;

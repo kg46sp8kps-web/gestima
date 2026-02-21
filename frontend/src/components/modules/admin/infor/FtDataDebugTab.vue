@@ -365,11 +365,11 @@ function opsSummary(ops: FtPartOperation[]): string {
 .input-sm { width: 80px; }
 .input-md { width: 130px; }
 .stats-bar { display: flex; gap: var(--space-4); font-size: var(--text-sm); color: var(--text-secondary); padding: var(--space-2) var(--space-3); background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-default); }
-.stat-eligible { color: rgb(34, 197, 94); font-weight: 600; }
+.stat-eligible { color: var(--status-ok); font-weight: 600; }
 .stat-skipped { color: var(--text-tertiary); }
 .stat-selected { color: var(--color-brand); font-weight: 600; }
 .table-scroll { overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); flex: 1; min-height: 0; max-height: 520px; }
-.ft-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.ft-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .ft-table th { background: var(--bg-surface); padding: var(--space-1) var(--space-2); text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
 .ft-table td { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
 .ft-table tbody tr.part-row:hover { background: var(--state-hover); }
@@ -377,10 +377,10 @@ function opsSummary(ops: FtPartOperation[]): string {
 .col-ops { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
 .mono { font-variant-numeric: tabular-nums; font-family: var(--font-mono, monospace); }
 .cv-high { color: var(--color-danger); font-weight: 600; }
-.norm-ok { color: rgb(34, 197, 94); }
-.norm-warn { color: rgb(234, 179, 8); font-weight: 600; }
+.norm-ok { color: var(--status-ok); }
+.norm-warn { color: var(--status-warn); font-weight: 600; }
 .norm-extreme { color: var(--color-danger); font-weight: 600; }
-.btn-preciz-active { color: rgb(34, 197, 94) !important; border-color: rgb(34, 197, 94) !important; background: rgba(34, 197, 94, 0.08) !important; font-weight: 600; }
+.btn-preciz-active { color: var(--status-ok); border-color: var(--status-ok); background: var(--status-ok-bg); font-weight: 600; }
 .filter-sep { color: var(--text-tertiary); align-self: center; padding: 0 var(--space-1); }
 .row-skipped { opacity: 0.5; }
 .row-expanded { background: var(--bg-raised); }
@@ -388,7 +388,7 @@ function opsSummary(ops: FtPartOperation[]): string {
 .btn-icon { background: transparent; border: none; cursor: pointer; color: var(--text-secondary); padding: var(--space-1); border-radius: var(--radius-sm); display: inline-flex; align-items: center; }
 .btn-icon:hover { color: var(--text-primary); }
 .text-tertiary { color: var(--text-tertiary); }
-.badge-ok { display: inline-block; padding: 1px var(--space-2); background: rgba(34, 197, 94, 0.12); color: rgb(34, 197, 94); border-radius: var(--radius-sm); font-size: var(--text-2xs, 10px); font-weight: 600; }
-.badge-skip { display: inline-block; padding: 1px var(--space-2); background: rgba(239, 68, 68, 0.12); color: rgb(239, 68, 68); border-radius: var(--radius-sm); font-size: var(--text-2xs, 10px); font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.badge-ok { display: inline-block; padding: 1px var(--space-2); background: var(--status-ok-bg); color: var(--status-ok); border-radius: var(--radius-sm); font-size: var(--text-2xs, 10px); font-weight: 600; }
+.badge-skip { display: inline-block; padding: 1px var(--space-2); background: var(--status-error-bg); color: var(--status-error); border-radius: var(--radius-sm); font-size: var(--text-2xs, 10px); font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 .detail-row td { padding: 0; background: var(--bg-raised); }
 </style>

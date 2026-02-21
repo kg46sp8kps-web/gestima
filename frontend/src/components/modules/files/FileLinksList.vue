@@ -58,7 +58,7 @@ const emit = defineEmits<{
 
 .file-links-list h4 {
   margin: 0 0 var(--space-3) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -99,7 +99,7 @@ const emit = defineEmits<{
   padding: var(--space-1) var(--space-2);
   background: var(--bg-base);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 

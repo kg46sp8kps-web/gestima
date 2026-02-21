@@ -6,12 +6,13 @@
  * DRAG & DROP: VueDraggable (professional solution)
  */
 
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch, reactive, onBeforeUnmount } from 'vue'
 import { useOperationsStore } from '@/stores/operations'
 import { useMaterialsStore } from '@/stores/materials'
 import { useWindowsStore } from '@/stores/windows'
 import { operationsApi } from '@/api/operations'
 import { fetchEstimationById } from '@/api/time-vision'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import type { Operation, CuttingMode } from '@/types/operation'
 import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
@@ -44,6 +45,9 @@ const operationsStore = useOperationsStore()
 const materialsStore = useMaterialsStore()
 const windowsStore = useWindowsStore()
 
+// Keyboard shortcuts
+const { registerShortcut } = useKeyboardShortcuts()
+
 // Local state
 const expandedOps = reactive<Record<number, boolean>>({})
 const selectedOperationId = ref<number | null>(null)
@@ -51,6 +55,17 @@ const aiTimeModified = ref(false)
 
 // Debounce timers per operation
 const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
+
+// Register Ctrl+N shortcut for new operation
+registerShortcut({
+  key: 'n',
+  ctrl: true,
+  handler: () => {
+    if (props.partId && !loading.value) {
+      handleAddOperation()
+    }
+  }
+})
 
 // Computed from store
 const operations = computed(() => operationsStore.getContext(props.linkingGroup).operations)
@@ -68,10 +83,13 @@ const materialInputs = computed(() => materialsStore.getContext(props.linkingGro
 
 // VueDraggable local array (v-model)
 const localOperations = ref<Operation[]>([])
+const isDragging = ref(false)
 
-// Sync with store
+// Sync with store (SKIP when dragging to prevent race condition)
 watch(sortedOperations, (newOps) => {
-  localOperations.value = [...newOps]
+  if (!isDragging.value) {
+    localOperations.value = [...newOps]
+  }
 }, { immediate: true })
 
 // Watch partId change
@@ -203,8 +221,15 @@ async function confirmDelete(op: Operation) {
   delete expandedOps[op.id]
 }
 
+// VueDraggable handler - called BEFORE drag starts
+function handleDragStart() {
+  isDragging.value = true
+}
+
 // VueDraggable handler - called after drag ends
 async function handleDragEnd() {
+  isDragging.value = false
+
   // Renumber operations 10-20-30...
   localOperations.value.forEach((op, index) => {
     op.seq = (index + 1) * 10
@@ -257,6 +282,12 @@ function selectOperation(op: Operation) {
     emit('select-operation', op)
   }
 }
+
+// Flush pending debounce timers on unmount (prevents data loss)
+onBeforeUnmount(() => {
+  debounceTimers.forEach((timer) => clearTimeout(timer))
+  debounceTimers.clear()
+})
 
 // Expose for parent
 defineExpose({
@@ -320,6 +351,7 @@ defineExpose({
       <table class="operations-table">
         <thead>
           <tr>
+            <th class="col-drag" title="Přetáhnout pro změnu pořadí"></th>
             <th class="col-seq">Seq</th>
             <th class="col-workcenter">Pracoviště</th>
             <th class="col-time">tp</th>
@@ -334,9 +366,11 @@ defineExpose({
         </thead>
         <draggable
           v-model="localOperations"
+          @start="handleDragStart"
           @end="handleDragEnd"
           item-key="id"
-          :animation="300"
+          handle=".drag-handle"
+          :animation="200"
           tag="tbody"
           ghost-class="ghost"
           chosen-class="chosen"
@@ -388,7 +422,7 @@ defineExpose({
 
 .panel-header h3 {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
@@ -403,7 +437,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
   transition: color 0.3s ease;
@@ -445,7 +479,7 @@ defineExpose({
 }
 
 .empty .hint {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -473,13 +507,14 @@ defineExpose({
   padding: var(--space-2) var(--space-2);
   text-align: left;
   font-weight: var(--font-semibold);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
   user-select: none;
 }
 
+.col-drag { width: 30px; text-align: center; cursor: grab; }
 .col-seq { width: 50px; }
 .col-workcenter { min-width: 180px; }
 .col-time { width: 80px; }
@@ -502,11 +537,11 @@ defineExpose({
 }
 
 .chosen {
-  cursor: grabbing !important;
+  cursor: grabbing;
 }
 
 .drag {
-  opacity: 1 !important;
-  cursor: grabbing !important;
+  opacity: 1;
+  cursor: grabbing;
 }
 </style>

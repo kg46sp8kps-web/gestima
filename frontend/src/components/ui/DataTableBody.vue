@@ -127,11 +127,11 @@ function isSelected(row: Record<string, unknown>): boolean {
 }
 
 .data-table tbody tr.selected {
-  background: var(--brand-subtle);
+  background: var(--selected);
 }
 
 .data-table tbody tr.selected:hover {
-  background: var(--text-tertiary);
+  background: var(--active);
 }
 
 .data-table tbody tr.highlighted {

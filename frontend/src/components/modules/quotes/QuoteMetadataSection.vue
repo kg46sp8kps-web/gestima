@@ -31,7 +31,7 @@ function updateField(field: keyof Metadata, value: string | number) {
 
 <template>
   <div class="metadata-section">
-    <h2><FileText :size="ICON_SIZE.STANDARD" style="display: inline; margin-right: var(--space-3);" /> Detaily nabídky</h2>
+    <h2><FileText :size="ICON_SIZE.STANDARD" class="section-icon" /> Detaily nabídky</h2>
     <div class="form-row">
       <div class="form-field">
         <label>Název nabídky *</label>
@@ -102,6 +102,11 @@ function updateField(field: keyof Metadata, value: string | number) {
   color: var(--text-primary);
 }
 
+.section-icon {
+  display: inline;
+  margin-right: var(--space-3);
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -129,7 +134,7 @@ function updateField(field: keyof Metadata, value: string | number) {
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: inherit;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
 }
 
 .form-textarea {

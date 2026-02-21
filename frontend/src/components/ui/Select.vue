@@ -164,7 +164,7 @@ defineExpose({
 
 .select-error-state:focus {
   border-color: var(--color-danger);
-  background: rgba(244, 63, 94, 0.1);
+  background: var(--palette-danger-light);
 }
 
 /* DISABLED STATE */
@@ -180,7 +180,7 @@ defineExpose({
   right: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   pointer-events: none;
   transition: var(--transition-fast);
@@ -196,13 +196,13 @@ defineExpose({
 
 /* === MESSAGES === */
 .select-error {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-danger);
   margin-top: calc(-1 * var(--space-1));
 }
 
 .select-hint {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-top: calc(-1 * var(--space-1));
 }

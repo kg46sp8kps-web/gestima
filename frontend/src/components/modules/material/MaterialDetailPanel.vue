@@ -424,7 +424,7 @@ async function executeDelete() {
 
             <!-- Row 3: Quantity + Notes -->
             <div class="form-row">
-              <div class="form-group" style="max-width: 120px;">
+              <div class="form-group qty-input">
                 <label>Počet kusů</label>
                 <input
                   v-model.number="form(mat.id).quantity"
@@ -434,7 +434,7 @@ async function executeDelete() {
                   v-select-on-focus
                 />
               </div>
-              <div class="form-group" style="flex: 2;">
+              <div class="form-group notes-field">
                 <label>Poznámky</label>
                 <input
                   v-model="form(mat.id).notes"
@@ -558,7 +558,7 @@ async function executeDelete() {
 
             <!-- Quantity -->
             <div class="form-row">
-              <div class="form-group" style="max-width: 120px;">
+              <div class="form-group qty-input">
                 <label>Počet kusů</label>
                 <input v-model.number="newMaterial.quantity" type="number" class="form-input" min="1" v-select-on-focus />
               </div>
@@ -696,10 +696,10 @@ async function executeDelete() {
 }
 
 .quantity-badge {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   padding: var(--space-1) var(--space-2);
   background: var(--brand);
-  color: white;
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
   font-weight: var(--font-semibold);
 }
@@ -713,7 +713,7 @@ async function executeDelete() {
 .expand-btn {
   background: none;
   border: none;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   cursor: pointer;
   padding: var(--space-1);
@@ -743,6 +743,14 @@ async function executeDelete() {
   max-width: 150px;
 }
 
+.qty-input {
+  max-width: 120px;
+}
+
+.notes-field {
+  flex: 2;
+}
+
 .required {
   color: var(--status-error);
 }
@@ -750,7 +758,7 @@ async function executeDelete() {
 /* Linked operations */
 .linked-ops {
   padding: var(--space-3);
-  background: var(--palette-info-light, rgba(37, 99, 235, 0.1));
+  background: var(--palette-info-light);
   border-radius: var(--radius-md);
   border: 1px solid var(--palette-info);
 }
@@ -774,7 +782,7 @@ async function executeDelete() {
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   background: var(--palette-info);
-  color: white;
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
 }
@@ -782,9 +790,9 @@ async function executeDelete() {
 .unlink-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   line-height: 1;
   padding: 0;
   margin-left: var(--space-1);

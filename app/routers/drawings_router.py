@@ -32,6 +32,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.db_helpers import safe_commit
 from app.models.file_record import FileRecord, FileLink
 from app.models.part import Part
 from app.models.user import User, UserRole
@@ -224,7 +225,7 @@ async def upload_drawing(
             part.file_id = file_record.id
             part.updated_by = current_user.username
 
-        await db.commit()
+        await safe_commit(db, action="nahrání výkresu")
         await db.refresh(file_record)
         await db.refresh(file_link)
 
@@ -354,7 +355,7 @@ async def set_primary_drawing(
             part.file_id = file_record.id
             part.updated_by = current_user.username
 
-        await db.commit()
+        await safe_commit(db, action="nastavení primárního výkresu")
         await db.refresh(file_link)
         await db.refresh(file_record)
 
@@ -500,7 +501,7 @@ async def delete_drawing(
                     f"No more PDF drawings for part {part_number}, cleared part.file_id"
                 )
 
-        await db.commit()
+        await safe_commit(db, action="mazání výkresu")
 
         logger.info(
             f"Deleted drawing: part={part_number}, drawing_id={drawing_id}, "

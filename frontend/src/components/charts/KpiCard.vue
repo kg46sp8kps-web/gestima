@@ -130,7 +130,7 @@ const statusColor = computed(() => {
 }
 
 .kpi-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -150,7 +150,7 @@ const statusColor = computed(() => {
 }
 
 .status-text {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
 }
 
@@ -168,7 +168,7 @@ const statusColor = computed(() => {
 }
 
 .kpi-value {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -176,7 +176,7 @@ const statusColor = computed(() => {
 }
 
 .kpi-sub-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
 
@@ -184,7 +184,7 @@ const statusColor = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--space-0\.5);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   white-space: nowrap;
 }
@@ -205,7 +205,7 @@ const statusColor = computed(() => {
 }
 
 .kpi-target {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-top: var(--space-1);
   padding-top: var(--space-2);

@@ -88,8 +88,8 @@ function getFileIcon(fileType: string) {
 }
 
 .file-item.selected {
-  border-color: var(--color-primary);
-  background: var(--state-selected);
+  border-color: var(--border-strong);
+  background: var(--selected);
 }
 
 .file-item.orphan {
@@ -125,7 +125,7 @@ function getFileIcon(fileType: string) {
 }
 
 .file-size {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-family: var(--font-mono);
 }
@@ -145,7 +145,7 @@ function getFileIcon(fileType: string) {
   background: var(--bg-base);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -161,7 +161,7 @@ function getFileIcon(fileType: string) {
   padding: var(--space-1) var(--space-2);
   background: var(--color-warning-light);
   border-radius: var(--radius-sm);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--color-warning);
 }
 </style>

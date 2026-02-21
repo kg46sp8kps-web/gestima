@@ -56,8 +56,6 @@ const defaultColumns: Column[] = [
   { key: 'drawing_number', label: 'Číslo výkresu', visible: false, format: 'text' },
   { key: 'source', label: 'Zdroj', visible: true, format: 'text' },
   { key: 'status', label: 'Status', visible: true, format: 'text' },
-  { key: 'length', label: 'Délka', visible: true, format: 'number' },
-  { key: 'notes', label: 'Poznámky', visible: true, format: 'text' },
   { key: 'created_at', label: 'Vytvořeno', visible: true, format: 'date' }
 ]
 const columns = ref<Column[]>(defaultColumns)
@@ -340,12 +338,6 @@ defineExpose({
               </span>
               <span v-else>—</span>
             </template>
-            <!-- notes: truncate -->
-            <template v-else-if="col.key === 'notes'">
-              <span class="notes-truncate" :title="String(getCellValue(partsStore.parts[virtualRow.index]!, col.key) || '')">
-                {{ getCellValue(partsStore.parts[virtualRow.index]!, col.key) || '—' }}
-              </span>
-            </template>
             <!-- number format -->
             <template v-else-if="col.format === 'number'">
               {{ formatNumber(getCellValue(partsStore.parts[virtualRow.index]!, col.key)) }}
@@ -421,7 +413,7 @@ defineExpose({
 .status-filter,
 .status-filter:focus {
   width: 100%;
-  background-image: none !important;
+  background-image: none;
   padding-right: 28px;
 }
 
@@ -430,7 +422,7 @@ defineExpose({
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   pointer-events: none;
 }
@@ -462,13 +454,15 @@ defineExpose({
 
 .vt-th {
   padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: left;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   user-select: none;
   flex: 1 1 0;
   min-width: 0;
@@ -504,7 +498,7 @@ defineExpose({
 /* Cell — matches template.html .data-table td */
 .vt-td {
   padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-body);
   text-align: left;
   white-space: nowrap;
@@ -515,15 +509,13 @@ defineExpose({
 }
 
 /* ── Column-specific widths ── */
-.col-article_number { flex: 1.4 1 0; }
-.col-name           { flex: 2 1 0; }
+.col-article_number { flex: 2 1 0; }
+.col-name           { flex: 2.5 1 0; }
 .col-revision       { flex: 0.6 1 0; }
 .col-customer_revision { flex: 0.8 1 0; }
 .col-drawing_number { flex: 1.2 1 0; }
 .col-source         { flex: 0.7 1 0; }
 .col-status         { flex: 1 1 0; }
-.col-length         { flex: 0.7 1 0; }
-.col-notes          { flex: 1.5 1 0; }
 .col-created_at     { flex: 1 1 0; }
 
 /* Numeric columns — mono font, right-aligned (matches template.html .col-num) */
@@ -540,14 +532,6 @@ defineExpose({
   color: var(--text-primary);
 }
 
-/* Notes: truncate with ellipsis */
-.notes-truncate {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Dot + text (inline, same font as cell) */
 .dot-value {
   display: inline-flex;
@@ -562,32 +546,47 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* ── Container Queries - hide less important columns on narrow width ── */
-@container part-list-container (max-width: 600px) {
+/* ── Container Queries - progressive column hiding ──
+ * Strategy: aggressively hide columns so visible ones show FULL content.
+ * Math: article needs ~140px, name needs ~200px, status needs ~100px.
+ */
+
+/* 700px: hide low-value columns */
+@container part-list-container (max-width: 700px) {
   .col-notes,
-  .col-created_at,
-  .col-source {
-    display: none !important;
+  .col-created_at {
+    display: none;
   }
 }
 
-@container part-list-container (max-width: 450px) {
+/* 550px: keep article + name + drawing + status (4 cols, flex 5.6)
+ * → article≈137px, name≈196px, drawing≈118px, status≈98px */
+@container part-list-container (max-width: 550px) {
+  .col-source,
   .col-length,
-  .col-customer_revision {
-    display: none !important;
+  .col-customer_revision,
+  .col-revision {
+    display: none;
   }
 }
 
+/* 450px: keep article + name + status (3 cols, flex 4.4)
+ * → article≈143px, name≈204px, status≈102px */
+@container part-list-container (max-width: 450px) {
+  .col-drawing_number {
+    display: none;
+  }
+}
+
+/* 350px: article + name only (2 cols, flex 4.5)
+ * → at 350px: article≈156px, name≈194px — full content */
 @container part-list-container (max-width: 350px) {
-  .col-revision,
   .col-status {
-    display: none !important;
+    display: none;
   }
-}
 
-@container part-list-container (max-width: 320px) {
   .list-header h3 {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
   }
 
   .header-actions {

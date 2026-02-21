@@ -115,7 +115,7 @@ function handleAnalyze() {
         </div>
       </div>
 
-      <input ref="fileInput" type="file" accept="application/pdf" multiple style="display:none" @change="handleSelect" />
+      <input ref="fileInput" type="file" accept="application/pdf" multiple class="file-input-hidden" @change="handleSelect" />
     </div>
 
     <!-- Validation hint -->
@@ -155,7 +155,7 @@ function handleAnalyze() {
 .dropzone.dragging { border-color: var(--brand); background: var(--brand-subtle); }
 .drop-icon { color: var(--brand); flex-shrink: 0; }
 .dropzone p { margin: 0; font-size: var(--text-sm); color: var(--text-body); }
-.hint { font-size: var(--text-xs); color: var(--text-tertiary); }
+.hint { font-size: var(--text-sm); color: var(--text-tertiary); }
 
 .file-list { display: flex; flex-direction: column; gap: var(--space-1); }
 .file-item {
@@ -166,15 +166,15 @@ function handleAnalyze() {
 }
 .file-icon { color: var(--text-tertiary); flex-shrink: 0; }
 .file-name { flex: 1; font-size: var(--text-sm); color: var(--text-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-size { font-size: var(--text-xs); color: var(--text-tertiary); font-family: var(--font-mono); flex-shrink: 0; }
+.file-size { font-size: var(--text-sm); color: var(--text-tertiary); font-family: var(--font-mono); flex-shrink: 0; }
 
 .type-badge {
   flex-shrink: 0; padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: 600;
+  border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: 600;
   border: 1px solid transparent; cursor: pointer; min-width: 72px; text-align: center;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.type-badge.request { background: var(--palette-blue-subtle); color: var(--palette-blue); border-color: var(--palette-blue-subtle); }
+.type-badge.request { background: var(--bg-raised); color: var(--palette-blue); border-color: var(--border-default); }
 .type-badge.request:hover { border-color: var(--palette-blue); }
 .type-badge.drawing { background: var(--bg-surface); color: var(--text-secondary); border-color: var(--border-default); }
 .type-badge.drawing:hover { border-color: var(--text-tertiary); }
@@ -202,4 +202,6 @@ function handleAnalyze() {
 }
 .info-icon { color: var(--text-tertiary); flex-shrink: 0; margin-top: 1px; }
 .info-panel p { margin: 0; line-height: 1.5; }
+
+.file-input-hidden { display: none; }
 </style>

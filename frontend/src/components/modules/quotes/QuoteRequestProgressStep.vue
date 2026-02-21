@@ -169,14 +169,14 @@ const emit = defineEmits<{
 }
 
 .stat-value {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-mono);
 }
 
 .stat-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -231,10 +231,10 @@ const emit = defineEmits<{
 
 /* Badges */
 
-.badge-new { background: rgba(153,27,27,0.15); color: var(--brand-text); }
-.badge-existing { background: rgba(115,115,115,0.15); color: var(--text-secondary); }
-.badge-drawing { background: rgba(34,197,94,0.15); color: var(--color-success); }
-.badge-tech { background: rgba(168,85,247,0.15); color: rgb(168, 85, 247); }
+.badge-new { background: var(--bg-raised); color: var(--brand-text); }
+.badge-existing { background: var(--bg-raised); color: var(--text-secondary); }
+.badge-drawing { background: var(--bg-raised); color: var(--color-success); }
+.badge-tech { background: var(--bg-raised); color: var(--palette-info); }
 
 /* Warnings */
 .warnings {
@@ -248,7 +248,7 @@ const emit = defineEmits<{
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2);
-  background: rgba(234, 179, 8, 0.1);
+  background: var(--status-warn-bg);
   border-left: 3px solid var(--palette-warning);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);

@@ -1,7 +1,7 @@
 """GESTIMA - Modely"""
 
 from app.models.enums import StockType, StockShape, CuttingMode, FeatureType, UserRole, WorkCenterType, QuoteStatus
-from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse
+from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse, PasswordChange
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
 from app.models.feature import Feature, FeatureCreate, FeatureUpdate, FeatureResponse
@@ -27,6 +27,9 @@ from app.models.material import (
     MaterialItemResponse,
     MaterialItemWithGroupResponse,
     MaterialPriceCategory,
+    MaterialPriceCategoryCreate,
+    MaterialPriceCategoryUpdate,
+    MaterialPriceCategoryResponse,
     MaterialPriceTier
 )
 from app.models.material_norm import (
@@ -96,10 +99,19 @@ from app.models.time_vision import (
     OperationBreakdown,
     SimilarPartMatch,
 )
+from app.models.sync_state import (
+    SyncState,
+    SyncLog,
+    SyncStateRead,
+    SyncStateUpdate,
+    SyncLogRead,
+    SyncStatusResponse,
+    SyncTriggerResponse,
+)
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
-    "User", "UserCreate", "UserUpdate", "UserResponse", "LoginRequest", "TokenResponse",
+    "User", "UserCreate", "UserUpdate", "UserResponse", "LoginRequest", "TokenResponse", "PasswordChange",
     "Part", "PartCreate", "PartUpdate", "PartResponse",
     "Operation", "OperationCreate", "OperationUpdate", "OperationResponse",
     "Feature", "FeatureCreate", "FeatureUpdate", "FeatureResponse",
@@ -109,7 +121,7 @@ __all__ = [
     "MaterialGroup", "MaterialGroupCreate", "MaterialGroupUpdate", "MaterialGroupResponse",
     "MaterialItem", "MaterialItemCreate", "MaterialItemUpdate", "MaterialItemResponse", "MaterialItemWithGroupResponse",
     "MaterialInput", "MaterialInputCreate", "MaterialInputUpdate", "MaterialInputResponse",
-    "MaterialPriceCategory", "MaterialPriceTier",
+    "MaterialPriceCategory", "MaterialPriceCategoryCreate", "MaterialPriceCategoryUpdate", "MaterialPriceCategoryResponse", "MaterialPriceTier",
     "MaterialNorm", "MaterialNormCreate", "MaterialNormUpdate", "MaterialNormResponse", "MaterialNormWithGroupResponse",
     "CuttingConditionDB", "CuttingConditionCreate", "CuttingConditionResponse",
     "SystemConfig", "SystemConfigCreate", "SystemConfigUpdate", "SystemConfigResponse",
@@ -124,4 +136,6 @@ __all__ = [
     "TimeVisionEstimation", "TimeVisionResponse", "TimeVisionListItem", "TimeVisionActualTimeUpdate",
     "VisionExtractionResult", "TimeEstimationResult", "OperationBreakdown", "SimilarPartMatch",
     "ProductionRecord", "ProductionRecordCreate", "ProductionRecordUpdate", "ProductionRecordResponse",
+    "SyncState", "SyncLog", "SyncStateRead", "SyncStateUpdate", "SyncLogRead",
+    "SyncStatusResponse", "SyncTriggerResponse",
 ]

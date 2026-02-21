@@ -1,136 +1,72 @@
-import { test, expect } from '@playwright/test';
-import { login } from './helpers/auth';
+import { test, expect } from '@playwright/test'
+import { login } from './helpers/auth'
+import { openModuleViaMenu, closeAllWindows, setupWindowsView, TIMEOUTS } from './helpers/windows'
 
 test.describe('Workspace Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
-    await page.goto('/workspace');
-  });
+    await login(page)
+    await setupWindowsView(page)
+  })
 
-  test('should display workspace with default module', async ({ page }) => {
-    // Should be on workspace route
-    await expect(page).toHaveURL('/workspace');
+  test('should display empty workspace with no windows', async ({ page }) => {
+    const emptyState = page.locator('.empty-state')
+    await expect(emptyState).toBeVisible()
+  })
 
-    // Should show workspace layout
-    await expect(page.locator('[data-testid="workspace-container"]')).toBeVisible();
+  test('should open Part Main module via menu', async ({ page }) => {
+    await openModuleViaMenu(page, 'Part Main')
 
-    // Should show default module (parts-list)
-    await expect(page.locator('[data-testid="module-parts-list"]')).toBeVisible();
-  });
+    const floatingWindow = page.locator('.floating-window')
+    await expect(floatingWindow).toBeVisible()
 
-  test('should switch between workspace modules', async ({ page }) => {
-    // Default: parts-list module
-    await expect(page.locator('[data-testid="module-parts-list"]')).toBeVisible();
+    // Window should have a title
+    const windowTitle = floatingWindow.locator('.window-title')
+    await expect(windowTitle).toBeVisible()
+  })
 
-    // Click on pricing module tab
-    await page.click('[data-testid="module-tab-pricing"]');
+  test('should open multiple modules and switch focus', async ({ page }) => {
+    await openModuleViaMenu(page, 'Part Main')
+    await openModuleViaMenu(page, 'Nabídky')
 
-    // Should show pricing module
-    await expect(page.locator('[data-testid="module-part-pricing"]')).toBeVisible();
-    await expect(page.locator('[data-testid="module-parts-list"]')).toBeHidden();
+    const windows = page.locator('.floating-window')
+    await expect(windows).toHaveCount(2)
 
-    // Click on operations module tab
-    await page.click('[data-testid="module-tab-operations"]');
+    // Click on first window to bring to front
+    await windows.first().locator('.window-titlebar').click()
 
-    // Should show operations module
-    await expect(page.locator('[data-testid="module-part-operations"]')).toBeVisible();
-    await expect(page.locator('[data-testid="module-part-pricing"]')).toBeHidden();
-  });
+    // First window should have higher z-index
+    const zIndex1 = await windows.first().evaluate(el => parseInt(el.style.zIndex || '0'))
+    const zIndex2 = await windows.last().evaluate(el => parseInt(el.style.zIndex || '0'))
+    expect(zIndex1).toBeGreaterThan(zIndex2)
+  })
 
-  test('should select part from parts list and update context', async ({ page }) => {
-    // Wait for parts list to load
-    await page.waitForSelector('[data-testid="parts-table"]');
+  test('should close all windows and show empty state', async ({ page }) => {
+    await openModuleViaMenu(page, 'Admin')
+    await expect(page.locator('.floating-window')).toBeVisible()
 
-    // Click on first part row
-    await page.click('[data-testid="part-row"]:first-child');
+    await closeAllWindows(page)
 
-    // Should update workspace context
-    await expect(page.locator('[data-testid="selected-part-name"]')).toBeVisible();
+    const emptyState = page.locator('.empty-state')
+    await expect(emptyState).toBeVisible()
+  })
 
-    // Switch to pricing module
-    await page.click('[data-testid="module-tab-pricing"]');
+  test('should navigate to settings and back', async ({ page }) => {
+    // Open menu
+    await page.click('.menu-btn')
+    await expect(page.locator('.menu-drawer')).toBeVisible()
 
-    // Pricing module should show data for selected part
-    await expect(page.locator('[data-testid="module-part-pricing"]')).toBeVisible();
-    await expect(page.locator('[data-testid="pricing-part-name"]')).toBeVisible();
-  });
+    // Click settings
+    await page.locator('.settings-btn').click()
 
-  test('should change workspace layout', async ({ page }) => {
-    // Open layout picker
-    await page.click('[data-testid="layout-picker-button"]');
+    // Should navigate to settings
+    await page.waitForSelector('.settings-view, .page-title', { state: 'visible', timeout: TIMEOUTS.API_LOAD })
 
-    // Select layout (e.g., "2 columns")
-    await page.click('[data-testid="layout-option-2col"]');
+    // Go back to windows via menu
+    await page.click('.menu-btn')
+    await expect(page.locator('.menu-drawer')).toBeVisible()
+    await page.locator('.menu-item', { hasText: 'Admin' }).click()
 
-    // Workspace should update layout
-    await expect(page.locator('[data-testid="workspace-container"]')).toHaveClass(/layout-2col/);
-
-    // Both panels should be visible
-    await expect(page.locator('[data-testid="workspace-panel-1"]')).toBeVisible();
-    await expect(page.locator('[data-testid="workspace-panel-2"]')).toBeVisible();
-  });
-
-  test('should persist selected part across module switches', async ({ page }) => {
-    // Select a part
-    await page.waitForSelector('[data-testid="parts-table"]');
-    await page.click('[data-testid="part-row"]:first-child');
-
-    const selectedPartName = await page.locator('[data-testid="selected-part-name"]').textContent();
-
-    // Switch to operations module
-    await page.click('[data-testid="module-tab-operations"]');
-    await expect(page.locator('[data-testid="operations-part-name"]')).toContainText(selectedPartName || '');
-
-    // Switch to material module
-    await page.click('[data-testid="module-tab-material"]');
-    await expect(page.locator('[data-testid="material-part-name"]')).toContainText(selectedPartName || '');
-
-    // Switch to pricing module
-    await page.click('[data-testid="module-tab-pricing"]');
-    await expect(page.locator('[data-testid="pricing-part-name"]')).toContainText(selectedPartName || '');
-  });
-
-  test('should show empty state when no part selected in non-parts-list modules', async ({ page }) => {
-    // Switch to pricing module (no part selected)
-    await page.click('[data-testid="module-tab-pricing"]');
-
-    // Should show empty state
-    await expect(page.locator('[data-testid="empty-state"]')).toBeVisible();
-    await expect(page.locator('[data-testid="empty-state"]')).toContainText('Vyberte díl');
-  });
-
-  test('should switch modules with keyboard shortcuts', async ({ page }) => {
-    // Tab 1: Pricing (Ctrl+1)
-    await page.keyboard.press('Control+1');
-    await expect(page.locator('[data-testid="module-part-pricing"]')).toBeVisible();
-
-    // Tab 2: Operations (Ctrl+2)
-    await page.keyboard.press('Control+2');
-    await expect(page.locator('[data-testid="module-part-operations"]')).toBeVisible();
-
-    // Tab 3: Material (Ctrl+3)
-    await page.keyboard.press('Control+3');
-    await expect(page.locator('[data-testid="module-part-material"]')).toBeVisible();
-
-    // Tab 0: Parts List (Ctrl+0)
-    await page.keyboard.press('Control+0');
-    await expect(page.locator('[data-testid="module-parts-list"]')).toBeVisible();
-  });
-
-  test('should measure module switch performance', async ({ page }) => {
-    // Select a part first
-    await page.waitForSelector('[data-testid="parts-table"]');
-    await page.click('[data-testid="part-row"]:first-child');
-
-    // Measure switch time
-    const start = Date.now();
-
-    await page.click('[data-testid="module-tab-pricing"]');
-    await page.waitForSelector('[data-testid="module-part-pricing"]');
-
-    const switchTime = Date.now() - start;
-
-    // Should be fast (<100ms per spec)
-    expect(switchTime).toBeLessThan(100);
-  });
-});
+    // Should open a floating window
+    await expect(page.locator('.floating-window')).toBeVisible({ timeout: TIMEOUTS.WINDOW_OPEN })
+  })
+})

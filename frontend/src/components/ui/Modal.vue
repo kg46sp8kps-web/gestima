@@ -152,7 +152,7 @@ onUnmounted(() => {
 }
 
 .modal-title {
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0;

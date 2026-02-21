@@ -1,0 +1,107 @@
+#!/bin/bash
+# Git pre-commit hook — runs automatically before every commit.
+# This is the ULTIMATE safety net. Cannot be bypassed without --no-verify.
+# Install: git config core.hooksPath .githooks
+
+set -e
+
+echo "========================================"
+echo "PRE-COMMIT: Running quality checks..."
+echo "========================================"
+
+ERRORS=0
+
+# 1. Check for hardcoded colors in staged Vue/CSS files
+STAGED_FRONTEND=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(vue|css)$' | grep 'frontend/src/' | grep -v 'design-system.css' || true)
+if [ -n "$STAGED_FRONTEND" ]; then
+  echo "[1/5] Checking design system compliance..."
+  for file in $STAGED_FRONTEND; do
+    # Check added lines only (not entire file)
+    HARDCODED=$(git diff --cached -U0 "$file" | grep '^+' | grep -v '^+++' | grep -E '#[0-9a-fA-F]{3,8}' | grep -v 'var(--' | grep -v '//' | head -5)
+    if [ -n "$HARDCODED" ]; then
+      echo "  FAIL: $file — hardcoded color in new code:"
+      echo "$HARDCODED"
+      ERRORS=$((ERRORS + 1))
+    fi
+  done
+  if [ "$ERRORS" -eq 0 ]; then echo "  OK"; fi
+else
+  echo "[1/5] No frontend files staged, skipping design check."
+fi
+
+# 2. Check for 'any' type in staged TypeScript
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|vue)$' | grep 'frontend/src/' || true)
+if [ -n "$STAGED_TS" ]; then
+  echo "[2/5] Checking TypeScript types..."
+  TS_ERRORS=0
+  for file in $STAGED_TS; do
+    ANY_TYPE=$(git diff --cached -U0 "$file" | grep '^+' | grep -v '^+++' | grep -E ': any\b|as any\b|<any>' | head -3)
+    if [ -n "$ANY_TYPE" ]; then
+      echo "  FAIL: $file — 'any' type in new code:"
+      echo "$ANY_TYPE"
+      TS_ERRORS=$((TS_ERRORS + 1))
+    fi
+  done
+  ERRORS=$((ERRORS + TS_ERRORS))
+  if [ "$TS_ERRORS" -eq 0 ]; then echo "  OK"; fi
+else
+  echo "[2/5] No TypeScript files staged, skipping type check."
+fi
+
+# 3. Check backend files for missing auth
+STAGED_ROUTERS=$(git diff --cached --name-only --diff-filter=ACM | grep 'app/routers/' || true)
+if [ -n "$STAGED_ROUTERS" ]; then
+  echo "[3/5] Checking backend auth dependencies..."
+  ROUTER_ERRORS=0
+  for file in $STAGED_ROUTERS; do
+    ENDPOINTS=$(grep -c '@router\.\(get\|post\|put\|delete\|patch\)' "$file" 2>/dev/null || echo 0)
+    AUTH=$(grep -c 'get_current_user\|require_role' "$file" 2>/dev/null || echo 0)
+    if [ "$ENDPOINTS" -gt 0 ] && [ "$AUTH" -lt "$ENDPOINTS" ]; then
+      echo "  WARN: $file — $ENDPOINTS endpoints, $AUTH auth deps (should be equal)"
+      ROUTER_ERRORS=$((ROUTER_ERRORS + 1))
+    fi
+  done
+  ERRORS=$((ERRORS + ROUTER_ERRORS))
+  if [ "$ROUTER_ERRORS" -eq 0 ]; then echo "  OK"; fi
+else
+  echo "[3/5] No routers staged, skipping auth check."
+fi
+
+# 4. Frontend build (type-check)
+STAGED_ANY_FRONTEND=$(git diff --cached --name-only --diff-filter=ACM | grep 'frontend/' || true)
+if [ -n "$STAGED_ANY_FRONTEND" ]; then
+  echo "[4/5] Running frontend build (type-check)..."
+  if npm run build -C frontend --silent 2>/dev/null; then
+    echo "  OK"
+  else
+    echo "  FAIL: Frontend build failed. Fix TypeScript errors before committing."
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  echo "[4/5] No frontend changes, skipping build."
+fi
+
+# 5. Backend tests (fast subset)
+STAGED_PYTHON=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.py$' | grep -E '^app/' || true)
+if [ -n "$STAGED_PYTHON" ]; then
+  echo "[5/5] Running backend tests..."
+  if python3 -m pytest tests/ -x -q --tb=short 2>/dev/null; then
+    echo "  OK"
+  else
+    echo "  FAIL: Backend tests failed. Fix before committing."
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  echo "[5/5] No backend changes, skipping tests."
+fi
+
+echo "========================================"
+if [ "$ERRORS" -gt 0 ]; then
+  echo "PRE-COMMIT FAILED: $ERRORS issue(s) found."
+  echo "Fix the issues above and try again."
+  echo "To bypass (NOT recommended): git commit --no-verify"
+  exit 1
+fi
+echo "PRE-COMMIT PASSED: All checks OK."
+echo "========================================"
+exit 0

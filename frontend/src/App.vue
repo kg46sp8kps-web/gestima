@@ -27,13 +27,15 @@ function initDesignTokens() {
       Object.entries(tokens).forEach(([name, value]) => {
         const cssVar = `--${name}`
         const numValue = value as number
-        // Font sizes and spacing in rem, row-height in px
-        if (name.startsWith('text-') || name.startsWith('space-')) {
-          document.documentElement.style.setProperty(cssVar, `${numValue / 16}rem`)
-        } else if (name === 'density-row-height') {
+        if (name.startsWith('text-')) {
+          // Font sizes in px (matching design-system.css)
           document.documentElement.style.setProperty(cssVar, `${numValue}px`)
-        } else {
+        } else if (name.startsWith('space-')) {
+          // Spacing in rem (matching design-system.css)
           document.documentElement.style.setProperty(cssVar, `${numValue / 16}rem`)
+        } else {
+          // Density values in px
+          document.documentElement.style.setProperty(cssVar, `${numValue}px`)
         }
       })
     } catch (e) {
@@ -59,7 +61,11 @@ const isLoginPage = computed(() => route.name === 'login')
 
     <!-- Main content -->
     <main class="app-main" :class="{ 'with-chrome': !isLoginPage }">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
 
     <!-- Global footer (except login) -->
@@ -93,5 +99,16 @@ const isLoginPage = computed(() => route.name === 'login')
 
 .app-main.with-chrome {
   /* No margin/padding - starts right after header */
+}
+
+/* === ROUTE TRANSITIONS === */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
 }
 </style>

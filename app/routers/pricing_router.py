@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.database import get_db
-from app.db_helpers import set_audit, safe_commit
+from app.db_helpers import set_audit, safe_commit, soft_delete
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.batch import Batch, BatchCreate, BatchResponse
@@ -585,8 +585,8 @@ async def remove_batch_from_set(
     if not batch:
         raise HTTPException(status_code=404, detail="Dávka nenalezena v této sadě")
 
-    # Hard delete for non-frozen batches
-    await db.delete(batch)
+    # Soft delete for non-frozen batches (ADR-001: no hard deletes)
+    await soft_delete(db, batch, deleted_by=current_user.username)
 
     await safe_commit(db, action="odebrání batche ze sady")
     logger.info(

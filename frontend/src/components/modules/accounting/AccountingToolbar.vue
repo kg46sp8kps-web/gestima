@@ -90,7 +90,7 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
 }
 
 .module-title {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0;
@@ -104,7 +104,7 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
 }
 
 .data-badge {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   background: var(--bg-raised);
   padding: var(--space-0\.5) var(--space-3);
@@ -123,7 +123,7 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
 
 .year-select {
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);

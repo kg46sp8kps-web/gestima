@@ -30,7 +30,7 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY musí mít alespoň 32 znaků")
         return v
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1080  # 18 hours
     SECURE_COOKIE: bool = False  # True pro HTTPS (produkce)
 
     # CORS - seznam povolených originů oddělených čárkou
@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     INFOR_USERNAME: str = ""  # Infor API username
     INFOR_PASSWORD: str = ""  # Infor API password
     INFOR_WC_MAPPING: str = '{"PS":"80000011","PSa":"80000011","PSm":"80000011","PSv":"80000011","FV3":"80000006","FH4":"80000007","FV5":"80000010","FV5R":"80000009","FV3R":"80000008","FV":"80000005","SH2":"80000001","SH2A":"80000002","SM1":"80000003","SM3":"80000004","VS":"80000014","OTK":"80000013","OTK/KO":"80000013","MECH":"80000015","KOO":"80000016"}'
+
+    # Infor Sync (Smart Polling)
+    INFOR_SYNC_ENABLED: bool = False
+    INFOR_SYNC_INTERVAL_SECONDS: int = 30
+    INFOR_SYNC_INITIAL_LOOKBACK_DAYS: int = 7
 
     # CsiXls Accounting API
     CSIXLS_API_URL: str = ""  # CsiXls API base URL

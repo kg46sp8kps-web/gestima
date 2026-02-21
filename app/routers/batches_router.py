@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.database import get_db
-from app.db_helpers import set_audit, safe_commit
+from app.db_helpers import set_audit, safe_commit, soft_delete
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
 from app.models.batch import Batch, BatchCreate, BatchResponse
@@ -122,7 +122,7 @@ async def delete_batch(
         return  # 204 No Content
 
     quantity = batch.quantity
-    await db.delete(batch)
+    await soft_delete(db, batch, deleted_by=current_user.username)
 
     await safe_commit(db, action="mazání dávky")
     logger.info(f"Deleted batch: quantity={quantity}", extra={"batch_number": batch_number, "user": current_user.username})

@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GESTIMA — Tiling Workspace v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* THE ONE RED — pure, vivid, unmistakable */
+  --red: #E53935;
+  --red-glow: rgba(229, 57, 53, 0.15);
+  --red-dim: rgba(229, 57, 53, 0.08);
+
+  /* Surfaces — pure neutral, no blue cast */
+  --base: #08080a;
+  --ground: #0e0e10;
+  --surface: rgba(18, 18, 20, 0.88);
+  --raised: rgba(26, 26, 28, 0.92);
+  --glass: rgba(20, 20, 22, 0.65);
+
+  /* Text — higher contrast for readability */
+  --t1: #f5f5f7;
+  --t2: #cdcdd0;
+  --t3: #8e8e96;
+  --t4: #5c5c64;
+
+  /* Borders — barely there */
+  --b1: rgba(255, 255, 255, 0.06);
+  --b2: rgba(255, 255, 255, 0.1);
+  --b3: rgba(255, 255, 255, 0.15);
+
+  /* Status */
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+
+  /* Linking */
+  --la: var(--red);
+  --lb: #60a5fa;
+  --lc: #34d399;
+
+  --font: 'Inter', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --fs: 12px;
+  --fsl: 11px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --r: 6px;
+  --rs: 3px;
+}
+
+html, body {
+  font-family: var(--font); font-size: var(--fs); font-weight: 420;
+  line-height: 1.45; color: var(--t2); background: var(--base);
+  overflow: hidden; height: 100vh; width: 100vw;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--red-glow); color: var(--t1); }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 99px; }
+
+/* ═══════════════════════════════════════
+   NOISE GRAIN TEXTURE — over everything
+   ═══════════════════════════════════════ */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none; opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* ═══════════════════════════════════════
+   AMBIENT BACKGROUND LAYERS
+   ═══════════════════════════════════════ */
+.bg-grid {
+  position: fixed; inset: -200px; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 40s linear infinite;
+}
+.bg-orb {
+  position: fixed; z-index: 0; pointer-events: none; border-radius: 50%;
+  filter: blur(80px);
+}
+.bg-orb.a {
+  width: 500px; height: 500px; top: -10%; right: -5%;
+  background: radial-gradient(circle, var(--red-glow) 0%, transparent 70%);
+  animation: orbFloat 12s ease-in-out infinite alternate;
+}
+.bg-orb.b {
+  width: 400px; height: 400px; bottom: -15%; left: 10%;
+  background: radial-gradient(circle, rgba(229,57,53,0.06) 0%, transparent 70%);
+  animation: orbFloat 15s ease-in-out infinite alternate-reverse;
+}
+
+/* ═══════════════════════════════════════
+   BOOT — cinematic
+   ═══════════════════════════════════════ */
+#boot {
+  position: fixed; inset: 0; z-index: 1000; background: var(--base);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.6s var(--ease), visibility 0.6s;
+}
+#boot.go { opacity: 0; visibility: hidden; }
+
+.b-grid {
+  position: absolute; inset: -200px;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 30s linear infinite;
+  opacity: 0; animation: drift 30s linear infinite, fadeIn 1s 0.1s var(--ease) forwards;
+}
+.b-vig { position: absolute; inset: 0; background: radial-gradient(circle, transparent 20%, var(--base) 70%); }
+.b-glow {
+  position: absolute; width: 500px; height: 350px; top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, var(--red-dim) 0%, transparent 70%);
+  opacity: 0; animation: breatheSlow 4s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate, fadeIn 1.2s 0.2s var(--ease) forwards;
+  will-change: opacity, transform;
+}
+.b-laser {
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 20%, var(--red) 50%, transparent 80%);
+  animation: laserSweep 1.2s 0.15s var(--ease) both;
+  box-shadow: 0 0 20px var(--red), 0 0 60px var(--red-glow);
+}
+.b-center {
+  position: relative; z-index: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 14px;
+}
+.b-mark {
+  width: 56px; height: 56px; border-radius: 50%;
+  opacity: 0; animation: fadeUp 0.5s 0.3s var(--ease) forwards;
+  filter: drop-shadow(0 0 20px rgba(229,57,53,0.4)) drop-shadow(0 0 40px rgba(229,57,53,0.15));
+}
+.b-mark img {
+  width: 100%; height: 100%; object-fit: contain; border-radius: 50%;
+}
+.b-logo {
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+  letter-spacing: 0.14em; opacity: 0; animation: fadeUp 0.5s 0.4s var(--ease) forwards;
+}
+.b-logo em { color: var(--red); font-style: normal; }
+.b-logo span { color: var(--t1); }
+.b-sub {
+  font-size: 10px; color: var(--t3); letter-spacing: 0.35em; text-transform: uppercase;
+  opacity: 0; animation: fadeUp 0.4s 0.6s var(--ease) forwards;
+}
+.b-prog {
+  width: 120px; height: 1px; background: var(--b1); border-radius: 99px; overflow: hidden;
+  margin-top: 8px; opacity: 0; animation: fadeIn 0.3s 0.7s var(--ease) forwards;
+}
+.b-bar { height: 100%; width: 0; background: var(--red); animation: fill 1s 0.8s var(--ease) forwards; }
+
+/* ═══════════════════════════════════════
+   WORKSPACE
+   ═══════════════════════════════════════ */
+#ws {
+  display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1;
+  opacity: 0; transform: scale(0.985);
+  transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+}
+#ws.on { opacity: 1; transform: scale(1); }
+
+/* ═══════════════════════════════════════
+   HEADER — 34px, glass
+   ═══════════════════════════════════════ */
+.hdr {
+  height: 34px;
+  background: var(--surface);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--b1);
+  display: flex; align-items: center; padding: 0 10px; gap: 6px;
+  position: relative; z-index: 10; flex-shrink: 0;
+  opacity: 0; transform: translateY(-4px);
+}
+.hdr.in { animation: sD 0.3s 0.05s var(--ease) forwards; }
+
+.hlogo {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(229,57,53,0.2));
+  transition: filter 0.2s var(--ease);
+}
+.hlogo:hover { filter: drop-shadow(0 0 10px rgba(229,57,53,0.4)); }
+.logo {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; user-select: none; flex-shrink: 0;
+}
+.logo em { color: var(--red); font-style: normal; }
+.logo span { color: var(--t1); }
+.logo-div {
+  width: 1px; height: 12px; background: var(--b2); margin: 0 4px;
+  display: inline-block; vertical-align: middle;
+}
+
+/* Layout chips */
+.lchips { display: flex; gap: 1px; flex-shrink: 0; }
+.lchip {
+  padding: 3px 8px; font-size: var(--fsl); font-weight: 500;
+  color: var(--t3); background: transparent; border: 1px solid transparent;
+  border-radius: var(--rs); cursor: pointer; transition: all 0.12s var(--ease);
+  font-family: inherit; white-space: nowrap;
+}
+.lchip:hover { color: var(--t2); background: var(--b1); }
+.lchip.on { color: var(--t1); background: var(--b1); border-color: var(--b2); }
+
+.hfill { flex: 1; }
+
+.hbtn {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: var(--rs);
+  color: var(--t3); cursor: pointer; transition: all 0.1s;
+}
+.hbtn:hover { color: var(--t1); background: var(--b1); }
+.hbtn svg { width: 13px; height: 13px; stroke-width: 1.8; }
+.ava {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--red-dim); border: 1px solid rgba(229,57,53,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 600; color: var(--red); cursor: pointer;
+}
+
+/* ═══════════════════════════════════════
+   TILES
+   ═══════════════════════════════════════ */
+.tiles {
+  flex: 1; display: grid; gap: 2px; padding: 2px;
+  position: relative; z-index: 1; min-height: 0;
+  transition: grid-template-columns 0.3s var(--ease);
+}
+.tiles[data-l="std"] { grid-template-columns: 220px 1fr; }
+.tiles[data-l="cmp"] { grid-template-columns: 200px 1fr 1fr 200px; }
+.tiles[data-l="hor"] { grid-template-columns: 200px 1fr; grid-template-rows: 1fr 1fr; }
+.tiles[data-l="qd"] { grid-template-columns: 200px 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+/* ═══════════════════════════════════════
+   PANEL — glass morphism
+   ═══════════════════════════════════════ */
+.pnl {
+  background: var(--surface);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid var(--b1);
+  border-radius: var(--r); display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  transition: border-color 0.15s, box-shadow 0.2s;
+  opacity: 0; transform: scale(0.98);
+}
+.pnl.v { animation: pnlIn 0.35s var(--ease) forwards; }
+.pnl.focused { border-color: var(--b2); box-shadow: 0 0 0 1px var(--b1), 0 8px 32px rgba(0,0,0,0.4); }
+
+/* Context stripe — 1px, very subtle */
+.pnl::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 1px; z-index: 5; opacity: 0;
+}
+.pnl.ca::before { background: linear-gradient(90deg, transparent, var(--la) 30%, var(--la) 70%, transparent); opacity: 0.4; }
+.pnl.cb::before { background: linear-gradient(90deg, transparent, var(--lb) 30%, var(--lb) 70%, transparent); opacity: 0.4; }
+
+.pnl.max {
+  position: fixed !important; inset: 36px 2px 22px 2px; z-index: 50;
+  grid-column: auto !important; grid-row: auto !important;
+}
+
+/* Panel header — 26px */
+.ph {
+  height: 26px; background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--b1);
+  display: flex; align-items: center; padding: 0 6px; gap: 3px;
+  flex-shrink: 0; user-select: none;
+}
+.pht {
+  font-size: var(--fsl); font-weight: 600; color: var(--t3);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+}
+.pht .n { font-family: var(--mono); font-size: 10px; color: var(--t4); padding: 0 3px; background: var(--b1); border-radius: 2px; }
+
+.ptabs { display: flex; gap: 1px; margin-left: 2px; }
+.ptab {
+  padding: 2px 6px; font-size: 10px; font-weight: 500;
+  color: var(--t4); background: transparent; border: none;
+  border-radius: 2px; cursor: pointer; transition: all 0.08s; font-family: inherit;
+}
+.ptab:hover { color: var(--t3); }
+.ptab.on { color: var(--t1); background: var(--b1); }
+
+.phf { flex: 1; }
+.pc {
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 2px;
+  color: var(--t4); cursor: pointer; font-size: 9px; transition: all 0.06s; font-family: var(--font);
+}
+.pc:hover { background: var(--b1); color: var(--t1); }
+.pc.x:hover { background: rgba(248,113,113,0.12); color: var(--err); }
+
+.pb { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+
+/* ═══════════════════════════════════════
+   PARTS LIST
+   ═══════════════════════════════════════ */
+.srch-w { padding: 3px 5px; border-bottom: 1px solid var(--b1); }
+.srch {
+  width: 100%; padding: 3px 6px 3px 22px; background: rgba(255,255,255,0.03);
+  border: 1px solid var(--b1); border-radius: var(--rs);
+  color: var(--t1); font-size: var(--fs); font-family: inherit;
+  outline: none; height: 22px; transition: all 0.1s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%23404048' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 6px center;
+}
+.srch::placeholder { color: var(--t4); }
+.srch:focus { border-color: var(--b3); background-color: rgba(255,255,255,0.05); }
+
+.plist { list-style: none; }
+.pi {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 7px; cursor: pointer; transition: background 0.06s; position: relative;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+.pi:hover { background: var(--b1); }
+.pi.sel { background: rgba(229,57,53,0.06); }
+.pi.sel::after {
+  content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
+  width: 2px; background: var(--red); border-radius: 0 1px 1px 0;
+}
+.pn { font-family: var(--mono); font-size: var(--fs); font-weight: 500; color: var(--t1); min-width: 64px; }
+.pm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.pd.ok { background: var(--ok); } .pd.w { background: var(--warn); }
+.pd.e { background: var(--err); } .pd.o { background: var(--t4); }
+
+/* Mini sparkline next to price in list */
+.spark {
+  width: 28px; height: 10px; flex-shrink: 0;
+}
+.spark polyline {
+  fill: none; stroke: var(--t4); stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ═══════════════════════════════════════
+   RIBBON — compact info strip
+   ═══════════════════════════════════════ */
+.rib {
+  padding: 5px 7px; background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--b1); flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.rib.fade { opacity: 0.3; }
+.rib-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rib-i { display: flex; align-items: baseline; gap: 3px; }
+.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
+.rib-v.m { font-family: var(--mono); }
+.bdg {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 0 5px; font-size: 10px; font-weight: 500;
+  border-radius: 99px; background: var(--b1); color: var(--t2);
+}
+.bdg .dot { width: 4px; height: 4px; border-radius: 50%; }
+/* KPI mini cards in ribbon */
+.rib-kpis { display: flex; gap: 4px; margin-top: 3px; }
+.rib-kpi {
+  padding: 2px 6px; background: var(--b1); border-radius: var(--rs);
+  display: flex; align-items: center; gap: 4px;
+}
+.rib-kpi .kl { font-size: 10px; color: var(--t4); }
+.rib-kpi .kv { font-family: var(--mono); font-size: var(--fs); color: var(--t1); font-weight: 600; }
+.rib-kpi .ku { font-size: 9px; color: var(--t4); }
+
+.acts { display: flex; gap: 3px; margin-top: 3px; }
+.act {
+  padding: 2px 6px; font-size: 10px; font-weight: 500;
+  background: transparent; border: 1px solid var(--b1);
+  border-radius: var(--rs); color: var(--t3); cursor: pointer;
+  transition: all 0.08s; font-family: inherit;
+}
+.act:hover { background: var(--b1); color: var(--t1); border-color: var(--b2); }
+.act.brand { border-color: rgba(229,57,53,0.25); color: var(--red); }
+.act.brand:hover { background: var(--red-dim); border-color: rgba(229,57,53,0.4); }
+
+/* ═══════════════════════════════════════
+   TAB CONTENT
+   ═══════════════════════════════════════ */
+.tc { flex: 1; overflow-y: auto; min-height: 0; }
+
+/* OPS TABLE */
+.ot { width: 100%; border-collapse: collapse; }
+.ot thead { background: rgba(255,255,255,0.02); position: sticky; top: 0; z-index: 2; }
+.ot th {
+  padding: 3px 7px; font-size: 10px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
+  border-bottom: 1px solid var(--b1); white-space: nowrap;
+}
+.ot th.r { text-align: right; }
+.ot td { padding: 3px 7px; font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.02); }
+.ot td.r { font-family: var(--mono); text-align: right; color: var(--t1); }
+.ot tbody tr { transition: background 0.04s; }
+.ot tbody tr:hover td { background: var(--b1); }
+.ot tbody tr.sel td { background: var(--red-dim); }
+
+.tb {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 4px; font-family: var(--mono); font-size: 10px;
+  border-radius: 99px; background: var(--b1); color: var(--t2);
+}
+.tb .d { width: 3px; height: 3px; border-radius: 50%; }
+.tb.s .d { background: var(--red); }
+.tb.o .d { background: var(--ok); }
+
+/* PRICING */
+.pr-w { padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.pr-row { display: flex; gap: 4px; }
+.prc {
+  flex: 1; padding: 5px 7px; background: var(--b1); border-radius: var(--rs);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.prc .l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; }
+.prc .v { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--t1); }
+.prc .u { font-size: 9px; color: var(--t4); }
+
+.ring-row { display: flex; align-items: center; gap: 12px; }
+.ring-svg { width: 72px; height: 72px; flex-shrink: 0; }
+.ring-leg { display: flex; flex-direction: column; gap: 3px; }
+.rli { display: flex; align-items: center; gap: 4px; font-size: var(--fs); color: var(--t3); }
+.rld { width: 5px; height: 5px; border-radius: 1px; flex-shrink: 0; }
+.rlv { font-family: var(--mono); color: var(--t1); font-weight: 500; margin-left: auto; min-width: 36px; text-align: right; }
+
+.bt { width: 100%; border-collapse: collapse; }
+.bt th {
+  padding: 3px 7px; font-size: 10px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
+  border-bottom: 1px solid var(--b1); background: rgba(255,255,255,0.02);
+}
+.bt td { padding: 3px 7px; font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.02); }
+.bt .c { font-family: var(--mono); text-align: right; color: var(--t1); white-space: nowrap; }
+
+/* DRAWING */
+.drw {
+  flex: 1; margin: 5px; background: rgba(255,255,255,0.015);
+  border: 1px solid var(--b1); border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; min-height: 80px;
+}
+.drw::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.drw::after {
+  content: ''; position: absolute; width: 24px; height: 24px;
+  border: 1px solid rgba(229,57,53,0.2); border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.drw span { font-size: var(--fs); color: var(--t4); z-index: 1; }
+
+/* ═══════════════════════════════════════
+   STATUS BAR — 20px
+   ═══════════════════════════════════════ */
+.sbar {
+  height: 20px; background: var(--surface);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--b1);
+  display: flex; align-items: center; padding: 0 8px; gap: 6px;
+  font-size: 10px; color: var(--t4); flex-shrink: 0; z-index: 10;
+  opacity: 0; animation: sU 0.3s 0.4s var(--ease) forwards;
+}
+.sbar .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ok); animation: pulse 3s infinite; }
+.sbar .sl { color: var(--t3); }
+.sbar .sb { flex: 1; text-align: center; font-family: var(--mono); color: var(--t4); }
+.sbar .sb .a { color: var(--t3); }
+.sbar .sb .sp { opacity: 0.3; margin: 0 2px; }
+.sbar .sr { display: flex; gap: 5px; align-items: center; }
+.sbar .ck { font-family: var(--mono); color: var(--t3); }
+.sbar .sep { opacity: 0.2; }
+
+/* ═══════════════════════════════════════
+   FAB + PICKER
+   ═══════════════════════════════════════ */
+.fab {
+  position: fixed; bottom: 28px; right: 10px; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--red); border: none;
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 12px rgba(229,57,53,0.35), 0 0 30px rgba(229,57,53,0.1);
+  transition: all 0.15s var(--ease); z-index: 20;
+  opacity: 0; transform: scale(0.5);
+}
+.fab.in { animation: fabIn 0.3s 0.5s var(--spring) forwards; }
+.fab:hover { background: #ef5350; transform: scale(1.08); box-shadow: 0 4px 20px rgba(229,57,53,0.45); }
+.fab svg { width: 14px; height: 14px; stroke-width: 2.5; }
+
+.mpk {
+  position: fixed; bottom: 64px; right: 10px; width: 180px;
+  background: var(--surface); backdrop-filter: blur(20px);
+  border: 1px solid var(--b1); border-radius: var(--r);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; overflow: hidden;
+  transform-origin: bottom right; transition: all 0.15s var(--ease);
+  opacity: 0; transform: scale(0.92) translateY(4px); pointer-events: none;
+}
+.mpk.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+.mpk-h {
+  padding: 4px 7px; font-size: 9px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--b1);
+}
+.mpk-i {
+  display: flex; align-items: center; gap: 5px; padding: 4px 7px;
+  font-size: var(--fs); color: var(--t3); cursor: pointer; transition: all 0.06s;
+  border: none; background: none; width: 100%; text-align: left; font-family: inherit;
+}
+.mpk-i:hover { background: var(--b1); color: var(--t1); }
+.mpk-i .k { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-left: auto; }
+
+/* ═══════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════ */
+@keyframes drift { from { transform: translate(0,0); } to { transform: translate(60px,60px); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes breathe { from { opacity: 0.3; transform: translate(-50%,-50%) scale(0.95); } to { opacity: 0.6; transform: translate(-50%,-50%) scale(1.05); } }
+@keyframes breatheSlow { from { opacity: 0.25; transform: translate(-50%,-50%) scale(0.97); } to { opacity: 0.55; transform: translate(-50%,-50%) scale(1.04); } }
+@keyframes laserSweep { 0% { transform: translateY(-100vh); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(100vh); opacity: 0; } }
+@keyframes fill { 0% { width: 0; } 60% { width: 75%; } 100% { width: 100%; } }
+@keyframes sD { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sU { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pnlIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+@keyframes fabIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes orbFloat { from { transform: translate(0,0); } to { transform: translate(-30px, 20px); } }
+@keyframes sparkDraw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+</style>
+</head>
+<body>
+<!-- Ambient layers -->
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+
+<!-- BOOT -->
+<div id="boot">
+  <div class="b-grid"></div><div class="b-vig"></div><div class="b-glow"></div><div class="b-laser"></div>
+  <div class="b-center">
+    <div class="b-mark"><img src="public/logo.png" alt="KOVO RYBKA"></div>
+    <div class="b-logo"><em>GESTI</em><span>MA</span></div>
+    <div class="b-sub">Kalkulace CNC výroby</div>
+    <div class="b-prog"><div class="b-bar"></div></div>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div id="ws">
+  <header class="hdr" id="hdr">
+    <img src="public/logo.png" class="hlogo" alt="Logo">
+    <div class="logo"><em>GESTI</em><span>MA</span></div>
+    <span class="logo-div"></span>
+    <div class="lchips">
+      <button class="lchip on" onclick="setL('std')">Standardní</button>
+      <button class="lchip" onclick="setL('cmp')">Porovnání</button>
+      <button class="lchip" onclick="setL('hor')">Horizontální</button>
+      <button class="lchip" onclick="setL('qd')">Kompletní</button>
+    </div>
+    <div class="hfill"></div>
+    <div style="display:flex;gap:2px">
+      <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></button>
+      <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
+      <div class="ava">JN</div>
+    </div>
+  </header>
+
+  <main class="tiles" id="tiles" data-l="std"></main>
+
+  <footer class="sbar">
+    <span class="dot"></span><span class="sl">Připojeno</span>
+    <span class="sb" id="crumb"><span class="a">Díl 10001234</span><span class="sp">→</span>Hřídel hlavní</span>
+    <span class="sr">
+      <span class="ck" id="ck"></span><span class="sep">·</span>
+      <span>KOVO RYBKA s.r.o.</span><span class="sep">·</span><span style="font-family:var(--mono);opacity:0.5">v2.0</span>
+    </span>
+  </footer>
+
+  <button class="fab" id="fab" onclick="toggleP()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <div class="mpk" id="mpk">
+    <div class="mpk-h">Přidat modul</div>
+    <button class="mpk-i">TimeVision<span class="k">⌘6</span></button>
+    <button class="mpk-i">Dávkové sady<span class="k">⌘7</span></button>
+    <button class="mpk-i">Partneři<span class="k">⌘8</span></button>
+    <button class="mpk-i">Nabídky<span class="k">⌘9</span></button>
+    <button class="mpk-i">Výroba<span class="k">⌘0</span></button>
+    <button class="mpk-i">Účetnictví</button>
+    <button class="mpk-i">Soubory</button>
+  </div>
+</div>
+
+<script>
+const D=[
+{n:'10001234',nm:'Hřídel hlavní Ø45×280',s:'ok',m:'Ocel 12 050.1',o:4,p:'234,50',sp:[2,5,3,7,4,6,8,5]},
+{n:'10001235',nm:'Příruba upínací M12',s:'ok',m:'Ocel 11 523',o:3,p:'117,20',sp:[4,3,5,2,6,4,3,5]},
+{n:'10001236',nm:'Pouzdro kluzné Ø30',s:'w',m:'Bronz CuSn8',o:2,p:'89,60',sp:[1,3,2,4,3,2,4,5]},
+{n:'10001237',nm:'Čep vodící 16h7×95',s:'ok',m:'Ocel 14 220.4',o:3,p:'156,80',sp:[3,6,4,5,7,5,4,6]},
+{n:'10001238',nm:'Víko ložiskové A45',s:'ok',m:'Litina 42 2420',o:5,p:'312,40',sp:[5,4,6,8,7,6,8,9]},
+{n:'10001239',nm:'Distanční kroužek',s:'o',m:'Ocel 11 373',o:1,p:'18,30',sp:[1,1,2,1,2,1,1,2]},
+{n:'10001240',nm:'Táhlo ovládací L=320',s:'ok',m:'Ocel 12 050.1',o:3,p:'145,70',sp:[4,5,3,6,5,4,6,5]},
+{n:'10001241',nm:'Ozubené kolo Z=24',s:'e',m:'Ocel 14 220.4',o:6,p:'478,90',sp:[6,8,7,9,8,7,9,8]},
+{n:'10001242',nm:'Deska základová 200×300',s:'ok',m:'Litina 42 2420',o:4,p:'267,30',sp:[4,5,6,4,5,7,6,5]},
+{n:'10001243',nm:'Matice speciální M36',s:'ok',m:'Ocel 11 600',o:2,p:'42,10',sp:[2,3,2,3,4,3,2,3]},
+{n:'10001244',nm:'Vřeteno upínací Ø50',s:'w',m:'Ocel 12 050.1',o:5,p:'389,00',sp:[5,7,6,8,7,6,8,7]},
+{n:'10001245',nm:'Klín Woodruffův 8×7',s:'ok',m:'Ocel 11 600',o:1,p:'12,80',sp:[1,2,1,1,2,1,2,1]},
+];
+
+const OPS={
+'10001234':[
+{sq:10,wc:'DMG MORI NLX',op:'Soustružení',su:'15:00',t:'4:32',c:'45,30'},
+{sq:20,wc:'HAAS VF-2',op:'Frézování drážky',su:'12:00',t:'8:15',c:'82,50'},
+{sq:30,wc:'BUA 28',op:'Broušení Ø45h6',su:'8:00',t:'3:20',c:'33,30'},
+{sq:40,wc:'KONTROLA',op:'Měření 3D',su:'—',t:'2:00',c:'20,00'},
+],
+'10001235':[
+{sq:10,wc:'DMG MORI NLX',op:'Soustružení čela',su:'10:00',t:'3:10',c:'31,70'},
+{sq:20,wc:'HAAS VF-2',op:'Vrtání 6× Ø12',su:'8:00',t:'5:45',c:'57,50'},
+{sq:30,wc:'ZÁMEČNÍK',op:'Odjehlení',su:'—',t:'4:00',c:'28,00'},
+],
+};
+
+const PRC={
+'10001234':{u:'234,50',mat:'45,80',mc:'181,10',oh:'7,60',b:[
+{q:1,u:'234,50',t:'234,50'},{q:10,u:'65,30',t:'653,00'},
+{q:50,u:'38,70',t:'1 935,00'},{q:100,u:'32,10',t:'3 210,00'},
+]},
+'10001235':{u:'117,20',mat:'22,40',mc:'89,30',oh:'5,50',b:[
+{q:1,u:'117,20',t:'117,20'},{q:10,u:'42,80',t:'428,00'},
+{q:50,u:'28,90',t:'1 445,00'},
+]},
+};
+
+const SL={ok:'Aktivní',w:'Čeká',e:'Chyba',o:'Koncept'};
+const SC={ok:'ok',w:'w',e:'e',o:'o'};
+let sel=0,po=false,cl='std';
+
+// Boot
+setTimeout(()=>{
+  document.getElementById('boot').classList.add('go');
+  document.getElementById('ws').classList.add('on');
+  setTimeout(()=>{
+    document.getElementById('hdr').classList.add('in');
+    document.getElementById('fab').classList.add('in');
+    build(cl);
+  },60);
+},2000);
+
+function setL(l){
+  cl=l;
+  document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.textContent.trim()==={std:'Standardní',cmp:'Porovnání',hor:'Horizontální',qd:'Kompletní'}[l]));
+  build(l);
+}
+
+function build(l){
+  const t=document.getElementById('tiles');
+  t.dataset.l=l;
+  t.innerHTML='';
+  const d=80;
+  if(l==='std'){
+    t.innerHTML=mkList('ca')+mkWork('w1','ca');
+    anim(t,d);
+  } else if(l==='cmp'){
+    t.innerHTML=mkList('ca')+mkWork('w1','ca')+mkWork('w2','cb')+mkList2('cb');
+    anim(t,d);
+  } else if(l==='hor'){
+    t.innerHTML=mkList('ca','1/span 2')+mkWork('w1','ca')+mkWork('w2','ca');
+    anim(t,d);
+  } else if(l==='qd'){
+    t.innerHTML=mkList('ca','1/span 2')+mkWork('w1','ca')+mkWork('w2','cb')+mkWork('w3','ca')+mkWork('w4','cb');
+    anim(t,d);
+  }
+  setTimeout(()=>{rList();selP(sel);
+    if(l==='cmp'){rList2();selP2(sel2);}
+    document.querySelectorAll('.pnl').forEach(p=>{
+      p.addEventListener('mousedown',()=>{document.querySelectorAll('.pnl').forEach(x=>x.classList.remove('focused'));p.classList.add('focused');});
+    });
+  },40);
+}
+
+function anim(t,d){
+  t.querySelectorAll('.pnl').forEach((p,i)=>{
+    setTimeout(()=>p.classList.add('v'),i*d);
+  });
+}
+
+function mkList(ctx,gr){
+  const s=gr?` style="grid-row:${gr}"`:'';
+  return `<div class="pnl ${ctx}"${s}><div class="ph"><span class="pht">Díly <span class="n" id="pcnt">12</span></span><span class="phf"></span><div style="display:flex;gap:1px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="psrch" oninput="rList(this.value)"></div><ul class="plist" id="plist"></ul></div></div>`;
+}
+
+function mkList2(ctx){
+  return `<div class="pnl ${ctx}"><div class="ph"><span class="pht">Díly B <span class="n" id="pcnt2">12</span></span><span class="phf"></span><div style="display:flex;gap:1px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="psrch2" oninput="rList2(this.value)"></div><ul class="plist" id="plist2"></ul></div></div>`;
+}
+
+let sel2=3;
+function rList2(q=''){
+  const el=document.getElementById('plist2');if(!el)return;
+  const f=q?D.filter(p=>p.n.includes(q)||p.nm.toLowerCase().includes(q.toLowerCase())):D;
+  const cn=document.getElementById('pcnt2');if(cn)cn.textContent=f.length;
+  el.innerHTML=f.map(p=>{
+    const ri=D.indexOf(p);
+    return `<li class="pi ${ri===sel2?'sel':''}" onclick="selP2(${ri})"><span class="pn">${p.n}</span><span class="pm">${p.nm}</span>${sparkSvg(p.sp)}<span class="pd ${SC[p.s]}"></span></li>`;
+  }).join('');
+}
+
+function selP2(i){
+  sel2=i;const p=D[i];
+  rList2(document.getElementById('psrch2')?.value||'');
+  const el=document.getElementById('w2r');
+  if(el){const id='w2';fillW(id,p);}
+}
+
+function mkWork(id,ctx){
+  return `<div class="pnl ${ctx}" id="${id}"><div class="ph"><span class="pht" id="${id}t">Detail</span><div class="ptabs" id="${id}tb"><button class="ptab on" onclick="sTab('${id}','ops',this)">Operace</button><button class="ptab" onclick="sTab('${id}','pri',this)">Kalkulace</button><button class="ptab" onclick="sTab('${id}','drw',this)">Výkres</button></div><span class="phf"></span><div style="display:flex;gap:1px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div style="display:flex;flex-direction:column;height:100%"><div class="rib" id="${id}r"></div><div class="tc" id="${id}ops"></div><div class="tc" id="${id}pri" style="display:none"></div><div class="tc" id="${id}drw" style="display:none;flex:1"></div></div></div></div>`;
+}
+
+function sparkSvg(pts){
+  const mx=Math.max(...pts),mn=Math.min(...pts);
+  const w=28,h=10;
+  const coords=pts.map((v,i)=>`${(i/(pts.length-1))*w},${h-((v-mn)/(mx-mn||1))*h}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${coords}"/></svg>`;
+}
+
+function rList(q=''){
+  const el=document.getElementById('plist');if(!el)return;
+  const f=q?D.filter(p=>p.n.includes(q)||p.nm.toLowerCase().includes(q.toLowerCase())):D;
+  const cn=document.getElementById('pcnt');if(cn)cn.textContent=f.length;
+  el.innerHTML=f.map(p=>{
+    const ri=D.indexOf(p);
+    return `<li class="pi ${ri===sel?'sel':''}" onclick="selP(${ri})"><span class="pn">${p.n}</span><span class="pm">${p.nm}</span>${sparkSvg(p.sp)}<span class="pd ${SC[p.s]}"></span></li>`;
+  }).join('');
+}
+
+function selP(i){
+  sel=i;const p=D[i];
+  rList(document.getElementById('psrch')?.value||'');
+  document.querySelectorAll('[id^="w"][id$="r"]').forEach(el=>{
+    const id=el.id.replace('r','');
+    fillW(id,p);
+  });
+  const c=document.getElementById('crumb');
+  if(c)c.innerHTML=`<span class="a">Díl ${p.n}</span><span class="sp">→</span>${p.nm}`;
+}
+
+function fillW(id,p){
+  const r=document.getElementById(id+'r'),t=document.getElementById(id+'t');
+  if(!r)return;
+  t.innerHTML=`<span style="color:var(--t4)">${p.n}</span> ${p.nm}`;
+  r.classList.add('fade');
+  setTimeout(()=>{
+    r.innerHTML=`<div class="rib-r"><span class="rib-i"><span class="rib-l">Díl</span><span class="rib-v m">${p.n}</span></span><span class="rib-i"><span class="rib-l">Mat.</span><span class="rib-v">${p.m}</span></span><span class="rib-i"><span class="rib-l">Ops</span><span class="rib-v m">${p.o}</span></span><span class="bdg"><span class="dot ${SC[p.s]}"></span>${SL[p.s]}</span></div><div class="rib-kpis"><div class="rib-kpi"><span class="kl">Cena/ks</span><span class="kv">${p.p}</span><span class="ku">CZK</span></div><div class="rib-kpi"><span class="kl">Dávka 50ks</span><span class="kv">${(parseFloat(p.p.replace(',','.'))*0.42).toFixed(0)},00</span><span class="ku">CZK</span></div></div><div class="acts"><button class="act brand">✎ Upravit</button><button class="act">⊕ Operace</button><button class="act">⎘ Kopie</button></div>`;
+    r.classList.remove('fade');
+  },100);
+  fillOps(id,p.n);fillPri(id,p.n);fillDrw(id,p.nm);
+}
+
+function fillOps(id,num){
+  const el=document.getElementById(id+'ops');if(!el)return;
+  const ops=OPS[num]||OPS['10001234'];
+  el.innerHTML=`<table class="ot"><thead><tr><th>Seq</th><th>Pracoviště</th><th>Operace</th><th class="r">Seříz.</th><th class="r">Čas/ks</th><th class="r">CZK</th></tr></thead><tbody>${ops.map((o,i)=>`<tr class="${i===0?'sel':''}"><td class="r">${o.sq}</td><td>${o.wc}</td><td>${o.op}</td><td class="r">${o.su==='—'?'<span style="color:var(--t4)">—</span>':`<span class="tb s"><span class="d"></span>${o.su}</span>`}</td><td class="r"><span class="tb o"><span class="d"></span>${o.t}</span></td><td class="r">${o.c}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function fillPri(id,num){
+  const el=document.getElementById(id+'pri');if(!el)return;
+  const pr=PRC[num]||PRC['10001234'];
+  const tot=parseFloat(pr.u.replace(',','.')),mp=parseFloat(pr.mat.replace(',','.'))/tot,mcp=parseFloat(pr.mc.replace(',','.'))/tot,op=1-mp-mcp;
+  const r=28,circ=2*Math.PI*r,mL=circ*mp,mcL=circ*mcp,oL=circ*op;
+  el.innerHTML=`<div class="pr-w"><div class="pr-row"><div class="prc"><span class="l">Cena/ks</span><span class="v">${pr.u}</span><span class="u">CZK</span></div><div class="prc"><span class="l">Materiál</span><span class="v">${pr.mat}</span><span class="u">CZK</span></div><div class="prc"><span class="l">Obrábění</span><span class="v">${pr.mc}</span><span class="u">CZK</span></div></div><div class="ring-row"><svg class="ring-svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--b1)" stroke-width="5"/><circle cx="32" cy="32" r="${r}" fill="none" stroke="#60a5fa" stroke-width="5" stroke-dasharray="${mL} ${circ-mL}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round"/><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--red)" stroke-width="5" stroke-dasharray="${mcL} ${circ-mcL}" stroke-dashoffset="${circ*0.25-mL}" stroke-linecap="round"/><circle cx="32" cy="32" r="${r}" fill="none" stroke="#6b7280" stroke-width="5" stroke-dasharray="${oL} ${circ-oL}" stroke-dashoffset="${circ*0.25-mL-mcL}" stroke-linecap="round"/><text x="32" y="31" text-anchor="middle" fill="var(--t1)" font-family="JetBrains Mono" font-size="7" font-weight="600">${pr.u}</text><text x="32" y="38" text-anchor="middle" fill="var(--t4)" font-family="Inter" font-size="5">CZK/ks</text></svg><div class="ring-leg"><div class="rli"><span class="rld" style="background:#60a5fa"></span>Materiál<span class="rlv">${pr.mat}</span></div><div class="rli"><span class="rld" style="background:var(--red)"></span>Obrábění<span class="rlv">${pr.mc}</span></div><div class="rli"><span class="rld" style="background:#6b7280"></span>Režie<span class="rlv">${pr.oh}</span></div></div></div><table class="bt"><thead><tr><th>Množství</th><th style="text-align:right">Cena/ks</th><th style="text-align:right">Celkem</th></tr></thead><tbody>${pr.b.map(b=>`<tr><td class="q" style="font-family:var(--mono);text-align:right">${b.q} ks</td><td class="c">${b.u} CZK</td><td class="c">${b.t} CZK</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function fillDrw(id,nm){
+  const el=document.getElementById(id+'drw');if(!el)return;
+  el.innerHTML=`<div class="drw"><span>Výkres — ${nm}</span></div>`;
+}
+
+function sTab(id,tab,btn){
+  const tb=document.getElementById(id+'tb');
+  if(tb)tb.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  ['ops','pri','drw'].forEach(t=>{const e=document.getElementById(id+t);if(e)e.style.display=t===tab?'':'none';});
+}
+
+function toggleMax(p){p.classList.toggle('max');}
+
+let po2=false;
+function toggleP(){
+  po2=!po2;
+  document.getElementById('mpk').classList.toggle('open',po2);
+  document.getElementById('fab').style.transform=po2?'rotate(45deg)':'';
+}
+document.addEventListener('click',e=>{
+  if(po2&&!e.target.closest('#fab')&&!e.target.closest('#mpk')){
+    po2=false;document.getElementById('mpk').classList.remove('open');
+    document.getElementById('fab').style.transform='';
+  }
+});
+
+function ck(){const e=document.getElementById('ck');if(e)e.textContent=new Date().toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});}
+ck();setInterval(ck,10000);
+
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&['1','2','3','4'].includes(e.key)){
+    e.preventDefault();setL(['std','cmp','hor','qd'][+e.key-1]);
+  }
+});
+</script>
+</body>
+</html>

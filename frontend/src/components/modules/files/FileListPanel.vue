@@ -216,7 +216,7 @@ async function handleFileUpload(event: Event) {
 .checkbox-label input[type="checkbox"] { cursor: pointer; }
 .file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); }
 .empty-icon { margin-bottom: var(--space-3); opacity: 0.5; }
-.hint { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: var(--space-1); }
+.hint { font-size: var(--text-sm); color: var(--text-tertiary); margin-top: var(--space-1); }
 .upload-zone { flex-shrink: 0; margin-top: auto; padding-top: var(--space-3); border-top: 1px solid var(--border-default); }
 .upload-label { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4); background: var(--bg-surface); border: 2px dashed var(--border-default); border-radius: var(--radius-md); cursor: pointer; transition: all var(--duration-fast); font-size: var(--text-sm); color: var(--text-secondary); text-align: center; }
 .upload-label:hover { border-color: var(--border-strong); background: var(--bg-raised); }

@@ -136,11 +136,21 @@ async def lifespan(app: FastAPI):
     # TODO: implement FileService.cleanup_expired_temp_files() if needed
     logger.debug("Startup cleanup: FileService cleanup not yet implemented")
 
+    # Start Infor Sync Service (if enabled)
+    if settings.INFOR_SYNC_ENABLED and settings.INFOR_API_URL:
+        from app.services.infor_sync_service import infor_sync_service
+        await infor_sync_service.start()
+
     yield
 
     # Shutdown
     _shutdown_in_progress = True
     logger.info("⏳ Graceful shutdown started...")
+
+    # Stop Infor Sync Service
+    from app.services.infor_sync_service import infor_sync_service
+    if infor_sync_service.running:
+        await infor_sync_service.stop()
 
     # Close database connections
     await close_db()
@@ -227,6 +237,10 @@ app.include_router(files_router.router, tags=["Files"])  # Centralized File Mana
 app.include_router(production_records_router.router, prefix="/api/production-records", tags=["Production Records"])
 app.include_router(drawing_import_router.router, tags=["Drawing Import"])  # Drawing import from share (ADR-044, prefix in router)
 app.include_router(ft_debug_router.router, tags=["FT Debug"])  # FT Debug panel (prefix in router)
+
+# Import infor_sync_router
+from app.routers import infor_sync_router
+app.include_router(infor_sync_router.router, tags=["Infor Sync"])  # Infor Smart Polling Sync (prefix in router)
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(admin_router.router, prefix="/admin", tags=["Admin"])
 

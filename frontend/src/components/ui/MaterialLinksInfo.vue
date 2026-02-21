@@ -182,7 +182,7 @@ watch(() => props.availableMaterials, () => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .material-label {
@@ -232,10 +232,10 @@ watch(() => props.availableMaterials, () => {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  background: var(--palette-info, rgba(37, 99, 235, 0.2));
+  background: var(--palette-info);
   border: 1px solid var(--palette-info);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   font-family: var(--font-mono);
   color: var(--text-primary);
@@ -248,7 +248,7 @@ watch(() => props.availableMaterials, () => {
 }
 
 .mat-dims {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   opacity: 0.8;
 }
@@ -278,7 +278,7 @@ watch(() => props.availableMaterials, () => {
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   font-family: var(--font-mono);
   color: var(--text-body);

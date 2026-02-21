@@ -101,7 +101,7 @@ function handleSave() {
 
 .modal-header h3 {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
 }

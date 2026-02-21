@@ -113,7 +113,7 @@ const model = defineModel<CuttingParams>({ required: true })
 <style scoped>
 .cutting-params-form h4 {
   margin: var(--space-4) 0 var(--space-2) 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-default);

@@ -1,105 +1,88 @@
 <template>
   <div class="login-page">
-    <div class="login-container">
-      <!-- Header with Logo -->
-      <div class="login-header">
-        <div class="logo-title">
-          <div class="logo-text">
-            <span class="logo-red">GESTI</span><span class="logo-black">MA</span>
-          </div>
+    <!-- Background layers -->
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-vignette" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+    <div class="scan-line" aria-hidden="true"></div>
+
+    <main class="login-main">
+      <!-- CNC precision mark -->
+      <div class="precision-mark anim-enter anim-d1" aria-hidden="true"></div>
+
+      <!-- Logo -->
+      <h1 class="logo anim-enter anim-d2">
+        <span class="logo-red">GESTI</span><span class="logo-white">MA</span>
+      </h1>
+
+      <!-- Accent line (draws itself on entrance) -->
+      <div class="accent-line anim-line" aria-hidden="true"></div>
+
+      <!-- Tagline -->
+      <p class="tagline anim-enter anim-d3">Kalkulace CNC výroby</p>
+
+      <!-- Login form -->
+      <form class="login-form" @submit.prevent="handleLogin">
+        <div class="form-field anim-enter anim-d4">
+          <input
+            v-model="username"
+            type="text"
+            required
+            autofocus
+            placeholder="Uživatelské jméno"
+            :disabled="loading"
+            data-testid="username-input"
+          />
         </div>
-      </div>
 
-      <!-- Login Card (Ribbon style) -->
-      <div class="ribbon">
-        <div class="ribbon-header">
-          <div class="ribbon-title">Přihlášení</div>
+        <div class="form-field anim-enter anim-d5">
+          <input
+            v-model="password"
+            type="password"
+            required
+            placeholder="Heslo"
+            :disabled="loading"
+            data-testid="password-input"
+          />
         </div>
-        <div class="ribbon-body">
-          <!-- Split Layout -->
-          <div class="split-layout">
-            <!-- Left Panel: Placeholder for Facts/Weather (future) -->
-            <div class="left-panel">
-              <div class="info-section">
-                <div class="info-label">GESTIMA Vue SPA</div>
-                <div class="info-content">
-                  <div class="info-item">
-                    <div class="info-title">Phase 1: Foundation</div>
-                    <div class="info-text">Core Infrastructure + Authentication</div>
-                  </div>
-                  <div class="info-item">
-                    <div class="info-title">Vue 3 + TypeScript</div>
-                    <div class="info-text">Pinia stores, Vue Router, Axios client</div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <!-- Right Panel: Login Form -->
-            <div class="right-panel">
-              <div class="form-wrapper">
-                <form @submit.prevent="handleLogin">
-                  <!-- Username -->
-                  <div class="form-field">
-                    <input
-                      v-model="username"
-                      type="text"
-                      required
-                      autofocus
-                      placeholder="Uživatelské jméno"
-                      class="input"
-                      :disabled="loading"
-                      data-testid="username-input"
-                    />
-                  </div>
+        <button
+          type="submit"
+          class="submit-btn anim-enter anim-d6"
+          :disabled="loading"
+          data-testid="login-button"
+        >
+          <template v-if="!loading">Přihlásit se</template>
+          <template v-else>
+            <span class="btn-spinner"></span>
+            Ověřování…
+          </template>
+        </button>
+      </form>
 
-                  <!-- Password -->
-                  <div class="form-field">
-                    <input
-                      v-model="password"
-                      type="password"
-                      required
-                      placeholder="Heslo"
-                      class="input"
-                      :disabled="loading"
-                      data-testid="password-input"
-                    />
-                  </div>
-
-                  <!-- Submit Button -->
-                  <button
-                    type="submit"
-                    class="btn-submit"
-                    :disabled="loading"
-                    data-testid="login-button"
-                  >
-                    <span v-if="!loading">Přihlásit se</span>
-                    <span v-else>Přihlašování...</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Rotating quotes -->
+      <div class="quote-area anim-enter anim-d7">
+        <Transition name="quote" mode="out-in">
+          <p :key="quoteIdx" class="quote-text">{{ quotes[quoteIdx] }}</p>
+        </Transition>
       </div>
 
       <!-- Footer -->
-      <div class="login-footer">
-        <div class="footer-quote">
-          Be lazy. It's way better than talking to people.
-        </div>
-        <div class="footer-copyright">
-          <span>KOVO RYBKA s.r.o.</span>
-          <span class="footer-separator">•</span>
-          <span>© 2026</span>
-        </div>
-      </div>
-    </div>
+      <footer class="login-footer anim-enter anim-d8">
+        <span class="clock">{{ clock }}</span>
+        <span class="sep" aria-hidden="true">·</span>
+        <span>KOVO RYBKA s.r.o.</span>
+        <span class="sep" aria-hidden="true">·</span>
+        <span>© 2026</span>
+        <span class="sep" aria-hidden="true">·</span>
+        <span class="version">v2.0</span>
+      </footer>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -116,6 +99,43 @@ const username = ref('')
 const password = ref('')
 const loading = ref(false)
 
+// Rotating manufacturing quotes
+const quotes = [
+  'Přesnost není cíl — je to standard.',
+  'Každý mikron má svůj význam.',
+  'Od výkresu k výrobku. Bez kompromisů.',
+  'Čas stroje je nejcennější materiál.',
+  'Kvalita se neměří — kvalita se žije.',
+  'Technologie ve službách přesnosti.',
+]
+const quoteIdx = ref(0)
+let quoteTimer: ReturnType<typeof setInterval>
+
+// Live clock
+const clock = ref('')
+let clockTimer: ReturnType<typeof setInterval>
+
+function updateClock() {
+  const now = new Date()
+  clock.value = now.toLocaleTimeString('cs-CZ', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+onMounted(() => {
+  updateClock()
+  clockTimer = setInterval(updateClock, 10_000)
+  quoteTimer = setInterval(() => {
+    quoteIdx.value = (quoteIdx.value + 1) % quotes.length
+  }, 5_000)
+})
+
+onUnmounted(() => {
+  clearInterval(clockTimer)
+  clearInterval(quoteTimer)
+})
+
 // Login handler
 async function handleLogin() {
   if (!username.value || !password.value) {
@@ -127,7 +147,7 @@ async function handleLogin() {
   try {
     await auth.login({
       username: username.value,
-      password: password.value
+      password: password.value,
     })
 
     // Background prefetch — fire-and-forget, don't block redirect
@@ -147,218 +167,387 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-/* GESTIMA CSS is imported globally in main.ts */
+/* ═══════════════════════════════════════════
+   LOGIN PAGE — Industrial Precision Theme
+   CNC coordinate grid + brand glow + staggered entrance
+   ═══════════════════════════════════════════ */
 
+/* ── PAGE ── */
 .login-page {
   min-height: 100vh;
-  min-width: 0;
-  background: var(--bg-primary);
-  padding: var(--space-6);
+  background: var(--bg-base);
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.login-container {
+/* ── BACKGROUND: CNC COORDINATE GRID ── */
+.bg-grid {
+  position: absolute;
+  inset: -120px;
+  background-image:
+    linear-gradient(var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+  background-size: 80px 80px;
+  animation: gridShift 30s linear infinite;
+  opacity: 0.5;
+}
+
+/* Vignette: fades grid at edges using bg-base overlay */
+.bg-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 20%, var(--bg-base) 72%);
+  pointer-events: none;
+}
+
+/* ── BACKGROUND: AMBIENT BRAND GLOW ── */
+.bg-glow {
+  position: absolute;
+  width: 600px;
+  height: 420px;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, var(--brand-subtle) 0%, transparent 70%);
+  animation: glowBreath 6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* ── SCAN LINE (one-time entrance laser effect) ── */
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brand), transparent);
+  animation: scanAcross 1.8s var(--ease) 0.15s both;
+}
+
+/* ── MAIN CONTENT STACK ── */
+.login-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  max-width: 700px;
+  max-width: 340px;
+  padding: var(--space-6);
 }
 
-/* Header */
-.login-header {
+/* ── CNC PRECISION MARK (crosshair) ── */
+.precision-mark {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-full);
+  position: relative;
+  margin-bottom: var(--space-6);
+  opacity: 0.8;
+}
+
+.precision-mark::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 1px;
+  background: var(--brand);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.6;
+}
+
+.precision-mark::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 22px;
+  background: var(--brand);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.6;
+}
+
+/* ── LOGO ── */
+.logo {
+  font-family: var(--font-mono);
+  font-size: calc(var(--text-lg) * 2.8);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.12em;
+  line-height: 1;
+  margin: 0 0 var(--space-4) 0;
   text-align: center;
-  margin-bottom: 2rem;
-}
-
-.logo-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.logo-text {
-  font-size: var(--text-6xl);
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  user-select: none;
 }
 
 .logo-red {
   color: var(--brand);
 }
 
-.logo-black {
+.logo-white {
   color: var(--text-primary);
 }
 
-/* Ribbon */
-.ribbon {
-  margin-bottom: 1.5rem;
+/* ── ACCENT LINE (draws itself) ── */
+.accent-line {
+  height: 1px;
+  background: var(--brand);
+  margin-bottom: var(--space-3);
+  opacity: 0.5;
 }
 
-.ribbon-header {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-default);
-  border-bottom: none;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  padding: var(--space-2) var(--space-3);
-  cursor: default;
+.anim-line {
+  animation: lineExpand 0.8s 0.25s var(--ease) both;
 }
 
-.ribbon-title {
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: 0.3px;
+/* ── TAGLINE ── */
+.tagline {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin: 0 0 var(--space-12) 0;
+  text-align: center;
 }
 
-.ribbon-body {
+/* ── FORM ── */
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-field input {
+  width: 100%;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  padding: 0;
-}
-
-/* Split Layout */
-.split-layout {
-  display: flex;
-  min-height: 280px;
-}
-
-.left-panel {
-  width: 420px;
-  border-right: 1px solid var(--border-default);
-  display: flex;
-  flex-direction: column;
-}
-
-.info-section {
-  flex: 1;
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-}
-
-.info-label {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  margin-bottom: var(--space-2);
-}
-
-.info-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.info-item {
-  padding: var(--space-2);
-  background: var(--bg-primary);
-  border-radius: var(--radius-sm);
-}
-
-.info-title {
-  font-size: var(--text-base);
-  color: var(--text-primary);
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-}
-
-.info-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: 1.3;
-}
-
-.right-panel {
-  flex: 1;
-  padding: var(--space-5);
-  display: flex;
-  align-items: center;
-}
-
-.form-wrapper {
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto;
-}
-
-/* Form */
-.form-field {
-  margin-bottom: var(--space-4);
-}
-
-.input {
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-lg);
-  padding: var(--space-2) var(--space-2);
-  width: 100%;
-  transition: border-color 0.2s;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--brand);
-}
-
-.input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-submit {
-  width: 100%;
-  justify-content: center;
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-lg);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
   border-radius: var(--radius-md);
-  font-weight: 500;
-  margin-top: var(--space-5);
-  transition: all 0.2s;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  font-family: inherit;
+  padding: var(--space-3) var(--space-4);
+  outline: none;
+  transition: all var(--duration-normal) var(--ease);
 }
 
-.btn-submit:hover:not(:disabled) {
-  background: var(--brand-subtle);
+.form-field input::placeholder {
+  color: var(--text-disabled);
+  font-size: var(--text-sm);
+}
+
+.form-field input:hover:not(:focus):not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.form-field input:focus {
   border-color: var(--brand);
-  color: var(--brand-text);
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 3px var(--brand-subtle);
 }
 
-.btn-submit:disabled {
-  opacity: 0.6;
+.form-field input:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Footer */
-.login-footer {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-.footer-quote {
-  margin-bottom: var(--space-2);
-  font-style: italic;
-  opacity: 0.8;
-}
-
-.footer-copyright {
+/* ── SUBMIT BUTTON (ghost + accent underline on hover) ── */
+.submit-btn {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease);
 }
 
-.footer-separator {
-  margin: 0 0.5rem;
+.submit-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--brand);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--duration-slow) var(--ease);
+}
+
+.submit-btn:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--brand-subtle);
+  color: var(--brand-text);
+}
+
+.submit-btn:hover:not(:disabled)::after {
+  transform: scaleX(1);
+}
+
+.submit-btn:active:not(:disabled) {
+  background: var(--brand-muted);
+}
+
+.submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--brand);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── QUOTE AREA ── */
+.quote-area {
+  margin-top: var(--space-12);
+  min-height: var(--space-8);
+  text-align: center;
+  width: 100%;
+}
+
+.quote-text {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-style: italic;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+/* Quote transition (slide up/down fade) */
+.quote-enter-active,
+.quote-leave-active {
+  transition: opacity var(--duration-slow) var(--ease),
+              transform var(--duration-slow) var(--ease);
+}
+
+.quote-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.quote-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* ── FOOTER ── */
+.login-footer {
+  margin-top: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-disabled);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.clock {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.version {
+  font-family: var(--font-mono);
+  opacity: 0.5;
+}
+
+.sep {
+  opacity: 0.3;
+}
+
+/* ── ENTRANCE ANIMATIONS (staggered) ── */
+.anim-enter {
+  animation: fadeSlideUp 0.7s var(--ease) both;
+}
+
+.anim-d1 { animation-delay: 0.05s; }
+.anim-d2 { animation-delay: 0.15s; }
+.anim-d3 { animation-delay: 0.25s; }
+.anim-d4 { animation-delay: 0.4s; }
+.anim-d5 { animation-delay: 0.5s; }
+.anim-d6 { animation-delay: 0.6s; }
+.anim-d7 { animation-delay: 0.8s; }
+.anim-d8 { animation-delay: 0.9s; }
+
+/* ── KEYFRAMES ── */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lineExpand {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 48px;
+    opacity: 0.5;
+  }
+}
+
+@keyframes gridShift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(80px, 80px); }
+}
+
+@keyframes glowBreath {
+  from {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@keyframes scanAcross {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

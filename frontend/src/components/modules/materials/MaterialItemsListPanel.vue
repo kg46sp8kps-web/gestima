@@ -306,7 +306,7 @@ defineExpose({
 
 .filter-select {
   padding-right: 24px;
-  background-image: none !important;
+  background-image: none;
 }
 
 .select-chevron {
@@ -314,7 +314,7 @@ defineExpose({
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   pointer-events: none;
 }
@@ -340,12 +340,14 @@ defineExpose({
 
 .vt-th {
   padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   flex: 1 1 0;
   min-width: 0;
 }
@@ -372,7 +374,7 @@ defineExpose({
 
 .vt-td {
   padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-body);
   white-space: nowrap;
   overflow: hidden;

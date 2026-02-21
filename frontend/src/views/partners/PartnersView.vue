@@ -179,7 +179,7 @@ onMounted(() => {
 }
 
 .page-header h1 {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
   margin: 0;

@@ -10,16 +10,17 @@ test.describe('Manufacturing Module', () => {
     await waitForModuleLoad(page)
   })
 
-  test('should display split-pane with parts list and empty detail', async ({ page }) => {
+  test('should display split-pane with parts list', async ({ page }) => {
     const floatingWindow = page.locator('.floating-window')
 
-    // Left panel (parts list)
+    // Left panel (parts list) should be visible
     const leftPanel = floatingWindow.locator('.first-panel, .left-panel').first()
     await expect(leftPanel).toBeVisible({ timeout: TIMEOUTS.API_LOAD })
 
-    // Empty state or detail panel on the right
-    const rightPanel = floatingWindow.locator('.second-panel, .right-panel').first()
-    await expect(rightPanel).toBeVisible()
+    // Right panel is conditionally rendered (v-if="selectedPart") — only visible after selection
+    // Just verify the split layout exists
+    const splitLayout = floatingWindow.locator('.split-layout')
+    await expect(splitLayout).toBeVisible()
   })
 
   test('should select part and show detail panel', async ({ page }) => {

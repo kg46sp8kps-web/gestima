@@ -69,7 +69,7 @@ function handleKeyup(event: KeyboardEvent) {
 .modal h3 {
   margin: 0 0 var(--space-4) 0;
   color: var(--text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
 }
 
 .input-layout-name {
@@ -79,7 +79,7 @@ function handleKeyup(event: KeyboardEvent) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   margin-bottom: var(--space-4);
   transition: all var(--duration-fast) var(--ease-out);
 }
@@ -99,7 +99,7 @@ function handleKeyup(event: KeyboardEvent) {
 .cancel-btn {
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);

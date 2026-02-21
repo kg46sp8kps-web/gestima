@@ -135,6 +135,98 @@ async def get_price_categories(
     return result.scalars().all()
 
 
+@router.get("/price-category-for-input", response_model=Optional[MaterialPriceCategoryWithGroupResponse])
+async def get_price_category_for_input(
+    shape: str,
+    w_nr: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Automatické určení price category podle tvaru + W.Nr normy.
+
+    Flow:
+    1. W.Nr → MaterialNorm → material_group_id
+    2. Najde PriceCategory kde shape == shape AND material_group_id == material_group_id
+    3. Vrátí kategorii nebo None
+
+    Args:
+        shape: StockShape enum value (round_bar, flat_bar, atd.)
+        w_nr: W.Nr norma (např. "1.7225", "1.4301")
+
+    Returns:
+        Automaticky vybraná PriceCategory nebo None pokud nenalezena
+    """
+    from app.models.material_norm import MaterialNorm
+
+    # If no w_nr provided, return categories for shape only
+    if not w_nr:
+        result = await db.execute(
+            select(MaterialPriceCategory)
+            .options(selectinload(MaterialPriceCategory.material_group))
+            .where(
+                MaterialPriceCategory.deleted_at.is_(None),
+                MaterialPriceCategory.shape == shape
+            )
+            .order_by(MaterialPriceCategory.code)
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    # 1. Find MaterialNorm by W.Nr
+    norm_result = await db.execute(
+        select(MaterialNorm)
+        .where(MaterialNorm.w_nr == w_nr)
+    )
+    norm = norm_result.scalar_one_or_none()
+
+    if not norm:
+        logger.warning(
+            f"MaterialNorm not found for w_nr={w_nr}",
+            extra={"user": current_user.username, "w_nr": w_nr}
+        )
+        return None
+
+    # 2. Find PriceCategory by shape + material_group_id
+    category_result = await db.execute(
+        select(MaterialPriceCategory)
+        .options(selectinload(MaterialPriceCategory.material_group))
+        .where(
+            MaterialPriceCategory.deleted_at.is_(None),
+            MaterialPriceCategory.shape == shape,
+            MaterialPriceCategory.material_group_id == norm.material_group_id
+        )
+        .order_by(MaterialPriceCategory.code)
+        .limit(1)
+    )
+    category = category_result.scalar_one_or_none()
+
+    if not category:
+        logger.warning(
+            f"PriceCategory not found for shape={shape}, material_group_id={norm.material_group_id}",
+            extra={
+                "user": current_user.username,
+                "w_nr": w_nr,
+                "shape": shape,
+                "material_group_id": norm.material_group_id
+            }
+        )
+        return None
+
+    logger.info(
+        f"Auto-selected PriceCategory: {category.name}",
+        extra={
+            "user": current_user.username,
+            "w_nr": w_nr,
+            "shape": shape,
+            "category_id": category.id,
+            "category_name": category.name
+        }
+    )
+
+    return category
+
+
 @router.get("/price-categories/{category_id}", response_model=MaterialPriceCategoryWithTiersResponse)
 async def get_price_category(
     category_id: int,
@@ -736,7 +828,7 @@ async def execute_catalog_import(
                 await db.flush()
                 group_id_map[code] = new_group.id
 
-        await db.commit()
+        await safe_commit(db, action="import skupin materiálů")
 
         # Create PriceCategories + Tiers
         tiers_created = 0
@@ -789,7 +881,7 @@ async def execute_catalog_import(
                             db.add(new_tier)
                             tiers_created += 1
 
-        await db.commit()
+        await safe_commit(db, action="import cenových kategorií a tierů")
 
         # Create MaterialItems
         for idx, row in df_parsed.iterrows():
@@ -858,7 +950,7 @@ async def execute_catalog_import(
             if created_count % 100 == 0:
                 await db.flush()
 
-        await db.commit()
+        await safe_commit(db, action="import materiálových položek")
         clear_cache()
 
         logger.info(

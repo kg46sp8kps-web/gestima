@@ -66,7 +66,7 @@ const emit = defineEmits<Emits>()
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   cursor: pointer;
   transition: var(--transition-fast);

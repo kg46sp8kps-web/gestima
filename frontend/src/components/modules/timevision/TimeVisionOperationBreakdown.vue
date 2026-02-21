@@ -58,7 +58,7 @@ const totalTime = computed(() => {
   margin-bottom: var(--space-4);
 }
 .operation-breakdown h4 {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   color: var(--text-muted);
   margin: 0 0 var(--space-2) 0;
@@ -74,7 +74,7 @@ th, td {
   border-bottom: 1px solid var(--border-subtle);
 }
 th {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -87,7 +87,7 @@ th {
 }
 .notes {
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 tfoot td {
   border-top: 2px solid var(--border-default);

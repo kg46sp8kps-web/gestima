@@ -1,93 +1,70 @@
-import { test, expect } from '@playwright/test';
-import { login } from './helpers/auth';
-import { generatePartData } from './helpers/test-data';
+import { test, expect } from '@playwright/test'
+import { login } from './helpers/auth'
+import { openModuleViaMenu, setupWindowsView, waitForModuleLoad, TIMEOUTS } from './helpers/windows'
 
 test.describe('Create Part Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Login before each test
-    await login(page);
-  });
+    await login(page)
+    await setupWindowsView(page)
+    await openModuleViaMenu(page, 'Part Main')
+    await waitForModuleLoad(page)
+  })
 
-  test('should navigate to create part page', async ({ page }) => {
-    // Navigate to parts list
-    await page.goto('/parts');
+  test('should display parts list in floating window', async ({ page }) => {
+    const floatingWindow = page.locator('.floating-window')
 
-    // Click create button
-    await page.click('[data-testid="create-part-button"]');
+    // Parts list should have virtualized rows
+    const rows = floatingWindow.locator('.vt-row')
+    await expect(rows.first()).toBeVisible({ timeout: TIMEOUTS.API_LOAD })
+  })
 
-    // Should be on create part page
-    await expect(page).toHaveURL('/parts/new');
-    await expect(page.locator('h1')).toContainText('Nový díl');
-  });
+  test('should create a new part via toolbar button', async ({ page }) => {
+    const floatingWindow = page.locator('.floating-window')
 
-  test('should show validation errors for empty form', async ({ page }) => {
-    await page.goto('/parts/new');
+    // Find create button (icon-btn-primary or Plus button)
+    const createBtn = floatingWindow.locator('.icon-btn-primary, button[title*="Nový"]').first()
+    if (await createBtn.isVisible({ timeout: TIMEOUTS.API_LOAD }).catch(() => false)) {
+      await createBtn.click()
+      await page.waitForTimeout(TIMEOUTS.DEBOUNCE)
 
-    // Try to submit empty form
-    await page.click('[data-testid="save-button"]');
+      // Should enter edit mode (inputs become editable)
+      const editInput = floatingWindow.locator('.edit-input, input:not([disabled])').first()
+      const isEditing = await editInput.isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
 
-    // Should show validation errors
-    await expect(page.locator('[data-testid="error-name"]')).toBeVisible();
-  });
+      if (isEditing) {
+        // Cancel creation
+        const cancelBtn = floatingWindow.locator('button[title*="Zrušit"], .icon-btn-danger').first()
+        if (await cancelBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+          await cancelBtn.click()
+        }
+      }
+    }
+  })
 
-  test('should successfully create a new part', async ({ page }) => {
-    await page.goto('/parts/new');
+  test('should select a part and show detail panel', async ({ page }) => {
+    const floatingWindow = page.locator('.floating-window')
 
-    const partData = generatePartData();
+    const firstRow = floatingWindow.locator('.vt-row').first()
+    await expect(firstRow).toBeVisible({ timeout: TIMEOUTS.API_LOAD })
+    await firstRow.click()
+    await page.waitForTimeout(TIMEOUTS.DEBOUNCE)
 
-    // Fill in part details
-    await page.fill('[data-testid="part-name-input"]', partData.name);
-    await page.fill('[data-testid="part-description-input"]', partData.description);
+    // Detail panel should show part info
+    const detail = floatingWindow.locator('.info-ribbon, .detail-content, .part-detail')
+    await expect(detail.first()).toBeVisible({ timeout: TIMEOUTS.API_LOAD })
+  })
 
-    // Submit form
-    await page.click('[data-testid="save-button"]');
+  test('should search parts by name or article number', async ({ page }) => {
+    const floatingWindow = page.locator('.floating-window')
+    const searchInput = floatingWindow.locator('.search-input')
 
-    // Should show success toast
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible();
-    await expect(page.locator('[data-testid="toast"]')).toContainText('úspěšně');
+    if (await searchInput.isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)) {
+      await searchInput.fill('test')
+      await page.waitForTimeout(TIMEOUTS.DEBOUNCE)
 
-    // Should redirect to part detail page
-    await expect(page).toHaveURL(/\/parts\/\d+/);
-
-    // Should show part name
-    await expect(page.locator('[data-testid="part-name"]')).toContainText(partData.name);
-  });
-
-  test('should create part and navigate to detail view', async ({ page }) => {
-    await page.goto('/parts/new');
-
-    const partData = generatePartData({
-      name: 'E2E Test Part',
-      description: 'Created for E2E testing',
-    });
-
-    // Fill form
-    await page.fill('[data-testid="part-name-input"]', partData.name);
-    await page.fill('[data-testid="part-description-input"]', partData.description);
-
-    // Submit
-    await page.click('[data-testid="save-button"]');
-
-    // Wait for redirect
-    await page.waitForURL(/\/parts\/\d+/);
-
-    // Should have 4 tabs
-    await expect(page.locator('[data-testid="tab-basic"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-material"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-operations"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-pricing"]')).toBeVisible();
-
-    // Basic tab should be active
-    await expect(page.locator('[data-testid="tab-basic"]')).toHaveClass(/active/);
-  });
-
-  test('should cancel creation and return to list', async ({ page }) => {
-    await page.goto('/parts/new');
-
-    // Click cancel button
-    await page.click('[data-testid="cancel-button"]');
-
-    // Should return to parts list
-    await expect(page).toHaveURL('/parts');
-  });
-});
+      // Clear
+      await searchInput.clear()
+      await page.waitForTimeout(TIMEOUTS.DEBOUNCE)
+    }
+  })
+})

@@ -351,10 +351,10 @@ async def _create_demo_admin():
             user = await create_user(
                 db=db,
                 username='demo',
-                password='demo123',
+                password='admin',
                 role=UserRole.ADMIN
             )
-            print(f"✅ Demo admin created: {user.username} / demo123")
+            print(f"✅ Demo admin created: {user.username} / admin")
         except Exception as e:
             if "UNIQUE constraint" in str(e):
                 print("✅ Demo admin already exists")

@@ -96,6 +96,6 @@ function handleOpenQuote(quoteNumber: string) {
 <style scoped>
 .panel { width: 100%; height: 100%; overflow-y: auto; padding: var(--space-4); background: var(--bg-base); }
 .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: var(--space-8); gap: var(--space-3); color: var(--text-body); }
-.loading p { margin: 0; font-size: var(--text-base); }
+.loading p { margin: 0; font-size: var(--text-sm); }
 .hint { font-size: var(--text-sm); color: var(--text-tertiary); }
 </style>

@@ -27,22 +27,13 @@ const expandedSections = reactive({
   density: false
 })
 
-// Default design token values (in pixels)
+// Default design token values (in pixels) — must match design-system.css :root
+// 3 font sizes + bold for hierarchy
 const defaultTokens = {
-  // Font sizes
-  'text-2xs': 9,
-  'text-xs': 10,
-  'text-sm': 11,
+  // Font sizes (3 sizes: sm=default, base=body, lg=headings)
+  'text-sm': 12,
   'text-base': 12,
-  'text-lg': 13,
-  'text-xl': 14,
-  'text-2xl': 16,
-  'text-3xl': 18,
-  'text-4xl': 20,
-  'text-5xl': 24,
-  'text-6xl': 32,
-  'text-7xl': 48,
-  'text-8xl': 64,
+  'text-lg': 16,
   // Spacing
   'space-1': 4,
   'space-2': 6,
@@ -53,9 +44,9 @@ const defaultTokens = {
   'space-8': 24,
   'space-10': 32,
   // Density
-  'density-row-height': 24,
-  'density-cell-py': 4,
-  'density-cell-px': 8,
+  'density-row-height': 30,
+  'density-cell-py': 3,
+  'density-cell-px': 10,
   'density-input-py': 3,
   'density-input-px': 6,
   'density-btn-py': 3,
@@ -66,19 +57,9 @@ const defaultTokens = {
 
 // Token descriptions for UI
 const tokenDescriptions: Record<string, string> = {
-  'text-2xs': 'Nejmenší text (tiny labels)',
-  'text-xs': 'Extra small (captions, badges)',
-  'text-sm': 'Small (tlačítka, labely)',
-  'text-base': 'Základní velikost textu',
-  'text-lg': 'Large body text',
-  'text-xl': 'Subheadings',
-  'text-2xl': 'Headings',
-  'text-3xl': 'Large headings',
-  'text-4xl': 'Section titles',
-  'text-5xl': 'Page headers',
-  'text-6xl': 'Hero text',
-  'text-7xl': 'Empty state icons',
-  'text-8xl': 'Large display icons',
+  'text-sm': 'Malý text — tabulky, badges, labels (12px)',
+  'text-base': 'Standardní — body, inputy, formuláře (14px)',
+  'text-lg': 'Nadpisy — sekce, titulky, headery (18px)',
   'space-1': 'Tiny gaps',
   'space-2': 'Base unit',
   'space-3': 'Small padding',
@@ -111,16 +92,15 @@ const form = ref({
 // Apply single token to CSS
 function applyToken(name: string, value: number) {
   const cssVar = `--${name}`
-  // Font sizes and spacing in rem, density in px
   if (name.startsWith('text-')) {
-    document.documentElement.style.setProperty(cssVar, `${value / 16}rem`)
-  } else if (name.startsWith('space-')) {
-    document.documentElement.style.setProperty(cssVar, `${value / 16}rem`)
-  } else if (name === 'density-row-height') {
+    // Font sizes in px (matching design-system.css)
     document.documentElement.style.setProperty(cssVar, `${value}px`)
-  } else {
-    // Density padding values in rem
+  } else if (name.startsWith('space-')) {
+    // Spacing in rem (matching design-system.css)
     document.documentElement.style.setProperty(cssVar, `${value / 16}rem`)
+  } else {
+    // Density values in px
+    document.documentElement.style.setProperty(cssVar, `${value}px`)
   }
 }
 
@@ -325,7 +305,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
                     <input
                       v-model.number="tokens[token as keyof typeof tokens]"
                       type="number"
-                      min="6"
+                      min="10"
                       max="100"
                       class="token-input"
                       v-select-on-focus
@@ -480,14 +460,14 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 
 .page-title {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--text-primary);
 }
 
 .page-subtitle {
   margin: var(--space-1) 0 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -540,7 +520,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .toggle-icon {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
 }
 
@@ -551,7 +531,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 
 .card-description {
   margin: 0 0 var(--space-4);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -565,12 +545,12 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .info-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .info-value {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary);
 }
@@ -583,7 +563,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 .form-label {
   display: block;
   margin-bottom: var(--space-1);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--text-secondary);
 }
@@ -606,7 +586,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-body);
   cursor: pointer;
 }
@@ -638,7 +618,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 
 .token-name {
   font-family: var(--font-mono);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--color-info);
   white-space: nowrap;
   overflow: hidden;
@@ -646,7 +626,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .token-desc {
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
@@ -664,7 +644,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-family: var(--font-mono);
   text-align: right;
   background: var(--bg-surface);
@@ -679,7 +659,7 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .token-unit {
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
   width: 20px;
 }

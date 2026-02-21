@@ -178,7 +178,7 @@ const segmentPaths = computed(() => {
   justify-content: space-between;
   flex: 1;
   gap: var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .legend-label {

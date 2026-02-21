@@ -388,6 +388,39 @@ function handleOpenDrawing(drawingId?: number) {
 
 /* === INFO RIBBON — local customization ONLY === */
 
+/* Info card — label + value pair */
+.info-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.info-card label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.info-card .value {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* Edit mode ribbon */
+.info-ribbon.editing {
+  background: var(--bg-raised);
+  border-color: var(--border-strong);
+}
+
+/* Required field indicator */
+.required {
+  color: var(--palette-danger);
+  margin-left: 2px;
+}
+
 /* Inline color dot */
 .dot {
   width: 7px;
@@ -413,7 +446,7 @@ function handleOpenDrawing(drawingId?: number) {
 .edit-input {
   width: 100%;
   padding: var(--space-2);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   background: var(--bg-base);
@@ -424,8 +457,8 @@ function handleOpenDrawing(drawingId?: number) {
 
 .edit-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* === ACTIONS SECTION === */

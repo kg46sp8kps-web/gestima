@@ -85,7 +85,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   white-space: nowrap;
   pointer-events: none;
   z-index: 10005;
