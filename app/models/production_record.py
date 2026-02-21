@@ -35,11 +35,26 @@ class ProductionRecord(Base, AuditMixin):
 
     # Operation info
     operation_seq = Column(Integer, nullable=True)
-    work_center_id = Column(Integer, ForeignKey("work_centers.id", ondelete="SET NULL"), nullable=True)
+    work_center_id = Column(Integer, ForeignKey("work_centers.id", ondelete="SET NULL"), nullable=True, index=True)
 
-    # Times
-    planned_time_min = Column(Float, nullable=True)
-    actual_time_min = Column(Float, nullable=True)
+    # Times — planned per piece (from Infor norms, min/ks)
+    planned_time_min = Column(Float, nullable=True)  # stroj min/ks = 60 / DerRunMchHrs
+    planned_labor_time_min = Column(Float, nullable=True)  # obsluha min/ks = 60 / DerRunLbrHrs
+    planned_setup_min = Column(Float, nullable=True)  # seřízení min = JshSetupHrs * 60
+
+    # Times — actual per piece (computed from batch totals, min/ks)
+    actual_time_min = Column(Float, nullable=True)  # stroj min/ks = (RunHrsTMch * 60) / qty
+    actual_labor_time_min = Column(Float, nullable=True)  # obsluha min/ks = (RunHrsTLbr * 60) / qty
+    actual_setup_min = Column(Float, nullable=True)  # seřízení min = SetupHrsT * 60
+
+    # Times — actual whole batch (for analysis, min)
+    actual_run_machine_min = Column(Float, nullable=True)  # RunHrsTMch * 60 (celá dávka)
+    actual_run_labor_min = Column(Float, nullable=True)  # RunHrsTLbr * 60 (celá dávka)
+
+    # Manning coefficient — planned (DerRunMchHrs / DerRunLbrHrs * 100)
+    manning_coefficient = Column(Float, nullable=True)
+    # Manning coefficient — actual (RunHrsTMch / RunHrsTLbr * 100)
+    actual_manning_coefficient = Column(Float, nullable=True)
 
     # When was this produced
     production_date = Column(Date, nullable=True)
@@ -71,8 +86,16 @@ class ProductionRecordBase(BaseModel):
     batch_quantity: Optional[int] = Field(None, gt=0, description="Batch quantity (pieces)")
     operation_seq: Optional[int] = Field(None, ge=1, description="Operation sequence (10, 20, 30...)")
     work_center_id: Optional[int] = Field(None, gt=0, description="Work center ID")
-    planned_time_min: Optional[float] = Field(None, ge=0, description="Planned time per piece (min)")
-    actual_time_min: Optional[float] = Field(None, ge=0, description="Actual time per piece (min)")
+    planned_time_min: Optional[float] = Field(None, ge=0, description="Planned machine time per piece (min/ks)")
+    planned_labor_time_min: Optional[float] = Field(None, ge=0, description="Planned labor time per piece (min/ks)")
+    planned_setup_min: Optional[float] = Field(None, ge=0, description="Planned setup time (min)")
+    actual_time_min: Optional[float] = Field(None, ge=0, description="Actual machine time per piece (min/ks)")
+    actual_labor_time_min: Optional[float] = Field(None, ge=0, description="Actual labor time per piece (min/ks)")
+    actual_setup_min: Optional[float] = Field(None, ge=0, description="Actual setup time (min)")
+    actual_run_machine_min: Optional[float] = Field(None, ge=0, description="Actual machine run time - whole batch (min)")
+    actual_run_labor_min: Optional[float] = Field(None, ge=0, description="Actual labor run time - whole batch (min)")
+    manning_coefficient: Optional[float] = Field(None, ge=0, description="Manning coefficient planned (%)")
+    actual_manning_coefficient: Optional[float] = Field(None, ge=0, description="Manning coefficient actual (%)")
     production_date: Optional[date] = Field(None, description="Production date")
     source: str = Field("manual", max_length=20, description="Data source (infor/manual)")
     notes: Optional[str] = Field(None, max_length=500, description="Notes")
@@ -90,7 +113,15 @@ class ProductionRecordUpdate(BaseModel):
     operation_seq: Optional[int] = Field(None, ge=1)
     work_center_id: Optional[int] = Field(None, gt=0)
     planned_time_min: Optional[float] = Field(None, ge=0)
+    planned_labor_time_min: Optional[float] = Field(None, ge=0)
+    planned_setup_min: Optional[float] = Field(None, ge=0)
     actual_time_min: Optional[float] = Field(None, ge=0)
+    actual_labor_time_min: Optional[float] = Field(None, ge=0)
+    actual_setup_min: Optional[float] = Field(None, ge=0)
+    actual_run_machine_min: Optional[float] = Field(None, ge=0)
+    actual_run_labor_min: Optional[float] = Field(None, ge=0)
+    manning_coefficient: Optional[float] = Field(None, ge=0)
+    actual_manning_coefficient: Optional[float] = Field(None, ge=0)
     production_date: Optional[date] = None
     source: Optional[str] = Field(None, max_length=20)
     notes: Optional[str] = Field(None, max_length=500)
@@ -105,5 +136,6 @@ class ProductionRecordResponse(ProductionRecordBase):
     created_at: datetime
     updated_at: datetime
 
-    # Resolved work center name (populated by service)
+    # Resolved work center fields (populated by service)
     work_center_name: Optional[str] = Field(None, description="Work center name (resolved)")
+    work_center_type: Optional[str] = Field(None, description="Work center type (resolved, e.g. CNC_LATHE)")

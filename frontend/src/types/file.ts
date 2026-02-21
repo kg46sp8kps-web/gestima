@@ -25,6 +25,7 @@ export interface FileLink {
   file_id: number
   entity_type: string
   entity_id: number
+  entity_name: string | null
   is_primary: boolean
   revision: string | null
   link_type: string

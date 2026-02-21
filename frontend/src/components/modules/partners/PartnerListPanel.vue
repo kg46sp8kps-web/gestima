@@ -205,44 +205,6 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   border-bottom: 1px solid var(--border-default);
 }
 
-.tab-button {
-  flex: 1;
-  padding: var(--space-2);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.tab-button:hover {
-  color: var(--text-body);
-  background: var(--state-hover);
-}
-
-.tab-button.active {
-  color: var(--brand);
-  border-bottom-color: var(--brand);
-}
-
-.search-input {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-}
-
-.search-input:focus {
-  outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
-}
-
 .loading-list {
   display: flex;
   flex-direction: column;
@@ -251,40 +213,6 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   gap: var(--space-2);
   padding: var(--space-8);
   color: var(--text-secondary);
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
-  color: var(--text-tertiary);
-  text-align: center;
-}
-
-.empty-list .empty-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-}
-
-.empty-list p {
-  font-size: var(--text-sm);
 }
 
 .partners-list {

@@ -112,7 +112,7 @@ async function renderPage() {
     // Check again before rendering
     if (gen !== renderGeneration) return
 
-    await page.render({ canvasContext: ctx, viewport }).promise
+    await page.render({ canvas, canvasContext: ctx, viewport }).promise
   } catch (e: unknown) {
     if (gen === renderGeneration) {
       const msg = (e as Error).message ?? ''

@@ -22,19 +22,33 @@ import InforPurchasePricesTab from './infor/InforPurchasePricesTab.vue'
 import InforPartsImportTab from './infor/InforPartsImportTab.vue'
 import InforRoutingImportTab from './infor/InforRoutingImportTab.vue'
 import InforProductionImportTab from './infor/InforProductionImportTab.vue'
-import { Plug, Search, Globe, Info, Download, DollarSign, Lock, Package, Route, Factory } from 'lucide-vue-next'
+import InforJobMaterialsImportTab from './infor/InforJobMaterialsImportTab.vue'
+import DrawingImportPanel from './DrawingImportPanel.vue'
+import InforDocumentImportTab from './infor/InforDocumentImportTab.vue'
+import FtDataDebugTab from './infor/FtDataDebugTab.vue'
+import { Plug, Search, Globe, Info, Download, DollarSign, Lock, Package, Route, Factory, FileText, Layers, Brain } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 const props = defineProps<{
   isConnected: boolean
 }>()
 
+interface ConnectionStatus {
+  connected: boolean
+  error?: string
+  status?: string
+  token_acquired?: boolean
+  base_url?: string
+  config?: Record<string, unknown>
+  configurations?: unknown[]
+}
+
 const emit = defineEmits<{
-  (e: 'connection-change', status: any): void
+  (e: 'connection-change', status: ConnectionStatus | null): void
 }>()
 
 // Sub-tabs
-type InforSubTab = 'connection' | 'discovery' | 'browser' | 'info' | 'import' | 'prices' | 'parts' | 'routing' | 'production'
+type InforSubTab = 'connection' | 'discovery' | 'browser' | 'info' | 'import' | 'prices' | 'parts' | 'routing' | 'job-materials' | 'production' | 'drawings' | 'documents' | 'ft-data'
 const activeInforTab = ref<InforSubTab>('connection')
 
 // Connection status (local)
@@ -47,7 +61,7 @@ const selectedIdoForBrowser = ref('')
 const browserTabRef = ref<InstanceType<typeof InforBrowserTab> | null>(null)
 
 // Methods
-function handleConnectionChange(status: any) {
+function handleConnectionChange(status: ConnectionStatus | null) {
   localIsConnected.value = status?.connected === true
   emit('connection-change', status)
 }
@@ -86,8 +100,20 @@ function handleBrowseIdo(idoName: string) {
       <button @click="activeInforTab = 'routing'" :class="['sub-tab', { active: activeInforTab === 'routing' }]">
         <Route :size="ICON_SIZE.SMALL" /> Technologie
       </button>
+      <button @click="activeInforTab = 'job-materials'" :class="['sub-tab', { active: activeInforTab === 'job-materials' }]">
+        <Layers :size="ICON_SIZE.SMALL" /> Materiály Tech
+      </button>
       <button @click="activeInforTab = 'production'" :class="['sub-tab', { active: activeInforTab === 'production' }]">
         <Factory :size="ICON_SIZE.SMALL" /> VP záznamy
+      </button>
+      <button @click="activeInforTab = 'drawings'" :class="['sub-tab', { active: activeInforTab === 'drawings' }]">
+        <FileText :size="ICON_SIZE.SMALL" /> Výkresy
+      </button>
+      <button @click="activeInforTab = 'documents'" :class="['sub-tab', { active: activeInforTab === 'documents' }]">
+        <FileText :size="ICON_SIZE.SMALL" /> Dokumenty
+      </button>
+      <button @click="activeInforTab = 'ft-data'" :class="['sub-tab', { active: activeInforTab === 'ft-data' }]">
+        <Brain :size="ICON_SIZE.SMALL" /> FT Data
       </button>
       <div class="security-note">
         <Lock :size="ICON_SIZE.SMALL" /> READ-ONLY
@@ -132,10 +158,24 @@ function handleBrowseIdo(idoName: string) {
         :is-connected="localIsConnected || props.isConnected"
       />
 
+      <InforJobMaterialsImportTab
+        v-else-if="activeInforTab === 'job-materials'"
+        :is-connected="localIsConnected || props.isConnected"
+      />
+
       <InforProductionImportTab
         v-else-if="activeInforTab === 'production'"
         :is-connected="localIsConnected || props.isConnected"
       />
+
+      <DrawingImportPanel v-else-if="activeInforTab === 'drawings'" />
+
+      <InforDocumentImportTab
+        v-else-if="activeInforTab === 'documents'"
+        :is-connected="localIsConnected || props.isConnected"
+      />
+
+      <FtDataDebugTab v-else-if="activeInforTab === 'ft-data'" />
     </div>
   </div>
 </template>

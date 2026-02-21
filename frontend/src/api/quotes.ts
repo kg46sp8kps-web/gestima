@@ -13,7 +13,9 @@ import type {
   QuotesListResponse,
   QuoteStatus,
   QuoteRequestReview,
-  QuoteFromRequestCreate
+  QuoteRequestReviewV2,
+  QuoteFromRequestCreateV2,
+  QuoteCreationResult
 } from '@/types/quote'
 
 /**
@@ -25,7 +27,7 @@ export async function getQuotes(
   limit = 100,
   status?: QuoteStatus
 ): Promise<QuotesListResponse> {
-  const params: any = { skip, limit }
+  const params: Record<string, unknown> = { skip, limit }
   if (status) params.status = status
 
   const response = await apiClient.get<Quote[]>('/quotes/', { params })
@@ -201,21 +203,72 @@ export async function parseQuoteRequest(file: File): Promise<QuoteRequestReview>
   return response.data
 }
 
+// ============================================================================
+// V2: QUOTE FROM REQUEST WITH DRAWINGS + TECHNOLOGY
+// ============================================================================
+
 /**
- * Create quote from AI-parsed request (after user verification)
+ * Parse PDF files with AI Vision (V2)
  *
- * This endpoint:
- * - Creates Partner if new (partner_data provided)
- * - Creates missing Parts (article_number + name, status=draft, revision=A)
- * - Creates Quote (DRAFT status)
- * - Creates QuoteItems (with pricing from matched batches)
+ * Sends request PDFs and drawing PDFs as separate form fields.
+ * User classifies files in the upload step (auto-detected from filename).
  *
- * @param data - Verified quote request data
- * @returns Created Quote
+ * @param requestFiles - PDF files classified as quote request (typically 1)
+ * @param drawingFiles - PDF files classified as technical drawings
+ * @returns QuoteRequestReviewV2 with drawing analyses and matches
  */
-export async function createQuoteFromRequest(
-  data: QuoteFromRequestCreate
-): Promise<Quote> {
-  const response = await apiClient.post<Quote>('/quotes/from-request', data)
+export async function parseQuoteRequestV2(
+  requestFiles: File[],
+  drawingFiles: File[]
+): Promise<QuoteRequestReviewV2> {
+  const formData = new FormData()
+
+  for (const pdf of requestFiles) {
+    formData.append('request_files', pdf)
+  }
+  for (const pdf of drawingFiles) {
+    formData.append('drawing_files', pdf)
+  }
+
+  const response = await apiClient.post<QuoteRequestReviewV2>(
+    '/quotes/parse-request-v2',
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000 // 120s — parallel AI Vision
+    }
+  )
+
+  return response.data
+}
+
+/**
+ * Create quote from request V2 — creates everything:
+ * Partner, Parts, Drawings, Technology, Batches, BatchSet, Quote
+ *
+ * @param data - JSON payload with items, partner, estimation data
+ * @param drawingFiles - Drawing PDF files (indexed by item.drawing_index)
+ * @returns QuoteCreationResult with full details
+ */
+export async function createQuoteFromRequestV2(
+  data: QuoteFromRequestCreateV2,
+  drawingFiles: File[]
+): Promise<QuoteCreationResult> {
+  const formData = new FormData()
+  formData.append('data', JSON.stringify(data))
+
+  for (const file of drawingFiles) {
+    formData.append('drawing_files', file)
+  }
+
+  const response = await apiClient.post<QuoteCreationResult>(
+    '/quotes/from-request-v2',
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000
+    }
+  )
+
   return response.data
 }

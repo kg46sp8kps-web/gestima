@@ -1,4 +1,4 @@
-"""Seed MaterialPriceTiers — cenové stupně pro všech 43 kategorií
+"""Seed MaterialPriceTiers — cenové stupně pro všech 47 kategorií
 
 Inline data z material_price_tiers_template.csv (2026-02-03).
 3 stupně na kategorii: 0-15 kg, 15-100 kg, 100+ kg.
@@ -9,7 +9,7 @@ Pravidla (L-071):
 - Idempotentní (DELETE ALL + INSERT)
 - Spouští se z gestima.py seed-demo
 
-Date: 2026-02-13
+Date: 2026-02-13 (updated 2026-02-18: +4 HEX categories)
 """
 
 import asyncio
@@ -88,6 +88,18 @@ PRICE_TIERS_DATA = [
     ("20900040", [(0, 15, 40.0), (15, 100, 35.0), (100, None, 30.0)]),   # Plasty - tyč plochá
     ("20900041", [(0, 15, 40.0), (15, 100, 35.0), (100, None, 30.0)]),   # Plasty - tyč čtvercová
     ("20900042", [(0, 15, 42.0), (15, 100, 37.0), (100, None, 32.0)]),   # Plasty - tyč šestihranná
+
+    # Missing HEXAGONAL_BAR categories (added 2026-02-18, orientační ceny)
+    ("20900043", [(0, 15, 38.0), (15, 100, 32.0), (100, None, 27.0)]),   # Ocel automatová - tyč šestihranná
+    ("20900044", [(0, 15, 48.0), (15, 100, 40.0), (100, None, 34.0)]),   # Ocel legovaná - tyč šestihranná
+    ("20900045", [(0, 15, 58.0), (15, 100, 48.0), (100, None, 40.0)]),   # Ocel nástrojová - tyč šestihranná
+    ("20900046", [(0, 15, 125.0), (15, 100, 105.0), (100, None, 85.0)]),  # Mosaz - tyč šestihranná
+
+    # Litina (added 2026-02-18, orientační ceny)
+    ("20900047", [(0, 15, 35.0), (15, 100, 28.0), (100, None, 22.0)]),   # Litina - tyč kruhová
+    ("20900048", [(0, 15, 35.0), (15, 100, 28.0), (100, None, 22.0)]),   # Litina - tyč plochá
+    ("20900049", [(0, 15, 32.0), (15, 100, 26.0), (100, None, 20.0)]),   # Litina - deska
+    ("20900050", [(0, 15, 40.0), (15, 100, 32.0), (100, None, 25.0)]),   # Litina - odlitek
 ]
 
 

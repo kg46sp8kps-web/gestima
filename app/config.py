@@ -37,16 +37,11 @@ class Settings(BaseSettings):
     # Prázdný string = žádný CORS (same-origin only)
     # Příklad: "https://gestima.example.com,https://admin.example.com"
     CORS_ORIGINS: str = ""
-    
+
     BASE_DIR: Path = Path(__file__).parent.parent
-    DATA_DIR: Path = BASE_DIR / "data"
     DB_PATH: Path = BASE_DIR / "gestima.db"
-    
+
     DATABASE_URL: str = f"sqlite+aiosqlite:///{DB_PATH}"
-    
-    # Backup
-    BACKUP_RETENTION_COUNT: int = 7  # Kolik záloh ponechat
-    BACKUP_COMPRESS: bool = True  # Komprimovat gzip
 
     # AI Services
     OPENAI_API_KEY: str = ""  # OpenAI API key for GPT-4o vision estimation line
@@ -66,8 +61,6 @@ class Settings(BaseSettings):
     INFOR_CONFIG: str = "TEST"  # Infor configuration name (CRITICAL: NEVER use "LIVE"!)
     INFOR_USERNAME: str = ""  # Infor API username
     INFOR_PASSWORD: str = ""  # Infor API password
-    INFOR_SYNC_ENABLED: bool = False  # Enable automatic sync
-    INFOR_SYNC_INTERVAL: int = 30  # Sync interval in minutes
     INFOR_WC_MAPPING: str = '{"PS":"80000011","PSa":"80000011","PSm":"80000011","PSv":"80000011","FV3":"80000006","FH4":"80000007","FV5":"80000010","FV5R":"80000009","FV3R":"80000008","FV":"80000005","SH2":"80000001","SH2A":"80000002","SM1":"80000003","SM3":"80000004","VS":"80000014","OTK":"80000013","OTK/KO":"80000013","MECH":"80000015","KOO":"80000016"}'
 
     # CsiXls Accounting API
@@ -79,12 +72,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "100/minute"  # Obecné API
     RATE_LIMIT_AUTH: str = "10/minute"  # Login/register (přísnější)
 
-    # Polotovar - přídavky
-    STOCK_ALLOWANCE_DIAMETER: float = 3.0
-    STOCK_ALLOWANCE_LENGTH: float = 5.0
-    STOCK_ALLOWANCE_CUT: float = 3.0
-    STANDARD_BAR_LENGTH: float = 3000.0
-    MAX_BAR_FEEDER_LENGTH: float = 1200.0
+    # Drawing Import from Network Share
+    DRAWINGS_SHARE_PATH: str = ""  # SMB share path, e.g. "/Volumes/Dokumenty/TPV-dokumentace/Výkresy"
 
 
 settings = Settings()

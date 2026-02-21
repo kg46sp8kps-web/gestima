@@ -35,7 +35,10 @@ function createMockQuote(overrides: Partial<Quote> = {}): Quote {
     partner_id: null,
     title: 'Test Quote',
     description: '',
-    customer_request_number: null,    status: 'draft',
+    customer_request_number: null,
+    status: 'draft',
+    request_date: null,
+    offer_deadline: null,
     valid_until: null,
     sent_at: null,
     approved_at: null,
@@ -46,7 +49,6 @@ function createMockQuote(overrides: Partial<Quote> = {}): Quote {
     tax_percent: 21,
     tax_amount: 210,
     total: 1210,
-    currency: 'CZK',
     version: 1,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
@@ -275,7 +277,7 @@ describe('Quotes Store', () => {
 
     it('should handle edit lock (HTTP 409)', async () => {
       const store = useQuotesStore()
-      const error: any = new Error('Edit locked')
+      const error = new Error('Edit locked') as Error & { response?: { status: number } }
       error.response = { status: 409 }
       ;(quotesApi.updateQuote as Mock).mockRejectedValue(error)
 
@@ -419,7 +421,6 @@ describe('Quotes Store', () => {
         {
           id: 1,
           quote_id: 1,
-          seq: 1,
           part_id: 10,
           part_number: 'P-001',
           part_name: 'Test Part',

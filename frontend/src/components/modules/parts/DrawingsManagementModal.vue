@@ -68,8 +68,8 @@ async function loadDrawings() {
   try {
     const response = await drawingsApi.listDrawings(props.partNumber)
     drawings.value = response.drawings
-  } catch (error: any) {
-    uiStore.showError(`Nepodařilo se načíst výkresy: ${error.message}`)
+  } catch (error: unknown) {
+    uiStore.showError(`Nepodařilo se načíst výkresy: ${(error as Error).message}`)
   } finally {
     loading.value = false
   }
@@ -142,9 +142,9 @@ async function handleFilesUpload(files: File[]) {
           'A' // Default revision
         )
         successCount++
-      } catch (error: any) {
+      } catch (error: unknown) {
         errorCount++
-        console.error(`Failed to upload ${file.name}:`, error)
+        console.error(`Failed to upload ${file.name}:`, error as Error)
       }
     })
 
@@ -171,8 +171,8 @@ async function setPrimary(drawing: Drawing) {
     uiStore.showSuccess(`Výkres ${drawing.filename} nastaven jako primární`)
     await loadDrawings()
     emit('refresh')
-  } catch (error: any) {
-    uiStore.showError(`Nelze nastavit primární: ${error.message}`)
+  } catch (error: unknown) {
+    uiStore.showError(`Nelze nastavit primární: ${(error as Error).message}`)
   }
 }
 
@@ -189,8 +189,8 @@ async function confirmDelete(drawing: Drawing) {
     uiStore.showSuccess(`Výkres ${drawing.filename} smazán`)
     await loadDrawings()
     emit('refresh')
-  } catch (error: any) {
-    uiStore.showError(`Nepodařilo se smazat: ${error.message}`)
+  } catch (error: unknown) {
+    uiStore.showError(`Nepodařilo se smazat: ${(error as Error).message}`)
   }
 }
 
@@ -506,22 +506,6 @@ function openDrawing(drawing: Drawing) {
   font-size: var(--text-xs);
   color: var(--text-secondary);
   font-family: var(--font-mono);
-}
-
-.badge {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-0\.5) var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-success);
-  background: var(--bg-base);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-sm);
 }
 
 .badge-broken {

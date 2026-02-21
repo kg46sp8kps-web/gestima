@@ -10,7 +10,7 @@ Edit lock: After SENT, must clone to edit
 
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, Request
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +26,7 @@ from app.models.quote import (
 )
 from app.models.partner import Partner
 from app.models.enums import QuoteStatus
-from app.schemas.quote_request import QuoteFromRequestCreate
+from app.schemas.quote_request import QuoteFromRequestCreate, QuoteCreationResult, QuoteRequestReviewV2
 from app.services.number_generator import NumberGenerator
 from app.services.quote_service import QuoteService
 
@@ -63,7 +63,7 @@ async def get_quotes(
     return result.scalars().all()
 
 
-@router.get("/search")
+@router.get("/search", response_model=dict)
 async def search_quotes(
     search: str = Query("", description="Hledat v čísle nabídky, názvu"),
     status: Optional[str] = Query(None, description="Filter podle statusu"),
@@ -240,7 +240,7 @@ async def update_quote(
     return QuoteResponse.model_validate(quote)
 
 
-@router.delete("/{quote_number}")
+@router.delete("/{quote_number}", response_model=dict)
 async def delete_quote(
     quote_number: str,
     db: AsyncSession = Depends(get_db),
@@ -409,8 +409,69 @@ async def clone_quote(
 
 
 # =============================================================================
-# AI Quote Request Parsing - REMOVED
+# AI Quote Request Parsing V2 (with drawings + technology)
 # =============================================================================
+
+
+@router.post("/parse-request-v2", response_model=QuoteRequestReviewV2)
+@limiter.limit(settings.AI_RATE_LIMIT)
+async def parse_quote_request_v2(
+    request: Request,
+    request_files: List[UploadFile] = File(..., description="PDF poptavky (typicky 1)"),
+    drawing_files: List[UploadFile] = File(default=[], description="PDF vykresy"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR])),
+):
+    """
+    Parse PDF files with AI Vision.
+
+    User classifies files in the upload step (auto-detected from filename).
+    Request PDFs -> gpt-4.1 (extract customer + items).
+    Drawing PDFs -> ft_v1 (title block + TimeVision estimation).
+
+    Returns QuoteRequestReviewV2 for user verification before creation.
+    """
+    from app.services.quote_request_parser import parse_quote_request_v2 as do_parse
+
+    if not request_files:
+        raise HTTPException(status_code=400, detail="Nahrajte alespon jeden soubor poptavky")
+
+    async def _read_uploads(uploads: List[UploadFile]) -> dict[str, bytes]:
+        result: dict[str, bytes] = {}
+        for f in uploads:
+            if f.content_type != "application/pdf":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Soubor {f.filename} neni PDF"
+                )
+            content = await f.read()
+            if len(content) > 10 * 1024 * 1024:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Soubor {f.filename} prekracuje limit 10 MB"
+                )
+            result[f.filename or f"file_{len(result)}"] = content
+        return result
+
+    req_bytes = await _read_uploads(request_files)
+    draw_bytes = await _read_uploads(drawing_files)
+
+    logger.info(
+        "Parse request V2: %d request + %d drawings by %s",
+        len(req_bytes), len(draw_bytes), current_user.username,
+    )
+
+    try:
+        result = await do_parse(req_bytes, draw_bytes, db)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Parse request V2 failed: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI parsování selhalo: {e}"
+        )
 
 
 
@@ -584,8 +645,9 @@ async def create_quote_from_request(
 
     # 4. Create QuoteItems
     for item in deduplicated_quote_items:
-        # Get unit price from matched batch
+        # Get unit price from matched batch and denormalize part fields (reuse part variable)
         unit_price = 0.0
+        part = None
         if item.part_id:
             # Try to get price from frozen batch
             try:
@@ -600,9 +662,6 @@ async def create_quote_from_request(
                         )
             except Exception as e:
                 logger.warning(f"Failed to get price for part {item.part_id}: {e}")
-
-        # Denormalize part fields
-        part = await db.get(Part, item.part_id) if item.part_id else None
 
         # VALIDATION: If part_id is set, Part MUST exist
         if item.part_id and not part:
@@ -645,3 +704,64 @@ async def create_quote_from_request(
     )
 
     return QuoteResponse.model_validate(new_quote)
+
+
+@router.post("/from-request-v2", response_model=QuoteCreationResult)
+async def create_quote_from_request_v2(
+    data: str = Form(..., description="JSON-encoded QuoteFromRequestCreateV2"),
+    drawing_files: List[UploadFile] = File(default=[]),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR])),
+):
+    """
+    Create Quote + Parts + Technology + Batches + Files atomically (V2).
+
+    Accepts multipart/form-data with:
+    - data: JSON string of QuoteFromRequestCreateV2
+    - drawing_files: Optional PDF files for drawings
+
+    Creates everything in a single transaction:
+    Partner -> Parts -> Drawings -> MaterialInput -> Technology -> Batches -> Freeze -> Quote
+    """
+    from app.schemas.quote_request import QuoteFromRequestCreateV2
+    from app.services.quote_orchestrator import create_quote_from_request
+
+    # Parse JSON data
+    try:
+        parsed_data = QuoteFromRequestCreateV2.model_validate_json(data)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Invalid request data: {e}")
+
+    # Read drawing files into dict
+    drawing_bytes: dict[str, bytes] = {}
+    for idx, file in enumerate(drawing_files):
+        if file.content_type != "application/pdf":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Drawing file {file.filename} is not a PDF"
+            )
+        content = await file.read()
+        if len(content) > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(
+                status_code=413,
+                detail=f"Drawing file {file.filename} exceeds 10MB limit"
+            )
+        drawing_bytes[str(idx)] = content
+
+    try:
+        result = await create_quote_from_request(
+            data=parsed_data,
+            drawing_files=drawing_bytes,
+            db=db,
+            username=current_user.username,
+        )
+        await safe_commit(db, action="vytvoření nabídky z poptávky V2")
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Quote from request V2 failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Chyba pri vytvarani nabidky: {e}")

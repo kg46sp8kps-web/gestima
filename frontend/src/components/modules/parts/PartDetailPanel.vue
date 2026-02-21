@@ -6,37 +6,52 @@
  * @see docs/reference/DESIGN-SYSTEM.md
  */
 
-import { ref } from 'vue'
-import type { Part, PartUpdate } from '@/types/part'
+import { ref, onMounted, watch } from 'vue'
+import type { Part, PartUpdate, PartCreate } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import DrawingsManagementModal from './DrawingsManagementModal.vue'
 import CopyPartModal from './CopyPartModal.vue'
 import { updatePart, deletePart } from '@/api/parts'
+import { usePartsStore } from '@/stores/parts'
 import { useAuthStore } from '@/stores/auth'
 import { Edit, Copy, Trash2, Save, X } from 'lucide-vue-next'
-import { MaterialIcon, OperationsIcon, PricingIcon, DrawingIcon } from '@/config/icons'
+import { PricingIcon, DrawingIcon } from '@/config/icons'
+import { Layers } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import { confirm, alert } from '@/composables/useDialog'
+import { partStatusLabel, partStatusDotClass, partSourceLabel, partSourceDotClass } from '@/utils/partStatus'
 
 interface Props {
   part: Part
   linkingGroup?: LinkingGroup
   orientation?: 'vertical' | 'horizontal'
+  showActions?: boolean
+  /** Pokud true, panel se otevře rovnou v edit módu (pro nový díl id=-1) */
+  editOnMount?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  orientation: 'vertical'
+  orientation: 'vertical',
+  showActions: true,
+  editOnMount: false
 })
 
 const emit = defineEmits<{
-  'open-material': []
-  'open-operations': []
+  'open-technology': []
   'open-pricing': []
   'open-drawing': [drawingId?: number]
   'refresh': []
+  /** Emitováno po úspěšném vytvoření nového dílu (id=-1 workflow) */
+  'created': [part: Part]
+  /** Emitováno při zrušení create módu */
+  'cancel-create': []
 }>()
 
 const authStore = useAuthStore()
+const partsStore = usePartsStore()
+
+// Je to nový (dosud neuložený) díl?
+const isNew = () => props.part.id === -1
 
 // Edit state
 const isEditing = ref(false)
@@ -44,46 +59,89 @@ const editForm = ref({
   article_number: '',
   drawing_number: '',
   name: '',
-  customer_revision: ''
+  customer_revision: '',
+  status: 'draft' as string
 })
 
 // Modals
 const showDrawingsModal = ref(false)
 const showCopyModal = ref(false)
 
+onMounted(() => {
+  if (props.editOnMount || isNew()) {
+    startEdit()
+  }
+})
+
+// Při switchi na nový díl (id=-1) okamžitě otevři edit — prop se mění, komponent se neremountuje
+watch(() => props.part.id, (newId) => {
+  if (newId === -1) {
+    startEdit()
+  } else {
+    // Reset edit stavu při přepnutí na jiný díl
+    isEditing.value = false
+  }
+})
+
 function startEdit() {
   editForm.value = {
     article_number: props.part.article_number || '',
     drawing_number: props.part.drawing_number || '',
     name: props.part.name || '',
-    customer_revision: props.part.customer_revision || ''
+    customer_revision: props.part.customer_revision || '',
+    status: props.part.status || 'draft'
   }
   isEditing.value = true
 }
 
 async function saveEdit() {
+  const articleNumber = editForm.value.article_number.trim()
+  if (!articleNumber) {
+    await alert({ title: 'Chyba validace', message: 'Artikl je povinný údaj!', type: 'warning' })
+    return
+  }
+
   try {
-    const updateData: PartUpdate = {
-      article_number: editForm.value.article_number,
-      drawing_number: editForm.value.drawing_number,
-      name: editForm.value.name,
-      customer_revision: editForm.value.customer_revision,
-      version: props.part.version
+    if (isNew()) {
+      // CREATE — přes store (unshift do listu + success toast)
+      const newPartData: PartCreate = {
+        article_number: editForm.value.article_number || undefined,
+        name: editForm.value.name || undefined,
+        drawing_number: editForm.value.drawing_number || undefined,
+        customer_revision: editForm.value.customer_revision || undefined,
+      }
+      const created = await partsStore.createPart(newPartData)
+      isEditing.value = false
+      emit('created', created)
+    } else {
+      // UPDATE — existující díl
+      const updateData: PartUpdate = {
+        article_number: editForm.value.article_number,
+        drawing_number: editForm.value.drawing_number,
+        name: editForm.value.name,
+        customer_revision: editForm.value.customer_revision,
+        status: editForm.value.status as 'draft' | 'active' | 'archived',
+        version: props.part.version
+      }
+      await updatePart(props.part.part_number, updateData)
+      isEditing.value = false
+      emit('refresh')
     }
-    await updatePart(props.part.part_number, updateData)
-    isEditing.value = false
-    emit('refresh')
-  } catch (error: any) {
-    console.error('Failed to update part:', error)
+  } catch (error: unknown) {
+    const err = error as Error
     await alert({
       title: 'Chyba',
-      message: `Chyba při ukládání: ${error.message || 'Neznámá chyba'}`,
+      message: `Chyba při ukládání: ${err.message || 'Neznámá chyba'}`,
       type: 'error'
     })
   }
 }
 
 function cancelEdit() {
+  if (isNew()) {
+    emit('cancel-create')
+    return
+  }
   isEditing.value = false
 }
 
@@ -101,11 +159,12 @@ async function handleDelete() {
   try {
     await deletePart(props.part.part_number)
     emit('refresh')
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error
     console.error('Failed to delete part:', error)
     await alert({
       title: 'Chyba',
-      message: `Chyba při mazání: ${error.message || 'Neznámá chyba'}`,
+      message: `Chyba při mazání: ${err.message || 'Neznámá chyba'}`,
       type: 'error'
     })
   }
@@ -119,27 +178,14 @@ function handleCopySuccess() {
   emit('refresh')
 }
 
-// Source badge helpers
-function sourceDotClass(source: string): string {
-  switch (source) {
-    case 'infor_import': return 'badge-dot-brand'
-    case 'manual': return 'badge-dot-ok'
-    case 'quote_request': return 'badge-dot-warn'
-    default: return 'badge-dot-neutral'
-  }
-}
-
-function sourceLabel(source: string): string {
-  switch (source) {
-    case 'infor_import': return 'Infor Import'
-    case 'manual': return 'Manuální'
-    case 'quote_request': return 'Poptávka'
-    default: return source
-  }
-}
+// Status/source helpers — importováno z @/utils/partStatus (single source of truth)
+const statusDotClass = partStatusDotClass
+const statusLabel = partStatusLabel
+const sourceDotClass = partSourceDotClass
+const sourceLabel = partSourceLabel
 
 function handleDrawingClick() {
-  if (props.part.drawing_path) {
+  if (props.part.drawing_path || props.part.file_id) {
     emit('open-drawing')
   } else {
     showDrawingsModal.value = true
@@ -163,46 +209,26 @@ function handleOpenDrawing(drawingId?: number) {
     <div class="info-ribbon" :class="{ 'editing': isEditing }">
       <!-- INFO GRID -->
       <div class="info-grid">
-        <div class="info-card">
-          <label>Part Number</label>
+        <!-- Číslo dílu — skryté pro nový (dosud neuložený) díl -->
+        <div v-if="!isNew()" class="info-card">
+          <label>Číslo dílu</label>
           <span class="value">{{ part.part_number }}</span>
         </div>
 
         <div class="info-card">
-          <label>Article Number</label>
+          <label>Artikl<span v-if="isEditing" class="required">*</span></label>
           <input
             v-if="isEditing"
             v-model="editForm.article_number"
             class="edit-input"
-            placeholder="Artikl..."
+            placeholder="Povinný údaj"
+            :autofocus="isNew()"
           />
           <span v-else class="value">{{ part.article_number || '-' }}</span>
         </div>
 
         <div class="info-card">
-          <label>Drawing Number</label>
-          <input
-            v-if="isEditing"
-            v-model="editForm.drawing_number"
-            class="edit-input"
-            placeholder="Číslo výkresu..."
-          />
-          <span v-else class="value">{{ part.drawing_number || '-' }}</span>
-        </div>
-
-        <div class="info-card">
-          <label>Customer Revision</label>
-          <input
-            v-if="isEditing"
-            v-model="editForm.customer_revision"
-            class="edit-input"
-            placeholder="Revize..."
-          />
-          <span v-else class="value">{{ part.customer_revision || '-' }}</span>
-        </div>
-
-        <div class="info-card">
-          <label>Name</label>
+          <label>Název</label>
           <input
             v-if="isEditing"
             v-model="editForm.name"
@@ -213,78 +239,105 @@ function handleOpenDrawing(drawingId?: number) {
         </div>
 
         <div class="info-card">
-          <label>Version</label>
-          <span class="value">{{ part.version }}</span>
+          <label>Číslo výkresu</label>
+          <input
+            v-if="isEditing"
+            v-model="editForm.drawing_number"
+            class="edit-input"
+            placeholder="Číslo výkresu..."
+          />
+          <span v-else class="value">{{ part.drawing_number || '-' }}</span>
         </div>
 
         <div class="info-card">
-          <label>Zdroj</label>
-          <span class="value">
-            <span class="dot" :class="sourceDotClass(part.source)"></span>
-            {{ sourceLabel(part.source) }}
+          <label>Revize zákazníka</label>
+          <input
+            v-if="isEditing"
+            v-model="editForm.customer_revision"
+            class="edit-input"
+            placeholder="Revize..."
+          />
+          <span v-else class="value">{{ part.customer_revision || '-' }}</span>
+        </div>
+
+        <div class="info-card">
+          <label>Stav</label>
+          <select v-if="isEditing && !isNew()" v-model="editForm.status" class="edit-input">
+            <option value="draft">Rozpracovaný</option>
+            <option value="active">Aktivní</option>
+            <option value="archived">Archivovaný</option>
+            <option value="quote">Nabídka</option>
+          </select>
+          <span v-else class="value">
+            <span class="dot" :class="statusDotClass(part.status)"></span>
+            {{ statusLabel(part.status) }}
           </span>
         </div>
 
-        <div class="info-card">
-          <label>Created By</label>
-          <span class="value">{{ part.created_by_name || '-' }}</span>
-        </div>
+        <!-- Skrýt read-only metadata pro nový díl -->
+        <template v-if="!isNew()">
+          <div class="info-card">
+            <label>Verze</label>
+            <span class="value">{{ part.version }}</span>
+          </div>
 
-        <div class="info-card">
-          <label>Length</label>
-          <span class="value">{{ part.length }} mm</span>
-        </div>
+          <div class="info-card">
+            <label>Zdroj</label>
+            <span class="value">
+              <span class="dot" :class="sourceDotClass(part.source)"></span>
+              {{ sourceLabel(part.source) }}
+            </span>
+          </div>
+
+          <div class="info-card">
+            <label>Vytvořil</label>
+            <span class="value">{{ part.created_by_name || '-' }}</span>
+          </div>
+        </template>
       </div>
 
-      <!-- ICON TOOLBAR (Edit mode) -->
-      <div v-if="isEditing" class="icon-toolbar">
-        <button class="action-button action-button-primary" @click="saveEdit">
-          <Save :size="ICON_SIZE.XLARGE" class="action-icon" />
-          <span class="action-label">Uložit</span>
-        </button>
-        <button class="action-button action-button-secondary" @click="cancelEdit">
-          <X :size="ICON_SIZE.XLARGE" class="action-icon" />
-          <span class="action-label">Zrušit</span>
-        </button>
-      </div>
-
-      <!-- ICON TOOLBAR (View mode) -->
-      <div v-else class="icon-toolbar">
-        <button
-          v-if="authStore.isAdmin"
-          class="icon-btn"
-          @click="startEdit"
-          title="Upravit"
-        >
-          <Edit :size="ICON_SIZE.STANDARD" />
-        </button>
-        <button class="icon-btn" @click="handleCopy" title="Kopírovat">
-          <Copy :size="ICON_SIZE.STANDARD" />
-        </button>
-        <button
-          v-if="authStore.isAdmin"
-          class="icon-btn icon-btn-danger"
-          @click="handleDelete"
-          title="Smazat"
-        >
-          <Trash2 :size="ICON_SIZE.STANDARD" />
-        </button>
+      <!-- ICON TOOLBAR -->
+      <div class="icon-toolbar">
+        <template v-if="isEditing">
+          <button class="icon-btn icon-btn-save" @click="saveEdit" title="Uložit">
+            <Save :size="ICON_SIZE.STANDARD" />
+          </button>
+          <button class="icon-btn" @click="cancelEdit" title="Zrušit">
+            <X :size="ICON_SIZE.STANDARD" />
+          </button>
+        </template>
+        <template v-else>
+          <button
+            v-if="authStore.isAdmin"
+            class="icon-btn"
+            @click="startEdit"
+            title="Upravit"
+          >
+            <Edit :size="ICON_SIZE.STANDARD" />
+          </button>
+          <button v-if="!isNew()" class="icon-btn" @click="handleCopy" title="Kopírovat">
+            <Copy :size="ICON_SIZE.STANDARD" />
+          </button>
+          <button
+            v-if="authStore.isAdmin && !isNew()"
+            class="icon-btn icon-btn-danger"
+            @click="handleDelete"
+            title="Smazat"
+          >
+            <Trash2 :size="ICON_SIZE.STANDARD" />
+          </button>
+        </template>
       </div>
     </div>
 
     <!-- ACTIONS SECTION -->
-    <div class="actions-section">
+    <div v-if="showActions" class="actions-section">
       <h4>Actions</h4>
 
       <div class="actions-grid">
-        <button class="action-button" @click="$emit('open-material')" title="Materiál">
-          <MaterialIcon :size="ICON_SIZE.XLARGE" class="action-icon" />
-          <span class="action-label">Materiál</span>
-        </button>
-
-        <button class="action-button" @click="$emit('open-operations')" title="Operace">
-          <OperationsIcon :size="ICON_SIZE.XLARGE" class="action-icon" />
-          <span class="action-label">Operace</span>
+        <button class="action-button" @click="$emit('open-technology')" title="Technologie">
+          <Layers :size="ICON_SIZE.XLARGE" class="action-icon" />
+          <span class="action-label">Technologie</span>
         </button>
 
         <button class="action-button" @click="$emit('open-pricing')" title="Ceny">
@@ -333,52 +386,7 @@ function handleOpenDrawing(drawingId?: number) {
   container-name: part-detail;
 }
 
-/* === INFO RIBBON === */
-.info-ribbon {
-  position: relative;
-  padding: var(--space-5);
-  background: var(--bg-surface);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-6);
-  transition: all var(--duration-normal);
-}
-
-.info-ribbon.editing {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
-}
-
-/* === INFO GRID === */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
-}
-
-.info-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.info-card label {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-card .value {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text-primary);
-  min-height: 24px;
-}
+/* === INFO RIBBON — local customization ONLY === */
 
 /* Inline color dot */
 .dot {
@@ -387,11 +395,6 @@ function handleOpenDrawing(drawingId?: number) {
   border-radius: 50%;
   flex-shrink: 0;
 }
-
-.badge-dot-ok      { background: var(--status-ok); }
-.badge-dot-brand   { background: var(--brand); }
-.badge-dot-warn    { background: var(--status-warn); }
-.badge-dot-neutral { background: var(--text-disabled); }
 
 /* === ICON TOOLBAR === */
 .icon-toolbar {
@@ -404,29 +407,6 @@ function handleOpenDrawing(drawingId?: number) {
   padding-top: 2px;
   padding-bottom: 2px;
   border-top: 1px solid var(--border-default);
-}
-
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.icon-btn:hover {
-  color: var(--color-primary);
-  transform: scale(1.1);
-}
-
-.icon-btn-danger:hover {
-  color: var(--status-error);
 }
 
 /* === EDIT INPUTS === */
@@ -506,35 +486,4 @@ function handleOpenDrawing(drawingId?: number) {
   color: var(--text-primary);
 }
 
-/* Primary action (Save) */
-.action-button-primary {
-  background: transparent;
-  border-color: var(--border-default);
-}
-
-.action-button-primary .action-icon,
-.action-button-primary .action-label {
-  color: var(--text-primary);
-}
-
-.action-button-primary:hover {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.15);
-}
-
-.action-button-primary:hover .action-icon,
-.action-button-primary:hover .action-label {
-  color: var(--color-brand, #991b1b);
-}
-
-/* Secondary action (Cancel) */
-.action-button-secondary .action-icon {
-  color: var(--text-secondary);
-}
-
-.action-button-secondary:hover {
-  border-color: var(--text-secondary);
-}
 </style>

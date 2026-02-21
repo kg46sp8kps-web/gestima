@@ -115,8 +115,20 @@ export const filesApi = {
   /**
    * Get orphan files (admin)
    */
-  async getOrphans(): Promise<FileListResponse> {
-    const response = await apiClient.get<FileListResponse>(`${BASE_PATH}/orphans`)
+  async getOrphans(includeLinkedToDeleted = false): Promise<FileListResponse> {
+    const response = await apiClient.get<FileListResponse>(`${BASE_PATH}/orphans`, {
+      params: { include_linked_to_deleted: includeLinkedToDeleted }
+    })
+    return response.data
+  },
+
+  /**
+   * Bulk soft-delete all orphaned files
+   */
+  async deleteOrphansBulk(includeLinkedToDeleted = false): Promise<{ deleted: number }> {
+    const response = await apiClient.delete<{ deleted: number }>(`${BASE_PATH}/orphans/bulk`, {
+      params: { include_linked_to_deleted: includeLinkedToDeleted }
+    })
     return response.data
   }
 }

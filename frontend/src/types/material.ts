@@ -6,9 +6,10 @@
  * - app/models/enums.py (StockShape)
  */
 
-// Re-export StockShape from part.ts (single source of truth)
-export type { StockShape } from './part'
-import type { StockShape } from './part'
+/**
+ * Stock shape - matches backend StockShape enum (app/models/material.py)
+ */
+export type StockShape = 'round_bar' | 'square_bar' | 'flat_bar' | 'hexagonal_bar' | 'plate' | 'tube' | 'casting' | 'forging'
 
 /**
  * Stock shape options for dropdown
@@ -288,10 +289,28 @@ export interface MaterialParseResult {
   thickness: number | null
   wall_thickness: number | null
   material_norm: string | null
+  material_category: string | null
   confidence: number
+
+  // MaterialGroup (z MaterialNorm FK)
+  suggested_material_group_id: number | null
+  suggested_material_group_code: string | null
+  suggested_material_group_name: string | null
+  suggested_material_group_density: number | null
+
+  // PriceCategory (shape + group match)
   suggested_price_category_id: number | null
-  suggested_material_item_id: number | null  // Konkrétní položka (když najde přesnou shodu)
+  suggested_price_category_code: string | null
+  suggested_price_category_name: string | null
+
+  // MaterialItem - konkrétní položka (když najde přesnou shodu)
+  suggested_material_item_id: number | null
+  suggested_material_item_code: string | null
+  suggested_material_item_name: string | null
+
   raw_input: string
+  matched_pattern: string
+  warnings: string[]
 }
 
 // =============================================================================
@@ -318,6 +337,19 @@ export interface MaterialInput {
   updated_at: string
 }
 
+export interface MaterialItemSummary {
+  id: number
+  code: string
+  name: string
+  material_number: string
+}
+
+export interface PriceCategorySummary {
+  id: number
+  code: string
+  name: string
+}
+
 export interface MaterialInputWithOperations extends MaterialInput {
   operations: Array<{
     id: number
@@ -328,6 +360,8 @@ export interface MaterialInputWithOperations extends MaterialInput {
   weight_kg?: number | null
   cost_per_piece?: number | null
   price_per_kg?: number | null
+  material_item?: MaterialItemSummary | null
+  price_category?: PriceCategorySummary | null
 }
 
 export interface MaterialInputCreate {

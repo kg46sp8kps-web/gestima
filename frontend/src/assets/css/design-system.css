@@ -559,6 +559,7 @@ select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
+  background-size: 12px;
   padding-right: 28px;
   cursor: pointer;
 }
@@ -598,9 +599,6 @@ textarea::selection {
 .text-primary { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }
-.text-success { color: var(--color-success); }
-.text-danger { color: var(--color-danger); }
-.text-warning { color: var(--color-warning); }
 
 /* Background utilities */
 .bg-surface { background: var(--bg-surface); }
@@ -761,6 +759,11 @@ textarea::selection {
   opacity: 0.3;
   cursor: not-allowed;
 }
+.icon-btn.active {
+  color: var(--brand-text);
+  background: var(--brand-subtle);
+  border-color: var(--brand);
+}
 .icon-btn svg {
   width: 18px;
   height: 18px;
@@ -769,9 +772,6 @@ textarea::selection {
 
 .icon-btn-sm { width: 24px; height: 24px; }
 .icon-btn-sm svg { width: 14px; height: 14px; }
-
-.icon-btn-lg { width: 40px; height: 40px; }
-.icon-btn-lg svg { width: 22px; height: 22px; }
 
 /* Akcentovane icon buttony — POUZE pro specialni akce */
 .icon-btn-brand:hover:not(:disabled),
@@ -792,20 +792,10 @@ textarea::selection {
 }
 
 /* Icon Sizes utility classes */
-.icon-xs { width: 12px; height: 12px; }
 .icon-sm { width: 14px; height: 14px; }
 .icon-md { width: 18px; height: 18px; }
 .icon-lg { width: 22px; height: 22px; }
 .icon-xl { width: 32px; height: 32px; }
-.icon-2xl { width: 48px; height: 48px; }
-
-/* Icon Colors */
-.icon-success { color: var(--status-ok); }
-.icon-danger { color: var(--status-error); }
-.icon-warning { color: var(--status-warn); }
-.icon-info { color: var(--color-info); }
-.icon-muted { color: var(--text-muted); }
-.icon-primary { color: var(--brand); }
 
 /* Icon Toolbar */
 .icon-toolbar {
@@ -834,11 +824,6 @@ textarea::selection {
 .form-grid-2col {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-}
-.form-grid-3col {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
 
@@ -924,23 +909,6 @@ textarea::selection {
 }
 
 /* ================================================================
-   CALLOUTS — monochromaticke s levou carou
-   ================================================================ */
-.callout {
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  margin-top: var(--space-3);
-  font-size: var(--text-sm);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-left: 3px solid var(--border-strong);
-  color: var(--text-secondary);
-}
-.callout-ok { border-left-color: var(--status-ok); }
-.callout-error { border-left-color: var(--status-error); }
-.callout-brand { border-left-color: var(--brand); }
-
-/* ================================================================
    SCROLLBARS
    ================================================================ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -966,21 +934,6 @@ textarea::selection {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-}
-.form-field-full { grid-column: 1 / -1; }
-.form-field-checkbox {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--space-2);
-}
-.form-field-checkbox label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  cursor: pointer;
-  text-transform: none;
-  font-size: var(--text-sm);
-  color: var(--text-body);
 }
 
 /* form-input/select/textarea — align with global element styles */
@@ -1023,17 +976,12 @@ textarea::selection {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
+  background-size: 12px;
   padding-right: 28px;
   cursor: pointer;
 }
 .form-select:focus {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-}
-
-.form-grid-4col {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-3);
 }
 
 .help-text {
@@ -1043,7 +991,7 @@ textarea::selection {
 }
 
 /* ================================================================
-   LEGACY COMPAT — spinner, card, btn-group, alert, table
+   LEGACY COMPAT — spinner, card, alert, table
    ================================================================ */
 .spinner {
   border: 2px solid var(--border-default);
@@ -1051,13 +999,7 @@ textarea::selection {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-.spinner-small { width: 16px; height: 16px; border-width: 2px; }
-.spinner-medium { width: 24px; height: 24px; }
-.spinner-large { width: 36px; height: 36px; border-width: 3px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.btn-group { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.btn-group-right { justify-content: flex-end; }
 
 .btn-success {
   background: transparent;
@@ -1122,57 +1064,175 @@ textarea::selection {
   border-left: 3px solid var(--border-strong);
   color: var(--text-secondary);
 }
-.alert-info { border-left-color: var(--color-info); }
-.alert-success { border-left-color: var(--status-ok); }
-.alert-warning { border-left-color: var(--status-warn); }
-.alert-error { border-left-color: var(--status-error); }
 
-/* Legacy badge variants (map to monochrome badge) */
-.badge-default { background: var(--bg-raised); color: var(--text-secondary); }
-.badge-success { background: var(--bg-raised); color: var(--text-secondary); }
-.badge-warning { background: var(--bg-raised); color: var(--text-secondary); }
-.badge-error { background: var(--bg-raised); color: var(--text-secondary); }
-.badge-info { background: var(--bg-raised); color: var(--text-secondary); }
-
-/* Price bar (from components.css) */
-.price-bar {
+/* ================================================================
+   MODAL OVERLAY — global (eliminuje 10× duplikaci v komponentech)
+   ================================================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-overlay, rgba(0, 0, 0, 0.7));
   display: flex;
-  height: 16px;
-  background: var(--bg-input);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-.bar-segment {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-/* btn-flat (ghost button variant — alias to btn-secondary) */
-.btn-flat {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  background: transparent;
+  z-index: 1000;
+}
+.modal-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 560px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+.modal-content h3 {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ================================================================
+   EMPTY STATE — global (eliminuje 37× duplikaci v komponentech)
+   ================================================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-6);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.empty-state .empty-icon {
+  color: var(--text-disabled);
+}
+.empty-state p {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+.empty-state .hint {
+  font-size: var(--text-xs);
+  color: var(--text-disabled);
+}
+
+/* ================================================================
+   LOADING STATE — global (eliminuje 22× duplikaci spinneru)
+   ================================================================ */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-6);
+  color: var(--text-tertiary);
+}
+.loading-state .spinner {
+  width: 24px;
+  height: 24px;
+}
+.loading-state p {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ================================================================
+   SEARCH INPUT — global (eliminuje 10× duplikaci)
+   ================================================================ */
+.search-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
   font-size: var(--text-sm);
+  background: var(--bg-input);
+  color: var(--text-body);
+  height: var(--input-h);
+  outline: none;
+  transition: all var(--t-fast);
+}
+.search-input::placeholder {
+  color: var(--text-disabled);
+}
+.search-input:focus {
+  outline: none;
+  background: var(--focus-bg);
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* ================================================================
+   SPLIT PANE LAYOUT — global (eliminuje 4× duplikaci v ListModulech)
+   ================================================================ */
+.split-layout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+.split-layout .left-panel {
+  overflow-y: auto;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-default);
+}
+.split-layout .right-panel {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+.split-layout .resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background var(--t-fast);
+}
+.split-layout .resize-handle:hover,
+.split-layout .resize-handle.dragging {
+  background: var(--brand);
+}
+
+/* ================================================================
+   TAB FILTER BAR — global (eliminuje 4× duplikaci)
+   ================================================================ */
+.filter-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+}
+.tab-button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--t-fast);
-  height: var(--input-h);
 }
-.btn-flat:hover {
+.tab-button:hover {
   background: var(--hover);
   color: var(--text-primary);
-  border-color: var(--border-strong);
 }
-.btn-flat.btn-save {
-  color: var(--brand-text);
-  border-color: rgba(153, 27, 27, 0.3);
-}
-.btn-flat.btn-save:hover {
+.tab-button.active {
   background: var(--brand-subtle);
+  border-color: var(--brand);
+  color: var(--brand-text);
 }

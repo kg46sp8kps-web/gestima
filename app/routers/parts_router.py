@@ -150,24 +150,20 @@ async def copy_part_relations(
     await safe_commit(db, target_part, "kopírování relací dílu")
 
 
-@router.get("/")
+@router.get("/", response_model=dict)
 async def get_parts(
     skip: int = Query(0, ge=0, description="Počet záznamů k přeskočení"),
     limit: int = Query(100, ge=1, le=500, description="Max počet záznamů"),
     status: Optional[str] = Query(None, description="Filtr statusu (draft, active, archived, quote)"),
     source: Optional[str] = Query(None, description="Filtr zdroje (manual, infor_import, quote_request)"),
     search: Optional[str] = Query(None, description="Hledat v article_number, name, part_number"),
+    has_drawing: Optional[bool] = Query(None, description="Filtr: pouze díly s výkresem (file_id IS NOT NULL)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """List dílů s pagination, status filtrem a vyhledáváním. Vrací {parts, total}."""
     query = (
         select(Part)
-        .options(
-            selectinload(Part.material_inputs),
-            selectinload(Part.operations),
-            selectinload(Part.batches)
-        )
         .where(Part.deleted_at.is_(None))
     )
 
@@ -191,6 +187,10 @@ async def get_parts(
         if search.strip().isdigit():
             search_filters.append(Part.id == int(search.strip()))
         query = query.where(or_(*search_filters))
+
+    # Drawing filter (file_id IS NOT NULL)
+    if has_drawing is True:
+        query = query.where(Part.file_id.isnot(None))
 
     # Count total (before pagination)
     count_query = select(func.count()).select_from(query.subquery())
@@ -284,7 +284,10 @@ async def create_part(
     set_audit(part, current_user.username)
     db.add(part)
 
-    part = await safe_commit(db, part, "vytváření dílu")
+    part = await safe_commit(
+        db, part, "vytváření dílu",
+        integrity_error_msg="Díl s tímto artiklem již existuje (duplicitní article_number)"
+    )
     logger.info(f"Created part: {part.part_number}", extra={
         "part_id": part.id,
         "user": current_user.username,
@@ -405,7 +408,6 @@ async def delete_part(
             selectinload(Part.operations).selectinload(Operation.features),
             selectinload(Part.material_inputs),
             selectinload(Part.batches),
-            selectinload(Part.drawings),
         )
         .where(
             Part.part_number == part_number,
@@ -455,11 +457,6 @@ async def delete_part(
             batch.deleted_at = now
             batch.deleted_by = username
 
-    for drawing in part.drawings:
-        if drawing.deleted_at is None:
-            drawing.deleted_at = now
-            drawing.deleted_by = username
-
     # Soft delete samotného Part
     part.deleted_at = now
     part.deleted_by = username
@@ -467,14 +464,13 @@ async def delete_part(
     await safe_commit(db, action="mazání dílu")
     logger.info(
         f"Soft deleted part: {part_number} with {len(part.operations)} operations, "
-        f"{len(part.material_inputs)} material_inputs, {len(part.batches)} batches, "
-        f"{len(part.drawings)} drawings",
+        f"{len(part.material_inputs)} material_inputs, {len(part.batches)} batches",
         extra={"part_number": part_number, "user": username}
     )
     return {"message": "Díl smazán"}
 
 
-@router.get("/{part_number}/full")
+@router.get("/{part_number}/full", response_model=dict)
 async def get_part_full(
     part_number: str,
     db: AsyncSession = Depends(get_db),

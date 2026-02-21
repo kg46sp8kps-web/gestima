@@ -33,7 +33,7 @@ async def get_production_records(
     return await service.list_by_part(part_id)
 
 
-@router.get("/part/{part_id}/summary")
+@router.get("/part/{part_id}/summary", response_model=dict)
 async def get_production_summary(
     part_id: int,
     db: AsyncSession = Depends(get_db),

@@ -55,6 +55,11 @@ class FileLinkResponse(BaseModel):
     file_id: int = Field(..., gt=0, description="ID FileRecord záznamu")
     entity_type: str = Field(..., max_length=50, description="Typ entity (part, quote_item, timevision)")
     entity_id: int = Field(..., gt=0, description="ID konkrétní entity")
+    entity_name: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="Resolved display name of the linked entity (e.g. article_number for parts)"
+    )
     is_primary: bool = Field(default=False, description="Primární soubor pro entitu")
     revision: Optional[str] = Field(
         None,

@@ -136,7 +136,7 @@ class TestAlembicMigrations:
             text=True
         )
         assert result.returncode == 0
-        assert "78917f98a52d" in result.stdout or "(head)" in result.stdout
+        assert "(head)" in result.stdout
 
     def test_alembic_history(self):
         """Alembic history obsahuje initial migration"""

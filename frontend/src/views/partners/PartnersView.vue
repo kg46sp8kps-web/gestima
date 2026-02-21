@@ -205,31 +205,5 @@ onMounted(() => {
 }
 
 /* === BUTTONS === */
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
 
-.btn:hover {
-  background: var(--state-hover);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border-color: var(--border-default);
-}
-
-.btn-primary:hover {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
 </style>

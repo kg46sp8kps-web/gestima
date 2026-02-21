@@ -103,11 +103,13 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { usePrefetch } from '@/composables/usePrefetch'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const ui = useUiStore()
+const { prefetchAll } = usePrefetch()
 
 // Form state
 const username = ref('')
@@ -128,14 +130,17 @@ async function handleLogin() {
       password: password.value
     })
 
+    // Background prefetch — fire-and-forget, don't block redirect
+    void prefetchAll()
+
     // Redirect to original destination or dashboard
     const redirect = (route.query.redirect as string) || '/'
 
     await router.push(redirect)
 
     ui.showSuccess('Přihlášení úspěšné')
-  } catch (err: any) {
-    ui.showError(err.message || 'Neplatné přihlašovací údaje')
+  } catch (err: unknown) {
+    ui.showError((err as Error).message || 'Neplatné přihlašovací údaje')
     loading.value = false
   }
 }

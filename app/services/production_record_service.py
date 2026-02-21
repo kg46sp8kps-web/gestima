@@ -1,12 +1,13 @@
 """GESTIMA - ProductionRecord service
 
 Business logic for production records (actual manufacturing data).
+Inherits BaseCrudService for standard CRUD, adds domain-specific methods.
 """
 
 import logging
-from typing import List, Optional
+from typing import List
 
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,20 +18,27 @@ from app.models.production_record import (
     ProductionRecordResponse,
 )
 from app.models.work_center import WorkCenter
-from app.db_helpers import set_audit, safe_commit
+from app.db_helpers import set_audit
+from app.services.base_service import BaseCrudService
 
 logger = logging.getLogger(__name__)
 
 
-class ProductionRecordService:
-    """Service for managing production records."""
+class ProductionRecordService(BaseCrudService[ProductionRecord, ProductionRecordCreate, ProductionRecordUpdate]):
+    model = ProductionRecord
+    entity_name = "production record"
+    default_order = ()
+    parent_field = "part_id"
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    # ── DOMAIN-SPECIFIC ──────────────────────────────────────────
 
     async def list_by_part(self, part_id: int, include_deleted: bool = False) -> List[ProductionRecordResponse]:
-        """Get all production records for a part, ordered by date desc."""
-        query = select(ProductionRecord).where(ProductionRecord.part_id == part_id)
+        """Get all production records for a part with WC name resolution."""
+        query = (
+            select(ProductionRecord)
+            .options(selectinload(ProductionRecord.work_center))
+            .where(ProductionRecord.part_id == part_id)
+        )
         if not include_deleted:
             query = query.where(ProductionRecord.deleted_at.is_(None))
         query = query.order_by(
@@ -41,82 +49,15 @@ class ProductionRecordService:
         result = await self.db.execute(query)
         records = result.scalars().all()
 
-        # Resolve WC names
+        # Resolve WC names using preloaded relationship (no N+1 query)
         responses = []
         for record in records:
             resp = ProductionRecordResponse.model_validate(record)
-            if record.work_center_id:
-                wc = await self.db.get(WorkCenter, record.work_center_id)
-                if wc:
-                    resp.work_center_name = wc.name
+            if record.work_center:
+                resp.work_center_name = record.work_center.name
+                resp.work_center_type = record.work_center.work_center_type.value if record.work_center.work_center_type else None
             responses.append(resp)
         return responses
-
-    async def get(self, record_id: int) -> Optional[ProductionRecord]:
-        """Get single production record by ID."""
-        result = await self.db.execute(
-            select(ProductionRecord).where(
-                ProductionRecord.id == record_id,
-                ProductionRecord.deleted_at.is_(None),
-            )
-        )
-        return result.scalar_one_or_none()
-
-    async def create(self, data: ProductionRecordCreate, username: str) -> ProductionRecord:
-        """Create a new production record."""
-        record = ProductionRecord(**data.model_dump())
-        set_audit(record, username)
-        self.db.add(record)
-        record = await safe_commit(
-            self.db, record,
-            "vytváření production record",
-            "Konflikt dat (neplatná reference na díl nebo pracoviště)",
-        )
-        logger.info(
-            f"Created production record for part_id={data.part_id}, seq={data.operation_seq}",
-            extra={"record_id": record.id, "user": username},
-        )
-        return record
-
-    async def update(self, record_id: int, data: ProductionRecordUpdate, username: str) -> ProductionRecord:
-        """Update an existing production record with optimistic locking."""
-        record = await self.get(record_id)
-        if not record:
-            raise ValueError(f"Production record {record_id} not found")
-
-        # Optimistic locking check
-        if record.version != data.version:
-            raise ValueError("Version conflict — record was modified by another user")
-
-        update_data = data.model_dump(exclude_unset=True, exclude={"version"})
-        for key, value in update_data.items():
-            setattr(record, key, value)
-
-        set_audit(record, username, is_update=True)
-        record = await safe_commit(
-            self.db, record,
-            "aktualizace production record",
-            "Konflikt dat",
-        )
-        logger.info(
-            f"Updated production record {record_id}",
-            extra={"record_id": record_id, "user": username},
-        )
-        return record
-
-    async def delete(self, record_id: int, username: str) -> bool:
-        """Soft-delete a production record."""
-        record = await self.get(record_id)
-        if not record:
-            return False
-
-        from app.db_helpers import soft_delete
-        await soft_delete(self.db, record, deleted_by=username)
-        logger.info(
-            f"Deleted production record {record_id}",
-            extra={"record_id": record_id, "user": username},
-        )
-        return True
 
     async def bulk_create(self, records: List[ProductionRecordCreate], username: str) -> List[ProductionRecord]:
         """Bulk create production records (for Infor import)."""
@@ -155,7 +96,6 @@ class ProductionRecordService:
                 "total_pieces_produced": 0,
             }
 
-        # Aggregate by infor_order_number for unique batches
         order_numbers = set()
         actual_times = []
         total_pieces = 0

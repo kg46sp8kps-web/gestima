@@ -213,15 +213,14 @@ export async function deletePriceTier(tierId: number): Promise<void> {
 // =============================================================================
 
 /**
- * Get material items (with optional filtering)
+ * Get material items — paginated, returns { items, total } same as getParts()
  */
 export async function getMaterialItems(params?: {
   group_id?: number
-  shape?: string
   skip?: number
   limit?: number
-}): Promise<MaterialItem[]> {
-  const response = await apiClient.get<MaterialItem[]>('/materials/items', { params })
+}): Promise<{ items: MaterialItem[], total: number }> {
+  const response = await apiClient.get<{ items: MaterialItem[], total: number }>('/materials/items', { params })
   return response.data
 }
 
@@ -263,24 +262,4 @@ export async function parseMaterialDescription(description: string): Promise<Mat
     }
   )
   return response.data
-}
-
-// =============================================================================
-// Reference Data (for dropdowns)
-// =============================================================================
-
-/**
- * Get price categories for dropdown (simplified)
- */
-export async function getPriceCategoriesForDropdown(): Promise<Array<{
-  id: number
-  code: string
-  name: string
-}>> {
-  const categories = await getPriceCategories()
-  return categories.map(c => ({
-    id: c.id,
-    code: c.code,
-    name: c.name
-  }))
 }

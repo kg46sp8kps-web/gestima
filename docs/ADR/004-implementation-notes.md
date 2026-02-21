@@ -1,119 +1,55 @@
-# ADR-004: Implementační poznámky (Audit + WAL + Locking)
+# ADR-004: Audit + WAL + Optimistic Locking
 
-## Status
-Implementováno (22.1.2026)
+**Status:** Implemented (2026-01-22)
 
-## Co bylo implementováno
+## Context
 
-### 1. AuditMixin - automatické audit fieldy
+Všechny modely potřebují audit trail, SQLite vyžaduje WAL pro concurrent přístup a optimistic locking zabraňuje conflictům při souběžných editacích.
+
+## Decision
+
+Implementovat `AuditMixin`, WAL mode a optimistic locking jako automatickou infrastrukturu — vývojáři na to nemusí myslet.
+
+## Key Files
+
+- `app/database.py` — `AuditMixin`, `init_db()` (WAL PRAGMA), SQLAlchemy event listener
+- `app/db_helpers.py` — `soft_delete()`, `restore()`, `get_active()`, `get_all_active()`
+- `tests/test_audit_infrastructure.py`
+
+## Models
+
 ```python
-# app/database.py
 class AuditMixin:
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
     created_by = Column(String)
     updated_by = Column(String)
-    deleted_at = Column(DateTime)  # NULL = aktivní
+    deleted_at = Column(DateTime)   # NULL = aktivní (soft delete)
     deleted_by = Column(String)
-    version = Column(Integer)      # Optimistic locking
+    version = Column(Integer)       # Optimistic locking — auto-increment on UPDATE
 ```
 
-**Použití:** Všechny modely dědí `Base, AuditMixin`
+**WAL PRAGMAs:** `journal_mode=WAL`, `synchronous=NORMAL`, `cache_size=-64000`
 
-### 2. WAL Mode - automaticky zapnuté
+## Usage
+
 ```python
-# app/database.py -> init_db()
-PRAGMA journal_mode=WAL
-PRAGMA synchronous=NORMAL
-PRAGMA cache_size=-64000  # 64MB
-```
+# Soft delete
+await soft_delete(db, part, deleted_by="jan@firma.cz")
 
-**Benefit:** Čtení neblokuje zápis. 10-100× rychlejší concurrent access.
-
-### 3. Optimistic Locking - automatické
-```python
-# SQLAlchemy event listener
-@event.listens_for(Base, 'before_update')
-def receive_before_update(mapper, connection, target):
-    if hasattr(target, 'version'):
-        target.version += 1
-```
-
-**Benefit:** Detekce konfliktů při současných editacích.
-
-### 4. Helper funkce
-```python
-# app/db_helpers.py
-await soft_delete(db, part, deleted_by="user@example.com")
-await restore(db, part)
-is_deleted(part)
-await get_active(db, Part, id)
-await get_all_active(db, Part)
-```
-
-## Automatizace
-
-**Nemusíš na to myslet!**
-
-- ✅ Audit fieldy se vyplní automaticky
-- ✅ WAL mode se zapne při startu
-- ✅ Version se inkrementuje při UPDATE
-- ✅ Soft delete = použij helper funkci
-
-## Testy
-
-```bash
-pytest tests/test_audit_infrastructure.py -v
-```
-
-Testuje:
-- WAL mode aktivní
-- Audit fields fungují
-- Version auto-increment
-- Soft delete
-- Restore
-- Query filtering
-
-## Migrace existující DB
-
-**Pro přidání nových sloupců:**
-```bash
-# Smaž starou DB a vytvoř novou
-rm gestima.db
-uvicorn app.gestima_app:app --reload
-# Tabulky se vytvoří s novými fieldy
-```
-
-**Nebo použij Alembic migration** (později).
-
-## Použití v kódu
-
-### Vytvoření záznamu
-```python
-part = Part(part_number="D123", name="Hřídel")
-# created_at, version = automaticky
-```
-
-### Soft delete
-```python
-from app.db_helpers import soft_delete
-await soft_delete(db, part, deleted_by="jan.novak@firma.cz")
-```
-
-### Query jen aktivní
-```python
-from app.db_helpers import get_all_active
-active_parts = await get_all_active(db, Part)
-```
-
-### Detekce konfliktu
-```python
-# Frontend pošle expected_version
+# Conflict detection (frontend posílá expected_version)
 if part.version != expected_version:
     raise HTTPException(409, "Díl byl upraven jiným uživatelem")
 ```
 
-## Reference
+## Consequences
+
+- Audit fieldy a WAL jsou transparentní — žádný boilerplate v modelech
+- `version` se inkrementuje automaticky přes SQLAlchemy event listener
+- Soft delete zachovává historii; `get_all_active()` filtruje `deleted_at IS NULL`
+- Migrace existující DB: smaž DB a znovu spusť (nebo alembic migration)
+
+## References
+
 - ADR-001: Soft Delete Pattern
 - ADR-003: Integer ID vs UUID
-- SQLite WAL: https://www.sqlite.org/wal.html

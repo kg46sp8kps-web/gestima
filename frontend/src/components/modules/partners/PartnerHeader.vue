@@ -150,13 +150,6 @@ const contactInfo = computed(() => {
   color: var(--text-secondary);
 }
 
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
 .empty-text {
   font-size: var(--text-sm);
   color: var(--text-secondary);

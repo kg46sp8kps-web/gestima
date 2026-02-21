@@ -33,8 +33,10 @@ function createMockPart(overrides: Partial<Part> = {}): Part {
     revision: null,
     drawing_number: null,
     status: 'draft',
+    source: 'manual',
     length: 0,
     notes: '',
+    file_id: null,
     version: 1,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
@@ -148,7 +150,7 @@ describe('Parts Store', () => {
 
       await store.fetchParts()
 
-      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, undefined, undefined)
+      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, undefined, undefined, undefined)
       expect(store.parts).toEqual(mockParts)
       expect(store.total).toBe(2)
       expect(store.loading).toBe(false)
@@ -186,7 +188,7 @@ describe('Parts Store', () => {
       store.setStatusFilter('active')
       await store.fetchParts()
 
-      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, 'active', undefined)
+      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, 'active', undefined, undefined)
     })
 
     it('should pass search query to API', async () => {
@@ -196,7 +198,7 @@ describe('Parts Store', () => {
       store.setSearchQuery('test')
       await store.fetchParts()
 
-      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, undefined, 'test')
+      expect(partsApi.getParts).toHaveBeenCalledWith(0, 200, undefined, 'test', undefined)
     })
   })
 

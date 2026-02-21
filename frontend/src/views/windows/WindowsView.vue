@@ -14,9 +14,7 @@ import { defineAsyncComponent } from 'vue'
 
 const PartMainModule = defineAsyncComponent(() => import('@/components/modules/PartMainModule.vue'))
 const PartPricingModule = defineAsyncComponent(() => import('@/components/modules/PartPricingModule.vue'))
-const PartOperationsModule = defineAsyncComponent(() => import('@/components/modules/PartOperationsModule.vue'))
 const PartTechnologyModule = defineAsyncComponent(() => import('@/components/modules/PartTechnologyModule.vue'))
-const PartMaterialModule = defineAsyncComponent(() => import('@/components/modules/PartMaterialModule.vue'))
 const PartDrawingWindow = defineAsyncComponent(() => import('@/components/modules/parts/PartDrawingWindow.vue'))
 const BatchSetsModule = defineAsyncComponent(() => import('@/components/modules/BatchSetsModule.vue'))
 const PartnersListModule = defineAsyncComponent(() => import('@/components/modules/PartnersListModule.vue'))
@@ -36,9 +34,7 @@ function getModuleComponent(module: string) {
   switch (module) {
     case 'part-main': return PartMainModule
     case 'part-pricing': return PartPricingModule
-    case 'part-operations': return PartOperationsModule
     case 'part-technology': return PartTechnologyModule
-    case 'part-material': return PartMaterialModule
     case 'part-drawing': return PartDrawingWindow
     case 'batch-sets': return BatchSetsModule
     case 'partners-list': return PartnersListModule
@@ -77,7 +73,9 @@ onMounted(() => {
       >
         <component
           :is="getModuleComponent(win.module)"
+          :windowId="win.id"
           :linkingGroup="win.linkingGroup"
+          :windowRole="win.windowRole"
           :windowTitle="win.title"
         />
       </FloatingWindow>
@@ -110,14 +108,6 @@ onMounted(() => {
 }
 
 /* Empty State */
-.empty-state {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: var(--text-muted);
-}
 
 .empty-icon {
   margin-bottom: var(--space-5);
@@ -125,14 +115,4 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 
-.empty-state h2 {
-  font-size: var(--text-5xl);
-  margin: 0 0 0.5rem 0;
-  color: var(--text-primary);
-}
-
-.empty-state p {
-  font-size: var(--text-2xl);
-  margin: 0;
-}
 </style>

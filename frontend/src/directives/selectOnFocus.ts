@@ -10,8 +10,15 @@
  */
 import type { Directive, DirectiveBinding } from 'vue'
 
+interface SelectOnFocusElement extends HTMLInputElement {
+  _selectOnFocusHandlers?: {
+    mousedown: (e: MouseEvent) => void
+    focus: () => void
+  }
+}
+
 const selectOnFocus: Directive<HTMLInputElement> = {
-  mounted(el: HTMLInputElement) {
+  mounted(el: SelectOnFocusElement) {
     const handleMouseDown = (e: MouseEvent) => {
       // Always prevent default cursor positioning
       e.preventDefault()
@@ -38,18 +45,18 @@ const selectOnFocus: Directive<HTMLInputElement> = {
     el.addEventListener('focus', handleFocus)
 
     // Store handlers for cleanup
-    ;(el as any)._selectOnFocusHandlers = {
+    el._selectOnFocusHandlers = {
       mousedown: handleMouseDown,
       focus: handleFocus
     }
   },
 
-  unmounted(el: HTMLInputElement) {
-    const handlers = (el as any)._selectOnFocusHandlers
+  unmounted(el: SelectOnFocusElement) {
+    const handlers = el._selectOnFocusHandlers
     if (handlers) {
       el.removeEventListener('mousedown', handlers.mousedown)
       el.removeEventListener('focus', handlers.focus)
-      delete (el as any)._selectOnFocusHandlers
+      delete el._selectOnFocusHandlers
     }
   }
 }

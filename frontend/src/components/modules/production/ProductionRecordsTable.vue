@@ -1,107 +1,356 @@
 <script setup lang="ts">
 /**
- * Production Records Table - Display production history records
+ * Production Records Table — grouped by Job (collapsible rows)
+ *
+ * Two modes:
+ * 1. Default (no filter): grouped by Job, avg actual time per record
+ * 2. machineTypeFilter: grouped by Job, SUM of times across matching operations
+ *    — shows aggregated row per VP with sum of machine times
+ *
+ * All per-piece times are pre-computed in backend — NO calculations here.
  */
-import { computed } from 'vue'
-import { Trash2 } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { ChevronRight, ChevronDown, Trash2 } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import type { ProductionRecord } from '@/types/productionRecord'
 
 interface Props {
   records: ProductionRecord[]
+  machineTypeFilter?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  machineTypeFilter: false
+})
 
 const emit = defineEmits<{
   (e: 'delete', id: number): void
 }>()
 
-const sortedRecords = computed(() => {
-  return [...props.records].sort((a, b) => {
-    const dateA = a.production_date ? new Date(a.production_date).getTime() : 0
-    const dateB = b.production_date ? new Date(b.production_date).getTime() : 0
-    return dateB - dateA
-  })
-})
+// Expanded state
+const expandedJobs = ref<Set<string>>(new Set())
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('cs-CZ')
+function toggleJob(key: string) {
+  if (expandedJobs.value.has(key)) {
+    expandedJobs.value.delete(key)
+  } else {
+    expandedJobs.value.add(key)
+  }
 }
 
-function handleDelete(id: number) {
-  emit('delete', id)
+/** Group records by infor_order_number (Job) */
+interface JobGroup {
+  key: string
+  orderNumber: string
+  batchQuantity: number | null
+  operationCount: number
+  records: ProductionRecord[]
+  avgActualTime: number | null
+  // Aggregated sums (for machineTypeFilter mode)
+  sumActualTime: number | null
+  sumPlannedTime: number | null
+  sumSetupActual: number | null
+  sumSetupPlanned: number | null
+  avgManning: number | null
+  productionDate: string | null
+}
+
+const jobGroups = computed<JobGroup[]>(() => {
+  const map = new Map<string, ProductionRecord[]>()
+  for (const r of props.records) {
+    const key = r.infor_order_number ?? `manual_${r.id}`
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(r)
+  }
+
+  const groups: JobGroup[] = []
+  for (const [key, recs] of map) {
+    // Sort operations by seq within group
+    recs.sort((a, b) => (a.operation_seq ?? 0) - (b.operation_seq ?? 0))
+
+    const times = recs.map(r => r.actual_time_min).filter((v): v is number => v != null)
+
+    // Sum aggregations for machine-type mode
+    let sumActual = 0, sumPlanned = 0, sumSetupActual = 0, sumSetupPlanned = 0
+    const manningVals: number[] = []
+    for (const r of recs) {
+      if (r.actual_time_min != null) sumActual += r.actual_time_min
+      if (r.planned_time_min != null) sumPlanned += r.planned_time_min
+      if (r.actual_setup_min != null) sumSetupActual += r.actual_setup_min
+      if (r.planned_setup_min != null) sumSetupPlanned += r.planned_setup_min
+      if (r.actual_manning_coefficient != null) manningVals.push(r.actual_manning_coefficient)
+    }
+
+    groups.push({
+      key,
+      orderNumber: recs[0]?.infor_order_number ?? 'Ruční',
+      batchQuantity: recs[0]?.batch_quantity ?? null,
+      operationCount: recs.length,
+      records: recs,
+      avgActualTime: times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : null,
+      sumActualTime: times.length > 0 ? sumActual : null,
+      sumPlannedTime: recs.some(r => r.planned_time_min != null) ? sumPlanned : null,
+      sumSetupActual: recs.some(r => r.actual_setup_min != null) ? sumSetupActual : null,
+      sumSetupPlanned: recs.some(r => r.planned_setup_min != null) ? sumSetupPlanned : null,
+      avgManning: manningVals.length > 0 ? manningVals.reduce((a, b) => a + b, 0) / manningVals.length : null,
+      productionDate: recs[0]?.production_date ?? null,
+    })
+  }
+
+  return groups
+})
+
+function fmt(val: number | null | undefined, decimals = 2): string {
+  if (val == null) return '—'
+  return val.toFixed(decimals)
+}
+
+function fmtPct(val: number | null | undefined): string {
+  if (val == null) return '—'
+  return val.toFixed(0) + '%'
 }
 </script>
 
 <template>
   <div class="records-table">
-    <div class="table-header">
-      <div class="col-date">Datum</div>
-      <div class="col-order">Příkaz</div>
-      <div class="col-batch">Dávka</div>
-      <div class="col-op">OP</div>
-      <div class="col-wc">Pracoviště</div>
-      <div class="col-time">Plán</div>
-      <div class="col-time">Skutečnost</div>
-      <div class="col-action"></div>
-    </div>
-    <div class="table-body">
-      <div v-for="record in sortedRecords" :key="record.id" class="table-row">
-        <div class="col-date">{{ formatDate(record.production_date) }}</div>
-        <div class="col-order">{{ record.infor_order_number ?? '—' }}</div>
-        <div class="col-batch">{{ record.batch_quantity ?? '—' }}</div>
-        <div class="col-op">{{ record.operation_seq ?? '—' }}</div>
-        <div class="col-wc">{{ record.work_center_name ?? '—' }}</div>
-        <div class="col-time">{{ record.planned_time_min?.toFixed(1) ?? '—' }}</div>
-        <div class="col-time highlight">{{ record.actual_time_min?.toFixed(1) ?? '—' }}</div>
-        <div class="col-action">
-          <button
-            class="btn-icon"
-            title="Smazat"
-            @click="handleDelete(record.id)"
-          >
-            <Trash2 :size="ICON_SIZE.SMALL" />
-          </button>
-        </div>
+    <!-- MACHINE TYPE FILTER MODE: grouped by Job with SUM of times -->
+    <template v-if="machineTypeFilter">
+      <!-- Header -->
+      <div class="mt-header-row">
+        <div class="mt-expand"></div>
+        <div class="mt-order">Příkaz</div>
+        <div class="mt-batch">Ks</div>
+        <div class="mt-ops">OP</div>
+        <div class="mt-val">Σ Setup pl</div>
+        <div class="mt-val">Σ Stroj pl</div>
+        <div class="mt-val">Σ Setup re</div>
+        <div class="mt-val highlight-header">Σ Stroj re</div>
+        <div class="mt-pct">Man</div>
+        <div class="mt-date">Datum</div>
       </div>
-    </div>
+
+      <!-- Job rows with sums -->
+      <div v-for="group in jobGroups" :key="group.key" class="job-group">
+        <div class="mt-row" @click="toggleJob(group.key)">
+          <div class="mt-expand">
+            <component :is="expandedJobs.has(group.key) ? ChevronDown : ChevronRight" :size="12" class="chevron-icon" />
+          </div>
+          <div class="mt-order">{{ group.orderNumber }}</div>
+          <div class="mt-batch mono">{{ group.batchQuantity ?? '—' }}</div>
+          <div class="mt-ops mono">{{ group.operationCount }}</div>
+          <div class="mt-val mono">{{ fmt(group.sumSetupPlanned, 1) }}</div>
+          <div class="mt-val mono">{{ fmt(group.sumPlannedTime) }}</div>
+          <div class="mt-val mono">{{ fmt(group.sumSetupActual, 1) }}</div>
+          <div class="mt-val mono highlight">{{ fmt(group.sumActualTime) }}</div>
+          <div class="mt-pct mono">{{ fmtPct(group.avgManning) }}</div>
+          <div class="mt-date mono">{{ group.productionDate?.slice(5) ?? '—' }}</div>
+        </div>
+
+        <!-- Expanded: individual operation detail rows -->
+        <template v-if="expandedJobs.has(group.key)">
+          <div class="op-header-row mt-sub">
+            <div class="op-seq">OP</div>
+            <div class="op-wc">Pracoviště</div>
+            <div class="op-val">Setup pl</div>
+            <div class="op-val">Stroj pl</div>
+            <div class="op-val">Setup re</div>
+            <div class="op-val highlight-header">Stroj re</div>
+            <div class="op-pct">Man re</div>
+            <div class="op-action"></div>
+          </div>
+          <div v-for="record in group.records" :key="record.id" class="op-row mt-sub">
+            <div class="op-seq">{{ record.operation_seq ?? '—' }}</div>
+            <div class="op-wc">{{ record.work_center_name ?? '—' }}</div>
+            <div class="op-val mono">{{ fmt(record.planned_setup_min, 1) }}</div>
+            <div class="op-val mono">{{ fmt(record.planned_time_min) }}</div>
+            <div class="op-val mono">{{ fmt(record.actual_setup_min, 1) }}</div>
+            <div class="op-val mono highlight">{{ fmt(record.actual_time_min) }}</div>
+            <div class="op-pct mono">{{ fmtPct(record.actual_manning_coefficient) }}</div>
+            <div class="op-action">
+              <button class="btn-icon" title="Smazat" @click.stop="emit('delete', record.id)">
+                <Trash2 :size="ICON_SIZE.SMALL" />
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- GROUPED MODE: default Job grouping (no filter) -->
+    <template v-else>
+      <!-- Header -->
+      <div class="job-header-row">
+        <div class="jh-expand"></div>
+        <div class="jh-order">Příkaz</div>
+        <div class="jh-batch">Ks</div>
+        <div class="jh-ops">OP</div>
+        <div class="jh-time">Ø stroj real</div>
+      </div>
+
+      <!-- Job rows -->
+      <div v-for="group in jobGroups" :key="group.key" class="job-group">
+        <!-- Job summary row (collapsible) -->
+        <div class="job-row" @click="toggleJob(group.key)">
+          <div class="jh-expand">
+            <component :is="expandedJobs.has(group.key) ? ChevronDown : ChevronRight" :size="12" class="chevron-icon" />
+          </div>
+          <div class="jh-order">{{ group.orderNumber }}</div>
+          <div class="jh-batch mono">{{ group.batchQuantity ?? '—' }}</div>
+          <div class="jh-ops mono">{{ group.operationCount }}</div>
+          <div class="jh-time mono highlight">{{ fmt(group.avgActualTime) }}</div>
+        </div>
+
+        <!-- Expanded: operation detail rows -->
+        <template v-if="expandedJobs.has(group.key)">
+          <!-- Sub-header -->
+          <div class="op-header-row">
+            <div class="op-seq">OP</div>
+            <div class="op-wc">Pracoviště</div>
+            <div class="op-val">Setup pl</div>
+            <div class="op-val">Stroj pl</div>
+            <div class="op-val">Obsl pl</div>
+            <div class="op-pct">Man pl</div>
+            <div class="op-val">Setup re</div>
+            <div class="op-val highlight-header">Stroj re</div>
+            <div class="op-val">Obsl re</div>
+            <div class="op-pct">Man re</div>
+            <div class="op-action"></div>
+          </div>
+          <div v-for="record in group.records" :key="record.id" class="op-row">
+            <div class="op-seq">{{ record.operation_seq ?? '—' }}</div>
+            <div class="op-wc">{{ record.work_center_name ?? '—' }}</div>
+            <div class="op-val mono">{{ fmt(record.planned_setup_min, 1) }}</div>
+            <div class="op-val mono">{{ fmt(record.planned_time_min) }}</div>
+            <div class="op-val mono">{{ fmt(record.planned_labor_time_min) }}</div>
+            <div class="op-pct mono">{{ fmtPct(record.manning_coefficient) }}</div>
+            <div class="op-val mono">{{ fmt(record.actual_setup_min, 1) }}</div>
+            <div class="op-val mono highlight">{{ fmt(record.actual_time_min) }}</div>
+            <div class="op-val mono">{{ fmt(record.actual_labor_time_min) }}</div>
+            <div class="op-pct mono">{{ fmtPct(record.actual_manning_coefficient) }}</div>
+            <div class="op-action">
+              <button class="btn-icon" title="Smazat" @click.stop="emit('delete', record.id)">
+                <Trash2 :size="ICON_SIZE.SMALL" />
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.records-table { margin-bottom: var(--space-3); }
-.table-header, .table-row {
+/* Machine-type filter mode: grouped by Job with SUM of times */
+.mt-header-row, .mt-row {
   display: grid;
-  grid-template-columns: 90px 100px 60px 40px 1fr 60px 80px 32px;
-  gap: var(--space-2);
+  grid-template-columns: 20px minmax(60px, 1fr) 40px 28px 52px 52px 52px 52px 40px 48px;
+  gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
 }
-.table-header {
+
+.mt-header-row {
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
   border-bottom: 1px solid var(--border-default);
-  padding-bottom: var(--space-2);
+  font-size: 9px;
 }
-.table-row {
+
+.mt-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.mt-row:hover { background: var(--bg-raised); }
+
+.mt-expand { display: flex; align-items: center; }
+.mt-order { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-batch { text-align: right; }
+.mt-ops { text-align: center; }
+.mt-val { text-align: right; }
+.mt-pct { text-align: right; }
+.mt-date { font-size: 9px; color: var(--text-tertiary); }
+
+/* Sub-rows in machine-type filter mode (narrower columns) */
+.op-header-row.mt-sub, .op-row.mt-sub {
+  grid-template-columns: 32px 1fr 48px 52px 48px 52px 44px 28px;
+}
+
+.records-table { margin-bottom: var(--space-2); overflow-x: auto; font-size: var(--text-xs); }
+.mono { font-family: var(--font-mono, monospace); font-variant-numeric: tabular-nums; }
+.highlight { font-weight: 600; color: var(--text-primary); }
+.highlight-header { font-weight: 700; }
+
+/* Job header + rows */
+.job-header-row {
+  display: grid;
+  grid-template-columns: 20px 1fr 48px 32px 72px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
   border-bottom: 1px solid var(--border-default);
-  color: var(--text-secondary);
 }
-.table-row:hover { background: var(--bg-raised); }
-.col-time { font-family: 'Space Mono', monospace; text-align: right; }
-.col-time.highlight { font-weight: 600; color: var(--text-primary); }
-.col-action { text-align: right; }
+
+.job-row {
+  display: grid;
+  grid-template-columns: 20px 1fr 48px 32px 72px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.job-row:hover { background: var(--bg-raised); }
+
+.chevron-icon { color: var(--text-tertiary); transition: transform 0.15s; }
+
+.job-group { border-bottom: 1px solid var(--border-default); }
+.job-group:last-child { border-bottom: none; }
+
+/* Operation sub-rows (expanded) */
+.op-header-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 48px 52px 52px 44px 48px 52px 52px 44px 28px;
+  gap: var(--space-1);
+  padding: 2px var(--space-2) 2px calc(var(--space-2) + 20px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 9px;
+}
+
+.op-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 48px 52px 52px 44px 48px 52px 52px 44px 28px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2) var(--space-1) calc(var(--space-2) + 20px);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+}
+.op-row:last-child { border-bottom: none; }
+.op-row:hover { background: var(--state-hover); }
+
+/* Shared */
+.op-val, .op-pct { text-align: left; }
+.op-action { text-align: right; }
 .btn-icon {
   background: transparent;
   border: none;
-  padding: var(--space-1);
+  padding: 2px;
   cursor: pointer;
   color: var(--text-tertiary);
   border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s;
 }
+.op-row:hover .btn-icon,
+.job-row:hover .btn-icon { opacity: 1; }
 .btn-icon:hover { color: var(--color-brand); background: rgba(153, 27, 27, 0.1); }
 </style>

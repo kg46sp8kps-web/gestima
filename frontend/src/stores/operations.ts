@@ -30,6 +30,7 @@ interface OperationsContext {
   currentPartId: number | null
   operations: Operation[]
   loading: boolean
+  initialLoading: boolean  // true only on first load (no data yet)
   error: string | null
   expandedOps: Record<number, boolean>
 }
@@ -51,6 +52,7 @@ export const useOperationsStore = defineStore('operations', () => {
         currentPartId: null,
         operations: [],
         loading: false,
+        initialLoading: false,
         error: null,
         expandedOps: {}
       })
@@ -140,7 +142,11 @@ export const useOperationsStore = defineStore('operations', () => {
       return
     }
 
+    // Detect first load vs part switch — keep old data visible during switch
+    const isFirstLoad = ctx.currentPartId === null && ctx.operations.length === 0
+
     ctx.currentPartId = partId
+    ctx.initialLoading = isFirstLoad
     ctx.loading = true
     ctx.error = null
 
@@ -153,6 +159,7 @@ export const useOperationsStore = defineStore('operations', () => {
       ctx.operations = []
     } finally {
       ctx.loading = false
+      ctx.initialLoading = false
     }
   }
 
@@ -247,11 +254,12 @@ export const useOperationsStore = defineStore('operations', () => {
 
       return updated
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[operations] Update error:', err)
 
       // Handle version conflict - auto-reload data
-      if (err?.status === 409) {
+      const error = err as { status?: number }
+      if (error?.status === 409) {
         // Auto-reload operations to get fresh data
         if (ctx.currentPartId) {
           await loadOperations(ctx.currentPartId, linkingGroup)

@@ -27,12 +27,3 @@ export const ICON_SIZE = {
   /** Hero ikony pro prázdné stavy, velké ilustrace */
   HERO: 48,
 } as const
-
-/**
- * Velikosti tlačítek
- */
-export const BUTTON_SIZE = {
-  SMALL: 'sm',
-  MEDIUM: 'md',
-  LARGE: 'lg',
-} as const

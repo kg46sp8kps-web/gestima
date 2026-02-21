@@ -29,7 +29,7 @@ const emit = defineEmits<{
         class="link-item"
       >
         <div class="link-info">
-          <span class="link-entity">{{ link.entity_type }} #{{ link.entity_id }}</span>
+          <span class="link-entity">{{ link.entity_name || `${link.entity_type} #${link.entity_id}` }}</span>
           <Star v-if="link.is_primary" :size="ICON_SIZE.SMALL" class="primary-star" />
           <span v-if="link.revision" class="link-revision">Rev {{ link.revision }}</span>
         </div>
@@ -110,29 +110,4 @@ const emit = defineEmits<{
   font-size: var(--text-sm);
 }
 
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.icon-btn:hover {
-  background: var(--bg-base);
-}
-
-.icon-btn-danger {
-  color: var(--color-danger);
-}
-
-.icon-btn-danger:hover {
-  background: rgba(244, 63, 94, 0.1);
-}
 </style>

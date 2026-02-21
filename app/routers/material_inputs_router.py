@@ -83,7 +83,11 @@ async def list_material_inputs(
 
     result = await db.execute(
         select(MaterialInput)
-        .options(selectinload(MaterialInput.operations))
+        .options(
+            selectinload(MaterialInput.operations),
+            selectinload(MaterialInput.material_item),
+            selectinload(MaterialInput.price_category)
+        )
         .where(
             and_(
                 MaterialInput.part_id == part_id,
@@ -144,7 +148,11 @@ async def get_material_input(
 
     result = await db.execute(
         select(MaterialInput)
-        .options(selectinload(MaterialInput.operations))
+        .options(
+            selectinload(MaterialInput.operations),
+            selectinload(MaterialInput.material_item),
+            selectinload(MaterialInput.price_category)
+        )
         .where(
             and_(
                 MaterialInput.id == material_id,
@@ -269,7 +277,7 @@ async def update_material_input(
 
     try:
         await db.commit()
-        await db.refresh(updated_material, ["operations"])
+        await db.refresh(updated_material, ["operations", "material_item", "price_category"])
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error(f"Failed to update MaterialInput {material_id}: {e}")
@@ -359,7 +367,7 @@ async def delete_material_input(
 # M:N LINKING (MaterialInput ↔ Operation)
 # ═══════════════════════════════════════════════════════════════
 
-@router.post("/{material_id}/link-operation/{operation_id}", status_code=status.HTTP_201_CREATED)
+@router.post("/{material_id}/link-operation/{operation_id}", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def link_material_to_operation(
     material_id: int,
     operation_id: int,

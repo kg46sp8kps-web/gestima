@@ -68,25 +68,38 @@ const contextPartId = computed(() => {
 
 const drawingUrl = computed(() => {
   if (!currentPart.value?.part_number) return ''
-  let url = drawingsApi.getDrawingUrl(currentPart.value.part_number, drawingIdFromTitle.value)
 
-  // Cache-busting for primary drawing: append drawing_path to force iframe reload when primary changes
-  if (!drawingIdFromTitle.value && currentPart.value.drawing_path) {
-    url += `?v=${encodeURIComponent(currentPart.value.drawing_path)}`
+  // Specific drawing from modal (Drawing model)
+  if (drawingIdFromTitle.value) {
+    return drawingsApi.getDrawingUrl(currentPart.value.part_number, drawingIdFromTitle.value)
   }
 
-  return url
+  // File Manager (file_id) — new system, preferred
+  if (currentPart.value.file_id) {
+    return `/api/files/${currentPart.value.file_id}/preview`
+  }
+
+  // Legacy: drawing_path (old Drawing model)
+  if (currentPart.value.drawing_path) {
+    let url = drawingsApi.getDrawingUrl(currentPart.value.part_number)
+    url += `?v=${encodeURIComponent(currentPart.value.drawing_path)}`
+    return url
+  }
+
+  return ''
 })
 
 // Check if drawing exists:
 // - If specific drawing ID from modal: verify via HEAD request
-// - If primary drawing: check if part has drawing_path
+// - If primary drawing: check file_id (File Manager) OR drawing_path (legacy)
 const hasDrawing = computed(() => {
   if (!currentPart.value) return false
   if (drawingLoadError.value) return false
   // Specific drawing from modal - check was verified
   if (drawingIdFromTitle.value) return true
-  // Primary drawing - check if exists
+  // File Manager drawing (new system)
+  if (currentPart.value.file_id) return true
+  // Legacy drawing_path
   return !!currentPart.value.drawing_path
 })
 
@@ -154,7 +167,9 @@ watch(partNumberFromTitle, async (partNumber) => {
     if (partsStore.parts.length === 0) {
       await partsStore.fetchParts()
     }
+    // Try part_number first, then article_number (for FT debug panel)
     const part = partsStore.parts.find(p => p.part_number === partNumber)
+      || partsStore.parts.find(p => p.article_number === partNumber)
     if (part) {
       currentPart.value = part
     }
@@ -168,9 +183,10 @@ onMounted(async () => {
     await partsStore.fetchParts()
   }
 
-  // Priority 1: Load from title (standalone window from modal)
+  // Priority 1: Load from title (standalone window from modal or FT debug)
   if (partNumberFromTitle.value) {
     const part = partsStore.parts.find(p => p.part_number === partNumberFromTitle.value)
+      || partsStore.parts.find(p => p.article_number === partNumberFromTitle.value)
     if (part) {
       currentPart.value = part
       return
@@ -216,7 +232,7 @@ onMounted(async () => {
       <div class="drawing-toolbar">
         <div class="toolbar-info">
           <span class="part-badge">{{ currentPart.article_number || currentPart.part_number }}</span>
-          <span class="drawing-label">{{ currentPart.drawing_path || 'Drawing' }}</span>
+          <span class="drawing-label">{{ currentPart.drawing_path || (currentPart.file_id ? 'File Manager' : 'Drawing') }}</span>
         </div>
         <button class="btn-download" @click="handleDownload" title="Download PDF">
           <Download :size="ICON_SIZE.SMALL" />
@@ -312,17 +328,6 @@ onMounted(async () => {
 }
 
 /* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  height: 100%;
-  padding: var(--space-8);
-  text-align: center;
-  color: var(--text-secondary);
-}
 
 .empty-icon {
   opacity: 0.5;
@@ -332,12 +337,6 @@ onMounted(async () => {
 .error-icon {
   color: var(--status-error);
   opacity: 0.7;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: var(--text-base);
-  color: var(--text-body);
 }
 
 .empty-hint {

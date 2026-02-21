@@ -10,6 +10,7 @@ import type { LinkingGroup } from '@/stores/windows'
 import { DollarSign, Trash2, Snowflake, BarChart3 } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import Tooltip from '@/components/ui/Tooltip.vue'
+import { formatPrice } from '@/utils/formatters'
 
 interface Props {
   partId: number | null
@@ -47,6 +48,10 @@ const loading = computed(() => {
   const ctx = batchesStore.getContext(props.linkingGroup)
   return ctx.loading || ctx.batchesLoading
 })
+const initialLoading = computed(() => {
+  const ctx = batchesStore.getContext(props.linkingGroup)
+  return ctx.initialLoading
+})
 
 // Dropdown options for sets
 const setOptions = computed(() => {
@@ -72,12 +77,6 @@ const setOptions = computed(() => {
 const frozenSetsCount = computed(() => {
   return batchSets.value.filter(s => s.status === 'frozen').length
 })
-
-// Format price
-function formatPrice(value: number | null | undefined): string {
-  if (value == null || isNaN(value)) return '0,00'
-  return value.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 // Calculate bar percentages (only for base costs: material, coop, setup, machining)
 function getBarPercentages(batch: Batch) {
@@ -193,14 +192,14 @@ watch(displayedBatches, (newBatches) => {
 
 <template>
   <div class="pricing-detail-panel">
-    <!-- Loading -->
-    <div v-if="loading" class="loading">
+    <!-- Loading (only on first load — no flash on part switch) -->
+    <div v-if="initialLoading" class="loading">
       <div class="spinner"></div>
       <p>Načítám kalkulaci...</p>
     </div>
 
     <!-- Empty -->
-    <div v-else-if="displayedBatches.length === 0 && batchSets.length === 0" class="empty">
+    <div v-else-if="displayedBatches.length === 0 && batchSets.length === 0 && !loading" class="empty">
       <DollarSign :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Žádné cenové dávky</p>
       <p class="hint">Přidejte první dávku pro výpočet ceny</p>
@@ -488,19 +487,6 @@ watch(displayedBatches, (newBatches) => {
   color: var(--text-secondary);
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 /* Empty */
 .empty {
   display: flex;
@@ -741,7 +727,6 @@ watch(displayedBatches, (newBatches) => {
   color: var(--palette-success);
 }
 
-
 .panel-btn {
   display: inline-flex;
   align-items: center;
@@ -936,88 +921,10 @@ watch(displayedBatches, (newBatches) => {
   cursor: not-allowed;
 }
 
-
-/* Buttons (from design system) */
-.btn-primary,
-.btn-secondary,
-.btn-danger {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-sm {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-xs);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  color: var(--color-brand, #991b1b);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--bg-raised);
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-secondary:hover {
-  background: var(--state-hover);
-}
-
-.btn-danger {
-  background: var(--palette-danger-dark);
-  color: white;
-}
-
-.btn-danger:hover {
-  background: var(--palette-danger-hover);
-}
-
 /* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--bg-surface);
-  padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  max-width: 400px;
-  width: 90%;
-  box-shadow: var(--shadow-lg);
-}
 
 .modal-wide {
   max-width: 600px;
-}
-
-.modal-content h3 {
-  margin: 0 0 var(--space-4) 0;
-  color: var(--text-primary);
 }
 
 .modal-actions {
@@ -1027,37 +934,8 @@ watch(displayedBatches, (newBatches) => {
   margin-top: var(--space-6);
 }
 
-.form-group {
-  margin-bottom: var(--space-4);
-}
-
-.form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-1);
-}
-
 .required {
   color: var(--color-danger);
-}
-
-.form-input {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  transition: var(--transition-fast);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
 }
 
 /* Detail Modal */

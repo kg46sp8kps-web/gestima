@@ -219,7 +219,7 @@ async def update_quote_item(
     return QuoteItemResponse.model_validate(item)
 
 
-@router.delete("/quote_items/{item_id}")
+@router.delete("/quote_items/{item_id}", response_model=dict)
 async def delete_quote_item(
     item_id: int,
     db: AsyncSession = Depends(get_db),

@@ -33,7 +33,7 @@ export interface Batch {
   is_frozen: boolean
   frozen_at: string | null
   frozen_by_id: number | null
-  snapshot_data: Record<string, any> | null
+  snapshot_data: Record<string, unknown> | null
   unit_price_frozen: number | null
   total_price_frozen: number | null
 

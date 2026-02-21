@@ -157,14 +157,6 @@ function getStatusText(row: MappingRow): string {
   margin-top: var(--space-1);
 }
 
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-8);
-  color: var(--text-secondary);
-}
-
 .content {
   display: flex;
   flex-direction: column;
@@ -175,41 +167,6 @@ function getStatusText(row: MappingRow): string {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  background: transparent;
-  color: var(--text-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
-}
-
-.btn-ghost:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-ghost.btn-primary {
-  color: var(--color-brand);
-  border-color: var(--color-brand);
-}
-
-.btn-ghost.btn-danger {
-  color: var(--color-brand);
-  border-color: var(--color-brand);
-  padding: var(--space-1) var(--space-2);
 }
 
 .table-wrapper {
@@ -282,9 +239,4 @@ function getStatusText(row: MappingRow): string {
   width: 60px;
 }
 
-.empty-state {
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--text-secondary);
-}
 </style>

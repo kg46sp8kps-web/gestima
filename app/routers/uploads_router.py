@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse
 from app.dependencies import get_current_user
 from app.models import User
 from app.schemas.upload import TempUploadResponse
-from app.services.drawing_service import DrawingService
+from app.services.file_service import FileService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,9 +28,6 @@ DRAWINGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # In-memory temp file registry (in production, use Redis or DB)
 temp_files: Dict[str, str] = {}
-
-# Drawing service
-drawing_service = DrawingService()
 
 
 @router.post("/temp", response_model=TempUploadResponse)
@@ -51,10 +48,18 @@ async def upload_temp_file(
         TempUploadResponse: temp_id, filename, size, uploaded_at
     """
     # SECURITY: Validate PDF using magic bytes (not just MIME type!)
-    await drawing_service.validate_pdf(file)
+    file_service = FileService()
 
-    # Validate file size (streaming, no memory overflow)
-    file_size = await drawing_service.validate_file_size(file)
+    # Validate file type
+    file_type = file_service._detect_file_type(file.filename or "unknown.pdf")
+    if file_type != "pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    # Validate magic bytes
+    await file_service._validate_magic_bytes_upload(file, "pdf")
+
+    # Validate file size
+    file_size = await file_service._validate_file_size_upload(file, "pdf")
 
     # Generate temp ID
     temp_id = str(uuid.uuid4())
@@ -90,7 +95,7 @@ async def upload_temp_file(
         await file.close()
 
 
-@router.delete("/temp/{temp_id}")
+@router.delete("/temp/{temp_id}", response_model=dict)
 async def delete_temp_file(
     temp_id: str,
     current_user: User = Depends(get_current_user)

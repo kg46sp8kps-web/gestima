@@ -165,26 +165,6 @@ function formatCzk(value: number): string {
   border-color: var(--brand);
 }
 
-.search-input {
-  flex: 1;
-  min-width: 140px;
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-}
-
-.search-input::placeholder {
-  color: var(--text-disabled);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
 .checkbox-label {
   display: flex;
   align-items: center;

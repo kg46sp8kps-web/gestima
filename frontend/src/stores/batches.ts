@@ -19,6 +19,7 @@ interface BatchesContext {
   batchSets: BatchSetListItem[]
   selectedSetId: number | null
   loading: boolean
+  initialLoading: boolean  // true only on first load (no data yet) — prevents flash on part switch
   batchesLoading: boolean
   setsLoading: boolean
 }
@@ -44,6 +45,7 @@ export const useBatchesStore = defineStore('batches', () => {
         batchSets: [],
         selectedSetId: null,
         loading: false,
+        initialLoading: false,
         batchesLoading: false,
         setsLoading: false
       })
@@ -127,6 +129,7 @@ export const useBatchesStore = defineStore('batches', () => {
     const ctx = getOrCreateContext(linkingGroup)
     if (ctx.currentPartId === partId) return
 
+    // Keep old data visible during switch — replaced atomically when loadAll completes
     ctx.currentPartId = partId
     ctx.selectedSetId = null // Reset to loose batches
 
@@ -150,6 +153,9 @@ export const useBatchesStore = defineStore('batches', () => {
     const ctx = getOrCreateContext(linkingGroup)
     if (!ctx.currentPartId) return
 
+    // Only show spinner on first load (no data yet) — prevents flash on part switch
+    const isFirstLoad = ctx.batches.length === 0 && ctx.batchSets.length === 0
+    ctx.initialLoading = isFirstLoad
     ctx.loading = true
     try {
       await Promise.all([
@@ -158,6 +164,7 @@ export const useBatchesStore = defineStore('batches', () => {
       ])
     } finally {
       ctx.loading = false
+      ctx.initialLoading = false
     }
   }
 
@@ -173,8 +180,8 @@ export const useBatchesStore = defineStore('batches', () => {
       const data = await batchesApi.getBatchesForPart(ctx.currentPartId)
       // Sort by quantity
       ctx.batches = data.sort((a, b) => a.quantity - b.quantity)
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání dávek')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání dávek')
       throw error
     } finally {
       ctx.batchesLoading = false
@@ -191,8 +198,8 @@ export const useBatchesStore = defineStore('batches', () => {
     ctx.setsLoading = true
     try {
       ctx.batchSets = await batchesApi.getBatchSetsForPart(ctx.currentPartId)
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání sad cen')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání sad cen')
       throw error
     } finally {
       ctx.setsLoading = false

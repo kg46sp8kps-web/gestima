@@ -45,7 +45,7 @@ test.describe('Login Flow', () => {
     await expect(page).toHaveURL('/login');
 
     // User menu should be gone
-    await expect(page.locator('[data-testid="user-menu"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="user-menu"]')).toBeHidden();
   });
 
   test('should redirect to login when accessing protected route while unauthenticated', async ({ page }) => {

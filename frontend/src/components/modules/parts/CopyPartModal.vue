@@ -98,8 +98,9 @@ async function handleConfirm() {
 
     emit('update:modelValue', false)
     emit('success')
-  } catch (error: any) {
-    errorMessage.value = error.response?.data?.detail || 'Chyba při kopírování dílu'
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } } }
+    errorMessage.value = err.response?.data?.detail || 'Chyba při kopírování dílu'
   } finally {
     isLoading.value = false
   }
@@ -172,29 +173,6 @@ async function handleConfirm() {
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
 
 .modal-header {
   display: flex;

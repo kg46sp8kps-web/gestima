@@ -115,7 +115,7 @@ class MaterialPriceTier(Base, AuditMixin):
     __tablename__ = "material_price_tiers"
 
     id = Column(Integer, primary_key=True, index=True)
-    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="CASCADE"), nullable=False)
+    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Hranice (kg)
     min_weight = Column(Float, nullable=False)                            # 0, 15, 100
@@ -163,8 +163,8 @@ class MaterialItem(Base, AuditMixin):
     stock_available = Column(Float, nullable=True, default=0.0)           # kg (dostupné skladem)
 
     # Vazby
-    material_group_id = Column(Integer, ForeignKey("material_groups.id", ondelete="RESTRICT"), nullable=False)
-    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="RESTRICT"), nullable=False)  # ADR-014
+    material_group_id = Column(Integer, ForeignKey("material_groups.id", ondelete="RESTRICT"), nullable=False, index=True)
+    price_category_id = Column(Integer, ForeignKey("material_price_categories.id", ondelete="RESTRICT"), nullable=False, index=True)  # ADR-014
 
     group = relationship("MaterialGroup", back_populates="items")
     price_category = relationship("MaterialPriceCategory", back_populates="items")
@@ -412,3 +412,9 @@ class MaterialItemWithGroupResponse(MaterialItemResponse):
     """MaterialItem s eager-loaded group a price_category informací"""
     group: MaterialGroupResponse
     price_category: MaterialPriceCategoryResponse
+
+
+class MaterialItemListResponse(BaseModel):
+    """Paginated list response — same pattern as PartListResponse"""
+    items: List[MaterialItemResponse]
+    total: int

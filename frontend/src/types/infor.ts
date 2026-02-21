@@ -45,7 +45,7 @@ export function getSurfaceTreatmentLabel(code: string | null | undefined): strin
  * Generic Infor IDO row (dynamic fields based on selected columns)
  */
 export interface InforRow {
-  [key: string]: any
+  [key: string]: string | number | boolean | null | undefined
 }
 
 /**
@@ -202,14 +202,22 @@ export interface StagedProductionRow {
   infor_data: Record<string, unknown>
   mapped_data: {
     article_number: string
+    part_id: number | null
     infor_order_number: string
     operation_seq: number
     batch_quantity: number | null
     planned_time_min: number | null
+    planned_labor_time_min: number | null
+    planned_setup_min: number | null
     actual_time_min: number | null
+    actual_labor_time_min: number | null
+    actual_setup_min: number | null
+    actual_run_machine_min: number | null
+    actual_run_labor_min: number | null
+    manning_coefficient: number | null
+    actual_manning_coefficient: number | null
     infor_wc_code: string
     work_center_id: number | null
-    production_date: string | null
   }
   validation: {
     is_valid: boolean
@@ -218,6 +226,60 @@ export interface StagedProductionRow {
     warnings: string[]
     wc_warning?: string
   }
+}
+
+/**
+ * Staged Job Material row (SLJobmatls → MaterialInput)
+ */
+export interface StagedJobMaterialRow {
+  row_index: number
+  infor_data: Record<string, unknown>
+  mapped_data: {
+    article_number: string
+    part_id: number | null
+    material_item_code: string
+    material_item_id: number | null
+    operation_seq: number | null
+    operation_id: number | null
+    matl_qty: number | null
+    unit: string | null
+    quantity: number
+    stock_shape: string | null
+    stock_diameter: number | null
+    stock_length: number | null
+    stock_width: number | null
+    stock_height: number | null
+    stock_wall_thickness: number | null
+    price_category_id: number | null
+    price_category_name: string | null
+    seq: number
+  }
+  validation: {
+    is_valid: boolean
+    is_duplicate: boolean
+    errors: string[]
+    warnings: string[]
+  }
+}
+
+/**
+ * Staged Document row (SLDocumentObjects_Exts → FileRecord + FileLink)
+ */
+export interface StagedDocumentRow {
+  row_index: number
+  document_name: string
+  document_extension: string
+  row_pointer: string
+  sequence: string
+  description: string | null
+  matched_article_number: string | null
+  matched_part_id: number | null
+  matched_part_number: string | null
+  is_valid: boolean
+  is_duplicate: boolean
+  errors: string[]
+  warnings: string[]
+  duplicate_action: 'skip' | 'update'
 }
 
 /**

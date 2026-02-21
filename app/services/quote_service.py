@@ -450,7 +450,7 @@ class QuoteService:
         if not frozen_batches:
             logger.warning(f"No frozen batches for part {part.part_number}")
             return None, "missing", [
-                f"🔴 Díl {part.part_number} nemá žádnou zmrazenou kalkulaci"
+                f"[CHYBI] Díl {part.part_number} nemá žádnou zmrazenou kalkulaci"
             ]
 
         # 1. Try exact match
@@ -471,7 +471,7 @@ class QuoteService:
             # Get highest lower batch
             nearest_lower = max(lower_batches, key=lambda b: b.quantity)
             warning = (
-                f"⚠️ Neexistuje dávka {requested_quantity} ks - "
+                f"[POZOR] Neexistuje dávka {requested_quantity} ks - "
                 f"použita dávka {nearest_lower.quantity} ks. "
                 f"Doporučujeme vytvořit přesnou dávku."
             )
@@ -484,7 +484,7 @@ class QuoteService:
         # 3. No suitable batch found
         available = ", ".join([f"{b.quantity}ks" for b in frozen_batches])
         warning = (
-            f"🔴 Nejnižší dostupná dávka je {frozen_batches[0].quantity} ks "
+            f"[CHYBI] Nejnižší dostupná dávka je {frozen_batches[0].quantity} ks "
             f"(požadováno {requested_quantity} ks). "
             f"Dostupné dávky: {available}"
         )
@@ -603,7 +603,7 @@ class QuoteService:
                     status="missing",
                     unit_price=0.0,
                     line_total=0.0,
-                    warnings=["🔴 Nový díl - bude vytvořen bez ceny"]
+                    warnings=["[CHYBI] Nový díl - bude vytvořen bez ceny"]
                 )
             )
 

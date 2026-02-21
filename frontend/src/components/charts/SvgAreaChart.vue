@@ -65,10 +65,10 @@ function generateAreaPath(data: number[]): string {
   })
 
   // Close path along bottom
-  const bottomRight = `${CHART_WIDTH},${CHART_HEIGHT}`
-  const bottomLeft = `0,${CHART_HEIGHT}`
+  const bottomRight = `${CHART_WIDTH},${CHART_HEIGHT.value}`
+  const bottomLeft = `0,${CHART_HEIGHT.value}`
 
-  return `M0,${CHART_HEIGHT} L${topPoints.join(' L')} L${bottomRight} Z`
+  return `M0,${CHART_HEIGHT.value} L${topPoints.join(' L')} L${bottomRight} Z`
 }
 
 // X-axis label positions

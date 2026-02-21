@@ -38,9 +38,56 @@ EMOJI_PATTERN = re.compile(
     ']'
 )
 
-# Protected CSS classes that must not be redefined
-PROTECTED_CLASSES = ['.btn', '.btn-primary', '.btn-secondary', '.btn-danger',
-                     '.badge', '.part-badge', '.time-badge']
+# Protected CSS classes that must not be redefined in <style scoped>
+# These exist in design-system.css or as reusable Vue components
+PROTECTED_CSS_CLASSES = {
+    # Buttons — use design-system.css globals or Button.vue
+    '.btn': 'design-system.css or <Button> component',
+    '.btn-primary': 'design-system.css or <Button variant="primary">',
+    '.btn-secondary': 'design-system.css or <Button variant="secondary">',
+    '.btn-danger': 'design-system.css or <Button variant="danger">',
+    '.btn-ghost': 'design-system.css or <Button variant="ghost">',
+    '.btn-success': 'design-system.css',
+    # Spinner — use Spinner.vue component
+    '.spinner': 'Spinner.vue component: <Spinner />',
+    '.loading-spinner': 'Spinner.vue component: <Spinner />',
+    # Modal — use Modal.vue component
+    '.modal-overlay': 'Modal.vue component: <Modal v-model="show">',
+    '.modal-content': 'Modal.vue component: <Modal v-model="show">',
+    # Empty state — use design-system.css global
+    '.empty-state': 'design-system.css global class',
+    '.empty-list': 'design-system.css .empty-state class',
+    '.empty-container': 'design-system.css .empty-state class',
+    # Search input — use design-system.css global
+    '.search-input': 'design-system.css global class',
+    # Badge — use design-system.css global
+    '.badge': 'design-system.css global class',
+    '.badge-dot-ok': 'design-system.css global class',
+    '.badge-dot-error': 'design-system.css global class',
+    '.badge-dot-warn': 'design-system.css global class',
+    '.badge-dot-neutral': 'design-system.css global class',
+    # Tab button — use FormTabs.vue component
+    '.tab-button': 'FormTabs.vue component: <FormTabs :tabs="tabs">',
+    '.tab-btn': 'FormTabs.vue component: <FormTabs :tabs="tabs">',
+    # Form — use design-system.css globals
+    '.form-group': 'design-system.css global class',
+    '.form-input': 'design-system.css global class',
+    # Loading state — use design-system.css global
+    '.loading-state': 'design-system.css global class',
+    # Icon button — use design-system.css global
+    '.icon-btn': 'design-system.css global class',
+    # Info ribbon — extract to shared component
+    '.info-ribbon': 'shared InfoRibbon component (extract from PartDetailPanel)',
+}
+
+# Banned keyframes in scoped styles (already in design-system.css)
+BANNED_KEYFRAMES = ['spin']
+
+# Banned native APIs — use composables instead
+BANNED_NATIVE_APIS = {
+    'window.confirm(': 'useDialog composable: const { confirm } = useDialog()',
+    'window.alert(': 'useDialog composable: const { alert } = useDialog()',
+}
 
 def main():
     # ─── Read JSON from stdin ────────────────────────────
@@ -247,13 +294,51 @@ def main():
                     print("Consider using design tokens: var(--space-1) through var(--space-8)", file=sys.stderr)
                     break  # Only warn once
 
-        # L-033: Duplicate CSS class definitions (BLOCKING)
-        for cls in PROTECTED_CLASSES:
-            escaped = re.escape(cls)
-            if re.search(rf'^\s*{escaped}\s*\{{', content, re.MULTILINE):
-                print(f"L-033 VIOLATION: Redefining global CSS class '{cls}' in {file_path}", file=sys.stderr)
-                print("Use the class from design-system.css, don't redefine in <style scoped>", file=sys.stderr)
-                sys.exit(2)
+        # L-033: Duplicate CSS class definitions in <style scoped> (BLOCKING)
+        # Extract only <style> section content for checking
+        style_content = ''
+        in_style_section = False
+        for line in lines:
+            if '<style' in line:
+                in_style_section = True
+                continue
+            elif '</style>' in line:
+                in_style_section = False
+                continue
+            if in_style_section:
+                style_content += line + '\n'
+
+        if style_content:
+            for cls, replacement in PROTECTED_CSS_CLASSES.items():
+                escaped = re.escape(cls)
+                # Match class definition: .btn-primary { or .btn-primary, or .btn-primary:hover
+                if re.search(rf'^\s*{escaped}\s*[\{{,:\s]', style_content, re.MULTILINE):
+                    print(f"L-033 VIOLATION: Redefining '{cls}' in scoped styles of {file_path}", file=sys.stderr)
+                    print(f"  USE INSTEAD: {replacement}", file=sys.stderr)
+                    print("  Global classes from design-system.css work without scoped redefinition.", file=sys.stderr)
+                    print("  If specificity issue: use :deep({cls}) or move to unscoped <style>.", file=sys.stderr)
+                    sys.exit(2)
+
+            # L-033b: Banned @keyframes in scoped styles
+            for kf in BANNED_KEYFRAMES:
+                if re.search(rf'@keyframes\s+{kf}\b', style_content):
+                    print(f"L-033 VIOLATION: @keyframes {kf} redefined in {file_path}", file=sys.stderr)
+                    print(f"  Already defined globally in design-system.css. Remove local copy.", file=sys.stderr)
+                    sys.exit(2)
+
+        # L-050: Banned native APIs — use composables (BLOCKING)
+        in_script_section = False
+        for i, line in enumerate(lines):
+            if '<script' in line:
+                in_script_section = True
+            elif '</script>' in line:
+                in_script_section = False
+            if in_script_section:
+                for api, replacement in BANNED_NATIVE_APIS.items():
+                    if api in line:
+                        print(f"L-050 VIOLATION: Native '{api.rstrip('(')}' in {file_path} (line {i+1})", file=sys.stderr)
+                        print(f"  USE INSTEAD: {replacement}", file=sys.stderr)
+                        sys.exit(2)
 
         # L-037: Mixing v-directive + @event for same function (BLOCKING)
         if 'v-select-on-focus' in content:

@@ -6,12 +6,13 @@
  * RIGHT: Empty / PartDetailPanel / PartCreateForm
  */
 
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, nextTick } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useWindowsStore } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
 import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
+import { useLinkedWindowOpener } from '@/composables/useLinkedWindowOpener'
 import { getPart } from '@/api/parts'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
@@ -21,6 +22,7 @@ import PartDetailPanel from './parts/PartDetailPanel.vue'
 import PartCreateForm from './parts/PartCreateForm.vue'
 
 interface Props {
+  windowId?: string
   partNumber?: string
   linkingGroup?: LinkingGroup
 }
@@ -45,6 +47,17 @@ const listPanelRef = ref<InstanceType<typeof PartListPanel> | null>(null)
 
 // Layout settings
 const { layoutMode } = usePartLayoutSettings('part-main')
+
+// Linked window opener
+const { openLinked } = useLinkedWindowOpener({
+  get windowId() { return props.windowId },
+  get linkingGroup() { return props.linkingGroup ?? null },
+  onGroupAssigned(group) {
+    if (selectedPart.value?.id && selectedPart.value.id > 0) {
+      contextStore.setContext(group, selectedPart.value.id, selectedPart.value.part_number, selectedPart.value.article_number)
+    }
+  }
+})
 
 // Panel size state
 const panelSize = ref(320) // Can be width (horizontal) or height (vertical)
@@ -114,7 +127,6 @@ const resizeCursor = computed(() =>
 // Handlers
 function handleSelectPart(part: Part) {
   selectedPart.value = part
-  isCreating.value = false
 
   // Update window context
   if (props.linkingGroup) {
@@ -130,10 +142,13 @@ function handleCreateNew() {
   listPanelRef.value?.setSelection(null)
 }
 
-function handleCreated(part: Part) {
+async function handleCreated(part: Part) {
   isCreating.value = false
   selectedPart.value = part
-  listPanelRef.value?.setSelection(part.id)
+
+  // Prepend to list top + select + scroll — instant, no batch fetching needed
+  // On next filter/refresh server will sort it to correct position
+  listPanelRef.value?.prependAndSelect(part)
 
   if (props.linkingGroup) {
     contextStore.setContext(props.linkingGroup, part.id, part.part_number, part.article_number)
@@ -147,39 +162,29 @@ function handleCancelCreate() {
 }
 
 // Window actions
-function openMaterialWindow() {
-  if (!selectedPart.value) return
-
-  const title = `Materiál položky - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-material', title, props.linkingGroup || null)
-}
-
-function openOperationsWindow() {
-  if (!selectedPart.value) return
-
-  const title = `Operace položky - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-operations', title, props.linkingGroup || null)
-}
-
 function openPricingWindow() {
   if (!selectedPart.value) return
+  openLinked('part-pricing', `Ceny - ${selectedPart.value.part_number}`)
+}
 
-  const title = `Ceny položky - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-pricing', title, props.linkingGroup || null)
+function openTechnologyWindow() {
+  if (!selectedPart.value) return
+  openLinked('part-technology', `Technologie - ${selectedPart.value.part_number}`)
 }
 
 function openDrawingWindow(drawingId?: number) {
   if (!selectedPart.value) return
 
-  // For specific drawing ID, open without linking group (standalone window)
-  // For primary drawing, use linking group (context-aware)
   const title = drawingId
     ? `Drawing #${drawingId} - ${selectedPart.value.part_number}`
     : `Drawing - ${selectedPart.value.part_number}`
 
-  // NOTE: drawingId is parsed from title in PartDrawingWindow
-  // Pattern: "Drawing #123 - ..." where 123 is drawing_id
-  windowsStore.openWindow('part-drawing', title, drawingId ? null : (props.linkingGroup || null))
+  // Specific drawing ID → standalone (no linking); primary drawing → linked
+  if (drawingId) {
+    windowsStore.openWindow('part-drawing', title, null)
+  } else {
+    openLinked('part-drawing', title)
+  }
 }
 
 async function refreshPart() {
@@ -224,8 +229,10 @@ watch(() => props.partNumber, (newPartNumber) => {
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
+        :readonly="isCreating"
         @select-part="handleSelectPart"
         @create-new="handleCreateNew"
+        @open-technology="openTechnologyWindow"
       />
     </div>
 
@@ -250,8 +257,7 @@ watch(() => props.partNumber, (newPartNumber) => {
         :part="selectedPart"
         :linkingGroup="linkingGroup"
         :orientation="layoutMode"
-        @open-material="openMaterialWindow"
-        @open-operations="openOperationsWindow"
+        @open-technology="openTechnologyWindow"
         @open-pricing="openPricingWindow"
         @open-drawing="openDrawingWindow"
         @refresh="refreshPart"

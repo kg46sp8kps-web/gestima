@@ -9,6 +9,7 @@ import type { QuoteWithItems, QuoteStatus } from '@/types/quote'
 import { Edit, FileText, Send, CheckCircle, XCircle, Copy, Trash2 } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import { confirm } from '@/composables/useDialog'
+import { formatCurrency } from '@/utils/formatters'
 
 interface Props {
   quote: QuoteWithItems | null
@@ -107,13 +108,6 @@ async function handleDelete() {
   }
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('cs-CZ', {
-    style: 'currency',
-    currency: 'CZK',
-    minimumFractionDigits: 2
-  }).format(value)
-}
 </script>
 
 <template>
@@ -217,236 +211,73 @@ function formatCurrency(value: number): string {
 
 <style scoped>
 .quote-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border-bottom: 2px solid var(--border-default);
-  background: var(--bg-surface);
-  flex-shrink: 0;
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-5); border-bottom: 2px solid var(--border-default);
+  background: var(--bg-surface); flex-shrink: 0;
 }
-
-.quote-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.quote-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.quote-main h2 {
-  margin: 0;
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  flex: 1;
-}
-
-.quote-badges {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-}
-
+.quote-info { display: flex; flex-direction: column; gap: var(--space-3); }
+.quote-main { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.quote-main h2 { margin: 0; font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--text-primary); flex: 1; }
+.quote-badges { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .quote-number-badge {
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  padding: var(--space-2) var(--space-3); background: transparent;
+  color: var(--text-primary); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: var(--font-semibold);
 }
 
+/* Status badges — single base + CSS custom properties per variant */
 .status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  font-size: var(--text-sm); font-weight: var(--font-semibold);
+  background: var(--_badge-bg); color: white;
 }
-
-.status-badge.status-draft {
-  background: var(--bg-muted);
-  color: white;
-}
-
-.status-badge.status-sent {
-  background: var(--color-info);
-  color: white;
-}
-
-.status-badge.status-approved {
-  background: var(--status-ok);
-  color: white;
-}
-
-.status-badge.status-rejected {
-  background: var(--status-error);
-  color: white;
-}
+.status-draft    { --_badge-bg: var(--bg-muted); }
+.status-sent     { --_badge-bg: var(--color-info); }
+.status-approved { --_badge-bg: var(--status-ok); }
+.status-rejected { --_badge-bg: var(--status-error); }
 
 .partner-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3); background: var(--bg-raised);
+  border-radius: var(--radius-lg); border: 1px solid var(--border-default);
 }
-
-.partner-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
-}
-
-.partner-name {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
-}
-
-.partner-number {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
+.partner-label  { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--font-medium); }
+.partner-name   { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-semibold); }
+.partner-number { font-size: var(--text-xs); color: var(--text-secondary); }
 
 .totals-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  background: var(--bg-raised);
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--border-default);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-4); background: var(--bg-raised);
+  border-radius: var(--radius-lg); border: 2px solid var(--border-default);
 }
-
-.total-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.total-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.total-value {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
-}
-
-.total-value.discount {
-  color: var(--status-ok);
-}
-
-.total-item.total-main {
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-default);
-  margin-top: var(--space-1);
-}
-
+.total-item { display: flex; justify-content: space-between; align-items: center; }
+.total-label { font-size: var(--text-sm); color: var(--text-secondary); }
+.total-value { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-semibold); }
+.total-value.discount { color: var(--status-ok); }
+.total-item.total-main { padding-top: var(--space-2); border-top: 1px solid var(--border-default); margin-top: var(--space-1); }
 .total-item.total-main .total-label,
-.total-item.total-main .total-value {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-}
+.total-item.total-main .total-value { font-size: var(--text-base); font-weight: var(--font-semibold); }
 
 .workflow-buttons {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  justify-content: flex-end;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-default);
+  display: flex; gap: var(--space-3); align-items: center; justify-content: flex-end;
+  padding-top: var(--space-2); border-top: 1px solid var(--border-default);
 }
 
+/* Workflow buttons — single base + CSS custom properties per variant */
 .btn-workflow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--duration-fast);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; background: transparent; border: none;
+  border-radius: var(--radius-sm); cursor: pointer; transition: all var(--duration-fast);
+  color: var(--_wf-color, var(--text-tertiary));
 }
+.btn-workflow:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-workflow:hover:not(:disabled) { color: var(--_wf-hover, var(--_wf-color, var(--text-secondary))); transform: scale(1.15); }
+.btn-send    { --_wf-color: var(--color-info);    --_wf-hover: var(--color-info); }
+.btn-approve { --_wf-color: var(--color-success); --_wf-hover: var(--status-ok); }
+.btn-reject  { --_wf-color: var(--color-danger);  --_wf-hover: var(--status-error); }
+.btn-clone   { --_wf-hover: var(--color-primary); }
+.btn-delete  { --_wf-hover: var(--color-danger); }
 
-.btn-workflow:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.btn-send {
-  color: var(--color-info);
-}
-
-.btn-send:hover:not(:disabled) {
-  color: var(--color-info);
-  transform: scale(1.15);
-}
-
-.btn-approve {
-  color: var(--color-success);
-}
-
-.btn-approve:hover:not(:disabled) {
-  color: var(--status-ok);
-  transform: scale(1.15);
-}
-
-.btn-reject {
-  color: var(--color-danger);
-}
-
-.btn-reject:hover:not(:disabled) {
-  color: var(--status-error);
-  transform: scale(1.15);
-}
-
-.btn-clone {
-  color: var(--text-tertiary);
-}
-
-.btn-clone:hover:not(:disabled) {
-  color: var(--color-primary);
-  transform: scale(1.15);
-}
-
-.btn-delete {
-  color: var(--text-tertiary);
-}
-
-.btn-delete:hover:not(:disabled) {
-  color: var(--color-danger);
-  transform: scale(1.15);
-}
-
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.empty-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
+.empty-text  { font-size: var(--text-sm); color: var(--text-secondary); }
 </style>

@@ -28,6 +28,7 @@ export interface PartBase {
 
 export interface Part extends PartBase {
   id: number
+  file_id: number | null
   version: number
   created_at: string
   updated_at: string

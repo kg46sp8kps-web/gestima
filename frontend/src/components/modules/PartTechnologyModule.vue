@@ -11,15 +11,22 @@
 
 import { ref, computed, watch, onMounted } from 'vue'
 import { usePartsStore } from '@/stores/parts'
+import { useWindowsStore } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
-import type { LinkingGroup } from '@/stores/windows'
+import { useLinkedWindowOpener } from '@/composables/useLinkedWindowOpener'
+import type { LinkingGroup, WindowRole } from '@/stores/windows'
 import type { Part } from '@/types/part'
+import { ChevronRight, ChevronDown } from 'lucide-vue-next'
+import { ICON_SIZE } from '@/config/design'
 
 import PartListPanel from './parts/PartListPanel.vue'
 import OperationsRightPanel from './operations/OperationsRightPanel.vue'
+import PartDetailPanel from './parts/PartDetailPanel.vue'
 
 interface Props {
+  windowId?: string
+  windowRole?: WindowRole
   inline?: boolean
   partId?: number | null
   partNumber?: string
@@ -27,6 +34,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  windowRole: null,
   inline: false,
   partId: null,
   partNumber: undefined,
@@ -34,12 +42,17 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const partsStore = usePartsStore()
+const windowsStore = useWindowsStore()
 const contextStore = useWindowContextStore()
 
 // State
 const selectedPart = ref<Part | null>(null)
 const listPanelRef = ref<InstanceType<typeof PartListPanel> | null>(null)
 const rightPanelRef = ref<InstanceType<typeof OperationsRightPanel> | null>(null)
+const ribbonExpanded = ref(false)
+
+// Je právě otevřený nový (virtual) díl?
+const isCreating = computed(() => selectedPart.value?.id === -1)
 
 // Computed: Get partId from window context (direct property access for fine-grained reactivity)
 const contextPartId = computed(() => {
@@ -58,7 +71,10 @@ const contextPartId = computed(() => {
 const effectivePartId = computed(() => contextPartId.value ?? props.partId)
 
 const isLinked = computed(() => props.linkingGroup !== null)
-const currentPartId = computed(() => selectedPart.value?.id || effectivePartId.value)
+const currentPartId = computed(() => {
+  if (isCreating.value) return null
+  return selectedPart.value?.id || effectivePartId.value
+})
 
 // Resizable panel (only when NOT linked)
 const { panelWidth, isDragging, startResize } = useResizablePanel({
@@ -67,6 +83,56 @@ const { panelWidth, isDragging, startResize } = useResizablePanel({
   minWidth: 250,
   maxWidth: 1000
 })
+
+// Linked window opener
+const { openLinked } = useLinkedWindowOpener({
+  get windowId() { return props.windowId },
+  get linkingGroup() { return props.linkingGroup ?? null },
+  onGroupAssigned(group) {
+    if (selectedPart.value?.id && selectedPart.value.id > 0) {
+      contextStore.setContext(group, selectedPart.value.id, selectedPart.value.part_number, selectedPart.value.article_number)
+    }
+  }
+})
+
+// Create new part — virtual part pattern (PartDetailPanel detects id=-1 a otevře edit mód)
+function handleCreateNew() {
+  const virtualPart: Part = {
+    id: -1,
+    part_number: 'NOVÝ',
+    article_number: '',
+    name: '',
+    drawing_path: null,
+    drawing_number: null,
+    customer_revision: null,
+    revision: 'A',
+    status: 'draft',
+    source: 'manual',
+    file_id: null,
+    length: 0,
+    notes: '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    version: 0,
+    created_by_name: null
+  }
+  selectedPart.value = virtualPart
+  listPanelRef.value?.setSelection(-1)
+}
+
+// PartDetailPanel callbacks
+async function handlePartCreated(createdPart: Part) {
+  selectedPart.value = createdPart
+  listPanelRef.value?.prependAndSelect(createdPart)
+  if (props.linkingGroup) {
+    contextStore.setContext(props.linkingGroup, createdPart.id, createdPart.part_number, createdPart.article_number)
+  }
+}
+
+function handleCancelCreate() {
+  selectedPart.value = null
+  listPanelRef.value?.setSelection(null)
+}
 
 // Handlers
 function handleSelectPart(part: Part) {
@@ -103,15 +169,44 @@ onMounted(async () => {
   }
 })
 
-// Watch linked context changes (watch contextPartId computed for reactivity)
+// Watch linked context changes — only for child windows (master drives the context, not follows it)
 watch(contextPartId, (newPartId) => {
+  if (props.windowRole === 'master') return
+  ribbonExpanded.value = false
   if (isLinked.value && newPartId) {
     const part = partsStore.parts.find(p => p.id === newPartId)
-    if (part) {
-      selectedPart.value = part
-    }
+    selectedPart.value = part ?? null
+  } else if (isLinked.value) {
+    selectedPart.value = null
   }
 }, { immediate: true })
+
+// Window actions (from PartListPanel icons)
+function openPricingWindow() {
+  if (!selectedPart.value) return
+  openLinked('part-pricing', `Ceny - ${selectedPart.value.part_number}`)
+}
+
+function openDrawingWindow(drawingId?: number) {
+  if (!selectedPart.value) return
+  const title = drawingId
+    ? `Drawing #${drawingId} - ${selectedPart.value.part_number}`
+    : `Drawing - ${selectedPart.value.part_number}`
+  if (drawingId) {
+    windowsStore.openWindow('part-drawing', title, null)
+  } else {
+    openLinked('part-drawing', title)
+  }
+}
+
+// Refresh part data after edit
+async function handlePartRefresh() {
+  await partsStore.fetchParts()
+  if (selectedPart.value) {
+    const fresh = partsStore.parts.find(p => p.id === selectedPart.value!.id)
+    if (fresh) selectedPart.value = fresh
+  }
+}
 
 // Watch prop changes
 watch(() => props.partNumber, (newPartNumber) => {
@@ -127,43 +222,68 @@ watch(() => props.partNumber, (newPartNumber) => {
 
 <template>
   <div class="split-layout">
-    <!-- LEFT PANEL: Only visible when standalone (not linked) -->
-    <div v-if="!linkingGroup" class="left-panel" :style="{ width: `${panelWidth}px` }">
+    <!-- LEFT PANEL: Visible when standalone, master, or manually linked (no explicit child role) -->
+    <div v-if="!linkingGroup || windowRole !== 'child'" class="left-panel" :style="{ width: `${panelWidth}px` }">
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
+        :readonly="isCreating"
         @select-part="handleSelectPart"
+        @create-new="handleCreateNew"
+        @open-pricing="openPricingWindow"
+        @open-drawing="openDrawingWindow()"
+        @open-technology="() => {}"
       />
     </div>
 
     <!-- RESIZE HANDLE: Only visible when left panel is shown -->
     <div
-      v-if="!linkingGroup"
+      v-if="!linkingGroup || windowRole !== 'child'"
       class="resize-handle"
       :class="{ dragging: isDragging }"
       @mousedown="startResize"
     ></div>
 
     <!-- RIGHT PANEL: Reusable right panel component (full width when linked) -->
-    <div class="right-panel" :class="{ 'full-width': linkingGroup }">
-      <!-- CONTEXT INFO RIBBON (when linked) -->
-      <div v-if="linkingGroup && selectedPart" class="context-ribbon">
-        <span class="context-label">Technologie</span>
-        <span class="context-divider">|</span>
-        <span class="context-value">{{ selectedPart.part_number }}</span>
-        <span class="context-divider">|</span>
-        <span class="context-value">{{ selectedPart.article_number || '-' }}</span>
-        <span class="context-divider">|</span>
-        <span class="context-value">{{ selectedPart.name || '-' }}</span>
+    <div class="right-panel" :class="{ 'full-width': linkingGroup && windowRole === 'child' }">
+
+      <!-- CONTEXT INFO RIBBON — collapsible; nový díl (id=-1) se rovnou otevře v edit módu -->
+      <div v-if="selectedPart" class="context-ribbon-wrap">
+        <!-- Řádek s chevronem — pro nový díl text "Nový díl", jinak article + name -->
+        <div class="context-ribbon" @click="!isCreating && (ribbonExpanded = !ribbonExpanded)">
+          <component
+            :is="(ribbonExpanded || isCreating) ? ChevronDown : ChevronRight"
+            :size="ICON_SIZE.SMALL"
+            class="ribbon-chevron"
+          />
+          <span class="ctx-article">{{ isCreating ? 'Nový díl' : (selectedPart.article_number || selectedPart.part_number) }}</span>
+          <span v-if="!isCreating" class="ctx-name">{{ selectedPart.name || '-' }}</span>
+        </div>
+        <Transition name="slide">
+          <div v-if="ribbonExpanded || isCreating" class="ribbon-detail-expand">
+            <PartDetailPanel
+              :part="selectedPart"
+              :showActions="false"
+              @created="handlePartCreated"
+              @cancel-create="handleCancelCreate"
+              @refresh="handlePartRefresh"
+            />
+          </div>
+        </Transition>
       </div>
 
-      <!-- REUSABLE RIGHT PANEL (Material + Operations + Features) -->
+      <!-- REUSABLE RIGHT PANEL (Material + Operations + Features) — skrytý při vytváření -->
       <OperationsRightPanel
+        v-if="selectedPart && !isCreating"
         ref="rightPanelRef"
         :part="selectedPart"
         :partId="currentPartId"
         :linkingGroup="linkingGroup"
-        :showHeader="!linkingGroup"
+        :showHeader="false"
+        @refresh-part="handlePartRefresh"
+        @open-material="() => {}"
+        @open-pricing="openPricingWindow"
+        @open-drawing="openDrawingWindow"
       />
     </div>
   </div>
@@ -229,32 +349,81 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 /* === CONTEXT INFO RIBBON === */
+.context-ribbon-wrap {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
 .context-ribbon {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.context-ribbon:hover {
+  background: var(--bg-raised);
+}
+
+.ribbon-chevron {
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
-.context-label {
+.ctx-article {
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.context-divider {
-  color: var(--border-default);
-  font-weight: 300;
-}
-
-.context-value {
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: var(--font-bold);
   color: var(--text-primary);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
+
+.ctx-name {
+  font-size: var(--text-xs);
+  font-weight: var(--font-normal);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.ribbon-detail-expand {
+  border-top: 1px solid var(--border-default);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Odstraň rámeček z PartDetailPanel uvnitř ribbonu */
+.ribbon-detail-expand :deep(.info-ribbon) {
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+/* Slide transition */
+.slide-enter-active,
+.slide-leave-active {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.slide-enter-to,
+.slide-leave-from {
+  max-height: 400px;
+  opacity: 1;
+}
+
+
 </style>

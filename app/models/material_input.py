@@ -69,7 +69,8 @@ class MaterialInput(Base, AuditMixin):
     price_category_id = Column(
         Integer,
         ForeignKey("material_price_categories.id", ondelete="SET NULL"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     # ─────────────────────────────────────────────────────────────
@@ -78,7 +79,8 @@ class MaterialInput(Base, AuditMixin):
     material_item_id = Column(
         Integer,
         ForeignKey("material_items.id", ondelete="SET NULL"),
-        nullable=True
+        nullable=True,
+        index=True
     )
 
     # ─────────────────────────────────────────────────────────────
@@ -182,12 +184,35 @@ class OperationSummary(BaseModel):
     type: str
 
 
+class MaterialItemSummary(BaseModel):
+    """Lightweight MaterialItem summary for MaterialInput response"""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    code: str
+    name: str
+    material_number: str
+
+
+class PriceCategorySummary(BaseModel):
+    """Lightweight PriceCategory summary for MaterialInput response"""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    code: str
+    name: str
+
+
 class MaterialInputWithOperationsResponse(MaterialInputResponse):
-    """MaterialInput s eager-loaded operations"""
+    """MaterialInput s eager-loaded operations + material_item + price_category"""
     operations: List[OperationSummary] = []
     weight_kg: Optional[float] = Field(None, description="Hmotnost za kus v kg (kalkulováno)")
     cost_per_piece: Optional[float] = Field(None, description="Cena za kus v Kč (kalkulováno)")
     price_per_kg: Optional[float] = Field(None, description="Cena za kg z tieru (kalkulováno)")
+
+    # Nested entity summaries
+    material_item: Optional[MaterialItemSummary] = Field(None, description="Konkrétní materiálová položka")
+    price_category: Optional[PriceCategorySummary] = Field(None, description="Cenová kategorie")
 
 
 # ═══════════════════════════════════════════════════════════════

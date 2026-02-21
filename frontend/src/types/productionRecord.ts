@@ -12,8 +12,17 @@ export interface ProductionRecord {
   operation_seq: number | null
   work_center_id: number | null
   work_center_name: string | null
+  work_center_type: string | null
   planned_time_min: number | null
+  planned_labor_time_min: number | null
+  planned_setup_min: number | null
   actual_time_min: number | null
+  actual_labor_time_min: number | null
+  actual_setup_min: number | null
+  actual_run_machine_min: number | null
+  actual_run_labor_min: number | null
+  manning_coefficient: number | null
+  actual_manning_coefficient: number | null
   production_date: string | null
   source: 'infor' | 'manual'
   notes: string | null
@@ -29,7 +38,15 @@ export interface ProductionRecordCreate {
   operation_seq?: number | null
   work_center_id?: number | null
   planned_time_min?: number | null
+  planned_labor_time_min?: number | null
+  planned_setup_min?: number | null
   actual_time_min?: number | null
+  actual_labor_time_min?: number | null
+  actual_setup_min?: number | null
+  actual_run_machine_min?: number | null
+  actual_run_labor_min?: number | null
+  manning_coefficient?: number | null
+  actual_manning_coefficient?: number | null
   production_date?: string | null
   source?: string
   notes?: string | null
@@ -41,7 +58,15 @@ export interface ProductionRecordUpdate {
   operation_seq?: number | null
   work_center_id?: number | null
   planned_time_min?: number | null
+  planned_labor_time_min?: number | null
+  planned_setup_min?: number | null
   actual_time_min?: number | null
+  actual_labor_time_min?: number | null
+  actual_setup_min?: number | null
+  actual_run_machine_min?: number | null
+  actual_run_labor_min?: number | null
+  manning_coefficient?: number | null
+  actual_manning_coefficient?: number | null
   production_date?: string | null
   source?: string
   notes?: string | null

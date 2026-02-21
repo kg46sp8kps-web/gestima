@@ -92,6 +92,32 @@ SURFACE_TREATMENT_CODES = {
     'EP': 'Elox Plus (anodized)',
 }
 
+# Plastic manufacturing method codes (suffix after dimensions)
+# Format: {MATERIAL}-{SHAPE}{dims}-{MANUFACTURING}-{COLOR}
+# Example: POM-C-DE010-028-L-N → manufacturing=L, color=N
+PLASTIC_MANUFACTURING_CODES = {
+    'P': 'Lisovaný (pressed/extruded)',
+    'L': 'Litý (cast)',
+}
+
+# Plastic color codes (last suffix)
+PLASTIC_COLOR_CODES = {
+    'B': 'Černý (black)',
+    'N': 'Natur (natural)',
+    'G': 'Šedivý (grey)',
+}
+
+# Known non-metal material prefix patterns (first letters) for quick detection
+# If item code starts with any of these AND contains a shape code → treat as non-metal
+# (plastic or cast iron). Full resolution happens via MaterialNorm DB lookup.
+NON_METAL_PREFIX_HINTS = {
+    # Plasty
+    'POM', 'PA', 'PE', 'PEEK', 'PTFE', 'PET', 'PVDF', 'PP', 'PC',
+    'PVC', 'PMMA', 'PPS', 'PAI', 'PEI', 'PPSU', 'PSU', 'UHMW',
+    # Litina (cast iron)
+    'GG',   # GG = šedá litina (Grauguss), GGG = sferoidální litina
+}
+
 
 class MaterialImporter(InforImporterBase[MaterialItem]):
     """Importer for MaterialItem from Infor SLItems"""
@@ -136,18 +162,24 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
         item_upper = item_code.upper()
 
         # Extract shape code from Item
-        match = re.search(r'-([A-Z]{2})\d', item_upper)
-        if not match:
-            return None
-
-        shape_code = match.group(1)
-
+        # Must skip GF (glass fiber) prefix — e.g., PEEK-GF30-DE050
         shape_map = {
             'KR': StockShape.ROUND_BAR,
             'OK': StockShape.HEXAGONAL_BAR,
             'DE': StockShape.PLATE,
             'TR': StockShape.TUBE,
         }
+
+        # Find all 2-letter codes followed by a digit, pick the first valid shape code
+        shape_code = None
+        for m in re.finditer(r'-([A-Z]{2})\d', item_upper):
+            candidate = m.group(1)
+            if candidate in shape_map or candidate == 'HR':
+                shape_code = candidate
+                break
+
+        if not shape_code:
+            return None
 
         if shape_code in shape_map:
             shape = shape_map[shape_code]
@@ -193,45 +225,164 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
                 return code
         return None
 
+    def extract_plastic_material_code(self, item_code: str) -> Optional[str]:
+        """Extract plastic material code from Item code
+
+        Plastic format: {MATERIAL}(-GF##)?-{SHAPE}{dims}-{MANUFACTURING}-{COLOR}
+        Examples:
+            POM-C-DE010-028-L-N    → "POM-C"
+            PA6-KR050.000-P-B      → "PA6"
+            PEEK-GF30-DE050-000-L  → "PEEK-GF30"
+            UHMW-PE-DE040-000-L-B  → "UHMW-PE"
+            PET-DE020-100-L-N      → "PET"
+            PVDF-KR040.000-L       → "PVDF"
+
+        Returns prefix as material code (resolved via MaterialNorm DB lookup later).
+        """
+        if not item_code:
+            return None
+
+        item_upper = item_code.upper()
+
+        # Find everything before the shape code (DE/KR/HR/OK/TR)
+        # Shape code is always preceded by a dash: -DE, -KR, -HR, -OK, -TR
+        match = re.match(r'^(.+?)-(DE|KR|HR|OK|TR)\d', item_upper)
+        if not match:
+            return None
+
+        prefix = match.group(1)
+
+        # Verify prefix looks like a plastic material (starts with known prefix)
+        # This prevents false positives on metal codes that somehow don't match W.Nr
+        # first_part may be "PA6", "PE500", "PA66" etc. — check if it STARTS with a known hint
+        first_part = prefix.split('-')[0]
+        is_non_metal = any(first_part.startswith(hint) for hint in NON_METAL_PREFIX_HINTS)
+        if is_non_metal:
+            logger.info(f"Plastic material detected: '{prefix}' from '{item_code}'")
+            return prefix
+
+        return None
+
     def extract_w_nr_from_item_code(self, item_code: str) -> Optional[str]:
         """Extract W.Nr from Infor Item code (MASTER source for material code)
 
-        Format: {W.Nr}-{SHAPE}{dimensions}-{SURFACE}
+        Format (metals): {W.Nr}-{SHAPE}{dimensions}-{SURFACE}
         Example: 1.0503-HR016x016-T → "1.0503"
+
+        Format (plastics): {MATERIAL}(-GF##)?-{SHAPE}{dims}-{MANUFACTURING}-{COLOR}
+        Example: POM-C-DE010-028-L-N → "POM-C"
 
         W.Nr patterns:
         - 1.xxxx = Steel (konstrukční, automatová, nástrojová, legovaná)
         - 2.xxxx = Copper, Brass
         - 3.xxxx = Aluminum
+        - POM/PA6/PEEK/PE/PTFE = Plastics (stored as w_nr in MaterialNorm)
 
-        Returns W.Nr code or None if not found.
+        Returns W.Nr/material code or None if not found.
         """
         if not item_code:
             return None
 
-        # Pattern: W.Nr at the beginning before first dash
-        # Match 1.xxxx, 2.xxxx, 3.xxxx, etc. (4 digits after dot)
+        # Pattern 1: Metal W.Nr at the beginning (1.xxxx, 2.xxxx, 3.xxxx)
         match = re.match(r'^([1-3]\.\d{4})', item_code)
         if match:
             w_nr = match.group(1)
             logger.debug(f"W.Nr detected from Item code: {w_nr} from '{item_code}'")
             return w_nr
 
+        # Pattern 2: Plastic material code (POM-C, PA6, PEEK-GF30, etc.)
+        plastic_code = self.extract_plastic_material_code(item_code)
+        if plastic_code:
+            return plastic_code
+
+        return None
+
+    def _is_plastic_item(self, item_code: str) -> bool:
+        """Check if item code is a plastic material (not metal W.Nr, not cast iron GG/GGG)"""
+        if not item_code:
+            return False
+        item_upper = item_code.upper()
+        # Metal W.Nr (1.xxxx, 2.xxxx, 3.xxxx)
+        if re.match(r'^[1-3]\.\d{4}', item_upper):
+            return False
+        # Cast iron (GG, GGG) — uses metal surface treatment codes
+        if re.match(r'^GG', item_upper):
+            return False
+        return True
+
+    def extract_plastic_surface_info(self, item_code: str) -> Optional[str]:
+        """Extract manufacturing method + color from plastic Item code
+
+        Plastic suffixes after dimensions:
+        - Manufacturing: P=lisovaný (pressed), L=litý (cast)
+        - Color: B=černý (black), N=natur, G=šedivý (grey)
+
+        Examples:
+            POM-C-DE010-028-L-N  → "L/N" (litý, natur)
+            PA6-KR050.000-P-B    → "P/B" (lisovaný, černý)
+            PEEK-GF30-DE050-000-L → "L" (litý)
+            UHMW-PE-DE040-000-L-B → "L/B" (litý, černý)
+
+        Returns combined string like "L/N" or "P/B" or "L".
+        """
+        if not item_code:
+            return None
+
+        item_upper = item_code.upper()
+
+        # Get everything after dimensions (after shape code + numbers)
+        # Find the shape code position, then skip past dimensions
+        shape_match = re.search(r'-(DE|KR|HR|OK|TR)\d', item_upper)
+        if not shape_match:
+            return None
+
+        # Get the suffix part after the shape+dimensions section
+        # For DE: skip past DE{digits}(-{digits})* pattern
+        suffix_part = item_upper[shape_match.start():]
+
+        # Extract all single-letter codes at the end (after dimensions)
+        # Dimensions are digit groups, suffixes are letter groups
+        # E.g. "-DE010-028-L-N" → after dims: ["-L", "-N"]
+        # E.g. "-KR050.000-P-B" → after dims: ["-P", "-B"]
+        suffix_codes = re.findall(r'-([A-Z])(?=-[A-Z](?:-|$)|$)', suffix_part)
+
+        manufacturing = None
+        color = None
+        for code in suffix_codes:
+            if code in PLASTIC_MANUFACTURING_CODES and not manufacturing:
+                manufacturing = code
+            elif code in PLASTIC_COLOR_CODES and not color:
+                color = code
+
+        parts = [p for p in [manufacturing, color] if p]
+        if parts:
+            result = '/'.join(parts)
+            logger.info(f"Plastic surface info: {result} from '{item_code}'")
+            return result
+
         return None
 
     def extract_surface_treatment(self, item_code: str) -> Optional[str]:
         """Extract surface treatment from Infor Item code
 
-        Formats:
+        Metal formats:
         - 1.0503-HR016x016-T → "T" (at end)
         - 1.0503-KR020.000-B-h6 → "B" (in middle, before tolerance)
-        - 1.0503-KR016.000-f7-B → "B" (at end, after tolerance)
 
-        Returns surface treatment code (T, V, P, O, F, B, etc.)
+        Plastic formats:
+        - POM-C-DE010-028-L-N → "L/N" (manufacturing/color)
+        - PA6-KR050.000-P-B → "P/B" (manufacturing/color)
+
+        Returns surface treatment code.
         """
         if not item_code:
             return None
 
+        # Plastic items: extract manufacturing + color
+        if self._is_plastic_item(item_code):
+            return self.extract_plastic_surface_info(item_code)
+
+        # Metal items: original logic
         item_upper = item_code.upper()
 
         # Strategy: Look for known surface treatment codes anywhere in the item code
@@ -284,13 +435,24 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
         item_upper = item_code.upper()
 
         # Pattern 1: DE with dash-separated dimensions
-        # Format: {W.Nr}-DE{thickness}-{width}-{SURF} or {W.Nr}-DE{thickness}-{width}-{length}-{SURF}
-        de_match = re.search(r'-DE(\d+)-(\d+)(?:-(\d+))?(?:-[A-Z]+)?$', item_upper)
+        # Metal:   {W.Nr}-DE{thickness}-{width}-{SURF}
+        # Metal:   {W.Nr}-DE{thickness}-{width}-{length}-{SURF}
+        # Plastic: {MATERIAL}-DE{thickness}-{width}-{MANUF}-{COLOR}
+        # Plastic: {MATERIAL}-DE{thickness}-{width}-{length}-{COLOR}
+        # "000" after DE means dimension not specified (e.g., DE050-000-L = thickness=50, width=N/A)
+        de_match = re.search(r'-DE(\d+)-(\d+)(?:-(\d+))?', item_upper)
         if de_match:
             dims["thickness"] = float(de_match.group(1))
-            dims["width"] = float(de_match.group(2))
+            dim2 = int(de_match.group(2))
+            # "000" = not specified (plastic default)
+            if dim2 > 0:
+                dims["width"] = float(dim2)
             if de_match.group(3):
-                dims["standard_length"] = float(de_match.group(3))
+                dim3 = int(de_match.group(3))
+                # Distinguish: is dim3 a length (>100mm) or a letter suffix follows?
+                # For PE500-DE030-65-750-N: thickness=30, width=65, length=750
+                if dim3 > 0:
+                    dims["standard_length"] = float(dim3)
             logger.debug(f"DE dimensions parsed: thickness={dims['thickness']}, width={dims['width']}, length={dims['standard_length']} from '{item_code}'")
             return dims
 
@@ -307,7 +469,8 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
 
         # Pattern 2b: HR/TR with 'x' separator (2 dimensions, with optional .000 suffix)
         # Format: {W.Nr}-HR{width}x{thickness}-{SURF} or {W.Nr}-TR{diameter}x{wall}-{SURF}
-        x_match = re.search(r'-([A-Z]{2})(\d+)(?:\.\d+)?[xX]+(\d+)(?:\.\d+)?(?:-|$)', item_upper)
+        # Only match valid shape codes (skip GF = glass fiber)
+        x_match = re.search(r'-(KR|HR|OK|DE|TR)(\d+)(?:\.\d+)?[xX]+(\d+)(?:\.\d+)?(?:-|$)', item_upper)
         if x_match:
             shape_code = x_match.group(1)
             dim1 = int(x_match.group(2))
@@ -330,7 +493,8 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
 
         # Pattern 3: Single dimension (KR, OK, DE simple, HR simple)
         # Format: {W.Nr}-{SHAPE}{dimension}-{SURF}
-        single_match = re.search(r'-([A-Z]{2})(\d+)-?', item_upper)
+        # Only match valid shape codes (skip GF = glass fiber)
+        single_match = re.search(r'-(KR|HR|OK|DE|TR)(\d+)-?', item_upper)
         if single_match:
             shape_code = single_match.group(1)
             dim = int(single_match.group(2))

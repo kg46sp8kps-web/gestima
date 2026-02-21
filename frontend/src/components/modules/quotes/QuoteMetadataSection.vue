@@ -6,7 +6,8 @@ import { ICON_SIZE } from '@/config/design'
 interface Metadata {
   title: string
   customer_request_number: string
-  valid_until: string
+  request_date: string
+  offer_deadline: string
   discount_percent: number
   tax_percent: number
   notes: string
@@ -44,10 +45,19 @@ function updateField(field: keyof Metadata, value: string | number) {
 
     <div class="form-row">
       <div class="form-field">
-        <label>Platnost do</label>
+        <label>Datum poptávky</label>
         <input
-          :value="metadata.valid_until"
-          @input="updateField('valid_until', ($event.target as HTMLInputElement).value)"
+          :value="metadata.request_date"
+          @input="updateField('request_date', ($event.target as HTMLInputElement).value)"
+          type="date"
+          class="form-input"
+        />
+      </div>
+      <div class="form-field">
+        <label>Deadline nabídky</label>
+        <input
+          :value="metadata.offer_deadline"
+          @input="updateField('offer_deadline', ($event.target as HTMLInputElement).value)"
           type="date"
           class="form-input"
         />
@@ -111,7 +121,6 @@ function updateField(field: keyof Metadata, value: string | number) {
   color: var(--text-body);
 }
 
-.form-input,
 .form-textarea {
   width: 100%;
   padding: var(--space-3);
@@ -127,7 +136,6 @@ function updateField(field: keyof Metadata, value: string | number) {
   resize: vertical;
 }
 
-.form-input:focus,
 .form-textarea:focus {
   outline: none;
   border-color: var(--text-secondary);

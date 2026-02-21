@@ -47,10 +47,38 @@ from app.schemas.file_record import (
     FileLinkRequest,
     FileUploadResponse
 )
+from app.models.part import Part
 from app.services.file_service import file_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/files", tags=["files"])
+
+
+async def _enrich_link_entity_names(
+    links: list[FileLinkResponse],
+    db: AsyncSession,
+) -> None:
+    """Resolve entity_name for FileLink responses (in-place).
+
+    For entity_type='part' → loads Part.article_number.
+    Extensible for future entity types (quote_item, timevision, etc.).
+    Batch-loads all IDs in a single query per entity type.
+    """
+    # Group link indices by entity_type
+    part_links: list[tuple[int, int]] = []  # (index_in_list, entity_id)
+    for i, link in enumerate(links):
+        if link.entity_type == "part":
+            part_links.append((i, link.entity_id))
+
+    if part_links:
+        part_ids = {pid for _, pid in part_links}
+        result = await db.execute(
+            select(Part.id, Part.article_number).where(Part.id.in_(part_ids))
+        )
+        name_map = {row[0]: row[1] for row in result.all()}
+
+        for idx, pid in part_links:
+            links[idx].entity_name = name_map.get(pid)
 
 
 @router.post("/upload", response_model=FileUploadResponse, status_code=201)
@@ -137,6 +165,7 @@ async def upload_file(
         response = FileUploadResponse.model_validate(record)
         if link:
             response.link = FileLinkResponse.model_validate(link)
+            await _enrich_link_entity_names([response.link], db)
 
         return response
 
@@ -147,6 +176,100 @@ async def upload_file(
         await db.rollback()
         logger.error(f"Failed to upload file: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba při nahrávání souboru")
+
+
+@router.get("/orphans", response_model=FileListResponse)
+async def list_orphaned_files(
+    include_linked_to_deleted: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Vrátí seznam osiřelých souborů (bez aktivní vazby, kromě temp).
+    Admin endpoint pro cleanup.
+
+    Query params:
+        include_linked_to_deleted: Pokud True, zahrne i soubory navázané
+            pouze na soft-deleted díly (mazané/archivní díly).
+
+    Returns:
+        FileListResponse: Seznam osiřelých souborů
+    """
+    try:
+        orphans = await file_service.find_orphans(
+            db,
+            include_linked_to_deleted=include_linked_to_deleted
+        )
+
+        # Build response + enrich entity names (article_number etc.)
+        all_links: list[FileLinkResponse] = []
+        files = []
+        for record in orphans:
+            active_links = [l for l in record.links if l.deleted_at is None]
+            file_resp = FileWithLinksResponse.model_validate(record)
+            file_resp.links = [FileLinkResponse.model_validate(l) for l in active_links]
+            all_links.extend(file_resp.links)
+            files.append(file_resp)
+
+        await _enrich_link_entity_names(all_links, db)
+
+        logger.info(
+            f"Found {len(orphans)} orphaned files "
+            f"(include_linked_to_deleted={include_linked_to_deleted}), "
+            f"user={current_user.username}"
+        )
+
+        return FileListResponse(files=files, total=len(files))
+
+    except Exception as e:
+        logger.error(f"Failed to list orphans: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při načítání osiřelých souborů")
+
+
+@router.delete("/orphans/bulk", status_code=200, response_model=dict)
+async def delete_orphaned_files_bulk(
+    include_linked_to_deleted: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Hromadný soft delete všech osiřelých souborů.
+
+    Query params:
+        include_linked_to_deleted: Pokud True, smaže i soubory navázané
+            pouze na soft-deleted díly.
+
+    Returns:
+        dict: Počet smazaných souborů
+    """
+    try:
+        orphans = await file_service.find_orphans(
+            db,
+            include_linked_to_deleted=include_linked_to_deleted
+        )
+
+        deleted_count = 0
+        for record in orphans:
+            await file_service.delete(record.id, db, deleted_by=current_user.username)
+            deleted_count += 1
+
+        await db.commit()
+
+        logger.info(
+            f"Bulk deleted {deleted_count} orphaned files "
+            f"(include_linked_to_deleted={include_linked_to_deleted}), "
+            f"user={current_user.username}"
+        )
+
+        return {"deleted": deleted_count}
+
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Bulk orphan delete failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při hromadném mazání osiřelých souborů")
 
 
 @router.get("/{file_id}", response_model=FileWithLinksResponse)
@@ -190,6 +313,7 @@ async def get_file_metadata(
         # Build response
         response = FileWithLinksResponse.model_validate(record)
         response.links = [FileLinkResponse.model_validate(link) for link in active_links]
+        await _enrich_link_entity_names(response.links, db)
 
         logger.debug(
             f"Retrieved file metadata: id={file_id}, links={len(active_links)}, "
@@ -365,7 +489,9 @@ async def link_file_to_entity(
             f"primary={data.is_primary}, user={current_user.username}"
         )
 
-        return FileLinkResponse.model_validate(link)
+        resp = FileLinkResponse.model_validate(link)
+        await _enrich_link_entity_names([resp], db)
+        return resp
 
     except HTTPException:
         await db.rollback()
@@ -474,7 +600,9 @@ async def set_file_as_primary(
             f"entity={entity_type}:{entity_id}, user={current_user.username}"
         )
 
-        return FileLinkResponse.model_validate(link)
+        resp = FileLinkResponse.model_validate(link)
+        await _enrich_link_entity_names([resp], db)
+        return resp
 
     except HTTPException:
         await db.rollback()
@@ -494,6 +622,8 @@ async def list_files(
     entity_id: Optional[int] = Query(None, description="Filtr: entity_id"),
     file_type: Optional[str] = Query(None, description="Filtr: file_type (pdf, step, nc)"),
     status: Optional[str] = Query(None, description="Filtr: status (temp, active, archived)"),
+    skip: int = Query(0, ge=0, description="Stránkování: offset"),
+    limit: int = Query(200, ge=1, le=1000, description="Stránkování: počet záznamů"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -541,19 +671,24 @@ async def list_files(
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0
 
-        # Get files
-        result = await db.execute(query.order_by(FileRecord.created_at.desc()))
+        # Get files (paginated)
+        result = await db.execute(query.order_by(FileRecord.created_at.desc()).offset(skip).limit(limit))
         records = result.scalars().all()
 
         # Build response
         files = []
+        all_links: list[FileLinkResponse] = []
         for record in records:
             # Filter out soft-deleted links
             active_links = [link for link in record.links if link.deleted_at is None]
 
             file_resp = FileWithLinksResponse.model_validate(record)
             file_resp.links = [FileLinkResponse.model_validate(link) for link in active_links]
+            all_links.extend(file_resp.links)
             files.append(file_resp)
+
+        # Batch-enrich entity names for ALL links across all files (single query)
+        await _enrich_link_entity_names(all_links, db)
 
         logger.debug(
             f"Listed {len(files)} files (total={total}, "
@@ -567,35 +702,3 @@ async def list_files(
     except Exception as e:
         logger.error(f"Failed to list files: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba při načítání seznamu souborů")
-
-
-@router.get("/orphans", response_model=FileListResponse)
-async def list_orphaned_files(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Vrátí seznam osiřelých souborů (bez aktivní vazby, kromě temp).
-    Admin endpoint pro cleanup.
-
-    Returns:
-        FileListResponse: Seznam osiřelých souborů
-    """
-    try:
-        orphans = await file_service.find_orphans(db)
-
-        # Build response
-        files = [
-            FileWithLinksResponse.model_validate(record)
-            for record in orphans
-        ]
-
-        logger.info(
-            f"Found {len(orphans)} orphaned files, user={current_user.username}"
-        )
-
-        return FileListResponse(files=files, total=len(orphans))
-
-    except Exception as e:
-        logger.error(f"Failed to list orphans: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Chyba při načítání osiřelých souborů")

@@ -2,6 +2,7 @@
 import { Check, X } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import type { Column } from './DataTable.vue'
+import { formatCurrency, formatNumber, formatDate } from '@/utils/formatters'
 
 interface Props {
   data: Record<string, unknown>[]
@@ -42,35 +43,6 @@ function getCellValue(row: Record<string, unknown>, col: Column): unknown {
     value = (value as Record<string, unknown>)[key]
   }
   return value
-}
-
-function formatCurrency(value: unknown): string {
-  if (value === null || value === undefined) return '—'
-  const num = typeof value === 'number' ? value : parseFloat(String(value))
-  if (isNaN(num)) return '—'
-  return new Intl.NumberFormat('cs-CZ', {
-    style: 'currency',
-    currency: 'CZK',
-    minimumFractionDigits: 2
-  }).format(num)
-}
-
-function formatNumber(value: unknown): string {
-  if (value === null || value === undefined) return '—'
-  const num = typeof value === 'number' ? value : parseFloat(String(value))
-  if (isNaN(num)) return '—'
-  return new Intl.NumberFormat('cs-CZ').format(num)
-}
-
-function formatDate(value: unknown): string {
-  if (!value) return '—'
-  const date = new Date(String(value))
-  if (isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat('cs-CZ', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date)
 }
 
 function isSelected(row: Record<string, unknown>): boolean {

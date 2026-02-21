@@ -41,6 +41,7 @@ interface MaterialsContext {
   materialInputs: MaterialInputWithOperations[]
   stockCost: StockCost | null
   loadingInputs: boolean
+  initialLoadingInputs: boolean  // true only on first load (no data yet) — prevents flash on part switch
   loadingStockCost: boolean
 }
 
@@ -65,6 +66,7 @@ export const useMaterialsStore = defineStore('materials', () => {
         materialInputs: [],
         stockCost: null,
         loadingInputs: false,
+        initialLoadingInputs: false,
         loadingStockCost: false
       })
     }
@@ -87,6 +89,15 @@ export const useMaterialsStore = defineStore('materials', () => {
   const materialGroups = ref<MaterialGroup[]>([])
   const referenceDataLoaded = ref(false)
 
+  // Material Items — same pattern as parts store (200 first, batch 50 on scroll)
+  const MATERIAL_PAGE_SIZE = 200
+  const MATERIAL_BATCH_SIZE = 50
+  const materialItems = ref<import('@/types/material').MaterialItem[]>([])
+  const materialItemsTotal = ref(0)
+  const materialItemsLoaded = ref(false)
+  const loadingMaterialItems = ref(false)
+  const loadingMoreMaterialItems = ref(false)
+
   // Parser state (shared across all windows)
   const parseResult = ref<MaterialParseResult | null>(null)
   const parsingMaterial = ref(false)
@@ -98,6 +109,11 @@ export const useMaterialsStore = defineStore('materials', () => {
   // ==========================================================================
   // Computed
   // ==========================================================================
+
+  // Identical to parts store pattern
+  const initialLoadingMaterialItems = computed(() => loadingMaterialItems.value && materialItems.value.length === 0)
+  const hasMaterialItems = computed(() => materialItems.value.length > 0)
+  const hasMoreMaterialItems = computed(() => materialItems.value.length < materialItemsTotal.value)
 
   /**
    * Price categories sorted by name
@@ -183,13 +199,55 @@ export const useMaterialsStore = defineStore('materials', () => {
       priceCategories.value = categories
       materialGroups.value = groups
       referenceDataLoaded.value = true
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání materiálů')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání materiálů')
       throw error
     } finally {
       loading.value = false
     }
   }
+
+  /**
+   * Fetch first 200 material items — identical to fetchParts()
+   */
+  async function fetchMaterialItems(): Promise<void> {
+    if (materialItemsLoaded.value) return
+
+    loadingMaterialItems.value = true
+    try {
+      const response = await materialsApi.getMaterialItems({ skip: 0, limit: MATERIAL_PAGE_SIZE })
+      materialItems.value = response.items
+      materialItemsTotal.value = response.total
+      materialItemsLoaded.value = true
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání materiálových položek')
+      throw error
+    } finally {
+      loadingMaterialItems.value = false
+    }
+  }
+
+  /**
+   * Fetch next batch (50) — called on scroll, identical to fetchMore() in parts
+   */
+  async function fetchMoreMaterialItems(): Promise<void> {
+    if (loadingMoreMaterialItems.value || !hasMoreMaterialItems.value) return
+    loadingMoreMaterialItems.value = true
+    try {
+      const response = await materialsApi.getMaterialItems({
+        skip: materialItems.value.length,
+        limit: MATERIAL_BATCH_SIZE
+      })
+      materialItems.value.push(...response.items)
+    } catch {
+      // silent
+    } finally {
+      loadingMoreMaterialItems.value = false
+    }
+  }
+
+  // Keep backward compat alias used in prefetch
+  const loadMaterialItems = fetchMaterialItems
 
   // ==========================================================================
   // Actions - MaterialInput CRUD (ADR-024)
@@ -200,17 +258,23 @@ export const useMaterialsStore = defineStore('materials', () => {
    */
   async function loadMaterialInputs(partId: number, linkingGroup: LinkingGroup): Promise<void> {
     const ctx = getOrCreateContext(linkingGroup)
+
+    // Detect first load vs part switch — keep old data visible during switch
+    const isFirstLoad = ctx.currentPartId === null && ctx.materialInputs.length === 0
+
     ctx.currentPartId = partId
+    ctx.initialLoadingInputs = isFirstLoad
     ctx.loadingInputs = true
 
     try {
       ctx.materialInputs = await materialInputsApi.getMaterialInputs(partId)
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání materiálů')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání materiálů')
       ctx.materialInputs = []
       throw error
     } finally {
       ctx.loadingInputs = false
+      ctx.initialLoadingInputs = false
     }
   }
 
@@ -240,8 +304,8 @@ export const useMaterialsStore = defineStore('materials', () => {
 
       ui.showSuccess('Materiál vytvořen')
       return newMaterial
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při vytváření materiálu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při vytváření materiálu')
       throw error
     } finally {
       saving.value = false
@@ -279,8 +343,9 @@ export const useMaterialsStore = defineStore('materials', () => {
       }
 
       return updated
-    } catch (error: any) {
-      if (error.response?.status === 409) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status: number }; message?: string }
+      if (err.response?.status === 409) {
         ui.showError('Data byla změněna jiným uživatelem. Načtěte znovu.')
         // Reload to get latest version
         const ctx = getOrCreateContext(linkingGroup)
@@ -288,7 +353,7 @@ export const useMaterialsStore = defineStore('materials', () => {
           await loadMaterialInputs(ctx.currentPartId, linkingGroup)
         }
       } else {
-        ui.showError(error.message || 'Chyba při ukládání materiálu')
+        ui.showError((error as Error).message || 'Chyba při ukládání materiálu')
       }
       throw error
     } finally {
@@ -319,8 +384,8 @@ export const useMaterialsStore = defineStore('materials', () => {
       }
 
       ui.showSuccess('Materiál smazán')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při mazání materiálu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při mazání materiálu')
       throw error
     } finally {
       saving.value = false
@@ -357,11 +422,12 @@ export const useMaterialsStore = defineStore('materials', () => {
       }
 
       ui.showSuccess('Materiál přiřazen k operaci')
-    } catch (error: any) {
-      if (error.response?.status === 409) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status: number }; message?: string }
+      if (err.response?.status === 409) {
         ui.showError('Vazba již existuje')
       } else {
-        ui.showError(error.message || 'Chyba při přiřazování materiálu')
+        ui.showError(err.message || 'Chyba při přiřazování materiálu')
       }
       throw error
     } finally {
@@ -398,8 +464,8 @@ export const useMaterialsStore = defineStore('materials', () => {
       }
 
       ui.showSuccess('Vazba odebrána')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při odebírání vazby')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při odebírání vazby')
       throw error
     } finally {
       saving.value = false
@@ -434,7 +500,7 @@ export const useMaterialsStore = defineStore('materials', () => {
     ctx.loadingStockCost = true
     try {
       ctx.stockCost = await materialsApi.getStockCost(ctx.currentPartNumber)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[materials] Stock cost error:', error)
       ctx.stockCost = null
     } finally {
@@ -465,7 +531,7 @@ export const useMaterialsStore = defineStore('materials', () => {
     parsingMaterial.value = true
     try {
       parseResult.value = await materialsApi.parseMaterialDescription(description.trim())
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[materials] Parse error:', error)
       parseResult.value = null
     } finally {
@@ -562,6 +628,10 @@ export const useMaterialsStore = defineStore('materials', () => {
     priceCategories.value = []
     materialGroups.value = []
     referenceDataLoaded.value = false
+    materialItems.value = []
+    materialItemsTotal.value = 0
+    materialItemsLoaded.value = false
+    loadingMoreMaterialItems.value = false
     parseResult.value = null
     parsingMaterial.value = false
     loading.value = false
@@ -577,6 +647,14 @@ export const useMaterialsStore = defineStore('materials', () => {
     priceCategories,
     materialGroups,
     referenceDataLoaded,
+    materialItems,
+    materialItemsTotal,
+    materialItemsLoaded,
+    loadingMaterialItems,
+    loadingMoreMaterialItems,
+    initialLoadingMaterialItems,
+    hasMaterialItems,
+    hasMoreMaterialItems,
     parseResult,
     parsingMaterial,
     loading,
@@ -593,6 +671,9 @@ export const useMaterialsStore = defineStore('materials', () => {
 
     // Actions - Reference Data
     loadReferenceData,
+    loadMaterialItems,    // alias → fetchMaterialItems (used in prefetch)
+    fetchMaterialItems,
+    fetchMoreMaterialItems,
 
     // Actions - MaterialInput CRUD
     loadMaterialInputs,

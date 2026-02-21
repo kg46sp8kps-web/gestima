@@ -181,6 +181,7 @@ class TestSystemConfigUI:
     """Test admin settings page"""
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Settings page is now in Vue SPA, not a server-side route")
     async def test_settings_page_admin(self, client: AsyncClient, admin_token):
         """Admin může zobrazit settings stránku"""
         response = await client.get("/settings", cookies={"access_token": admin_token}, follow_redirects=False)
@@ -197,6 +198,7 @@ class TestSystemConfigUI:
             assert "coop_coefficient" in html
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Settings page is now in Vue SPA, not a server-side route")
     async def test_settings_page_non_admin(self, client: AsyncClient, operator_token):
         """Non-admin nemůže zobrazit settings stránku"""
         response = await client.get("/settings", cookies={"access_token": operator_token}, follow_redirects=False)

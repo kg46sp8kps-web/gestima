@@ -15,7 +15,7 @@ const visibleCount = ref(props.pageSize)
 // Reset when data changes
 watch(() => props.data, () => { visibleCount.value = props.pageSize })
 
-const columns = computed(() => props.data.length > 0 ? Object.keys(props.data[0]).filter(k => !k.startsWith('_')) : [])
+const columns = computed(() => props.data.length > 0 && props.data[0] ? Object.keys(props.data[0]).filter(k => !k.startsWith('_')) : [])
 const visibleData = computed(() => props.data.slice(0, visibleCount.value))
 const hasMore = computed(() => visibleCount.value < props.data.length)
 const remaining = computed(() => props.data.length - visibleCount.value)
@@ -133,20 +133,4 @@ function formatCell(value: unknown): string {
   justify-content: center;
 }
 
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  background: transparent;
-  color: var(--text-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.btn-ghost:hover { background: var(--state-hover); border-color: var(--border-strong); }
-.btn-ghost.btn-secondary { color: var(--text-secondary); }
 </style>

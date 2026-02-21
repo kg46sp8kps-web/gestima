@@ -18,9 +18,10 @@ export async function getModuleDefaults(
   try {
     const response = await apiClient.get<ModuleDefaults>(`/module-defaults/${moduleType}`)
     return response.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 404 = No defaults found (expected)
-    if (error.response?.status === 404) {
+    const err = error as { response?: { status: number } }
+    if (err.response?.status === 404) {
       return null
     }
     throw error

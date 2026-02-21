@@ -8,7 +8,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useWindowsStore } from '@/stores/windows'
-import { Menu, X, Package, DollarSign, Cog, Box, Layers, LayoutGrid, Users, FileText, Database, Calculator, Zap, FolderOpen } from 'lucide-vue-next'
+import { Menu, X, Package, DollarSign, Layers, LayoutGrid, Users, FileText, Database, Calculator, Zap, FolderOpen } from 'lucide-vue-next'
 import ManageLayoutsModal from '@/components/modals/ManageLayoutsModal.vue'
 import AppMainMenu from './AppMainMenu.vue'
 import AppSearchBar from './AppSearchBar.vue'
@@ -34,26 +34,22 @@ const showManageLayoutsModal = ref(false)
 const availableModules = [
   { value: 'part-main', label: 'Part Main', icon: Package },
   { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
-  { value: 'part-operations', label: 'Operations', icon: Cog },
   { value: 'part-technology', label: 'Technologie', icon: Layers },
-  { value: 'part-material', label: 'Material', icon: Box },
   { value: 'batch-sets', label: 'Batch Sets', icon: Layers },
   { value: 'partners-list', label: 'Zákazníci', icon: Users },
   { value: 'quotes-list', label: 'Nabídky', icon: FileText },
   { value: 'manufacturing-items', label: 'Vyráběné položky', icon: Package },
-  { value: 'material-items-list', label: 'Materiálové položky', icon: Box },
+  { value: 'material-items-list', label: 'Materiálové položky', icon: Database },
   { value: 'master-admin', label: 'Admin', icon: Database },
   { value: 'accounting', label: 'Účetnictví', icon: Calculator },
   { value: 'time-vision', label: 'TimeVision', icon: Zap },
-  { value: 'file-manager', label: 'File Manager', icon: FolderOpen },
-  { value: 'template', label: 'Template (Demo)', icon: LayoutGrid }
+  { value: 'file-manager', label: 'File Manager', icon: FolderOpen }
 ]
 
 const quickModules = [
   { value: 'part-main', label: 'Part Main', icon: Package },
   { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
-  { value: 'part-operations', label: 'Operations', icon: Cog },
-  { value: 'part-material', label: 'Material', icon: Box },
+  { value: 'part-technology', label: 'Technologie', icon: Layers },
   { value: 'batch-sets', label: 'Batch Sets', icon: Layers }
 ]
 
@@ -144,6 +140,14 @@ function arrangeWindows(mode: 'grid' | 'horizontal' | 'vertical') {
 function closeAllWindows() {
   windowsStore.closeAllWindows()
 }
+
+function handleOpenModule(moduleValue: string, label: string) {
+  if (route.path !== '/windows') {
+    router.push('/windows')
+  }
+  windowsStore.openWindow(moduleValue as never, label)
+  closeMenu()
+}
 </script>
 
 <template>
@@ -195,12 +199,14 @@ function closeAllWindows() {
     <!-- Main Menu -->
     <AppMainMenu
       :show-menu="showMenu"
+      :modules="availableModules"
       @close="closeMenu"
       @logout="handleLogout"
       @new-layout="handleNewLayout"
       @save-layout="handleSaveCurrentLayout"
       @save-as-layout="handleSaveCurrentAsNewLayout"
       @manage-layouts="handleManageLayouts"
+      @open-module="handleOpenModule"
     />
 
     <!-- Dialogs -->

@@ -27,14 +27,14 @@ test.describe('Workspace Navigation', () => {
 
     // Should show pricing module
     await expect(page.locator('[data-testid="module-part-pricing"]')).toBeVisible();
-    await expect(page.locator('[data-testid="module-parts-list"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="module-parts-list"]')).toBeHidden();
 
     // Click on operations module tab
     await page.click('[data-testid="module-tab-operations"]');
 
     // Should show operations module
     await expect(page.locator('[data-testid="module-part-operations"]')).toBeVisible();
-    await expect(page.locator('[data-testid="module-part-pricing"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="module-part-pricing"]')).toBeHidden();
   });
 
   test('should select part from parts list and update context', async ({ page }) => {

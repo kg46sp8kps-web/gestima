@@ -3,32 +3,39 @@ import { Page } from '@playwright/test';
 /**
  * Login helper - performs login flow
  */
-export async function login(page: Page, username = 'admin', password = 'admin123') {
+export async function login(page: Page, username = 'demo', password = 'demo123') {
   await page.goto('/login');
+
+  // Wait for login form to be ready
+  await page.waitForSelector('[data-testid="username-input"]', { state: 'visible', timeout: 10000 });
 
   await page.fill('[data-testid="username-input"]', username);
   await page.fill('[data-testid="password-input"]', password);
   await page.click('[data-testid="login-button"]');
 
-  // Wait for redirect to dashboard
-  await page.waitForURL('/');
+  // Wait for SPA redirect — the menu button appears after successful login
+  await page.waitForSelector('.menu-btn', { state: 'visible', timeout: 15000 });
 }
 
 /**
  * Logout helper
  */
 export async function logout(page: Page) {
-  await page.click('[data-testid="user-menu-button"]');
-  await page.click('[data-testid="logout-button"]');
+  // Open hamburger menu
+  await page.click('.menu-btn');
+  await page.waitForSelector('.menu-drawer', { state: 'visible' });
 
-  // Wait for redirect to login
-  await page.waitForURL('/login');
+  // Click logout button in menu footer
+  await page.click('.logout-btn');
+
+  // Wait for login page to appear
+  await page.waitForSelector('[data-testid="login-button"]', { state: 'visible', timeout: 10000 });
 }
 
 /**
  * Check if user is authenticated
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
-  const userMenu = page.locator('[data-testid="user-menu"]');
-  return await userMenu.isVisible();
+  const menuBtn = page.locator('.menu-btn');
+  return await menuBtn.isVisible();
 }

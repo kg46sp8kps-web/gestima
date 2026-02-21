@@ -8,6 +8,7 @@
  * - MaterialGroupsPanel: Material groups CRUD
  * - PriceCategoriesPanel: Price categories with tiers
  * - WorkCentersPanel: Work centers CRUD
+ * - DrawingImportPanel: Import drawings from network share (ADR-044)
  *
  * Refactored from 2149 LOC to <200 LOC (L-036 compliant)
  */
@@ -29,7 +30,17 @@ const activeMainTab = ref<MainTab>('infor')
 // Connection status from Infor panel
 const isConnected = ref(false)
 
-function handleConnectionChange(status: Record<string, unknown>) {
+interface ConnectionStatus {
+  connected: boolean
+  error?: string
+  status?: string
+  token_acquired?: boolean
+  base_url?: string
+  config?: Record<string, unknown>
+  configurations?: unknown[]
+}
+
+function handleConnectionChange(status: ConnectionStatus | null) {
   isConnected.value = status?.connected === true
 }
 </script>

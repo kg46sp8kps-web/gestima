@@ -712,47 +712,4 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
   border-top: 1px solid var(--border-default);
 }
 
-/* Button overrides - explicit colors for scoped CSS specificity */
-.btn {
-  color: var(--text-body);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-}
-
-.btn-sm {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-xs);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border-color: var(--border-default);
-}
-
-.btn-primary:hover {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
-
-.btn-secondary {
-  background: var(--bg-surface);
-  color: var(--text-body);
-  border-color: var(--border-default);
-}
-
-.btn-secondary:hover {
-  background: var(--state-hover);
-}
-
-.btn-danger {
-  background: var(--color-danger);
-  color: white;
-  border-color: var(--color-danger);
-}
-
-.btn-danger:hover {
-  background: var(--color-danger-hover);
-}
 </style>

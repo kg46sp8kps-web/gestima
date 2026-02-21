@@ -92,12 +92,12 @@ async function saveEdit() {
 
     emit('updated')
     isEditing.value = false
-    console.log('Save material item:', editForm.value)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error
     console.error('Failed to save material item:', error)
     await alert({
       title: 'Chyba',
-      message: `Chyba při ukládání: ${error.message || 'Neznámá chyba'}`,
+      message: `Chyba při ukládání: ${err.message || 'Neznámá chyba'}`,
       type: 'error'
     })
   }
@@ -107,7 +107,6 @@ async function handleCopy() {
   if (!props.item) return
 
   // TODO: Implement copy functionality
-  console.log('Copy material item:', props.item.material_number)
   await alert({
     title: 'Info',
     message: 'Kopírování materiálové položky zatím není implementováno',
@@ -133,12 +132,12 @@ async function handleDelete() {
     // await deleteMaterialItem(props.item.material_number)
 
     emit('deleted')
-    console.log('Delete material item:', props.item.material_number)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error
     console.error('Failed to delete material item:', error)
     await alert({
       title: 'Chyba',
-      message: `Chyba při mazání: ${error.message || 'Neznámá chyba'}`,
+      message: `Chyba při mazání: ${err.message || 'Neznámá chyba'}`,
       type: 'error'
     })
   }
@@ -297,16 +296,6 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   font-size: var(--text-base);
 }
 
-/* === INFO RIBBON === */
-.info-ribbon {
-  position: relative;
-  padding: var(--space-5);
-  background: var(--bg-surface);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-normal);
-}
-
 /* === ICON TOOLBAR === */
 .icon-toolbar {
   display: flex;
@@ -318,39 +307,6 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   padding-top: var(--space-3);
   padding-bottom: 2px;
   border-top: 1px solid var(--border-default);
-}
-
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.icon-btn:hover {
-  color: var(--color-primary);
-  transform: scale(1.1);
-}
-
-.icon-btn-danger:hover {
-  color: var(--status-error);
-}
-
-.icon-btn-primary {
-  color: var(--color-primary);
-}
-
-.icon-btn-primary:hover {
-  color: var(--color-primary);
-  background: rgba(153, 27, 27, 0.1);
-  transform: scale(1.1);
 }
 
 /* === INFO GRID === */

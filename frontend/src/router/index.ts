@@ -23,34 +23,10 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Protected routes
+  // Default — redirect to windows workspace
   {
     path: '/',
-    name: 'dashboard',
-    component: () => import('@/views/dashboard/DashboardView.vue'),
-    meta: {
-      title: 'Dashboard'
-    }
-  },
-
-  // Work Centers (Admin only - accessed via /admin/master-data)
-  {
-    path: '/admin/work-centers/new',
-    name: 'work-center-create',
-    component: () => import('@/views/workCenters/WorkCenterEditView.vue'),
-    meta: {
-      title: 'Nové pracoviště',
-      requiresAdmin: true
-    }
-  },
-  {
-    path: '/admin/work-centers/:workCenterNumber',
-    name: 'work-center-edit',
-    component: () => import('@/views/workCenters/WorkCenterEditView.vue'),
-    meta: {
-      title: 'Úprava pracoviště',
-      requiresAdmin: true
-    }
+    redirect: '/windows'
   },
 
   // Partners
@@ -60,43 +36,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/partners/PartnersView.vue'),
     meta: {
       title: 'Partneři'
-    }
-  },
-
-  // Quotes
-  {
-    path: '/quotes',
-    name: 'quotes-list',
-    component: () => import('@/views/quotes/QuotesListView.vue'),
-    meta: {
-      title: 'Nabídky'
-    }
-  },
-  {
-    path: '/quotes/new/from-request',
-    name: 'quote-new-from-request',
-    component: () => import('@/views/quotes/QuoteNewFromRequestView.vue'),
-    meta: {
-      title: 'Nová nabídka z poptávky (AI)'
-    }
-  },
-  {
-    path: '/quotes/:quoteNumber',
-    name: 'quote-detail',
-    component: () => import('@/views/quotes/QuoteDetailView.vue'),
-    meta: {
-      title: 'Detail nabídky'
-    }
-  },
-
-  // Admin
-  {
-    path: '/admin/master-data',
-    name: 'admin-master-data',
-    component: () => import('@/views/admin/MasterDataView.vue'),
-    meta: {
-      title: 'Kmenová data',
-      requiresAdmin: true
     }
   },
 
@@ -120,7 +59,7 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Catch-all 404 - redirect to dashboard
+  // Catch-all 404 - redirect to windows
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
@@ -162,34 +101,31 @@ router.beforeEach(async (to, from, next) => {
 
   // Check authentication
   if (!to.meta.public && !auth.isAuthenticated) {
-    console.log('[Router] Unauthenticated - redirecting to login')
     return next({
       name: 'login',
       query: { redirect: to.fullPath }
     })
   }
 
-  // Redirect to dashboard if already logged in and trying to access login
+  // Redirect to windows if already logged in and trying to access login
   if (to.name === 'login' && auth.isAuthenticated) {
     const redirectPath = to.query.redirect as string
     if (redirectPath) {
-      console.log(`[Router] Already authenticated - redirecting to ${redirectPath}`)
       return next(redirectPath)
     }
-    console.log('[Router] Already authenticated - redirecting to dashboard')
-    return next({ name: 'dashboard' })
+    return next({ name: 'windows' })
   }
 
   // Check admin access
   if (to.meta.requiresAdmin && !auth.isAdmin) {
-    console.warn('[Router] Admin access required - redirecting to dashboard')
-    return next({ name: 'dashboard' })
+    console.warn('[Router] Admin access required - redirecting to windows')
+    return next({ name: 'windows' })
   }
 
   // Check operator access
   if (to.meta.requiresOperator && !auth.isOperator) {
-    console.warn('[Router] Operator access required - redirecting to dashboard')
-    return next({ name: 'dashboard' })
+    console.warn('[Router] Operator access required - redirecting to windows')
+    return next({ name: 'windows' })
   }
 
   // Update document title

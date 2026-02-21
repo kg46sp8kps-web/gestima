@@ -34,18 +34,28 @@
 - Infor item → W.Nr extraction → MaterialNorm → MaterialGroup → Shape → PriceCategory
 - PriceCategory matching přes `shape` sloupec (ne keyword matching)
 - Chybějící PriceCategory = ERROR (import blokován, ne tichý fallback)
-- Seed data: 9 groups, 82 norms, 43 categories (se shape), 129 tiers, 315 cutting conditions (288+27 sawing)
+- Seed data: 10 groups, 118 norms (82 metal + 6 litina + 30 plastic), 51 categories (se shape), 153 tiers, 315 cutting conditions (288+27 sawing)
+- Non-metal parsing: `NON_METAL_PREFIX_HINTS` set v importer, `startswith` matching
+- Litina: GG/GGG prefix → MaterialGroup 'Litina' (code 20910009), 4 PriceCategories (KR, HR, DE, casting)
+- Plasty: materiálový kód = w_nr v MaterialNorm (POM-C, PA6, PEEK-GF30, PP-EL, PP-EL-S atd.)
 
 ## FILE MANAGER (ADR-044)
 
-- Phase 2a DONE: file_id FK na TimeVision, 68 FileRecords, 73 FileLinks, preview endpoint
-- Phase 2b PENDING: drawings_router, uploads_router, FileManagerModule UI
 - Preview: `/api/files/{id}/preview` (bez auth, PDF only) | Download: `/download` (s auth)
 - TimeVision PDF: vždy filename-based endpoint (pdf.js nemůže auth)
-- Migrace: `python scripts/migrate_timevision_files.py` | Spec: docs/ADR/044-file-manager.md
-- **PLÁN:** Manufacturing Item dostane file_id FK (primární výkres), TimeVision jen z Technologie (ne standalone)
+- **Infor Document Import AKTIVNÍ** — viz sekce níže
 - **HYBRID stav:** TimeVision má dual identity (pdf_filename + file_id), Drawing model nemá file_id vůbec
-- **CÍLOVÝ stav:** Všichni konzumenti jen file_id FK → FileRecord, Drawing model buď file_id FK nebo nahrazen FileLink
+- **CÍLOVÝ stav:** Všichni konzumenti jen file_id FK → FileRecord
+
+## INFOR DOCUMENT IMPORT
+
+- IDO: `SLDocumentObjects_Exts`, filter `DocumentType = 'Výkres-platný'`
+- Service: `infor_document_importer.py` (list → preview → execute)
+- **Matching:** word-boundary token (`[^a-zA-Z0-9]` separátory), longest match wins, exact > token
+- **Paralelní download:** `asyncio.Semaphore(10)`, batch commit po 100 řádcích
+- **Flow:** QueryPanel (generic IDO `/data` endpoint, limit=5000) → preview → execute
+- **Storage:** `file_service.store_from_bytes()` → `parts/{article_number}/` → FileLink(part, drawing)
+- Part.file_id FK updatován, PartDrawingWindow checkuje `file_id` first → `/api/files/{id}/preview`
 
 ## UI DESIGN SYSTEM v4.0 (2026-02-16)
 
@@ -66,6 +76,19 @@
 - **Batch:** preview 5000/batch, execute 2000/batch, `postWithRetry()` na 429
 - **UI:** Virtual scroll (60 visible rows), Set-based selection pro 210k+ řádků
 - **NEXT:** Import z VP (výrobních příkazů) — nový filtr, jiná logika
+
+## LIST PERFORMANCE PATTERN (ADR-049) — VŽDY TAKTO
+
+```
+Backend:  skip/limit=200, { items, total }, BEZ selectinload
+Store:    initialLoading + hasItems + hasMore + loaded guard (if loaded return)
+Panel:    TanStack Virtual (NIKDY DataTable pro >100 řádků)
+onMounted: if (!store.hasItems) await store.fetchItems()
+onUnmounted: reset filtry
+Spinner:  v-if="store.initialLoading" (NIKDY v-if="store.loading")
+Prefetch: přidat do usePrefetch.ts
+```
+Vzor: `PartListPanel.vue` + `parts.ts` | ADR: `docs/ADR/049-virtualized-list-performance.md`
 
 ## TECH DEBT
 

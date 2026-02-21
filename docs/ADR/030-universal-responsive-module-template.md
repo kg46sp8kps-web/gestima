@@ -1,622 +1,119 @@
 # ADR-030: Universal Responsive Module Template System
 
-**Status:** ✅ Accepted
+**Status:** Prijato
 **Date:** 2026-02-02
-**Deciders:** Roy + Claude (ŠÉFÍK mode)
-**Supersedes:** ADR-026 (Universal Module Pattern)
-**Related:** ADR-025 (Workspace Layout System), ADR-024 (Vue SPA Migration)
+**Nahrazuje:** ADR-026 (Universal Module Pattern)
+**Souvisi s:** ADR-025 (Workspace Layout System)
 
 ---
 
 ## Context
 
-GESTIMA frontend faces several architectural challenges:
-
-### Problems Identified
-
-1. **Code Duplication (L-033 violations)**
-   - Split-pane layout duplicated in 7 modules (~500 LOC)
-   - Resize handle logic duplicated 5 times
-   - Empty state styles duplicated 8 times
-   - Modal patterns duplicated 4+ times
-
-2. **Fat Components (L-036 violations)**
-   - PricingDetailPanel: 1,119 LOC 🔴
-   - MaterialDetailPanel: 969 LOC
-   - QuoteFromRequestPanel: 958 LOC
-   - PartnerDetailPanel: 807 LOC
-   - 7 components total > 500 LOC
-
-3. **Fixed Layouts (No Responsive Design)**
-   - PartDetailPanel: `grid-template-columns: repeat(3, 1fr)` - fixed 3 columns
-   - No container queries usage (only 3/40 components)
-   - Wasted space on ultrawide (3440px): ~80% unused
-   - Cramped on tablet (768px): buttons overflow
-
-4. **No User Customization**
-   - All users see identical layouts
-   - Cannot adapt to different workflows
-   - Power users limited by fixed UI
-
-5. **Inconsistent Patterns**
-   - Some modules use `useResizablePanel`, others custom
-   - Some use `usePartLayoutSettings`, others hardcoded
-   - 3 different resize implementations
-
-### Requirements
-
-Users need:
-- **Responsive design**: Tablet (768px) → Ultrawide (3440px)
-- **User customization**: Drag & drop widgets, save layouts
-- **Code reduction**: Eliminate duplication, L-036 compliance
-- **Universal template**: "Jednou pro vždy" - one template for all modules
-- **Future-proof**: Easy to add new modules without duplication
+Frontend mel 5 zavaznych problemu: (1) split-pane layout duplikovany v 7 modulech (~500 LOC), (2) 7 komponent > 500 LOC (L-036 violations), (3) pevne sloupce bez responzivniho layoutu, (4) zadna uzivatelska customizace, (5) 3 ruzne implementace resize logiky.
 
 ---
 
 ## Decision
 
-**Implement Universal Responsive Module Template System** with:
+Implementovat **Universal Responsive Module Template** na bazi widget systemu s gridstack.js.
 
-### 1. CustomizableModule Wrapper
-- Generic module coordinator (< 300 LOC)
-- Widget-based architecture (reusable building blocks)
-- User customization (drag, resize, add/remove widgets)
-- localStorage persistence (save custom layouts)
+### Komponenty systemu
 
-### 2. Widget System
-- **WidgetDefinition** type (id, type, component, size constraints)
-- **WidgetLayout** state (x, y, w, h grid positions)
-- **WidgetWrapper** chrome (drag handle, title, menu)
-- Dynamic component loading (lazy-load widgets)
+**1. CustomizableModule.vue** (< 300 LOC koordinator)
+- Widget-based architektura (stavebni bloky)
+- Drag & drop, resize, pridani/odebrání widgetu
+- localStorage persistence vlastnich layoutu
 
-### 3. SplitPane Extraction
-- Reusable `SplitPane.vue` component (replaces 7 duplicates)
-- `useResizeHandle.ts` composable (standardized resize logic)
-- Shared CSS (`_split-pane.css`)
-- Vertical/horizontal layout support
+**2. SplitPane.vue** — nahrazuje 7 duplikatu split-pane logiky
+- `useResizeHandle.ts` composable — standardizovana resize logika
+- Sdilene CSS `_split-pane.css`
 
-### 4. Responsive System
-- **Container queries** (NOT media queries!)
-- Breakpoints: 400px / 600px / 900px / 1200px
-- Responsive columns: 1-6 columns based on width
-- Max-width constraint (1600px on ultrawide)
+**3. Widget system**
+- `WidgetDefinition` — typ widgetu, size constraints, resizable/removable
+- `WidgetLayout` — pozice v gridu (x, y, w, h)
+- `WidgetWrapper.vue` — chrome (drag handle, titulek, menu)
+- Dynamicke nacitani komponent (lazy-load)
 
-### 5. Grid Layout Library
-- **gridstack.js** (MIT license, free for commercial use)
-- Enterprise-grade, battle-tested (8,700+ stars, used by Grafana, Kibana, etc.)
-- Framework-agnostic (Vue 3, React, Angular support)
-- Drag & drop, resize, responsive, nested grids built-in
-- TypeScript native with full type definitions
-
----
-
-## Architecture
-
-### Component Hierarchy
-
+**4. Responzivni breakpointy (container queries, NE media queries)**
 ```
-CustomizableModule.vue (< 300 LOC coordinator)
-├── Toolbar (Add Widget, Reset, Collapse)
-├── SplitPane.vue (optional left panel)
-│   ├── Left: ListPanel (collapsible)
-│   ├── ResizeHandle (drag to resize)
-│   └── Right: GridLayoutArea
-│       └── GridLayout (vue-grid-layout)
-│           ├── GridItem → WidgetWrapper → InfoCard.vue
-│           ├── GridItem → WidgetWrapper → ActionBar.vue
-│           ├── GridItem → WidgetWrapper → ChartWidget.vue
-│           └── GridItem → WidgetWrapper → FormWidget.vue
+< 400px  → 1 sloupec
+400-600  → 2 sloupce
+600-900  → 3 sloupce
+900-1200 → 4 sloupce
+> 1200   → 6 sloupcu  (max-width: 1600px na ultrawide)
 ```
+Container queries reagují na sirku kontejneru, ne viewportu — spravne chovani ve floating windows.
 
-### File Structure
+**5. gridstack.js** (MIT, 8700+ hvezd, Grafana/Kibana pouzivaji)
+- 30KB minified vcetne CSS
+- TypeScript native, Vue 3 support
+- Drag & drop, resize, nested grids
+
+**Update 2026-02-02:** GridStack nepodporuje vertical fill (fixed-height rows). Reseni: hybridni pristup — Flexbox pro vertikalni stackovani, GridStack pro horizontalni layouty. Viz `docs/guides/HYBRID-LAYOUT-SOLUTION.md`.
+
+### Struktura souboru
 
 ```
 frontend/src/
-├── components/
-│   ├── layout/
-│   │   ├── CustomizableModule.vue       # NEW: Universal wrapper
-│   │   ├── SplitPane.vue                # NEW: Extracted split-pane
-│   │   ├── GridLayoutArea.vue           # NEW: Grid wrapper
-│   │   └── ResizeHandle.vue             # NEW: Extracted handle
-│   │
-│   └── widgets/
-│       ├── WidgetWrapper.vue            # NEW: Widget chrome
-│       ├── InfoCard.vue                 # NEW: Info display
-│       ├── ActionBar.vue                # NEW: Action buttons
-│       ├── ChartWidget.vue              # NEW: Chart display
-│       └── FormWidget.vue               # NEW: Form input
-│
+├── components/layout/
+│   ├── CustomizableModule.vue
+│   ├── SplitPane.vue
+│   ├── GridLayoutArea.vue
+│   └── ResizeHandle.vue
+├── components/widgets/
+│   ├── WidgetWrapper.vue
+│   ├── InfoCard.vue
+│   ├── ActionBar.vue
+│   └── FormWidget.vue
 ├── composables/
-│   ├── useGridLayout.ts                 # NEW: Grid state mgmt
-│   ├── useResizeHandle.ts               # NEW: Resize logic
-│   └── useWidgetRegistry.ts             # NEW: Widget discovery
-│
+│   ├── useGridLayout.ts
+│   ├── useResizeHandle.ts
+│   └── useWidgetRegistry.ts
 ├── types/
-│   ├── widget.ts                        # NEW: Widget types
-│   └── layout.ts                        # NEW: Layout types
-│
+│   ├── widget.ts
+│   └── layout.ts
 └── assets/css/modules/
-    ├── _shared.css                      # NEW: Shared styles
-    ├── _split-pane.css                  # NEW: Split-pane styles
-    ├── _grid-layout.css                 # NEW: Grid styles
-    └── _widgets.css                     # NEW: Widget styles
+    ├── _split-pane.css
+    ├── _grid-layout.css
+    └── _widgets.css
 ```
 
-### TypeScript Types
+### Migracni plan (5 tyzdnu)
 
-```typescript
-// frontend/src/types/widget.ts
+| Tyden | Co |
+|-------|----|
+| 1 | Foundation: SplitPane, typy, composables |
+| 2 | Core: CustomizableModule, GridLayoutArea, WidgetWrapper |
+| 2-3 | Prvni migrace: PartDetailPanel (454 -> < 100 LOC) |
+| 3-4 | Fat components: PricingDetailPanel (1119), MaterialDetailPanel (969), QuoteFromRequestPanel (958) |
+| 5 | Zbyvajici moduly + testy + dokumentace |
 
-export type WidgetType =
-  | 'info-card'
-  | 'action-bar'
-  | 'form'
-  | 'chart'
-  | 'table'
-  | 'empty'
+---
 
-export interface WidgetDefinition {
-  id: string
-  type: WidgetType
-  title: string
-  component: string
-  minWidth: number
-  minHeight: number
-  defaultWidth: number
-  defaultHeight: number
-  resizable: boolean
-  removable: boolean
-  required: boolean
-}
+## Key Files
 
-export interface WidgetLayout {
-  i: string          // Widget ID
-  x: number          // Grid column (0-based)
-  y: number          // Grid row (0-based)
-  w: number          // Width in columns
-  h: number          // Height in rows
-  static?: boolean   // Cannot be moved/resized
-}
-
-export interface ModuleLayoutConfig {
-  moduleKey: string
-  cols: number
-  rowHeight: number
-  widgets: WidgetDefinition[]
-  defaultLayouts: {
-    compact: WidgetLayout[]
-    comfortable: WidgetLayout[]
-  }
-}
-```
-
-### Responsive Breakpoints
-
-Using **container queries** for true component-level responsiveness:
-
-```css
-/* Container queries - NOT media queries! */
-.grid-layout-area {
-  container-type: inline-size;
-  container-name: grid-area;
-}
-
-/* Narrow: 1 column (< 400px) */
-@container grid-area (max-width: 400px) {
-  .grid-layout { --grid-cols: 1; }
-}
-
-/* Tablet: 2 columns (400-600px) */
-@container grid-area (min-width: 400px) and (max-width: 600px) {
-  .grid-layout { --grid-cols: 2; }
-}
-
-/* Desktop: 3 columns (600-900px) */
-@container grid-area (min-width: 600px) and (max-width: 900px) {
-  .grid-layout { --grid-cols: 3; }
-}
-
-/* Wide: 4 columns (900-1200px) */
-@container grid-area (min-width: 900px) and (max-width: 1200px) {
-  .grid-layout { --grid-cols: 4; }
-}
-
-/* Ultrawide: 6 columns (>1200px) */
-@container grid-area (min-width: 1200px) {
-  .grid-layout {
-    --grid-cols: 6;
-    max-width: 1600px; /* Prevent excessive stretching */
-  }
-}
-```
+- `frontend/src/components/layout/CustomizableModule.vue`
+- `frontend/src/components/layout/SplitPane.vue`
+- `frontend/src/composables/useResizeHandle.ts`
+- `frontend/src/types/widget.ts`
+- `docs/guides/HYBRID-LAYOUT-SOLUTION.md`
+- `docs/guides/CUSTOMIZABLE-MODULE-GUIDE.md`
 
 ---
 
 ## Consequences
 
-### Positive ✅
-
-1. **Massive Code Reduction**
-   - 2,500+ LOC eliminated (17% of frontend codebase)
-   - Zero CSS duplication (L-033 resolved)
-   - All panels < 300 LOC (L-036 compliant)
-
-2. **Universal Pattern**
-   - One template for ALL future modules
-   - Copy-paste config, no custom layout code
-   - "Jednou pro vždy" achieved
-
-3. **Responsive Design**
-   - Tablet (768px) → Ultrawide (3440px) support
-   - Container queries (component-level responsive)
-   - No wasted space on wide screens
-
-4. **User Customization**
-   - Drag & drop widgets
-   - Resize individual widgets
-   - Save/load custom layouts
-   - Export/import layouts (JSON)
-   - Power user productivity boost
-
-5. **Maintainability**
-   - Widget-based architecture (L-039 building blocks)
-   - Centralized layout logic
-   - Easy to add new widgets
-   - TypeScript type safety
-
-6. **Performance**
-   - Grid layout hardware-accelerated
-   - Lazy-load widgets (code splitting)
-   - localStorage caching (instant restore)
-
-### Negative ❌
-
-1. **Bundle Size Impact**
-   - +30KB for gridstack.js (minified + CSS)
-   - +5KB for new components
-   - Total: +35KB (~7% increase)
-   - **Mitigation:** Lazy-load grid library via dynamic import, tree-shake unused widgets
-   - **Trade-off:** Enterprise-grade reliability (8.7k⭐) worth the extra 12KB
-
-2. **Migration Effort**
-   - 5 weeks implementation timeline
-   - 10 modules to migrate
-   - 7 fat components to split
-   - **Mitigation:** Phased rollout, backward compatibility
-
-3. **Learning Curve**
-   - New widget system to learn
-   - Container queries (new CSS feature)
-   - Grid layout API
-   - **Mitigation:** Comprehensive documentation, examples
-
-4. **Complexity Increase**
-   - More abstractions (modules → widgets)
-   - Dynamic component loading
-   - Layout state management
-   - **Mitigation:** Clear TypeScript types, composables
-
-### Mitigations
-
-- **Bundle size:** Lazy-load, code splitting, tree-shaking
-- **Migration:** Phased rollout (1 module per week), backward compatibility
-- **Learning:** Complete documentation, migration examples, video tutorial
-- **Complexity:** TypeScript types, composables, clear naming
+- 2500+ LOC eliminovano (17 % frontendu), vsechny panely < 300 LOC (L-036)
+- Jedna sablona pro vsechny budouci moduly — zadna duplikace
+- Responzivni layout pro tablet (768px) az ultrawide (3440px)
+- Uzivatelska customizace: drag, resize, ulozeni layoutu
+- +35KB bundle (gridstack.js) — lazy-load mitiguje dopad
+- 5 tyzdnu migracniho usili, ucici krivka pro widget API
 
 ---
 
-## Alternatives Considered
-
-### Alternative 1: CSS Grid auto-fit Only
-
-**Approach:**
-```css
-.actions-grid {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-}
-```
-
-**Pros:**
-- ✅ Simple (1 line CSS)
-- ✅ No dependencies
-- ✅ Automatic responsive
-
-**Cons:**
-- ❌ No user customization
-- ❌ Less control over layout
-- ❌ Doesn't eliminate duplication
-- ❌ Doesn't solve L-036 (fat components)
-
-**Rejected because:** Solves only responsive, not duplication or customization.
-
----
-
-### Alternative 2: Pure Container Queries (No Widgets)
-
-**Approach:**
-```css
-/* Container queries for all modules */
-@container module (min-width: 600px) {
-  .content { grid-template-columns: repeat(3, 1fr); }
-}
-```
-
-**Pros:**
-- ✅ Native CSS (no library)
-- ✅ Responsive design
-- ✅ Modern approach
-
-**Cons:**
-- ❌ No user customization
-- ❌ Doesn't eliminate duplication (still 7 split-pane implementations)
-- ❌ Doesn't solve L-036 (fat components)
-- ❌ Still need to extract SplitPane
-
-**Rejected because:** Only solves responsive, not root problems (duplication, L-036).
-
----
-
-### Alternative 3: Custom Grid System (No Library)
-
-**Approach:**
-- Build custom drag & drop grid from scratch
-- Use Vue Draggable + custom layout logic
-
-**Pros:**
-- ✅ Full control
-- ✅ No dependencies
-- ✅ Tailored to GESTIMA needs
-
-**Cons:**
-- ❌ 3-4 weeks development time for grid alone
-- ❌ Bug-prone (drag & drop is complex)
-- ❌ Need to maintain custom grid library
-- ❌ Reinventing the wheel (vue-grid-layout already battle-tested)
-
-**Rejected because:** Not pragmatic. vue-grid-layout is MIT-licensed, mature, well-tested. Building custom would take 3-4 weeks just for grid logic.
-
----
-
-## Implementation Timeline
-
-### Phase 1: Foundation (Week 1) - **IN PROGRESS**
-
-**Deliverables:**
-- [x] ADR-030 (this document)
-- [ ] docs/guides/CUSTOMIZABLE-MODULE-GUIDE.md
-- [ ] TypeScript types (widget.ts, layout.ts)
-- [ ] SplitPane.vue component
-- [ ] useResizeHandle.ts composable
-- [ ] Shared CSS (_split-pane.css)
-
-**Success Criteria:**
-- SplitPane replaces 4 module duplicates
-- 500+ LOC eliminated
-- All tests passing
-
----
-
-### Phase 2: Core Components (Week 2)
-
-**Deliverables:**
-- [ ] CustomizableModule.vue
-- [ ] GridLayoutArea.vue
-- [ ] WidgetWrapper.vue
-- [ ] useGridLayout.ts composable
-- [ ] useWidgetRegistry.ts composable
-- [ ] Example widgets (InfoCard, ActionBar)
-- [ ] Shared CSS (_grid-layout.css, _widgets.css)
-
-**Success Criteria:**
-- CustomizableModule fully functional
-- Widget system working (add/remove/drag/resize)
-- localStorage persistence works
-
----
-
-### Phase 3: First Migration (Week 2-3)
-
-**Target:** PartDetailPanel (454 LOC) → Widget-based (< 100 LOC)
-
-**Deliverables:**
-- [ ] PartInfoCard.vue widget
-- [ ] PartActionsBar.vue widget
-- [ ] part-detail.ts layout config
-- [ ] Migrate PartDetailPanel to use CustomizableModule
-
-**Success Criteria:**
-- PartDetailPanel LOC: 454 → < 100 (78% reduction)
-- All existing tests passing
-- No regression in functionality
-- Layout customizable (drag/resize works)
-
----
-
-### Phase 4: Fat Component Splitting (Week 3-4)
-
-**Targets:**
-1. PricingDetailPanel (1,119 LOC) → 3-4 tab widgets
-2. MaterialDetailPanel (969 LOC) → 3 widgets
-3. QuoteFromRequestPanel (958 LOC) → 4 section widgets
-
-**Deliverables:**
-- [ ] 10+ new widget components (200-300 LOC each)
-- [ ] Tab-based layout configs
-- [ ] Migrate 3 fat components
-
-**Success Criteria:**
-- All panels < 300 LOC (L-036 compliant)
-- 3,000+ LOC split into widgets
-- Each widget independently testable
-
----
-
-### Phase 5: Remaining Migrations (Week 5)
-
-**Targets:**
-- QuotesListModule
-- PartnersListModule
-- PartOperationsModule
-- PartMaterialModule
-- PartPricingModule
-
-**Deliverables:**
-- [ ] 5 modules migrated to CustomizableModule
-- [ ] 10+ additional widgets
-
-**Success Criteria:**
-- 10/10 modules using CustomizableModule
-- Zero CSS duplication across codebase
-- All tests passing
-
----
-
-### Phase 6: Testing & Documentation (Week 5)
-
-**Deliverables:**
-- [ ] Unit tests (90% coverage)
-- [ ] Integration tests (critical paths)
-- [ ] Visual regression tests (Playwright)
-- [ ] Migration checklist (per-window guide)
-- [ ] Video tutorial (15 min walkthrough)
-
-**Success Criteria:**
-- All tests passing (no regressions)
-- Documentation complete
-- Team trained on widget system
-
----
-
-## Verification & Metrics
-
-### Code Metrics
-
-```bash
-# LOC Reduction
-find frontend/src/components/modules -name "*.vue" -exec wc -l {} + | tail -1
-# Target: 14,500 → 12,000 LOC (2,500 LOC reduction)
-
-# CSS Duplication
-grep -r "\.split-layout" frontend/src/components/modules/ | wc -l
-# Target: 0 (all using SplitPane)
-
-# L-036 Compliance
-find frontend/src/components/modules -name "*Panel.vue" -exec wc -l {} + | awk '$1 > 300'
-# Target: 0 results (all panels < 300 LOC)
-```
-
-### Performance Metrics
-
-| Metric | Before | After | Target |
-|--------|--------|-------|--------|
-| Bundle size | 450KB | 473KB | < 500KB ✅ |
-| Initial load | 850ms | 870ms | < 1000ms ✅ |
-| Widget render | N/A | 2-3ms | < 5ms ✅ |
-| Layout save | N/A | 1ms | < 10ms ✅ |
-
-### Responsive Testing
-
-| Viewport | Columns | Behavior | Status |
-|----------|---------|----------|--------|
-| 320px | 1 | Vertical scroll | ✅ |
-| 768px | 2 | Tablet layout | ✅ |
-| 1920px | 4 | Desktop layout | ✅ |
-| 3440px | 6 | Ultrawide (max 1600px) | ✅ |
-
----
-
-## References
-
-- **Implementation Guide:** [docs/guides/CUSTOMIZABLE-MODULE-GUIDE.md](../guides/CUSTOMIZABLE-MODULE-GUIDE.md)
-- **Migration Checklist:** [docs/guides/MIGRATION-CHECKLIST.md](../guides/MIGRATION-CHECKLIST.md)
-- **Widget API:** [docs/reference/WIDGET-API.md](../reference/WIDGET-API.md)
-- **Related ADR:** [ADR-025: Workspace Layout System](025-workspace-layout-system.md)
-- **Related ADR:** [ADR-026: Universal Module Pattern](026-universal-module-pattern.md)
-- **Library:** [gridstack.js](https://github.com/gridstack/gridstack.js) (MIT License, 8.7k⭐)
-
----
-
-## Notes
-
-### Why Container Queries Over Media Queries?
-
-**Media queries:** React to viewport size
-```css
-@media (max-width: 768px) {
-  /* Breaks at viewport 768px */
-  /* Problem: Panel might be 400px wide in a 1920px viewport! */
-}
-```
-
-**Container queries:** React to CONTAINER size
-```css
-@container grid-area (max-width: 600px) {
-  /* Breaks when grid-area is 600px */
-  /* Works regardless of viewport size! */
-}
-```
-
-**Result:** True component-level responsiveness. A panel at 400px width gets mobile layout, even on 3440px ultrawide monitor.
-
----
-
-### Why gridstack.js Instead of Custom?
-
-**Custom implementation:**
-- 3-4 weeks development
-- 500-800 LOC for drag & drop logic
-- Bug-prone (collision detection, snap, etc.)
-- Need to maintain forever
-
-**gridstack.js:**
-- MIT license (free, commercial use OK)
-- **8,700+ stars** (enterprise-proven, used by Grafana, Kibana, etc.)
-- 30KB minified (includes CSS)
-- **Framework-agnostic** (works with Vue 2, Vue 3, React, Angular)
-- TypeScript native with full type definitions
-- Active maintenance (11+ years, latest release Dec 2025)
-- Zero bugs (already solved)
-
-**ROI:** Saves 3-4 weeks development time + gets enterprise-grade reliability. 30KB bundle cost is acceptable for 2,500 LOC savings + long-term maintainability.
-
----
-
-### User Customization: Optional or Required?
-
-**Decision:** **Optional** (opt-in via settings)
-
-**Rationale:**
-- Normal users don't need customization (default layout is good)
-- Power users want it (productivity boost)
-- Opt-in reduces complexity for beginners
-
-**Implementation:**
-```typescript
-// Settings → Advanced → Enable layout customization
-const settings = useSettingsStore()
-
-if (settings.advancedCustomization) {
-  // Show "Edit Layout" button, drag handles, etc.
-}
-```
-
-**Future:** v2.0 could make it default if user adoption is high.
-
----
-
----
-
-## Update: Hybrid Layout Solution (2026-02-02)
-
-**Problem Discovered:** GridStack.js does NOT support vertical fill behavior (fixed-height rows only).
-
-**Solution:** Hybrid approach - use Flexbox for vertical stacking, GridStack for horizontal layouts.
-
-**See:** [docs/guides/HYBRID-LAYOUT-SOLUTION.md](../guides/HYBRID-LAYOUT-SOLUTION.md) for simple implementation guide.
-
----
-
-**Version:** 1.1
-**Last Updated:** 2026-02-02
-**Status:** ✅ Accepted - Implementation in progress
+## Alternatives Rejected
+
+- **CSS Grid auto-fit only** — resi jen responzivitu, ne duplikaci ani L-036
+- **Pure container queries bez widgetu** — resi jen responzivitu
+- **Custom grid system** — 3-4 tyzdny vyvoje jen grid logiky, reinventing the wheel

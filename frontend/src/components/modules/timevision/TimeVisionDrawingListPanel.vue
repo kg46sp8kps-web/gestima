@@ -74,7 +74,11 @@ function clearFilters() {
 }
 
 onMounted(() => document.addEventListener('click', handleClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+  clearFilters()
+  openDropdown.value = null
+})
 
 /** Model filter key based on which model versions a drawing has */
 function getModelKeys(drawing: typeof store.drawings[0]): string[] {
@@ -529,17 +533,5 @@ function getStatusLabel(status: string | null): string {
   background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
   border-color: var(--color-brand, #991b1b);
   color: var(--color-brand, #991b1b);
-}
-.spinner {
-  animation: spin 1s linear infinite;
-  color: var(--color-primary);
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.empty-state {
-  padding: var(--space-8);
-  text-align: center;
-  color: var(--text-muted);
 }
 </style>

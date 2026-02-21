@@ -114,7 +114,7 @@ def get_infor_client() -> InforAPIClient:
     )
 
 
-@router.get("/test-connection")
+@router.get("/test-connection", response_model=dict)
 async def test_connection(
     client: InforAPIClient = Depends(get_infor_client),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
@@ -157,7 +157,7 @@ async def test_connection(
         }
 
 
-@router.get("/discover-idos")
+@router.get("/discover-idos", response_model=dict)
 async def discover_idos(
     custom_names: Optional[str] = None,
     client: InforAPIClient = Depends(get_infor_client),
@@ -199,7 +199,7 @@ async def discover_idos(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/ido/{ido_name}/info")
+@router.get("/ido/{ido_name}/info", response_model=dict)
 async def get_ido_info(
     ido_name: str,
     client: InforAPIClient = Depends(get_infor_client),
@@ -227,7 +227,7 @@ async def get_ido_info(
         raise HTTPException(status_code=404, detail=f"IDO '{ido_name}' not found or error: {str(e)}")
 
 
-@router.get("/ido/{ido_name}/data")
+@router.get("/ido/{ido_name}/data", response_model=dict)
 async def get_ido_data(
     ido_name: str,
     properties: str,
@@ -304,7 +304,7 @@ async def get_ido_data(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/items")
+@router.get("/items", response_model=dict)
 async def get_items(
     item: Optional[str] = None,
     limit: int = 100,
@@ -443,7 +443,7 @@ async def preview_material_import(
         raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
 
 
-@router.post("/import/materials/test-pattern")
+@router.post("/import/materials/test-pattern", response_model=dict)
 async def test_material_pattern(
     data: dict,
     db: AsyncSession = Depends(get_db),
@@ -794,7 +794,7 @@ async def apply_purchase_prices(
     )
 
 
-@router.post("/purchase-prices/refresh")
+@router.post("/purchase-prices/refresh", response_model=dict)
 async def refresh_purchase_price_cache(
     year_from: int = Query(default=2024, ge=2000, le=2100),
     current_user: User = Depends(require_role([UserRole.ADMIN])),

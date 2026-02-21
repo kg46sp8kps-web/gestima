@@ -1,27 +1,62 @@
 <script setup lang="ts">
 /**
  * Production History Panel - Collapsible panel for displaying production records
- * Can be used standalone or embedded in OperationsRightPanel
+ *
+ * Filtering by work_center_type (machine type): when user clicks an operation
+ * in technology, all production records with same machine type are shown,
+ * aggregated per Job (sum of times across matching operations in each VP).
+ *
+ * All per-piece times are pre-computed in backend — NO calculations here.
  */
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ChevronRight, ChevronDown, Plus, Info } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
-import type { ProductionRecord, ProductionSummary } from '@/types/productionRecord'
+import type { ProductionRecord } from '@/types/productionRecord'
 import {
   getProductionRecords,
-  getProductionSummary,
   createProductionRecord,
   deleteProductionRecord
 } from '@/api/productionRecords'
 import ProductionRecordsTable from './ProductionRecordsTable.vue'
 import ProductionRecordForm from './ProductionRecordForm.vue'
 
+/** Human-readable labels for work center types */
+const WC_TYPE_LABELS: Record<string, string> = {
+  CNC_LATHE: 'Soustruhy',
+  CNC_MILL_3AX: 'Frézy 3ax',
+  CNC_MILL_4AX: 'Frézy 4ax',
+  CNC_MILL_5AX: 'Frézy 5ax',
+  SAW: 'Pily',
+  DRILL: 'Vrtačky',
+  QUALITY_CONTROL: 'Kontrola',
+  MANUAL_ASSEMBLY: 'Montáž',
+  EXTERNAL: 'Kooperace',
+}
+
+/** Group mill types together for filtering */
+const MILL_TYPES = new Set(['CNC_MILL_3AX', 'CNC_MILL_4AX', 'CNC_MILL_5AX'])
+
+function isSameMachineGroup(wcType: string | null, filterType: string): boolean {
+  if (!wcType) return false
+  if (wcType === filterType) return true
+  // Group all mill types together
+  if (MILL_TYPES.has(wcType) && MILL_TYPES.has(filterType)) return true
+  return false
+}
+
+function getFilterLabel(wcType: string): string {
+  if (MILL_TYPES.has(wcType)) return 'Frézy'
+  return WC_TYPE_LABELS[wcType] ?? wcType
+}
+
 interface Props {
   partId: number | null
+  workCenterType?: string | null
   collapsed?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  workCenterType: null,
   collapsed: true
 })
 
@@ -31,20 +66,89 @@ const emit = defineEmits<{
 
 const isCollapsed = ref(props.collapsed)
 const records = ref<ProductionRecord[]>([])
-const summary = ref<ProductionSummary | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const showAddForm = ref(false)
 
+/** Filtered records by work_center_type (machine group) */
+const filteredRecords = computed(() => {
+  if (!props.workCenterType) return records.value
+  return records.value.filter(r => isSameMachineGroup(r.work_center_type, props.workCenterType!))
+})
+
+/** Helper: average of non-null numbers */
+function avg(nums: (number | null | undefined)[]): number | null {
+  const valid = nums.filter((v): v is number => v != null)
+  return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null
+}
+
+/** Summary computed from filtered records
+ * In machine-type mode: aggregates SUM of times per job, then averages across jobs
+ * In default mode: simple average across all records
+ */
+const summary = computed(() => {
+  const recs = filteredRecords.value
+  if (recs.length === 0) return null
+
+  // Group by infor_order_number to get unique jobs
+  const jobMap = new Map<string, { batchQty: number; sumActual: number; sumPlanned: number; sumSetupActual: number; sumSetupPlanned: number; manningValues: number[]; count: number }>()
+
+  for (const r of recs) {
+    const key = r.infor_order_number ?? `manual_${r.id}`
+    if (!jobMap.has(key)) {
+      jobMap.set(key, { batchQty: r.batch_quantity ?? 0, sumActual: 0, sumPlanned: 0, sumSetupActual: 0, sumSetupPlanned: 0, manningValues: [], count: 0 })
+    }
+    const job = jobMap.get(key)!
+    if (r.actual_time_min != null) job.sumActual += r.actual_time_min
+    if (r.planned_time_min != null) job.sumPlanned += r.planned_time_min
+    if (r.actual_setup_min != null) job.sumSetupActual += r.actual_setup_min
+    if (r.planned_setup_min != null) job.sumSetupPlanned += r.planned_setup_min
+    if (r.actual_manning_coefficient != null) job.manningValues.push(r.actual_manning_coefficient)
+    job.count++
+  }
+
+  const jobs = Array.from(jobMap.values())
+  const totalPieces = jobs.reduce((a, j) => a + j.batchQty, 0)
+
+  // For machine-type mode: use per-job sums for avg/min/max
+  const jobActualSums = jobs.filter(j => j.count > 0).map(j => j.sumActual)
+  const jobPlannedSums = jobs.filter(j => j.count > 0).map(j => j.sumPlanned)
+  const jobSetupActualSums = jobs.filter(j => j.count > 0).map(j => j.sumSetupActual)
+  const jobSetupPlannedSums = jobs.filter(j => j.count > 0).map(j => j.sumSetupPlanned)
+
+  // Manning: average across all records (not per-job — it's a coefficient, not time)
+  const allManningValues = jobs.flatMap(j => j.manningValues)
+
+  return {
+    total_records: recs.length,
+    total_jobs: jobMap.size,
+    avg_actual_time_min: jobActualSums.length > 0 ? jobActualSums.reduce((a, b) => a + b, 0) / jobActualSums.length : null,
+    min_actual_time_min: jobActualSums.length > 0 ? Math.min(...jobActualSums) : null,
+    max_actual_time_min: jobActualSums.length > 0 ? Math.max(...jobActualSums) : null,
+    total_pieces: totalPieces,
+    avg_planned_time_min: jobPlannedSums.length > 0 ? jobPlannedSums.reduce((a, b) => a + b, 0) / jobPlannedSums.length : null,
+    avg_setup_planned: jobSetupPlannedSums.length > 0 ? jobSetupPlannedSums.reduce((a, b) => a + b, 0) / jobSetupPlannedSums.length : null,
+    avg_setup_actual: jobSetupActualSums.length > 0 ? jobSetupActualSums.reduce((a, b) => a + b, 0) / jobSetupActualSums.length : null,
+    avg_manning: allManningValues.length > 0 ? allManningValues.reduce((a, b) => a + b, 0) / allManningValues.length : null,
+  }
+})
+
 watch(() => props.partId, async (newPartId) => {
-  if (newPartId && !isCollapsed.value) {
+  // Reset stale data immediately on part switch
+  records.value = []
+  error.value = null
+  showAddForm.value = false
+
+  // Always load records (summary in header needs data even when collapsed)
+  if (newPartId) {
     await loadRecords()
   }
 }, { immediate: true })
 
 watch(isCollapsed, async (collapsed) => {
   emit('update:collapsed', collapsed)
-  if (!collapsed && props.partId) {
+  // Re-fetch on expand only if no records loaded yet (e.g. initial mount)
+  if (!collapsed && props.partId && records.value.length === 0) {
     await loadRecords()
   }
 })
@@ -56,12 +160,7 @@ async function loadRecords() {
   error.value = null
 
   try {
-    const [recordsData, summaryData] = await Promise.all([
-      getProductionRecords(props.partId),
-      getProductionSummary(props.partId)
-    ])
-    records.value = recordsData
-    summary.value = summaryData
+    records.value = await getProductionRecords(props.partId)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Nepodařilo se načíst výrobní záznamy'
   } finally {
@@ -77,7 +176,7 @@ function toggleAddForm() {
   showAddForm.value = !showAddForm.value
 }
 
-async function handleAddRecord(record: any) {
+async function handleAddRecord(record: Partial<ProductionRecord>) {
   if (!props.partId) return
 
   loading.value = true
@@ -128,7 +227,31 @@ async function handleDeleteRecord(id: number) {
       <div class="header-title">
         <component :is="isCollapsed ? ChevronRight : ChevronDown" :size="ICON_SIZE.SMALL" class="chevron" />
         <span class="title-text">Výrobní historie</span>
-        <span v-if="summary" class="record-badge">{{ summary.total_records }}</span>
+        <span v-if="workCenterType" class="filter-badge">{{ getFilterLabel(workCenterType) }}</span>
+        <span v-if="summary" class="record-badge">{{ summary.total_jobs }}</span>
+        <!-- Collapsed summary -->
+        <span v-if="isCollapsed && summary" class="collapsed-summary">
+          <!-- Machine-type filtered mode: show per-job sum averages -->
+          <template v-if="workCenterType">
+            <span class="cs-label">Ø Σ pl</span>
+            <span class="cs-item">{{ summary.avg_planned_time_min?.toFixed(2) ?? '—' }}</span>
+            <span class="cs-sep">|</span>
+            <span class="cs-label">Ø Σ re</span>
+            <span class="cs-item highlight">{{ summary.avg_actual_time_min?.toFixed(2) ?? '—' }}</span>
+            <span class="cs-sep">|</span>
+            <span class="cs-label">Man</span>
+            <span class="cs-item">{{ summary.avg_manning != null ? summary.avg_manning.toFixed(0) + '%' : '—' }}</span>
+            <span class="cs-sep">|</span>
+            <span class="cs-item">{{ summary.total_jobs }} VP</span>
+          </template>
+          <!-- Default: compact summary -->
+          <template v-else>
+            <span class="cs-label">Ø</span>
+            <span class="cs-item">{{ summary.avg_actual_time_min?.toFixed(2) ?? '—' }}</span>
+            <span class="cs-sep">|</span>
+            <span class="cs-item">{{ summary.total_pieces }} ks</span>
+          </template>
+        </span>
       </div>
     </div>
 
@@ -140,33 +263,42 @@ async function handleDeleteRecord(id: number) {
 
       <div v-if="error" class="error-bar">{{ error }}</div>
 
-      <div v-if="!loading && summary && summary.total_records > 0" class="summary-ribbon">
+      <div v-if="!loading && summary" class="summary-ribbon">
         <div class="summary-item">
-          <span class="summary-label">Ø čas:</span>
-          <span class="summary-value">{{ summary.avg_actual_time_min?.toFixed(1) ?? '—' }} min</span>
+          <span class="summary-label">Ø stroj:</span>
+          <span class="summary-value">{{ summary.avg_actual_time_min?.toFixed(2) ?? '—' }} min</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Min:</span>
-          <span class="summary-value">{{ summary.min_actual_time_min?.toFixed(1) ?? '—' }}</span>
+          <span class="summary-value">{{ summary.min_actual_time_min?.toFixed(2) ?? '—' }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Max:</span>
-          <span class="summary-value">{{ summary.max_actual_time_min?.toFixed(1) ?? '—' }}</span>
+          <span class="summary-value">{{ summary.max_actual_time_min?.toFixed(2) ?? '—' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Manning:</span>
+          <span class="summary-value">{{ summary.avg_manning != null ? summary.avg_manning.toFixed(0) + '%' : '—' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Dávky:</span>
+          <span class="summary-value">{{ summary.total_jobs }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Celkem:</span>
-          <span class="summary-value">{{ summary.total_pieces_produced }} ks</span>
+          <span class="summary-value">{{ summary.total_pieces }} ks</span>
         </div>
       </div>
 
-      <div v-if="!loading && records.length === 0 && !showAddForm" class="empty-state">
+      <div v-if="!loading && filteredRecords.length === 0 && !showAddForm" class="empty-state">
         <Info :size="ICON_SIZE.LARGE" class="empty-icon" />
         <p>Žádné výrobní záznamy</p>
       </div>
 
       <ProductionRecordsTable
-        v-if="!loading && records.length > 0"
-        :records="records"
+        v-if="!loading && filteredRecords.length > 0"
+        :records="filteredRecords"
+        :machineTypeFilter="!!workCenterType"
         @delete="handleDeleteRecord"
       />
 
@@ -186,18 +318,19 @@ async function handleDeleteRecord(id: number) {
 
 <style scoped>
 .production-panel {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
   background: var(--bg-surface);
-  margin-bottom: var(--space-3);
 }
 .panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   user-select: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--bg-surface);
 }
 .panel-header:hover { background: var(--bg-raised); }
 .header-title {
@@ -208,7 +341,15 @@ async function handleDeleteRecord(id: number) {
   font-weight: 600;
   color: var(--text-primary);
 }
-.chevron { transition: transform 0.2s; }
+.chevron { transition: transform 0.2s; color: var(--text-tertiary); }
+.filter-badge {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  padding: 0 var(--space-1);
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius-sm);
+}
 .record-badge {
   display: inline-flex;
   align-items: center;
@@ -223,65 +364,26 @@ async function handleDeleteRecord(id: number) {
   font-weight: 600;
   color: var(--text-secondary);
 }
-.panel-content { padding: 0 var(--space-3) var(--space-3); }
-.loading-state {
+.collapsed-summary {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  gap: var(--space-1);
+  margin-left: auto;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
 }
-.loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--color-brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.error-bar {
-  padding: var(--space-2) var(--space-3);
-  background: rgba(153, 27, 27, 0.1);
-  color: var(--color-brand);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-3);
-}
-.summary-ribbon {
-  display: flex;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-3);
-}
+.cs-label { color: var(--text-tertiary); font-weight: 500; font-family: inherit; }
+.cs-item.highlight { color: var(--text-primary); font-weight: 700; }
+.cs-sep { color: var(--text-tertiary); }
+.panel-content { padding: 0 var(--space-3) var(--space-3); }
+.error-bar { padding: var(--space-2) var(--space-3); background: rgba(153, 27, 27, 0.1); color: var(--color-brand); border-radius: var(--radius-sm); font-size: var(--text-sm); margin-bottom: var(--space-3); }
+.summary-ribbon { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-2) var(--space-3); background: var(--bg-raised); border-radius: var(--radius-sm); margin-bottom: var(--space-3); }
 .summary-item { display: flex; gap: var(--space-1); font-size: var(--text-xs); }
 .summary-label { color: var(--text-tertiary); }
-.summary-value { font-weight: 600; color: var(--text-primary); font-family: 'Space Mono', monospace; }
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-6);
-  color: var(--text-tertiary);
-}
+.summary-value { font-weight: 600; color: var(--text-primary); font-family: var(--font-mono, monospace); }
 .empty-icon { opacity: 0.5; }
-.btn-add {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  color: var(--text-primary);
-  width: 100%;
-  justify-content: center;
-}
+.btn-add { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-md); font-size: var(--text-sm); cursor: pointer; color: var(--text-primary); width: 100%; justify-content: center; }
 .btn-add:hover { border-color: var(--color-brand); color: var(--color-brand); }
 </style>

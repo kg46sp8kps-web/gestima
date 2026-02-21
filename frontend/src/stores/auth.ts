@@ -54,10 +54,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Fetch full user info after successful login
       await fetchCurrentUser()
-
-      console.log(`[Auth] User logged in: ${response.username}`)
-    } catch (err: any) {
-      error.value = err.message || 'Login failed'
+    } catch (err: unknown) {
+      error.value = (err as Error).message || 'Login failed'
       throw err
     } finally {
       loading.value = false
@@ -71,7 +69,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.logout()
       user.value = null
-      console.log('[Auth] User logged out')
     } catch (err) {
       console.error('[Auth] Logout error:', err)
       // Force logout even if API call fails
@@ -86,7 +83,6 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchCurrentUser(): Promise<void> {
     try {
       user.value = await authApi.me()
-      console.log(`[Auth] Current user: ${user.value.username}`)
     } catch (err) {
       console.warn('[Auth] Not authenticated')
       user.value = null

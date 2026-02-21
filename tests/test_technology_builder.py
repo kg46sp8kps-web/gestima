@@ -185,5 +185,72 @@ class TestTechnologyPlan:
         assert "Materiál nezadán" in plan.warnings
 
 
+class TestCreateEstimationFromVisionResult:
+    """Test create_estimation_from_vision_result helper function."""
+
+    def test_basic_creation(self):
+        """Test basic estimation creation with default values."""
+        from app.services.technology_builder import create_estimation_from_vision_result
+        
+        est = create_estimation_from_vision_result(
+            part_id=1,
+            pdf_filename="test.pdf",
+            pdf_path="uploads/test.pdf",
+        )
+        assert est.part_id == 1
+        assert est.pdf_filename == "test.pdf"
+        assert est.pdf_path == "uploads/test.pdf"
+        assert est.part_type == "PRI"  # default
+        assert est.complexity == "medium"  # default
+        assert est.estimated_time_min == 30.0  # default
+        assert est.status == "estimated"
+        assert est.estimation_type == "time_v1"
+        assert est.ai_provider == "quote_estimate"  # source becomes ai_provider
+        assert est.created_by == "system"  # default username
+
+    def test_custom_values(self):
+        """Test estimation creation with custom values."""
+        from app.services.technology_builder import create_estimation_from_vision_result
+        
+        est = create_estimation_from_vision_result(
+            part_id=42,
+            pdf_filename="drawing_90057637.pdf",
+            pdf_path="uploads/parts/10001234/drawing_90057637.pdf",
+            part_type="ROT",
+            complexity="complex",
+            estimated_time_min=120.5,
+            max_diameter_mm=50.0,
+            max_length_mm=200.0,
+            file_id=99,
+            source="ai_vision",
+            username="admin",
+        )
+        assert est.part_id == 42
+        assert est.part_type == "ROT"
+        assert est.complexity == "complex"
+        assert est.estimated_time_min == 120.5
+        assert est.max_diameter_mm == 50.0
+        assert est.max_length_mm == 200.0
+        assert est.file_id == 99
+        assert est.ai_provider == "ai_vision"
+        assert est.ai_model == "ai_vision"
+        assert est.created_by == "admin"
+        assert est.updated_by == "admin"
+
+    def test_none_dimensions(self):
+        """Test estimation creation with None dimensions."""
+        from app.services.technology_builder import create_estimation_from_vision_result
+        
+        est = create_estimation_from_vision_result(
+            part_id=1,
+            pdf_filename="test.pdf",
+            pdf_path="uploads/test.pdf",
+            max_diameter_mm=None,
+            max_length_mm=None,
+        )
+        assert est.max_diameter_mm is None
+        assert est.max_length_mm is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

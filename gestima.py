@@ -64,6 +64,7 @@ class Gestima:
             sys.executable, "-m", "uvicorn",
             "app.gestima_app:app",
             "--reload",
+            "--reload-dir", "app",
             "--host", "0.0.0.0",
             "--port", "8000"
         ])
@@ -205,27 +206,10 @@ asyncio.run(_create_admin())
 
     @staticmethod
     def backup():
-        """Vytvoř zálohu databáze"""
-        print("💾 GESTIMA - Backup Database")
-        print("")
-
-        os.chdir(PROJECT_DIR)
-        result = subprocess.run([
-            sys.executable, "-c",
-            """
-from app.services.backup_service import create_backup, list_backups
-
-backup_path = create_backup()
-print(f"✅ Backup created: {backup_path}")
-print("")
-print("Available backups:")
-for b in list_backups():
-    print(f"  {b['name']} ({b['size_mb']} MB) - {b['created_at']}")
-"""
-        ])
-
-        if result.returncode != 0:
-            sys.exit(1)
+        """Vytvoř zálohu databáze (REMOVED in v2.0.0)"""
+        print("❌ Backup service was removed in v2.0.0")
+        print("   Use manual SQLite backup: cp gestima.db gestima.db.bak")
+        sys.exit(1)
 
     @staticmethod
     def seed_demo():
@@ -239,6 +223,16 @@ for b in list_backups():
         if confirm != "yes":
             print("❌ Seed cancelled")
             sys.exit(1)
+
+        # Auto-backup before reset
+        db_path = PROJECT_DIR / "gestima.db"
+        if db_path.exists() and db_path.stat().st_size > 0:
+            import shutil
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = PROJECT_DIR / f"gestima_{timestamp}.db.bak"
+            shutil.copy2(db_path, backup_path)
+            print(f"💾 Backup created: {backup_path.name}")
 
         print("")
         print("✓ Initializing database schema...")
@@ -434,65 +428,17 @@ asyncio.run(_clean())
 
     @staticmethod
     def backup_list():
-        """Zobraz dostupné zálohy"""
-        print("💾 GESTIMA - Available Backups")
-        print("")
-
-        os.chdir(PROJECT_DIR)
-        subprocess.run([
-            sys.executable, "-c",
-            """
-from app.services.backup_service import list_backups
-
-backups = list_backups()
-if not backups:
-    print("No backups found.")
-else:
-    for b in backups:
-        print(f"  {b['name']} ({b['size_mb']} MB) - {b['created_at']}")
-"""
-        ])
+        """Zobraz dostupné zálohy (REMOVED in v2.0.0)"""
+        print("❌ Backup service was removed in v2.0.0")
+        print("   Use: ls -la *.db.bak")
+        sys.exit(1)
 
     @staticmethod
     def restore(backup_name: str):
-        """Obnov databázi ze zálohy"""
-        print("💾 GESTIMA - Restore Database")
-        print("")
-        print(f"⚠️  WARNING: This will OVERWRITE the current database!")
-        print(f"   Restoring from: {backup_name}")
-        print("")
-
-        confirm = input("Type 'yes' to confirm: ").strip().lower()
-        if confirm != "yes":
-            print("❌ Restore cancelled")
-            sys.exit(1)
-
-        os.chdir(PROJECT_DIR)
-        result = subprocess.run([
-            sys.executable, "-c",
-            f"""
-from pathlib import Path
-from app.config import settings
-from app.services.backup_service import restore_backup
-
-backup_path = Path("{backup_name}")
-if not backup_path.exists():
-    # Try in backups/ folder
-    backup_path = settings.BASE_DIR / "backups" / "{backup_name}"
-
-if not backup_path.exists():
-    print(f"❌ Backup not found: {backup_name}")
-    exit(1)
-
-restore_backup(backup_path)
-print("✅ Database restored successfully!")
-print("")
-print("⚠️  Restart the application to apply changes.")
-"""
-        ])
-
-        if result.returncode != 0:
-            sys.exit(1)
+        """Obnov databázi ze zálohy (REMOVED in v2.0.0)"""
+        print("❌ Backup service was removed in v2.0.0")
+        print(f"   Use: cp {backup_name} gestima.db")
+        sys.exit(1)
 
     @staticmethod
     def deploy():

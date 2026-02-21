@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useQuotesStore } from '@/stores/quotes'
-import { usePartnersStore } from '@/stores/partners'
 import { useWindowsStore } from '@/stores/windows'
-import type { Quote, QuoteStatus, QuoteCreate } from '@/types/quote'
+import type { Quote, QuoteStatus } from '@/types/quote'
 import { Plus, ClipboardList, FileEdit, Send, CheckCircle, XCircle, Sparkles } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import type { Component } from 'vue'
+import { formatCurrency } from '@/utils/formatters'
+import QuoteCreateModal from './QuoteCreateModal.vue'
 
 interface Props {
   selectedQuote?: Quote | null
@@ -22,21 +23,10 @@ const emit = defineEmits<{
 }>()
 
 const quotesStore = useQuotesStore()
-const partnersStore = usePartnersStore()
 const windowsStore = useWindowsStore()
 const searchQuery = ref('')
 const activeTab = ref<QuoteStatus | 'all'>('all')
 const showCreateForm = ref(false)
-
-const newQuote = reactive<QuoteCreate>({
-  title: '',
-  description: '',
-  customer_request_number: null,
-  partner_id: null,
-  valid_until: null,
-  discount_percent: 0,
-  tax_percent: 21
-})
 
 const filteredQuotes = computed(() => {
   let list: Quote[] = []
@@ -83,13 +73,6 @@ function selectQuote(quote: Quote) {
 }
 
 function handleCreate() {
-  newQuote.title = ''
-  newQuote.description = ''
-  newQuote.customer_request_number = null
-  newQuote.partner_id = null
-  newQuote.valid_until = null
-  newQuote.discount_percent = 0
-  newQuote.tax_percent = 21
   showCreateForm.value = true
 }
 
@@ -97,31 +80,14 @@ function handleCreateFromRequest() {
   windowsStore.openWindow('quote-from-request', 'Nová nabídka z PDF (AI)')
 }
 
-async function createQuote() {
-  try {
-    const quote = await quotesStore.createQuote({
-      title: newQuote.title,
-      description: newQuote.description || undefined,
-      customer_request_number: newQuote.customer_request_number || undefined,
-      partner_id: newQuote.partner_id,
-      valid_until: newQuote.valid_until,
-      discount_percent: newQuote.discount_percent,
-      tax_percent: newQuote.tax_percent
-    })
-    showCreateForm.value = false
-    // Auto-select newly created quote
-    selectQuote(quote)
-  } catch (error) {
-    // Error handled in store
-  }
-}
-
-// Load partners for dropdown
-partnersStore.fetchPartners()
-
 function setTab(tab: QuoteStatus | 'all') {
   activeTab.value = tab
 }
+
+onUnmounted(() => {
+  searchQuery.value = ''
+  activeTab.value = 'all'
+})
 
 function getStatusBadge(status: QuoteStatus): { icon: Component; label: string; color: string } {
   switch (status) {
@@ -136,13 +102,6 @@ function getStatusBadge(status: QuoteStatus): { icon: Component; label: string; 
   }
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('cs-CZ', {
-    style: 'currency',
-    currency: 'CZK',
-    minimumFractionDigits: 2
-  }).format(value)
-}
 </script>
 
 <template>
@@ -247,431 +206,40 @@ function formatCurrency(value: number): string {
       </div>
     </div>
 
-    <!-- Create Quote Modal -->
-    <Teleport to="body">
-      <div v-if="showCreateForm" class="modal-overlay" @click.self="showCreateForm = false">
-        <div class="modal-content">
-          <h3>Nová nabídka</h3>
-          <form @submit.prevent="createQuote" class="create-form">
-            <div class="form-group">
-              <label>Název</label>
-              <input
-                v-model="newQuote.title"
-                type="text"
-                class="form-input"
-                maxlength="200"
-                placeholder="Název nabídky (optional)"
-              />
-            </div>
-
-            <div class="form-group">
-              <label>Popis</label>
-              <textarea
-                v-model="newQuote.description"
-                class="form-textarea"
-                rows="3"
-                maxlength="1000"
-                placeholder="Popis nabídky"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Číslo poptávky zákazníka</label>
-              <input
-                v-model="newQuote.customer_request_number"
-                type="text"
-                class="form-input"
-                maxlength="50"
-                placeholder="P20971, RFQ-2026-001..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label>Partner</label>
-              <select
-                v-model="newQuote.partner_id"
-                class="form-input"
-              >
-                <option :value="null">-- Bez partnera --</option>
-                <option
-                  v-for="partner in partnersStore.customers"
-                  :key="partner.id"
-                  :value="partner.id"
-                >
-                  {{ partner.company_name }} ({{ partner.partner_number }})
-                </option>
-              </select>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Platnost do</label>
-                <input
-                  v-model="newQuote.valid_until"
-                  type="date"
-                  class="form-input"
-                />
-              </div>
-              <div class="form-group">
-                <label>Sleva (%)</label>
-                <input
-                  v-model.number="newQuote.discount_percent"
-                  type="number"
-                  class="form-input"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  v-select-on-focus
-                />
-              </div>
-              <div class="form-group">
-                <label>DPH (%)</label>
-                <input
-                  v-model.number="newQuote.tax_percent"
-                  type="number"
-                  class="form-input"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  v-select-on-focus
-                />
-              </div>
-            </div>
-
-            <div class="modal-actions">
-              <button type="button" class="btn-secondary" @click="showCreateForm = false">
-                Zrušit
-              </button>
-              <button
-                type="submit"
-                class="btn-primary"
-                :disabled="isLoading || !newQuote.title"
-              >
-                {{ isLoading ? 'Vytvářím...' : 'Vytvořit' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
+    <QuoteCreateModal
+      :show="showCreateForm"
+      @close="showCreateForm = false"
+      @created="(q) => { showCreateForm = false; selectQuote(q) }"
+    />
   </div>
 </template>
 
 <style scoped>
-.quote-list-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  height: 100%;
-  overflow: hidden;
-}
+.quote-list-panel { display: flex; flex-direction: column; gap: var(--space-3); height: 100%; overflow: hidden; }
+.list-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.list-header h3 { margin: 0; font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); }
 
-.list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
+.filter-tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--border-default); overflow-x: auto; scrollbar-width: thin; }
 
-.list-header h3 {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-}
+.loading-list { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-8); color: var(--text-secondary); }
 
-.filter-tabs {
-  display: flex;
-  gap: var(--space-1);
-  border-bottom: 1px solid var(--border-default);
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-.tab-button {
-  flex: 1;
-  padding: var(--space-2);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition-fast);
-  white-space: nowrap;
-}
-
-.tab-button:hover {
-  color: var(--text-body);
-  background: var(--state-hover);
-}
-
-.tab-button.active {
-  color: var(--palette-primary);
-  border-bottom-color: var(--palette-primary);
-}
-
-.search-input {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-}
-
-.search-input:focus {
-  outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
-}
-
-.loading-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
-  color: var(--text-secondary);
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--palette-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
-  color: var(--text-tertiary);
-  text-align: center;
-}
-
-.empty-list .empty-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-}
-
-.empty-list p {
-  font-size: var(--text-sm);
-}
-
-.quotes-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
+.quotes-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); }
 .quote-item {
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-fast);
-  background: var(--bg-surface);
+  padding: var(--space-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); cursor: pointer;
+  transition: var(--transition-fast); background: var(--bg-surface);
 }
+.quote-item:hover { background: var(--state-hover); border-color: var(--border-strong); }
+.quote-item.active { background: var(--state-selected); border-color: var(--palette-primary); }
 
-.quote-item:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
-}
-
-.quote-item.active {
-  background: var(--state-selected);
-  border-color: var(--palette-primary);
-}
-
-.quote-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-1);
-}
-
-.quote-number {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--palette-primary);
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.status-badge.status-gray {
-  color: var(--text-secondary);
-}
-
-.status-badge.status-blue {
-  color: var(--color-info);
-}
-
-.status-badge.status-green {
-  color: var(--color-success);
-}
-
-.status-badge.status-red {
-  color: var(--color-danger);
-}
-
-.quote-title {
-  display: block;
-  font-size: var(--text-sm);
-  color: var(--text-body);
-  font-weight: var(--font-medium);
-  margin-bottom: var(--space-1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quote-meta {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.quote-total {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--bg-surface);
-  padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  max-width: 600px;
-  width: 90%;
-  border: 1px solid var(--border-default);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content h3 {
-  margin: 0 0 var(--space-4) 0;
-  color: var(--text-primary);
-}
-
-.create-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.form-row {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.form-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.form-group label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-body);
-}
-
-.required {
-  color: var(--palette-danger);
-}
-
-.form-input,
-.form-textarea {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  background: var(--bg-input);
-  color: var(--text-body);
-  font-family: inherit;
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-primary {
-  background: var(--palette-primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--palette-primary-hover);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--bg-raised);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-}
-
-.btn-secondary:hover {
-  background: var(--state-hover);
-}
+.quote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-1); }
+.quote-number { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--palette-primary); }
+.status-badge { display: flex; align-items: center; justify-content: center; color: var(--_badge-color, var(--text-secondary)); }
+.status-gray { --_badge-color: var(--text-secondary); }
+.status-blue { --_badge-color: var(--color-info); }
+.status-green { --_badge-color: var(--color-success); }
+.status-red { --_badge-color: var(--color-danger); }
+.quote-title { display: block; font-size: var(--text-sm); color: var(--text-body); font-weight: var(--font-medium); margin-bottom: var(--space-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quote-meta { display: flex; justify-content: flex-end; }
+.quote-total { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--text-secondary); }
 </style>

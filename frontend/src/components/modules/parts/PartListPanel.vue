@@ -5,30 +5,40 @@
  * Uses @tanstack/vue-virtual for DOM virtualization — only ~30 rows in DOM at any time.
  * Server-side filtering (status + search), infinite scroll for data loading.
  */
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { usePartsStore } from '@/stores/parts'
 import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Column } from '@/components/ui/DataTable.vue'
-import { Plus } from 'lucide-vue-next'
+import { Plus, Filter } from 'lucide-vue-next'
+import { PricingIcon, DrawingIcon } from '@/config/icons'
+import { Layers } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import Spinner from '@/components/ui/Spinner.vue'
 import ColumnChooser from '@/components/ui/ColumnChooser.vue'
+import { formatNumber, formatDate } from '@/utils/formatters'
+import { partStatusLabel, partStatusDotClass, partSourceLabel, partSourceDotClass } from '@/utils/partStatus'
 
 interface Props {
   linkingGroup?: LinkingGroup
+  /** When true, list rows are not clickable (e.g. while create form is open) */
+  readonly?: boolean
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'select-part': [part: Part]
   'create-new': []
+  'open-pricing': []
+  'open-drawing': []
+  'open-technology': []
 }>()
 
 const partsStore = usePartsStore()
 const searchInput = ref('')
 const statusFilter = ref<string>('all')
+const drawingFilterActive = ref(false)
 const selectedPartId = ref<number | null>(null)
 
 // Debounce timer for search
@@ -109,12 +119,19 @@ watch(searchInput, (newVal) => {
 })
 
 function handleRowClick(part: Part) {
+  if (props.readonly) return
   selectedPartId.value = part.id
   emit('select-part', part)
 }
 
 function handleCreate() {
   emit('create-new')
+}
+
+function toggleDrawingFilter() {
+  drawingFilterActive.value = !drawingFilterActive.value
+  partsStore.setDrawingFilter(drawingFilterActive.value)
+  partsStore.fetchParts()
 }
 
 function handleColumnsUpdate(updatedColumns: Column[]) {
@@ -131,79 +148,48 @@ function handleColumnsUpdate(updatedColumns: Column[]) {
   localStorage.setItem('partListColumns_order', JSON.stringify(order))
 }
 
-// Format helpers (same as DataTableBody)
-function formatNumber(value: unknown): string {
-  if (value === null || value === undefined) return '—'
-  const num = typeof value === 'number' ? value : parseFloat(String(value))
-  if (isNaN(num)) return '—'
-  return new Intl.NumberFormat('cs-CZ').format(num)
-}
-
-function formatDate(value: unknown): string {
-  if (!value) return '—'
-  const date = new Date(String(value))
-  if (isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat('cs-CZ', {
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).format(date)
-}
-
 function getCellValue(part: Part, key: string): unknown {
-  return (part as Record<string, unknown>)[key]
+  return (part as unknown as Record<string, unknown>)[key]
 }
 
 // Status badge helpers (Gestima badge-dot pattern from template.html)
-function statusDotClass(status: string): string {
-  switch (status) {
-    case 'active': return 'badge-dot-ok'
-    case 'draft': return 'badge-dot-warn'
-    case 'quote': return 'badge-dot-brand'
-    case 'archived': return 'badge-dot-neutral'
-    default: return 'badge-dot-neutral'
-  }
-}
-
-function statusLabel_map(status: string): string {
-  switch (status) {
-    case 'active': return 'Aktivní'
-    case 'draft': return 'Rozpracovaný'
-    case 'quote': return 'Nabídka'
-    case 'archived': return 'Archivovaný'
-    default: return status
-  }
-}
-
-// Source badge helpers
-function sourceDotClass(source: string): string {
-  switch (source) {
-    case 'infor_import': return 'badge-dot-brand'
-    case 'manual': return 'badge-dot-ok'
-    case 'quote_request': return 'badge-dot-warn'
-    default: return 'badge-dot-neutral'
-  }
-}
-
-function sourceLabel(source: string): string {
-  switch (source) {
-    case 'infor_import': return 'I-I'
-    case 'manual': return 'Manuální'
-    case 'quote_request': return 'Poptávka'
-    default: return source
-  }
-}
+// Status/source helpers — importováno z @/utils/partStatus (single source of truth)
+const statusDotClass = partStatusDotClass
+const statusLabel_map = partStatusLabel
+const sourceDotClass = partSourceDotClass
+const sourceLabel = partSourceLabel
 
 onMounted(async () => {
-  await partsStore.fetchParts()
+  // Skip fetch if data already loaded — reopening window is instant
+  if (!partsStore.hasParts) {
+    await partsStore.fetchParts()
+  }
 })
 
 onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer)
+  // Reset all filters on close so next open starts clean
+  searchInput.value = ''
+  statusFilter.value = 'all'
+  drawingFilterActive.value = false
+  partsStore.setSearchQuery('')
+  partsStore.setStatusFilter(undefined)
+  partsStore.setDrawingFilter(false)
 })
 
-// Expose method for parent to set selection
+// Expose methods for parent
 defineExpose({
   setSelection(partId: number | null) {
     selectedPartId.value = partId
+  },
+  async prependAndSelect(part: import('@/types/part').Part) {
+    // Store already did unshift — just select and scroll to top
+    selectedPartId.value = part.id
+    // nextTick ensures virtualizer processed the new row before scrolling
+    await nextTick()
+    requestAnimationFrame(() => {
+      scrollContainerRef.value?.scrollTo({ top: 0, behavior: 'instant' })
+    })
   }
 })
 </script>
@@ -214,6 +200,41 @@ defineExpose({
     <div class="list-header">
       <h3>Díly <span class="parts-count">{{ statusLabel }}</span></h3>
       <div class="header-actions">
+        <button
+          class="icon-btn"
+          :class="{ disabled: !selectedPartId }"
+          :disabled="!selectedPartId"
+          title="Ceny"
+          @click="emit('open-pricing')"
+        >
+          <PricingIcon :size="ICON_SIZE.STANDARD" />
+        </button>
+        <button
+          class="icon-btn"
+          :class="{ disabled: !selectedPartId }"
+          :disabled="!selectedPartId"
+          title="Výkres"
+          @click="emit('open-drawing')"
+        >
+          <DrawingIcon :size="ICON_SIZE.STANDARD" />
+        </button>
+        <button
+          class="icon-btn"
+          :class="{ disabled: !selectedPartId }"
+          :disabled="!selectedPartId"
+          title="Technologie"
+          @click="emit('open-technology')"
+        >
+          <Layers :size="ICON_SIZE.STANDARD" />
+        </button>
+        <button
+          class="icon-btn"
+          :class="{ active: drawingFilterActive }"
+          title="Pouze díly s výkresem"
+          @click="toggleDrawingFilter"
+        >
+          <Filter :size="ICON_SIZE.STANDARD" />
+        </button>
         <ColumnChooser
           :columns="columns"
           storageKey="partListColumns"
@@ -227,13 +248,16 @@ defineExpose({
 
     <!-- Filters Row -->
     <div class="filters-row">
-      <select v-model="statusFilter" class="status-filter">
-        <option value="all">Vše</option>
-        <option value="draft">Rozpracovaný</option>
-        <option value="active">Aktivní</option>
-        <option value="quote">Nabídka</option>
-        <option value="archived">Archivovaný</option>
-      </select>
+      <div class="select-wrap">
+        <select v-model="statusFilter" class="status-filter">
+          <option value="all">Vše</option>
+          <option value="draft">Rozpracovaný</option>
+          <option value="active">Aktivní</option>
+          <option value="quote">Nabídka</option>
+          <option value="archived">Archivovaný</option>
+        </select>
+        <span class="select-chevron">▼</span>
+      </div>
 
       <input
         v-model="searchInput"
@@ -259,6 +283,7 @@ defineExpose({
       v-else
       ref="scrollContainerRef"
       class="table-container"
+      :class="{ 'table-readonly': readonly }"
       @scroll.passive="onScroll"
     >
       <!-- Sticky header row (flex-based, matches column widths) -->
@@ -386,31 +411,42 @@ defineExpose({
   flex-shrink: 0;
 }
 
-.status-filter {
+/* Select wrapper — arrow via overlay span, not background-image */
+.select-wrap {
+  position: relative;
   flex: 0 0 auto;
   width: 130px;
 }
 
-.search-input {
-  flex: 1 1 0;
-  min-width: 0;
+.status-filter,
+.status-filter:focus {
+  width: 100%;
+  background-image: none !important;
+  padding-right: 28px;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 /* Loading & empty states */
 .loading-container,
-.empty-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-}
 
 /* ── Virtualized table ── */
 .table-container {
   flex: 1;
   overflow: auto;
   contain: strict;
+}
+
+.table-container.table-readonly .vt-row {
+  cursor: default;
 }
 
 /* Sticky header row */
@@ -525,12 +561,6 @@ defineExpose({
   border-radius: 50%;
   flex-shrink: 0;
 }
-
-.badge-dot-ok      { background: var(--status-ok); }
-.badge-dot-error   { background: var(--status-error); }
-.badge-dot-warn    { background: var(--status-warn); }
-.badge-dot-neutral { background: var(--text-disabled); }
-.badge-dot-brand   { background: var(--brand); }
 
 /* ── Container Queries - hide less important columns on narrow width ── */
 @container part-list-container (max-width: 600px) {

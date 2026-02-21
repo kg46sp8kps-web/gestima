@@ -37,7 +37,7 @@ router = APIRouter()
 #     pass
 
 
-@router.get("/api/material-groups")
+@router.get("/api/material-groups", response_model=List[Dict[str, Any]])
 async def api_get_material_groups(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
@@ -102,7 +102,7 @@ async def api_list_material_norms(
         raise HTTPException(status_code=500, detail="Chyba databáze při načítání norem materiálu")
 
 
-@router.get("/api/material-norms/search")
+@router.get("/api/material-norms/search", response_model=List[MaterialNormResponse])
 async def api_search_material_norms(
     q: str,
     limit: int = 50,
@@ -126,7 +126,7 @@ async def api_search_material_norms(
         raise HTTPException(status_code=500, detail="Chyba databáze při vyhledávání norem")
 
 
-@router.post("/api/material-norms")
+@router.post("/api/material-norms", response_model=MaterialNormResponse)
 async def api_create_material_norm(
     data: MaterialNormCreate,
     db: AsyncSession = Depends(get_db),
@@ -170,7 +170,7 @@ async def api_create_material_norm(
     return MaterialNormResponse.model_validate(norm)
 
 
-@router.put("/api/material-norms/{norm_id}")
+@router.put("/api/material-norms/{norm_id}", response_model=MaterialNormResponse)
 async def api_update_material_norm(
     norm_id: int,
     data: MaterialNormUpdate,
@@ -237,7 +237,7 @@ async def api_update_material_norm(
     return MaterialNormResponse.model_validate(norm)
 
 
-@router.delete("/api/material-norms/{norm_id}")
+@router.delete("/api/material-norms/{norm_id}", response_model=dict)
 async def api_delete_material_norm(
     norm_id: int,
     db: AsyncSession = Depends(get_db),
@@ -268,7 +268,7 @@ async def api_delete_material_norm(
 # ========== MATERIAL CATALOG (Groups + Price Categories) ==========
 # ARCHIVED: 2026-01-31 - Jinja2 template moved to archive/legacy-alpinejs-v1.6.1/
 
-@router.get("/material-catalog")
+@router.get("/material-catalog", response_class=RedirectResponse)
 async def admin_material_catalog_redirect():
     """Redirect to Vue SPA Master Data (Material Catalog tab)"""
     return RedirectResponse(url="/admin/master-data?tab=materials", status_code=302)
@@ -276,7 +276,7 @@ async def admin_material_catalog_redirect():
 
 # ========== MaterialGroup CRUD ==========
 
-@router.post("/api/material-groups")
+@router.post("/api/material-groups", response_model="MaterialGroupResponse")
 async def api_create_material_group(
     data: "MaterialGroupCreate",
     db: AsyncSession = Depends(get_db),
@@ -308,7 +308,7 @@ async def api_create_material_group(
     return MaterialGroupResponse.model_validate(group)
 
 
-@router.put("/api/material-groups/{group_id}")
+@router.put("/api/material-groups/{group_id}", response_model="MaterialGroupResponse")
 async def api_update_material_group(
     group_id: int,
     data: "MaterialGroupUpdate",
@@ -361,7 +361,7 @@ async def api_update_material_group(
     return MaterialGroupResponse.model_validate(group)
 
 
-@router.delete("/api/material-groups/{group_id}")
+@router.delete("/api/material-groups/{group_id}", response_model=dict)
 async def api_delete_material_group(
     group_id: int,
     db: AsyncSession = Depends(get_db),
@@ -391,7 +391,7 @@ async def api_delete_material_group(
 
 # ========== MaterialPriceCategory CRUD ==========
 
-@router.post("/api/material-price-categories")
+@router.post("/api/material-price-categories", response_model="MaterialPriceCategoryResponse")
 async def api_create_material_price_category(
     data: "MaterialPriceCategoryCreate",
     db: AsyncSession = Depends(get_db),
@@ -422,7 +422,7 @@ async def api_create_material_price_category(
     return MaterialPriceCategoryResponse.model_validate(category)
 
 
-@router.put("/api/material-price-categories/{category_id}")
+@router.put("/api/material-price-categories/{category_id}", response_model="MaterialPriceCategoryResponse")
 async def api_update_material_price_category(
     category_id: int,
     data: "MaterialPriceCategoryUpdate",
@@ -472,7 +472,7 @@ async def api_update_material_price_category(
     return MaterialPriceCategoryResponse.model_validate(category)
 
 
-@router.delete("/api/material-price-categories/{category_id}")
+@router.delete("/api/material-price-categories/{category_id}", response_model=dict)
 async def api_delete_material_price_category(
     category_id: int,
     db: AsyncSession = Depends(get_db),

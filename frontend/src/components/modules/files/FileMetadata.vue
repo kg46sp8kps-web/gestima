@@ -4,17 +4,13 @@
  */
 
 import type { FileRecord } from '@/types/file'
+import { formatDate } from '@/utils/formatters'
 
 interface Props {
   file: FileRecord
 }
 
 const props = defineProps<Props>()
-
-// Format timestamp
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('cs-CZ')
-}
 
 // Format file size
 function formatSize(bytes: number): string {

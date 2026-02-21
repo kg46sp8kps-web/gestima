@@ -368,7 +368,7 @@ describe('Operations Store', () => {
       await store.updateOperation(1, { setup_time_min: 20 }, LINK_GROUP)
 
       expect(uiStore.toasts[0]!.type).toBe('warning')
-      expect(uiStore.toasts[0]!.message).toContain('Konflikt')
+      expect(uiStore.toasts[0]!.message).toContain('změněna')
     })
 
     it('should handle operation not found', async () => {

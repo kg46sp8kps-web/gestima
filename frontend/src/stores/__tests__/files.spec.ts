@@ -198,6 +198,7 @@ describe('Files Store', () => {
             file_id: 2,
             entity_type: 'part',
             entity_id: 123,
+            entity_name: null,
             is_primary: true,
             revision: 'A',
             link_type: 'drawing',

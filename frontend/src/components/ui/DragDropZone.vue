@@ -345,18 +345,5 @@ function removeFile() {
 }
 
 /* Spinner animation */
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--border-default);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

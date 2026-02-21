@@ -4,7 +4,7 @@
  */
 
 import { ref, computed } from 'vue'
-import axios from 'axios'
+import { discoverInforIdos } from '@/api/infor-import'
 import { alert } from '@/composables/useDialog'
 import { ArrowRight } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
@@ -33,13 +33,13 @@ async function runDiscovery() {
   discoveryLoading.value = true
 
   try {
-    const params = customIdoNames.value ? { custom_names: customIdoNames.value } : {}
-    const response = await axios.get('/api/infor/discover-idos', { params })
-    discoveryResults.value = response.data
-  } catch (error: any) {
+    const data = await discoverInforIdos(customIdoNames.value || undefined)
+    discoveryResults.value = data
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
     await alert({
       title: 'Chyba',
-      message: 'Discovery failed: ' + (error.response?.data?.detail || error.message),
+      message: 'Discovery failed: ' + (err.response?.data?.detail || err.message || 'Unknown error'),
       type: 'error'
     })
   } finally {
@@ -100,62 +100,7 @@ function useIdoForBrowse(idoName: string) {
   margin-bottom: var(--space-4);
 }
 
-.form-group {
-  margin-bottom: var(--space-3);
-}
 
-.form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: var(--space-1);
-}
-
-.input {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 .btn-link {
   background: transparent;

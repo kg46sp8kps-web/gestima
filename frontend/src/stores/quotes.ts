@@ -13,7 +13,9 @@ import type {
   QuoteItemUpdate,
   QuoteStatus,
   QuoteRequestReview,
-  QuoteFromRequestCreate
+  QuoteRequestReviewV2,
+  QuoteFromRequestCreateV2,
+  QuoteCreationResult
 } from '@/types/quote'
 import * as quotesApi from '@/api/quotes'
 import { useUiStore } from './ui'
@@ -34,7 +36,14 @@ export const useQuotesStore = defineStore('quotes', () => {
   const aiParsing = ref(false)
   const aiReview = ref<QuoteRequestReview | null>(null)
 
+  // V2: AI Quote Request with Drawings
+  const aiParsingV2 = ref(false)
+  const aiReviewV2 = ref<QuoteRequestReviewV2 | null>(null)
+  const creationResult = ref<QuoteCreationResult | null>(null)
+  const creatingQuoteV2 = ref(false)
+
   // Computed - Filter by status
+  const loaded = ref(false)  // True after first successful fetch — skip re-fetch on reopen
   const hasQuotes = computed(() => quotes.value.length > 0)
   const hasMore = computed(() => skip.value + limit.value < total.value)
   const currentPage = computed(() => Math.floor(skip.value / limit.value) + 1)
@@ -52,8 +61,9 @@ export const useQuotesStore = defineStore('quotes', () => {
       const response = await quotesApi.getQuotes(skip.value, limit.value, status)
       quotes.value = response.quotes
       total.value = response.total
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání nabídek')
+      loaded.value = true
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání nabídek')
       throw error
     } finally {
       loading.value = false
@@ -65,8 +75,8 @@ export const useQuotesStore = defineStore('quotes', () => {
     try {
       currentQuote.value = await quotesApi.getQuote(quoteNumber)
       return currentQuote.value
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání nabídky')
       throw error
     } finally {
       loading.value = false
@@ -81,8 +91,8 @@ export const useQuotesStore = defineStore('quotes', () => {
       total.value++
       ui.showSuccess('Nabídka vytvořena')
       return newQuote
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při vytváření nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při vytváření nabídky')
       throw error
     } finally {
       loading.value = false
@@ -112,12 +122,13 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Nabídka aktualizována')
       return updatedQuote
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle edit lock (HTTP 409)
-      if (error.response?.status === 409) {
+      const err = error as { response?: { status: number }; message?: string }
+      if (err.response?.status === 409) {
         ui.showError('Nelze editovat odeslanou nabídku')
       } else {
-        ui.showError(error.message || 'Chyba při aktualizaci nabídky')
+        ui.showError(err.message || 'Chyba při aktualizaci nabídky')
       }
       throw error
     } finally {
@@ -143,8 +154,8 @@ export const useQuotesStore = defineStore('quotes', () => {
       }
 
       ui.showSuccess('Nabídka smazána')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při mazání nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při mazání nabídky')
       throw error
     } finally {
       loading.value = false
@@ -168,8 +179,8 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Nabídka odeslána')
       return result
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při odesílání nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při odesílání nabídky')
       throw error
     } finally {
       loading.value = false
@@ -192,8 +203,8 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Nabídka schválena')
       return result
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při schvalování nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při schvalování nabídky')
       throw error
     } finally {
       loading.value = false
@@ -216,8 +227,8 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Nabídka odmítnuta')
       return result
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při odmítání nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při odmítání nabídky')
       throw error
     } finally {
       loading.value = false
@@ -232,8 +243,8 @@ export const useQuotesStore = defineStore('quotes', () => {
       total.value++
       ui.showSuccess(`Nabídka duplikována: ${newQuote.quote_number}`)
       return newQuote
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při duplikaci nabídky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při duplikaci nabídky')
       throw error
     } finally {
       loading.value = false
@@ -251,8 +262,8 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Položka přidána')
       return result
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při přidávání položky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při přidávání položky')
       throw error
     } finally {
       loading.value = false
@@ -271,8 +282,8 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Položka aktualizována')
       return result
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při aktualizaci položky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při aktualizaci položky')
       throw error
     } finally {
       loading.value = false
@@ -291,8 +302,8 @@ export const useQuotesStore = defineStore('quotes', () => {
 
       ui.showSuccess('Položka smazána')
       return result
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při mazání položky')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při mazání položky')
       throw error
     } finally {
       loading.value = false
@@ -307,16 +318,17 @@ export const useQuotesStore = defineStore('quotes', () => {
       aiReview.value = await quotesApi.parseQuoteRequest(file)
       ui.showSuccess('PDF úspěšně zpracováno AI')
       return aiReview.value
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle specific error codes
-      if (error.response?.status === 413) {
+      const err = error as { response?: { status: number }; message?: string }
+      if (err.response?.status === 413) {
         ui.showError('PDF je příliš velké (max 10 MB)')
-      } else if (error.response?.status === 429) {
+      } else if (err.response?.status === 429) {
         ui.showError('Překročen limit AI parsování (10/hod). Zkuste později.')
-      } else if (error.response?.status === 500) {
+      } else if (err.response?.status === 500) {
         ui.showError('AI parsing selhal. Zkontrolujte kvalitu PDF.')
       } else {
-        ui.showError(error.message || 'Chyba při parsování PDF')
+        ui.showError(err.message || 'Chyba při parsování PDF')
       }
       throw error
     } finally {
@@ -324,28 +336,61 @@ export const useQuotesStore = defineStore('quotes', () => {
     }
   }
 
-  async function createQuoteFromParsedRequest(data: QuoteFromRequestCreate) {
-    loading.value = true
+  function clearAiReview() {
+    aiReview.value = null
+  }
+
+  // Actions - V2: AI Quote Request with Drawings + Technology
+  async function parseQuoteRequestV2(requestFiles: File[], drawingFiles: File[]) {
+    aiParsingV2.value = true
+    aiReviewV2.value = null
+    creationResult.value = null
     try {
-      const newQuote = await quotesApi.createQuoteFromRequest(data)
-      quotes.value.unshift(newQuote)
-      total.value++
-
-      // Clear AI state
-      aiReview.value = null
-
-      ui.showSuccess(`Nabídka ${newQuote.quote_number} vytvořena z poptávky`)
-      return newQuote
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při vytváření nabídky z poptávky')
+      aiReviewV2.value = await quotesApi.parseQuoteRequestV2(requestFiles, drawingFiles)
+      ui.showSuccess('PDF úspěšně zpracováno AI (V2)')
+      return aiReviewV2.value
+    } catch (error: unknown) {
+      const err = error as { response?: { status: number; data?: { detail?: string } }; message?: string }
+      if (err.response?.status === 413) {
+        ui.showError('PDF je příliš velké (max 10 MB)')
+      } else if (err.response?.status === 429) {
+        ui.showError('Překročen limit AI parsování (10/hod). Zkuste později.')
+      } else {
+        ui.showError(err.response?.data?.detail || err.message || 'Chyba při parsování PDF')
+      }
       throw error
     } finally {
-      loading.value = false
+      aiParsingV2.value = false
     }
   }
 
-  function clearAiReview() {
-    aiReview.value = null
+  async function createQuoteFromRequestV2(
+    data: QuoteFromRequestCreateV2,
+    drawingFiles: File[]
+  ) {
+    creatingQuoteV2.value = true
+    creationResult.value = null
+    try {
+      const result = await quotesApi.createQuoteFromRequestV2(data, drawingFiles)
+      creationResult.value = result
+
+      // Refresh quotes list
+      await fetchQuotes()
+
+      ui.showSuccess(`Nabídka ${result.quote_number} vytvořena (${result.parts_created} nových dílů)`)
+      return result
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string }
+      ui.showError(err.response?.data?.detail || err.message || 'Chyba při vytváření nabídky V2')
+      throw error
+    } finally {
+      creatingQuoteV2.value = false
+    }
+  }
+
+  function clearAiReviewV2() {
+    aiReviewV2.value = null
+    creationResult.value = null
   }
 
   // Pagination
@@ -386,6 +431,7 @@ export const useQuotesStore = defineStore('quotes', () => {
     searchQuery.value = ''
     skip.value = 0
     limit.value = 50
+    loaded.value = false
   }
 
   return {
@@ -394,6 +440,7 @@ export const useQuotesStore = defineStore('quotes', () => {
     currentQuote,
     total,
     loading,
+    loaded,
     searchQuery,
     skip,
     limit,
@@ -430,8 +477,16 @@ export const useQuotesStore = defineStore('quotes', () => {
 
     // Actions - AI Quote Request Parsing
     parseQuoteRequestPDF,
-    createQuoteFromParsedRequest,
     clearAiReview,
+
+    // V2: AI Quote Request with Drawings
+    aiParsingV2,
+    aiReviewV2,
+    creationResult,
+    creatingQuoteV2,
+    parseQuoteRequestV2,
+    createQuoteFromRequestV2,
+    clearAiReviewV2,
 
     // Pagination
     setSearchQuery,

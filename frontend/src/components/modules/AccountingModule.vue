@@ -181,17 +181,6 @@ onMounted(loadData)
   gap: var(--space-2);
 }
 
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: var(--space-3);
-  color: var(--text-tertiary);
-  font-size: var(--text-base);
-}
-
 .data-tab-toolbar {
   display: flex;
   gap: 2px;

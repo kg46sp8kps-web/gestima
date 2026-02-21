@@ -73,7 +73,7 @@ async def login(
 # LOGOUT
 # ============================================================================
 
-@router.post("/logout")
+@router.post("/logout", response_model=dict)
 async def logout(response: Response):
     """
     Odhlášení uživatele

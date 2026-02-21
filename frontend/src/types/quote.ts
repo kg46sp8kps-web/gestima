@@ -18,6 +18,8 @@ export interface Quote {
   description: string
   customer_request_number: string | null
   status: QuoteStatus
+  request_date: string | null
+  offer_deadline: string | null
   valid_until: string | null
   sent_at: string | null
   approved_at: string | null
@@ -28,7 +30,6 @@ export interface Quote {
   tax_percent: number
   tax_amount: number
   total: number
-  currency: string
   version: number
   created_at: string
   updated_at: string
@@ -40,7 +41,6 @@ export interface Quote {
 export interface QuoteItem {
   id: number
   quote_id: number
-  seq: number
   part_id: number | null
   part_number: string
   article_number?: string | null
@@ -126,41 +126,6 @@ export interface QuotesListResponse {
 // ============================================================================
 
 /**
- * Customer extracted from PDF by AI
- */
-export interface CustomerExtraction {
-  company_name: string
-  contact_person: string | null
-  email: string | null
-  phone: string | null
-  ico: string | null
-  confidence: number
-}
-
-/**
- * Single item extracted from PDF by AI
- */
-export interface ItemExtraction {
-  article_number: string
-  drawing_number?: string | null
-  name: string
-  quantity: number
-  notes: string | null
-  confidence: number
-}
-
-/**
- * Complete AI extraction result from PDF
- */
-export interface QuoteRequestExtraction {
-  customer: CustomerExtraction
-  items: ItemExtraction[]
-  customer_request_number: string | null
-  valid_until: string | null
-  notes: string | null
-}
-
-/**
  * Customer match result (after DB lookup)
  */
 export interface CustomerMatch {
@@ -228,6 +193,10 @@ export interface QuoteRequestReview {
   }
 }
 
+// ============================================================================
+// V2: Quote From Request with Drawings + Technology (ADR-028 V2)
+// ============================================================================
+
 /**
  * Partner data for new partner creation
  */
@@ -243,38 +212,122 @@ export interface PartnerCreateData {
 }
 
 /**
- * Item for quote creation from AI parsing
+ * AI Vision analysis result for a single drawing PDF
  */
-export interface QuoteFromRequestItem {
-  // If part exists
-  part_id?: number | null
-
-  // If part doesn't exist (AI will create it)
-  article_number: string
-  drawing_number?: string | null
-  name: string
-
-  // Common fields
-  quantity: number
-  notes?: string | null
+export interface DrawingAnalysis {
+  filename: string
+  drawing_number: string | null
+  article_number: string | null
+  material_hint: string | null
+  dimensions_hint: string | null
+  part_type: string // ROT / PRI / COMBINED
+  complexity: string // simple / medium / complex
+  estimated_time_min: number
+  max_diameter_mm: number | null
+  max_length_mm: number | null
+  confidence: number
 }
 
 /**
- * Create quote from AI-parsed request
+ * Match between an uploaded drawing and a request item
  */
-export interface QuoteFromRequestCreate {
-  // Partner (existing or new)
-  partner_id?: number | null
-  partner_data?: PartnerCreateData
+export interface DrawingMatch {
+  drawing_index: number
+  item_index: number | null
+  match_method: string // ai_vision / filename / manual / none
+  confidence: number
+}
 
-  // Quote fields
+/**
+ * Enhanced review data with drawing analysis (V2)
+ */
+export interface QuoteRequestReviewV2 {
+  customer: CustomerMatch
+  items: PartMatch[]
+  customer_request_number: string | null
+  request_date: string | null
+  offer_deadline: string | null
+  notes: string | null
+  summary: {
+    total_items: number
+    unique_parts: number
+    matched_parts: number
+    new_parts: number
+    missing_batches: number
+  }
+  drawing_analyses: DrawingAnalysis[]
+  drawing_matches: DrawingMatch[]
+}
+
+/**
+ * TimeVision estimation data carried from parse to create step
+ */
+export interface EstimationData {
+  part_type: string
+  complexity: string
+  estimated_time_min: number
+  max_diameter_mm: number | null
+  max_length_mm: number | null
+}
+
+/**
+ * Enhanced item for creating quote from request (V2)
+ */
+export interface QuoteFromRequestItemV2 {
+  part_id: number | null
+  article_number: string
+  drawing_number: string | null
+  name: string
+  quantity: number
+  notes: string | null
+  drawing_index: number | null // index into drawing_files
+  estimation: EstimationData | null
+}
+
+/**
+ * V2: Create quote + parts + technology + batches from request
+ */
+export interface QuoteFromRequestCreateV2 {
+  partner_id: number | null
+  partner_data: PartnerCreateData | null
+  items: QuoteFromRequestItemV2[]
   title: string
-  customer_request_number?: string | null
-  valid_until?: string | null
-  notes?: string | null
-  discount_percent?: number
-  tax_percent?: number
+  customer_request_number: string | null
+  request_date: string | null
+  offer_deadline: string | null
+  valid_until: string | null
+  notes: string | null
+  discount_percent: number
+  tax_percent: number
+}
 
-  // Items (parts + quantities)
-  items: QuoteFromRequestItem[]
+/**
+ * Result for a single part in quote creation
+ */
+export interface QuoteCreationPartResult {
+  article_number: string
+  part_number: string | null
+  name: string
+  is_new: boolean
+  drawing_linked: boolean
+  technology_generated: boolean
+  batch_set_frozen: boolean
+  unit_price: number
+  warnings: string[]
+}
+
+/**
+ * Complete result of quote-from-request V2 creation
+ */
+export interface QuoteCreationResult {
+  quote_number: string
+  quote_id: number
+  partner_number: string | null
+  partner_is_new: boolean
+  parts: QuoteCreationPartResult[]
+  parts_created: number
+  parts_existing: number
+  drawings_linked: number
+  total_amount: number
+  warnings: string[]
 }

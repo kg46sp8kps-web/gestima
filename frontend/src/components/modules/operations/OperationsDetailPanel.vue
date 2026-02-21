@@ -26,11 +26,13 @@ interface Props {
   partId: number | null
   part: Part | null
   linkingGroup?: LinkingGroup
+  hideHeader?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   part: null,
-  linkingGroup: null
+  linkingGroup: null,
+  hideHeader: false
 })
 
 const emit = defineEmits<{
@@ -54,6 +56,7 @@ const debounceTimers = new Map<number, ReturnType<typeof setTimeout>>()
 const operations = computed(() => operationsStore.getContext(props.linkingGroup).operations)
 const sortedOperations = computed(() => operationsStore.getSortedOperations(props.linkingGroup))
 const loading = computed(() => operationsStore.getContext(props.linkingGroup).loading)
+const initialLoading = computed(() => operationsStore.getContext(props.linkingGroup).initialLoading)
 const activeWorkCenters = computed(() => operationsStore.activeWorkCenters)
 const saving = computed(() => operationsStore.saving)
 
@@ -79,12 +82,11 @@ watch(() => props.partId, async (newPartId) => {
   }
 }, { immediate: true })
 
-// Load data
+// Load data (materials loaded by MaterialInputSelectorV2 — no duplicate call)
 async function loadData(partId: number) {
   await Promise.all([
     operationsStore.loadWorkCenters(),
     operationsStore.loadOperations(partId, props.linkingGroup),
-    materialsStore.loadMaterialInputs(partId, props.linkingGroup)
   ])
 }
 
@@ -94,10 +96,11 @@ function toggleExpanded(opId: number) {
 }
 
 // Debounced update operation
-function debouncedUpdateOperation(op: Operation, field: keyof Operation, value: any) {
+function debouncedUpdateOperation(op: Operation, field: keyof Operation, value: unknown) {
   const opIndex = operations.value.findIndex(o => o.id === op.id)
   if (opIndex !== -1) {
-    ;(operations.value[opIndex] as any)[field] = value
+    // Use type assertion to allow dynamic property assignment
+    (operations.value[opIndex] as never)[field] = value as never
   }
 
   const existingTimer = debounceTimers.get(op.id)
@@ -258,14 +261,17 @@ function selectOperation(op: Operation) {
 // Expose for parent
 defineExpose({
   operationsCount: computed(() => operations.value.length),
+  hasAIEstimation: computed(() => hasAIEstimation.value),
+  aiTimeModified: computed(() => aiTimeModified.value),
   resetAIWarning() { aiTimeModified.value = false },
+  addOperation() { handleAddOperation() },
 })
 </script>
 
 <template>
   <div class="operations-detail-panel">
     <!-- Header with Add + AI buttons -->
-    <div class="panel-header">
+    <div v-if="!hideHeader" class="panel-header">
       <h3>Operace</h3>
       <span
         v-if="hasAIEstimation"
@@ -296,14 +302,14 @@ defineExpose({
       </div>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="loading">
+    <!-- Loading (only on first load — no flash on part switch) -->
+    <div v-if="initialLoading" class="loading">
       <div class="spinner"></div>
       <p>Načítám operace...</p>
     </div>
 
     <!-- Empty -->
-    <div v-else-if="operations.length === 0" class="empty">
+    <div v-else-if="operations.length === 0 && !loading" class="empty">
       <Settings :size="ICON_SIZE.HERO" class="empty-icon" />
       <p>Žádné operace</p>
       <p class="hint">Klikni na "+ Přidat operaci" pro začátek</p>
@@ -408,7 +414,6 @@ defineExpose({
   font-weight: var(--font-semibold);
 }
 
-
 /* === LOADING === */
 .loading {
   display: flex;
@@ -417,19 +422,6 @@ defineExpose({
   gap: var(--space-2);
   padding: var(--space-6);
   color: var(--text-secondary);
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* === EMPTY === */

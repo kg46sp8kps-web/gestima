@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
@@ -33,7 +33,8 @@ from app.models.material import (
     MaterialItemCreate,
     MaterialItemUpdate,
     MaterialItemResponse,
-    MaterialItemWithGroupResponse
+    MaterialItemWithGroupResponse,
+    MaterialItemListResponse
 )
 from app.services.material_parser import MaterialParserService, ParseResult
 
@@ -323,28 +324,29 @@ async def delete_price_tier(
 
 # ========== MATERIAL ITEMS ==========
 
-@router.get("/items", response_model=List[MaterialItemWithGroupResponse])
+@router.get("/items", response_model=MaterialItemListResponse)
 async def get_material_items(
     group_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 200,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Seznam polotovarů (filtrovatelné dle skupiny)"""
-    query = (
-        select(MaterialItem)
-        .options(
-            selectinload(MaterialItem.group),
-            selectinload(MaterialItem.price_category)
-        )
-        .where(MaterialItem.deleted_at.is_(None))
-        .order_by(MaterialItem.code)
-    )
+    """Seznam polotovarů (filtrovatelné dle skupiny, stránkování) — vrací { items, total }"""
+    base_query = select(MaterialItem).where(MaterialItem.deleted_at.is_(None))
 
     if group_id:
-        query = query.where(MaterialItem.material_group_id == group_id)
+        base_query = base_query.where(MaterialItem.material_group_id == group_id)
 
-    result = await db.execute(query)
-    return result.scalars().all()
+    # Total count
+    count_result = await db.execute(select(func.count()).select_from(base_query.subquery()))
+    total = count_result.scalar() or 0
+
+    # Paginated items
+    result = await db.execute(base_query.order_by(MaterialItem.code).offset(skip).limit(limit))
+    items = result.scalars().all()
+
+    return MaterialItemListResponse(items=items, total=total)
 
 
 @router.get("/items/{material_number}", response_model=MaterialItemWithGroupResponse)

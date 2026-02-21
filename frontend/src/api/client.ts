@@ -17,7 +17,7 @@ export class ApiErrorClass extends Error implements ApiError {
   constructor(
     message: string,
     public status: number,
-    public data?: any
+    public data?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'ApiError'
@@ -27,8 +27,10 @@ export class ApiErrorClass extends Error implements ApiError {
 export class OptimisticLockErrorClass extends ApiErrorClass {
   readonly status: 409 = 409
 
-  constructor(data: any) {
-    super('Data byla změněna jiným uživatelem', 409, data)
+  constructor(data: Record<string, unknown>) {
+    // Use server message if provided, fallback to generic optimistic lock message
+    const message = (typeof data?.detail === 'string' ? data.detail : null) || 'Data byla změněna jiným uživatelem'
+    super(message, 409, data)
     this.name = 'OptimisticLockError'
   }
 }
@@ -36,7 +38,7 @@ export class OptimisticLockErrorClass extends ApiErrorClass {
 export class ValidationErrorClass extends ApiErrorClass {
   readonly status: 422 = 422
 
-  constructor(data: any) {
+  constructor(data: Record<string, unknown>) {
     super('Validation failed', 422, data)
     this.name = 'ValidationError'
   }
@@ -66,23 +68,15 @@ export const adminClient = axios.create({
 
 // Shared interceptor logic
 const requestInterceptor = (config: InternalAxiosRequestConfig) => {
-  // Log request in dev
-  if (import.meta.env.DEV) {
-    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
-  }
   return config
 }
 
-const requestErrorInterceptor = (error: any) => {
+const requestErrorInterceptor = (error: unknown) => {
   console.error('[API] Request error:', error)
   return Promise.reject(error)
 }
 
 const responseInterceptor = (response: AxiosResponse) => {
-  // Log response in dev
-  if (import.meta.env.DEV) {
-    console.log(`[API] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`)
-  }
   return response
 }
 
@@ -115,25 +109,32 @@ const responseErrorInterceptor = (error: AxiosError) => {
       console.warn('[API] Forbidden - insufficient permissions')
       break
 
-    case 404:
-      console.warn('[API] Not found')
+    case 404: {
+      const isExpectedNotFound = url.includes('/module-defaults/')
+      if (!isExpectedNotFound) {
+        console.warn('[API] Not found:', url)
+      }
       break
+    }
 
     case 409:
       // Optimistic lock conflict
-      throw new OptimisticLockErrorClass(data)
+      throw new OptimisticLockErrorClass(data as Record<string, unknown>)
 
-    case 422:
+    case 422: {
       // Validation error - log details for debugging
-      if (Array.isArray((data as any)?.detail)) {
-        const details = (data as any).detail
+      const responseData = data as Record<string, unknown>
+      if (Array.isArray(responseData?.detail)) {
+        const details = responseData.detail
         console.error('[API] Validation errors:', details)
         // Format Pydantic errors for better readability
-        details.forEach((err: any, idx: number) => {
-          console.error(`  [${idx + 1}] ${err.loc?.join('.')} - ${err.msg}`)
+        details.forEach((err: unknown, idx: number) => {
+          const error = err as { loc?: string[]; msg?: string }
+          console.error(`  [${idx + 1}] ${error.loc?.join('.')} - ${error.msg}`)
         })
       }
-      throw new ValidationErrorClass(data)
+      throw new ValidationErrorClass(responseData)
+    }
 
     case 500:
       console.error('[API] Server error')
@@ -141,10 +142,11 @@ const responseErrorInterceptor = (error: AxiosError) => {
   }
 
   // Throw standardized error
+  const responseData = data as Record<string, unknown>
   throw new ApiErrorClass(
-    (data as any)?.detail || 'Unknown error',
+    (typeof responseData?.detail === 'string' ? responseData.detail : null) || 'Unknown error',
     status,
-    data
+    responseData
   )
 }
 

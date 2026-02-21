@@ -4,7 +4,7 @@
  */
 
 import { ref } from 'vue'
-import axios from 'axios'
+import { getInforIdoInfo } from '@/api/infor-import'
 import { alert } from '@/composables/useDialog'
 
 const props = defineProps<{
@@ -13,7 +13,7 @@ const props = defineProps<{
 
 // State
 const selectedIdoForInfo = ref('')
-const idoInfo = ref<any>(null)
+const idoInfo = ref<Array<{ name: string; dataType?: string; required?: boolean }> | null>(null)
 const idoInfoLoading = ref(false)
 
 // Methods
@@ -31,12 +31,13 @@ async function getIdoInfo() {
   idoInfo.value = null
 
   try {
-    const response = await axios.get(`/api/infor/ido/${selectedIdoForInfo.value}/info`)
-    idoInfo.value = response.data.info
-  } catch (error: any) {
+    const data = await getInforIdoInfo(selectedIdoForInfo.value)
+    idoInfo.value = data.info
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
     await alert({
       title: 'Chyba',
-      message: 'Failed to get IDO info: ' + (error.response?.data?.detail || error.message),
+      message: 'Failed to get IDO info: ' + (err.response?.data?.detail || err.message || 'Unknown error'),
       type: 'error'
     })
   } finally {
@@ -98,35 +99,6 @@ async function getIdoInfo() {
   flex: 1;
 }
 
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 .info-box {
   padding: var(--space-3);

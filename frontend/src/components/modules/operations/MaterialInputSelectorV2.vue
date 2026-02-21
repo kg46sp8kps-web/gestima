@@ -18,15 +18,18 @@ import { parseMaterialDescription } from '@/api/materials'
 import { ChevronDown, ChevronUp, Plus, X, Check } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import type { LinkingGroup } from '@/stores/windows'
+import type { MaterialInputCreate } from '@/types/material'
 import type { MaterialInputWithOperations, MaterialParseResult } from '@/types/material'
 
 interface Props {
   partId: number | null
   linkingGroup?: LinkingGroup
+  hideHeader?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  linkingGroup: null
+  linkingGroup: null,
+  hideHeader: false
 })
 
 const materialsStore = useMaterialsStore()
@@ -45,6 +48,7 @@ const tempLength = ref<number | null>(null)
 const materialInputs = computed(() => materialsStore.getContext(props.linkingGroup).materialInputs)
 const operations = computed(() => operationsStore.getContext(props.linkingGroup).operations)
 const loading = computed(() => materialsStore.getContext(props.linkingGroup).loadingInputs)
+const initialLoading = computed(() => materialsStore.getContext(props.linkingGroup).initialLoadingInputs)
 
 // Load materials when partId changes
 watch(() => props.partId, async (newPartId) => {
@@ -61,18 +65,6 @@ async function handleParse() {
   try {
     const result = await parseMaterialDescription(parserText.value)
     parseResult.value = result
-
-    // Debug logging
-    console.log('[Parser Result]', {
-      confidence: result.confidence,
-      shape: result.shape,
-      diameter: result.diameter,
-      length: result.length,
-      material_norm: result.material_norm,
-      suggested_price_category_id: result.suggested_price_category_id,
-      suggested_material_item_id: result.suggested_material_item_id,
-      raw_input: result.raw_input
-    })
 
     // Auto-confirm if high confidence
     if (result.confidence >= 0.7) {
@@ -91,33 +83,30 @@ async function handleConfirmParse() {
 
   const result = parseResult.value
 
-  // Build MaterialInput payload
-  const payload: any = {
-    part_id: props.partId,
-    seq: materialInputs.value.length * 10 + 10,
-    stock_shape: result.shape,
-    stock_diameter: result.diameter,
-    stock_width: result.width,
-    stock_height: result.height,
-    stock_thickness: result.thickness,
-    stock_wall_thickness: result.wall_thickness,
-    stock_length: result.length,
-    quantity: 1
-  }
-
   // price_category_id je VŽDY required (MaterialItem má vztah k PriceCategory)
   if (!result.suggested_price_category_id) {
     console.error('Parser nevrátil price_category_id (required)')
     return
   }
 
-  payload.price_category_id = result.suggested_price_category_id
+  // Build MaterialInput payload - shape must be non-null
+  if (!result.shape) {
+    console.error('Parser nevrátil stock_shape (required)')
+    return
+  }
 
-  // Priorita: MaterialItem (konkrétní položka) > PriceCategory (obecný materiál)
-  if (result.suggested_material_item_id) {
-    payload.material_item_id = result.suggested_material_item_id
-  } else {
-    payload.material_item_id = null // Obecný materiál
+  const payload: MaterialInputCreate = {
+    part_id: props.partId,
+    seq: materialInputs.value.length * 10 + 10,
+    stock_shape: result.shape,
+    stock_diameter: result.diameter,
+    stock_width: result.width,
+    stock_height: result.height,
+    stock_wall_thickness: result.wall_thickness,
+    stock_length: result.length,
+    quantity: 1,
+    price_category_id: result.suggested_price_category_id,
+    material_item_id: result.suggested_material_item_id || null
   }
 
   try {
@@ -141,23 +130,26 @@ function handleCancelParse() {
   parseResult.value = null
 }
 
-// Format material label for display
-function formatMaterialLabel(material: MaterialInputWithOperations): string {
-  const parts: string[] = []
+// Format material label for display — returns { code, name } separately
+function getMaterialCode(material: MaterialInputWithOperations): string {
+  return material.material_item?.code ?? ''
+}
 
+function getMaterialName(material: MaterialInputWithOperations): string {
+  if (material.material_item?.name) return material.material_item.name
+  if (material.price_category?.name) return material.price_category.name
+  return ''
+}
+
+function formatDimensions(material: MaterialInputWithOperations): string {
   if (material.stock_shape === 'round_bar' && material.stock_diameter) {
-    parts.push(`Ø${material.stock_diameter}`)
+    return `Ø${material.stock_diameter}`
   } else if (material.stock_shape === 'square_bar' && material.stock_width) {
-    parts.push(`□${material.stock_width}`)
+    return `□${material.stock_width}`
   } else if (material.stock_shape === 'flat_bar' && material.stock_width && material.stock_height) {
-    parts.push(`${material.stock_width}×${material.stock_height}`)
+    return `${material.stock_width}×${material.stock_height}`
   }
-
-  if (material.stock_length) {
-    parts.push(`L${material.stock_length}`)
-  }
-
-  return parts.join(' ')
+  return ''
 }
 
 // Toggle dropdown
@@ -216,7 +208,7 @@ const totalMaterialCost = computed(() => {
 
 <template>
   <div class="material-input-selector-v2">
-    <div class="selector-header">
+    <div v-if="!hideHeader" class="selector-header">
       <label class="selector-label">Materiál</label>
     </div>
 
@@ -265,11 +257,17 @@ const totalMaterialCost = computed(() => {
         </div>
         <div class="preview-type">
           <span v-if="parseResult.suggested_material_item_id" class="type-badge item">
-            Konkrétní položka
+            {{ parseResult.suggested_material_item_name || `Položka #${parseResult.suggested_material_item_id}` }}
           </span>
           <span v-else-if="parseResult.suggested_price_category_id" class="type-badge category">
-            Obecný materiál
+            {{ parseResult.suggested_price_category_name || 'Obecný materiál' }}
           </span>
+        </div>
+        <div v-if="parseResult.suggested_material_group_name" class="preview-group">
+          <span class="preview-item">{{ parseResult.suggested_material_group_name }}</span>
+        </div>
+        <div v-if="parseResult.warnings?.length" class="preview-warnings">
+          <span v-for="w in parseResult.warnings" :key="w" class="preview-warning">{{ w }}</span>
         </div>
       </div>
       <div class="preview-actions">
@@ -296,13 +294,81 @@ const totalMaterialCost = computed(() => {
         class="material-item"
         :class="{ expanded: expandedMaterialId === material.id }"
       >
-        <!-- Main row -->
-        <div class="material-main-row">
+        <!-- Main row — celý řádek klikatelný pro toggle -->
+        <div class="material-main-row" @click="toggleDropdown(material.id)">
           <div class="material-info">
-            <span class="material-label">{{ formatMaterialLabel(material) }}</span>
+            <div class="material-label-group">
+              <span v-if="getMaterialCode(material)" class="material-code">{{ getMaterialCode(material) }}</span>
+              <span v-if="getMaterialCode(material)" class="material-sep">·</span>
+              <span class="material-name">{{ getMaterialName(material) }}</span>
+              <span class="material-sep">·</span>
+              <span v-if="editingLengthId === material.id" class="length-edit" @click.stop>
+                <input
+                  v-model.number="tempLength"
+                  type="number"
+                  class="length-input"
+                  @keyup.enter="saveLength(material)"
+                  @keyup.esc="cancelEditLength"
+                />
+                <button class="btn-icon-sm" @click="saveLength(material)" title="Uložit">
+                  <Check :size="ICON_SIZE.SMALL" />
+                </button>
+                <button class="btn-icon-sm" @click="cancelEditLength" title="Zrušit">
+                  <X :size="ICON_SIZE.SMALL" />
+                </button>
+              </span>
+              <button
+                v-else
+                class="length-inline-btn"
+                @click.stop="startEditLength(material)"
+                title="Klikni pro úpravu délky"
+              >
+                <span class="param-key">L=</span>{{ material.stock_length || 0 }}<span class="param-unit">mm</span>
+              </button>
+            </div>
+          </div>
 
-            <!-- Editable length -->
-            <div v-if="editingLengthId === material.id" class="length-edit">
+          <div class="material-actions">
+            <span v-if="material.cost_per_piece" class="material-cost">
+              {{ material.cost_per_piece.toFixed(0) }} Kč
+            </span>
+            <span class="btn-toggle" title="Zobrazit detail">
+              <ChevronDown v-if="expandedMaterialId !== material.id" :size="ICON_SIZE.SMALL" />
+              <ChevronUp v-else :size="ICON_SIZE.SMALL" />
+            </span>
+            <button
+              class="btn-delete"
+              @click.stop="deleteMaterial(material.id)"
+              title="Smazat materiál"
+            >
+              <X :size="ICON_SIZE.SMALL" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Dropdown detail -->
+        <div v-if="expandedMaterialId === material.id" class="material-dropdown">
+          <div class="dropdown-section">
+            <span class="dropdown-label">Typ:</span>
+            <span class="dropdown-value">
+              <span v-if="material.material_item" class="type-badge item">
+                {{ material.material_item.name }}
+              </span>
+              <span v-else-if="material.price_category" class="type-badge category">
+                {{ material.price_category.name }}
+              </span>
+              <span v-else class="type-badge category">
+                Obecný materiál
+              </span>
+            </span>
+          </div>
+          <div v-if="material.material_item" class="dropdown-section">
+            <span class="dropdown-label">Kód:</span>
+            <span class="dropdown-value">{{ material.material_item.code }}</span>
+          </div>
+          <div class="dropdown-section">
+            <span class="dropdown-label">Délka:</span>
+            <div v-if="editingLengthId === material.id" class="length-edit" @click.stop>
               <input
                 v-model.number="tempLength"
                 type="number"
@@ -319,48 +385,12 @@ const totalMaterialCost = computed(() => {
             </div>
             <button
               v-else
-              class="length-badge"
-              @click="startEditLength(material)"
+              class="length-inline-btn"
+              @click.stop="startEditLength(material)"
               title="Klikni pro úpravu délky"
             >
-              L{{ material.stock_length || 0 }}mm
+              <span class="param-key">L=</span>{{ material.stock_length || 0 }}<span class="param-unit">mm</span>
             </button>
-          </div>
-
-          <div class="material-actions">
-            <span v-if="material.cost_per_piece" class="material-cost">
-              {{ material.cost_per_piece.toFixed(0) }} Kč
-            </span>
-            <button
-              class="btn-toggle"
-              @click="toggleDropdown(material.id)"
-              title="Zobrazit detail"
-            >
-              <ChevronDown v-if="expandedMaterialId !== material.id" :size="ICON_SIZE.SMALL" />
-              <ChevronUp v-else :size="ICON_SIZE.SMALL" />
-            </button>
-            <button
-              class="btn-delete"
-              @click="deleteMaterial(material.id)"
-              title="Smazat materiál"
-            >
-              <X :size="ICON_SIZE.SMALL" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Dropdown detail -->
-        <div v-if="expandedMaterialId === material.id" class="material-dropdown">
-          <div class="dropdown-section">
-            <span class="dropdown-label">Typ:</span>
-            <span class="dropdown-value">
-              <span v-if="material.material_item_id" class="type-badge item">
-                Konkrétní položka #{{ material.material_item_id }}
-              </span>
-              <span v-else class="type-badge category">
-                Obecný materiál
-              </span>
-            </span>
           </div>
           <div v-if="material.weight_kg" class="dropdown-section">
             <span class="dropdown-label">Hmotnost:</span>
@@ -397,12 +427,12 @@ const totalMaterialCost = computed(() => {
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!loading && !parseResult" class="empty-state">
+    <div v-else-if="!loading && !initialLoading && !parseResult" class="empty-state">
       <span class="empty-text">Zadejte materiál výše</span>
     </div>
 
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
+    <!-- Loading state (only on first load — no flash on part switch) -->
+    <div v-if="initialLoading" class="loading-state">
       <div class="spinner"></div>
       <span>Načítám materiály...</span>
     </div>
@@ -443,10 +473,10 @@ const totalMaterialCost = computed(() => {
 
 .parser-field {
   flex: 1;
-  padding: var(--space-2);
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   background: var(--bg-base);
   color: var(--text-primary);
   transition: var(--transition-fast);
@@ -466,13 +496,13 @@ const totalMaterialCost = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition-fast);
 }
@@ -540,6 +570,22 @@ const totalMaterialCost = computed(() => {
 .preview-type {
   display: flex;
   gap: var(--space-1);
+}
+
+.preview-group {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.preview-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.preview-warning {
+  font-size: var(--text-xs);
+  color: var(--color-warning);
 }
 
 .type-badge {
@@ -613,7 +659,7 @@ const totalMaterialCost = computed(() => {
 .material-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .material-item {
@@ -622,18 +668,24 @@ const totalMaterialCost = computed(() => {
   background: var(--bg-base);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  transition: var(--transition-fast);
 }
 
 .material-item.expanded {
-  border-color: var(--color-primary);
+  border-color: var(--border-strong);
 }
 
 .material-main-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-2);
+  height: 28px;
+  padding: 0 var(--space-2);
+  cursor: pointer;
+}
+
+.material-main-row:hover {
+  background: var(--hover);
+  border-radius: var(--radius-md);
 }
 
 .material-info {
@@ -641,29 +693,86 @@ const totalMaterialCost = computed(() => {
   align-items: center;
   gap: var(--space-2);
   flex: 1;
+  min-width: 0;
 }
 
-.material-label {
-  font-size: var(--text-sm);
+.material-label-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.material-code {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--text-primary);
+  font-family: var(--font-mono);
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.length-badge {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+.material-sep {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  color: var(--text-tertiary);
   font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition-fast);
+  flex-shrink: 0;
+  user-select: none;
 }
 
-.length-badge:hover {
-  background: var(--bg-hover);
-  border-color: var(--color-primary);
+.material-name {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--text-secondary);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.length-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.length-inline-btn:hover {
+  color: var(--color-primary);
+}
+
+.param-key {
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+
+.param-unit {
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--text-secondary);
+  margin-left: 2px;
 }
 
 .length-edit {
@@ -673,11 +782,24 @@ const totalMaterialCost = computed(() => {
 }
 
 .length-input {
-  width: 80px;
-  padding: var(--space-1);
+  width: 60px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  -moz-appearance: textfield;
+}
+
+.length-input:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  background: var(--focus-bg);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .btn-icon-sm {
@@ -687,10 +809,11 @@ const totalMaterialCost = computed(() => {
   width: 24px;
   height: 24px;
   padding: 0;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background: none;
+  border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  color: var(--text-secondary);
   transition: var(--transition-fast);
 }
 
@@ -829,32 +952,11 @@ const totalMaterialCost = computed(() => {
 }
 
 /* Empty/Loading states */
-.empty-state,
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
-}
 
 .empty-text {
   color: var(--text-secondary);
 }
 
 /* Spinner */
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 </style>

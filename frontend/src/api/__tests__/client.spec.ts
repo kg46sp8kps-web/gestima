@@ -156,7 +156,7 @@ describe('API Client', () => {
       )
       await expect(apiClient.put('/test/1', {})).rejects.toMatchObject({
         status: 409,
-        message: 'Data byla změněna jiným uživatelem'
+        message: 'Version mismatch'
       })
     })
 
@@ -201,10 +201,10 @@ describe('API Client', () => {
       try {
         await apiClient.get('/test')
         expect.fail('Should have thrown error')
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(ApiErrorClass)
-        expect(error.data).toEqual(errorData)
-        expect(error.status).toBe(400)
+        expect((error as ApiErrorClass).data).toEqual(errorData)
+        expect((error as ApiErrorClass).status).toBe(400)
       }
     })
 
@@ -220,10 +220,10 @@ describe('API Client', () => {
       try {
         await apiClient.post('/test', {})
         expect.fail('Should have thrown error')
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(ValidationErrorClass)
-        expect(error.data).toEqual(validationData)
-        expect(error.data.detail).toHaveLength(2)
+        expect((error as ValidationErrorClass).data).toEqual(validationData)
+        expect((error as ValidationErrorClass).data?.detail).toHaveLength(2)
       }
     })
   })

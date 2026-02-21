@@ -157,7 +157,6 @@ onMounted(loadPivot)
 .seed-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .error-bar { padding: var(--space-2) var(--space-3); background: var(--palette-danger-light, rgba(244, 63, 94, 0.15)); color: var(--palette-danger); border-radius: var(--radius-md); font-size: var(--text-sm); }
 .loading { text-align: center; padding: var(--space-6); color: var(--text-secondary); }
-.empty-state { text-align: center; padding: var(--space-8); color: var(--text-secondary); font-size: var(--text-sm); }
 .table-wrapper { flex: 1; overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); }
 .pivot-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
 .pivot-table th, .pivot-table td { padding: var(--space-1) var(--space-2); border: 1px solid var(--border-default); white-space: nowrap; }

@@ -39,7 +39,9 @@ class Quote(Base, AuditMixin):
     title = Column(String(200), nullable=False, default="")
     description = Column(Text, nullable=True)
     customer_request_number = Column(String(50), nullable=True, index=True)  # RFQ number from customer
-    valid_until = Column(DateTime, nullable=True, index=True)
+    request_date = Column(DateTime, nullable=True)  # Datum vystavení poptávky zákazníkem
+    offer_deadline = Column(DateTime, nullable=True, index=True)  # Deadline pro předložení nabídky
+    valid_until = Column(DateTime, nullable=True, index=True)  # Platnost nabídky (naše)
 
     # Workflow
     status = Column(String(20), default=QuoteStatus.DRAFT.value, nullable=False, index=True)
@@ -143,7 +145,9 @@ class QuoteBase(BaseModel):
     title: str = Field("", max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
-    valid_until: Optional[datetime] = Field(None, description="Platnost do")
+    request_date: Optional[datetime] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[datetime] = Field(None, description="Deadline pro předložení nabídky")
+    valid_until: Optional[datetime] = Field(None, description="Platnost nabídky")
     status: str = Field(QuoteStatus.DRAFT.value, description="Stav nabídky")
     subtotal: float = Field(0.0, ge=0.0, description="Mezisoučet")
     discount_percent: float = Field(0.0, ge=0.0, le=100.0, description="Sleva %")
@@ -160,7 +164,9 @@ class QuoteCreate(BaseModel):
     title: Optional[str] = Field(None, max_length=200, description="Název nabídky - optional")
     description: Optional[str] = Field(None, description="Popis")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
-    valid_until: Optional[datetime] = Field(None, description="Platnost do")
+    request_date: Optional[datetime] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[datetime] = Field(None, description="Deadline pro předložení nabídky")
+    valid_until: Optional[datetime] = Field(None, description="Platnost nabídky")
     discount_percent: float = Field(0.0, ge=0.0, le=100.0, description="Sleva %")
     tax_percent: float = Field(21.0, ge=0.0, le=100.0, description="DPH %")
     notes: Optional[str] = Field(None, description="Poznámky")
@@ -171,7 +177,9 @@ class QuoteUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
-    valid_until: Optional[datetime] = Field(None, description="Platnost do")
+    request_date: Optional[datetime] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[datetime] = Field(None, description="Deadline pro předložení nabídky")
+    valid_until: Optional[datetime] = Field(None, description="Platnost nabídky")
     discount_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="Sleva %")
     tax_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="DPH %")
     notes: Optional[str] = Field(None, description="Poznámky")
@@ -206,6 +214,7 @@ class QuoteListResponse(BaseModel):
     title: str
     status: str
     total: float
+    offer_deadline: Optional[datetime] = None
     valid_until: Optional[datetime] = None
     created_at: datetime
     version: int

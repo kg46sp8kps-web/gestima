@@ -45,7 +45,7 @@ def _resolve_pdf_path(record_pdf_path: str, filename: str) -> Path:
     return path  # Return as-is, caller will handle missing file
 
 
-@router.get("/model-info")
+@router.get("/model-info", response_model=dict)
 async def get_model_info():
     """Return currently configured OpenAI model info."""
     return {
@@ -401,7 +401,7 @@ async def calibrate_estimation(
         raise HTTPException(status_code=500, detail="Failed to update")
 
 
-@router.get("/batch-test-results")
+@router.get("/batch-test-results", response_model=dict)
 async def get_batch_test_results(current_user: User = Depends(get_current_user)):
     """Serve batch test results from data/batch_test_results.json."""
     results_path = Path("data/batch_test_results.json")
@@ -419,7 +419,7 @@ async def get_batch_test_results(current_user: User = Depends(get_current_user))
         raise HTTPException(status_code=500, detail="Failed to read batch results")
 
 
-@router.delete("/estimations/{estimation_id}")
+@router.delete("/estimations/{estimation_id}", response_model=dict)
 async def delete_estimation(
     estimation_id: int,
     db: AsyncSession = Depends(get_db),

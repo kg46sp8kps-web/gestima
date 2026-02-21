@@ -20,11 +20,13 @@ export async function getParts(
   skip = 0,
   limit = 100,
   status?: string,
-  search?: string
+  search?: string,
+  hasDrawing?: boolean
 ): Promise<PartsSearchResponse> {
   const params: Record<string, unknown> = { skip, limit }
   if (status) params.status = status
   if (search) params.search = search
+  if (hasDrawing === true) params.has_drawing = true
   const response = await apiClient.get<PartsSearchResponse>('/parts/', { params })
   return response.data
 }
@@ -34,14 +36,6 @@ export async function getParts(
  */
 export async function getPart(partNumber: string): Promise<Part> {
   const response = await apiClient.get<Part>(`/parts/${partNumber}`)
-  return response.data
-}
-
-/**
- * Get part with full eager-loaded relationships
- */
-export async function getPartFull(partNumber: string): Promise<any> {
-  const response = await apiClient.get(`/parts/${partNumber}/full`)
   return response.data
 }
 
@@ -116,20 +110,6 @@ export async function getPartPricing(
   const response = await apiClient.get<PriceBreakdown>(
     `/parts/${partNumber}/pricing`,
     { params: { quantity } }
-  )
-  return response.data
-}
-
-/**
- * Get series pricing (multiple quantities)
- */
-export async function getSeriesPricing(
-  partNumber: string,
-  quantities: number[]
-): Promise<PriceBreakdown[]> {
-  const response = await apiClient.get<PriceBreakdown[]>(
-    `/parts/${partNumber}/pricing/series`,
-    { params: { quantities: quantities.join(',') } }
   )
   return response.data
 }

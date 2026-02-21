@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """GESTIMA - Seed MaterialGroups with cutting parameters
 
-9 material groups with complete cutting data for machining time estimation.
+10 material groups with complete cutting data for machining time estimation.
 Data sources: Sandvik Coromant 2024, Iscar 2024, Kennametal 2024
-Codes: 8-digit (ADR-017), range 20910000-20910008
+Codes: 8-digit (ADR-017), range 20910000-20910009
 """
 
 import asyncio
@@ -104,6 +104,18 @@ MATERIAL_GROUPS = [
         'cutting_data_source': 'Sandvik Coromant 2024 (1.4301, 1.4401)',
     },
 
+    # === Litina ===
+    {
+        'code': '20910009', 'name': 'Litina', 'density': 7.2,
+        'iso_group': 'K', 'hardness_hb': 200.0,
+        'mrr_turning_roughing': 350.0, 'mrr_turning_finishing': 90.0,
+        'mrr_milling_roughing': 220.0, 'mrr_milling_finishing': 55.0,
+        'cutting_speed_turning': 160.0, 'cutting_speed_milling': 140.0,
+        'feed_turning': 0.25, 'feed_milling': 0.18,
+        'deep_pocket_penalty': 1.8, 'thin_wall_penalty': 2.5,
+        'cutting_data_source': 'Sandvik Coromant 2024 (GJL-250, GJS-400)',
+    },
+
     # === Plasty ===
     {
         'code': '20910008', 'name': 'Plasty', 'density': 1.2,
@@ -121,7 +133,7 @@ MATERIAL_GROUPS = [
 async def seed_material_groups(db: AsyncSession):
     """Seed MaterialGroups with cutting parameters. Idempotent: update existing, create new."""
 
-    print("🌱 Seeding MaterialGroups (9 groups with cutting data)...")
+    print("🌱 Seeding MaterialGroups (10 groups with cutting data)...")
 
     created_count = 0
     updated_count = 0

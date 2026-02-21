@@ -6,9 +6,16 @@
  */
 
 import { ref, computed } from 'vue'
-import axios from 'axios'
 import { alert } from '@/composables/useDialog'
 import { ICON_SIZE } from '@/config/design'
+import {
+  getInforIdoInfo,
+  getInforIdoData,
+  previewMaterialImport,
+  executeMaterialImport,
+  testMaterialImportPattern
+} from '@/api/infor-import'
+import type { InforRow } from '@/types/infor'
 import {
   Check,
   X,
@@ -24,9 +31,7 @@ import {
   Download
 } from 'lucide-vue-next'
 import type {
-  StagedMaterialRow,
-  MaterialImportPreviewResponse,
-  MaterialImportExecuteResponse
+  StagedMaterialRow
 } from '@/types/infor'
 import { getSurfaceTreatmentLabel } from '@/types/infor'
 
@@ -44,8 +49,8 @@ const showFieldChooser = ref(false)
 const fieldSearchQuery = ref('')
 const idoLimit = ref(2000)
 const idoFilter = ref("FamilyCode like 'materiál'")  // WHERE clause for Infor query
-const inforData = ref<any[]>([])
-const selectedRows = ref<any[]>([])
+const inforData = ref<InforRow[]>([])
+const selectedRows = ref<InforRow[]>([])
 const loading = ref(false)
 
 // State - Staging
@@ -56,7 +61,7 @@ const importing = ref(false)
 
 // State - Pattern Testing Modal
 const showTestModal = ref(false)
-const testResult = ref<any>(null)
+const testResult = ref<Record<string, unknown> | null>(null)
 const testingPattern = ref(false)
 
 // State - UI
@@ -93,6 +98,13 @@ const filteredStagedRows = computed(() => {
   })
 })
 
+// Type-safe accessors for testResult (which is Record<string, unknown> from API)
+const testResultParsed = computed(() => (testResult.value?.parsed as Record<string, unknown>) || {})
+const testResultDetected = computed(() => (testResult.value?.detected as Record<string, unknown>) || {})
+const testResultNotFound = computed(() => (testResult.value?.not_found as string[]) || [])
+const testResultErrors = computed(() => (testResult.value?.errors as string[]) || [])
+const testResultWarnings = computed(() => (testResult.value?.warnings as string[]) || [])
+
 // Fetch available fields for IDO
 async function fetchFields() {
   if (!selectedIdo.value) {
@@ -102,18 +114,19 @@ async function fetchFields() {
 
   fetchingFields.value = true
   try {
-    const response = await axios.get(`/api/infor/ido/${selectedIdo.value}/info`)
-    const fields = response.data.info || []
+    const data = await getInforIdoInfo(selectedIdo.value)
+    const fields = data.info || []
 
-    availableFields.value = fields.map((field: any) => ({
+    availableFields.value = fields.map((field: { name: string; dataType?: string; required?: boolean }) => ({
       name: field.name,
       type: field.dataType || 'String',
       required: field.required || false
     }))
 
     showFieldChooser.value = true
-  } catch (error: any) {
-    await alert({ title: 'Error', message: error.response?.data?.detail || error.message, type: 'error' })
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
+    await alert({ title: 'Error', message: err.response?.data?.detail || err.message || 'Unknown error', type: 'error' })
   } finally {
     fetchingFields.value = false
   }
@@ -138,30 +151,25 @@ async function loadInforData() {
 
   loading.value = true
   try {
-    const params: any = {
+    const params = {
       properties: selectedFields.value.join(','),
-      limit: idoLimit.value
+      limit: idoLimit.value,
+      filter: idoFilter.value.trim() || undefined
     }
 
-    // Add filter if provided
-    if (idoFilter.value.trim()) {
-      params.filter = idoFilter.value.trim()
-    }
-
-    const response = await axios.get(`/api/infor/ido/${selectedIdo.value}/data`, {
-      params
-    })
-    inforData.value = response.data.data || []
+    const data = await getInforIdoData(selectedIdo.value, params)
+    inforData.value = (data.data as InforRow[]) || []
     // Success - no modal needed, data count is visible in UI
-  } catch (error: any) {
-    await alert({ title: 'Error', message: error.response?.data?.detail || error.message, type: 'error' })
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
+    await alert({ title: 'Error', message: err.response?.data?.detail || err.message || 'Unknown error', type: 'error' })
   } finally {
     loading.value = false
   }
 }
 
 // Toggle row selection
-function toggleRow(row: any) {
+function toggleRow(row: InforRow) {
   const idx = selectedRows.value.indexOf(row)
   if (idx > -1) {
     selectedRows.value.splice(idx, 1)
@@ -248,8 +256,8 @@ async function stageSelected() {
   loading.value = true
   try {
     // Clean rows: remove metadata fields that start with underscore
-    const cleanedRows = selectedRows.value.map(row => {
-      const cleaned: any = {}
+    const cleanedRows = selectedRows.value.map((row: InforRow) => {
+      const cleaned: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(row)) {
         // Skip fields that start with underscore (metadata)
         if (!key.startsWith('_')) {
@@ -259,35 +267,17 @@ async function stageSelected() {
       return cleaned
     })
 
-    // DEBUG: Log what we're sending
-    console.log('[Staging]', {
-      ido_name: selectedIdo.value,
-      rows_count: cleanedRows.length,
-      first_row: cleanedRows[0],
-      original_first_row: selectedRows.value[0]
-    })
-
-    const response = await axios.post<MaterialImportPreviewResponse>('/api/infor/import/materials/preview', {
-      ido_name: selectedIdo.value,
-      rows: cleanedRows
-    })
-
-    stagedRows.value = response.data.rows as StagedMaterialRow[]
-
-    console.log('[Preview] Success:', {
-      valid: response.data.valid_count,
-      errors: response.data.error_count,
-      duplicates: response.data.duplicate_count,
-      first_staged: stagedRows.value[0]
-    })
+    const data = await previewMaterialImport(selectedIdo.value, cleanedRows)
+    stagedRows.value = data.rows as StagedMaterialRow[]
 
     // Success - no modal needed, counts are visible in summary badges
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: unknown } }; message?: string }
     console.error('[Preview] Error:', error)
-    console.error('Error response:', error.response?.data)
+    console.error('Error response:', err.response?.data)
 
     // Show full error message
-    const errorDetail = error.response?.data?.detail || error.message
+    const errorDetail = err.response?.data?.detail || err.message || 'Unknown error'
     console.error('Full error detail:', errorDetail)
 
     await alert({
@@ -303,13 +293,13 @@ async function stageSelected() {
 // Test pattern modal
 async function openTestModal() {
   // Get first selected row OR first error row
-  let testRow: StagedMaterialRow | null = null
+  let testRow: StagedMaterialRow | undefined
 
   if (selectedStagedRows.value.length > 0) {
     testRow = selectedStagedRows.value[0]
   } else if (stagedRows.value.length > 0) {
     // Find first row with errors
-    testRow = stagedRows.value.find(r => !r.validation.is_valid) || stagedRows.value[0]
+    testRow = stagedRows.value.find(r => !r.validation.is_valid) ?? stagedRows.value[0]
   }
 
   if (!testRow) {
@@ -319,14 +309,12 @@ async function openTestModal() {
 
   testingPattern.value = true
   try {
-    const response = await axios.post('/api/infor/import/materials/test-pattern', {
-      row: testRow.infor_data
-    })
-
-    testResult.value = response.data
+    const data = await testMaterialImportPattern(testRow.infor_data as Record<string, unknown>)
+    testResult.value = data
     showTestModal.value = true
-  } catch (error: any) {
-    await alert({ title: 'Error', message: error.response?.data?.detail || error.message, type: 'error' })
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
+    await alert({ title: 'Error', message: err.response?.data?.detail || err.message || 'Unknown error', type: 'error' })
   } finally {
     testingPattern.value = false
   }
@@ -344,16 +332,19 @@ async function executeImport() {
     return
   }
 
-  const selectedWithErrors = selectedStagedRows.value.filter(r => !r.validation.is_valid)
-  if (selectedWithErrors.length > 0) {
-    await alert({ title: 'Chyba', message: `${selectedWithErrors.length} vybraných řádků má errors`, type: 'error' })
+  // Separate valid and invalid rows
+  const validRows = selectedStagedRows.value.filter(r => r.validation.is_valid)
+  const errorRows = selectedStagedRows.value.filter(r => !r.validation.is_valid)
+
+  if (validRows.length === 0) {
+    await alert({ title: 'Chyba', message: 'Žádný vybraný řádek nemá platná data k importu', type: 'error' })
     return
   }
 
   importing.value = true
   try {
-    const rows = selectedStagedRows.value.map(r => {
-      const row: any = { ...r.mapped_data }
+    const rows = validRows.map(r => {
+      const row: Record<string, unknown> = { ...r.mapped_data }
       // Only add duplicate_action if it's a duplicate
       if (r.validation.is_duplicate) {
         row.duplicate_action = 'skip'
@@ -361,17 +352,12 @@ async function executeImport() {
       return row
     })
 
-    console.log('🚀 Executing import with rows:', rows)
+    const data = await executeMaterialImport(rows)
 
-    const response = await axios.post<MaterialImportExecuteResponse>('/api/infor/import/materials/execute', {
-      rows
-    })
-
-    console.log('[Import] Success:', response.data)
-
+    const skippedMsg = errorRows.length > 0 ? `, Přeskočeno (chyby): ${errorRows.length}` : ''
     await alert({
       title: 'Import Complete!',
-      message: `Created: ${response.data.created_count}, Updated: ${response.data.updated_count}, Skipped: ${response.data.skipped_count}`,
+      message: `Created: ${data.created_count}, Updated: ${data.updated_count}, Skipped: ${data.skipped_count}${skippedMsg}`,
       type: 'success'
     })
 
@@ -380,11 +366,12 @@ async function executeImport() {
     selectedRows.value = []
     inforData.value = []
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: unknown } }; message?: string }
     console.error('[Import] Error:', error)
-    console.error('Error response:', error.response?.data)
+    console.error('Error response:', err.response?.data)
 
-    const errorDetail = error.response?.data?.detail || error.message
+    const errorDetail = err.response?.data?.detail || err.message || 'Unknown error'
     await alert({
       title: 'Import Failed',
       message: typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail, null, 2),
@@ -514,7 +501,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
               <thead>
                 <tr>
                   <th>☑</th>
-                  <th v-for="key in Object.keys(inforData[0]).filter(k => !k.startsWith('_'))" :key="key">{{ key }}</th>
+                  <th v-for="key in Object.keys(inforData[0] || {}).filter((k: string) => !k.startsWith('_'))" :key="key">{{ key }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -676,37 +663,37 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
           <div class="test-section">
             <label><CheckCircle :size="ICON_SIZE.SMALL" /> Parsed Results:</label>
             <div class="result-grid">
-              <div v-if="testResult.parsed.shape" class="result-item success">
+              <div v-if="testResultParsed.shape" class="result-item success">
                 <span class="result-label">Shape:</span>
-                <span class="result-value">{{ testResult.parsed.shape }}</span>
+                <span class="result-value">{{ testResultParsed.shape }}</span>
               </div>
-              <div v-if="testResult.parsed.material_code" class="result-item success">
+              <div v-if="testResultParsed.material_code" class="result-item success">
                 <span class="result-label">Material Code:</span>
-                <span class="result-value">{{ testResult.parsed.material_code }}</span>
+                <span class="result-value">{{ testResultParsed.material_code }}</span>
               </div>
-              <div v-if="testResult.parsed.surface_treatment" class="result-item success">
+              <div v-if="testResultParsed.surface_treatment" class="result-item success">
                 <span class="result-label">Surface Treatment:</span>
-                <span class="result-value">{{ getSurfaceTreatmentLabel(testResult.parsed.surface_treatment) }}</span>
+                <span class="result-value">{{ getSurfaceTreatmentLabel(testResultParsed.surface_treatment as string) }}</span>
               </div>
-              <div v-if="testResult.parsed.diameter" class="result-item success">
+              <div v-if="testResultParsed.diameter" class="result-item success">
                 <span class="result-label">Diameter:</span>
-                <span class="result-value">{{ testResult.parsed.diameter }} mm</span>
+                <span class="result-value">{{ testResultParsed.diameter }} mm</span>
               </div>
-              <div v-if="testResult.parsed.wall_thickness" class="result-item success">
+              <div v-if="testResultParsed.wall_thickness" class="result-item success">
                 <span class="result-label">Wall Thickness:</span>
-                <span class="result-value">{{ testResult.parsed.wall_thickness }} mm</span>
+                <span class="result-value">{{ testResultParsed.wall_thickness }} mm</span>
               </div>
-              <div v-if="testResult.parsed.width" class="result-item success">
+              <div v-if="testResultParsed.width" class="result-item success">
                 <span class="result-label">Width:</span>
-                <span class="result-value">{{ testResult.parsed.width }} mm</span>
+                <span class="result-value">{{ testResultParsed.width }} mm</span>
               </div>
-              <div v-if="testResult.parsed.thickness" class="result-item success">
+              <div v-if="testResultParsed.thickness" class="result-item success">
                 <span class="result-label">Thickness:</span>
-                <span class="result-value">{{ testResult.parsed.thickness }} mm</span>
+                <span class="result-value">{{ testResultParsed.thickness }} mm</span>
               </div>
-              <div v-if="testResult.parsed.standard_length" class="result-item success">
+              <div v-if="testResultParsed.standard_length" class="result-item success">
                 <span class="result-label">Length:</span>
-                <span class="result-value">{{ testResult.parsed.standard_length }} mm</span>
+                <span class="result-value">{{ testResultParsed.standard_length }} mm</span>
               </div>
             </div>
           </div>
@@ -715,48 +702,48 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
           <div class="test-section">
             <label><Search :size="ICON_SIZE.SMALL" /> Auto-Detected:</label>
             <div class="result-grid">
-              <div v-if="testResult.detected.material_group_id" class="result-item success">
+              <div v-if="testResultDetected.material_group_id" class="result-item success">
                 <span class="result-label">Material Group:</span>
                 <span class="result-value">
-                  {{ testResult.detected.material_group_name }}
-                  <small>(ID: {{ testResult.detected.material_group_id }})</small>
+                  {{ testResultDetected.material_group_name }}
+                  <small>(ID: {{ testResultDetected.material_group_id }})</small>
                 </span>
               </div>
-              <div v-if="testResult.detected.price_category_id" class="result-item success">
+              <div v-if="testResultDetected.price_category_id" class="result-item success">
                 <span class="result-label">Price Category:</span>
                 <span class="result-value">
-                  {{ testResult.detected.price_category_name }}
-                  <small>(ID: {{ testResult.detected.price_category_id }})</small>
+                  {{ testResultDetected.price_category_name }}
+                  <small>(ID: {{ testResultDetected.price_category_id }})</small>
                 </span>
               </div>
             </div>
           </div>
 
           <!-- Not Found -->
-          <div v-if="testResult.not_found && testResult.not_found.length > 0" class="test-section">
+          <div v-if="testResultNotFound && testResultNotFound.length > 0" class="test-section">
             <label><XCircle :size="ICON_SIZE.SMALL" /> Not Found:</label>
             <div class="not-found-list">
-              <span v-for="field in testResult.not_found" :key="field" class="not-found-item">
+              <span v-for="field in testResultNotFound" :key="field" class="not-found-item">
                 {{ field }}
               </span>
             </div>
           </div>
 
           <!-- Errors -->
-          <div v-if="testResult.errors && testResult.errors.length > 0" class="test-section">
+          <div v-if="testResultErrors && testResultErrors.length > 0" class="test-section">
             <label><XCircle :size="ICON_SIZE.SMALL" /> Errors:</label>
             <ul class="error-list">
-              <li v-for="(error, idx) in testResult.errors" :key="idx" class="error-item">
+              <li v-for="(error, idx) in testResultErrors" :key="idx" class="error-item">
                 {{ error }}
               </li>
             </ul>
           </div>
 
           <!-- Warnings -->
-          <div v-if="testResult.warnings && testResult.warnings.length > 0" class="test-section">
+          <div v-if="testResultWarnings && testResultWarnings.length > 0" class="test-section">
             <label><AlertTriangle :size="ICON_SIZE.SMALL" /> Warnings:</label>
             <ul class="warning-list">
-              <li v-for="(warning, idx) in testResult.warnings" :key="idx" class="warning-item">
+              <li v-for="(warning, idx) in testResultWarnings" :key="idx" class="warning-item">
                 {{ warning }}
               </li>
             </ul>
@@ -813,10 +800,6 @@ h4 {
   margin: 0 0 var(--space-4) 0;
 }
 
-.form-group {
-  margin-bottom: var(--space-4);
-}
-
 .form-grid-ido {
   display: grid;
   grid-template-columns: 250px 1fr;
@@ -838,123 +821,6 @@ h4 {
 
 .form-grid-2 .form-group {
   margin-bottom: 0;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-}
-
-.input {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  background: var(--bg-base);
-  transition: border-color 0.15s ease;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
-
-.btn-accent {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  margin-top: var(--space-3);
-}
-
-.btn-accent:hover:not(:disabled) {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
-
-.btn-success {
-  background: var(--status-ok);
-  color: white;
-  margin-top: var(--space-4);
-  padding: var(--space-3) var(--space-5);
-  font-size: var(--text-base);
-}
-
-.btn-success:hover:not(:disabled) {
-  background: var(--palette-success-hover);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-sm {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.btn-secondary {
-  background: var(--bg-muted);
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-secondary:hover {
-  background: var(--bg-hover);
-}
-
-.btn-danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--status-error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.btn-danger:hover {
-  background: rgba(239, 68, 68, 0.25);
 }
 
 .data-section {
@@ -998,20 +864,6 @@ h4 {
   font-size: var(--text-xs);
   color: var(--text-secondary);
   line-height: 1.4;
-}
-
-.search-input-inline {
-  width: 250px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  margin-right: var(--space-2);
-}
-
-.search-input-inline:focus {
-  outline: none;
-  border-color: var(--primary);
 }
 
 .help-text-inline {
@@ -1194,18 +1046,6 @@ h4 {
   margin: var(--space-4) 0;
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--text-tertiary);
-}
-
-.empty-state span {
-  font-size: var(--text-base);
-}
-
 /* Field Chooser */
 .input-with-button {
   display: flex;
@@ -1326,30 +1166,6 @@ h4 {
 }
 
 /* Pattern Test Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--bg-base);
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-}
 
 .modal-header {
   display: flex;
@@ -1497,14 +1313,4 @@ h4 {
   margin-bottom: var(--space-1);
 }
 
-.btn-accent {
-  background: linear-gradient(135deg, var(--brand), var(--brand-active));
-  color: white;
-  border: none;
-}
-
-.btn-accent:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
 </style>

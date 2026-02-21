@@ -129,23 +129,4 @@ function handleCancel() {
   justify-content: flex-end;
   margin-top: var(--space-3);
 }
-.btn-primary, .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-.btn-primary {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.btn-primary:hover { border-color: var(--color-brand); color: var(--color-brand); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-secondary { color: var(--text-secondary); }
-.btn-secondary:hover { color: var(--text-primary); }
 </style>

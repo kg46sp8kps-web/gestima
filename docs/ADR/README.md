@@ -35,7 +35,7 @@ Každý ADR obsahuje:
 | 017 | 8-Digit Entity Numbering (v2.0) | Přijato | 2026-01-28 |
 | 018 | Deployment Strategy | Přijato | 2026-01-27 |
 | 019 | Material Catalog Smart Lookup | Implementováno | 2026-01-27 |
-| 020 | CSP 'unsafe-eval' for Alpine.js | Přijato | 2026-01-28 |
+| ~~020~~ | ~~CSP 'unsafe-eval' for Alpine.js~~ | Odstraněno (Alpine.js removed in v2.0) | 2026-01-28 |
 | 021 | WorkCenter Model Design | Přijato | 2026-01-28 |
 | 022 | BatchSet Model (Sady cen) | Přijato | 2026-01-28 |
 | 023 | Workspace Module Architecture | Přijato (Design) | 2026-01-28 |
@@ -55,6 +55,8 @@ Každý ADR obsahuje:
 | 044 | File Manager | Implementováno (Phase 2a) | 2026-02-15 |
 | 045 | Feature-Based Time Calculation | DRAFT | 2026-02-16 |
 | 046 | Infor Connector | DRAFT | 2026-02-16 |
+| 047 | Fine-Tuning v2 — Kompletní technologický postup | TRAINING | 2026-02-19 |
+| 048 | Orphan Detection — Soft-Deleted Parts | Implementováno | 2026-02-20 |
 
 ## Archivované ADRs
 

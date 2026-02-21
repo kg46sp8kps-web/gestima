@@ -11,7 +11,7 @@ import { usePartsStore } from '@/stores/parts'
 import { useBatchesStore } from '@/stores/batches'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { useResizablePanel } from '@/composables/useResizablePanel'
-import type { LinkingGroup } from '@/stores/windows'
+import type { LinkingGroup, WindowRole } from '@/stores/windows'
 import type { Part } from '@/types/part'
 import type { Batch, BatchSet } from '@/types/batch'
 
@@ -20,6 +20,8 @@ import PricingHeader from './pricing/PricingHeader.vue'
 import PricingDetailPanel from './pricing/PricingDetailPanel.vue'
 
 interface Props {
+  windowId?: string
+  windowRole?: WindowRole
   inline?: boolean
   partId?: number | null
   partNumber?: string
@@ -27,6 +29,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  windowRole: null,
   inline: false,
   partId: null,
   partNumber: undefined,
@@ -113,8 +116,9 @@ onMounted(async () => {
   }
 })
 
-// Watch linked context changes (watch contextPartId computed for reactivity)
+// Watch linked context changes — only for child windows
 watch(contextPartId, (newPartId) => {
+  if (props.windowRole === 'master') return
   if (isLinked.value && newPartId) {
     const part = partsStore.parts.find(p => p.id === newPartId)
     if (part) {
@@ -137,8 +141,8 @@ watch(() => props.partNumber, (newPartNumber) => {
 
 <template>
   <div class="split-layout">
-    <!-- LEFT PANEL: Only visible when standalone (not linked) -->
-    <div v-if="!linkingGroup" class="left-panel" :style="{ width: `${panelWidth}px` }">
+    <!-- LEFT PANEL: Visible when standalone OR when this window is the linking master -->
+    <div v-if="!linkingGroup || windowRole === 'master'" class="left-panel" :style="{ width: `${panelWidth}px` }">
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
@@ -148,16 +152,16 @@ watch(() => props.partNumber, (newPartNumber) => {
 
     <!-- RESIZE HANDLE: Only visible when left panel is shown -->
     <div
-      v-if="!linkingGroup"
+      v-if="!linkingGroup || windowRole === 'master'"
       class="resize-handle"
       :class="{ dragging: isDragging }"
       @mousedown="startResize"
     ></div>
 
-    <!-- RIGHT PANEL: Header + Detail (full width when linked) -->
-    <div class="right-panel" :class="{ 'full-width': linkingGroup }">
-      <!-- CONTEXT INFO RIBBON (when linked) -->
-      <div v-if="linkingGroup && selectedPart" class="context-ribbon">
+    <!-- RIGHT PANEL: Header + Detail (full width when child) -->
+    <div class="right-panel" :class="{ 'full-width': linkingGroup && windowRole !== 'master' }">
+      <!-- CONTEXT INFO RIBBON (only for child windows) -->
+      <div v-if="linkingGroup && windowRole !== 'master' && selectedPart" class="context-ribbon">
         <span class="context-label">Ceny</span>
         <span class="context-divider">|</span>
         <span class="context-value">{{ selectedPart.part_number }}</span>
@@ -167,9 +171,9 @@ watch(() => props.partNumber, (newPartNumber) => {
         <span class="context-value">{{ selectedPart.name || '-' }}</span>
       </div>
 
-      <!-- PRICING HEADER (when standalone) -->
+      <!-- PRICING HEADER (when standalone or master) -->
       <PricingHeader
-        v-if="!linkingGroup"
+        v-if="!linkingGroup || windowRole === 'master'"
         :part="selectedPart"
         :batchSets="batchSets"
       />

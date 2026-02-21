@@ -156,6 +156,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { formatPrice } from '@/utils/formatters'
 import type { MaterialInputWithOperations, StockShape } from '@/types/material'
 import type { Operation } from '@/types/operation'
 import { getShapeDimensionFields } from '@/types/material'
@@ -215,11 +216,6 @@ function handleDimensionInput(materialId: number, field: string, event: Event) {
   emit('update', materialId, { [field]: value })
 }
 
-function formatPrice(value: number | null | undefined): string {
-  if (value == null || isNaN(value)) return '-'
-  return value.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 function getMaterialTooltip(material: MaterialInputWithOperations): string {
   if (!material.price_per_kg) return 'Cena není dostupná'
   return `Cena z tieru: ${formatPrice(material.price_per_kg)} Kč/kg`
@@ -256,14 +252,7 @@ function handleUnlinkOperation(materialId: number, operationId: number) {
   border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--font-medium);
   color: var(--text-secondary);
 }
-.loading-state, .empty-state {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: var(--space-2); padding: var(--space-6); color: var(--text-secondary);
-}
-.spinner { width: 24px; height: 24px; border: 2px solid var(--border-default); border-radius: 50%; border-top-color: var(--color-primary); animation: spin 0.6s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 .empty-icon { font-size: var(--text-7xl); opacity: 0.5; }
-.empty-state p { margin: 0; font-size: var(--text-md); color: var(--text-secondary); }
 .materials-list { display: flex; flex-direction: column; gap: var(--space-1); overflow-y: auto; }
 /* Material row - grid layout: Icon | Dimensions | Category | Info | Operations | Actions */
 .material-row {

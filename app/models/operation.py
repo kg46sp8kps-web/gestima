@@ -25,7 +25,7 @@ class Operation(Base, AuditMixin):
     type = Column(String(50), default="turning")
     icon = Column(String(10), default="settings")
     
-    work_center_id = Column(Integer, ForeignKey("work_centers.id", ondelete="SET NULL"), nullable=True)
+    work_center_id = Column(Integer, ForeignKey("work_centers.id", ondelete="SET NULL"), nullable=True, index=True)
     cutting_mode = Column(String(10), default="mid")
     
     setup_time_min = Column(Float, default=30.0)
@@ -34,7 +34,7 @@ class Operation(Base, AuditMixin):
     setup_time_locked = Column(Boolean, default=False)
     operation_time_locked = Column(Boolean, default=False)
 
-    ai_estimation_id = Column(Integer, ForeignKey("time_vision_estimations.id", ondelete="SET NULL"), nullable=True)
+    ai_estimation_id = Column(Integer, ForeignKey("time_vision_estimations.id", ondelete="SET NULL"), nullable=True, index=True)
 
     manning_coefficient = Column(Float, default=100.0)  # Koeficient plnění v %
     machine_utilization_coefficient = Column(Float, default=100.0)  # Koeficient využití strojů v %

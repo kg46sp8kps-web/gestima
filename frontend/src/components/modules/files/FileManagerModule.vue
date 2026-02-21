@@ -76,7 +76,9 @@ onMounted(() => {
     }
   }
 
-  filesStore.fetchFiles()
+  if (!filesStore.loaded) {
+    filesStore.fetchFiles()
+  }
 })
 </script>
 

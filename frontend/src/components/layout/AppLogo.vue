@@ -1,14 +1,30 @@
 <script setup lang="ts">
-// No props needed - pure display component
+import { useRouter, useRoute } from 'vue-router'
+import { useWindowsStore } from '@/stores/windows'
+
+const router = useRouter()
+const route = useRoute()
+const windowsStore = useWindowsStore()
+
+function handleLogoClick() {
+  if (route.path !== '/windows') {
+    router.push('/windows')
+  } else if (windowsStore.defaultLayoutId) {
+    // Už jsme na /windows — resetuj na default layout
+    windowsStore.loadView(windowsStore.defaultLayoutId)
+  } else {
+    windowsStore.closeAllWindows()
+  }
+}
 </script>
 
 <template>
   <div class="header-center">
-    <router-link to="/" class="logo-link">
+    <button class="logo-link" @click="handleLogoClick">
       <div class="logo-text">
         <span class="logo-red">GESTI</span><span class="logo-black">MA</span>
       </div>
-    </router-link>
+    </button>
   </div>
 </template>
 
@@ -26,6 +42,10 @@
   align-items: center;
   gap: var(--space-3);
   text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .logo-text {

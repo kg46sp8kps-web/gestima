@@ -57,9 +57,10 @@ async function handleSubmit() {
       uploadingDrawing.value = true
       try {
         await drawingsApi.uploadDrawing(created.part_number, tempDrawingFile.value)
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Part was created but drawing upload failed — notify but don't block
-        console.warn('Drawing upload failed after part creation:', error.message)
+        const err = error as Error
+        console.warn('Drawing upload failed after part creation:', err.message)
       } finally {
         uploadingDrawing.value = false
       }

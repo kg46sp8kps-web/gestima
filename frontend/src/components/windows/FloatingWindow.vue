@@ -395,8 +395,6 @@ const moduleLabel = computed(() => {
   const labels: Record<string, string> = {
     'part-main': 'Part Detail',
     'part-pricing': 'Part Pricing',
-    'part-operations': 'Operations',
-    'part-material': 'Material',
     'part-drawing': 'Drawing',
     'batch-sets': 'Batch Sets',
     'partners-list': 'Partners',
@@ -558,8 +556,8 @@ const colorOptions = [
       </div>
     </div>
 
-    <!-- Content -->
-    <div class="window-content">
+    <!-- Content — hidden immediately on close so Vue unmount happens off-screen -->
+    <div class="window-content" :style="props.window.closing ? 'display:none' : undefined">
       <slot></slot>
     </div>
 

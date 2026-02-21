@@ -3,7 +3,7 @@
 
 Data extracted from: data/materialy_export_import.xlsx
 Via: scripts/archive/extract_material_norms_from_infor.py
-82 unique material norms from production Infor catalog.
+120 unique material norms from production Infor catalog (82 metals + 6 litina + 30 plastics + 2 PP variants).
 """
 
 import asyncio
@@ -120,6 +120,53 @@ NORMS_DATA = [
     ("3.4345", None, "AW 7022", None, "Hliník"),
     ("3.4365", "424222", "AW 7075", None, "Hliník"),
     ("3.C330", None, "AW 7021", None, "Hliník"),
+
+    # === LITINA (6) ===
+    # Litina — GG (šedá) / GGG (sferoidální) prefix v Infor kódech
+    ("GG150", None, "EN-GJL-150", None, "Litina"),     # Šedá litina 150
+    ("GG200", None, "EN-GJL-200", None, "Litina"),     # Šedá litina 200
+    ("GG250", None, "EN-GJL-250", None, "Litina"),     # Šedá litina 250
+    ("GG300", None, "EN-GJL-300", None, "Litina"),     # Šedá litina 300
+    ("GGG400", None, "EN-GJS-400", None, "Litina"),    # Sferoidální litina 400
+    ("GGG500", None, "EN-GJS-500", None, "Litina"),    # Sferoidální litina 500
+
+    # === PLASTY (30) ===
+    # Plasty nemají Werkstoffnummer, ale kód jde do w_nr pro jednotný lookup
+    # Polyacetaly (POM)
+    ("POM-C", None, "POM-C", None, "Plasty"),         # Polyacetal kopolymer (Delrin, Ertacetal)
+    ("POM-H", None, "POM-H", None, "Plasty"),         # Polyacetal homopolymer
+    # Polyamidy (PA)
+    ("PA6", None, "PA6", None, "Plasty"),              # Polyamid 6 (Ertalon, Nylon)
+    ("PA6-GF30", None, "PA6 GF30", None, "Plasty"),   # PA6 + 30% skelných vláken
+    ("PA66", None, "PA66", None, "Plasty"),            # Polyamid 66
+    ("PA66-GF30", None, "PA66 GF30", None, "Plasty"), # PA66 + 30% skelných vláken
+    ("PA12", None, "PA12", None, "Plasty"),            # Polyamid 12
+    # Polyethyleny (PE)
+    ("PE300", None, "PE300", None, "Plasty"),          # PE-HD 300
+    ("PE500", None, "PE500", None, "Plasty"),          # PE-HD 500
+    ("PE1000", None, "PE1000", None, "Plasty"),        # PE-UHMW 1000
+    ("UHMW-PE", None, "UHMW-PE", None, "Plasty"),     # Ultra-high molecular weight PE
+    # High-performance plasty
+    ("PEEK", None, "PEEK", None, "Plasty"),            # Polyéteréterketón
+    ("PEEK-GF30", None, "PEEK GF30", None, "Plasty"), # PEEK + 30% skelných vláken
+    ("PEI", None, "PEI", None, "Plasty"),              # Polyetherimid (Ultem)
+    ("PPS", None, "PPS", None, "Plasty"),              # Polyfenylensulfid
+    ("PPS-GF40", None, "PPS GF40", None, "Plasty"),   # PPS + 40% skelných vláken
+    ("PAI", None, "PAI", None, "Plasty"),              # Polyamidimid (Torlon)
+    ("PSU", None, "PSU", None, "Plasty"),              # Polysulfon
+    ("PPSU", None, "PPSU", None, "Plasty"),            # Polyfenylsulfon
+    # Běžné plasty
+    ("PTFE", None, "PTFE", None, "Plasty"),            # Teflon
+    ("PET", None, "PET", None, "Plasty"),              # Polyethylentereftalát
+    ("PET-GF30", None, "PET GF30", None, "Plasty"),   # PET + 30% skelných vláken
+    ("PVDF", None, "PVDF", None, "Plasty"),            # Polyvinylidenfluorid
+    ("PP", None, "PP", None, "Plasty"),                # Polypropylen
+    ("PP-H", None, "PP-H", None, "Plasty"),            # PP homopolymer
+    ("PP-EL", None, "PP-EL", None, "Plasty"),          # PP elastomer
+    ("PP-EL-S", None, "PP-EL-S", None, "Plasty"),      # PP elastomer šedivý
+    ("PC", None, "PC", None, "Plasty"),                # Polykarbonát
+    ("PVC", None, "PVC", None, "Plasty"),              # Polyvinylchlorid
+    ("PMMA", None, "PMMA", None, "Plasty"),            # Polymethylmetakrylát (Plexisklo)
 ]
 
 
@@ -128,7 +175,7 @@ async def seed_material_norms(session: AsyncSession):
     Seed MaterialNorm záznamy z Infor katalogu.
     Idempotentní: smaže stávající normy a vytvoří znovu.
     """
-    print("🌱 Seeding MaterialNorms (82 norms from Infor catalog)...")
+    print("🌱 Seeding MaterialNorms (111 norms from Infor catalog: 82 metals + 29 plastics)...")
 
     # Načíst existující MaterialGroups (indexed by name)
     result = await session.execute(
@@ -137,9 +184,15 @@ async def seed_material_norms(session: AsyncSession):
     groups_by_name = {g.name: g for g in result.scalars().all()}
     print(f"  📦 Available MaterialGroups: {len(groups_by_name)}")
 
-    # Load existing norms indexed by w_nr for upsert
+    # Load existing norms indexed by w_nr AND en_iso for upsert
     result = await session.execute(select(MaterialNorm))
-    existing_by_wnr = {n.w_nr: n for n in result.scalars().all() if n.w_nr}
+    existing_by_wnr = {}
+    existing_by_en_iso = {}
+    for n in result.scalars().all():
+        if n.w_nr:
+            existing_by_wnr[n.w_nr] = n
+        if n.en_iso:
+            existing_by_en_iso[n.en_iso] = n
 
     created_count = 0
     updated_count = 0
@@ -153,12 +206,13 @@ async def seed_material_norms(session: AsyncSession):
             skipped_count += 1
             continue
 
-        # At least w_nr must be filled (it always is in Infor data)
-        if not w_nr:
+        # At least w_nr or en_iso must be filled
+        if not w_nr and not en_iso:
             skipped_count += 1
             continue
 
-        existing = existing_by_wnr.get(w_nr)
+        # Lookup existing: prefer w_nr, fallback to en_iso (for plastics)
+        existing = existing_by_wnr.get(w_nr) if w_nr else existing_by_en_iso.get(en_iso)
         if existing:
             # Update existing — sync group_id and norm fields
             changed = False

@@ -1,25 +1,20 @@
 <script setup lang="ts">
 /**
- * Material Items List Panel - DataTable layout (Design System Pattern 7.7)
+ * MaterialItemsListPanel - Virtualized material items list
  *
- * Features:
- * - DataTable with sortable columns
- * - Column chooser
- * - Search filter
- * - Shape & supplier filters
- * - Create & Import buttons
+ * Identical pattern to PartListPanel:
+ * - @tanstack/vue-virtual — only ~30 rows in DOM at any time
+ * - 200 rows first load, batch 50 on scroll
+ * - initialLoading spinner only on first open
+ * - Store cache — instant re-open
  */
-
-import { ref, computed, onMounted, watch } from 'vue'
-import { Plus, Upload, Package } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useVirtualizer } from '@tanstack/vue-virtual'
+import { useMaterialsStore } from '@/stores/materials'
+import type { MaterialItem } from '@/types/material'
+import { Plus, Upload } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
-import type { MaterialItem, MaterialGroup, StockShape } from '@/types/material'
-import type { Column } from '@/components/ui/DataTable.vue'
-import { getMaterialItems, getMaterialGroups } from '@/api/materials'
-import { useDebounceFn } from '@vueuse/core'
-
-import DataTable from '@/components/ui/DataTable.vue'
-import ColumnChooser from '@/components/ui/ColumnChooser.vue'
+import Spinner from '@/components/ui/Spinner.vue'
 
 interface Props {
   selectedItem?: MaterialItem | null
@@ -34,222 +29,118 @@ const emit = defineEmits<{
   'item-created': [item: MaterialItem]
 }>()
 
-// State
-const items = ref<MaterialItem[]>([])
-const groups = ref<MaterialGroup[]>([])
-const loading = ref(false)
+const materialsStore = useMaterialsStore()
+
+// Local UI state
 const searchQuery = ref('')
 const filterGroupId = ref<number | null>(null)
-const filterShape = ref<StockShape | null>(null)
-const filterSupplier = ref<string | null>(null)
+const filterShape = ref<string | null>(null)
 const selectedItemNumber = ref<string | null>(null)
-const sortKey = ref('code')
-const sortDirection = ref<'asc' | 'desc'>('asc')
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
-// Debounced versions for performance
-const debouncedSearchQuery = ref('')
-const debouncedFilterGroupId = ref<number | null>(null)
-const debouncedFilterShape = ref<StockShape | null>(null)
-const debouncedFilterSupplier = ref<string | null>(null)
+// Row height — same as PartListPanel
+const ROW_HEIGHT = 30
 
-// Debounce functions
-const updateSearchDebounced = useDebounceFn((value: string) => {
-  debouncedSearchQuery.value = value
-}, 300)
+// Scroll container for virtualizer
+const scrollContainerRef = ref<HTMLElement | null>(null)
 
-const updateFiltersDebounced = useDebounceFn(() => {
-  debouncedFilterGroupId.value = filterGroupId.value
-  debouncedFilterShape.value = filterShape.value
-  debouncedFilterSupplier.value = filterSupplier.value
-}, 200)
-
-// Watch for changes and trigger debounced updates
-watch(searchQuery, (newValue) => {
-  updateSearchDebounced(newValue)
-})
-
-watch([filterGroupId, filterShape, filterSupplier], () => {
-  updateFiltersDebounced()
-})
-
-// Column definitions
-const defaultColumns: Column[] = [
-  { key: 'code', label: 'KÓD', sortable: true, visible: true, format: 'text' },
-  { key: 'name', label: 'Název', sortable: true, visible: true, format: 'text' },
-  { key: 'shape', label: 'Tvar', sortable: true, visible: true, format: 'text' },
-  { key: 'diameter', label: 'Průměr', sortable: false, visible: true, format: 'number' },
-  { key: 'width', label: 'Šířka', sortable: false, visible: false, format: 'number' },
-  { key: 'thickness', label: 'Tloušťka', sortable: false, visible: false, format: 'number' },
-  { key: 'supplier', label: 'Dodavatel', sortable: true, visible: true, format: 'text' },
-  { key: 'supplier_code', label: 'Kód dodavatele', sortable: false, visible: false, format: 'text' },
-  { key: 'stock_available', label: 'Sklad (kg)', sortable: false, visible: true, format: 'number' }
-]
-const columns = ref<Column[]>(defaultColumns)
-
-// Computed
+// Client-side filtered list (search + group + shape)
 const filteredItems = computed(() => {
-  let result = [...items.value]
+  let result = materialsStore.materialItems
 
-  // Search filter (debounced)
-  if (debouncedSearchQuery.value) {
-    const query = debouncedSearchQuery.value.toLowerCase()
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
     result = result.filter(item =>
-      item.code.toLowerCase().includes(query) ||
-      item.name.toLowerCase().includes(query) ||
-      (item.supplier_code?.toLowerCase() || '').includes(query) ||
-      (item.supplier?.toLowerCase() || '').includes(query)
+      item.code.toLowerCase().includes(q) ||
+      item.name.toLowerCase().includes(q) ||
+      (item.supplier_code?.toLowerCase() || '').includes(q) ||
+      (item.supplier?.toLowerCase() || '').includes(q)
     )
   }
 
-  // Material group filter (debounced)
-  if (debouncedFilterGroupId.value) {
-    result = result.filter(item => item.material_group_id === debouncedFilterGroupId.value)
+  if (filterGroupId.value !== null) {
+    result = result.filter(item => item.material_group_id === filterGroupId.value)
   }
 
-  // Shape filter (debounced)
-  if (debouncedFilterShape.value) {
-    result = result.filter(item => item.shape === debouncedFilterShape.value)
+  if (filterShape.value !== null) {
+    result = result.filter(item => item.shape === filterShape.value)
   }
-
-  // Supplier filter (debounced)
-  if (debouncedFilterSupplier.value) {
-    result = result.filter(item =>
-      item.supplier?.toLowerCase() === debouncedFilterSupplier.value?.toLowerCase()
-    )
-  }
-
-  // Sort
-  result.sort((a, b) => {
-    let aVal: any = a[sortKey.value as keyof MaterialItem]
-    let bVal: any = b[sortKey.value as keyof MaterialItem]
-
-    // Handle null/undefined
-    if (aVal === null || aVal === undefined) return 1
-    if (bVal === null || bVal === undefined) return -1
-
-    // String comparison
-    const comparison = String(aVal).localeCompare(String(bVal))
-    return sortDirection.value === 'asc' ? comparison : -comparison
-  })
 
   return result
 })
 
-const uniqueSuppliers = computed(() => {
-  const suppliers = new Set<string>()
-  items.value.forEach(item => {
-    if (item.supplier) suppliers.add(item.supplier)
-  })
-  return Array.from(suppliers).sort()
+// Virtualizer — identical to PartListPanel
+const virtualizer = useVirtualizer({
+  get count() { return filteredItems.value.length },
+  getScrollElement: () => scrollContainerRef.value,
+  estimateSize: () => ROW_HEIGHT,
+  overscan: 10
 })
 
-const selectedItems = computed(() => {
-  return selectedItemNumber.value !== null
-    ? items.value.filter(item => item.material_number === selectedItemNumber.value)
-    : []
-})
+const virtualRows = computed(() => virtualizer.value.getVirtualItems())
+const totalSize = computed(() => virtualizer.value.getTotalSize())
 
-const isLoading = computed(() => loading.value)
-const hasItems = computed(() => items.value.length > 0)
-
-// Methods
-async function loadItems() {
-  loading.value = true
-  try {
-    items.value = await getMaterialItems()
-  } catch (error) {
-    console.error('Failed to load material items:', error)
-  } finally {
-    loading.value = false
+// Infinite scroll — fetch next batch when near bottom
+function onScroll() {
+  if (!scrollContainerRef.value || !materialsStore.hasMoreMaterialItems || materialsStore.loadingMoreMaterialItems) return
+  // Only trigger when no client-side filter active (server data)
+  if (searchQuery.value || filterGroupId.value !== null || filterShape.value !== null) return
+  const el = scrollContainerRef.value
+  const remaining = el.scrollHeight - el.scrollTop - el.clientHeight
+  if (remaining < 300) {
+    materialsStore.fetchMoreMaterialItems()
   }
 }
 
-async function loadGroups() {
-  try {
-    groups.value = await getMaterialGroups()
-  } catch (error) {
-    console.error('Failed to load material groups:', error)
-  }
-}
+// Spinner only on first load
+const isLoading = computed(() => materialsStore.initialLoadingMaterialItems)
 
-function handleRowClick(row: Record<string, unknown>) {
-  const item = row as unknown as MaterialItem
+// Status label
+const statusLabel = computed(() => {
+  const loaded = materialsStore.materialItems.length
+  const total = materialsStore.materialItemsTotal
+  if (total === 0) return ''
+  if (loaded >= total) return `(${total})`
+  return `(${loaded}/${total})`
+})
+
+// Debounced search
+watch(searchQuery, (val) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    // client-side filter, no server call needed
+  }, 150)
+})
+
+function handleRowClick(item: MaterialItem) {
   selectedItemNumber.value = item.material_number
   emit('select-item', item)
 }
 
-function handleSort(sort: { key: string, direction: 'asc' | 'desc' }) {
-  sortKey.value = sort.key
-  sortDirection.value = sort.direction
-}
-
 function handleCreate() {
-  // TODO: Open create modal
-  console.log('Create material item')
+  // TODO: open create modal
 }
 
 function handleImport() {
-  // TODO: Open import modal
-  console.log('Import material items')
+  // TODO: open import modal
 }
 
-// Debounced localStorage save
-const saveColumnsToStorage = useDebounceFn((updatedColumns: Column[]) => {
-  const visibility = updatedColumns.reduce((acc, col) => {
-    acc[col.key] = col.visible ?? true
-    return acc
-  }, {} as Record<string, boolean>)
-
-  const order = updatedColumns.map(col => col.key)
-
-  localStorage.setItem('materialItemListColumns', JSON.stringify(visibility))
-  localStorage.setItem('materialItemListColumns_order', JSON.stringify(order))
-}, 500)
-
-function handleColumnsUpdate(updatedColumns: Column[]) {
-  columns.value = updatedColumns
-  // Save to localStorage (debounced)
-  saveColumnsToStorage(updatedColumns)
-}
-
-// Lifecycle
-onMounted(() => {
-  loadItems()
-  loadGroups()
-
-  // Initialize debounced values
-  debouncedSearchQuery.value = searchQuery.value
-  debouncedFilterGroupId.value = filterGroupId.value
-  debouncedFilterShape.value = filterShape.value
-  debouncedFilterSupplier.value = filterSupplier.value
-
-  // Load saved column settings
-  const savedVisibility = localStorage.getItem('materialItemListColumns')
-  const savedOrder = localStorage.getItem('materialItemListColumns_order')
-
-  if (savedVisibility && savedOrder) {
-    try {
-      const visibility = JSON.parse(savedVisibility) as Record<string, boolean>
-      const order = JSON.parse(savedOrder) as string[]
-
-      const updatedColumns = order
-        .map(key => defaultColumns.find(col => col.key === key))
-        .filter(col => col !== undefined)
-        .map(col => ({
-          ...col!,
-          visible: visibility[col!.key] ?? true
-        }))
-
-      // Add any new columns that weren't in saved order
-      const newColumns = defaultColumns.filter(col => !order.includes(col.key))
-      columns.value = [...updatedColumns, ...newColumns]
-    } catch (error) {
-      console.error('Failed to load column settings:', error)
-    }
+onMounted(async () => {
+  // Skip fetch if already loaded — instant re-open
+  if (!materialsStore.hasMaterialItems) {
+    await materialsStore.fetchMaterialItems()
   }
+  // Load groups for filter dropdown (cached)
+  materialsStore.loadReferenceData()
 })
 
-// Expose method for parent to set selection
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchQuery.value = ''
+  filterGroupId.value = null
+  filterShape.value = null
+})
+
 defineExpose({
   setSelection(materialNumber: string | null) {
     selectedItemNumber.value = materialNumber
@@ -259,134 +150,141 @@ defineExpose({
 
 <template>
   <div class="material-items-list-panel">
-    <!-- HEADER -->
-    <div class="panel-header">
-      <h3 class="panel-title">Materiálové položky</h3>
+    <!-- Header -->
+    <div class="list-header">
+      <h3>Materiály <span class="count">{{ statusLabel }}</span></h3>
       <div class="header-actions">
         <button class="icon-btn icon-btn-sm" @click="handleImport" title="Import">
           <Upload :size="ICON_SIZE.STANDARD" />
         </button>
-        <button class="btn btn-primary btn-sm" @click="handleCreate">
+        <button class="icon-btn icon-btn-primary" @click="handleCreate" title="Nová položka">
           <Plus :size="ICON_SIZE.STANDARD" />
-          Nová položka
         </button>
       </div>
     </div>
 
-    <!-- TOOLBAR -->
-    <div class="toolbar">
-      <!-- Search -->
+    <!-- Filters -->
+    <div class="filters-row">
       <input
         v-model="searchQuery"
+        v-select-on-focus
         type="text"
-        placeholder="Hledat..."
+        placeholder="Hledat kód, název..."
         class="search-input"
       />
-
-      <!-- Filters -->
-      <div class="filters">
+      <div class="select-wrap">
         <select v-model="filterGroupId" class="filter-select">
-          <option :value="null">Všechny skupiny</option>
-          <option v-for="group in groups" :key="group.id" :value="group.id">
+          <option :value="null">Vše skupiny</option>
+          <option v-for="group in materialsStore.materialGroups" :key="group.id" :value="group.id">
             {{ group.name }}
           </option>
         </select>
-
+        <span class="select-chevron">▼</span>
+      </div>
+      <div class="select-wrap">
         <select v-model="filterShape" class="filter-select">
-          <option :value="null">Všechny tvary</option>
-          <option value="round_bar">Kruhová tyč</option>
-          <option value="square_bar">Čtvercová tyč</option>
-          <option value="flat_bar">Plochá tyč</option>
-          <option value="hexagonal_bar">Šestihranná tyč</option>
-          <option value="plate">Deska/Plech</option>
+          <option :value="null">Vše tvary</option>
+          <option value="round_bar">Kruhová</option>
+          <option value="square_bar">Čtvercová</option>
+          <option value="flat_bar">Plochá</option>
+          <option value="hexagonal_bar">Šestihranná</option>
+          <option value="plate">Deska</option>
           <option value="tube">Trubka</option>
         </select>
+        <span class="select-chevron">▼</span>
+      </div>
+    </div>
 
-        <select v-model="filterSupplier" class="filter-select">
-          <option :value="null">Všichni dodavatelé</option>
-          <option v-for="supplier in uniqueSuppliers" :key="supplier" :value="supplier">
-            {{ supplier }}
-          </option>
-        </select>
+    <!-- Loading (first load only) -->
+    <div v-if="isLoading" class="loading-container">
+      <Spinner size="lg" />
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="filteredItems.length === 0" class="empty-container">
+      <p>Žádné materiálové položky</p>
+    </div>
+
+    <!-- Virtualized table -->
+    <div
+      v-else
+      ref="scrollContainerRef"
+      class="table-container"
+      @scroll.passive="onScroll"
+    >
+      <!-- Sticky header -->
+      <div class="vt-header">
+        <div class="vt-th col-code">KÓD</div>
+        <div class="vt-th col-name">Název</div>
+        <div class="vt-th col-shape">Tvar</div>
+        <div class="vt-th col-dim col-num">Rozměr</div>
+        <div class="vt-th col-supplier">Dodavatel</div>
+        <div class="vt-th col-stock col-num">Sklad kg</div>
       </div>
 
-      <!-- Column chooser -->
-      <ColumnChooser :columns="columns" @update:columns="handleColumnsUpdate" />
-    </div>
-
-    <!-- TABLE -->
-    <div class="table-container">
-      <DataTable
-        :data="filteredItems"
-        :columns="columns"
-        :loading="isLoading"
-        :rowClickable="true"
-        :selected="selectedItems"
-        :sortKey="sortKey"
-        :sortDirection="sortDirection"
-        emptyText="Žádné materiálové položky"
-        @row-click="handleRowClick"
-        @sort="handleSort"
-        @update:columns="handleColumnsUpdate"
-      >
-        <!-- Custom cell templates -->
-        <template #cell-shape="{ value }">
-          <span class="shape-badge">{{ value || '-' }}</span>
-        </template>
-
-        <template #cell-diameter="{ value }">
-          <span>{{ value ? `${value} mm` : '-' }}</span>
-        </template>
-
-        <template #cell-width="{ value }">
-          <span>{{ value ? `${value} mm` : '-' }}</span>
-        </template>
-
-        <template #cell-thickness="{ value }">
-          <span>{{ value ? `${value} mm` : '-' }}</span>
-        </template>
-
-        <template #cell-stock_available="{ value }">
-          <span>{{ value != null ? `${value.toFixed(1)} kg` : '-' }}</span>
-        </template>
-      </DataTable>
-    </div>
-
-    <!-- Empty state (when no items at all) -->
-    <div v-if="!loading && !hasItems" class="empty-state">
-      <Package :size="ICON_SIZE.XLARGE" class="empty-icon" />
-      <p class="empty-title">Žádné materiálové položky</p>
-      <p class="empty-hint">Začněte importem katalogu nebo vytvořte položku ručně</p>
+      <!-- Virtual scroll body -->
+      <div class="vt-body" :style="{ height: `${totalSize}px` }">
+        <div
+          v-for="virtualRow in virtualRows"
+          :key="filteredItems[virtualRow.index]?.material_number ?? virtualRow.index"
+          class="vt-row"
+          :class="{ selected: filteredItems[virtualRow.index]?.material_number === selectedItemNumber }"
+          :style="{ height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }"
+          @click="filteredItems[virtualRow.index] && handleRowClick(filteredItems[virtualRow.index]!)"
+        >
+          <div class="vt-td col-code">
+            <span class="code-mono">{{ filteredItems[virtualRow.index]?.code ?? '—' }}</span>
+          </div>
+          <div class="vt-td col-name">{{ filteredItems[virtualRow.index]?.name ?? '—' }}</div>
+          <div class="vt-td col-shape">{{ filteredItems[virtualRow.index]?.shape ?? '—' }}</div>
+          <div class="vt-td col-dim col-num">
+            {{ filteredItems[virtualRow.index]?.diameter
+              ? `⌀${filteredItems[virtualRow.index]!.diameter}`
+              : filteredItems[virtualRow.index]?.width
+                ? `${filteredItems[virtualRow.index]!.width}×${filteredItems[virtualRow.index]!.thickness ?? ''}`
+                : '—' }}
+          </div>
+          <div class="vt-td col-supplier">{{ filteredItems[virtualRow.index]?.supplier ?? '—' }}</div>
+          <div class="vt-td col-stock col-num">
+            {{ filteredItems[virtualRow.index]?.stock_available != null
+              ? filteredItems[virtualRow.index]!.stock_available
+              : '—' }}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* === PANEL === */
 .material-items-list-panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   height: 100%;
   overflow: hidden;
-  container-type: inline-size;
-  container-name: material-items-container;
 }
 
-/* === HEADER === */
-.panel-header {
+.list-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
   flex-shrink: 0;
 }
 
-.panel-title {
+.list-header h3 {
   margin: 0;
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+}
+
+.count {
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--text-tertiary);
+  margin-left: var(--space-2);
 }
 
 .header-actions {
@@ -395,159 +293,110 @@ defineExpose({
   gap: var(--space-2);
 }
 
-/* === TOOLBAR === */
-.toolbar {
+.filters-row {
   display: flex;
-  flex-direction: column;
   gap: var(--space-2);
   flex-shrink: 0;
 }
 
-.search-input {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast);
-}
-
-.search-input:focus {
-  outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
-}
-
-.filters {
-  display: flex;
-  gap: var(--space-2);
+.select-wrap {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .filter-select {
-  flex: 1;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast);
+  padding-right: 24px;
+  background-image: none !important;
 }
 
-.filter-select:hover {
-  border-color: var(--color-primary);
+.select-chevron {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
-.filter-select:focus {
-  outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
-}
+.loading-container,
 
-/* === TABLE === */
+/* ── Virtualized table ── */
 .table-container {
   flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  container-type: inline-size;
-  container-name: materials-table;
-  --density-cell-py: var(--space-4);
-  --density-cell-px: var(--space-4);
+  overflow: auto;
+  contain: strict;
 }
 
-/* === CUSTOM CELLS === */
-.shape-badge {
+.vt-header {
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.vt-th {
+  padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
   font-size: var(--text-xs);
-  padding: var(--space-0\.5) var(--space-2);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-/* === EMPTY STATE === */
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  color: var(--text-secondary);
+.vt-body {
+  position: relative;
+  width: 100%;
 }
 
-.empty-icon {
-  color: var(--text-tertiary);
-}
-
-.empty-title {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.empty-hint {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-/* === BUTTONS === */
-.btn {
+.vt-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: 0;
-  width: 28px;
-  height: 28px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--duration-fast);
-  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 60ms ease;
 }
 
-.btn:hover {
-  background: var(--bg-surface);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  transform: scale(1.05);
+.vt-row:hover  { background: var(--hover); }
+.vt-row.selected { background: var(--selected); }
+
+.vt-td {
+  padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
+  font-size: var(--text-xs);
+  color: var(--text-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.btn:active {
-  transform: scale(0.95);
+/* Column widths */
+.col-code     { flex: 1.4 1 0; }
+.col-name     { flex: 2.5 1 0; }
+.col-shape    { flex: 1 1 0; }
+.col-dim      { flex: 0.8 1 0; }
+.col-supplier { flex: 1.2 1 0; }
+.col-stock    { flex: 0.7 1 0; }
+
+.col-num {
+  font-family: var(--font-mono);
+  text-align: right;
 }
 
-.btn-primary {
-  background: transparent;
-  border-color: var(--border-default);
+.code-mono {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
   color: var(--text-primary);
-  width: auto;
-  padding: var(--space-2) var(--space-3);
 }
-
-.btn-primary:hover {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-  transform: scale(1.05);
-}
-
-.btn-sm {
-  padding: var(--space-2) var(--space-3);
-  width: auto;
-  height: auto;
-  font-size: var(--text-sm);
-  font-weight: 500;
-}
-
 </style>

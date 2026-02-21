@@ -26,7 +26,7 @@ interface Props {
 
 interface Emits {
   (e: 'toggle-expanded'): void
-  (e: 'update-field', field: keyof Operation, value: any): void
+  (e: 'update-field', field: keyof Operation, value: unknown): void
   (e: 'update-work-center', workCenterId: number | null): void
   (e: 'change-mode', mode: CuttingMode): void
   (e: 'toggle-coop'): void
@@ -140,6 +140,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
         :value="operation.work_center_id"
         @change="handleWorkCenterChange"
         class="wc-select"
+        :style="{ width: maxWorkCenterWidth + 'px' }"
       >
         <option :value="null">- Pracoviště -</option>
         <option
@@ -322,7 +323,6 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 
 /* Work Center Select */
 .wc-select {
-  width: 100%;
   padding: var(--space-1) var(--space-2);
   background: var(--bg-input);
   border: 1px solid var(--border-default);

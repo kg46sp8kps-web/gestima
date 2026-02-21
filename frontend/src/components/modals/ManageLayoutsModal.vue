@@ -230,15 +230,6 @@ function handleClose() {
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10004;
-}
 
 .modal-container {
   background: var(--bg-surface);
@@ -289,12 +280,6 @@ function handleClose() {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-4);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--text-secondary);
 }
 
 .layouts-list {
@@ -388,15 +373,6 @@ function handleClose() {
   background: rgba(16, 185, 129, 0.1);
 }
 
-.btn-success {
-  color: var(--status-ok);
-  border-color: var(--status-ok);
-}
-
-.btn-success:hover {
-  background: rgba(16, 185, 129, 0.1);
-}
-
 .btn-edit:hover {
   color: var(--color-info);
   border-color: var(--color-info);
@@ -406,10 +382,6 @@ function handleClose() {
   color: var(--status-error);
   border-color: var(--status-error);
   background: rgba(239, 68, 68, 0.1);
-}
-
-.btn-secondary {
-  color: var(--text-secondary);
 }
 
 /* Transition */

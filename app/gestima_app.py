@@ -30,8 +30,6 @@ from app.routers import (
     partners_router,
     work_centers_router,
     config_router,
-    data_router,
-    misc_router,
     admin_router,
     quotes_router,
     quote_items_router,
@@ -41,13 +39,14 @@ from app.routers import (
     module_defaults_router,  # ADR-031: Module Defaults
     infor_router,  # Infor CloudSuite Industrial integration
     infor_import_router,  # Infor Jobs import (Parts, Operations, ProductionRecords)
-    step_router,  # STEP file serving (download, file listing)
     cutting_conditions_router,  # Cutting conditions catalog (v1.28.0)
     accounting_router,  # CsiXls accounting integration
     time_vision_router,  # TimeVision AI estimation
     technology_builder_router,  # Technology Builder (Phase 1)
     files_router,  # Centralized File Manager (ADR-044)
     production_records_router,  # Production records (Infor actual times)
+    drawing_import_router,  # Drawing import from network share (ADR-044)
+    ft_debug_router,  # FT Debug — fine-tuning data inspection
 )
 from app.database import async_session, engine, close_db
 
@@ -132,12 +131,10 @@ async def lifespan(app: FastAPI):
     async with async_session() as db:
         await seed_demo_parts(db)
 
-    # Cleanup expired temp files (drawing uploads)
-    from app.services.drawing_service import DrawingService
-    drawing_service = DrawingService()
-    deleted_count = await drawing_service.cleanup_expired_temp_files()
-    if deleted_count > 0:
-        logger.info(f"🧹 Startup cleanup: deleted {deleted_count} expired temp files")
+    # Cleanup expired temp files
+    # NOTE: FileService cleanup not implemented yet
+    # TODO: implement FileService.cleanup_expired_temp_files() if needed
+    logger.debug("Startup cleanup: FileService cleanup not yet implemented")
 
     yield
 
@@ -222,16 +219,15 @@ app.include_router(module_layouts_router.router, prefix="/api", tags=["Module La
 app.include_router(module_defaults_router.router, prefix="/api", tags=["Module Defaults"])  # ADR-031
 app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
 app.include_router(infor_import_router.router, tags=["Infor Import"])  # Infor Jobs import (prefix in router)
-app.include_router(step_router.router, tags=["STEP"])  # STEP file serving (prefix in router)
 app.include_router(cutting_conditions_router.router, tags=["Cutting Conditions"])  # v1.28.0
 app.include_router(accounting_router.router, tags=["Accounting"])  # CsiXls integration
 app.include_router(time_vision_router.router, tags=["TimeVision"])  # TimeVision AI estimation (prefix in router)
 app.include_router(technology_builder_router.router, tags=["Technology Builder"])  # Technology Builder (Phase 1)
 app.include_router(files_router.router, tags=["Files"])  # Centralized File Manager (ADR-044, prefix in router)
 app.include_router(production_records_router.router, prefix="/api/production-records", tags=["Production Records"])
+app.include_router(drawing_import_router.router, tags=["Drawing Import"])  # Drawing import from share (ADR-044, prefix in router)
+app.include_router(ft_debug_router.router, tags=["FT Debug"])  # FT Debug panel (prefix in router)
 app.include_router(config_router.router, prefix="/api/config", tags=["Configuration"])
-app.include_router(data_router.router, prefix="/api/data", tags=["Data"])
-app.include_router(misc_router.router, prefix="/api/misc", tags=["Miscellaneous"])
 app.include_router(admin_router.router, prefix="/admin", tags=["Admin"])
 
 

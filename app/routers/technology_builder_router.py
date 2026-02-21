@@ -18,7 +18,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_role
 from app.models import User
 from app.models.enums import UserRole
-from app.models.operation import Operation, OperationCreate, OperationResponse
+from app.models.operation import Operation, OperationResponse
 from app.models.material_input import MaterialInput
 from app.models.time_vision import TimeVisionEstimation
 from app.db_helpers import set_audit, safe_commit

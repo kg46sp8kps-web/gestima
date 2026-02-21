@@ -1,15 +1,16 @@
 """Seed MaterialPriceCategory with 8-digit codes from Infor analysis V2 (Clean)
 
 Based on test_preview_price_categories_v2.py analysis:
-- 43 unique MaterialGroup + Shape combinations (reduced from 53)
+- 51 unique MaterialGroup + Shape combinations
 - Generic material group names (Hliník = all 3000-3400 series)
-- 8-digit codes: 20900000-20900042 (sub-range: 20900000-20909999)
+- 8-digit codes: 20900000-20900050 (sub-range: 20900000-20909999)
 - Split SQUARE_BAR / FLAT_BAR (from HR shape)
 - DE = deska (NOT plech!)
 - 4 steel types only (auto, konstrukční, legovaná, nástrojová)
 - Added Plasty
+- Added missing HEXAGONAL_BAR for Ocel auto/lego/nástrojová + Mosaz (2026-02-18)
 
-Date: 2026-02-03
+Date: 2026-02-03 (updated 2026-02-18)
 """
 
 import asyncio
@@ -28,8 +29,8 @@ from app.models.enums import StockShape
 
 
 # Generated from test_preview_price_categories_v2.py (2026-02-03) - CLEAN VERSION
-# 43 categories with 8-digit codes (20900000-20900042)
-# Only 4 steel types + Plasty
+# 47 categories with 8-digit codes (20900000-20900046)
+# Only 4 steel types + Plasty + missing HEX shapes
 PRICE_CATEGORIES_V2 = [
     # Hliník (generic - all 3.0-3.4 series combined)
     {'code': '20900000', 'name': 'Hliník - deska', 'group_name': 'Hliník', 'shape': StockShape.PLATE},
@@ -91,6 +92,18 @@ PRICE_CATEGORIES_V2 = [
     {'code': '20900040', 'name': 'Plasty - tyč plochá', 'group_name': 'Plasty', 'shape': StockShape.FLAT_BAR},
     {'code': '20900041', 'name': 'Plasty - tyč čtvercová', 'group_name': 'Plasty', 'shape': StockShape.SQUARE_BAR},
     {'code': '20900042', 'name': 'Plasty - tyč šestihranná', 'group_name': 'Plasty', 'shape': StockShape.HEXAGONAL_BAR},
+
+    # === Missing HEXAGONAL_BAR categories (added 2026-02-18) ===
+    {'code': '20900043', 'name': 'Ocel automatová - tyč šestihranná', 'group_name': 'Ocel automatová', 'shape': StockShape.HEXAGONAL_BAR},
+    {'code': '20900044', 'name': 'Ocel legovaná - tyč šestihranná', 'group_name': 'Ocel legovaná', 'shape': StockShape.HEXAGONAL_BAR},
+    {'code': '20900045', 'name': 'Ocel nástrojová - tyč šestihranná', 'group_name': 'Ocel nástrojová', 'shape': StockShape.HEXAGONAL_BAR},
+    {'code': '20900046', 'name': 'Mosaz - tyč šestihranná', 'group_name': 'Mosaz', 'shape': StockShape.HEXAGONAL_BAR},
+
+    # === Litina (added 2026-02-18) ===
+    {'code': '20900047', 'name': 'Litina - tyč kruhová', 'group_name': 'Litina', 'shape': StockShape.ROUND_BAR},
+    {'code': '20900048', 'name': 'Litina - tyč plochá', 'group_name': 'Litina', 'shape': StockShape.FLAT_BAR},
+    {'code': '20900049', 'name': 'Litina - deska', 'group_name': 'Litina', 'shape': StockShape.PLATE},
+    {'code': '20900050', 'name': 'Litina - odlitek', 'group_name': 'Litina', 'shape': StockShape.CASTING},
 ]
 
 

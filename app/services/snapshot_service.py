@@ -129,26 +129,3 @@ async def create_batch_snapshot(
     return snapshot
 
 
-def get_batch_costs(batch: Batch) -> Dict[str, float]:
-    """
-    Vrátí ceny batche - buď ze snapshotu (pokud je frozen) nebo live ceny.
-
-    Args:
-        batch: Batch instance
-
-    Returns:
-        Dict[str, float]: {material_cost, machining_cost, setup_cost, coop_cost, unit_cost, total_cost}
-    """
-    if batch.is_frozen and batch.snapshot_data:
-        # Použít ceny ze snapshotu
-        return batch.snapshot_data.get("costs", {})
-    else:
-        # Použít live ceny (aktuální stav)
-        return {
-            "material_cost": batch.material_cost,
-            "machining_cost": batch.machining_cost,
-            "setup_cost": batch.setup_cost,
-            "coop_cost": batch.coop_cost,
-            "unit_cost": batch.unit_cost,
-            "total_cost": batch.total_cost,
-        }

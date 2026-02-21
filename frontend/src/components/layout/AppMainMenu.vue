@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { LogOut, FilePlus, Save, Settings as SettingsIcon } from 'lucide-vue-next'
@@ -7,6 +7,7 @@ import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   showMenu: boolean
+  modules: Array<{ value: string; label: string; icon: Component }>
 }
 
 interface Emits {
@@ -16,13 +17,19 @@ interface Emits {
   (e: 'save-layout'): void
   (e: 'save-as-layout'): void
   (e: 'manage-layouts'): void
+  (e: 'open-module', moduleValue: string, label: string): void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const route = useRoute()
 const auth = useAuthStore()
+
+function openModuleItem(value: string, label: string) {
+  emit('open-module', value, label)
+  emit('close')
+}
 </script>
 
 <template>
@@ -30,42 +37,19 @@ const auth = useAuthStore()
   <Transition name="menu-slide">
     <div v-if="showMenu" class="menu-drawer" @click.self="emit('close')">
       <div class="menu-content">
-        <!-- Navigation -->
-        <nav class="menu-nav">
-          <router-link
-            to="/"
+        <!-- Moduly Section (top) -->
+        <div class="menu-section">
+          <div class="section-title">Moduly</div>
+          <button
+            v-for="mod in modules"
+            :key="mod.value"
             class="menu-item"
-            :class="{ active: route.path === '/' }"
-            @click="emit('close')"
+            @click="openModuleItem(mod.value, mod.label)"
           >
-            Dashboard
-          </router-link>
-          <router-link
-            to="/windows"
-            class="menu-item"
-            :class="{ active: route.path === '/windows' }"
-            @click="emit('close')"
-          >
-            Windows
-          </router-link>
-          <router-link
-            to="/settings"
-            class="menu-item"
-            :class="{ active: route.path === '/settings' }"
-            @click="emit('close')"
-          >
-            Settings
-          </router-link>
-          <router-link
-            v-if="auth.isAdmin"
-            to="/admin/master-data"
-            class="menu-item"
-            :class="{ active: route.path.startsWith('/admin') }"
-            @click="emit('close')"
-          >
-            Admin
-          </router-link>
-        </nav>
+            <component :is="mod.icon" :size="ICON_SIZE.STANDARD" />
+            <span>{{ mod.label }}</span>
+          </button>
+        </div>
 
         <div class="menu-divider"></div>
 
@@ -90,14 +74,20 @@ const auth = useAuthStore()
           </button>
         </div>
 
+        <div class="menu-spacer"></div>
+
         <div class="menu-divider"></div>
 
-        <!-- User + Logout -->
+        <!-- User + Settings + Logout -->
         <div class="menu-footer">
           <div v-if="auth.user" class="user-info">
             <div class="user-name">{{ auth.user.username }}</div>
             <div class="user-role">{{ auth.user.role }}</div>
           </div>
+          <router-link to="/settings" class="settings-btn" @click="emit('close')">
+            <SettingsIcon :size="ICON_SIZE.STANDARD" />
+            <span>Nastavení</span>
+          </router-link>
           <button class="logout-btn" @click="emit('logout')">
             <LogOut :size="ICON_SIZE.STANDARD" />
             <span>Logout</span>
@@ -135,10 +125,7 @@ const auth = useAuthStore()
   padding: var(--space-6);
 }
 
-.menu-nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+.menu-spacer {
   flex: 1;
 }
 
@@ -212,6 +199,27 @@ const auth = useAuthStore()
   font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-top: var(--space-1);
+}
+
+.settings-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.settings-btn:hover {
+  background: var(--state-hover);
+  border-color: var(--border-strong);
 }
 
 .logout-btn {

@@ -140,11 +140,6 @@ function handleCancel() {
 
 <style scoped>
 /* === MODAL CONTENT === */
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
 
 .modal-title {
   font-size: var(--text-xl);
@@ -212,46 +207,5 @@ function handleCancel() {
 }
 
 /* === ICON BUTTONS === */
-.icon-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast) var(--ease-out);
-}
 
-.icon-btn:hover {
-  background: var(--bg-hover);
-}
-
-.icon-btn:focus-visible {
-  outline: 2px solid var(--state-focus-border);
-  outline-offset: 2px;
-}
-
-.icon-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.icon-btn-confirm {
-  color: var(--palette-success);
-}
-
-.icon-btn-confirm:hover:not(:disabled) {
-  background: rgba(5, 150, 105, 0.1);
-}
-
-.icon-btn-cancel {
-  color: var(--text-secondary);
-}
-
-.icon-btn-cancel:hover {
-  background: rgba(148, 163, 184, 0.1);
-}
 </style>

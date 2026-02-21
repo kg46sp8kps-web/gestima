@@ -5,9 +5,22 @@
  * selectAll on click, editing states, and exposed methods.
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Input from '../ui/Input.vue'
+import selectOnFocus from '@/directives/selectOnFocus'
+
+// Mock requestAnimationFrame for jsdom (not available in test env)
+const originalRAF = globalThis.requestAnimationFrame
+beforeEach(() => {
+  globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
+    cb(0)
+    return 0
+  }
+})
+afterEach(() => {
+  globalThis.requestAnimationFrame = originalRAF
+})
 
 describe('Input Component', () => {
   // ==========================================================================
@@ -285,13 +298,19 @@ describe('Input Component', () => {
   describe('Select All on Click', () => {
     it('should select all text on click', async () => {
       const wrapper = mount(Input, {
-        props: { modelValue: 'Test value' }
+        props: { modelValue: 'Test value' },
+        global: {
+          directives: { 'select-on-focus': selectOnFocus }
+        }
       })
 
       const selectSpy = vi.spyOn(wrapper.find('input').element, 'select')
-      await wrapper.find('input').trigger('click')
+      // Directive listens on mousedown + uses requestAnimationFrame
+      await wrapper.find('input').trigger('mousedown')
+      // Flush RAF
+      await new Promise(r => setTimeout(r, 0))
 
-      expect(selectSpy).toHaveBeenCalledTimes(1)
+      expect(selectSpy).toHaveBeenCalled()
     })
 
     it('should NOT select when disabled', async () => {

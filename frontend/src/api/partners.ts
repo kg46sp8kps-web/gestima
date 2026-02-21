@@ -18,7 +18,7 @@ export async function getPartners(
   limit = 100,
   partnerType?: 'customer' | 'supplier'
 ): Promise<Partner[]> {
-  const params: any = { skip, limit }
+  const params: Record<string, unknown> = { skip, limit }
   if (partnerType) {
     params.partner_type = partnerType
   }

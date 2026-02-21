@@ -228,6 +228,9 @@ class TestWorkCenterSchemas:
             version = 1
             created_at = None
             updated_at = None
+            last_rate_changed_at = None
+            batches_recalculated_at = None
+            needs_batch_recalculation = False
 
             @property
             def hourly_rate_setup(self):
@@ -350,7 +353,7 @@ class TestWorkCenterAPI:
 
     async def test_get_work_centers_empty(self, client, admin_headers):
         """GET /api/work-centers should return empty list initially"""
-        response = await client.get("/api/work-centers", headers=admin_headers)
+        response = await client.get("/api/work-centers/", headers=admin_headers)
         assert response.status_code == 200
         assert response.json() == []
 
@@ -364,7 +367,7 @@ class TestWorkCenterAPI:
             "hourly_rate_tools": 150.0,
             "hourly_rate_overhead": 150.0,
         }
-        response = await client.post("/api/work-centers", json=data, headers=admin_headers)
+        response = await client.post("/api/work-centers/", json=data, headers=admin_headers)
 
         assert response.status_code == 200
         result = response.json()
@@ -381,7 +384,7 @@ class TestWorkCenterAPI:
             "name": "Specific Number CNC",
             "work_center_type": "CNC_MILL_5AX",
         }
-        response = await client.post("/api/work-centers", json=data, headers=admin_headers)
+        response = await client.post("/api/work-centers/", json=data, headers=admin_headers)
 
         assert response.status_code == 200
         result = response.json()
@@ -394,7 +397,7 @@ class TestWorkCenterAPI:
             "name": "Get Test CNC",
             "work_center_type": "SAW",
         }
-        create_response = await client.post("/api/work-centers", json=data, headers=admin_headers)
+        create_response = await client.post("/api/work-centers/", json=data, headers=admin_headers)
         wc_number = create_response.json()["work_center_number"]
 
         # Then get it
@@ -414,7 +417,7 @@ class TestWorkCenterAPI:
             "name": "Update Test",
             "work_center_type": "DRILL",
         }
-        create_response = await client.post("/api/work-centers", json=data, headers=admin_headers)
+        create_response = await client.post("/api/work-centers/", json=data, headers=admin_headers)
         result = create_response.json()
         wc_number = result["work_center_number"]
         version = result["version"]
@@ -439,7 +442,7 @@ class TestWorkCenterAPI:
             "name": "Version Test",
             "work_center_type": "EXTERNAL",
         }
-        create_response = await client.post("/api/work-centers", json=data, headers=admin_headers)
+        create_response = await client.post("/api/work-centers/", json=data, headers=admin_headers)
         wc_number = create_response.json()["work_center_number"]
 
         # Update with wrong version
@@ -458,7 +461,7 @@ class TestWorkCenterAPI:
             "name": "Delete Test",
             "work_center_type": "QUALITY_CONTROL",
         }
-        create_response = await client.post("/api/work-centers", json=data, headers=admin_headers)
+        create_response = await client.post("/api/work-centers/", json=data, headers=admin_headers)
         wc_number = create_response.json()["work_center_number"]
 
         # Delete
@@ -485,11 +488,11 @@ class TestWorkCenterAPI:
     async def test_search_work_centers(self, client, admin_headers):
         """GET /api/work-centers/search should filter results"""
         # Create test data
-        await client.post("/api/work-centers", json={
+        await client.post("/api/work-centers/", json={
             "name": "Search Test Lathe",
             "work_center_type": "CNC_LATHE"
         }, headers=admin_headers)
-        await client.post("/api/work-centers", json={
+        await client.post("/api/work-centers/", json={
             "name": "Search Test Mill",
             "work_center_type": "CNC_MILL_3AX"
         }, headers=admin_headers)
@@ -504,30 +507,30 @@ class TestWorkCenterAPI:
     async def test_filter_by_type(self, client, admin_headers):
         """GET /api/work-centers should filter by type"""
         # Create test data
-        await client.post("/api/work-centers", json={
+        await client.post("/api/work-centers/", json={
             "name": "Type Filter Lathe",
             "work_center_type": "CNC_LATHE"
         }, headers=admin_headers)
-        await client.post("/api/work-centers", json={
+        await client.post("/api/work-centers/", json={
             "name": "Type Filter Mill",
             "work_center_type": "CNC_MILL_3AX"
         }, headers=admin_headers)
 
         # Filter by type
-        response = await client.get("/api/work-centers?work_center_type=CNC_LATHE", headers=admin_headers)
+        response = await client.get("/api/work-centers/?work_center_type=CNC_LATHE", headers=admin_headers)
         assert response.status_code == 200
         results = response.json()
         assert all(wc["work_center_type"] == "CNC_LATHE" for wc in results)
 
     async def test_requires_authentication(self, client):
         """API endpoints should require authentication"""
-        response = await client.get("/api/work-centers")
+        response = await client.get("/api/work-centers/")
         assert response.status_code == 401
 
     async def test_delete_requires_admin(self, client, operator_headers, admin_headers):
         """DELETE should require admin role"""
         # Create as admin
-        create_response = await client.post("/api/work-centers", json={
+        create_response = await client.post("/api/work-centers/", json={
             "name": "Admin Only Delete",
             "work_center_type": "SAW"
         }, headers=admin_headers)

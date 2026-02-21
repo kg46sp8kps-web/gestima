@@ -87,6 +87,7 @@ class FileLink(Base, AuditMixin):
     is_primary = Column(Boolean, default=False, nullable=False)
     revision = Column(String(2), nullable=True)                          # "A", "B", "C"... (optional)
     link_type = Column(String(20), default="drawing", nullable=False)    # "drawing", "step_model", "nc_program"
+    drawing_number = Column(String(50), nullable=True)                   # Číslo výkresu (z Part.drawing_number)
 
     # AuditMixin provides:
     # - created_at, updated_at, created_by, updated_by

@@ -12,6 +12,7 @@ import { useWindowContextStore } from '@/stores/windowContext'
 import type { LinkingGroup } from '@/stores/windows'
 import { Package, Calendar } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
+import { formatDate } from '@/utils/formatters'
 
 interface Props {
   standalone?: boolean
@@ -54,10 +55,6 @@ function selectPart(partNumber: string) {
   }
 }
 
-// Format date
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('cs-CZ')
-}
 </script>
 
 <template>
@@ -113,22 +110,6 @@ function formatDate(dateString: string) {
   height: 100%;
   padding: var(--space-10);
   color: var(--text-secondary);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--border-default);
-  border-top-color: var(--brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: var(--space-4);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* Empty state */

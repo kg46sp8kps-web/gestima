@@ -156,27 +156,7 @@ function downloadTrainingData() {
   color: var(--color-primary); border-radius: var(--radius-sm);
   font-size: var(--text-xs); font-weight: 600; margin-bottom: var(--space-3);
 }
-.empty-state {
-  display: flex; flex-direction: column; align-items: center;
-  gap: var(--space-3); padding: var(--space-8);
-  text-align: center; color: var(--text-muted);
-}
 .empty-icon { color: var(--color-primary); opacity: 0.5; }
-.btn-primary {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-4); background: transparent;
-  color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius-md);
-  font-size: var(--text-sm); font-weight: 500; cursor: pointer;
-}
-.btn-primary:hover { background: var(--brand-subtle, rgba(153, 27, 27, 0.1)); border-color: var(--color-brand, #991b1b); color: var(--color-brand, #991b1b); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-secondary {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3); background: var(--bg-surface);
-  border: 1px solid var(--border-default); border-radius: var(--radius-md);
-  font-size: var(--text-xs); cursor: pointer; color: var(--text-secondary);
-}
-.btn-secondary:hover { border-color: var(--color-primary); color: var(--text-primary); }
 .summary-grid {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: var(--space-3); margin-bottom: var(--space-4);
@@ -221,8 +201,6 @@ function downloadTrainingData() {
 .progress-header {
   display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);
 }
-.spinner { animation: spin 1s linear infinite; color: var(--color-primary); }
-@keyframes spin { to { transform: rotate(360deg); } }
 .progress-label { flex: 1; font-size: var(--text-sm); font-weight: 500; }
 .progress-pct { font-size: var(--text-xs); color: var(--text-muted); }
 .progress-track {

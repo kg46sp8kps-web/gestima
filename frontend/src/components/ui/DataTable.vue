@@ -222,14 +222,10 @@ function toggleAll() {
 }
 
 .data-table-loading {
-  position: absolute;
-  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-overlay);
-  border-radius: var(--radius-md);
-  z-index: 10;
+  min-height: 120px;
 }
 
 .data-table-empty {

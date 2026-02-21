@@ -16,7 +16,7 @@ from app.models.enums import StockShape, PartStatus, PartSource
 
 if TYPE_CHECKING:
     from app.models.material import MaterialItemWithGroupResponse, MaterialPriceCategoryWithGroupResponse
-    from app.models.drawing import Drawing
+    from app.models.file_record import FileRecord
 
 
 class Part(Base, AuditMixin):
@@ -24,7 +24,7 @@ class Part(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     part_number = Column(String(8), unique=True, nullable=False, index=True)  # 8-digit random: 10XXXXXX
-    article_number = Column(String(50), unique=True, nullable=True, index=True)  # Dodavatelské číslo
+    article_number = Column(String(50), nullable=True, index=True)  # Dodavatelské číslo (partial unique index via migration ab002)
     name = Column(String(200), nullable=True)
 
     # ADR-024: Revize (v1.8.0 - MaterialInput refactor)
@@ -42,6 +42,9 @@ class Part(Base, AuditMixin):
     # Will be removed after migration to drawings table
     drawing_path = Column(String(500), nullable=True)
 
+    # ADR-044 Phase 2b: Primary drawing reference (FileRecord)
+    file_id = Column(Integer, ForeignKey("file_records.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version
 
@@ -50,32 +53,13 @@ class Part(Base, AuditMixin):
     operations = relationship("Operation", back_populates="part", cascade="all, delete-orphan")
     batches = relationship("Batch", back_populates="part", cascade="all, delete-orphan")
     batch_sets = relationship("BatchSet", back_populates="part")  # ADR-022: Sady cen
-    drawings = relationship(
-        "Drawing",
-        back_populates="part",
-        cascade="all, delete-orphan",
-        order_by="Drawing.is_primary.desc(), Drawing.created_at.desc()"
-    )
+    file_record = relationship("FileRecord", foreign_keys=[file_id])
     production_records = relationship(
         "ProductionRecord",
         back_populates="part",
         cascade="all, delete-orphan",
         order_by="ProductionRecord.production_date.desc()"
     )
-
-    @property
-    def primary_drawing_path(self) -> Optional[str]:
-        """
-        Computed property for backwards compatibility.
-        Returns file_path of primary drawing or None.
-
-        DEPRECATED: Use drawings relationship directly.
-        This property will be removed after full migration.
-        """
-        for drawing in self.drawings:
-            if drawing.is_primary and drawing.deleted_at is None:
-                return drawing.file_path
-        return None
 
 
 class PartBase(BaseModel):
@@ -118,6 +102,7 @@ class PartResponse(PartBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    file_id: Optional[int] = Field(None, description="Primary drawing FileRecord ID")
     version: int
     created_at: datetime
     updated_at: datetime

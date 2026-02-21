@@ -4,15 +4,25 @@
  */
 
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import { testInforConnection } from '@/api/infor-import'
+
+interface ConnectionStatus {
+  connected: boolean
+  error?: string
+  status?: string
+  token_acquired?: boolean
+  base_url?: string
+  config?: Record<string, unknown>
+  configurations?: unknown[]
+}
 
 const emit = defineEmits<{
-  (e: 'connection-change', status: any): void
+  (e: 'connection-change', status: ConnectionStatus | null): void
 }>()
 
 // State
 const loading = ref(false)
-const connectionStatus = ref<any>(null)
+const connectionStatus = ref<ConnectionStatus | null>(null)
 const connectionError = ref<string | null>(null)
 
 // Computed
@@ -24,15 +34,16 @@ async function testConnection() {
   connectionError.value = null
 
   try {
-    const response = await axios.get('/api/infor/test-connection')
-    connectionStatus.value = response.data
-    emit('connection-change', response.data)
+    const data = await testInforConnection()
+    connectionStatus.value = data as unknown as ConnectionStatus
+    emit('connection-change', data as unknown as ConnectionStatus)
 
-    if (!response.data.connected) {
-      connectionError.value = response.data.error || 'Connection failed'
+    if (!data.connected) {
+      connectionError.value = (data.error as string) || 'Connection failed'
     }
-  } catch (error: any) {
-    connectionError.value = error.response?.data?.detail || error.message
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
+    connectionError.value = err.response?.data?.detail || err.message || 'Unknown error'
     connectionStatus.value = null
     emit('connection-change', null)
   } finally {
@@ -101,35 +112,6 @@ defineExpose({ testConnection, isConnected })
   max-width: 1200px;
 }
 
-.btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.btn-primary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 .mb-4 {
   margin-bottom: var(--space-4);
@@ -204,12 +186,4 @@ defineExpose({ testConnection, isConnected })
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

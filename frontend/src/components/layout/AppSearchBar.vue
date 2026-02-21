@@ -87,25 +87,6 @@ function handleSelect(value: string, label: string) {
   pointer-events: none;
 }
 
-.search-input {
-  width: 100%;
-  height: 32px;
-  padding: 0 var(--space-3) 0 var(--space-10);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  text-align: left;
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  background: var(--bg-base);
-}
-
 .search-results {
   position: absolute;
   top: calc(100% + var(--space-1));

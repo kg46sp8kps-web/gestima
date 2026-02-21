@@ -72,7 +72,7 @@ class JobRoutingImporter(InforImporterBase[Operation]):
             ido_name="SLJobRoutes",
             field_mappings=[
                 # Required fields
-                FieldMapping("OperNum", "seq", required=True, transform=int),
+                FieldMapping("OperNum", "seq", required=True, transform=lambda x: int(float(x))),
                 # Optional fields
                 FieldMapping("Wc", "infor_wc_code", required=False),
                 FieldMapping("DerRunMchHrs", "pcs_per_hour_machine", required=False, transform=float),

@@ -4,10 +4,13 @@
  *
  * LEFT: Material items list (DataTable)
  * RIGHT: Material item detail (Info Ribbon)
+ *
+ * Refactored: uses useResizeHandle composable
  */
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
+import { useResizeHandle } from '@/composables/useResizeHandle'
 import MaterialItemsListPanel from './MaterialItemsListPanel.vue'
 import MaterialItemDetailPanel from './MaterialItemDetailPanel.vue'
 import type { MaterialItem } from '@/types/material'
@@ -20,29 +23,20 @@ const props = withDefaults(defineProps<Props>(), {
   inline: false
 })
 
-// Layout settings
+// Layout + resize
 const { layoutMode } = usePartLayoutSettings('material-items')
-
-// Panel size state
-const panelSize = ref(320)
-const isDragging = ref(false)
+const { size: panelSize, isDragging, startResize } = useResizeHandle({
+  storageKey: 'materialItemsPanelSize',
+  defaultSize: 320,
+  minSize: 250,
+  maxSize: 1000,
+  vertical: true,
+})
 
 // Selected item
 const selectedItem = ref<MaterialItem | null>(null)
 const listPanelRef = ref<InstanceType<typeof MaterialItemsListPanel> | null>(null)
 
-// Load saved panel size
-onMounted(() => {
-  const stored = localStorage.getItem('materialItemsPanelSize')
-  if (stored) {
-    const size = parseInt(stored, 10)
-    if (!isNaN(size) && size >= 250 && size <= 1000) {
-      panelSize.value = size
-    }
-  }
-})
-
-// Handle item selection
 function handleSelectItem(item: MaterialItem) {
   selectedItem.value = item
 }
@@ -52,10 +46,7 @@ function handleItemCreated(item: MaterialItem) {
 }
 
 function handleItemUpdated() {
-  // Refresh list (handled by panel)
-  if (selectedItem.value) {
-    // Optionally reload detail
-  }
+  // Refresh handled by panel
 }
 
 function handleItemDeleted() {
@@ -63,34 +54,6 @@ function handleItemDeleted() {
   listPanelRef.value?.setSelection(null)
 }
 
-// Resize handler
-function startResize(event: MouseEvent) {
-  event.preventDefault()
-  isDragging.value = true
-
-  const isVertical = layoutMode.value === 'vertical'
-  const startPos = isVertical ? event.clientX : event.clientY
-  const startSize = panelSize.value
-
-  const onMove = (e: MouseEvent) => {
-    const currentPos = isVertical ? e.clientX : e.clientY
-    const delta = currentPos - startPos
-    const newSize = Math.max(250, Math.min(1000, startSize + delta))
-    panelSize.value = newSize
-  }
-
-  const onUp = () => {
-    isDragging.value = false
-    localStorage.setItem('materialItemsPanelSize', panelSize.value.toString())
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onUp)
-  }
-
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onUp)
-}
-
-// Computed styles
 const layoutClasses = computed(() => ({
   [`layout-${layoutMode.value}`]: true
 }))
@@ -130,84 +93,21 @@ const resizeCursor = computed(() =>
     </div>
 
     <!-- EMPTY STATE -->
-    <div v-else class="empty">
+    <div v-else class="empty-state">
       <p>Select a material item from the list to view details</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* === SPLIT LAYOUT === */
-.split-layout {
-  display: flex;
-  gap: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.layout-horizontal {
-  flex-direction: column;
-}
-
-.layout-vertical {
-  flex-direction: row;
-}
-
-/* === PANELS === */
-.first-panel,
-.second-panel {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.first-panel {
-  flex-shrink: 0;
-}
-
-.second-panel {
-  flex: 1;
-  padding: var(--space-5);
-  overflow-y: auto;
-  container-type: inline-size;
-  container-name: second-panel;
-}
-
-/* === RESIZE HANDLE === */
-.resize-handle {
-  flex-shrink: 0;
-  background: var(--border-default);
-  transition: background var(--duration-fast);
-  position: relative;
-  z-index: 10;
-}
-
-.layout-vertical .resize-handle {
-  width: 4px;
-}
-
-.layout-horizontal .resize-handle {
-  height: 4px;
-}
-
-.resize-handle:hover,
-.resize-handle.dragging {
-  background: var(--color-primary);
-}
-
-/* === EMPTY STATE === */
-.empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.empty p {
-  font-size: var(--text-base);
-}
+.split-layout { display: flex; gap: 0; height: 100%; overflow: hidden; }
+.layout-horizontal { flex-direction: column; }
+.layout-vertical { flex-direction: row; }
+.first-panel, .second-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.first-panel { flex-shrink: 0; }
+.second-panel { flex: 1; padding: var(--space-5); overflow-y: auto; }
+.resize-handle { flex-shrink: 0; background: var(--border-default); transition: background var(--duration-fast); position: relative; z-index: 10; }
+.layout-vertical .resize-handle { width: 4px; }
+.layout-horizontal .resize-handle { height: 4px; }
+.resize-handle:hover, .resize-handle.dragging { background: var(--color-primary); }
 </style>

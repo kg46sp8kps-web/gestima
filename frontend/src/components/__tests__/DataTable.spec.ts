@@ -66,7 +66,8 @@ describe('DataTable Component', () => {
 
       expect(cells[0]!.text()).toBe('Alice')
       expect(cells[1]!.text()).toContain('25') // formatNumber adds spaces
-      expect(cells[2]!.text()).toBe('✓') // boolean format
+      // Boolean renders as Lucide Check icon (SVG), not text
+      expect(cells[2]!.find('.bool-true').exists()).toBe(true)
     })
 
     it('should show loading state', () => {
@@ -183,8 +184,9 @@ describe('DataTable Component', () => {
       })
 
       const cells = wrapper.findAll('tbody td')
-      expect(cells[0]!.text()).toBe('✓')
-      expect(cells[1]!.text()).toBe('✗')
+      // Boolean renders as Lucide Check/X icons (SVG), not text
+      expect(cells[0]!.find('.bool-true').exists()).toBe(true)
+      expect(cells[1]!.find('.bool-false').exists()).toBe(true)
     })
 
     it('should show dash for null/undefined', () => {
@@ -267,7 +269,8 @@ describe('DataTable Component', () => {
 
       const nameHeader = wrapper.findAll('th')[0]!
       expect(nameHeader.classes()).toContain('sorted')
-      expect(nameHeader.text()).toContain('↑')
+      // Sort indicator is Lucide ArrowUp SVG icon, not text
+      expect(nameHeader.find('.sort-icon').exists()).toBe(true)
     })
 
     it('should NOT emit sort on non-sortable columns', async () => {

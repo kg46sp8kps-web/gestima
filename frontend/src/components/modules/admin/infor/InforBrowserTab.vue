@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import { getInforIdoInfo, getInforIdoData, type InforIdoDataParams } from '@/api/infor-import'
 import { alert } from '@/composables/useDialog'
 import { Search, FileText, AlertTriangle } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
@@ -37,8 +37,8 @@ async function fetchFieldsForIdo() {
   availableFields.value = []
   selectedFields.value = []
   try {
-    const response = await axios.get(`/api/infor/ido/${selectedIdo.value}/info`)
-    const fields = response.data.info || []
+    const data = await getInforIdoInfo(selectedIdo.value)
+    const fields = data.info || []
     availableFields.value = fields.map((field: { name: string; dataType?: string; required?: boolean; readOnly?: boolean }) => ({
       name: field.name,
       type: field.dataType || 'String',
@@ -83,11 +83,14 @@ async function browseIdo() {
   idoDataError.value = null
   idoData.value = null
   try {
-    const params: Record<string, string | number> = { properties: idoProperties.value, limit: idoLimit.value }
-    if (idoFilter.value) params.filter = idoFilter.value
-    if (idoOrderBy.value) params.order_by = idoOrderBy.value
-    const response = await axios.get(`/api/infor/ido/${selectedIdo.value}/data`, { params })
-    idoData.value = response.data.data || []
+    const params: InforIdoDataParams = {
+      properties: idoProperties.value,
+      limit: idoLimit.value,
+      ...(idoFilter.value ? { filter: idoFilter.value } : {}),
+      ...(idoOrderBy.value ? { order_by: idoOrderBy.value } : {})
+    }
+    const data = await getInforIdoData(selectedIdo.value, params)
+    idoData.value = data.data || []
   } catch (error: unknown) {
     const err = error as { response?: { data?: { detail?: string } }; message?: string }
     idoDataError.value = err.response?.data?.detail || err.message || 'Unknown error'
@@ -143,17 +146,8 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
 
 <style scoped>
 .browser-tab { padding: var(--space-4); max-width: 1200px; overflow: auto; }
-.form-group { margin-bottom: var(--space-3); }
-.form-group label { display: block; font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); margin-bottom: var(--space-1); }
-.input { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm); }
-.input:focus { outline: none; border-color: var(--color-primary); }
 .input-with-button { display: flex; gap: var(--space-2); }
 .input-with-button .input { flex: 1; }
-.btn { padding: var(--space-2) var(--space-4); border: none; border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 500; cursor: pointer; transition: all var(--duration-fast); display: inline-flex; align-items: center; gap: var(--space-2); }
-.btn-primary { background: transparent; color: var(--text-primary); border: 1px solid var(--border-default); }
-.btn-primary:hover:not(:disabled) { background: var(--brand-subtle); border-color: var(--brand); color: var(--brand-text); }
-.btn-secondary { background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-default); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .case-warning { color: var(--color-primary); font-size: var(--text-sm); font-weight: 600; }
 .help-text { display: block; margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }
 .warning-text { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-warning); }

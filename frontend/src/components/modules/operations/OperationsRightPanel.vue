@@ -15,13 +15,13 @@ import { useOperationsStore } from '@/stores/operations'
 import { useMaterialsStore } from '@/stores/materials'
 import { useUiStore } from '@/stores/ui'
 import { generateTechnology } from '@/api/technology'
-import { fetchEstimationById, calibrateEstimation } from '@/api/time-vision'
+import { fetchEstimationById, calibrateEstimation, fetchOpenAIEstimation } from '@/api/time-vision'
 import type { CalibrationUpdate } from '@/api/time-vision'
-import type { TimeVisionEstimation } from '@/types/time-vision'
+import type { TimeVisionEstimation, OperationBreakdown } from '@/types/time-vision'
 import type { LinkingGroup } from '@/stores/windows'
 import type { Part } from '@/types/part'
 import type { Operation } from '@/types/operation'
-import { GraduationCap, Save, CheckCircle, Clock, ChevronRight, ChevronDown } from 'lucide-vue-next'
+import { GraduationCap, Sparkles, Save, CheckCircle, Clock, ChevronRight, ChevronDown, AlertTriangle, Plus } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 import OperationsHeader from './OperationsHeader.vue'
@@ -47,6 +47,8 @@ const detailPanelRef = ref<InstanceType<typeof OperationsDetailPanel> | null>(nu
 const showAIPanel = ref(false)
 const productionHistoryCollapsed = ref(true)
 const mlCollapsed = ref(true)
+const materialCollapsed = ref(false)
+const operationsCollapsed = ref(false)
 
 const operationsStore = useOperationsStore()
 const materialsStore = useMaterialsStore()
@@ -62,8 +64,23 @@ const mlNotes = ref<string>('')
 const mlSaving = ref(false)
 const mlLoading = ref(false)
 
+// TimeVision estimation state (independent of ai_estimation_id — loads by part_id)
+const tvEstimation = ref<TimeVisionEstimation | null>(null)
+const tvCollapsed = ref(true)
+const tvLoading = ref(false)
+
+const tvBreakdown = computed<OperationBreakdown[]>(() => {
+  if (!tvEstimation.value?.estimation_breakdown_json) return []
+  try {
+    return JSON.parse(tvEstimation.value.estimation_breakdown_json)
+  } catch {
+    return []
+  }
+})
+
 // Computed
 const operationsCount = computed(() => detailPanelRef.value?.operationsCount || 0)
+const materialsCount = computed(() => materialsStore.getContext(props.linkingGroup).materialInputs.length)
 
 const hasAIEstimation = computed(() => {
   const ops = operationsStore.getContext(props.linkingGroup).operations
@@ -107,9 +124,37 @@ watch(materialInputs, async () => {
   }
 }, { deep: true })
 
-// Reset material watch flag on part change
-// Close AI panel when switching parts or when all operations are deleted
-watch(() => props.partId, () => { showAIPanel.value = false; materialWatchInitialized = false })
+// Smooth transition on part switch — dim content while loading instead of flash
+const operationsLoading = computed(() => operationsStore.getContext(props.linkingGroup).loading)
+const materialsLoading = computed(() => materialsStore.getContext(props.linkingGroup).loadingInputs)
+const isTransitioning = computed(() => {
+  // Only dim when switching parts (not on initial load)
+  const opsCtx = operationsStore.getContext(props.linkingGroup)
+  return (operationsLoading.value || materialsLoading.value) && !opsCtx.initialLoading
+})
+
+watch(() => props.partId, async (newPartId, oldPartId) => {
+  // Reset UI state only on actual part switch (not initial load)
+  if (oldPartId !== undefined) {
+    showAIPanel.value = false
+    materialWatchInitialized = false
+    selectedWorkCenterType.value = null
+  }
+
+  // Load TimeVision estimation by part_id (works for both AI-generated and Infor-imported ops)
+  tvEstimation.value = null
+  if (newPartId) {
+    tvLoading.value = true
+    try {
+      // fetchOpenAIEstimation with partId uses /estimations/by-part/{id} endpoint
+      tvEstimation.value = await fetchOpenAIEstimation('', newPartId)
+    } catch {
+      // No estimation available — silent
+    } finally {
+      tvLoading.value = false
+    }
+  }
+}, { immediate: true })
 watch(operationsCount, (count) => {
   if (count === 0) showAIPanel.value = false
 })
@@ -254,9 +299,24 @@ async function saveCalibration() {
   }
 }
 
-// Handle select operation
+const emit = defineEmits<{
+  'refresh-part': []
+  'open-material': []
+  'open-operations': []
+  'open-pricing': []
+  'open-drawing': [drawingId?: number]
+}>()
+
+// Handle select operation — filter production history by machine type
+const selectedWorkCenterType = ref<string | null>(null)
+
 function handleSelectOperation(op: Operation | null) {
-  // Feature detail panel removed - placeholder
+  if (!op?.work_center_id) {
+    selectedWorkCenterType.value = null
+    return
+  }
+  const wc = operationsStore.workCenters.find(w => w.id === op.work_center_id)
+  selectedWorkCenterType.value = wc?.work_center_type ?? null
 }
 
 // Expose operationsCount for parent
@@ -266,50 +326,179 @@ defineExpose({
 </script>
 
 <template>
-  <div class="operations-right-panel">
+  <div class="operations-right-panel" :class="{ 'is-transitioning': isTransitioning }">
     <!-- OPERATIONS HEADER (when standalone) -->
     <OperationsHeader
       v-if="showHeader"
       :part="part"
       :operationsCount="operationsCount"
       :hasAIEstimation="hasAIEstimation"
+      @refresh="emit('refresh-part')"
+      @open-material="emit('open-material')"
+      @open-operations="emit('open-operations')"
+      @open-pricing="emit('open-pricing')"
+      @open-drawing="(id?: number) => emit('open-drawing', id)"
     />
 
-    <!-- MATERIAL INPUT SELECTOR V2 (parser + dropdown) -->
-    <MaterialInputSelectorV2
-      :partId="partId"
-      :linkingGroup="linkingGroup"
-    />
-
-    <!-- OPERATIONS DETAIL PANEL + AI PANEL -->
-    <div class="operations-split">
-      <div class="operations-main">
-        <OperationsDetailPanel
-          ref="detailPanelRef"
-          :partId="partId"
-          :part="part"
-          :linkingGroup="linkingGroup"
-          @select-operation="handleSelectOperation"
-          @toggle-ai-panel="showAIPanel = !showAIPanel"
-        />
+    <!-- MATERIAL RIBBON (collapsible) -->
+    <div class="section-ribbon">
+      <div class="section-ribbon-header" @click="materialCollapsed = !materialCollapsed">
+        <component :is="materialCollapsed ? ChevronRight : ChevronDown" :size="ICON_SIZE.SMALL" class="ribbon-chevron" />
+        <span class="section-ribbon-title">Materiál</span>
+        <span v-if="materialsCount > 0" class="section-ribbon-badge">{{ materialsCount }}</span>
       </div>
-
-      <!-- AI ESTIMATE PANEL (collapsible) -->
-      <div v-if="showAIPanel" class="ai-panel">
-        <AIEstimatePanel
+      <div v-if="!materialCollapsed" class="section-ribbon-body">
+        <MaterialInputSelectorV2
           :partId="partId"
-          :part="part"
           :linkingGroup="linkingGroup"
-          @close="showAIPanel = false"
-          @operation-created="showAIPanel = false; detailPanelRef?.resetAIWarning()"
+          :hideHeader="true"
         />
       </div>
     </div>
 
-    <!-- PRODUCTION HISTORY (collapsible) -->
+    <!-- OPERATIONS RIBBON (collapsible) -->
+    <div class="section-ribbon operations-ribbon" :class="{ 'ribbon-expanded': !operationsCollapsed }">
+      <div class="section-ribbon-header" @click="operationsCollapsed = !operationsCollapsed">
+        <component :is="operationsCollapsed ? ChevronRight : ChevronDown" :size="ICON_SIZE.SMALL" class="ribbon-chevron" />
+        <span class="section-ribbon-title">Operace</span>
+        <span v-if="operationsCount > 0" class="section-ribbon-badge">{{ operationsCount }}</span>
+        <span
+          v-if="detailPanelRef?.hasAIEstimation"
+          class="ai-info-badge"
+          :class="{ 'is-modified': detailPanelRef?.aiTimeModified }"
+          :title="detailPanelRef?.aiTimeModified ? 'AI čas byl upraven' : 'Operace obsahuje AI odhad'"
+        >
+          <AlertTriangle :size="ICON_SIZE.SMALL" />
+        </span>
+        <div class="ribbon-actions" @click.stop>
+          <button
+            class="icon-btn"
+            @click="showAIPanel = !showAIPanel"
+            :disabled="!partId"
+            title="AI odhad času z výkresu"
+          >
+            <Sparkles :size="ICON_SIZE.STANDARD" />
+          </button>
+          <button
+            class="icon-btn"
+            @click="detailPanelRef?.addOperation()"
+            :disabled="!partId"
+            title="Přidat operaci"
+          >
+            <Plus :size="ICON_SIZE.STANDARD" />
+          </button>
+        </div>
+      </div>
+      <div v-if="!operationsCollapsed" class="section-ribbon-body operations-body">
+        <div class="operations-split">
+          <div class="operations-main">
+            <OperationsDetailPanel
+              ref="detailPanelRef"
+              :partId="partId"
+              :part="part"
+              :linkingGroup="linkingGroup"
+              :hideHeader="true"
+              @select-operation="handleSelectOperation"
+              @toggle-ai-panel="showAIPanel = !showAIPanel"
+            />
+          </div>
+
+          <!-- AI ESTIMATE PANEL (collapsible) -->
+          <div v-if="showAIPanel" class="ai-panel">
+            <AIEstimatePanel
+              :partId="partId"
+              :part="part"
+              :linkingGroup="linkingGroup"
+              @close="showAIPanel = false"
+              @operation-created="showAIPanel = false; detailPanelRef?.resetAIWarning()"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANELS (scrollable container — operations stay visible) -->
+    <div class="bottom-panels">
+    <!-- TIMEVISION RESULT (collapsible, above production history) -->
+    <div v-if="tvEstimation || tvLoading" class="tv-ribbon">
+      <div class="tv-header" @click="tvCollapsed = !tvCollapsed">
+        <component :is="tvCollapsed ? ChevronRight : ChevronDown" :size="ICON_SIZE.SMALL" class="tv-chevron" />
+        <Sparkles :size="ICON_SIZE.SMALL" class="tv-icon" />
+        <span class="tv-title">AI odhad</span>
+        <!-- Collapsed summary -->
+        <template v-if="tvEstimation">
+          <span class="tv-status-badge" :style="{ color: getStatusColor(tvEstimation.status) }">
+            <CheckCircle v-if="tvEstimation.status === 'verified'" :size="ICON_SIZE.SMALL" />
+            <Clock v-else :size="ICON_SIZE.SMALL" />
+            {{ getStatusLabel(tvEstimation.status) }}
+          </span>
+          <span v-if="tvCollapsed" class="tv-collapsed-summary">
+            <span class="tv-cs-item teal">{{ tvEstimation.estimated_time_min?.toFixed(1) ?? '—' }} min</span>
+            <span class="tv-cs-sep">|</span>
+            <span class="tv-cs-item">{{ tvEstimation.part_type ?? '—' }}</span>
+            <span class="tv-cs-sep">|</span>
+            <span class="tv-cs-item">{{ tvEstimation.complexity ?? '—' }}</span>
+            <span v-if="tvEstimation.confidence" class="tv-cs-sep">|</span>
+            <span v-if="tvEstimation.confidence" class="tv-cs-item" :class="'confidence-' + tvEstimation.confidence">{{ tvEstimation.confidence }}</span>
+          </span>
+        </template>
+      </div>
+
+      <div v-if="!tvCollapsed" class="tv-body">
+        <div v-if="tvLoading" class="tv-loading">
+          <div class="ml-spinner"></div>
+        </div>
+
+        <template v-else-if="tvEstimation">
+          <!-- Summary grid -->
+          <div class="tv-summary">
+            <div class="tv-summary-item highlight">
+              <label>AI čas</label>
+              <span class="tv-time-value">{{ tvEstimation.estimated_time_min?.toFixed(1) ?? '—' }} min</span>
+            </div>
+            <div class="tv-summary-item">
+              <label>Typ</label>
+              <span>{{ tvEstimation.part_type ?? '—' }}</span>
+            </div>
+            <div class="tv-summary-item">
+              <label>Složitost</label>
+              <span>{{ tvEstimation.complexity ?? '—' }}</span>
+            </div>
+            <div class="tv-summary-item">
+              <label>Spolehlivost</label>
+              <span :class="'confidence-' + tvEstimation.confidence">{{ tvEstimation.confidence ?? '—' }}</span>
+            </div>
+            <div v-if="tvEstimation.material_detected" class="tv-summary-item">
+              <label>Materiál</label>
+              <span>{{ tvEstimation.material_detected }}</span>
+            </div>
+            <div v-if="tvEstimation.ai_provider" class="tv-summary-item">
+              <label>Model</label>
+              <span>{{ tvEstimation.ai_provider === 'openai_ft' ? 'Fine-tuned' : 'GPT-4o' }}</span>
+            </div>
+          </div>
+
+          <!-- Breakdown table -->
+          <div v-if="tvBreakdown.length > 0" class="tv-breakdown">
+            <div v-for="item in tvBreakdown" :key="item.operation" class="tv-breakdown-row">
+              <span class="tv-op-name">{{ item.operation }}</span>
+              <span class="tv-op-time">{{ item.time_min }} min</span>
+            </div>
+          </div>
+
+          <!-- Reasoning (truncated) -->
+          <div v-if="tvEstimation.estimation_reasoning" class="tv-reasoning">
+            <span class="tv-reasoning-text">{{ tvEstimation.estimation_reasoning }}</span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- PRODUCTION HISTORY (collapsible, always grouped by Job) -->
     <ProductionHistoryPanel
       v-if="partId"
       :partId="partId"
+      :workCenterType="selectedWorkCenterType"
       :collapsed="productionHistoryCollapsed"
       @update:collapsed="productionHistoryCollapsed = $event"
     />
@@ -431,15 +620,107 @@ defineExpose({
         </template>
       </template>
     </div>
+    </div><!-- /bottom-panels -->
   </div>
 </template>
 
 <style scoped>
 /* === PANEL LAYOUT === */
 .operations-right-panel {
+  transition: opacity 0.15s ease;
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
+}
+
+/* Smooth transition on part switch — brief fade instead of jarring content swap */
+.operations-right-panel {
+  transition: opacity 0.15s ease;
+}
+.operations-right-panel.is-transitioning {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* === SECTION RIBBONS (Material + Operations — collapsible) === */
+.section-ribbon {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+.operations-ribbon.ribbon-expanded {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.section-ribbon-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-ribbon-header:hover {
+  background: var(--bg-raised);
+}
+
+.ribbon-chevron {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.section-ribbon-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.section-ribbon-badge {
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  color: var(--text-tertiary);
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+}
+
+.ribbon-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.ai-info-badge {
+  display: flex;
+  align-items: center;
+  color: var(--status-ok);
+  flex-shrink: 0;
+}
+
+.ai-info-badge.is-modified {
+  color: var(--color-warning);
+}
+
+.section-ribbon-body {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.operations-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -447,7 +728,16 @@ defineExpose({
 .operations-split {
   display: flex;
   flex: 1;
+  min-height: 200px;
   overflow: hidden;
+}
+
+/* === BOTTOM PANELS (scrollable, max 40% height) === */
+.bottom-panels {
+  flex-shrink: 1;
+  max-height: 40%;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-default);
 }
 
 .operations-main {
@@ -464,18 +754,21 @@ defineExpose({
 
 /* === MODEL LEARNING RIBBON (collapsible) === */
 .ml-ribbon {
-  flex-shrink: 0;
   border-top: 1px solid var(--border-default);
   background: var(--bg-surface);
 }
 
 .ml-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   user-select: none;
+  background: var(--bg-surface);
 }
 
 .ml-header:hover { background: var(--bg-raised); }
@@ -701,4 +994,158 @@ defineExpose({
 
 .ml-save-btn:hover:not(:disabled) { opacity: 0.9; }
 .ml-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* === TIMEVISION RESULT RIBBON (collapsible) === */
+.tv-ribbon {
+  background: var(--bg-surface);
+}
+
+.tv-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg-surface);
+}
+
+.tv-header:hover { background: var(--bg-raised); }
+
+.tv-chevron {
+  color: var(--text-tertiary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.tv-icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.tv-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.tv-status-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  margin-left: auto;
+}
+
+.tv-collapsed-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+}
+
+.tv-cs-item.teal { color: var(--status-ok); font-weight: var(--font-semibold); }
+.tv-cs-sep { color: var(--text-tertiary); }
+
+.tv-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2);
+}
+
+.tv-body {
+  padding: 0 var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tv-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.tv-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tv-summary-item label {
+  font-size: 9px;
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-tertiary);
+}
+
+.tv-summary-item span {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.tv-summary-item.highlight label { color: var(--status-ok); }
+.tv-time-value {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--status-ok);
+  font-family: var(--font-mono);
+}
+
+.confidence-high { color: var(--color-success); }
+.confidence-medium { color: var(--color-warning); }
+.confidence-low { color: var(--color-danger); }
+
+.tv-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+}
+
+.tv-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-0\.5) 0;
+}
+
+.tv-op-name {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.tv-op-time {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.tv-reasoning {
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.tv-reasoning-text {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>

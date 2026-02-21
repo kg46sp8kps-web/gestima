@@ -17,11 +17,14 @@ export const useFilesStore = defineStore('files', () => {
   const files = ref<FileWithLinks[]>([])
   const selectedFile = ref<FileWithLinks | null>(null)
   const loading = ref(false)
+  const loaded = ref(false)  // True after first successful fetch — skip re-fetch on reopen
   const filters = ref<FileFilters>({})
   const total = ref(0)
 
   // Computed
   const hasFiles = computed(() => files.value.length > 0)
+  // Spinner only on first load (empty list) — re-fetches are silent
+  const initialLoading = computed(() => loading.value && files.value.length === 0)
   const orphanFiles = computed(() =>
     files.value.filter(f => f.links.length === 0 && f.status !== 'temp')
   )
@@ -36,22 +39,38 @@ export const useFilesStore = defineStore('files', () => {
       const response = await filesApi.list(filters.value)
       files.value = response.files
       total.value = response.total
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání souborů')
+      loaded.value = true
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání souborů')
       throw error
     } finally {
       loading.value = false
     }
   }
 
-  async function fetchOrphans() {
+  async function fetchOrphans(includeLinkedToDeleted = false) {
     loading.value = true
     try {
-      const response = await filesApi.getOrphans()
+      const response = await filesApi.getOrphans(includeLinkedToDeleted)
       files.value = response.files
       total.value = response.total
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání osiřelých souborů')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání osiřelých souborů')
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteOrphansBulk(includeLinkedToDeleted = false): Promise<number> {
+    loading.value = true
+    try {
+      const result = await filesApi.deleteOrphansBulk(includeLinkedToDeleted)
+      // Refresh the current orphan view after bulk delete
+      await fetchOrphans(includeLinkedToDeleted)
+      return result.deleted
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při hromadném mazání souborů')
       throw error
     } finally {
       loading.value = false
@@ -62,8 +81,8 @@ export const useFilesStore = defineStore('files', () => {
     loading.value = true
     try {
       selectedFile.value = await filesApi.get(fileId)
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání souboru')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání souboru')
       throw error
     } finally {
       loading.value = false
@@ -85,8 +104,8 @@ export const useFilesStore = defineStore('files', () => {
       total.value++
       ui.showSuccess('Soubor nahrán')
       return fileWithLinks
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při nahrávání souboru')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při nahrávání souboru')
       throw error
     } finally {
       loading.value = false
@@ -111,8 +130,8 @@ export const useFilesStore = defineStore('files', () => {
       }
 
       ui.showSuccess('Soubor smazán')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při mazání souboru')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při mazání souboru')
       throw error
     } finally {
       loading.value = false
@@ -128,8 +147,8 @@ export const useFilesStore = defineStore('files', () => {
       await selectFile(fileId)
 
       ui.showSuccess('Soubor propojen')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při propojení souboru')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při propojení souboru')
       throw error
     } finally {
       loading.value = false
@@ -157,8 +176,8 @@ export const useFilesStore = defineStore('files', () => {
       }
 
       ui.showSuccess('Vazba odpojena')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při odpojení vazby')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při odpojení vazby')
       throw error
     } finally {
       loading.value = false
@@ -174,8 +193,8 @@ export const useFilesStore = defineStore('files', () => {
       await selectFile(fileId)
 
       ui.showSuccess('Nastaven jako primární')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při nastavení primárního')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při nastavení primárního')
       throw error
     } finally {
       loading.value = false
@@ -190,6 +209,7 @@ export const useFilesStore = defineStore('files', () => {
     files.value = []
     selectedFile.value = null
     loading.value = false
+    loaded.value = false
     filters.value = {}
     total.value = 0
   }
@@ -199,14 +219,17 @@ export const useFilesStore = defineStore('files', () => {
     files,
     selectedFile,
     loading,
+    loaded,
     filters,
     total,
     // Computed
     hasFiles,
+    initialLoading,
     orphanFiles,
     // Actions
     fetchFiles,
     fetchOrphans,
+    deleteOrphansBulk,
     selectFile,
     uploadFile,
     deleteFile,

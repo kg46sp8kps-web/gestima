@@ -167,7 +167,8 @@ describe('Modal Component', () => {
 
       const closeBtn = document.querySelector('.modal-close')
       expect(closeBtn).toBeTruthy()
-      expect(closeBtn?.textContent?.trim()).toBe('✕')
+      // Close button uses Lucide X icon (SVG), not text
+      expect(closeBtn?.querySelector('svg')).toBeTruthy()
     })
 
     it('should hide close button when showClose=false', async () => {

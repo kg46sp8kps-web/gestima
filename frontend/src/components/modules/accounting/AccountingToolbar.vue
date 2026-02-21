@@ -133,16 +133,7 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
   margin-left: var(--space-0\.5);
 }
 
-.tab-buttons {
-  display: flex;
-  gap: var(--space-0\.5);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  padding: var(--space-0\.5);
-}
-
-.year-btn,
-.tab-btn {
+.year-btn {
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -154,8 +145,7 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
   transition: all var(--duration-fast);
 }
 
-.year-btn:hover,
-.tab-btn:hover {
+.year-btn:hover {
   background: var(--bg-surface);
   color: var(--text-body);
 }
@@ -164,12 +154,6 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
   background: var(--brand-subtle);
   color: var(--brand-text);
   border: 1px solid var(--brand);
-}
-
-.tab-btn.active {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
 }
 
 .refresh-btn {

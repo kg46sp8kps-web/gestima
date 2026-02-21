@@ -237,14 +237,10 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 .toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .filter-label { font-size: var(--text-xs); color: var(--text-secondary); }
 .year-select { padding: var(--space-1) var(--space-2); font-size: var(--text-sm); background: var(--bg-input); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); }
-.btn-ghost { padding: var(--space-2) var(--space-3); font-size: var(--text-sm); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); cursor: pointer; transition: var(--transition-fast); display: flex; align-items: center; gap: var(--space-2); }
-.btn-ghost:hover:not(:disabled) { background: var(--state-hover); border-color: var(--border-strong); }
-.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 .cached-badge, .date-range { font-size: var(--text-xs); color: var(--text-tertiary); }
 .cached-badge { padding: var(--space-1) var(--space-2); background: rgba(255,255,255,0.1); border-radius: var(--radius-sm); }
 .date-range { margin-left: auto; }
 .legend { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); padding: var(--space-2) var(--space-3); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); flex-wrap: wrap; }
-.loading-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
 .results { display: flex; flex-direction: column; gap: var(--space-4); flex: 1; overflow: auto; }
 .summary-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-3); }
 .card { padding: var(--space-3); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
@@ -286,9 +282,7 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 .ui-desc, .text-secondary { color: var(--text-secondary); }
 .ui-reason { color: var(--color-warning); }
 .ui-cost { font-family: var(--font-mono); color: var(--text-primary); text-align: right; }
-.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); }
 .empty-icon { color: var(--text-tertiary); }
-.empty-state p { color: var(--text-secondary); font-size: var(--text-sm); }
 .text-right { text-align: right; }
 .font-mono { font-family: var(--font-mono); }
 </style>

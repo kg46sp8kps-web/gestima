@@ -52,7 +52,7 @@ async def get_work_centers(
     return [WorkCenterResponse.from_orm(wc) for wc in work_centers]
 
 
-@router.get("/search")
+@router.get("/search", response_model=dict)
 async def search_work_centers(
     search: str = Query("", description="Hledat v čísle, názvu"),
     work_center_type: Optional[WorkCenterType] = Query(None, description="Filtr podle typu"),
@@ -104,7 +104,7 @@ async def search_work_centers(
     }
 
 
-@router.get("/types")
+@router.get("/types", response_model=list)
 async def get_work_center_types(
     current_user: User = Depends(get_current_user)
 ):
@@ -246,7 +246,7 @@ async def update_work_center(
     return WorkCenterResponse.from_orm(work_center)
 
 
-@router.post("/{work_center_number}/recalculate-batches")
+@router.post("/{work_center_number}/recalculate-batches", response_model=dict)
 async def recalculate_batches(
     work_center_number: str,
     db: AsyncSession = Depends(get_db),

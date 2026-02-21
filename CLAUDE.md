@@ -4,22 +4,16 @@
 
 ---
 
-## MODE DETECTION (automatické — AI rozhoduje sám)
+## MODE DETECTION
 
-### SINGLE AGENT ← udělej sám, nepoužívej Task tool
+### CARTMAN = DEFAULT
+Uživatel řekne "cartman udělej X" → CARTMAN orchestruje vše. Sám vybere agenty (backend, frontend, qa, auditor, devops), sám deleguje, sám validuje. Uživatel se nestará o sub-agenty.
+
+### SINGLE AGENT ← pouze když uživatel explicitně řekne "udělej sám"
 - Typo, bug fix, single-line změna
 - Otázka, vysvětlení
-- 1-2 soubory, jeden stack (jen backend NEBO jen frontend)
-- "Rychle udělej X"
+- Uživatel musí říct "udělej sám" / "bez cartmana"
 
-### CARTMAN MODE ← automaticky aktivuj multi-agent orchestraci
-- Nová feature (3+ soubory)
-- Backend + Frontend současně
-- Schema/model změna (backend → migrace → frontend update)
-- Architektura, refaktoring napříč moduly
-
-**AUTO-DETEKCE:** AI MUSÍ sám rozhodnout režim podle úkolu. Uživatel NEMUSÍ říkat "aktivuj CARTMANA".
-**Manuální override:** Uživatel může říct "aktivuj CARTMANA" nebo "udělej sám" pro přepsání auto-detekce.
 **Agent definice:** [.claude/agents/](/.claude/agents/) (backend.md, frontend.md, qa.md, auditor.md, devops.md, cartman.md)
 **Orchestrace:** [docs/agents/AGENT-INSTRUCTIONS.md](docs/agents/AGENT-INSTRUCTIONS.md)
 
@@ -39,6 +33,28 @@
 | 8 | **BUILDING BLOCKS** - reusable komponenty, 1× napsat N× použít | L-039 |
 
 **BANNED:** "mělo by být OK", "teď už to bude fungovat"
+
+---
+
+## LIST MODULE PERFORMANCE (ADR-049) — MANDATORY
+
+**Každý list modul MUSÍ dodržovat tento pattern. Bez výjimky.**
+
+| Vrstva | Pravidlo | Reference |
+|--------|----------|-----------|
+| **Backend** | `skip/limit` default 200, vracet `{ items, total }` — nikdy plain array | `GET /materials/items` |
+| **Backend** | `selectinload` ZAKÁZÁN pro list endpoint — jen pro detail | — |
+| **Store** | `initialLoading`, `hasItems`, `hasMore`, `loaded` flagy — identické jako `parts.ts` | `stores/parts.ts` |
+| **Store** | `fetchItems()` s guard `if (loaded) return` — re-open = 0ms | — |
+| **Store** | `fetchMoreItems()` batch 50 — infinite scroll | — |
+| **Panel** | **TanStack Virtual** — NIKDY `DataTable` pro >100 řádků | `PartListPanel.vue` |
+| **Panel** | `onMounted`: `if (!store.hasItems) await store.fetchItems()` | — |
+| **Panel** | `onUnmounted`: reset všech lokálních filtrů | — |
+| **Panel** | Spinner: `v-if="store.initialLoading"` — NIKDY `v-if="store.loading"` | — |
+| **Prefetch** | Přidat do `usePrefetch.ts` → fire-and-forget po loginu | `composables/usePrefetch.ts` |
+
+**Vzorová implementace:** `PartListPanel.vue` + `parts.ts` + `MaterialItemsListPanel.vue`
+**Detailní ADR:** [docs/ADR/049-virtualized-list-performance.md](docs/ADR/049-virtualized-list-performance.md)
 
 ---
 

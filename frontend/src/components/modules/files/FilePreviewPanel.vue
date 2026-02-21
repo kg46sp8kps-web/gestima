@@ -144,17 +144,6 @@ const isPdf = computed(() => props.file?.file_type === 'pdf')
   overflow: hidden;
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: var(--space-8);
-  text-align: center;
-  color: var(--text-secondary);
-}
-
 .empty-icon {
   margin-bottom: var(--space-4);
   opacity: 0.5;
@@ -218,41 +207,6 @@ const isPdf = computed(() => props.file?.file_type === 'pdf')
   display: flex;
   gap: var(--space-3);
   margin-top: auto;
-}
-
-.btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  background: transparent;
-}
-
-.btn-primary {
-  color: var(--text-primary);
-  border-color: var(--border-default);
-}
-
-.btn-primary:hover {
-  border-color: var(--color-primary);
-  background: var(--bg-raised);
-}
-
-.btn-secondary {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-.btn-secondary:hover {
-  background: rgba(244, 63, 94, 0.1);
 }
 
 </style>

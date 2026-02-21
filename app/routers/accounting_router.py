@@ -217,7 +217,7 @@ async def get_turnovers(
     return result
 
 
-@router.post("/refresh")
+@router.post("/refresh", response_model=dict)
 async def refresh_cache(
     rok: int = 2026,
     current_user: User = Depends(require_role([UserRole.ADMIN])),

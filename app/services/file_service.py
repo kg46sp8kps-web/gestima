@@ -17,6 +17,7 @@ Business logic STAYS in respective routers/services.
 
 import hashlib
 import logging
+import os
 import re
 import shutil
 import uuid
@@ -26,8 +27,9 @@ from typing import Optional
 
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.file_record import FileRecord, FileLink
 
@@ -157,10 +159,17 @@ class FileService:
             safe_filename = f"{stem}_{unique_suffix}{suffix}"
             file_path = target_dir / safe_filename
 
-        # Save file to disk
+        # Save file to disk (atomic: write to temp, then rename)
         try:
-            with file_path.open("wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            import tempfile
+            fd, tmp_path = tempfile.mkstemp(dir=str(target_dir), suffix=file_path.suffix)
+            try:
+                with os.fdopen(fd, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+                os.replace(tmp_path, str(file_path))
+            except Exception:
+                os.unlink(tmp_path)
+                raise
             logger.info(f"Saved file to disk: {file_path} ({file_size} bytes)")
         except Exception as e:
             logger.error(f"Failed to save file to disk: {e}", exc_info=True)
@@ -203,6 +212,239 @@ class FileService:
             except Exception as cleanup_error:
                 logger.error(f"Failed to cleanup file after DB error: {cleanup_error}")
 
+            raise HTTPException(status_code=500, detail="Failed to create file record in database")
+
+    async def store_from_path(
+        self,
+        source_path: Path,
+        directory: str,
+        db: AsyncSession,
+        *,
+        allowed_types: Optional[list[str]] = None,
+        created_by: Optional[str] = None
+    ) -> FileRecord:
+        """
+        Store file from local path (copy to uploads) and create DB record.
+
+        Used for batch import from network shares where files already exist on disk.
+        Unlike store() which receives UploadFile, this copies from a Path.
+
+        Transaction handling (L-008):
+        - If DB fails → delete copy from disk (compensating transaction)
+        - Commit handled by CALLER
+        """
+        import unicodedata
+
+        if not source_path.exists():
+            raise HTTPException(status_code=400, detail=f"Source file not found: {source_path.name}")
+
+        # 1. Detect file type
+        file_type = self._detect_file_type(source_path.name)
+
+        # 2. Validate allowed types
+        if allowed_types and file_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File type '{file_type}' not allowed. Allowed: {', '.join(allowed_types)}"
+            )
+
+        # 3. Validate magic bytes (sync version for files on disk)
+        self._validate_magic_bytes(source_path, file_type)
+
+        # 4. Validate file size
+        self._validate_file_size(source_path, file_type)
+        file_size = source_path.stat().st_size
+
+        # 5. Sanitize filename (normalize diacritics to ASCII for safety)
+        original_filename = source_path.name
+        normalized = unicodedata.normalize('NFD', original_filename)
+        ascii_name = normalized.encode('ascii', 'ignore').decode('ascii')
+        if not ascii_name or not Path(ascii_name).stem:
+            ascii_name = f"file_{uuid.uuid4().hex[:8]}{source_path.suffix.lower()}"
+        safe_filename = self._sanitize_filename(ascii_name)
+
+        # 6. Copy to uploads directory
+        target_dir = self._ensure_directory(directory)
+        file_path = target_dir / safe_filename
+
+        if file_path.exists():
+            stem = file_path.stem
+            suffix = file_path.suffix
+            unique_suffix = str(uuid.uuid4())[:8]
+            safe_filename = f"{stem}_{unique_suffix}{suffix}"
+            file_path = target_dir / safe_filename
+
+        try:
+            shutil.copy2(str(source_path), str(file_path))
+            logger.info(f"Copied file from share: {source_path.name} -> {file_path} ({file_size} bytes)")
+        except Exception as e:
+            logger.error(f"Failed to copy file from share: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to copy file: {source_path.name}")
+
+        # 7. Calculate hash
+        file_hash = self._calculate_hash(file_path)
+
+        # 8. Create DB record
+        relative_path = f"{directory}/{safe_filename}"
+        mime_type = self.MIME_TYPES.get(file_type, "application/octet-stream")
+
+        try:
+            record = FileRecord(
+                file_hash=file_hash,
+                file_path=relative_path,
+                original_filename=original_filename,
+                file_size=file_size,
+                file_type=file_type,
+                mime_type=mime_type,
+                status="active",
+                created_by=created_by,
+                updated_by=created_by
+            )
+            db.add(record)
+            await db.flush()
+
+            logger.info(
+                f"Created FileRecord from path: ID={record.id}, path='{relative_path}', "
+                f"type={file_type}, size={file_size}, hash={file_hash[:16]}..."
+            )
+            return record
+
+        except Exception as e:
+            logger.error(f"DB insert failed, deleting copy: {file_path}", exc_info=True)
+            try:
+                file_path.unlink()
+            except Exception as cleanup_error:
+                logger.error(f"Failed to cleanup file after DB error: {cleanup_error}")
+            raise HTTPException(status_code=500, detail="Failed to create file record in database")
+
+    async def store_from_bytes(
+        self,
+        content: bytes,
+        filename: str,
+        directory: str,
+        db: AsyncSession,
+        *,
+        allowed_types: list[str] | None = None,
+        created_by: str = "system"
+    ) -> FileRecord:
+        """
+        Store raw bytes to disk and create DB record.
+
+        Used for files received from external APIs (e.g., Infor base64-decoded PDF response)
+        where the content arrives as bytes rather than as an UploadFile or a local Path.
+
+        Steps:
+        1. Detect file_type from filename extension
+        2. Validate allowed_types (if provided)
+        3. Validate magic bytes directly from content bytes
+        4. Validate file size from len(content)
+        5. Sanitize filename and write bytes to uploads/{directory}/{safe_filename}
+        6. Calculate SHA-256 hash from disk
+        7. Create FileRecord in DB
+        8. Return FileRecord
+
+        Transaction handling (L-008):
+        - If DB insert fails → delete file from disk (compensating transaction)
+        - Commit handled by CALLER
+
+        Args:
+            content: Raw file bytes
+            filename: Original filename (used for type detection and FileRecord)
+            directory: Subdirectory under uploads/ (e.g., "parts/10900635" or "loose")
+            db: Database session
+            allowed_types: Optional list of allowed types (e.g., ["pdf"])
+            created_by: Username for audit (default: "system")
+
+        Returns:
+            FileRecord: Created database record
+
+        Raises:
+            HTTPException 400: Invalid file type, bad magic bytes, or empty content
+            HTTPException 413: Content exceeds size limit
+            HTTPException 500: Write to disk or DB insert failed
+        """
+        if not filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+
+        # 1. Detect file type
+        file_type = self._detect_file_type(filename)
+
+        # 2. Validate allowed types
+        if allowed_types and file_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File type '{file_type}' not allowed. Allowed: {', '.join(allowed_types)}"
+            )
+
+        # 3. Validate magic bytes directly from bytes
+        self._validate_magic_bytes_from_bytes(content, file_type)
+
+        # 4. Validate file size from len(content)
+        file_size = self._validate_file_size_from_bytes(content, file_type)
+
+        # 5. Sanitize filename and resolve target path
+        safe_filename = self._sanitize_filename(filename)
+        target_dir = self._ensure_directory(directory)
+        file_path = target_dir / safe_filename
+
+        if file_path.exists():
+            stem = file_path.stem
+            suffix = file_path.suffix
+            unique_suffix = str(uuid.uuid4())[:8]
+            safe_filename = f"{stem}_{unique_suffix}{suffix}"
+            file_path = target_dir / safe_filename
+
+        # Write bytes to disk (atomic: write to temp, then rename)
+        try:
+            import tempfile
+            fd, tmp_path = tempfile.mkstemp(dir=str(target_dir), suffix=file_path.suffix)
+            try:
+                with os.fdopen(fd, "wb") as buffer:
+                    buffer.write(content)
+                os.replace(tmp_path, str(file_path))
+            except Exception:
+                os.unlink(tmp_path)
+                raise
+            logger.info(f"Wrote bytes to disk: {file_path} ({file_size} bytes)")
+        except Exception as e:
+            logger.error(f"Failed to write bytes to disk: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to save file to disk")
+
+        # 6. Calculate hash from disk
+        file_hash = self._calculate_hash(file_path)
+
+        # 7. Create DB record
+        relative_path = f"{directory}/{safe_filename}"
+        mime_type = self.MIME_TYPES.get(file_type, "application/octet-stream")
+
+        try:
+            record = FileRecord(
+                file_hash=file_hash,
+                file_path=relative_path,
+                original_filename=filename,
+                file_size=file_size,
+                file_type=file_type,
+                mime_type=mime_type,
+                status="active",
+                created_by=created_by,
+                updated_by=created_by
+            )
+            db.add(record)
+            await db.flush()
+
+            logger.info(
+                f"Created FileRecord from bytes: ID={record.id}, path='{relative_path}', "
+                f"type={file_type}, size={file_size}, hash={file_hash[:16]}..."
+            )
+            return record
+
+        except Exception as e:
+            # ROLLBACK: Delete file from disk (compensating transaction)
+            logger.error(f"DB insert failed, deleting file from disk: {file_path}", exc_info=True)
+            try:
+                file_path.unlink()
+            except Exception as cleanup_error:
+                logger.error(f"Failed to cleanup file after DB error: {cleanup_error}")
             raise HTTPException(status_code=500, detail="Failed to create file record in database")
 
     def get(self, file_id: int, db: AsyncSession) -> FileRecord:
@@ -738,35 +980,75 @@ class FileService:
             logger.error(f"Temp file cleanup failed: {e}", exc_info=True)
             return deleted_count
 
-    async def find_orphans(self, db: AsyncSession) -> list[FileRecord]:
+    async def find_orphans(
+        self,
+        db: AsyncSession,
+        include_linked_to_deleted: bool = False,
+    ) -> list[FileRecord]:
         """
         Find files without any active FileLink (excluding temp files).
 
         Args:
             db: Database session
+            include_linked_to_deleted: When True, also return files whose only
+                active FileLinks point to soft-deleted entities (parts etc.).
+                Useful for cleanup of drawings belonging to deleted/archived parts.
 
         Returns:
             list[FileRecord]: Orphaned files
         """
         try:
-            # Subquery: file_ids with active links
-            subquery = select(FileLink.file_id).where(
-                FileLink.deleted_at.is_(None)
-            ).distinct()
+            if include_linked_to_deleted:
+                # Two-step approach to avoid raw text() subquery in notin_()
+                # (SQLAlchemy doesn't wrap text() in parens inside NOT IN).
+                # Step 1: get file_ids linked to at least one LIVE (non-deleted) part.
+                active_ids_result = await db.execute(text("""
+                    SELECT DISTINCT fl.file_id
+                    FROM file_links fl
+                    JOIN parts p ON p.id = fl.entity_id
+                    WHERE fl.deleted_at IS NULL
+                      AND fl.entity_type = 'part'
+                      AND p.deleted_at IS NULL
+                """))
+                active_ids = {row[0] for row in active_ids_result.fetchall()}
 
-            # Files NOT in subquery (and not temp)
-            result = await db.execute(
-                select(FileRecord).where(
-                    and_(
-                        FileRecord.id.notin_(subquery),
-                        FileRecord.status != "temp",
-                        FileRecord.deleted_at.is_(None)
+                # Step 2: files not in that set (and not temp/deleted)
+                base_query = (
+                    select(FileRecord)
+                    .options(selectinload(FileRecord.links))
+                    .where(
+                        and_(
+                            FileRecord.status != "temp",
+                            FileRecord.deleted_at.is_(None)
+                        )
                     )
                 )
-            )
+                if active_ids:
+                    base_query = base_query.where(FileRecord.id.notin_(active_ids))
+                result = await db.execute(base_query)
+            else:
+                # Default: orphan = no active FileLink at all
+                active_subquery = select(FileLink.file_id).where(
+                    FileLink.deleted_at.is_(None)
+                ).distinct()
+                result = await db.execute(
+                    select(FileRecord)
+                    .options(selectinload(FileRecord.links))
+                    .where(
+                        and_(
+                            FileRecord.id.notin_(active_subquery),
+                            FileRecord.status != "temp",
+                            FileRecord.deleted_at.is_(None)
+                        )
+                    )
+                )
+
             orphans = result.scalars().all()
 
-            logger.info(f"Found {len(orphans)} orphaned files")
+            logger.info(
+                f"Found {len(orphans)} orphaned files "
+                f"(include_linked_to_deleted={include_linked_to_deleted})"
+            )
 
             return list(orphans)
 
@@ -958,6 +1240,62 @@ class FileService:
                 status_code=413,
                 detail=f"File too large (max {max_mb:.0f}MB for {file_type})"
             )
+
+    def _validate_magic_bytes_from_bytes(self, content: bytes, file_type: str) -> None:
+        """
+        Validate magic bytes directly from raw bytes content.
+
+        Args:
+            content: Raw file bytes
+            file_type: File type (e.g., "pdf", "step")
+
+        Raises:
+            HTTPException 400: Invalid magic bytes or empty content
+        """
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file not allowed")
+
+        if file_type not in self.MAGIC_BYTES:
+            # No magic bytes check for this type (e.g., nc, xlsx)
+            return
+
+        magic, num_bytes = self.MAGIC_BYTES[file_type]
+
+        if not content[:num_bytes].startswith(magic):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid {file_type.upper()} file (magic bytes check failed)"
+            )
+
+    def _validate_file_size_from_bytes(self, content: bytes, file_type: str) -> int:
+        """
+        Validate file size from raw bytes content.
+
+        Args:
+            content: Raw file bytes
+            file_type: File type
+
+        Returns:
+            int: File size in bytes
+
+        Raises:
+            HTTPException 400: Empty content
+            HTTPException 413: Content exceeds size limit
+        """
+        file_size = len(content)
+
+        if file_size == 0:
+            raise HTTPException(status_code=400, detail="Empty file not allowed")
+
+        max_size = self.MAX_FILE_SIZES.get(file_type, self.DEFAULT_MAX_SIZE)
+        if file_size > max_size:
+            max_mb = max_size / 1024 / 1024
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large (max {max_mb:.0f}MB for {file_type})"
+            )
+
+        return file_size
 
     def _calculate_hash(self, file_path: Path) -> str:
         """

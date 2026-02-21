@@ -10,6 +10,7 @@ import { useTimeVisionStore } from '@/stores/timeVision'
 import { useOperationsStore } from '@/stores/operations'
 import { operationsApi } from '@/api/operations'
 import { listDrawings } from '@/api/drawings'
+import { filesApi } from '@/api/files'
 import { fetchOpenAIEstimation } from '@/api/time-vision'
 import { generateTechnology } from '@/api/technology'
 import { confirm } from '@/composables/useDialog'
@@ -40,6 +41,8 @@ const timeVisionStore = useTimeVisionStore()
 const operationsStore = useOperationsStore()
 // State
 const primaryDrawing = ref<Drawing | null>(null)
+const fileManagerFilename = ref<string | null>(null)  // Filename from File Manager (file_id)
+const fileManagerFileId = ref<number | null>(null)
 const drawingsLoading = ref(false)
 const estimation = ref<TimeVisionEstimation | null>(null)
 const creating = ref(false)
@@ -68,6 +71,7 @@ const breakdown = computed<OperationBreakdown[]>(() => {
 
 const drawingFilename = computed(() => {
   if (primaryDrawing.value) return primaryDrawing.value.filename
+  if (fileManagerFilename.value) return fileManagerFilename.value
   if (props.part?.drawing_path) return props.part.drawing_path.split('/').pop() || null
   return null
 })
@@ -77,6 +81,8 @@ watch(() => props.part, async (newPart) => {
   estimation.value = null
   error.value = null
   primaryDrawing.value = null
+  fileManagerFilename.value = null
+  fileManagerFileId.value = null
 
   if (!newPart) return
 
@@ -86,10 +92,21 @@ watch(() => props.part, async (newPart) => {
     const primary = result.drawings.find(d => d.is_primary) || result.drawings[0]
     primaryDrawing.value = primary || null
   } catch {
-    // Fallback to drawing_path
-  } finally {
-    drawingsLoading.value = false
+    // Fallback below
   }
+
+  // Fallback: File Manager (file_id on Part) — Infor Document Import stores drawings here
+  if (!primaryDrawing.value && newPart.file_id) {
+    try {
+      const fileRecord = await filesApi.get(newPart.file_id)
+      fileManagerFilename.value = fileRecord.original_filename
+      fileManagerFileId.value = fileRecord.id
+    } catch {
+      // File Manager lookup failed — no drawing available
+    }
+  }
+
+  drawingsLoading.value = false
 }, { immediate: true })
 
 // Reuse existing estimation or create new one
@@ -112,8 +129,9 @@ async function runEstimation() {
       return
     }
 
-    // No estimation exists — run AI via SSE (with part_id for FK binding)
-    const result = await timeVisionStore.processFileOpenAI(filename, undefined, props.partId)
+    // No estimation exists — run AI via SSE (with part_id + file_id for FK binding)
+    const fileId = fileManagerFileId.value ?? primaryDrawing.value?.id ?? undefined
+    const result = await timeVisionStore.processFileOpenAI(filename, fileId, props.partId)
     estimation.value = result
   } catch (err: unknown) {
     error.value = (err as Error).message || 'AI odhad selhal'
@@ -376,19 +394,6 @@ function confidenceClass(confidence: string | null): string {
 
 .icon-warning { color: var(--color-warning); }
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .step-info {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
@@ -424,49 +429,6 @@ function confidenceClass(confidence: string | null): string {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-}
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  color: var(--color-brand, #991b1b);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  padding: var(--space-2) var(--space-4);
-  background: none;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-secondary:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 /* Result */
@@ -519,14 +481,6 @@ function confidenceClass(confidence: string | null): string {
 .meta-row .value {
   color: var(--text-primary);
   font-weight: var(--font-medium);
-}
-
-.badge {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  text-transform: uppercase;
 }
 
 .badge-success { background: var(--color-success-bg); color: var(--color-success); }

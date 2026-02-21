@@ -16,6 +16,7 @@ export const usePartnersStore = defineStore('partners', () => {
   const currentPartner = ref<Partner | null>(null)
   const total = ref(0)
   const loading = ref(false)
+  const loaded = ref(false)  // True after first successful fetch — skip re-fetch on reopen
   const searchQuery = ref('')
   const skip = ref(0)
   const limit = ref(50)
@@ -47,8 +48,9 @@ export const usePartnersStore = defineStore('partners', () => {
         partners.value = data
         total.value = data.length
       }
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání partnerů')
+      loaded.value = true
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání partnerů')
       throw error
     } finally {
       loading.value = false
@@ -60,8 +62,8 @@ export const usePartnersStore = defineStore('partners', () => {
     try {
       currentPartner.value = await partnersApi.getPartner(partnerNumber)
       return currentPartner.value
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při načítání partnera')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při načítání partnera')
       throw error
     } finally {
       loading.value = false
@@ -76,8 +78,8 @@ export const usePartnersStore = defineStore('partners', () => {
       total.value++
       ui.showSuccess('Partner vytvořen')
       return newPartner
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při vytváření partnera')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při vytváření partnera')
       throw error
     } finally {
       loading.value = false
@@ -102,8 +104,8 @@ export const usePartnersStore = defineStore('partners', () => {
 
       ui.showSuccess('Partner aktualizován')
       return updatedPartner
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při aktualizaci partnera')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při aktualizaci partnera')
       throw error
     } finally {
       loading.value = false
@@ -128,8 +130,8 @@ export const usePartnersStore = defineStore('partners', () => {
       }
 
       ui.showSuccess('Partner smazán')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba při mazání partnera')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba při mazání partnera')
       throw error
     } finally {
       loading.value = false
@@ -173,6 +175,7 @@ export const usePartnersStore = defineStore('partners', () => {
     searchQuery.value = ''
     skip.value = 0
     limit.value = 50
+    loaded.value = false
   }
 
   return {
@@ -181,6 +184,7 @@ export const usePartnersStore = defineStore('partners', () => {
     currentPartner,
     total,
     loading,
+    loaded,
     searchQuery,
     skip,
     limit,

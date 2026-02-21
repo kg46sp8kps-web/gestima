@@ -44,7 +44,9 @@ class QuoteRequestExtraction(BaseModel):
     customer: CustomerExtraction
     items: List[ItemExtraction] = Field(..., description="List of items (can have duplicates for same article_number)")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka (RFQ number)")
-    valid_until: Optional[date] = Field(None, description="Platnost nabídky do")
+    request_date: Optional[date] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[date] = Field(None, description="Deadline pro předložení nabídky")
+    valid_until: Optional[date] = Field(None, description="Platnost nabídky do (deprecated, use offer_deadline)")
     notes: Optional[str] = Field(None, description="Obecné poznámky")
 
 
@@ -106,6 +108,8 @@ class QuoteRequestReview(BaseModel):
     customer: CustomerMatch
     items: List[PartMatch] = Field(..., description="All items with part+batch matching")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
+    request_date: Optional[date] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[date] = Field(None, description="Deadline pro předložení nabídky")
     valid_until: Optional[date] = None
     notes: Optional[str] = None
     summary: ReviewSummary
@@ -146,7 +150,118 @@ class QuoteFromRequestCreate(BaseModel):
 
     title: str = Field(..., max_length=200)
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")
+    request_date: Optional[date] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[date] = Field(None, description="Deadline pro předložení nabídky")
     valid_until: Optional[date] = None
     notes: Optional[str] = None
     discount_percent: float = Field(0.0, ge=0.0, le=100.0)
     tax_percent: float = Field(21.0, ge=0.0, le=100.0)
+
+
+# =============================================================================
+# V2: Enhanced Quote From Request (with drawings + technology)
+# =============================================================================
+
+class DrawingAnalysis(BaseModel):
+    """AI Vision analysis result for a single drawing PDF"""
+    filename: str = Field(..., description="Original PDF filename")
+    drawing_number: Optional[str] = Field(None, max_length=50, description="Drawing number from title block")
+    article_number: Optional[str] = Field(None, max_length=50, description="Article number from title block")
+    material_hint: Optional[str] = Field(None, max_length=100, description="Material detected from title block")
+    dimensions_hint: Optional[str] = Field(None, max_length=200, description="Key dimensions from drawing")
+
+    # TimeVision estimation (from same AI call)
+    part_type: str = Field("PRI", description="ROT / PRI / COMBINED")
+    complexity: str = Field("medium", description="simple / medium / complex")
+    estimated_time_min: float = Field(30.0, ge=0.0, description="AI estimated machining time")
+    max_diameter_mm: Optional[float] = Field(None, ge=0.0)
+    max_length_mm: Optional[float] = Field(None, ge=0.0)
+    confidence: float = Field(0.5, ge=0.0, le=1.0)
+
+
+class DrawingMatch(BaseModel):
+    """Match between an uploaded drawing and a request item"""
+    drawing_index: int = Field(..., ge=0, description="Index in drawing_pdfs list")
+    item_index: Optional[int] = Field(None, ge=0, description="Matched item index (None = unmatched)")
+    match_method: str = Field("none", description="ai_vision / filename / manual / none")
+    confidence: float = Field(0.0, ge=0.0, le=1.0)
+
+
+class QuoteRequestReviewV2(BaseModel):
+    """Enhanced review data with drawing analysis"""
+    customer: CustomerMatch
+    items: List[PartMatch] = Field(..., description="All items with part+batch matching")
+    customer_request_number: Optional[str] = Field(None, max_length=50)
+    request_date: Optional[date] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[date] = Field(None, description="Deadline pro předložení nabídky")
+    notes: Optional[str] = None
+    summary: ReviewSummary
+
+    # V2: Drawing analysis
+    drawing_analyses: List[DrawingAnalysis] = Field(default_factory=list)
+    drawing_matches: List[DrawingMatch] = Field(default_factory=list)
+
+
+class EstimationData(BaseModel):
+    """TimeVision estimation data carried from parse to create step"""
+    part_type: str = Field("PRI", description="ROT / PRI / COMBINED")
+    complexity: str = Field("medium", description="simple / medium / complex")
+    estimated_time_min: float = Field(30.0, ge=0.0)
+    max_diameter_mm: Optional[float] = Field(None, ge=0.0)
+    max_length_mm: Optional[float] = Field(None, ge=0.0)
+
+
+class QuoteFromRequestItemV2(BaseModel):
+    """Enhanced item for creating quote from request (V2)"""
+    part_id: Optional[int] = Field(None, description="Existing part ID or None (will create)")
+    article_number: str = Field(..., min_length=1, max_length=50)
+    drawing_number: Optional[str] = Field(None, max_length=50)
+    name: str = Field(..., min_length=1, max_length=200)
+    quantity: int = Field(..., gt=0)
+    notes: Optional[str] = None
+    drawing_index: Optional[int] = Field(None, ge=0, description="Index into drawing_files for this item")
+    estimation: Optional[EstimationData] = Field(None, description="AI estimation from parse step")
+
+
+class QuoteFromRequestCreateV2(BaseModel):
+    """Enhanced quote creation from request (V2 — creates everything)"""
+    partner_id: Optional[int] = Field(None, description="Existing partner ID")
+    partner_data: Optional[PartnerCreateData] = Field(None, description="New partner data")
+
+    items: List[QuoteFromRequestItemV2] = Field(..., min_length=1)
+
+    title: str = Field(..., max_length=200)
+    customer_request_number: Optional[str] = Field(None, max_length=50)
+    request_date: Optional[date] = Field(None, description="Datum vystavení poptávky")
+    offer_deadline: Optional[date] = Field(None, description="Deadline pro předložení nabídky")
+    valid_until: Optional[date] = None
+    notes: Optional[str] = None
+    discount_percent: float = Field(0.0, ge=0.0, le=100.0)
+    tax_percent: float = Field(21.0, ge=0.0, le=100.0)
+
+
+class QuoteCreationPartResult(BaseModel):
+    """Result for a single part in quote creation"""
+    article_number: str
+    part_number: Optional[str] = None
+    name: str
+    is_new: bool = False
+    drawing_linked: bool = False
+    technology_generated: bool = False
+    batch_set_frozen: bool = False
+    unit_price: float = 0.0
+    warnings: List[str] = Field(default_factory=list)
+
+
+class QuoteCreationResult(BaseModel):
+    """Complete result of quote-from-request creation"""
+    quote_number: str
+    quote_id: int
+    partner_number: Optional[str] = None
+    partner_is_new: bool = False
+    parts: List[QuoteCreationPartResult] = Field(default_factory=list)
+    parts_created: int = 0
+    parts_existing: int = 0
+    drawings_linked: int = 0
+    total_amount: float = 0.0
+    warnings: List[str] = Field(default_factory=list)

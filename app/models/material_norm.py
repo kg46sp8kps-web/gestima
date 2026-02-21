@@ -90,8 +90,3 @@ class MaterialNormResponse(MaterialNormBase):
     version: int
     created_at: datetime
     updated_at: datetime
-
-
-class MaterialNormWithGroupResponse(MaterialNormResponse):
-    """MaterialNorm s eager-loaded MaterialGroup"""
-    material_group: MaterialGroupResponse

@@ -12,18 +12,13 @@ import { useWindowsStore } from '@/stores/windows'
 import { useWindowContextStore } from '@/stores/windowContext'
 import { usePartLayoutSettings } from '@/composables/usePartLayoutSettings'
 import PartListPanel from '@/components/modules/parts/PartListPanel.vue'
-import CopyPartModal from '@/components/modules/parts/CopyPartModal.vue'
-import DrawingsManagementModal from '@/components/modules/parts/DrawingsManagementModal.vue'
-import type { Part, PartUpdate } from '@/types/part'
+import PartDetailPanel from '@/components/modules/parts/PartDetailPanel.vue'
+import type { Part } from '@/types/part'
 import type { LinkingGroup } from '@/stores/windows'
-import { Edit, Trash2, Save, X, Copy } from 'lucide-vue-next'
-import { MaterialIcon, OperationsIcon, PricingIcon, DrawingIcon } from '@/config/icons'
-import { updatePart, createPart, deletePart } from '@/api/parts'
-import { ICON_SIZE } from '@/config/design'
-import type { PartCreate } from '@/types/part'
-import { confirm, alert } from '@/composables/useDialog'
+import { useLinkedWindowOpener } from '@/composables/useLinkedWindowOpener'
 
 interface Props {
+  windowId?: string
   partNumber?: string
   linkingGroup?: LinkingGroup
 }
@@ -42,6 +37,18 @@ const contextStore = useWindowContextStore()
 // Layout settings
 const { layoutMode } = usePartLayoutSettings('manufacturing-items')
 
+// Linked window opener — ensures child windows always share a linking group
+const { openLinked } = useLinkedWindowOpener({
+  get windowId() { return props.windowId },
+  get linkingGroup() { return props.linkingGroup ?? null },
+  onGroupAssigned(group) {
+    // Re-publish current part context so the newly opened child syncs immediately
+    if (selectedPart.value?.id && selectedPart.value.id > 0) {
+      contextStore.setContext(group, selectedPart.value.id, selectedPart.value.part_number, selectedPart.value.article_number)
+    }
+  }
+})
+
 // Panel size state
 const panelSize = ref(320)
 const isDragging = ref(false)
@@ -50,62 +57,8 @@ const isDragging = ref(false)
 const selectedPart = ref<Part | null>(null)
 const listPanelRef = ref<InstanceType<typeof PartListPanel> | null>(null)
 
-// Edit mode
-const isEditing = ref(false)
-const editForm = ref({
-  article_number: '',
-  name: '',
-  drawing_number: '',
-  customer_revision: '',
-  status: 'active' as string,
-  material: '',
-  weight_kg: null as number | null,
-  description: ''
-})
-
-function statusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    draft: 'Rozpracovaný',
-    active: 'Aktivní',
-    archived: 'Archivovaný',
-    quote: 'Nabídka'
-  }
-  return labels[status] || status
-}
-
-function statusDotClass(status: string): string {
-  switch (status) {
-    case 'active': return 'badge-dot-ok'
-    case 'draft': return 'badge-dot-warn'
-    case 'quote': return 'badge-dot-brand'
-    case 'archived': return 'badge-dot-neutral'
-    default: return 'badge-dot-neutral'
-  }
-}
-
-function sourceDotClass(source: string): string {
-  switch (source) {
-    case 'infor_import': return 'badge-dot-brand'
-    case 'manual': return 'badge-dot-ok'
-    case 'quote_request': return 'badge-dot-warn'
-    default: return 'badge-dot-neutral'
-  }
-}
-
-function sourceDisplayLabel(source: string): string {
-  switch (source) {
-    case 'infor_import': return 'Infor Import'
-    case 'manual': return 'Manuální'
-    case 'quote_request': return 'Poptávka'
-    default: return source
-  }
-}
-
-// Copy modal
-const showCopyModal = ref(false)
-
-// Drawings modal
-const showDrawingsModal = ref(false)
+// Je právě otevřený nový (virtual) díl?
+const isCreating = computed(() => selectedPart.value?.id === -1)
 
 // Load panel size on mount (PartListPanel handles fetchParts itself)
 onMounted(() => {
@@ -131,6 +84,9 @@ watch(() => partsStore.parts.length, (len) => {
 
 // Handle part selection
 function handleSelectPart(part: Part) {
+  // Ignore clicks while creating — prevent accidental part switch
+  if (isCreating.value) return
+
   selectedPart.value = part
 
   // Update window context for linking
@@ -142,9 +98,9 @@ function handleSelectPart(part: Part) {
 }
 
 function handleCreateNew() {
-  // Create temporary virtual part (not saved to DB yet)
+  // Virtual part (id=-1) — PartDetailPanel detects isNew() a otevře edit mód
   const virtualPart: Part = {
-    id: -1, // Negative ID indicates virtual/unsaved part
+    id: -1,
     part_number: 'NOVÝ',
     article_number: '',
     name: '',
@@ -153,241 +109,57 @@ function handleCreateNew() {
     customer_revision: null,
     revision: 'A',
     status: 'draft',
+    source: 'manual',
+    file_id: null,
     length: 0,
     notes: '',
-    material: null,
-    weight_kg: null,
-    description: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     version: 0,
     created_by_name: null
   }
-
-  // Set as selected and start edit mode
   selectedPart.value = virtualPart
   listPanelRef.value?.setSelection(-1)
-  startEdit()
 }
 
 // Window actions - open linked modules
-function openMaterialWindow() {
-  if (!selectedPart.value) return
-
-  const title = `Materiál položky - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-material', title, props.linkingGroup || null)
-}
-
-function openOperationsWindow() {
-  if (!selectedPart.value) return
-
-  const title = `Operace položky - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-operations', title, props.linkingGroup || null)
-}
-
 function openPricingWindow() {
   if (!selectedPart.value) return
-
-  const title = `Ceny položky - ${selectedPart.value.part_number}`
-  windowsStore.openWindow('part-pricing', title, props.linkingGroup || null)
+  openLinked('part-pricing', `Ceny - ${selectedPart.value.part_number}`)
 }
 
-// Edit handlers
-function startEdit() {
+function openTechnologyWindow() {
   if (!selectedPart.value) return
-
-  // Copy current values to edit form
-  editForm.value = {
-    article_number: selectedPart.value.article_number || '',
-    name: selectedPart.value.name || '',
-    drawing_number: selectedPart.value.drawing_number || '',
-    customer_revision: selectedPart.value.customer_revision || '',
-    status: selectedPart.value.status || 'active',
-    material: selectedPart.value.material || '',
-    weight_kg: selectedPart.value.weight_kg,
-    description: selectedPart.value.description || ''
-  }
-
-  isEditing.value = true
+  openLinked('part-technology', `Technologie - ${selectedPart.value.part_number}`)
 }
 
-function cancelEdit() {
-  isEditing.value = false
-
-  // If canceling creation of new virtual part, clear selection
-  if (selectedPart.value?.id === -1) {
-    selectedPart.value = null
-    listPanelRef.value?.setSelection(null)
-  }
-}
-
-async function saveEdit() {
-  if (!selectedPart.value) return
-
-  // Validate: article_number is required
-  const articleNumber = editForm.value.article_number?.trim()
-  if (!articleNumber) {
-    await alert({
-      title: 'Chyba validace',
-      message: 'Artikl je povinný údaj!',
-      type: 'warning'
-    })
-    return
-  }
-
-  try {
-    // Check if this is a new virtual part (not yet saved to DB)
-    const isNewPart = selectedPart.value.id === -1
-
-    if (isNewPart) {
-      // Create new part
-      const newPartData: PartCreate = {
-        article_number: editForm.value.article_number || undefined,
-        name: editForm.value.name || undefined,
-        drawing_number: editForm.value.drawing_number || undefined,
-        customer_revision: editForm.value.customer_revision || undefined
-      }
-
-      const createdPart = await createPart(newPartData)
-
-      // Refresh parts list
-      await partsStore.fetchParts()
-
-      // Select the newly created part
-      const part = partsStore.parts.find(p => p.id === createdPart.id)
-      if (part) {
-        selectedPart.value = part
-        listPanelRef.value?.setSelection(part.id)
-      }
-    } else {
-      // Update existing part
-      const updateData: PartUpdate = {
-        article_number: editForm.value.article_number || null,
-        name: editForm.value.name || null,
-        drawing_number: editForm.value.drawing_number || null,
-        customer_revision: editForm.value.customer_revision || null,
-        status: editForm.value.status as any,
-        version: selectedPart.value.version
-      }
-
-      await updatePart(selectedPart.value.part_number, updateData)
-
-      // Refresh the part data
-      await partsStore.fetchParts()
-      const updatedPart = partsStore.parts.find(p => p.part_number === selectedPart.value?.part_number)
-      if (updatedPart) {
-        selectedPart.value = updatedPart
-      }
-    }
-
-    isEditing.value = false
-  } catch (error: any) {
-    console.error('Failed to save part:', error)
-    await alert({
-      title: 'Chyba',
-      message: `Chyba při ukládání: ${error.message || 'Neznámá chyba'}`,
-      type: 'error'
-    })
-  }
-}
-
-// Copy handlers
-function openCopyModal() {
-  showCopyModal.value = true
-}
-
-// Delete handler
-async function handleDelete() {
-  if (!selectedPart.value) return
-
-  // Don't allow deleting virtual parts (they don't exist in DB yet)
-  if (selectedPart.value.id === -1) {
-    await alert({
-      title: 'Info',
-      message: 'Tento díl ještě není uložený.',
-      type: 'info'
-    })
-    return
-  }
-
-  // Confirm deletion
-  const partInfo = selectedPart.value.article_number || selectedPart.value.part_number
-  const confirmed = await confirm({
-    title: 'Smazat díl?',
-    message: `Opravdu chcete smazat díl ${partInfo}?\n\nTato akce je nevratná!`,
-    type: 'danger',
-    confirmText: 'Smazat',
-    cancelText: 'Zrušit'
-  })
-
-  if (!confirmed) return
-
-  try {
-    await deletePart(selectedPart.value.part_number)
-
-    // Clear selection and refresh list
-    selectedPart.value = null
-    listPanelRef.value?.setSelection(null)
-    await partsStore.fetchParts()
-  } catch (error: any) {
-    console.error('Failed to delete part:', error)
-    await alert({
-      title: 'Chyba',
-      message: `Chyba při mazání: ${error.message || 'Neznámá chyba'}`,
-      type: 'error'
-    })
-  }
-}
-
-async function handleCopySuccess() {
-  // Refresh parts list after copy
-  await partsStore.fetchParts()
-}
-
-// Drawing handlers
 function openDrawingWindow(drawingId?: number) {
   if (!selectedPart.value) return
-
-  // For specific drawing ID, open without linking group (standalone window)
-  // For primary drawing, use linking group (context-aware)
   const title = drawingId
     ? `Drawing #${drawingId} - ${selectedPart.value.part_number}`
     : `Drawing - ${selectedPart.value.part_number}`
-
-  // NOTE: drawingId is parsed from title in PartDrawingWindow
-  // Pattern: "Drawing #123 - ..." where 123 is drawing_id
-  windowsStore.openWindow('part-drawing', title, drawingId ? null : (props.linkingGroup || null))
-}
-
-function handleDrawingClick() {
-  if (!selectedPart.value) return
-
-  // Left-click: open drawing or upload modal
-  if (selectedPart.value.drawing_path) {
-    openDrawingWindow()
+  if (drawingId) {
+    windowsStore.openWindow('part-drawing', title, null)
   } else {
-    showDrawingsModal.value = true
+    openLinked('part-drawing', title)
   }
 }
 
-function handleDrawingRightClick(event: MouseEvent) {
-  event.preventDefault()
-  // Right-click: always open management modal
-  showDrawingsModal.value = true
+// PartDetailPanel callbacks
+async function handlePartCreated(createdPart: Part) {
+  selectedPart.value = createdPart
+  listPanelRef.value?.prependAndSelect(createdPart)
 }
 
-function handleOpenDrawing(drawingId?: number) {
-  openDrawingWindow(drawingId)
-  showDrawingsModal.value = false
+function handleCancelCreate() {
+  selectedPart.value = null
+  listPanelRef.value?.setSelection(null)
 }
 
-async function handleDrawingRefresh() {
-  // Refresh the part data
+async function handlePartRefresh() {
   await partsStore.fetchParts()
   const updatedPart = partsStore.parts.find(p => p.id === selectedPart.value?.id)
-  if (updatedPart) {
-    selectedPart.value = updatedPart
-  }
+  if (updatedPart) selectedPart.value = updatedPart
 }
 
 // Resize handler
@@ -434,8 +206,12 @@ const resizeCursor = computed(() =>
       <PartListPanel
         ref="listPanelRef"
         :linkingGroup="linkingGroup"
+        :readonly="isCreating"
         @select-part="handleSelectPart"
         @create-new="handleCreateNew"
+        @open-pricing="openPricingWindow"
+        @open-drawing="openDrawingWindow()"
+        @open-technology="openTechnologyWindow"
       />
     </div>
 
@@ -447,156 +223,23 @@ const resizeCursor = computed(() =>
       @mousedown="startResize"
     ></div>
 
-    <!-- SECOND PANEL: Part Detail -->
+    <!-- SECOND PANEL: Part Detail — sdílená komponenta PartDetailPanel -->
     <div v-if="selectedPart" class="second-panel">
-      <!-- PART INFO RIBBON -->
-      <div class="info-ribbon">
-        <div class="info-grid">
-          <div class="info-card">
-            <label>Interní číslo</label>
-            <span class="value">{{ selectedPart.part_number }}</span>
-          </div>
-          <div class="info-card">
-            <label>Artikl<span v-if="isEditing" class="required">*</span></label>
-            <input v-if="isEditing" v-model="editForm.article_number" class="edit-input" placeholder="Povinný údaj" />
-            <span v-else class="value">{{ selectedPart.article_number || '-' }}</span>
-          </div>
-          <div class="info-card">
-            <label>Název</label>
-            <input v-if="isEditing" v-model="editForm.name" class="edit-input" />
-            <span v-else class="value">{{ selectedPart.name || '-' }}</span>
-          </div>
-          <div class="info-card">
-            <label>Číslo výkresu</label>
-            <input v-if="isEditing" v-model="editForm.drawing_number" class="edit-input" />
-            <span v-else class="value">{{ selectedPart.drawing_number || '-' }}</span>
-          </div>
-          <div class="info-card">
-            <label>Zákaznická revize</label>
-            <input v-if="isEditing" v-model="editForm.customer_revision" class="edit-input" />
-            <span v-else class="value">{{ selectedPart.customer_revision || '-' }}</span>
-          </div>
-          <div class="info-card">
-            <label>Status</label>
-            <select v-if="isEditing" v-model="editForm.status" class="edit-input">
-              <option value="draft">Rozpracovaný</option>
-              <option value="active">Aktivní</option>
-              <option value="archived">Archivovaný</option>
-              <option value="quote">Nabídka</option>
-            </select>
-            <span v-else class="value">
-              <span class="dot" :class="statusDotClass(selectedPart.status)"></span>
-              {{ statusLabel(selectedPart.status) }}
-            </span>
-          </div>
-          <div class="info-card">
-            <label>Zdroj</label>
-            <span class="value">
-              <span class="dot" :class="sourceDotClass(selectedPart.source)"></span>
-              {{ sourceDisplayLabel(selectedPart.source) }}
-            </span>
-          </div>
-          <div class="info-card">
-            <label>Vytvořeno</label>
-            <span class="value">{{ new Date(selectedPart.created_at).toLocaleDateString() }}</span>
-          </div>
-        </div>
-
-        <!-- Material & weight (read-only, separate section) -->
-        <div v-if="selectedPart.material || selectedPart.weight_kg" class="material-ribbon">
-          <div class="info-card">
-            <label>Materiál</label>
-            <span class="value">{{ selectedPart.material || '-' }}</span>
-          </div>
-          <div class="info-card">
-            <label>Hmotnost</label>
-            <span class="value">{{ selectedPart.weight_kg ? `${selectedPart.weight_kg} kg` : '-' }}</span>
-          </div>
-        </div>
-
-        <div v-if="selectedPart.description || (isEditing && selectedPart.id !== -1)" class="description">
-          <label>Popis</label>
-          <textarea v-if="isEditing" v-model="editForm.description" class="edit-textarea" rows="3"></textarea>
-          <p v-else>{{ selectedPart.description || '-' }}</p>
-        </div>
-
-        <!-- Icon toolbar (bottom right) -->
-        <div class="icon-toolbar">
-          <!-- Edit mode: Save/Cancel -->
-          <template v-if="isEditing">
-            <button class="icon-btn icon-btn-primary" @click="saveEdit" title="Uložit změny">
-              <Save :size="ICON_SIZE.STANDARD" />
-            </button>
-            <button class="icon-btn" @click="cancelEdit" title="Zrušit">
-              <X :size="ICON_SIZE.STANDARD" />
-            </button>
-          </template>
-
-          <!-- Normal mode: Edit/Copy/Delete -->
-          <template v-else>
-            <button class="icon-btn" @click="startEdit" title="Upravit díl">
-              <Edit :size="ICON_SIZE.STANDARD" />
-            </button>
-            <button class="icon-btn" @click="openCopyModal" title="Kopírovat díl">
-              <Copy :size="ICON_SIZE.STANDARD" />
-            </button>
-            <button class="icon-btn icon-btn-danger" @click="handleDelete" title="Smazat díl">
-              <Trash2 :size="ICON_SIZE.STANDARD" />
-            </button>
-          </template>
-        </div>
-      </div>
-
-      <!-- ACTIONS -->
-      <div v-if="!isEditing" class="actions-section">
-        <h4>Actions</h4>
-
-        <!-- Normal mode: All actions -->
-        <div class="actions-grid">
-          <button class="action-button" @click="openMaterialWindow" title="Materiál">
-            <MaterialIcon :size="ICON_SIZE.LARGE" class="action-icon" />
-            <span class="action-label">Materiál</span>
-          </button>
-          <button class="action-button" @click="openOperationsWindow" title="Operace">
-            <OperationsIcon :size="ICON_SIZE.LARGE" class="action-icon" />
-            <span class="action-label">Operace</span>
-          </button>
-          <button class="action-button" @click="openPricingWindow" title="Ceny">
-            <PricingIcon :size="ICON_SIZE.LARGE" class="action-icon" />
-            <span class="action-label">Ceny</span>
-          </button>
-          <button
-            class="action-button"
-            @click="handleDrawingClick"
-            @contextmenu="handleDrawingRightClick"
-            title="Klikni = otevři výkres | Pravé tlačítko = správa výkresů"
-          >
-            <DrawingIcon :size="ICON_SIZE.LARGE" class="action-icon" />
-            <span class="action-label">Výkres</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Copy Part Modal -->
-      <CopyPartModal
-        v-model="showCopyModal"
-        :part-number="selectedPart.part_number"
-        :source-part="selectedPart"
-        @success="handleCopySuccess"
-      />
-
-      <!-- Drawings Management Modal -->
-      <DrawingsManagementModal
-        v-model="showDrawingsModal"
-        :part-number="selectedPart.part_number"
-        @refresh="handleDrawingRefresh"
-        @open-drawing="handleOpenDrawing"
+      <PartDetailPanel
+        :part="selectedPart"
+        :showActions="false"
+        @created="handlePartCreated"
+        @cancel-create="handleCancelCreate"
+        @refresh="handlePartRefresh"
+        @open-technology="openTechnologyWindow"
+        @open-pricing="openPricingWindow"
+        @open-drawing="openDrawingWindow"
       />
     </div>
 
     <!-- EMPTY STATE -->
     <div v-else class="empty">
-      <p>Select a part from the list to view details</p>
+      <p>Vyberte díl ze seznamu</p>
     </div>
   </div>
 </template>
@@ -662,280 +305,16 @@ const resizeCursor = computed(() =>
   background: var(--color-primary);
 }
 
-/* === INFO RIBBON === */
-.info-ribbon {
-  position: relative;
-  padding: var(--space-5);
-  background: var(--bg-surface);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-6);
-  transition: all var(--duration-normal);
+/* second-panel nemá padding — PartDetailPanel si spravuje vlastní */
+.second-panel {
+  padding: 0 !important;
 }
 
-.info-ribbon.editing {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
-}
-
-/* Icon toolbar */
-.icon-toolbar {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  justify-content: center;
-  margin-top: var(--space-4);
-  margin-bottom: calc(-1 * var(--space-5) + 2px);
-  padding-top: var(--space-3);
-  padding-bottom: 2px;
-  border-top: 1px solid var(--border-default);
-}
-
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
+/* Bez rámečku — v Manufacturing detail panel nemá border */
+.second-panel :deep(.info-ribbon) {
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-}
-
-.icon-btn:hover {
-  color: var(--color-primary);
-  transform: scale(1.1);
-}
-
-.icon-btn-danger:hover {
-  color: var(--status-error);
-}
-
-.icon-btn-primary {
-  color: var(--color-primary);
-}
-
-.icon-btn-primary:hover {
-  color: var(--color-primary);
-  background: rgba(153, 27, 27, 0.1);
-  transform: scale(1.1);
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
-}
-
-.info-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.info-card label {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-card label .required {
-  color: var(--color-primary);
-  margin-left: var(--space-1);
-}
-
-.info-card .value {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text-primary);
-  min-height: 24px;
-}
-
-/* Inline color dot (before Status / Zdroj text) */
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.badge-dot-ok      { background: var(--status-ok); }
-.badge-dot-brand   { background: var(--brand); }
-.badge-dot-warn    { background: var(--status-warn); }
-.badge-dot-neutral { background: var(--text-disabled); }
-
-/* Material ribbon (separate from main info) */
-.material-ribbon {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-subtle, var(--border-default));
-}
-
-.description {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
-}
-
-.description label {
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: var(--space-2);
-}
-
-.description p {
-  margin: 0;
-  font-size: var(--text-base);
-  color: var(--text-primary);
-  line-height: 1.6;
-}
-
-/* === EDIT INPUTS === */
-.edit-input,
-.edit-textarea {
-  width: 100%;
-  padding: var(--space-2);
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text-primary);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast);
-}
-
-.edit-input:focus,
-.edit-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.1);
-}
-
-.edit-textarea {
-  resize: vertical;
-  font-weight: 400;
-  line-height: 1.6;
-}
-
-/* === ACTIONS SECTION === */
-.actions-section {
-  margin-top: var(--space-6);
-  padding-top: var(--space-5);
-  border-top: 2px solid var(--border-default);
-}
-
-.actions-section h4 {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--text-lg);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-3);
-  align-content: start;
-}
-
-/* Edit mode actions - only 2 buttons */
-.edit-actions {
-  grid-template-columns: repeat(2, 1fr) !important;
-  max-width: 500px;
-}
-
-/* Responsive actions grid */
-@container second-panel (max-width: 500px) {
-  .actions-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* === ACTION BUTTONS === */
-.action-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--duration-normal);
-}
-
-.action-button:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.action-icon {
-  color: var(--color-primary);
-}
-
-.action-label {
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-/* Primary action (Save) */
-.action-button-primary {
-  background: transparent;
-  border-color: var(--border-default);
-}
-
-.action-button-primary .action-icon,
-.action-button-primary .action-label {
-  color: var(--text-primary);
-}
-
-.action-button-primary:hover {
-  background: var(--brand-subtle, rgba(153, 27, 27, 0.1));
-  border-color: var(--color-brand, #991b1b);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.15);
-}
-
-.action-button-primary:hover .action-icon,
-.action-button-primary:hover .action-label {
-  color: var(--color-brand, #991b1b);
-}
-
-/* Secondary action (Edit, Cancel) */
-.action-button-secondary .action-icon {
-  color: var(--text-secondary);
-}
-
-.action-button-secondary:hover {
-  border-color: var(--text-secondary);
-}
-
-/* Danger action (Delete) */
-.action-button-danger .action-icon {
-  color: var(--status-error);
-}
-
-.action-button-danger:hover {
-  border-color: var(--status-error);
-  background: rgba(239, 68, 68, 0.05);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* === EMPTY STATE === */

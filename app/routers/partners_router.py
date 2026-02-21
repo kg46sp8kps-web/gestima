@@ -47,7 +47,7 @@ async def get_partners(
     return result.scalars().all()
 
 
-@router.get("/search")
+@router.get("/search", response_model=dict)
 async def search_partners(
     search: str = Query("", description="Hledat v názvu, IČO, DIČ, email"),
     partner_type: Optional[str] = Query(None, description="Filter: 'customer', 'supplier', or None"),

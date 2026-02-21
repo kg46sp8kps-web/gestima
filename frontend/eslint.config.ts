@@ -34,5 +34,18 @@ export default defineConfigWithVueTs(
 
   ...pluginOxlint.configs['flat/recommended'],
 
+  {
+    name: 'app/no-direct-axios-in-ui',
+    files: ['src/components/**/*.{vue,ts}', 'src/stores/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: 'axios',
+          message: 'Use shared API modules in src/api instead of direct axios in components/stores.'
+        }]
+      }]
+    }
+  },
+
   skipFormatting,
 )

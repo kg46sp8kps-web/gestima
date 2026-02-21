@@ -11,9 +11,7 @@ import type { ModuleDefaults } from '@/types/module-defaults'
 export type WindowModule =
   | 'part-main'
   | 'part-pricing'
-  | 'part-operations'
   | 'part-technology' // Unified view: Material + Operations + Features
-  | 'part-material'
   | 'part-drawing'
   | 'batch-sets'
   | 'partners-list'
@@ -27,6 +25,7 @@ export type WindowModule =
   | 'file-manager' // File Manager (ADR-044)
 
 export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
+export type WindowRole = 'master' | 'child' | null
 
 export interface WindowState {
   id: string
@@ -39,7 +38,9 @@ export interface WindowState {
   zIndex: number
   minimized: boolean
   maximized: boolean
+  closing: boolean // True during 1-frame grace period before DOM removal
   linkingGroup: LinkingGroup // Color-based context linking
+  windowRole: WindowRole // Role within a linking group: master shows list panel, child hides it
 }
 
 export interface SavedView {
@@ -81,7 +82,7 @@ export const useWindowsStore = defineStore('windows', () => {
   }
 
   // Actions
-  async function openWindow(module: WindowModule, title: string, linkingGroup?: LinkingGroup) {
+  async function openWindow(module: WindowModule, title: string, linkingGroup?: LinkingGroup, windowRole?: WindowRole) {
     // Load defaults from API (with fallback)
     let defaultWidth = 800
     let defaultHeight = 600
@@ -133,7 +134,9 @@ export const useWindowsStore = defineStore('windows', () => {
       zIndex: nextZIndex++,
       minimized: false,
       maximized: false,
-      linkingGroup: assignedGroup
+      closing: false,
+      linkingGroup: assignedGroup,
+      windowRole: windowRole ?? null
     }
 
     windows.value.push(newWindow)
@@ -144,6 +147,13 @@ export const useWindowsStore = defineStore('windows', () => {
     const win = windows.value.find(w => w.id === id)
     if (win) {
       win.linkingGroup = group
+    }
+  }
+
+  function setWindowRole(id: string, role: WindowRole) {
+    const win = windows.value.find(w => w.id === id)
+    if (win) {
+      win.windowRole = role
     }
   }
 
@@ -181,7 +191,15 @@ export const useWindowsStore = defineStore('windows', () => {
   }
 
   function closeWindow(id: string) {
-    windows.value = windows.value.filter(w => w.id !== id)
+    // 1-frame grace: hide content instantly (display:none via CSS), remove from DOM next frame
+    // This lets the browser paint the "gone" state before Vue unmounts the heavy component tree
+    const win = windows.value.find(w => w.id === id)
+    if (win) {
+      win.closing = true
+      requestAnimationFrame(() => {
+        windows.value = windows.value.filter(w => w.id !== id)
+      })
+    }
   }
 
   function minimizeWindow(id: string) {
@@ -336,8 +354,9 @@ export const useWindowsStore = defineStore('windows', () => {
     // Close all windows
     windows.value = []
 
-    // Restore windows from view
+    // Restore windows from view (ensure closing flag is always false on load)
     windows.value = JSON.parse(JSON.stringify(view.windows))
+    windows.value.forEach(w => { w.closing = false })
     currentViewId.value = viewId
 
     // Reset zIndex
@@ -456,6 +475,8 @@ export const useWindowsStore = defineStore('windows', () => {
     updateWindowTitle,
     findWindowByModule,
     setWindowLinkingGroup,
+    setWindowRole,
+    findAvailableLinkingGroup,
     arrangeWindows,
     updateActiveView,
     saveCurrentView,

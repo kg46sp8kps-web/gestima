@@ -59,7 +59,7 @@ function getFileIcon(fileType: string) {
     <!-- Links -->
     <div v-if="file.links.length > 0" class="file-links">
       <div v-for="link in file.links" :key="link.id" class="link-badge">
-        <span>{{ link.entity_type }} #{{ link.entity_id }}</span>
+        <span>{{ link.entity_name || `${link.entity_type} #${link.entity_id}` }}</span>
         <Star v-if="link.is_primary" :size="ICON_SIZE.SMALL" class="primary-icon" />
       </div>
     </div>

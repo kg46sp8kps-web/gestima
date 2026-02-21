@@ -10,9 +10,8 @@
  */
 
 import { ref, computed } from 'vue'
-import axios from 'axios'
 import { alert } from '@/composables/useDialog'
-import { previewRoutingImport, executeRoutingImport } from '@/api/infor-import'
+import { previewRoutingImport, executeRoutingImport, getInforIdoInfo, getInforIdoData, type InforIdoDataParams } from '@/api/infor-import'
 import { useUiStore } from '@/stores/ui'
 import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
@@ -111,15 +110,15 @@ function doDeselectAll() {
 
 function getSelectedRows(): StagedRoutingRow[] {
   if (selectAll.value) return stagedRows.value
-  return [...selectedIndices.value].map(i => stagedRows.value[i]).filter(Boolean)
+  return [...selectedIndices.value].map(i => stagedRows.value[i]).filter((r): r is StagedRoutingRow => r !== undefined)
 }
 
 async function fetchFieldsForIdo() {
   if (!selectedIdo.value) { await alert({ title: 'Chyba', message: 'Zadejte IDO name', type: 'warning' }); return }
   fetchingFields.value = true
   try {
-    const response = await axios.get(`/api/infor/ido/${selectedIdo.value}/info`)
-    const fields = response.data.info || []
+    const data = await getInforIdoInfo(selectedIdo.value)
+    const fields = data.info || []
     availableFields.value = fields.map((f: { name: string; dataType?: string; required?: boolean; readOnly?: boolean }) => ({
       name: f.name, type: f.dataType || 'String', required: f.required || false, readOnly: f.readOnly || false
     }))
@@ -156,10 +155,13 @@ async function loadInforData() {
   if (!idoProperties.value) { uiStore.showError('Žádné sloupce k načtení'); return }
   loading.value = true
   try {
-    const params: Record<string, string | number> = { properties: idoProperties.value, limit: idoLimit.value }
-    if (idoFilter.value) params.filter = idoFilter.value
-    const response = await axios.get(`/api/infor/ido/${selectedIdo.value}/data`, { params })
-    inforData.value = response.data.data || []
+    const params: InforIdoDataParams = {
+      properties: idoProperties.value,
+      limit: idoLimit.value,
+      ...(idoFilter.value ? { filter: idoFilter.value } : {})
+    }
+    const data = await getInforIdoData(selectedIdo.value, params)
+    inforData.value = data.data || []
     uiStore.showSuccess(`Načteno ${inforData.value.length.toLocaleString()} řádků`)
   } catch (error: unknown) {
     const err = error as { response?: { data?: { detail?: string } }; message?: string }
@@ -366,18 +368,8 @@ function fmt(val: unknown, decimals = 2): string {
 .section { margin-bottom: var(--space-6); }
 h4 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); margin: 0 0 var(--space-3) 0; }
 .query-row { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); }
-.query-row .form-group { flex: 1; }
 .query-row .fg-wide { flex: 3; }
-.form-group label { display: block; margin-bottom: var(--space-1); font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); }
-.input { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-default); background: var(--bg-base); color: var(--text-primary); border-radius: var(--radius-md); font-size: var(--text-sm); }
-.input:focus { outline: none; border-color: var(--color-brand); }
 .toolbar { display: flex; gap: var(--space-2); margin: var(--space-3) 0; flex-wrap: wrap; }
-.btn-ghost { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border-default); background: transparent; color: var(--text-primary); border-radius: var(--radius-md); font-size: var(--text-sm); cursor: pointer; transition: all var(--duration-fast); }
-.btn-ghost:hover:not(:disabled) { background: var(--state-hover); border-color: var(--border-strong); }
-.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-ghost.btn-primary { color: var(--color-brand); border-color: var(--color-brand); }
-.btn-ghost.btn-danger { color: var(--color-danger); border-color: var(--color-danger); }
-.btn-ghost.btn-secondary { color: var(--text-secondary); }
 .import-btn { margin-top: var(--space-3); }
 .summary { display: flex; gap: var(--space-3); margin-bottom: var(--space-2); }
 .badge-valid { padding: var(--space-1) var(--space-2); background: rgba(34, 197, 94, 0.12); color: rgb(34, 197, 94); border-radius: var(--radius-md); font-size: var(--text-xs); display: inline-flex; align-items: center; gap: var(--space-1); }

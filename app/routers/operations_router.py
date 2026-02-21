@@ -145,7 +145,7 @@ async def change_mode(
 # M:N LINKING (Operation ↔ MaterialInput) - ADR-024
 # ═══════════════════════════════════════════════════════════════
 
-@router.post("/{operation_id}/link-material/{material_id}", status_code=201)
+@router.post("/{operation_id}/link-material/{material_id}", status_code=201, response_model=dict)
 async def link_material_to_operation(
     operation_id: int,
     material_id: int,

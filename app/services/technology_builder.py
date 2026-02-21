@@ -370,3 +370,58 @@ async def build_technology(
     operations.append(op100)
 
     return TechnologyPlan(operations=operations, warnings=warnings)
+
+
+def create_estimation_from_vision_result(
+    part_id: int,
+    pdf_filename: str,
+    pdf_path: str,
+    *,
+    part_type: str = "PRI",
+    complexity: str = "medium",
+    estimated_time_min: float = 30.0,
+    max_diameter_mm: Optional[float] = None,
+    max_length_mm: Optional[float] = None,
+    file_id: Optional[int] = None,
+    source: str = "quote_estimate",
+    username: str = "system",
+) -> "TimeVisionEstimation":
+    """Create a TimeVisionEstimation record from AI Vision or placeholder data.
+
+    Used by quote_orchestrator when creating parts from quote requests.
+    The estimation can come from real AI Vision (drawings) or be a
+    conservative placeholder when no drawing is available.
+
+    Args:
+        part_id: Part FK
+        pdf_filename: Drawing filename
+        pdf_path: Path under uploads/
+        part_type: ROT / PRI / COMBINED
+        complexity: simple / medium / complex
+        estimated_time_min: Machining time in minutes
+        max_diameter_mm: Max part diameter
+        max_length_mm: Max part length
+        file_id: FileRecord FK (if drawing stored)
+        source: "quote_estimate" or "ai_vision"
+        username: Audit trail
+
+    Returns:
+        TimeVisionEstimation instance (not yet added to DB — caller must db.add())
+    """
+    return TimeVisionEstimation(
+        pdf_filename=pdf_filename,
+        pdf_path=pdf_path,
+        part_id=part_id,
+        file_id=file_id,
+        ai_provider=source,
+        ai_model=source,
+        part_type=part_type,
+        complexity=complexity,
+        estimated_time_min=estimated_time_min,
+        max_diameter_mm=max_diameter_mm,
+        max_length_mm=max_length_mm,
+        status="estimated",
+        estimation_type="time_v1",
+        created_by=username,
+        updated_by=username,
+    )

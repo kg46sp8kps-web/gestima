@@ -1,5 +1,6 @@
 """GESTIMA - Database setup"""
 
+import os
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, event, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -95,6 +96,14 @@ async def init_db():
                 # Use Alembic for migrations
                 logger.info("🔄 Using Alembic migrations")
                 try:
+                    # Auto-backup before migration (safety net)
+                    import shutil
+                    db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
+                    if db_path and os.path.exists(db_path) and os.path.getsize(db_path) > 0:
+                        backup_path = f"{db_path}.pre-migration.bak"
+                        shutil.copy2(db_path, backup_path)
+                        logger.info(f"💾 Pre-migration backup: {backup_path}")
+
                     import subprocess
                     result = subprocess.run(
                         ["alembic", "upgrade", "head"],

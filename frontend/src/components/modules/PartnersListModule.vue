@@ -40,7 +40,9 @@ function handlePartnerDeleted() {
 }
 
 onMounted(() => {
-  partnersStore.fetchPartners()
+  if (!partnersStore.loaded) {
+    partnersStore.fetchPartners()
+  }
 })
 </script>
 

@@ -1,229 +1,176 @@
 # GESTIMA - Architecture Overview
 
-**Verze:** 1.4 (2026-01-29)
-**Účel:** Rychlá orientace v projektu (5 minut k pochopení)
+**Verze:** 2.0 (2026-02-17)
 
 ---
 
-## Quick Start
+## Stack
 
 ```
-FastAPI + SQLAlchemy 2.0 (async) + SQLite + Jinja2 + Alpine.js + HTMX
-Backend: Python 3.9+, Frontend: Server-rendered HTML
-Migrations: Alembic, Security: CSP + HSTS
+Backend:  FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2 + SQLite (WAL)
+Frontend: Vue 3 + Pinia + TypeScript + Vite
+Tests:    pytest (backend) + Vitest (frontend)
+Deploy:   Caddy (reverse proxy, HTTPS) + systemd
 ```
 
-**Hierarchie entit:**
+## Entity Hierarchy
+
 ```
-MaterialGroup (Kategorie materiálů)
-  └─ MaterialPriceCategory (1:N) - cenové kategorie s tiery
-       └─ MaterialItem (1:N) - konkrétní polotovary s normami
+MaterialGroup → MaterialPriceCategory (1:N) → MaterialPriceTier (1:N)
+                                             → MaterialItem (1:N) → MaterialNorm (N:1)
 
-Part (Díl - Lean Model, ADR-024)
-  ├─ MaterialInputs (1:N) - materiálové vstupy (nezávislé)
-  │    └─ Operations (M:N) - kdy se spotřebovává
-  ├─ Operations (1:N) - technologické kroky
-  │    ├─ Features (1:N) - konkrétní úkony s geometrií
-  │    └─ MaterialInputs (M:N) - co spotřebovává
-  ├─ Batches (1:N) - cenové kalkulace pro dávky
-  │    └─ BatchSet (N:1) - sada zmrazených batchů (ADR-022)
+Part → MaterialInputs (1:N) ↔ Operations (M:N via material_operation_link)
+     → Operations (1:N) → Features (1:N)
+     → Batches (1:N) → BatchSet (N:1)
+     → Drawings (1:N)
 
-WorkCenter (Pracoviště) - fyzický stroj nebo virtuální pracoviště (ADR-021)
+WorkCenter (physical + virtual machines, ADR-021)
+FileRecord → FileLink (1:N, polymorphic entity_type+entity_id)
+Quote → QuoteItem (1:N) → Part (N:1)
+Partner (customer/supplier)
 ```
-
----
 
 ## Directory Map
 
 ```
-gestima/
-├── app/
-│   ├── models/              # SQLAlchemy modely
-│   │   ├── part.py          # Part, Operation, Feature, Batch
-│   │   ├── material_input.py # MaterialInput (ADR-024)
-│   │   ├── work_center.py   # WorkCenter (ADR-021)
-│   │   └── batch_set.py     # BatchSet (ADR-022)
-│   ├── routers/             # API endpoints
-│   │   ├── parts_router.py
-│   │   ├── operations_router.py
-│   │   ├── work_centers_router.py  # NEW
-│   │   └── pricing_router.py       # BatchSet freeze
-│   ├── services/            # Business logika
-│   │   ├── price_calculator.py
-│   │   ├── machining_time_estimation_service.py  (ONLY TIME SYSTEM)
-│   │   └── snapshot_service.py
-│   ├── templates/           # Jinja2 HTML
-│   │   ├── parts/           # edit.html, list
-│   │   ├── workspace.html   # Workspace modules (ADR-023)
-│   │   └── admin/           # master_data.html
-│   ├── static/
-│   │   ├── js/
-│   │   │   ├── core/        # module-registry.js, link-manager.js
-│   │   │   └── modules/     # Workspace moduly (ADR-023)
-│   │   └── css/
-│   ├── database.py          # DB setup + AuditMixin
-│   └── gestima_app.py       # FastAPI + CSP/HSTS headers
-├── alembic/                 # DB migrations
-├── data/                    # CSV seed data
-├── tests/                   # pytest
-└── docs/
-    ├── patterns/            # ANTI-PATTERNS.md, DEBUG-WORKFLOW.md
-    └── ADR/                 # 23 architektonických rozhodnutí
+app/
+├── models/          # SQLAlchemy modely (AuditMixin: timestamps, soft-delete, versioning)
+├── routers/         # FastAPI endpoints (/api/*)
+├── services/        # Business logika
+├── schemas/         # Pydantic v2 request/response
+├── database.py      # DB setup, AuditMixin, safe_commit()
+├── config.py        # Settings (env-based)
+└── gestima_app.py   # App factory, middleware, route registration
+
+frontend/src/
+├── components/
+│   ├── modules/     # Feature modules (*ListModule, *ListPanel, *DetailPanel)
+│   ├── ui/          # Reusable UI primitives (Button, Modal, DataTable)
+│   └── layout/      # App layout (Sidebar, WindowManager)
+├── stores/          # Pinia stores (per-entity CRUD + UI state)
+├── api/             # HTTP client wrappers (per-entity)
+├── types/           # TypeScript interfaces
+├── composables/     # Vue composables (useDebounce, useDialog, etc.)
+└── config/          # Design tokens, icons, router
+
+scripts/             # Seed data, migrations, audit tools
+docs/                # ADRs, guides, reference
 ```
 
-**Kde co najdu:**
+## Key Patterns
 
-| Hledám... | Soubor |
-|-----------|--------|
-| Výpočty cen | services/price_calculator.py |
-| Výpočty časů | services/machining_time_estimation_service.py (ADR-040) |
-| Backup/restore DB | services/backup_service.py |
-| Snapshots (freeze) | services/snapshot_service.py |
-| API díly | routers/parts_router.py |
-| API pracoviště | routers/work_centers_router.py |
-| API batch freeze | routers/pricing_router.py |
-| DB modely | models/*.py |
-| Workspace moduly | static/js/modules/*.js |
-| Alembic migrations | alembic/versions/*.py |
-| Anti-patterns | docs/patterns/ANTI-PATTERNS.md |
-| Debug workflow | docs/patterns/DEBUG-WORKFLOW.md |
+| Pattern | Where | Reference |
+|---------|-------|-----------|
+| Floating Windows UI | `WindowsView.vue` + `*Module.vue` | ADR-023, ADR-025 |
+| Split-pane modules | `*ListModule.vue` (LEFT: list, RIGHT: detail) | CLAUDE.md |
+| UPSERT seeds | `scripts/seed_*.py` (idempotent, inline data) | CLAUDE.md |
+| Soft delete + versioning | `AuditMixin` in `database.py` | ADR-001, ADR-008 |
+| JWT HttpOnly Cookie | `auth_router.py` | ADR-005 |
+| File Manager | `FileRecord` + `FileLink` (polymorphic) | ADR-044 |
+| TimeVision AI | Fine-tuned GPT-4o + feature-based calc | ADR-045 |
+| Infor integration | Material import, routing import, purchase prices | ADR-032, ADR-046 |
+| Technology Builder | Auto-generate operations (saw + machine + QC) | CLAUDE.local.md |
 
----
+## Window Linking System
 
-## System Diagram
+Moduly se propojují přes **linking group** (barva: red/blue/green/yellow). Propojená okna sdílejí kontext (vybraný Part) přes `windowContext` store.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     BROWSER (User)                      │
-│  Jinja2 Templates + Alpine.js + HTMX                   │
-│  Workspace Modules (ADR-023)                            │
-└────────────────────┬────────────────────────────────────┘
-                     │ HTTP (JSON/HTML)
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│              Caddy (Reverse Proxy)                      │
-│              HTTPS + Rate Limiting                      │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│              FastAPI (gestima_app.py)                   │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  Security: CSP + HSTS headers (ADR-020)          │  │
-│  └──────────────────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  Auth Middleware (JWT HttpOnly Cookie)           │  │
-│  └──────────────────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  Routers (API endpoints)                         │  │
-│  │  - parts, operations, features, batches          │  │
-│  │  - work_centers, pricing, materials              │  │
-│  └──────────────────────────────────────────────────┘  │
-│                     ▼                                    │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  Services (Business Logic)                       │  │
-│  │  - price_calculator, machining_time_estimation_service │  │
-│  │  - snapshot_service                              │  │
-│  └──────────────────────────────────────────────────┘  │
-│                     ▼                                    │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  SQLAlchemy 2.0 (async ORM)                      │  │
-│  │  Models: Part, Operation, Feature, Batch,        │  │
-│  │          WorkCenter, BatchSet, MaterialItem      │  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│         SQLite + WAL mode (gestima.db)                  │
-│         Alembic migrations                              │
-└─────────────────────────────────────────────────────────┘
+### WindowState fields (relevantní)
+```ts
+linkingGroup: 'red' | 'blue' | 'green' | 'yellow' | null  // barva skupiny
+windowRole:   'master' | 'child' | null                    // role v skupině
 ```
 
----
+### Role
+| Role | Levý panel (PartList) | Sleduje context | Ribbon |
+|------|-----------------------|-----------------|--------|
+| `null` (standalone) | ✅ viditelný | ❌ | ❌ |
+| `'master'` | ✅ viditelný | ❌ řídí context | ❌ |
+| `'child'` | ❌ skrytý | ✅ sleduje context | ✅ |
 
-## Key Architectural Decisions
+### Jak otevřít přilinkované okno — composable `useLinkedWindowOpener`
 
-| Rozhodnutí | Důvod | ADR |
-|------------|-------|-----|
-| **Soft delete** | Audit trail + data recovery | ADR-001 |
-| **8-digit numbering** | Scalable entity IDs (PPXXXXXX) | ADR-017 |
-| **JWT + HttpOnly Cookie** | Security (XSS/CSRF protection) | ADR-005 |
-| **Role Hierarchy** | Admin >= Operator >= Viewer | ADR-006 |
-| **Optimistic Locking** | Conflict detection via version | ADR-008 |
-| **Minimal Snapshot** | Freeze batch prices | ADR-012 |
-| **WorkCenter model** | Physical + virtual machines | ADR-021 |
-| **BatchSet model** | Organize frozen batches | ADR-022 |
-| **Workspace modules** | Multi-panel linked views | ADR-023 |
-| **MaterialInput refactor** | Lean Part + M:N material-operation | ADR-024 |
-| **CSP + HSTS** | Security headers | ADR-020 |
+```ts
+// V každém modulu který může otevírat child okna:
+const { openLinked } = useLinkedWindowOpener({
+  get windowId()     { return props.windowId },        // prop z WindowsView
+  get linkingGroup() { return props.linkingGroup ?? null },
+  onGroupAssigned(group) {
+    // Re-publish context → child okno se okamžitě synchronizuje
+    if (selectedPart.value?.id > 0) {
+      contextStore.setContext(group, selectedPart.value.id, ...)
+    }
+  }
+})
 
----
+// Otevření child okna:
+openLinked('part-technology', `Technologie - ${part.part_number}`)
+```
 
-## New in v1.7.0
+**Chování composable:**
+- Pokud master **nemá** barvu → auto-assign volná barva, master dostane `role: master`, child dostane `role: child`
+- Pokud master **má** barvu → child se otevře ve stejné barvě s `role: child`
 
-### WorkCenter Model (ADR-021)
-- Single model for physical machines and virtual workstations
-- 8-digit sequential numbering (80XXXXXX)
-- Replaces separate Machine model
+### Props které musí každý modul přijímat
+```ts
+interface Props {
+  windowId?:    string      // z WindowsView (:windowId="win.id")
+  windowRole?:  WindowRole  // z WindowsView (:windowRole="win.windowRole")
+  linkingGroup?: LinkingGroup
+}
+```
 
-### BatchSet Model (ADR-022)
-- Groups loose batches into frozen sets
-- Atomic freeze workflow
-- Timestamp-based naming (35XXXXXX)
+### Podmínka levého panelu v template
+```html
+<!-- Viditelný: standalone (null) NEBO master -->
+<div v-if="!linkingGroup || windowRole === 'master'" class="left-panel">
 
-### Workspace Modules (ADR-023)
-- Extracted from edit.html to separate JS files
-- 4 modules: parts-list, part-material, part-operations, part-pricing
-- LinkManager for cross-module communication
+<!-- Context ribbon: jen pro child -->
+<div v-if="linkingGroup && windowRole !== 'master' && selectedPart" class="context-ribbon">
 
----
+<!-- full-width pravý panel: jen pro child -->
+<div class="right-panel" :class="{ 'full-width': linkingGroup && windowRole !== 'master' }">
+```
 
-## New in v1.8.0
+### Watch na context — jen pro child
+```ts
+watch(contextPartId, (newPartId) => {
+  if (props.windowRole === 'master') return  // master context nesleduje
+  // child logic...
+})
+```
 
-### MaterialInput Refactor (ADR-024)
-- **Lean Part model** - Material moved to separate `material_inputs` table
-- **M:N relationship** - MaterialInput ↔ Operation via `material_operation_link`
-- **Part can have 1-N materials** - Supports assemblies, weldments
-- **Independent lifecycle** - MaterialInput exists without operations (buy parts)
-- **Revision fields** - Added `revision` (internal A-Z), `customer_revision` (displayed)
-- **Status field** - Added `status` (draft/active/archived)
-- **BOM-ready** - Prepared for v3.0 PLM migration
-- **API endpoints** - 8 new endpoints for CRUD + link/unlink
+### WindowsView — předání props
+```html
+<component
+  :windowId="win.id"
+  :linkingGroup="win.linkingGroup"
+  :windowRole="win.windowRole"
+  :windowTitle="win.title"
+/>
+```
 
----
-
-## Production Checklist
-
-### P0 - BLOCKER
-| Status | Requirement |
-|--------|-------------|
-| ✅ | Authentication (OAuth2 + JWT HttpOnly Cookie) |
-| ✅ | Authorization (RBAC: Admin/Operator/Viewer) |
-| ✅ | HTTPS via Caddy reverse proxy |
-| ✅ | CSP + HSTS security headers |
-
-### P1 - KRITICKÉ
-| Status | Requirement |
-|--------|-------------|
-| ✅ | Transaction error handling |
-| ✅ | Structured logging |
-| ✅ | Backup strategie (CLI commands) |
-| ✅ | Alembic migrations |
-| ✅ | Rate limiting (100/min API, 10/min auth) |
-
----
-
-## Reference
-
-| Dokument | Účel |
-|----------|------|
-| [CLAUDE.md](../CLAUDE.md) | Pravidla, workflow, anti-patterns |
-| [docs/patterns/](patterns/) | ANTI-PATTERNS.md, DEBUG-WORKFLOW.md |
-| [docs/ADR/](ADR/) | 23 architektonických rozhodnutí |
-| [docs/status/STATUS.md](../status/STATUS.md) | Aktuální stav projektu |
+### Implementované moduly
+| Modul | Master support | Child support |
+|-------|---------------|---------------|
+| `PartMainModule` | ✅ | - |
+| `ManufacturingItemsModule` | ✅ | - |
+| `PartTechnologyModule` | ✅ | ✅ |
+| `PartPricingModule` | ✅ | ✅ |
 
 ---
 
-**Verze:** 1.3
-**Poslední update:** 2026-01-29
+## Key ADRs
+
+| ADR | Decision |
+|-----|----------|
+| 001 | Soft delete (deleted_at + audit trail) |
+| 005 | JWT + HttpOnly Cookie auth |
+| 008 | Optimistic locking (version column) |
+| 021 | WorkCenter (physical + virtual) |
+| 022 | BatchSet (frozen price snapshots) |
+| 023 | Workspace floating windows |
+| 024 | Lean Part + MaterialInput refactor |
+| 044 | Centralized File Manager |
+| 045 | Feature-based time calculation |
+| 046 | Infor CloudSuite connector |

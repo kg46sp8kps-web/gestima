@@ -67,14 +67,6 @@ const emit = defineEmits<{
   gap: var(--space-3);
 }
 
-.form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: var(--space-1);
-}
-
 .input {
   width: 100%;
   padding: var(--space-2) var(--space-3);

@@ -25,6 +25,7 @@ export const usePartsStore = defineStore('parts', () => {
   const loadingMore = ref(false)
   const searchQuery = ref('')
   const statusFilter = ref<string | undefined>(undefined)
+  const drawingFilter = ref(false)
 
   // True only on first load when parts list is empty (shows skeleton/spinner)
   // After first load, refreshes happen silently in background
@@ -52,12 +53,13 @@ export const usePartsStore = defineStore('parts', () => {
         0,
         PAGE_SIZE,
         statusFilter.value,
-        searchQuery.value.trim() || undefined
+        searchQuery.value.trim() || undefined,
+        drawingFilter.value || undefined
       )
       parts.value = response.parts
       total.value = response.total
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba pri nacitani dilu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba pri nacitani dilu')
       throw error
     } finally {
       loading.value = false
@@ -76,15 +78,50 @@ export const usePartsStore = defineStore('parts', () => {
         parts.value.length,
         BATCH_SIZE,
         statusFilter.value,
-        searchQuery.value.trim() || undefined
+        searchQuery.value.trim() || undefined,
+        drawingFilter.value || undefined
       )
       parts.value.push(...response.parts)
       total.value = response.total
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba pri nacitani dalsich dilu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba pri nacitani dalsich dilu')
     } finally {
       loadingMore.value = false
     }
+  }
+
+  /**
+   * Fetch batches until part with given id is found in the list.
+   * Used after creating a new part to scroll to it regardless of its position.
+   * Returns the index of the part in the list, or -1 if not found after all batches.
+   */
+  async function fetchUntilFound(partId: number): Promise<number> {
+    // Check if already loaded
+    let index = parts.value.findIndex(p => p.id === partId)
+    if (index !== -1) return index
+
+    // Keep fetching batches until found or no more data
+    while (hasMore.value) {
+      loadingMore.value = true
+      try {
+        const response = await partsApi.getParts(
+          parts.value.length,
+          BATCH_SIZE,
+          statusFilter.value,
+          searchQuery.value.trim() || undefined,
+          drawingFilter.value || undefined
+        )
+        parts.value.push(...response.parts)
+        total.value = response.total
+      } finally {
+        loadingMore.value = false
+      }
+
+      index = parts.value.findIndex(p => p.id === partId)
+      if (index !== -1) return index
+    }
+
+    return -1
   }
 
   async function fetchPart(partNumber: string) {
@@ -92,8 +129,8 @@ export const usePartsStore = defineStore('parts', () => {
     try {
       currentPart.value = await partsApi.getPart(partNumber)
       return currentPart.value
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba pri nacitani dilu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba pri nacitani dilu')
       throw error
     } finally {
       loading.value = false
@@ -116,8 +153,8 @@ export const usePartsStore = defineStore('parts', () => {
       total.value++
       ui.showSuccess(copyFrom ? 'Dil zkopirovan' : 'Dil vytvoren')
       return newPart
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba pri vytvareni dilu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba pri vytvareni dilu')
       throw error
     } finally {
       loading.value = false
@@ -142,13 +179,14 @@ export const usePartsStore = defineStore('parts', () => {
 
       ui.showSuccess('Dil aktualizovan')
       return updatedPart
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle version conflict - auto-reload data
-      if (error.response?.status === 409) {
+      const err = error as { response?: { status: number }; message?: string }
+      if (err.response?.status === 409) {
         await fetchPart(partNumber)
         ui.showWarning('Data byla zmenena. Nactena aktualni verze - zkuste zmenu znovu.')
       } else {
-        ui.showError(error.message || 'Chyba pri aktualizaci dilu')
+        ui.showError(err.message || 'Chyba pri aktualizaci dilu')
       }
       throw error
     } finally {
@@ -164,8 +202,8 @@ export const usePartsStore = defineStore('parts', () => {
       total.value++
       ui.showSuccess(`Dil duplikovan: ${newPart.part_number}`)
       return newPart
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba pri duplikaci dilu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba pri duplikaci dilu')
       throw error
     } finally {
       loading.value = false
@@ -190,8 +228,8 @@ export const usePartsStore = defineStore('parts', () => {
       }
 
       ui.showSuccess('Dil smazan')
-    } catch (error: any) {
-      ui.showError(error.message || 'Chyba pri mazani dilu')
+    } catch (error: unknown) {
+      ui.showError((error as Error).message || 'Chyba pri mazani dilu')
       throw error
     } finally {
       loading.value = false
@@ -204,6 +242,10 @@ export const usePartsStore = defineStore('parts', () => {
 
   function setStatusFilter(status: string | undefined) {
     statusFilter.value = status
+  }
+
+  function setDrawingFilter(enabled: boolean) {
+    drawingFilter.value = enabled
   }
 
   // Legacy pagination methods (kept for backwards compat)
@@ -221,6 +263,7 @@ export const usePartsStore = defineStore('parts', () => {
     total.value = 0
     searchQuery.value = ''
     statusFilter.value = undefined
+    drawingFilter.value = false
   }
 
   return {
@@ -232,6 +275,7 @@ export const usePartsStore = defineStore('parts', () => {
     loadingMore,
     searchQuery,
     statusFilter,
+    drawingFilter,
     skip,
     limit,
     // Computed
@@ -244,6 +288,7 @@ export const usePartsStore = defineStore('parts', () => {
     // Actions
     fetchParts,
     fetchMore,
+    fetchUntilFound,
     fetchPart,
     createPart,
     updatePart,
@@ -251,6 +296,7 @@ export const usePartsStore = defineStore('parts', () => {
     deletePart,
     setSearchQuery,
     setStatusFilter,
+    setDrawingFilter,
     nextPage,
     prevPage,
     goToPage,

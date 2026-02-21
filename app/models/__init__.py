@@ -33,8 +33,7 @@ from app.models.material_norm import (
     MaterialNorm,
     MaterialNormCreate,
     MaterialNormUpdate,
-    MaterialNormResponse,
-    MaterialNormWithGroupResponse
+    MaterialNormResponse
 )
 from app.models.material_input import (
     MaterialInput,
@@ -80,7 +79,6 @@ from app.models.module_defaults import (
     ModuleDefaultsUpdate,
     ModuleDefaultsResponse
 )
-from app.models.drawing import Drawing
 from app.models.file_record import FileRecord, FileLink
 from app.models.production_record import (
     ProductionRecord,
@@ -122,7 +120,6 @@ __all__ = [
     "QuoteItemCreate", "QuoteItemUpdate", "QuoteItemResponse",
     "ModuleLayout", "ModuleLayoutCreate", "ModuleLayoutUpdate", "ModuleLayoutResponse",
     "ModuleDefaults", "ModuleDefaultsCreate", "ModuleDefaultsUpdate", "ModuleDefaultsResponse",
-    "Drawing",
     "FileRecord", "FileLink",
     "TimeVisionEstimation", "TimeVisionResponse", "TimeVisionListItem", "TimeVisionActualTimeUpdate",
     "VisionExtractionResult", "TimeEstimationResult", "OperationBreakdown", "SimilarPartMatch",
