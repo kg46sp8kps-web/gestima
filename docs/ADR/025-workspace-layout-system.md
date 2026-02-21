@@ -161,7 +161,7 @@ Potřebujeme flexibilní workspace systém pro práci s více moduly současně 
 
 ## References
 
-- **Implementation:** `frontend/WORKSPACE-GUIDE.md`
+- **Implementation:** `docs/reference/UX-GUIDE.md` sekce 2 (Navigace a workspace)
 - **Components:** `frontend/src/components/workspace/`
 - **Related ADR:** ADR-023 (Workspace Module Architecture)
 - **Inspiration:** VSCode split view, JetBrains IDE layouts
