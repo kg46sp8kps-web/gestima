@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { MODULE_REGISTRY } from '@/types/workspace'
 import type { LeafNode, DropZone, ModuleId } from '@/types/workspace'
 import TilePanelHeader from './TilePanelHeader.vue'
 import TileDropZones from './TileDropZones.vue'
@@ -44,6 +45,7 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
   'accounting':     defineAsyncComponent(() => import('@/components/tiling/modules/TileAccounting.vue')),
   'files':          defineAsyncComponent(() => import('@/components/tiling/modules/TileFiles.vue')),
   'admin':          defineAsyncComponent(() => import('@/components/tiling/modules/TileAdmin.vue')),
+  'materials':      defineAsyncComponent(() => import('@/components/tiling/modules/TileMaterials.vue')),
 }
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)
@@ -73,7 +75,7 @@ function onFocus() {
   <div
     :class="[
       'pnl',
-      node.ctx,
+      MODULE_REGISTRY[node.module].usesCtx ? node.ctx : null,
       { instant: isInstant, focused: isFocused, dragging: isDragging, max: maximized }
     ]"
     @mousedown="onFocus"
