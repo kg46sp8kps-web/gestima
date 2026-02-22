@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { MaterialItem, MaterialItemListResponse } from '@/types/material-item'
+import type { MaterialItemListResponse } from '@/types/material-item'
 import type { MaterialGroup, MaterialPriceCategory } from '@/types/admin-user'
 
 export async function getItems(params?: { group_id?: number; skip?: number; limit?: number }): Promise<MaterialItemListResponse> {

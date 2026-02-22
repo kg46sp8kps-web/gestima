@@ -125,10 +125,6 @@ function matPrimary(m: MaterialInput): string {
   return m.material_item?.name ?? m.price_category?.name ?? '—'
 }
 
-function matCode(m: MaterialInput): string | null {
-  return m.material_item?.code ?? null
-}
-
 function matSub(m: MaterialInput): string {
   if (m.material_item) {
     return m.material_item.material_number + (m.price_category ? ' · ' + m.price_category.name : '')
@@ -413,8 +409,13 @@ watch(
               <span class="pr-val">{{ parseResult.suggested_price_category_name }}</span>
             </template>
             <template v-if="parseResult.suggested_material_item_name">
-              <span class="pr-lbl">Materiálová položka</span>
-              <span class="pr-val">{{ parseResult.suggested_material_item_name }}</span>
+              <span class="pr-lbl">Položka katalogu</span>
+              <div class="pr-item-block">
+                <span class="pr-val">{{ parseResult.suggested_material_item_name }}</span>
+                <span v-if="parseResult.suggested_material_item_code" class="pr-code mono">
+                  {{ parseResult.suggested_material_item_code }}
+                </span>
+              </div>
             </template>
             <span class="pr-lbl">Shoda</span>
             <span :class="['pr-val', 'mono', parseResult.confidence > 0.7 ? 'pr-ok' : 'pr-warn']">
@@ -463,6 +464,7 @@ watch(
               <td class="mono t4">{{ m.seq + 1 }}</td>
               <td>
                 <div class="mat-name">{{ matPrimary(m) }}</div>
+                <div v-if="m.material_item?.code" class="mat-code mono">{{ m.material_item.code }}</div>
                 <div v-if="matSub(m)" class="mat-sub t4">{{ matSub(m) }}</div>
               </td>
               <td>
@@ -692,14 +694,27 @@ watch(
 .pr-grid {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 3px 10px;
-  align-items: baseline;
+  gap: 4px 10px;
+  align-items: start;
 }
-.pr-lbl { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.pr-lbl { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; padding-top: 2px; }
 .pr-val { font-size: var(--fs); color: var(--t1); }
 .pr-val.mono { font-family: var(--mono); }
 .pr-ok { color: var(--ok); }
 .pr-warn { color: var(--warn); }
+
+/* Catalog item: name + code stacked */
+.pr-item-block { display: flex; flex-direction: column; gap: 3px; }
+.pr-code {
+  display: inline-block;
+  width: fit-content;
+  font-size: 11px;
+  color: var(--t1);
+  background: var(--b2);
+  border: 1px solid var(--b3);
+  padding: 1px 6px;
+  border-radius: var(--rs);
+}
 .pr-warning {
   margin-top: 4px;
   font-size: 10px;
@@ -758,7 +773,18 @@ watch(
 .fsl { font-size: var(--fsl); }
 
 .mat-name { font-weight: 500; color: var(--t1); }
-.mat-sub { font-size: 10px; margin-top: 1px; }
+/* Catalog code badge in the table — monospace, distinct from name */
+.mat-code {
+  display: inline-block;
+  font-size: 10.5px;
+  color: var(--t2);
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  padding: 1px 5px;
+  border-radius: var(--rs);
+  margin-top: 2px;
+}
+.mat-sub { font-size: 10px; margin-top: 1px; color: var(--t4); }
 
 /* ─── Op chips (summary column) ─── */
 .op-chips { display: flex; flex-wrap: wrap; gap: 3px; }
