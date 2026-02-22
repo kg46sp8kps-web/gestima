@@ -8,6 +8,13 @@ export async function listByEntity(entityType: string, entityId: number): Promis
   return data.files
 }
 
+export async function list(limit = 200): Promise<FileWithLinks[]> {
+  const { data } = await apiClient.get<FileListResponse>('/files', {
+    params: { status: 'active', limit },
+  })
+  return data.files
+}
+
 export function previewUrl(fileId: number): string {
   return `/api/files/${fileId}/preview`
 }

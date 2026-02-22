@@ -277,7 +277,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
     tree.value = newTree
-    currentLayoutId.value = null
     if (focusedLeafId.value === leafId) {
       const remaining = getLeaves(newTree)
       focusedLeafId.value = remaining[0]?.id ?? null
@@ -288,7 +287,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const result = findNode(tree.value, leafId)
     if (!result || result.node.type !== 'leaf') return
     tree.value = replaceNode(tree.value, leafId, { ...result.node, module: moduleId })
-    currentLayoutId.value = null
   }
 
   /** Split a leaf panel by dropping a module into a drop zone */
@@ -306,7 +304,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (zone === 'center') {
       // Replace module in same leaf
       tree.value = replaceNode(tree.value, targetLeafId, { ...target, module: newModule })
-      currentLayoutId.value = null
       return
     }
 
@@ -323,7 +320,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     )
     tree.value = replaceNode(tree.value, targetLeafId, split)
     focusedLeafId.value = newLeaf.id
-    currentLayoutId.value = null
   }
 
   /** Move a panel (drag from one leaf, drop into another) */
@@ -342,7 +338,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       let t = replaceNode(tree.value, dragLeafId, { ...dragLeaf, module: targetLeaf.module, ctx: targetLeaf.ctx })
       t = replaceNode(t, targetLeafId, { ...targetLeaf, module: dragLeaf.module, ctx: dragLeaf.ctx })
       tree.value = t
-      currentLayoutId.value = null
       return
     }
 
@@ -351,7 +346,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!treeWithoutDrag) return
     tree.value = treeWithoutDrag
     splitLeaf(targetLeafId, dragLeaf.module, zone, dragLeaf.ctx)
-    // splitLeaf already sets currentLayoutId = null
   }
 
   /** Add a panel docked to the absolute right or bottom edge of the workspace */
@@ -361,7 +355,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const edgeLeaf = getEdgeLeaf(tree.value, true)
     tree.value = replaceNode(tree.value, edgeLeaf.id, makeSplit(direction, 0.5, edgeLeaf, newLeaf))
     focusedLeafId.value = newLeaf.id
-    currentLayoutId.value = null
   }
 
   /** Spawn a new module panel at any absolute workspace edge (used by global drop zones for tab spawns) */
@@ -375,7 +368,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       : makeSplit(direction, 0.6, edgeLeaf, newLeaf)
     tree.value = replaceNode(tree.value, edgeLeaf.id, split)
     focusedLeafId.value = newLeaf.id
-    currentLayoutId.value = null
   }
 
   /** Move an existing leaf to an absolute workspace edge */
@@ -393,7 +385,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       : makeSplit(direction, 0.6, edgeLeaf, leaf)
     tree.value = replaceNode(treeWithout, edgeLeaf.id, split)
     focusedLeafId.value = leaf.id
-    currentLayoutId.value = null
   }
 
   function setSplitRatio(splitId: string, ratio: number) {

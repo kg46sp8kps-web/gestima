@@ -76,6 +76,12 @@ from app.models.module_layout import (
     ModuleLayoutUpdate,
     ModuleLayoutResponse
 )
+from app.models.user_layout import (
+    UserLayout,
+    UserLayoutCreate,
+    UserLayoutUpdate,
+    UserLayoutResponse
+)
 from app.models.module_defaults import (
     ModuleDefaults,
     ModuleDefaultsCreate,
@@ -131,6 +137,7 @@ __all__ = [
     "QuoteWithItemsResponse", "QuoteListResponse",
     "QuoteItemCreate", "QuoteItemUpdate", "QuoteItemResponse",
     "ModuleLayout", "ModuleLayoutCreate", "ModuleLayoutUpdate", "ModuleLayoutResponse",
+    "UserLayout", "UserLayoutCreate", "UserLayoutUpdate", "UserLayoutResponse",
     "ModuleDefaults", "ModuleDefaultsCreate", "ModuleDefaultsUpdate", "ModuleDefaultsResponse",
     "FileRecord", "FileLink",
     "TimeVisionEstimation", "TimeVisionResponse", "TimeVisionListItem", "TimeVisionActualTimeUpdate",

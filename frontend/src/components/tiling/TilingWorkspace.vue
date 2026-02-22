@@ -4,9 +4,10 @@ import { SaveIcon, SettingsIcon, PlusIcon, ArrowRightIcon, ArrowDownIcon } from 
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAuthStore } from '@/stores/auth'
 import { MODULE_REGISTRY } from '@/types/workspace'
-import type { ModuleId, LayoutPreset, DropZone } from '@/types/workspace'
+import type { ModuleId, DropZone } from '@/types/workspace'
 import TileNode from './TileNode.vue'
 import TileGlobalDropZones from './TileGlobalDropZones.vue'
+import LayoutManager from './LayoutManager.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 const ws = useWorkspaceStore()
@@ -14,13 +15,7 @@ const auth = useAuthStore()
 
 const fabOpen = ref(false)
 const clock = ref('')
-
-const layouts: { id: LayoutPreset; label: string }[] = [
-  { id: 'std', label: 'Standardní' },
-  { id: 'cmp', label: 'Porovnání' },
-  { id: 'hor', label: 'Horizontální' },
-  { id: 'qd', label: 'Kompletní' },
-]
+const showLayoutManager = ref(false)
 
 const topModules = computed(() =>
   Object.values(MODULE_REGISTRY).filter((m) => !m.isSub),
@@ -58,6 +53,7 @@ function updateClock() {
 onMounted(() => {
   updateClock()
   setInterval(updateClock, 30_000)
+  ws.fetchLayouts()
 })
 </script>
 
@@ -80,15 +76,16 @@ onMounted(() => {
       <div class="logo"><em>G</em><span>ESTIMA</span></div>
       <span class="logo-div" />
 
-      <!-- Layout presets -->
+      <!-- Layout chips from backend -->
       <div class="lchips">
         <button
-          v-for="layout in layouts"
+          v-for="layout in ws.headerLayouts"
           :key="layout.id"
-          :class="['lchip', { on: ws.currentLayout === layout.id }]"
-          @click.stop="ws.setLayout(layout.id)"
+          :class="['lchip', { on: ws.currentLayoutId === layout.id }]"
+          :data-testid="`layout-chip-${layout.id}`"
+          @click.stop="ws.loadLayout(layout.id)"
         >
-          {{ layout.label }}
+          {{ layout.name }}
         </button>
       </div>
 
@@ -96,10 +93,21 @@ onMounted(() => {
 
       <!-- Header actions -->
       <div class="hactions">
-        <button class="hbtn" title="Uložit">
+        <button
+          class="hbtn"
+          title="Uložit layout"
+          :class="{ 'hbtn-dim': ws.currentLayoutId === null }"
+          data-testid="save-layout-btn"
+          @click.stop="ws.saveCurrentLayout()"
+        >
           <SaveIcon :size="ICON_SIZE_SM" />
         </button>
-        <button class="hbtn" title="Nastavení" @click.stop>
+        <button
+          class="hbtn"
+          title="Správa layoutů"
+          data-testid="layout-manager-btn"
+          @click.stop="showLayoutManager = true"
+        >
           <SettingsIcon :size="ICON_SIZE_SM" />
         </button>
         <div class="ava" :title="auth.user?.username ?? ''" @click.stop="auth.logout()">
@@ -158,6 +166,9 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Layout Manager modal -->
+    <LayoutManager v-model="showLayoutManager" />
   </div>
 </template>
 
@@ -260,6 +271,7 @@ onMounted(() => {
 }
 .hbtn:hover { color: var(--t1); background: var(--b1); }
 .hbtn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+.hbtn-dim { opacity: 0.4; }
 
 .ava {
   width: 22px; height: 22px; border-radius: 50%;

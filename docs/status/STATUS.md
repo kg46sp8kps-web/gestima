@@ -57,6 +57,8 @@ TilingWorkspace
 | Composables: useDialog, useKeyboardShortcuts, useResizeHandle | ✅ `composables/` |
 | Drag & drop (panel move + tab spawn) | ✅ workspace.ts |
 | Center-drop = swap modules | ✅ workspace.ts |
+| Context group picker (click module name → A/B/C/D) | ✅ TilePanelHeader.vue |
+| Drag-spawn ctx inheritance (sub-module tabs) | ✅ TileWorkDetail + workspace.ts |
 | Pre-commit hooks (validate-frontend-v2, validate-backend, validate-wiring) | ✅ `.claude/hooks/` |
 | CI (GitHub Actions) | ✅ `.github/workflows/ci.yml` |
 

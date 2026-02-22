@@ -47,6 +47,7 @@ from app.routers import (
     production_records_router,  # Production records (Infor actual times)
     drawing_import_router,  # Drawing import from network share (ADR-044)
     ft_debug_router,  # FT Debug — fine-tuning data inspection
+    user_layouts_router,  # Per-user workspace layouts
 )
 from app.database import async_session, engine, close_db
 
@@ -237,6 +238,7 @@ app.include_router(files_router.router, tags=["Files"])  # Centralized File Mana
 app.include_router(production_records_router.router, prefix="/api/production-records", tags=["Production Records"])
 app.include_router(drawing_import_router.router, tags=["Drawing Import"])  # Drawing import from share (ADR-044, prefix in router)
 app.include_router(ft_debug_router.router, tags=["FT Debug"])  # FT Debug panel (prefix in router)
+app.include_router(user_layouts_router.router, prefix="/api", tags=["User Layouts"])  # Per-user workspace layouts
 
 # Import infor_sync_router
 from app.routers import infor_sync_router
