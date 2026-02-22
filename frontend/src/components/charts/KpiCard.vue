@@ -25,20 +25,20 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const borderColor = computed(() => {
-  if (!props.status) return 'var(--border-default)'
+  if (!props.status) return 'var(--b2)'
   const colorMap: Record<RagStatus, string> = {
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    danger: 'var(--color-danger)'
+    success: 'var(--ok)',
+    warning: 'var(--warn)',
+    danger: 'var(--err)'
   }
   return colorMap[props.status]
 })
 
 const changeColor = computed(() => {
-  if (props.changePct == null) return 'var(--text-tertiary)'
+  if (props.changePct == null) return 'var(--t3)'
   const isPositive = props.changePct >= 0
   const shouldBeGreen = props.invertChangeColor ? !isPositive : isPositive
-  return shouldBeGreen ? 'var(--color-success)' : 'var(--color-danger)'
+  return shouldBeGreen ? 'var(--ok)' : 'var(--err)'
 })
 
 const changeIcon = computed(() => {
@@ -52,11 +52,11 @@ const sparkPath = computed(() => {
 })
 
 const statusColor = computed(() => {
-  if (!props.status) return 'var(--text-tertiary)'
+  if (!props.status) return 'var(--t3)'
   const colorMap: Record<RagStatus, string> = {
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    danger: 'var(--color-danger)'
+    success: 'var(--ok)',
+    warning: 'var(--warn)',
+    danger: 'var(--err)'
   }
   return colorMap[props.status]
 })
@@ -109,30 +109,30 @@ const statusColor = computed(() => {
 .kpi-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
   border-left-width: 4px;
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast);
+  border-radius: var(--r);
+  transition: all 100ms;
 }
 
 .kpi-card:hover {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 .kpi-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .kpi-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -140,7 +140,7 @@ const statusColor = computed(() => {
 .kpi-status {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .status-dot {
@@ -150,65 +150,65 @@ const statusColor = computed(() => {
 }
 
 .status-text {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 
 .kpi-value-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .kpi-value-block {
   display: flex;
   flex-direction: column;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 
 .kpi-value {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t1);
+  font-family: var(--mono);
   line-height: 1.2;
 }
 
 .kpi-sub-label {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .kpi-change {
   display: flex;
   align-items: center;
-  gap: var(--space-0\.5);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  gap: 2px;
+  font-size: var(--fs);
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .change-pct {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
 }
 
 .change-label {
-  color: var(--text-tertiary);
+  color: var(--t3);
   margin-left: 2px;
 }
 
 .kpi-sparkline {
   width: 100%;
   height: 30px;
-  margin-top: var(--space-1);
+  margin-top: 4px;
 }
 
 .kpi-target {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: var(--space-1);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-subtle);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--b1);
 }
 </style>

@@ -145,14 +145,14 @@ const isPdf = computed(() => props.file?.file_type === 'pdf')
 }
 
 .empty-icon {
-  margin-bottom: var(--space-4);
+  margin-bottom: 12px;
   opacity: 0.5;
 }
 
 .hint {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  margin-top: var(--space-1);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-top: 4px;
 }
 
 .preview-content {
@@ -165,8 +165,8 @@ const isPdf = computed(() => props.file?.file_type === 'pdf')
 .preview-frame {
   flex: 1;
   min-height: 0;
-  background: var(--bg-base);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--base);
+  border-bottom: 1px solid var(--b2);
   overflow: hidden;
 }
 
@@ -182,30 +182,30 @@ const isPdf = computed(() => props.file?.file_type === 'pdf')
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-8);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  padding: 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
 }
 
 .placeholder-icon {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--pad);
   opacity: 0.3;
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .file-type-label {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--space-1);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 4px;
 }
 
 .actions-section {
   flex-shrink: 0;
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
   margin-top: auto;
 }
 

@@ -62,7 +62,7 @@ function arrange(mode: 'grid' | 'horizontal' | 'vertical') {
 <style scoped>
 .window-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   align-items: center;
 }
 
@@ -77,17 +77,17 @@ function arrange(mode: 'grid' | 'horizontal' | 'vertical') {
   width: 32px;
   height: 32px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t3);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .action-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
+  background: var(--b1);
+  border-color: var(--b3);
+  color: var(--t1);
 }
 
 .arrange-dropdown {
@@ -95,32 +95,32 @@ function arrange(mode: 'grid' | 'horizontal' | 'vertical') {
   top: calc(100% + 4px);
   left: 0;
   min-width: 140px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  padding: 4px;
   z-index: 10003;
 }
 
 .arrange-option {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: 6px;
+  padding: 6px var(--pad);
   width: 100%;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition: background 100ms cubic-bezier(0,0,0.2,1);
   text-align: left;
 }
 
 .arrange-option:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .dropdown-fade-enter-active,

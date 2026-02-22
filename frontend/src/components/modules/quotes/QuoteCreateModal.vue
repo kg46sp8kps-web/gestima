@@ -180,33 +180,33 @@ async function submit() {
 .modal-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-  color: var(--text-primary);
+  gap: 6px;
+  margin-bottom: 12px;
+  color: var(--t1);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .create-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .form-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
+  gap: 6px;
+  margin-top: 12px;
 }
 
 </style>

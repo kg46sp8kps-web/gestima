@@ -181,42 +181,42 @@ watch(() => props.availableMaterials, () => {
 .material-links-info {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
+  gap: 6px;
+  font-size: var(--fs);
 }
 
 .material-label {
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
+  color: var(--t3);
+  font-weight: 500;
 }
 
 .material-status {
-  color: var(--text-tertiary);
+  color: var(--t3);
   font-style: italic;
 }
 
 .material-loading {
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .material-error {
-  color: var(--color-danger);
+  color: var(--err);
 }
 
 .material-empty {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .material-list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .material-item {
-  color: var(--text-primary);
-  font-weight: var(--font-medium);
-  font-family: var(--font-mono);
+  color: var(--t1);
+  font-weight: 500;
+  font-family: var(--mono);
 }
 
 /* === EDITABLE MODE (DETAILED WITH DIMENSIONS) === */
@@ -224,32 +224,32 @@ watch(() => props.availableMaterials, () => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .material-chip-detailed {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--palette-info);
-  border: 1px solid var(--palette-info);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  font-family: var(--font-mono);
-  color: var(--text-primary);
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--t3);
+  border: 1px solid var(--t3);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-weight: 500;
+  font-family: var(--mono);
+  color: var(--t1);
   white-space: nowrap;
 }
 
 .mat-seq {
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .mat-dims {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   opacity: 0.8;
 }
 
@@ -259,35 +259,35 @@ watch(() => props.availableMaterials, () => {
   justify-content: center;
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--t3);
   cursor: pointer;
   padding: 0;
-  margin-left: var(--space-1);
-  font-size: var(--text-sm);
+  margin-left: 4px;
+  font-size: var(--fs);
   line-height: 1;
-  transition: color var(--transition-fast);
+  transition: color all 100ms var(--ease);
 }
 
 .unlink-btn-compact:hover {
-  color: var(--palette-danger);
+  color: var(--err);
 }
 
 .material-select-detailed {
   min-width: 140px;
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  font-family: var(--font-mono);
-  color: var(--text-body);
+  padding: 4px 6px;
+  background: var(--ground);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-weight: 500;
+  font-family: var(--mono);
+  color: var(--t2);
   cursor: pointer;
 }
 
 .material-select-detailed:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
+  border-color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.03);
 }
 </style>

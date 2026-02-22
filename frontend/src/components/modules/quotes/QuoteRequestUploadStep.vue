@@ -140,67 +140,67 @@ function handleAnalyze() {
 </template>
 
 <style scoped>
-.upload-step { display: flex; flex-direction: column; gap: var(--space-6); max-width: 800px; margin: 0 auto; }
-.upload-zone { display: flex; flex-direction: column; gap: var(--space-4); }
-.upload-zone h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+.upload-step { display: flex; flex-direction: column; gap: 20px; max-width: 800px; margin: 0 auto; }
+.upload-zone { display: flex; flex-direction: column; gap: 12px; }
+.upload-zone h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs); font-weight: 600; color: var(--t1); }
 
 .dropzone {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: var(--space-10) var(--space-8); gap: var(--space-2); text-align: center;
-  border: 2px dashed var(--border-default); border-radius: var(--radius-lg);
-  background: var(--bg-surface); cursor: pointer;
+  padding: 32px 24px; gap: 6px; text-align: center;
+  border: 2px dashed var(--b2); border-radius: 8px;
+  background: var(--surface); cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
-.dropzone:hover { border-color: var(--brand); background: var(--state-hover); }
-.dropzone.dragging { border-color: var(--brand); background: var(--brand-subtle); }
-.drop-icon { color: var(--brand); flex-shrink: 0; }
-.dropzone p { margin: 0; font-size: var(--text-sm); color: var(--text-body); }
-.hint { font-size: var(--text-sm); color: var(--text-tertiary); }
+.dropzone:hover { border-color: var(--red); background: var(--b1); }
+.dropzone.dragging { border-color: var(--red); background: var(--red-10); }
+.drop-icon { color: var(--red); flex-shrink: 0; }
+.dropzone p { margin: 0; font-size: var(--fs); color: var(--t2); }
+.hint { font-size: var(--fs); color: var(--t3); }
 
-.file-list { display: flex; flex-direction: column; gap: var(--space-1); }
+.file-list { display: flex; flex-direction: column; gap: 4px; }
 .file-item {
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-raised); border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px var(--pad);
+  background: var(--raised); border-radius: var(--r);
+  border: 1px solid var(--b2);
 }
-.file-icon { color: var(--text-tertiary); flex-shrink: 0; }
-.file-name { flex: 1; font-size: var(--text-sm); color: var(--text-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-size { font-size: var(--text-sm); color: var(--text-tertiary); font-family: var(--font-mono); flex-shrink: 0; }
+.file-icon { color: var(--t3); flex-shrink: 0; }
+.file-name { flex: 1; font-size: var(--fs); color: var(--t2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { font-size: var(--fs); color: var(--t3); font-family: var(--mono); flex-shrink: 0; }
 
 .type-badge {
-  flex-shrink: 0; padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: 600;
+  flex-shrink: 0; padding: 4px 6px;
+  border-radius: var(--rs); font-size: var(--fs); font-weight: 600;
   border: 1px solid transparent; cursor: pointer; min-width: 72px; text-align: center;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.type-badge.request { background: var(--bg-raised); color: var(--palette-blue); border-color: var(--border-default); }
-.type-badge.request:hover { border-color: var(--palette-blue); }
-.type-badge.drawing { background: var(--bg-surface); color: var(--text-secondary); border-color: var(--border-default); }
-.type-badge.drawing:hover { border-color: var(--text-tertiary); }
+.type-badge.request { background: var(--raised); color: var(--t3); border-color: var(--b2); }
+.type-badge.request:hover { border-color: var(--t3); }
+.type-badge.drawing { background: var(--surface); color: var(--t3); border-color: var(--b2); }
+.type-badge.drawing:hover { border-color: var(--t3); }
 
 .warn-panel {
-  display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4);
-  background: var(--palette-yellow-subtle); border: 1px solid var(--palette-yellow);
-  border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--text-body);
+  display: flex; align-items: center; gap: 6px; padding: var(--pad) 12px;
+  background: rgba(251,191,36,0.1); border: 1px solid var(--warn);
+  border-radius: var(--r); font-size: var(--fs); color: var(--t2);
 }
 
 .analyze-btn {
   display: flex; align-items: center; justify-content: center;
-  gap: var(--space-2); width: 100%; padding: var(--space-4) var(--space-6);
-  background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-lg);
-  color: var(--text-primary); font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+  gap: 6px; width: 100%; padding: 12px 20px;
+  background: transparent; border: 1px solid var(--b2); border-radius: 8px;
+  color: var(--t1); font-size: var(--fs); font-weight: 600; cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.analyze-btn:hover:not(:disabled) { background: var(--brand-subtle); border-color: var(--brand); color: var(--brand-text); }
+.analyze-btn:hover:not(:disabled) { background: var(--red-10); border-color: var(--red); color: rgba(229, 57, 53, 0.7); }
 .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .info-panel {
-  display: flex; gap: var(--space-3); padding: var(--space-4);
-  background: var(--bg-surface); border: 1px solid var(--border-default);
-  border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--text-body);
+  display: flex; gap: var(--pad); padding: 12px;
+  background: var(--surface); border: 1px solid var(--b2);
+  border-radius: var(--r); font-size: var(--fs); color: var(--t2);
 }
-.info-icon { color: var(--text-tertiary); flex-shrink: 0; margin-top: 1px; }
+.info-icon { color: var(--t3); flex-shrink: 0; margin-top: 1px; }
 .info-panel p { margin: 0; line-height: 1.5; }
 
 .file-input-hidden { display: none; }

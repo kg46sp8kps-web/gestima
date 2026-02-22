@@ -119,10 +119,10 @@ onMounted(() => {
 .layout-horizontal { flex-direction: column; }
 .layout-vertical { flex-direction: row; }
 .left-panel, .right-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.left-panel { flex-shrink: 0; padding: var(--space-3); }
+.left-panel { flex-shrink: 0; padding: var(--pad); }
 .right-panel { flex: 1; overflow: hidden; }
-.resize-handle { flex-shrink: 0; background: var(--border-default); transition: background var(--duration-fast); position: relative; z-index: 10; }
+.resize-handle { flex-shrink: 0; background: var(--b2); transition: background 100ms; position: relative; z-index: 10; }
 .layout-vertical .resize-handle { width: 4px; cursor: col-resize; }
 .layout-horizontal .resize-handle { height: 4px; cursor: row-resize; }
-.resize-handle:hover, .resize-handle.dragging { background: var(--color-primary); }
+.resize-handle:hover, .resize-handle.dragging { background: var(--red); }
 </style>

@@ -3,11 +3,11 @@
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "bash .claude/hooks/validate-frontend.sh \"$CLAUDE_FILE_PATH\""
+        "command": "bash .claude/hooks/validate-backend.sh \"$CLAUDE_FILE_PATH\""
       },
       {
         "matcher": "Edit|Write",
-        "command": "bash .claude/hooks/validate-backend.sh \"$CLAUDE_FILE_PATH\""
+        "command": "bash .claude/hooks/validate-frontend-v2.sh \"$CLAUDE_FILE_PATH\""
       },
       {
         "matcher": "Write",

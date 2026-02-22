@@ -211,73 +211,73 @@ async function handleDelete() {
 
 <style scoped>
 .quote-header {
-  display: flex; flex-direction: column; gap: var(--space-4);
-  padding: var(--space-5); border-bottom: 2px solid var(--border-default);
-  background: var(--bg-surface); flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px; border-bottom: 2px solid var(--b2);
+  background: var(--surface); flex-shrink: 0;
 }
-.quote-info { display: flex; flex-direction: column; gap: var(--space-3); }
-.quote-main { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
-.quote-main h2 { margin: 0; font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); flex: 1; }
-.quote-badges { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+.quote-info { display: flex; flex-direction: column; gap: var(--pad); }
+.quote-main { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--pad); flex-wrap: wrap; }
+.quote-main h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--t1); flex: 1; }
+.quote-badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .quote-number-badge {
-  padding: var(--space-2) var(--space-3); background: transparent;
-  color: var(--text-primary); border: 1px solid var(--border-default);
-  border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: var(--font-semibold);
+  padding: 6px var(--pad); background: transparent;
+  color: var(--t1); border: 1px solid var(--b2);
+  border-radius: var(--r); font-size: var(--fs); font-weight: 600;
 }
 
 /* Status badges — single base + CSS custom properties per variant */
 .status-badge {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
-  font-size: var(--text-sm); font-weight: var(--font-semibold);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px var(--pad); border-radius: var(--r);
+  font-size: var(--fs); font-weight: 600;
   background: var(--_badge-bg); color: white;
 }
-.status-draft    { --_badge-bg: var(--bg-muted); }
-.status-sent     { --_badge-bg: var(--color-info); }
-.status-approved { --_badge-bg: var(--status-ok); }
-.status-rejected { --_badge-bg: var(--status-error); }
+.status-draft    { --_badge-bg: var(--surface); }
+.status-sent     { --_badge-bg: var(--t3); }
+.status-approved { --_badge-bg: var(--ok); }
+.status-rejected { --_badge-bg: var(--err); }
 
 .partner-info {
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-3); background: var(--bg-raised);
-  border-radius: var(--radius-lg); border: 1px solid var(--border-default);
+  display: flex; align-items: center; gap: 6px;
+  padding: var(--pad); background: var(--raised);
+  border-radius: 8px; border: 1px solid var(--b2);
 }
-.partner-label  { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--font-medium); }
-.partner-name   { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-semibold); }
-.partner-number { font-size: var(--text-sm); color: var(--text-secondary); }
+.partner-label  { font-size: var(--fs); color: var(--t3); font-weight: 500; }
+.partner-name   { font-size: var(--fs); color: var(--t1); font-weight: 600; }
+.partner-number { font-size: var(--fs); color: var(--t3); }
 
 .totals-summary {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-4); background: var(--bg-raised);
-  border-radius: var(--radius-lg); border: 2px solid var(--border-default);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px; background: var(--raised);
+  border-radius: 8px; border: 2px solid var(--b2);
 }
 .total-item { display: flex; justify-content: space-between; align-items: center; }
-.total-label { font-size: var(--text-sm); color: var(--text-secondary); }
-.total-value { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-semibold); }
-.total-value.discount { color: var(--status-ok); }
-.total-item.total-main { padding-top: var(--space-2); border-top: 1px solid var(--border-default); margin-top: var(--space-1); }
+.total-label { font-size: var(--fs); color: var(--t3); }
+.total-value { font-size: var(--fs); color: var(--t1); font-weight: 600; }
+.total-value.discount { color: var(--ok); }
+.total-item.total-main { padding-top: 6px; border-top: 1px solid var(--b2); margin-top: 4px; }
 .total-item.total-main .total-label,
-.total-item.total-main .total-value { font-size: var(--text-sm); font-weight: var(--font-semibold); }
+.total-item.total-main .total-value { font-size: var(--fs); font-weight: 600; }
 
 .workflow-buttons {
-  display: flex; gap: var(--space-3); align-items: center; justify-content: flex-end;
-  padding-top: var(--space-2); border-top: 1px solid var(--border-default);
+  display: flex; gap: var(--pad); align-items: center; justify-content: flex-end;
+  padding-top: 6px; border-top: 1px solid var(--b2);
 }
 
 /* Workflow buttons — single base + CSS custom properties per variant */
 .btn-workflow {
   display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; padding: 0; background: transparent; border: none;
-  border-radius: var(--radius-sm); cursor: pointer; transition: all var(--duration-fast);
-  color: var(--_wf-color, var(--text-tertiary));
+  border-radius: var(--rs); cursor: pointer; transition: all 100ms;
+  color: var(--_wf-color, var(--t3));
 }
 .btn-workflow:disabled { opacity: 0.3; cursor: not-allowed; }
-.btn-workflow:hover:not(:disabled) { color: var(--_wf-hover, var(--_wf-color, var(--text-secondary))); transform: scale(1.15); }
-.btn-send    { --_wf-color: var(--color-info);    --_wf-hover: var(--color-info); }
-.btn-approve { --_wf-color: var(--color-success); --_wf-hover: var(--status-ok); }
-.btn-reject  { --_wf-color: var(--color-danger);  --_wf-hover: var(--status-error); }
-.btn-clone   { --_wf-hover: var(--color-primary); }
-.btn-delete  { --_wf-hover: var(--color-danger); }
+.btn-workflow:hover:not(:disabled) { color: var(--_wf-hover, var(--_wf-color, var(--t3))); transform: scale(1.15); }
+.btn-send    { --_wf-color: var(--t3);    --_wf-hover: var(--t3); }
+.btn-approve { --_wf-color: var(--ok); --_wf-hover: var(--ok); }
+.btn-reject  { --_wf-color: var(--err);  --_wf-hover: var(--err); }
+.btn-clone   { --_wf-hover: var(--red); }
+.btn-delete  { --_wf-hover: var(--err); }
 
-.empty-text  { font-size: var(--text-sm); color: var(--text-secondary); }
+.empty-text  { font-size: var(--fs); color: var(--t3); }
 </style>

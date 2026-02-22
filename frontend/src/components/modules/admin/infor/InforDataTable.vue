@@ -71,51 +71,51 @@ function formatCell(value: unknown): string {
 
 <style scoped>
 .data-table-wrapper {
-  margin-top: var(--space-4);
+  margin-top: 12px;
 }
 
 .table-info {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-2);
-  padding: var(--space-2);
-  background: var(--bg-surface);
-  border-radius: var(--radius-sm);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-bottom: 6px;
+  padding: 6px;
+  background: var(--surface);
+  border-radius: var(--rs);
 }
 
 .table-info strong {
-  color: var(--color-primary);
+  color: var(--red);
 }
 
 .table-scroll {
   overflow-x: auto;
   max-height: 500px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .data-table th {
-  background: var(--bg-surface);
-  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  padding: 6px var(--pad);
   text-align: left;
   font-weight: 600;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-default);
+  color: var(--t1);
+  border-bottom: 1px solid var(--b2);
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
 .data-table td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-default);
-  color: var(--text-primary);
+  padding: 6px var(--pad);
+  border-bottom: 1px solid var(--b2);
+  color: var(--t1);
   white-space: nowrap;
   max-width: 300px;
   overflow: hidden;
@@ -123,13 +123,13 @@ function formatCell(value: unknown): string {
 }
 
 .data-table tbody tr:hover {
-  background: var(--bg-hover);
+  background: var(--b1);
 }
 
 .load-more {
   display: flex;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: 6px;
+  padding: var(--pad);
   justify-content: center;
 }
 

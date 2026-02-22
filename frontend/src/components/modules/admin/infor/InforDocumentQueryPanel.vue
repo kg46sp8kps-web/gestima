@@ -103,9 +103,9 @@ async function loadInforData() {
 </template>
 
 <style scoped>
-.section { margin-bottom: var(--space-6); }
-h4 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); margin: 0 0 var(--space-3) 0; }
-.query-row { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); }
+.section { margin-bottom: 20px; }
+h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
 .query-row .fg-wide { flex: 3; }
-.toolbar { display: flex; gap: var(--space-2); margin: var(--space-3) 0; flex-wrap: wrap; }
+.toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 </style>

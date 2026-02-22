@@ -215,31 +215,31 @@ function getStatusBadge(status: QuoteStatus): { icon: Component; label: string; 
 </template>
 
 <style scoped>
-.quote-list-panel { display: flex; flex-direction: column; gap: var(--space-3); height: 100%; overflow: hidden; }
-.list-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.list-header h3 { margin: 0; font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); }
+.quote-list-panel { display: flex; flex-direction: column; gap: var(--pad); height: 100%; overflow: hidden; }
+.list-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.list-header h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--t1); }
 
-.filter-tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--border-default); overflow-x: auto; scrollbar-width: thin; }
+.filter-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--b2); overflow-x: auto; scrollbar-width: thin; }
 
-.loading-list { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-8); color: var(--text-secondary); }
+.loading-list { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; color: var(--t3); }
 
-.quotes-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+.quotes-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 .quote-item {
-  padding: var(--space-2); border: 1px solid var(--border-default);
-  border-radius: var(--radius-md); cursor: pointer;
-  transition: var(--transition-fast); background: var(--bg-surface);
+  padding: 6px; border: 1px solid var(--b2);
+  border-radius: var(--r); cursor: pointer;
+  transition: all 100ms var(--ease); background: var(--surface);
 }
-.quote-item:hover { background: var(--state-hover); border-color: var(--border-strong); }
-.quote-item.active { background: var(--state-selected); border-color: var(--palette-primary); }
+.quote-item:hover { background: var(--b1); border-color: var(--b3); }
+.quote-item.active { background: var(--b1); border-color: var(--red); }
 
-.quote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-1); }
-.quote-number { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--palette-primary); }
-.status-badge { display: flex; align-items: center; justify-content: center; color: var(--_badge-color, var(--text-secondary)); }
-.status-gray { --_badge-color: var(--text-secondary); }
-.status-blue { --_badge-color: var(--color-info); }
-.status-green { --_badge-color: var(--color-success); }
-.status-red { --_badge-color: var(--color-danger); }
-.quote-title { display: block; font-size: var(--text-sm); color: var(--text-body); font-weight: var(--font-medium); margin-bottom: var(--space-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.quote-number { font-size: var(--fs); font-weight: 600; color: var(--red); }
+.status-badge { display: flex; align-items: center; justify-content: center; color: var(--_badge-color, var(--t3)); }
+.status-gray { --_badge-color: var(--t3); }
+.status-blue { --_badge-color: var(--t3); }
+.status-green { --_badge-color: var(--ok); }
+.status-red { --_badge-color: var(--err); }
+.quote-title { display: block; font-size: var(--fs); color: var(--t2); font-weight: 500; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quote-meta { display: flex; justify-content: flex-end; }
-.quote-total { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-secondary); }
+.quote-total { font-size: var(--fs); font-weight: 600; color: var(--t3); }
 </style>

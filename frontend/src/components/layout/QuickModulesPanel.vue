@@ -135,7 +135,7 @@ function closeSelector() {
 <style scoped>
 .quick-modules {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   align-items: center;
 }
 
@@ -150,16 +150,16 @@ function closeSelector() {
   width: 32px;
   height: 32px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .quick-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
   transform: scale(1.05);
 }
 
@@ -172,19 +172,19 @@ function closeSelector() {
   top: calc(100% + 4px);
   right: 0;
   min-width: 160px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xl);
-  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  padding: 4px;
   z-index: 10003;
 }
 
 .selector-header {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
+  padding: 6px var(--pad);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -192,43 +192,43 @@ function closeSelector() {
 .selector-option {
   display: block;
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px var(--pad);
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
   text-align: left;
   cursor: pointer;
-  transition: background var(--duration-fast);
+  transition: background 100ms;
 }
 
 .selector-option:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .selector-divider {
   height: 1px;
-  background: var(--border-default);
-  margin: var(--space-1) 0;
+  background: var(--b2);
+  margin: 4px 0;
 }
 
 .selector-reset {
   display: block;
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px var(--pad);
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--color-danger);
-  font-size: var(--text-sm);
+  border-radius: var(--rs);
+  color: var(--err);
+  font-size: var(--fs);
   text-align: left;
   cursor: pointer;
-  transition: background var(--duration-fast);
+  transition: background 100ms;
 }
 
 .selector-reset:hover {
-  background: var(--palette-danger-light);
+  background: rgba(248,113,113,0.15);
 }
 
 .selector-backdrop {

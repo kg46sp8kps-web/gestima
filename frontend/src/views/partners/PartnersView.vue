@@ -173,21 +173,21 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-5) var(--space-6);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
 }
 
 .page-header h1 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
   margin: 0;
 }
 
 .header-actions {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 /* === TAB CONTENT === */
@@ -200,7 +200,7 @@ onMounted(() => {
 /* === ROW ACTIONS === */
 .row-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   justify-content: flex-end;
 }
 

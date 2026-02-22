@@ -53,29 +53,29 @@ const emit = defineEmits<{
 .file-list {
   width: 240px;
   min-width: 200px;
-  border-right: 1px solid var(--border-default);
+  border-right: 1px solid var(--b2);
   overflow-y: auto;
-  padding: var(--space-1);
+  padding: 4px;
 }
 
 .file-item {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
   width: 100%;
-  padding: var(--space-2) var(--space-2);
+  padding: 6px 6px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
   text-align: left;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background var(--duration-fast);
+  border-radius: var(--rs);
+  transition: background 100ms;
 }
 
-.file-item:hover { background: var(--bg-hover); }
-.file-item.active { background: var(--bg-raised); color: var(--text-primary); }
+.file-item:hover { background: var(--b1); }
+.file-item.active { background: var(--raised); color: var(--t1); }
 .file-item.failed { opacity: 0.5; }
 
 .fname {
@@ -85,16 +85,16 @@ const emit = defineEmits<{
   white-space: nowrap;
 }
 
-.icon-ok { color: var(--color-success); }
-.icon-warn { color: var(--color-warning); }
-.icon-err { color: var(--color-danger); }
+.icon-ok { color: var(--ok); }
+.icon-warn { color: var(--warn); }
+.icon-err { color: var(--err); }
 
 .axis-badge {
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-sm);
-  background: var(--bg-hover);
-  font-size: var(--text-sm);
+  padding: 0 4px;
+  border-radius: var(--rs);
+  background: var(--b1);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--color-info);
+  color: var(--t3);
 }
 </style>

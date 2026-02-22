@@ -129,7 +129,7 @@ async function deleteItem(itemId: number) {
 .items-tab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .items-actions {
@@ -148,46 +148,46 @@ async function deleteItem(itemId: number) {
 
 .items-table th,
 .items-table td {
-  padding: var(--space-3);
+  padding: var(--pad);
   text-align: left;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--b2);
 }
 
 .items-table th {
-  background: var(--bg-surface);
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  color: var(--text-secondary);
+  background: var(--surface);
+  font-size: var(--fs);
+  font-weight: 700;
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .items-table td {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  color: var(--t1);
+  font-weight: 500;
 }
 
 .col-currency {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   text-align: right;
 }
 
 .items-empty {
   text-align: center;
-  padding: var(--space-8);
-  color: var(--text-secondary);
+  padding: 24px;
+  color: var(--t3);
 }
 
 .edit-lock-notice {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  gap: 6px;
+  padding: var(--pad);
+  background: var(--raised);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 </style>

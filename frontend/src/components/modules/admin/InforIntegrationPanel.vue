@@ -197,47 +197,47 @@ function handleBrowseIdo(idoName: string) {
 .sub-tabs {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  gap: 4px;
+  padding: 4px var(--pad);
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
 }
 
 .sub-tab {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: 6px;
+  padding: 6px var(--pad);
   border: none;
   background: transparent;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
   font-weight: 500;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--duration-fast);
+  border-radius: var(--rs);
+  transition: all 100ms;
 }
 
 .sub-tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-hover);
+  color: var(--t3);
+  background: var(--b1);
 }
 
 .sub-tab.active {
-  color: var(--color-primary);
-  background: var(--brand-subtle);
+  color: var(--red);
+  background: var(--red-10);
 }
 
 .security-note {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-raised);
-  border-radius: var(--radius-sm);
+  gap: 4px;
+  font-size: var(--fs);
+  color: var(--t3);
+  padding: 4px 6px;
+  background: var(--raised);
+  border-radius: var(--rs);
 }
 
 /* Tab Content */

@@ -200,7 +200,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 .left-panel {
   flex-shrink: 0;
   /* width set via :style binding */
-  padding: var(--space-3);
+  padding: var(--pad);
   height: 100%;
   overflow: hidden;
 }
@@ -208,16 +208,16 @@ watch(() => props.partNumber, (newPartNumber) => {
 /* === RESIZE HANDLE === */
 .resize-handle {
   width: 4px;
-  background: var(--border-default);
+  background: var(--b2);
   cursor: col-resize;
   flex-shrink: 0;
-  transition: background var(--transition-fast);
+  transition: background all 100ms var(--ease);
   position: relative;
 }
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--color-primary);
+  background: var(--red);
 }
 
 /* Wider hit area for easier dragging */
@@ -250,29 +250,29 @@ watch(() => props.partNumber, (newPartNumber) => {
 .context-ribbon {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--pad);
+  padding: var(--pad) 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
   flex-shrink: 0;
 }
 
 .context-label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--red);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .context-divider {
-  color: var(--border-default);
+  color: var(--b2);
   font-weight: 300;
 }
 
 .context-value {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 </style>

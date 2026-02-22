@@ -139,77 +139,77 @@ function getStatusText(row: MappingRow): string {
 .wc-mapping-editor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  background: var(--bg-base);
+  gap: 12px;
+  padding: 12px;
+  background: var(--base);
 }
 
 .header h4 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
   margin: 0;
 }
 
 .help-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: var(--space-1);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-top: 4px;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .toolbar {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .table-wrapper {
   overflow: auto;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .mapping-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .mapping-table th {
-  background: var(--bg-surface);
-  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  padding: 6px var(--pad);
   text-align: left;
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-default);
+  font-weight: 600;
+  color: var(--t3);
+  border-bottom: 1px solid var(--b2);
   position: sticky;
   top: 0;
 }
 
 .mapping-table td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 6px var(--pad);
+  border-bottom: 1px solid var(--b1);
 }
 
 .input {
   width: 100%;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  padding: 4px 6px;
+  border: 1px solid var(--b2);
+  background: var(--base);
+  color: var(--t1);
+  border-radius: var(--rs);
+  font-size: var(--fs);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--border-strong);
+  border-color: var(--b3);
 }
 
 .status-cell {
@@ -218,20 +218,20 @@ function getStatusText(row: MappingRow): string {
 
 .status-badge {
   display: inline-block;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  padding: 4px 6px;
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-weight: 600;
 }
 
 .status-badge.ok {
-  background: var(--status-ok-bg);
-  color: var(--status-ok);
+  background: rgba(52,211,153,0.1);
+  color: var(--ok);
 }
 
 .status-badge.incomplete {
-  background: var(--status-warn-bg);
-  color: var(--status-warn);
+  background: rgba(251,191,36,0.1);
+  color: var(--warn);
 }
 
 .actions-cell {

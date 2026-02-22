@@ -85,13 +85,13 @@ watch(() => state.alert.visible, async (visible) => {
 .alert-header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .alert-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
   margin: 0;
 }
 
@@ -99,7 +99,7 @@ watch(() => state.alert.visible, async (visible) => {
 .alert-icon {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,30 +107,30 @@ watch(() => state.alert.visible, async (visible) => {
 }
 
 .alert-icon-error {
-  background: var(--status-error-bg);
-  color: var(--status-error);
+  background: rgba(248,113,113,0.1);
+  color: var(--err);
 }
 
 .alert-icon-success {
-  background: var(--status-ok-bg);
-  color: var(--status-ok);
+  background: rgba(52,211,153,0.1);
+  color: var(--ok);
 }
 
 .alert-icon-info {
-  background: var(--brand-subtle);
-  color: var(--brand-text);
+  background: var(--red-10);
+  color: rgba(229, 57, 53, 0.7);
 }
 
 .alert-icon-warning {
-  background: var(--status-warn-bg);
-  color: var(--status-warn);
+  background: rgba(251,191,36,0.1);
+  color: var(--warn);
 }
 
 /* === MESSAGE === */
 .alert-message {
-  font-size: var(--text-sm);
-  color: var(--text-body);
-  line-height: var(--leading-relaxed);
+  font-size: var(--fs);
+  color: var(--t2);
+  line-height: 1.65;
   white-space: pre-line;
 }
 </style>

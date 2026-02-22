@@ -61,67 +61,67 @@ function truncateHash(hash: string): string {
 
 <style scoped>
 .file-metadata {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .file-metadata h4 {
-  margin: 0 0 var(--space-3) 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  margin: 0 0 var(--pad) 0;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .metadata-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .metadata-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .metadata-item label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
   text-transform: uppercase;
 }
 
 .metadata-item span {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  color: var(--t1);
 }
 
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
 }
 
 .status-badge {
   display: inline-block;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 4px 6px;
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-weight: 500;
   text-transform: uppercase;
   width: fit-content;
 }
 
 .status-active {
-  background: var(--color-success-light);
-  color: var(--color-success);
+  background: rgba(34,197,94,0.15);
+  color: var(--ok);
 }
 
 .status-temp {
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
+  background: var(--ground);
+  color: var(--t3);
 }
 
 .status-archived {
-  background: var(--bg-subtle);
-  color: var(--text-tertiary);
+  background: var(--ground);
+  color: var(--t3);
 }
 </style>

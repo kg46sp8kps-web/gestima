@@ -104,41 +104,41 @@ function handleConnectionChange(status: ConnectionStatus | null) {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-base);
+  background: var(--base);
 }
 
 /* Main Tabs */
 .main-tabs {
   display: flex;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  gap: 4px;
+  padding: 6px var(--pad);
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
 }
 
 .main-tab {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  gap: 6px;
+  padding: 6px 12px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
   font-weight: 500;
   cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast);
+  border-radius: var(--r);
+  transition: all 100ms;
 }
 
 .main-tab:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  color: var(--t1);
+  background: var(--b1);
 }
 
 .main-tab.active {
-  color: var(--text-primary);
-  background: var(--bg-raised);
+  color: var(--t1);
+  background: var(--raised);
 }
 
 .status-dot {
@@ -148,11 +148,11 @@ function handleConnectionChange(status: ConnectionStatus | null) {
 }
 
 .status-dot.connected {
-  background: var(--color-success);
+  background: var(--ok);
 }
 
 .status-dot.disconnected {
-  background: var(--color-danger);
+  background: var(--err);
 }
 
 /* Tab Content */

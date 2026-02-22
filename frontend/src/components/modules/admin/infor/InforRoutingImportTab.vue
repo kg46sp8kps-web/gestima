@@ -364,32 +364,32 @@ function fmt(val: unknown, decimals = 2): string {
 </template>
 
 <style scoped>
-.import-tab { padding: var(--space-4); overflow: auto; }
-.section { margin-bottom: var(--space-6); }
-h4 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); margin: 0 0 var(--space-3) 0; }
-.query-row { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); }
+.import-tab { padding: 12px; overflow: auto; }
+.section { margin-bottom: 20px; }
+h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
 .query-row .fg-wide { flex: 3; }
-.toolbar { display: flex; gap: var(--space-2); margin: var(--space-3) 0; flex-wrap: wrap; }
-.import-btn { margin-top: var(--space-3); }
-.summary { display: flex; gap: var(--space-3); margin-bottom: var(--space-2); }
-.badge-valid { padding: var(--space-1) var(--space-2); background: var(--bg-raised); color: var(--status-ok); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
-.badge-error { padding: var(--space-1) var(--space-2); background: var(--bg-raised); color: var(--status-error); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
-.table-scroll { overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); max-height: 400px; }
-.staging-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.staging-table th { background: var(--bg-surface); padding: var(--space-2) var(--space-3); text-align: left; font-weight: var(--font-semibold); color: var(--text-secondary); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; z-index: 1; }
-.staging-table td { padding: var(--space-1) var(--space-3); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
+.import-btn { margin-top: var(--pad); }
+.summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
+.badge-valid { padding: 4px 6px; background: var(--raised); color: var(--ok); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.badge-error { padding: 4px 6px; background: var(--raised); color: var(--err); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
+.staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
+.staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; }
+.staging-table td { padding: 4px var(--pad); border-bottom: 1px solid var(--b1); white-space: nowrap; }
 .staging-table tbody tr { cursor: pointer; }
-.staging-table tbody tr:hover { background: var(--state-hover); }
-.row-error { background: var(--status-error-bg); }
+.staging-table tbody tr:hover { background: var(--b1); }
+.row-error { background: rgba(248,113,113,0.1); }
 .col-check { width: 32px; text-align: center; }
 .col-status { width: 40px; text-align: center; }
 .col-num { text-align: right; font-variant-numeric: tabular-nums; }
 .status-cell { text-align: center; }
-.icon-valid { color: var(--status-ok); }
-.icon-error { color: var(--status-error); }
-.errors-cell { max-width: 300px; color: var(--status-error); font-size: var(--text-sm); }
-.progress-bar-container { margin: var(--space-3) 0; }
-.progress-info { font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-1); }
-.progress-track { height: 6px; background: var(--bg-surface); border-radius: var(--radius-full); overflow: hidden; }
-.progress-fill { height: 100%; background: var(--color-brand); border-radius: var(--radius-full); transition: width 0.2s ease; }
+.icon-valid { color: var(--ok); }
+.icon-error { color: var(--err); }
+.errors-cell { max-width: 300px; color: var(--err); font-size: var(--fs); }
+.progress-bar-container { margin: var(--pad) 0; }
+.progress-info { font-size: var(--fs); color: var(--t3); margin-bottom: 4px; }
+.progress-track { height: 6px; background: var(--surface); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--red); border-radius: 99px; transition: width 0.2s ease; }
 </style>

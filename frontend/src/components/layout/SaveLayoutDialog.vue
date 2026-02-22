@@ -58,55 +58,55 @@ function handleKeyup(event: KeyboardEvent) {
 <style scoped>
 
 .modal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  padding: 20px;
   width: 400px;
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
 }
 
 .modal h3 {
-  margin: 0 0 var(--space-4) 0;
-  color: var(--text-primary);
-  font-size: var(--text-lg);
+  margin: 0 0 12px 0;
+  color: var(--t1);
+  font-size: 16px;
 }
 
 .input-layout-name {
   width: 100%;
-  padding: var(--space-3);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
-  transition: all var(--duration-fast) var(--ease-out);
+  padding: var(--pad);
+  background: var(--base);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
+  font-size: var(--fs);
+  margin-bottom: 12px;
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .input-layout-name:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--red);
 }
 
 .modal-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   justify-content: flex-end;
 }
 
 .save-btn,
 .cancel-btn {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 6px 12px;
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .save-btn {
-  background: var(--primary-color);
+  background: var(--red);
   color: white;
   border: none;
 }
@@ -117,12 +117,12 @@ function handleKeyup(event: KeyboardEvent) {
 
 .cancel-btn {
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
+  color: var(--t1);
+  border: 1px solid var(--b2);
 }
 
 .cancel-btn:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .backdrop-fade-enter-active,

@@ -359,50 +359,50 @@ onMounted(() => {
 .admin-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
   height: 100%;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 /* Forms */
 .form-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .section-title {
-  margin: var(--space-4) 0 var(--space-3) 0;
-  font-size: var(--text-sm);
+  margin: 12px 0 var(--pad) 0;
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-default);
+  color: var(--t1);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t1);
   cursor: pointer;
 }
 
@@ -417,10 +417,10 @@ onMounted(() => {
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 .spacer {

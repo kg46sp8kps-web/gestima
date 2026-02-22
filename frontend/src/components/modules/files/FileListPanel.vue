@@ -206,20 +206,20 @@ async function handleFileUpload(event: Event) {
 </template>
 
 <style scoped>
-.file-list-panel { display: flex; flex-direction: column; gap: var(--space-3); height: 100%; overflow: hidden; }
+.file-list-panel { display: flex; flex-direction: column; gap: var(--pad); height: 100%; overflow: hidden; }
 .list-header { flex-shrink: 0; }
-.list-header h3 { margin: 0; font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); }
+.list-header h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--t1); }
 .search-row { flex-shrink: 0; }
-.filters-row { display: flex; gap: var(--space-2); align-items: center; flex-shrink: 0; }
-.filter-select { flex: 1; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); font-size: var(--text-sm); background: var(--bg-input); color: var(--text-body); }
-.checkbox-label { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-sm); color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+.filters-row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.filter-select { flex: 1; padding: 6px var(--pad); border: 1px solid var(--b2); border-radius: var(--r); font-size: var(--fs); background: var(--ground); color: var(--t2); }
+.checkbox-label { display: flex; align-items: center; gap: 4px; font-size: var(--fs); color: var(--t3); cursor: pointer; white-space: nowrap; }
 .checkbox-label input[type="checkbox"] { cursor: pointer; }
-.file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); }
-.empty-icon { margin-bottom: var(--space-3); opacity: 0.5; }
-.hint { font-size: var(--text-sm); color: var(--text-tertiary); margin-top: var(--space-1); }
-.upload-zone { flex-shrink: 0; margin-top: auto; padding-top: var(--space-3); border-top: 1px solid var(--border-default); }
-.upload-label { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4); background: var(--bg-surface); border: 2px dashed var(--border-default); border-radius: var(--radius-md); cursor: pointer; transition: all var(--duration-fast); font-size: var(--text-sm); color: var(--text-secondary); text-align: center; }
-.upload-label:hover { border-color: var(--border-strong); background: var(--bg-raised); }
+.file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.empty-icon { margin-bottom: var(--pad); opacity: 0.5; }
+.hint { font-size: var(--fs); color: var(--t3); margin-top: 4px; }
+.upload-zone { flex-shrink: 0; margin-top: auto; padding-top: var(--pad); border-top: 1px solid var(--b2); }
+.upload-label { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; background: var(--surface); border: 2px dashed var(--b2); border-radius: var(--r); cursor: pointer; transition: all 100ms; font-size: var(--fs); color: var(--t3); text-align: center; }
+.upload-label:hover { border-color: var(--b3); background: var(--raised); }
 .upload-input { display: none; }
-.orphan-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--bg-raised); border-radius: var(--radius-md); border: 1px solid var(--border-default); flex-shrink: 0; }
+.orphan-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px var(--pad); background: var(--raised); border-radius: var(--r); border: 1px solid var(--b2); flex-shrink: 0; }
 </style>

@@ -23,10 +23,10 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Default — redirect to windows workspace
+  // Default — redirect to workspace
   {
     path: '/',
-    redirect: '/windows'
+    redirect: '/workspace'
   },
 
   // Partners
@@ -49,17 +49,23 @@ const routes: RouteRecordRaw[] = [
     }
   },
 
-  // Windows (floating windows)
+  // Workspace (tiling layout)
   {
-    path: '/windows',
-    name: 'windows',
-    component: () => import('@/views/windows/WindowsView.vue'),
+    path: '/workspace',
+    name: 'workspace',
+    component: () => import('@/components/tiling/TilingWorkspace.vue'),
     meta: {
-      title: 'Windows'
+      title: 'Workspace'
     }
   },
 
-  // Catch-all 404 - redirect to windows
+  // Legacy redirect
+  {
+    path: '/windows',
+    redirect: '/workspace'
+  },
+
+  // Catch-all 404 - redirect to workspace
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
@@ -113,19 +119,19 @@ router.beforeEach(async (to, from, next) => {
     if (redirectPath) {
       return next(redirectPath)
     }
-    return next({ name: 'windows' })
+    return next({ name: 'workspace' })
   }
 
   // Check admin access
   if (to.meta.requiresAdmin && !auth.isAdmin) {
-    console.warn('[Router] Admin access required - redirecting to windows')
-    return next({ name: 'windows' })
+    console.warn('[Router] Admin access required - redirecting to workspace')
+    return next({ name: 'workspace' })
   }
 
   // Check operator access
   if (to.meta.requiresOperator && !auth.isOperator) {
-    console.warn('[Router] Operator access required - redirecting to windows')
-    return next({ name: 'windows' })
+    console.warn('[Router] Operator access required - redirecting to workspace')
+    return next({ name: 'workspace' })
   }
 
   // Update document title

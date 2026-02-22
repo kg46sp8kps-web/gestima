@@ -175,7 +175,7 @@ async function handleLogin() {
 /* ── PAGE ── */
 .login-page {
   min-height: 100vh;
-  background: var(--bg-base);
+  background: var(--base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,8 +188,8 @@ async function handleLogin() {
   position: absolute;
   inset: -120px;
   background-image:
-    linear-gradient(var(--border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+    linear-gradient(var(--b1) 1px, transparent 1px),
+    linear-gradient(90deg, var(--b1) 1px, transparent 1px);
   background-size: 80px 80px;
   animation: gridShift 30s linear infinite;
   opacity: 0.5;
@@ -199,7 +199,7 @@ async function handleLogin() {
 .bg-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, transparent 20%, var(--bg-base) 72%);
+  background: radial-gradient(circle at center, transparent 20%, var(--base) 72%);
   pointer-events: none;
 }
 
@@ -211,7 +211,7 @@ async function handleLogin() {
   top: 38%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(ellipse at center, var(--brand-subtle) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, var(--red-10) 0%, transparent 70%);
   animation: glowBreath 6s ease-in-out infinite alternate;
   pointer-events: none;
 }
@@ -223,7 +223,7 @@ async function handleLogin() {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--brand), transparent);
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
   animation: scanAcross 1.8s var(--ease) 0.15s both;
 }
 
@@ -236,17 +236,17 @@ async function handleLogin() {
   align-items: center;
   width: 100%;
   max-width: 340px;
-  padding: var(--space-6);
+  padding: 20px;
 }
 
 /* ── CNC PRECISION MARK (crosshair) ── */
 .precision-mark {
   width: 48px;
   height: 48px;
-  border: 1px solid var(--brand);
-  border-radius: var(--radius-full);
+  border: 1px solid var(--red);
+  border-radius: 99px;
   position: relative;
-  margin-bottom: var(--space-6);
+  margin-bottom: 20px;
   opacity: 0.8;
 }
 
@@ -255,7 +255,7 @@ async function handleLogin() {
   position: absolute;
   width: 22px;
   height: 1px;
-  background: var(--brand);
+  background: var(--red);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -267,7 +267,7 @@ async function handleLogin() {
   position: absolute;
   width: 1px;
   height: 22px;
-  background: var(--brand);
+  background: var(--red);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -276,29 +276,29 @@ async function handleLogin() {
 
 /* ── LOGO ── */
 .logo {
-  font-family: var(--font-mono);
-  font-size: calc(var(--text-lg) * 2.8);
-  font-weight: var(--font-bold);
+  font-family: var(--mono);
+  font-size: calc(16px * 2.8);
+  font-weight: 700;
   letter-spacing: 0.12em;
   line-height: 1;
-  margin: 0 0 var(--space-4) 0;
+  margin: 0 0 12px 0;
   text-align: center;
   user-select: none;
 }
 
 .logo-red {
-  color: var(--brand);
+  color: var(--red);
 }
 
 .logo-white {
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 /* ── ACCENT LINE (draws itself) ── */
 .accent-line {
   height: 1px;
-  background: var(--brand);
-  margin-bottom: var(--space-3);
+  background: var(--red);
+  margin-bottom: var(--pad);
   opacity: 0.5;
 }
 
@@ -308,11 +308,11 @@ async function handleLogin() {
 
 /* ── TAGLINE ── */
 .tagline {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  margin: 0 0 var(--space-12) 0;
+  margin: 0 0 40px 0;
   text-align: center;
 }
 
@@ -321,35 +321,35 @@ async function handleLogin() {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .form-field input {
   width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-base);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
+  font-size: var(--fs);
   font-family: inherit;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--pad) 12px;
   outline: none;
-  transition: all var(--duration-normal) var(--ease);
+  transition: all 150ms var(--ease);
 }
 
 .form-field input::placeholder {
-  color: var(--text-disabled);
-  font-size: var(--text-sm);
+  color: var(--t4);
+  font-size: var(--fs);
 }
 
 .form-field input:hover:not(:focus):not(:disabled) {
-  border-color: var(--border-strong);
+  border-color: var(--b3);
 }
 
 .form-field input:focus {
-  border-color: var(--brand);
-  background: var(--bg-raised);
-  box-shadow: 0 0 0 3px var(--brand-subtle);
+  border-color: var(--red);
+  background: var(--raised);
+  box-shadow: 0 0 0 3px var(--red-10);
 }
 
 .form-field input:disabled {
@@ -360,23 +360,23 @@ async function handleLogin() {
 /* ── SUBMIT BUTTON (ghost + accent underline on hover) ── */
 .submit-btn {
   width: 100%;
-  margin-top: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  margin-top: 6px;
+  padding: var(--pad) 12px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: 6px;
   position: relative;
   overflow: hidden;
-  transition: all var(--duration-normal) var(--ease);
+  transition: all 150ms var(--ease);
 }
 
 .submit-btn::after {
@@ -386,16 +386,16 @@ async function handleLogin() {
   left: 0;
   width: 100%;
   height: 2px;
-  background: var(--brand);
+  background: var(--red);
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform var(--duration-slow) var(--ease);
+  transition: transform 300ms var(--ease);
 }
 
 .submit-btn:hover:not(:disabled) {
-  border-color: var(--brand);
-  background: var(--brand-subtle);
-  color: var(--brand-text);
+  border-color: var(--red);
+  background: var(--red-10);
+  color: rgba(229, 57, 53, 0.7);
 }
 
 .submit-btn:hover:not(:disabled)::after {
@@ -403,7 +403,7 @@ async function handleLogin() {
 }
 
 .submit-btn:active:not(:disabled) {
-  background: var(--brand-muted);
+  background: var(--red-20);
 }
 
 .submit-btn:disabled {
@@ -415,23 +415,23 @@ async function handleLogin() {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--brand);
-  border-radius: var(--radius-full);
+  border: 2px solid var(--b2);
+  border-top-color: var(--red);
+  border-radius: 99px;
   animation: spin 0.8s linear infinite;
 }
 
 /* ── QUOTE AREA ── */
 .quote-area {
-  margin-top: var(--space-12);
-  min-height: var(--space-8);
+  margin-top: 40px;
+  min-height: 24px;
   text-align: center;
   width: 100%;
 }
 
 .quote-text {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   font-style: italic;
   letter-spacing: 0.03em;
   margin: 0;
@@ -440,8 +440,8 @@ async function handleLogin() {
 /* Quote transition (slide up/down fade) */
 .quote-enter-active,
 .quote-leave-active {
-  transition: opacity var(--duration-slow) var(--ease),
-              transform var(--duration-slow) var(--ease);
+  transition: opacity 300ms var(--ease),
+              transform 300ms var(--ease);
 }
 
 .quote-enter-from {
@@ -456,23 +456,23 @@ async function handleLogin() {
 
 /* ── FOOTER ── */
 .login-footer {
-  margin-top: var(--space-5);
+  margin-top: 16px;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-disabled);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t4);
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .clock {
-  font-family: var(--font-mono);
-  color: var(--text-muted);
+  font-family: var(--mono);
+  color: var(--t3);
 }
 
 .version {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   opacity: 0.5;
 }
 

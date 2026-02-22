@@ -144,19 +144,19 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-1);
+  padding: 4px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t3);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .btn-chooser:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
+  background: var(--b1);
+  border-color: var(--b3);
+  color: var(--t1);
 }
 
 .dropdown-fade-enter-active,

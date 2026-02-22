@@ -90,14 +90,14 @@ function useIdoForBrowse(idoName: string) {
 
 <style scoped>
 .discovery-tab {
-  padding: var(--space-4);
+  padding: 12px;
   max-width: 1200px;
 }
 
 .description {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-4);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-bottom: 12px;
 }
 
 
@@ -105,74 +105,74 @@ function useIdoForBrowse(idoName: string) {
 .btn-link {
   background: transparent;
   border: none;
-  color: var(--brand);
-  font-size: var(--text-sm);
+  color: var(--red);
+  font-size: var(--fs);
   cursor: pointer;
-  padding: var(--space-1) var(--space-2);
+  padding: 4px 6px;
   text-decoration: underline;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .discovery-results {
-  margin-top: var(--space-5);
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .found-box {
-  padding: var(--space-4);
-  background: var(--status-ok-bg);
-  border: 1px solid var(--palette-success-light);
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(34,197,94,0.15);
+  border-radius: var(--r);
 }
 
 .not-found-box {
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--r);
 }
 
 .result-header {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--pad);
 }
 
 .ido-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .ido-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2);
-  background: var(--bg-base);
-  border-radius: var(--radius-sm);
+  padding: 6px;
+  background: var(--base);
+  border-radius: var(--rs);
 }
 
 .ido-name {
-  font-family: 'Monaco', monospace;
-  font-size: var(--text-sm);
+  font-family: var(--mono);
+  font-size: var(--fs);
 }
 
 .tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .tag {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-raised);
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-family: 'Monaco', monospace;
+  padding: 4px 6px;
+  background: var(--raised);
+  color: var(--t3);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-family: var(--mono);
 }
 </style>

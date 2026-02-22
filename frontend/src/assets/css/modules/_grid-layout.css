@@ -21,7 +21,7 @@
 @container grid-area (max-width: 400px) {
   .grid-layout {
     --grid-cols: 1;
-    --grid-gap: var(--space-2);
+    --grid-gap: 6px;
   }
 }
 
@@ -29,7 +29,7 @@
 @container grid-area (min-width: 400px) and (max-width: 600px) {
   .grid-layout {
     --grid-cols: 2;
-    --grid-gap: var(--space-3);
+    --grid-gap: var(--pad);
   }
 }
 
@@ -37,7 +37,7 @@
 @container grid-area (min-width: 600px) and (max-width: 900px) {
   .grid-layout {
     --grid-cols: 3;
-    --grid-gap: var(--space-3);
+    --grid-gap: var(--pad);
   }
 }
 
@@ -45,7 +45,7 @@
 @container grid-area (min-width: 900px) and (max-width: 1200px) {
   .grid-layout {
     --grid-cols: 4;
-    --grid-gap: var(--space-4);
+    --grid-gap: 12px;
   }
 }
 
@@ -53,7 +53,7 @@
 @container grid-area (min-width: 1200px) {
   .grid-layout {
     --grid-cols: 6;
-    --grid-gap: var(--space-4);
+    --grid-gap: 12px;
     max-width: 1600px; /* Prevent excessive stretching */
     margin: 0 auto;
   }
@@ -64,12 +64,12 @@
 /* Grid layout container */
 .vue-grid-layout {
   position: relative;
-  transition: height var(--transition-normal);
+  transition: height 150ms var(--ease);
 }
 
 /* Grid items */
 .vue-grid-item {
-  transition: all var(--transition-normal);
+  transition: all 150ms var(--ease);
   z-index: 1;
 }
 
@@ -81,10 +81,10 @@
 
 /* Drag placeholder */
 .vue-grid-item.vue-grid-placeholder {
-  background: var(--color-primary);
+  background: var(--red);
   opacity: 0.2;
   z-index: 2;
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
 }
 
 /* Resize handle */
@@ -101,6 +101,6 @@
   bottom: 3px;
   width: 8px;
   height: 8px;
-  border-right: 2px solid var(--text-tertiary);
-  border-bottom: 2px solid var(--text-tertiary);
+  border-right: 2px solid var(--t3);
+  border-bottom: 2px solid var(--t3);
 }

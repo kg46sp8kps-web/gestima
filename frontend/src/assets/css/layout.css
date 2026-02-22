@@ -18,10 +18,10 @@
   width: 320px;
   min-width: 320px;
   background: transparent;
-  padding: var(--space-3);
+  padding: var(--pad);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -30,7 +30,7 @@
 /* === RIGHT PANEL === */
 .right-panel {
   flex: 1;
-  padding: var(--space-3);
+  padding: var(--pad);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -41,8 +41,8 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--bg-base);
-  padding-bottom: var(--space-3);
+  background: var(--base);
+  padding-bottom: var(--pad);
   flex-shrink: 0;
 }
 

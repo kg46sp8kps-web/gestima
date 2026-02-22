@@ -358,74 +358,74 @@ onMounted(() => { loadUsers() })
 .admin-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
   height: 100%;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .form-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .field-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .field-label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--t2);
 }
 
 .role-selector-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .role-selector-label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--t2);
 }
 
 .role-selector {
   display: flex;
   gap: 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   overflow: hidden;
 }
 
 .role-option {
   flex: 1;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-input);
+  padding: 6px var(--pad);
+  background: var(--ground);
   border: none;
-  border-right: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  border-right: 1px solid var(--b2);
+  color: var(--t3);
+  font-size: var(--fs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -436,13 +436,13 @@ onMounted(() => { loadUsers() })
 }
 
 .role-option:hover:not(:disabled) {
-  background: var(--hover);
-  color: var(--text-primary);
+  background: var(--b1);
+  color: var(--t1);
 }
 
 .role-option.active {
-  background: var(--brand);
-  color: var(--text-primary);
+  background: var(--red);
+  color: var(--t1);
 }
 
 .role-option:disabled {
@@ -458,76 +458,76 @@ onMounted(() => { loadUsers() })
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   cursor: pointer;
-  color: var(--text-body);
-  font-size: var(--text-sm);
+  color: var(--t2);
+  font-size: var(--fs);
 }
 
 .checkbox-label input[type="checkbox"] {
-  accent-color: var(--brand);
+  accent-color: var(--red);
 }
 
 .role-badge {
   display: inline-block;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  padding: 2px 6px;
+  border-radius: var(--rs);
+  font-size: var(--fs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .role-badge.role-admin {
-  background: color-mix(in srgb, var(--palette-danger) 15%, transparent);
-  color: var(--palette-danger);
+  background: color-mix(in srgb, var(--err) 15%, transparent);
+  color: var(--err);
 }
 
 .role-badge.role-operator {
-  background: color-mix(in srgb, var(--palette-warning) 15%, transparent);
-  color: var(--palette-warning);
+  background: color-mix(in srgb, var(--warn) 15%, transparent);
+  color: var(--warn);
 }
 
 .role-badge.role-viewer {
-  background: color-mix(in srgb, var(--text-secondary) 15%, transparent);
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--t3) 15%, transparent);
+  color: var(--t3);
 }
 
 .status-badge {
   display: inline-block;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  padding: 2px 6px;
+  border-radius: var(--rs);
+  font-size: var(--fs);
   font-weight: 600;
 }
 
 .status-badge.active {
-  background: color-mix(in srgb, var(--palette-success) 15%, transparent);
-  color: var(--palette-success);
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
+  color: var(--ok);
 }
 
 .status-badge.inactive {
-  background: color-mix(in srgb, var(--palette-danger) 15%, transparent);
-  color: var(--palette-danger);
+  background: color-mix(in srgb, var(--err) 15%, transparent);
+  color: var(--err);
 }
 
 .password-info {
-  margin: 0 0 var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  margin: 0 0 12px;
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .password-info strong {
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 .spacer {

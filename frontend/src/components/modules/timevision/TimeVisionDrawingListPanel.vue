@@ -132,11 +132,11 @@ function formatSize(bytes: number): string {
 
 function getStatusColor(status: string | null): string {
   switch (status) {
-    case 'estimated': return 'var(--color-warning)'
-    case 'calibrated': return 'var(--color-info)'
-    case 'verified': return 'var(--color-success)'
-    case 'extracted': return 'var(--color-info)'
-    default: return 'var(--text-muted)'
+    case 'estimated': return 'var(--warn)'
+    case 'calibrated': return 'var(--t3)'
+    case 'verified': return 'var(--ok)'
+    case 'extracted': return 'var(--t3)'
+    default: return 'var(--t3)'
   }
 }
 
@@ -305,9 +305,9 @@ function getStatusLabel(status: string | null): string {
 .panel-header {
   display: flex;
   flex-direction: column;
-  padding: var(--space-3) var(--space-4) var(--space-2);
-  border-bottom: 1px solid var(--border-default);
-  gap: var(--space-2);
+  padding: var(--pad) 12px 6px;
+  border-bottom: 1px solid var(--b2);
+  gap: 6px;
 }
 .header-top {
   display: flex;
@@ -317,23 +317,23 @@ function getStatusLabel(status: string | null): string {
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 .panel-header h3 {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
   margin: 0;
 }
 .count {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  background: var(--bg-subtle);
-  padding: var(--space-0\.5) var(--space-3);
-  border-radius: var(--radius-sm);
+  font-size: var(--fs);
+  color: var(--t3);
+  background: var(--ground);
+  padding: 2px var(--pad);
+  border-radius: var(--rs);
 }
 .filter-bar {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   align-items: center;
 }
 .dropdown-wrapper {
@@ -342,25 +342,25 @@ function getStatusLabel(status: string | null): string {
 .dropdown-trigger {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-0\.5) var(--space-3);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-muted);
+  gap: 4px;
+  padding: 2px var(--pad);
+  font-size: var(--fs);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--surface);
+  color: var(--t3);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
   max-width: 160px;
 }
 .dropdown-trigger:hover {
-  border-color: var(--text-secondary);
-  color: var(--text-primary);
+  border-color: var(--t3);
+  color: var(--t1);
 }
 .dropdown-trigger.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--red);
+  color: var(--red);
 }
 .dropdown-label {
   overflow: hidden;
@@ -375,33 +375,33 @@ function getStatusLabel(status: string | null): string {
 }
 .dropdown-panel {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + 4px);
   left: 0;
   min-width: 140px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   z-index: 50;
-  padding: var(--space-1) 0;
+  padding: 4px 0;
 }
 .dropdown-option {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-4);
-  font-size: var(--text-sm);
+  gap: var(--pad);
+  padding: 4px 12px;
+  font-size: var(--fs);
   cursor: pointer;
   transition: background 0.1s;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 .dropdown-option:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 .dropdown-option input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  accent-color: var(--color-primary);
+  accent-color: var(--red);
   cursor: pointer;
   margin: 0;
 }
@@ -413,30 +413,30 @@ function getStatusLabel(status: string | null): string {
   height: 20px;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--t3);
   cursor: pointer;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
+  font-size: var(--fs);
+  border-radius: var(--rs);
   transition: all 0.15s;
 }
 .btn-clear-filters:hover {
-  background: var(--state-hover);
-  color: var(--color-danger);
+  background: var(--b1);
+  color: var(--err);
 }
 .btn-process-all {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default);
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--b2);
   background: transparent;
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
+  color: var(--t1);
+  border-radius: var(--rs);
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 .btn-process-all:hover:not(:disabled) {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 .btn-process-all:disabled {
   opacity: 0.5;
@@ -450,27 +450,27 @@ function getStatusLabel(status: string | null): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-4);
+  padding: 6px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--b1);
   transition: background 0.1s;
 }
 .drawing-item:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 .drawing-item.selected {
-  background: var(--selected);
-  border-left: 3px solid var(--border-strong);
+  background: var(--b1);
+  border-left: 3px solid var(--b3);
 }
 .drawing-info {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   min-width: 0;
 }
 .file-icon {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--t3);
 }
 .drawing-meta {
   display: flex;
@@ -478,60 +478,60 @@ function getStatusLabel(status: string | null): string {
   min-width: 0;
 }
 .filename {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .size {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 .drawing-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   flex-shrink: 0;
 }
 .model-badge {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  padding: var(--space-px) var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--bg-subtle);
-  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: var(--rs);
+  background: var(--ground);
+  color: var(--t3);
   letter-spacing: 0.02em;
 }
 .model-badge.model-ft {
-  background: var(--brand-subtle);
-  color: var(--brand);
+  background: var(--red-10);
+  color: var(--red);
 }
 .model-badge.model-v2 {
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
+  background: var(--ground);
+  color: var(--t3);
 }
 .status-badge {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
+  gap: 4px;
+  font-size: var(--fs);
   font-weight: 500;
 }
 .btn-process {
   display: flex;
   align-items: center;
-  padding: var(--space-1);
-  border: 1px solid var(--border-default);
+  padding: 4px;
+  border: 1px solid var(--b2);
   background: transparent;
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
+  color: var(--t1);
+  border-radius: var(--rs);
   cursor: pointer;
   transition: all 0.15s;
 }
 .btn-process:hover {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand);
+  background: var(--red-10);
+  border-color: var(--red);
+  color: var(--red);
 }
 </style>

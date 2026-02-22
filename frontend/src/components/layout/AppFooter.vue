@@ -1,31 +1,13 @@
 <template>
   <footer class="app-footer">
-    <!-- Left: Window Tabs (only on /windows) -->
+    <!-- Left: Connection status + Company info + active workspace -->
     <div class="footer-left">
-      <template v-if="route.path === '/windows'">
-        <button
-          v-for="win in windowsStore.windows"
-          :key="win.id"
-          @click="handleWindowClick(win.id)"
-          class="window-tab"
-          :class="{
-            'is-active': topWindow?.id === win.id,
-            'is-minimized': win.minimized
-          }"
-          :title="win.title"
-        >
-          <span
-            v-if="win.linkingGroup"
-            class="tab-indicator"
-            :style="{ backgroundColor: getLinkingGroupColor(win.linkingGroup) }"
-          ></span>
-          <span class="tab-title">{{ win.title }}</span>
-        </button>
-      </template>
-      <template v-else>
-        <img src="/logo.png" alt="KOVO RYBKA" class="footer-logo" />
-        <span>KOVO RYBKA</span>
-      </template>
+      <span class="connection-dot"></span>
+      <span class="connection-label">Připojeno</span>
+      <img src="/logo.png" alt="KOVO RYBKA" class="footer-logo" />
+      <span class="footer-company">KOVO RYBKA</span>
+      <span v-if="isWorkspaceRoute" class="footer-sep">•</span>
+      <span v-if="isWorkspaceRoute" class="footer-workspace">{{ workspaceLabel }}</span>
     </div>
 
     <!-- Center: GESTIMA + Motto -->
@@ -81,10 +63,29 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useWindowsStore } from '@/stores/windows'
+import { useWorkspaceStore } from '@/stores/workspace'
+import type { WorkspaceType } from '@/types/workspace'
 
 const route = useRoute()
-const windowsStore = useWindowsStore()
+const workspaceStore = useWorkspaceStore()
+
+const isWorkspaceRoute = computed(() => route.path === '/workspace')
+
+const workspaceLabels: Record<WorkspaceType, string> = {
+  part: 'Díly',
+  manufacturing: 'Výroba',
+  quotes: 'Nabídky',
+  partners: 'Partneři',
+  materials: 'Materiály',
+  files: 'Soubory',
+  accounting: 'Účetnictví',
+  timevision: 'TimeVision',
+  admin: 'Správa',
+}
+
+const workspaceLabel = computed(() =>
+  workspaceLabels[workspaceStore.activeWorkspace] || ''
+)
 
 // Live clock
 const now = ref(new Date())
@@ -103,39 +104,6 @@ onUnmounted(() => {
 // Calendar state
 const showCalendar = ref(false)
 const calendarDate = ref(new Date())
-
-// Get top window
-const topWindow = computed(() => {
-  if (windowsStore.openWindows.length === 0) return null
-  return windowsStore.openWindows.reduce((max, win) =>
-    win.zIndex > max.zIndex ? win : max
-  )
-})
-
-function handleWindowClick(windowId: string) {
-  const window = windowsStore.windows.find(w => w.id === windowId)
-  if (!window) return
-
-  if (topWindow.value?.id === windowId) {
-    windowsStore.minimizeWindow(windowId)
-  } else {
-    if (window.minimized) {
-      windowsStore.restoreWindow(windowId)
-    } else {
-      windowsStore.bringToFront(windowId)
-    }
-  }
-}
-
-function getLinkingGroupColor(group: string | null): string {
-  const colors: Record<string, string> = {
-    red: 'var(--link-group-red)',
-    blue: 'var(--link-group-blue)',
-    green: 'var(--link-group-green)',
-    yellow: 'var(--link-group-yellow)'
-  }
-  return colors[group || ''] || 'var(--link-group-neutral)'
-}
 
 const currentDate = computed(() => {
   return now.value.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -232,25 +200,53 @@ function nextMonth() {
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--b1);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: var(--space-1) var(--space-4);
-  gap: var(--space-3);
-  height: 32px;
+  padding: 0 10px;
+  gap: 7px;
+  height: 22px;
   z-index: 10000;
+  opacity: 0;
+  animation: footer-slide-up 0.3s 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Left: Window Tabs or Company */
+@keyframes footer-slide-up {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Left: Connection status + Company + Workspace indicator */
 .footer-left {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  overflow-x: auto;
-  overflow-y: hidden;
+  gap: 6px;
   justify-self: start;
+  white-space: nowrap;
+  color: var(--t4);
+  font-size: 10.5px;
+}
+
+.connection-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: pulse-dot 3s infinite;
+  flex-shrink: 0;
+}
+
+.connection-label {
+  color: var(--t3); /* v2: .sl { color: var(--t3) } — slightly brighter than rest */
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .footer-logo {
@@ -260,49 +256,13 @@ function nextMonth() {
   flex-shrink: 0;
 }
 
-.window-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
-  white-space: nowrap;
-  flex-shrink: 0;
-  max-width: 150px;
+.footer-company {
+  opacity: 0.7;
 }
 
-.window-tab:hover {
-  background: var(--state-hover);
-  color: var(--text-primary);
-}
-
-.window-tab.is-active {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-}
-
-.window-tab.is-minimized {
-  opacity: 0.6;
-}
-
-.tab-indicator {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.tab-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.footer-workspace {
+  color: var(--t1);
+  font-weight: 500;
 }
 
 /* Center: GESTIMA + Motto */
@@ -310,23 +270,23 @@ function nextMonth() {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--t4);
+  font-size: 10.5px;
   justify-self: center;
   white-space: nowrap;
 }
 
 .footer-brand {
-  font-size: var(--text-sm);
+  font-size: var(--fsl);
   font-weight: 700;
 }
 
 .brand-red {
-  color: var(--brand-hover);
+  color: var(--red);
 }
 
 .brand-gray {
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .footer-motto {
@@ -344,16 +304,21 @@ function nextMonth() {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--t4);
+  font-size: 10.5px;
   justify-self: end;
-  font-family: monospace;
+  font-family: var(--mono);
   font-weight: 500;
-  opacity: 0.7; /* Same as motto */
+  opacity: 0.7;
 }
 
 .date-btn {
   cursor: pointer;
+}
+
+.time-display {
+  font-family: var(--mono);
+  color: var(--t3);
 }
 
 .time-sep {
@@ -366,11 +331,11 @@ function nextMonth() {
   bottom: calc(100% + 8px);
   right: 0;
   width: 280px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xl);
-  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  padding: var(--pad);
   z-index: 10003;
 }
 
@@ -378,47 +343,47 @@ function nextMonth() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-3);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-default);
+  margin-bottom: var(--pad);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .month-label {
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: 600;
   text-transform: capitalize;
 }
 
 .nav-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
-  font-size: var(--text-lg);
+  color: var(--t3);
+  font-size: 16px;
   cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: all var(--duration-fast) var(--ease-out);
+  padding: 4px 6px;
+  border-radius: var(--rs);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
   line-height: 1;
 }
 
 .nav-btn:hover {
-  background: var(--state-hover);
-  color: var(--text-primary);
+  background: var(--b1);
+  color: var(--t1);
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 
 .calendar-weekday {
   text-align: center;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-weight: var(--font-semibold);
-  padding: var(--space-1);
+  font-size: var(--fs);
+  color: var(--t3);
+  font-weight: 600;
+  padding: 4px;
   text-transform: uppercase;
 }
 
@@ -427,20 +392,20 @@ function nextMonth() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
+  font-size: var(--fs);
+  color: var(--t1);
+  border-radius: var(--rs);
   cursor: default;
 }
 
 .calendar-day.is-other-month {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .calendar-day.is-today {
-  background: var(--brand-hover);
+  background: var(--red);
   color: white;
-  font-weight: var(--font-bold);
+  font-weight: 700;
 }
 
 .calendar-backdrop {

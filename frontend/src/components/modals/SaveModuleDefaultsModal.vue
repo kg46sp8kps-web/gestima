@@ -142,60 +142,60 @@ function handleCancel() {
 /* === MODAL CONTENT === */
 
 .modal-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
   margin: 0;
 }
 
 .description {
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  font-size: var(--fs);
+  color: var(--t2);
   line-height: 1.5;
   margin: 0;
 }
 
 .module-name {
-  color: var(--brand);
-  font-weight: var(--font-semibold);
+  color: var(--red);
+  font-weight: 600;
 }
 
 /* === CHANGES LIST === */
 .changes-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  gap: 6px;
+  padding: var(--pad);
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .change-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t2);
 }
 
 .check-icon {
-  color: var(--status-ok);
+  color: var(--ok);
   flex-shrink: 0;
 }
 
 /* === NO CHANGES === */
 .no-changes {
-  padding: var(--space-4);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   text-align: center;
 }
 
 .info-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   margin: 0;
 }
 
@@ -203,7 +203,7 @@ function handleCancel() {
 .footer-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 /* === ICON BUTTONS === */

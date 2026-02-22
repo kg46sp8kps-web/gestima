@@ -90,85 +90,85 @@ const emit = defineEmits<{
 
 <style scoped>
 .filters-wrapper {
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--b2);
 }
 
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--pad);
+  padding: var(--pad) 16px;
+  border-bottom: 1px solid var(--b2);
   flex-wrap: wrap;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 
 .analytics-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-1) var(--space-5);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 12px;
+  padding: 4px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--b1);
 }
 
 .filter-label {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  gap: 4px;
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .filter-select {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--ground);
+  color: var(--t2);
 }
 
 .prefix-filters {
   display: flex;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 
 .prefix-btn {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--ground);
   cursor: pointer;
-  color: var(--text-secondary);
-  transition: all var(--duration-fast);
+  color: var(--t3);
+  transition: all 100ms;
 }
 
 .prefix-btn:hover {
-  border-color: var(--border-strong);
-  color: var(--text-body);
+  border-color: var(--b3);
+  color: var(--t2);
 }
 
 .prefix-btn.active {
-  background: var(--brand-subtle);
-  color: var(--brand-text);
-  border-color: var(--brand);
+  background: var(--red-10);
+  color: rgba(229, 57, 53, 0.7);
+  border-color: var(--red);
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  gap: 4px;
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
   cursor: pointer;
 }
 
 .stats {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
 }
 </style>

@@ -3,81 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESTIMA — Tiling Workspace v3</title>
+<title>GESTIMA — Tiling Workspace v2 · Hybrid</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  /* THE ONE RED — pure, vivid, unmistakable */
+  /* Brand — the ONE chromatic accent */
   --red: #E53935;
-  --red-glow: rgba(229, 57, 53, 0.15);
-  --red-dim: rgba(229, 57, 53, 0.08);
+  --red-glow: rgba(229,57,53,0.15);
+  --red-dim: rgba(229,57,53,0.08);
+  --red-10: rgba(229,57,53,0.10);
+  --red-20: rgba(229,57,53,0.20);
+
+  /* Money/Pricing — the only other chromatic color */
+  --green: #22c55e;
+  --green-10: rgba(34,197,94,0.10);
+  --green-15: rgba(34,197,94,0.15);
 
   /* Surfaces — pure neutral, no blue cast */
   --base: #08080a;
   --ground: #0e0e10;
-  --surface: rgba(18, 18, 20, 0.88);
-  --raised: rgba(26, 26, 28, 0.92);
-  --glass: rgba(20, 20, 22, 0.65);
+  --surface: rgba(18,18,20,0.88);
+  --raised: rgba(26,26,28,0.92);
+  --glass: rgba(20,20,22,0.65);
 
-  /* Text — higher contrast for readability */
-  --t1: #f5f5f7;
+  /* Text — high contrast for readability (from v2) */
+  --t1: #ededf0;
   --t2: #cdcdd0;
   --t3: #8e8e96;
   --t4: #5c5c64;
 
-  /* Borders — barely there */
-  --b1: rgba(255, 255, 255, 0.06);
-  --b2: rgba(255, 255, 255, 0.1);
-  --b3: rgba(255, 255, 255, 0.15);
+  /* Borders */
+  --b1: rgba(255,255,255,0.06);
+  --b2: rgba(255,255,255,0.10);
+  --b3: rgba(255,255,255,0.15);
 
   /* Status */
   --ok: #34d399;
   --warn: #fbbf24;
   --err: #f87171;
 
-  /* Linking */
+  /* Context linking */
   --la: var(--red);
-  --lb: #60a5fa;
-  --lc: #34d399;
+  --lb: var(--green);
 
-  --font: 'Inter', -apple-system, sans-serif;
+  /* Typography — DM Sans from v2 (user approved) */
+  --font: 'DM Sans', -apple-system, sans-serif;
   --mono: 'JetBrains Mono', monospace;
   --fs: 12px;
   --fsl: 11px;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --r: 6px;
-  --rs: 3px;
+
+  /* Spacing — BETWEEN v1 and v2 */
+  --gap: 3px;
+  --pad: 8px;
+  --r: 7px;
+  --rs: 4px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.4,0,0.2,1);
+  --spring: cubic-bezier(0.34,1.56,0.64,1);
 }
 
 html, body {
   font-family: var(--font); font-size: var(--fs); font-weight: 420;
-  line-height: 1.45; color: var(--t2); background: var(--base);
+  line-height: 1.5; color: var(--t2); background: var(--base);
   overflow: hidden; height: 100vh; width: 100vw;
   -webkit-font-smoothing: antialiased;
 }
 
-::selection { background: var(--red-glow); color: var(--t1); }
+::selection { background: var(--red-20); color: var(--t1); }
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--b3); }
 
 /* ═══════════════════════════════════════
-   NOISE GRAIN TEXTURE — over everything
+   GRAIN TEXTURE — from v1
    ═══════════════════════════════════════ */
 body::after {
   content: ''; position: fixed; inset: 0; z-index: 9999;
-  pointer-events: none; opacity: 0.025;
+  pointer-events: none; opacity: 0.02;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-size: 128px 128px;
 }
 
 /* ═══════════════════════════════════════
-   AMBIENT BACKGROUND LAYERS
+   BACKGROUND — CNC line grid from v1 + red orbs
    ═══════════════════════════════════════ */
 .bg-grid {
   position: fixed; inset: -200px; z-index: 0; pointer-events: none;
@@ -103,12 +117,12 @@ body::after {
 }
 
 /* ═══════════════════════════════════════
-   BOOT — cinematic
+   BOOT — CNC grid + logo glow
    ═══════════════════════════════════════ */
 #boot {
   position: fixed; inset: 0; z-index: 1000; background: var(--base);
   display: flex; align-items: center; justify-content: center;
-  transition: opacity 0.6s var(--ease), visibility 0.6s;
+  transition: opacity 0.5s var(--ease), visibility 0.5s;
 }
 #boot.go { opacity: 0; visibility: hidden; }
 
@@ -118,15 +132,15 @@ body::after {
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
   background-size: 60px 60px;
-  animation: drift 30s linear infinite;
-  opacity: 0; animation: drift 30s linear infinite, fadeIn 1s 0.1s var(--ease) forwards;
+  animation: drift 30s linear infinite, fadeIn 1s 0.1s var(--ease) forwards;
+  opacity: 0;
 }
 .b-vig { position: absolute; inset: 0; background: radial-gradient(circle, transparent 20%, var(--base) 70%); }
 .b-glow {
   position: absolute; width: 500px; height: 350px; top: 40%; left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%,-50%);
   background: radial-gradient(ellipse, var(--red-dim) 0%, transparent 70%);
-  opacity: 0; animation: breatheSlow 4s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate, fadeIn 1.2s 0.2s var(--ease) forwards;
+  opacity: 0; animation: breatheSlow 4s cubic-bezier(0.45,0,0.55,1) infinite alternate, fadeIn 1.2s 0.2s var(--ease) forwards;
   will-change: opacity, transform;
 }
 .b-laser {
@@ -144,9 +158,7 @@ body::after {
   opacity: 0; animation: fadeUp 0.5s 0.3s var(--ease) forwards;
   filter: drop-shadow(0 0 20px rgba(229,57,53,0.4)) drop-shadow(0 0 40px rgba(229,57,53,0.15));
 }
-.b-mark img {
-  width: 100%; height: 100%; object-fit: contain; border-radius: 50%;
-}
+.b-mark img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
 .b-logo {
   font-family: var(--mono); font-size: 28px; font-weight: 700;
   letter-spacing: 0.14em; opacity: 0; animation: fadeUp 0.5s 0.4s var(--ease) forwards;
@@ -154,7 +166,7 @@ body::after {
 .b-logo em { color: var(--red); font-style: normal; }
 .b-logo span { color: var(--t1); }
 .b-sub {
-  font-size: 10px; color: var(--t3); letter-spacing: 0.35em; text-transform: uppercase;
+  font-size: 10.5px; color: var(--t3); letter-spacing: 0.3em; text-transform: uppercase;
   opacity: 0; animation: fadeUp 0.4s 0.6s var(--ease) forwards;
 }
 .b-prog {
@@ -174,41 +186,40 @@ body::after {
 #ws.on { opacity: 1; transform: scale(1); }
 
 /* ═══════════════════════════════════════
-   HEADER — 34px, glass
+   HEADER — 36px (between v1's 34 and v2's 38)
    ═══════════════════════════════════════ */
 .hdr {
-  height: 34px;
+  height: 36px;
   background: var(--surface);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border-bottom: 1px solid var(--b1);
-  display: flex; align-items: center; padding: 0 10px; gap: 6px;
+  display: flex; align-items: center; padding: 0 10px; gap: 7px;
   position: relative; z-index: 10; flex-shrink: 0;
   opacity: 0; transform: translateY(-4px);
 }
 .hdr.in { animation: sD 0.3s 0.05s var(--ease) forwards; }
 
 .hlogo {
-  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  width: 21px; height: 21px; border-radius: 50%; flex-shrink: 0;
   filter: drop-shadow(0 0 6px rgba(229,57,53,0.2));
   transition: filter 0.2s var(--ease);
 }
 .hlogo:hover { filter: drop-shadow(0 0 10px rgba(229,57,53,0.4)); }
 .logo {
-  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  font-family: var(--mono); font-size: 12.5px; font-weight: 700;
   letter-spacing: 0.1em; user-select: none; flex-shrink: 0;
 }
 .logo em { color: var(--red); font-style: normal; }
 .logo span { color: var(--t1); }
 .logo-div {
-  width: 1px; height: 12px; background: var(--b2); margin: 0 4px;
+  width: 1px; height: 13px; background: var(--b2); margin: 0 3px;
   display: inline-block; vertical-align: middle;
 }
 
-/* Layout chips */
 .lchips { display: flex; gap: 1px; flex-shrink: 0; }
 .lchip {
-  padding: 3px 8px; font-size: var(--fsl); font-weight: 500;
+  padding: 3px 9px; font-size: var(--fsl); font-weight: 500;
   color: var(--t3); background: transparent; border: 1px solid transparent;
   border-radius: var(--rs); cursor: pointer; transition: all 0.12s var(--ease);
   font-family: inherit; white-space: nowrap;
@@ -219,34 +230,34 @@ body::after {
 .hfill { flex: 1; }
 
 .hbtn {
-  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; border-radius: var(--rs);
   color: var(--t3); cursor: pointer; transition: all 0.1s;
 }
 .hbtn:hover { color: var(--t1); background: var(--b1); }
-.hbtn svg { width: 13px; height: 13px; stroke-width: 1.8; }
+.hbtn svg { width: 14px; height: 14px; stroke-width: 1.7; }
 .ava {
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 22px; height: 22px; border-radius: 50%;
   background: var(--red-dim); border: 1px solid rgba(229,57,53,0.3);
   display: flex; align-items: center; justify-content: center;
-  font-size: 8px; font-weight: 600; color: var(--red); cursor: pointer;
+  font-size: 8.5px; font-weight: 600; color: var(--red); cursor: pointer;
 }
 
 /* ═══════════════════════════════════════
-   TILES
+   TILES GRID
    ═══════════════════════════════════════ */
 .tiles {
-  flex: 1; display: grid; gap: 2px; padding: 2px;
+  flex: 1; display: grid; gap: var(--gap); padding: var(--gap);
   position: relative; z-index: 1; min-height: 0;
   transition: grid-template-columns 0.3s var(--ease);
 }
-.tiles[data-l="std"] { grid-template-columns: 220px 1fr; }
-.tiles[data-l="cmp"] { grid-template-columns: 200px 1fr 1fr 200px; }
-.tiles[data-l="hor"] { grid-template-columns: 200px 1fr; grid-template-rows: 1fr 1fr; }
-.tiles[data-l="qd"] { grid-template-columns: 200px 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.tiles[data-l="std"] { grid-template-columns: 230px 1fr; }
+.tiles[data-l="cmp"] { grid-template-columns: 210px 1fr 1fr 210px; }
+.tiles[data-l="hor"] { grid-template-columns: 210px 1fr; grid-template-rows: 1fr 1fr; }
+.tiles[data-l="qd"]  { grid-template-columns: 210px 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
 /* ═══════════════════════════════════════
-   PANEL — glass morphism
+   PANEL — glass morphism (from v1)
    ═══════════════════════════════════════ */
 .pnl {
   background: var(--surface);
@@ -261,45 +272,50 @@ body::after {
 .pnl.v { animation: pnlIn 0.35s var(--ease) forwards; }
 .pnl.focused { border-color: var(--b2); box-shadow: 0 0 0 1px var(--b1), 0 8px 32px rgba(0,0,0,0.4); }
 
-/* Context stripe — 1px, very subtle */
+/* Context stripe — subtle top line */
 .pnl::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0;
   height: 1px; z-index: 5; opacity: 0;
 }
 .pnl.ca::before { background: linear-gradient(90deg, transparent, var(--la) 30%, var(--la) 70%, transparent); opacity: 0.4; }
-.pnl.cb::before { background: linear-gradient(90deg, transparent, var(--lb) 30%, var(--lb) 70%, transparent); opacity: 0.4; }
+.pnl.cb::before { background: linear-gradient(90deg, transparent, var(--lb) 30%, var(--lb) 70%, transparent); opacity: 0.3; }
 
 .pnl.max {
-  position: fixed !important; inset: 36px 2px 22px 2px; z-index: 50;
+  position: fixed !important; inset: 38px 3px 24px 3px; z-index: 50;
   grid-column: auto !important; grid-row: auto !important;
 }
 
-/* Panel header — 26px */
+/* ═══════════════════════════════════════
+   PANEL HEADER — 28px (between v1's 26 and v2's 30)
+   ═══════════════════════════════════════ */
 .ph {
-  height: 26px; background: rgba(255,255,255,0.02);
+  height: 28px; background: rgba(255,255,255,0.025);
   border-bottom: 1px solid var(--b1);
-  display: flex; align-items: center; padding: 0 6px; gap: 3px;
+  display: flex; align-items: center; padding: 0 var(--pad); gap: 4px;
   flex-shrink: 0; user-select: none;
 }
 .pht {
   font-size: var(--fsl); font-weight: 600; color: var(--t3);
-  text-transform: uppercase; letter-spacing: 0.06em;
-  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
 }
-.pht .n { font-family: var(--mono); font-size: 10px; color: var(--t4); padding: 0 3px; background: var(--b1); border-radius: 2px; }
+.pht .n {
+  font-family: var(--mono); font-size: 10px; color: var(--t4);
+  padding: 1px 4px; background: var(--b1); border-radius: 2px;
+}
 
-.ptabs { display: flex; gap: 1px; margin-left: 2px; }
+.ptabs { display: flex; gap: 1px; margin-left: 3px; }
 .ptab {
-  padding: 2px 6px; font-size: 10px; font-weight: 500;
+  padding: 3px 7px; font-size: 10.5px; font-weight: 500;
   color: var(--t4); background: transparent; border: none;
-  border-radius: 2px; cursor: pointer; transition: all 0.08s; font-family: inherit;
+  border-radius: var(--rs); cursor: pointer; transition: all 0.08s; font-family: inherit;
 }
 .ptab:hover { color: var(--t3); }
 .ptab.on { color: var(--t1); background: var(--b1); }
 
 .phf { flex: 1; }
 .pc {
-  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; border-radius: 2px;
   color: var(--t4); cursor: pointer; font-size: 9px; transition: all 0.06s; font-family: var(--font);
 }
@@ -311,23 +327,24 @@ body::after {
 /* ═══════════════════════════════════════
    PARTS LIST
    ═══════════════════════════════════════ */
-.srch-w { padding: 3px 5px; border-bottom: 1px solid var(--b1); }
+.srch-w { padding: 5px var(--pad); border-bottom: 1px solid var(--b1); }
 .srch {
-  width: 100%; padding: 3px 6px 3px 22px; background: rgba(255,255,255,0.03);
+  width: 100%; padding: 4px 7px 4px 26px; background: rgba(255,255,255,0.03);
   border: 1px solid var(--b1); border-radius: var(--rs);
   color: var(--t1); font-size: var(--fs); font-family: inherit;
-  outline: none; height: 22px; transition: all 0.1s;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%23404048' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: 6px center;
+  outline: none; height: 26px; transition: all 0.12s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5c64' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 7px center;
 }
 .srch::placeholder { color: var(--t4); }
 .srch:focus { border-color: var(--b3); background-color: rgba(255,255,255,0.05); }
 
 .plist { list-style: none; }
 .pi {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 7px; cursor: pointer; transition: background 0.06s; position: relative;
-  border-bottom: 1px solid rgba(255,255,255,0.02);
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px var(--pad); cursor: pointer; transition: background 0.06s;
+  position: relative; min-height: 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.025);
 }
 .pi:hover { background: var(--b1); }
 .pi.sel { background: rgba(229,57,53,0.06); }
@@ -335,54 +352,50 @@ body::after {
   content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
   width: 2px; background: var(--red); border-radius: 0 1px 1px 0;
 }
-.pn { font-family: var(--mono); font-size: var(--fs); font-weight: 500; color: var(--t1); min-width: 64px; }
+.pn { font-family: var(--mono); font-size: var(--fs); font-weight: 500; color: var(--t1); min-width: 66px; }
 .pm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pd { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .pd.ok { background: var(--ok); } .pd.w { background: var(--warn); }
 .pd.e { background: var(--err); } .pd.o { background: var(--t4); }
 
-/* Mini sparkline next to price in list */
-.spark {
-  width: 28px; height: 10px; flex-shrink: 0;
-}
-.spark polyline {
-  fill: none; stroke: var(--t4); stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
+/* Sparklines — ALL neutral, no trend coloring */
+.spark { width: 30px; height: 11px; flex-shrink: 0; }
+.spark polyline { fill: none; stroke: var(--t4); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
 /* ═══════════════════════════════════════
-   RIBBON — compact info strip
+   RIBBON — info strip (mid spacing)
    ═══════════════════════════════════════ */
 .rib {
-  padding: 5px 7px; background: rgba(255,255,255,0.02);
+  padding: 6px var(--pad); background: rgba(255,255,255,0.02);
   border-bottom: 1px solid var(--b1); flex-shrink: 0;
   transition: opacity 0.15s;
 }
 .rib.fade { opacity: 0.3; }
-.rib-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rib-r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .rib-i { display: flex; align-items: baseline; gap: 3px; }
 .rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
 .rib-v.m { font-family: var(--mono); }
 .bdg {
   display: inline-flex; align-items: center; gap: 3px;
-  padding: 0 5px; font-size: 10px; font-weight: 500;
+  padding: 1px 6px; font-size: 10px; font-weight: 500;
   border-radius: 99px; background: var(--b1); color: var(--t2);
 }
 .bdg .dot { width: 4px; height: 4px; border-radius: 50%; }
-/* KPI mini cards in ribbon */
-.rib-kpis { display: flex; gap: 4px; margin-top: 3px; }
+
+/* KPI mini cards — mid spacing */
+.rib-kpis { display: flex; gap: 6px; margin-top: 4px; }
 .rib-kpi {
-  padding: 2px 6px; background: var(--b1); border-radius: var(--rs);
-  display: flex; align-items: center; gap: 4px;
+  padding: 3px 7px; background: var(--b1); border-radius: var(--rs);
+  display: flex; align-items: center; gap: 5px;
 }
 .rib-kpi .kl { font-size: 10px; color: var(--t4); }
-.rib-kpi .kv { font-family: var(--mono); font-size: var(--fs); color: var(--t1); font-weight: 600; }
+.rib-kpi .kv { font-family: var(--mono); font-size: var(--fs); color: var(--green); font-weight: 600; }
 .rib-kpi .ku { font-size: 9px; color: var(--t4); }
 
-.acts { display: flex; gap: 3px; margin-top: 3px; }
+.acts { display: flex; gap: 3px; margin-top: 4px; }
 .act {
-  padding: 2px 6px; font-size: 10px; font-weight: 500;
+  padding: 2px 7px; font-size: 10.5px; font-weight: 500;
   background: transparent; border: 1px solid var(--b1);
   border-radius: var(--rs); color: var(--t3); cursor: pointer;
   transition: all 0.08s; font-family: inherit;
@@ -396,60 +409,62 @@ body::after {
    ═══════════════════════════════════════ */
 .tc { flex: 1; overflow-y: auto; min-height: 0; }
 
-/* OPS TABLE */
+/* OPS TABLE — neutral styling */
 .ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.02); position: sticky; top: 0; z-index: 2; }
+.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
 .ot th {
-  padding: 3px 7px; font-size: 10px; font-weight: 600; color: var(--t4);
+  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
   text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
-  border-bottom: 1px solid var(--b1); white-space: nowrap;
+  border-bottom: 1px solid var(--b2); white-space: nowrap;
 }
 .ot th.r { text-align: right; }
-.ot td { padding: 3px 7px; font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.02); }
+.ot td { padding: 4px var(--pad); font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.025); }
 .ot td.r { font-family: var(--mono); text-align: right; color: var(--t1); }
-.ot tbody tr { transition: background 0.04s; }
+.ot tbody tr { transition: background 0.04s; min-height: 28px; }
 .ot tbody tr:hover td { background: var(--b1); }
 .ot tbody tr.sel td { background: var(--red-dim); }
 
+/* Time badges — neutral with colored dots only */
 .tb {
-  display: inline-flex; align-items: center; gap: 2px;
-  padding: 1px 4px; font-family: var(--mono); font-size: 10px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 5px; font-family: var(--mono); font-size: 10px;
   border-radius: 99px; background: var(--b1); color: var(--t2);
 }
 .tb .d { width: 3px; height: 3px; border-radius: 50%; }
 .tb.s .d { background: var(--red); }
 .tb.o .d { background: var(--ok); }
 
-/* PRICING */
-.pr-w { padding: 6px; display: flex; flex-direction: column; gap: 6px; }
-.pr-row { display: flex; gap: 4px; }
+/* PRICING — green for money values */
+.pr-w { padding: var(--pad); display: flex; flex-direction: column; gap: 7px; }
+.pr-row { display: flex; gap: 5px; }
 .prc {
-  flex: 1; padding: 5px 7px; background: var(--b1); border-radius: var(--rs);
-  display: flex; flex-direction: column; gap: 1px;
+  flex: 1; padding: 6px 8px; background: var(--b1); border-radius: var(--rs);
+  display: flex; flex-direction: column; gap: 2px;
 }
 .prc .l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; }
 .prc .v { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--t1); }
 .prc .u { font-size: 9px; color: var(--t4); }
+.prc.price .v { color: var(--green); }
 
-.ring-row { display: flex; align-items: center; gap: 12px; }
-.ring-svg { width: 72px; height: 72px; flex-shrink: 0; }
-.ring-leg { display: flex; flex-direction: column; gap: 3px; }
-.rli { display: flex; align-items: center; gap: 4px; font-size: var(--fs); color: var(--t3); }
+.ring-row { display: flex; align-items: center; gap: 14px; }
+.ring-svg { width: 76px; height: 76px; flex-shrink: 0; }
+.ring-leg { display: flex; flex-direction: column; gap: 4px; }
+.rli { display: flex; align-items: center; gap: 5px; font-size: var(--fs); color: var(--t2); }
 .rld { width: 5px; height: 5px; border-radius: 1px; flex-shrink: 0; }
-.rlv { font-family: var(--mono); color: var(--t1); font-weight: 500; margin-left: auto; min-width: 36px; text-align: right; }
+.rlv { font-family: var(--mono); color: var(--t1); font-weight: 500; margin-left: auto; min-width: 38px; text-align: right; }
 
 .bt { width: 100%; border-collapse: collapse; }
 .bt th {
-  padding: 3px 7px; font-size: 10px; font-weight: 600; color: var(--t4);
+  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
   text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
-  border-bottom: 1px solid var(--b1); background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--green-15); background: rgba(255,255,255,0.025);
 }
-.bt td { padding: 3px 7px; font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.02); }
-.bt .c { font-family: var(--mono); text-align: right; color: var(--t1); white-space: nowrap; }
+.bt td { padding: 4px var(--pad); font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.025); }
+.bt .c { font-family: var(--mono); text-align: right; color: var(--green); white-space: nowrap; }
 
 /* DRAWING */
 .drw {
-  flex: 1; margin: 5px; background: rgba(255,255,255,0.015);
+  flex: 1; margin: 6px; background: rgba(255,255,255,0.015);
   border: 1px solid var(--b1); border-radius: var(--rs);
   display: flex; align-items: center; justify-content: center;
   position: relative; overflow: hidden; min-height: 80px;
@@ -464,65 +479,67 @@ body::after {
 .drw::after {
   content: ''; position: absolute; width: 24px; height: 24px;
   border: 1px solid rgba(229,57,53,0.2); border-radius: 50%;
-  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
 }
 .drw span { font-size: var(--fs); color: var(--t4); z-index: 1; }
 
 /* ═══════════════════════════════════════
-   STATUS BAR — 20px
+   STATUS BAR — 22px (between v1's 20 and v2's 24)
    ═══════════════════════════════════════ */
 .sbar {
-  height: 20px; background: var(--surface);
+  height: 22px; background: var(--surface);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--b1);
-  display: flex; align-items: center; padding: 0 8px; gap: 6px;
-  font-size: 10px; color: var(--t4); flex-shrink: 0; z-index: 10;
+  display: flex; align-items: center; padding: 0 10px; gap: 7px;
+  font-size: 10.5px; color: var(--t4); flex-shrink: 0; z-index: 10;
   opacity: 0; animation: sU 0.3s 0.4s var(--ease) forwards;
 }
-.sbar .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ok); animation: pulse 3s infinite; }
+.sbar .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); animation: pulse 3s infinite; }
 .sbar .sl { color: var(--t3); }
-.sbar .sb { flex: 1; text-align: center; font-family: var(--mono); color: var(--t4); }
-.sbar .sb .a { color: var(--t3); }
-.sbar .sb .sp { opacity: 0.3; margin: 0 2px; }
-.sbar .sr { display: flex; gap: 5px; align-items: center; }
+.sbar .sb { flex: 1; text-align: center; font-family: var(--mono); color: var(--t4); letter-spacing: 0.01em; }
+.sbar .sb .pnum { color: var(--red); font-weight: 500; }
+.sbar .sb .arrow { opacity: 0.3; margin: 0 3px; }
+.sbar .sr { display: flex; gap: 6px; align-items: center; }
 .sbar .ck { font-family: var(--mono); color: var(--t3); }
 .sbar .sep { opacity: 0.2; }
 
 /* ═══════════════════════════════════════
-   FAB + PICKER
+   FAB + MODULE PICKER
    ═══════════════════════════════════════ */
 .fab {
-  position: fixed; bottom: 28px; right: 10px; width: 30px; height: 30px;
+  position: fixed; bottom: 30px; right: 11px; width: 33px; height: 33px;
   border-radius: 50%; background: var(--red); border: none;
   color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 12px rgba(229,57,53,0.35), 0 0 30px rgba(229,57,53,0.1);
+  box-shadow: 0 3px 14px rgba(229,57,53,0.35), 0 0 30px rgba(229,57,53,0.1);
   transition: all 0.15s var(--ease); z-index: 20;
   opacity: 0; transform: scale(0.5);
 }
 .fab.in { animation: fabIn 0.3s 0.5s var(--spring) forwards; }
 .fab:hover { background: #ef5350; transform: scale(1.08); box-shadow: 0 4px 20px rgba(229,57,53,0.45); }
-.fab svg { width: 14px; height: 14px; stroke-width: 2.5; }
+.fab svg { width: 15px; height: 15px; stroke-width: 2.5; }
 
 .mpk {
-  position: fixed; bottom: 64px; right: 10px; width: 180px;
+  position: fixed; bottom: 68px; right: 11px; width: 190px;
   background: var(--surface); backdrop-filter: blur(20px);
-  border: 1px solid var(--b1); border-radius: var(--r);
+  border: 1px solid var(--b2); border-radius: var(--r);
   box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; overflow: hidden;
   transform-origin: bottom right; transition: all 0.15s var(--ease);
   opacity: 0; transform: scale(0.92) translateY(4px); pointer-events: none;
 }
 .mpk.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
 .mpk-h {
-  padding: 4px 7px; font-size: 9px; font-weight: 600; color: var(--t4);
+  padding: 5px 9px; font-size: 9px; font-weight: 600; color: var(--t4);
   text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--b1);
+  background: var(--raised);
 }
 .mpk-i {
-  display: flex; align-items: center; gap: 5px; padding: 4px 7px;
-  font-size: var(--fs); color: var(--t3); cursor: pointer; transition: all 0.06s;
+  display: flex; align-items: center; gap: 6px; padding: 5px 9px;
+  font-size: var(--fs); color: var(--t2); cursor: pointer; transition: all 0.06s;
   border: none; background: none; width: 100%; text-align: left; font-family: inherit;
 }
 .mpk-i:hover { background: var(--b1); color: var(--t1); }
 .mpk-i .k { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-left: auto; }
+.mpk-i .mi-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════
    KEYFRAMES
@@ -530,7 +547,6 @@ body::after {
 @keyframes drift { from { transform: translate(0,0); } to { transform: translate(60px,60px); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes breathe { from { opacity: 0.3; transform: translate(-50%,-50%) scale(0.95); } to { opacity: 0.6; transform: translate(-50%,-50%) scale(1.05); } }
 @keyframes breatheSlow { from { opacity: 0.25; transform: translate(-50%,-50%) scale(0.97); } to { opacity: 0.55; transform: translate(-50%,-50%) scale(1.04); } }
 @keyframes laserSweep { 0% { transform: translateY(-100vh); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(100vh); opacity: 0; } }
 @keyframes fill { 0% { width: 0; } 60% { width: 75%; } 100% { width: 100%; } }
@@ -540,11 +556,10 @@ body::after {
 @keyframes fabIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes orbFloat { from { transform: translate(0,0); } to { transform: translate(-30px, 20px); } }
-@keyframes sparkDraw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
 </style>
 </head>
 <body>
-<!-- Ambient layers -->
+<!-- Ambient layers — CNC grid + red orbs -->
 <div class="bg-grid"></div>
 <div class="bg-orb a"></div>
 <div class="bg-orb b"></div>
@@ -573,7 +588,7 @@ body::after {
       <button class="lchip" onclick="setL('qd')">Kompletní</button>
     </div>
     <div class="hfill"></div>
-    <div style="display:flex;gap:2px">
+    <div style="display:flex;gap:3px">
       <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></button>
       <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
       <div class="ava">JN</div>
@@ -584,7 +599,7 @@ body::after {
 
   <footer class="sbar">
     <span class="dot"></span><span class="sl">Připojeno</span>
-    <span class="sb" id="crumb"><span class="a">Díl 10001234</span><span class="sp">→</span>Hřídel hlavní</span>
+    <span class="sb" id="crumb"><span class="pnum">10001234</span><span class="arrow">→</span>Hřídel hlavní Ø45×280</span>
     <span class="sr">
       <span class="ck" id="ck"></span><span class="sep">·</span>
       <span>KOVO RYBKA s.r.o.</span><span class="sep">·</span><span style="font-family:var(--mono);opacity:0.5">v2.0</span>
@@ -596,13 +611,13 @@ body::after {
   </button>
   <div class="mpk" id="mpk">
     <div class="mpk-h">Přidat modul</div>
-    <button class="mpk-i">TimeVision<span class="k">⌘6</span></button>
-    <button class="mpk-i">Dávkové sady<span class="k">⌘7</span></button>
-    <button class="mpk-i">Partneři<span class="k">⌘8</span></button>
-    <button class="mpk-i">Nabídky<span class="k">⌘9</span></button>
-    <button class="mpk-i">Výroba<span class="k">⌘0</span></button>
-    <button class="mpk-i">Účetnictví</button>
-    <button class="mpk-i">Soubory</button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--red)"></span>TimeVision<span class="k">⌘6</span></button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--t3)"></span>Dávkové sady<span class="k">⌘7</span></button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--t3)"></span>Partneři<span class="k">⌘8</span></button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--green)"></span>Nabídky<span class="k">⌘9</span></button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--red)"></span>Výroba<span class="k">⌘0</span></button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--t3)"></span>Účetnictví</button>
+    <button class="mpk-i"><span class="mi-dot" style="background:var(--t3)"></span>Soubory</button>
   </div>
 </div>
 
@@ -649,9 +664,9 @@ const PRC={
 
 const SL={ok:'Aktivní',w:'Čeká',e:'Chyba',o:'Koncept'};
 const SC={ok:'ok',w:'w',e:'e',o:'o'};
-let sel=0,po=false,cl='std';
+let sel=0,sel2=3,cl='std',po=false;
 
-// Boot
+// Boot — 1.8s
 setTimeout(()=>{
   document.getElementById('boot').classList.add('go');
   document.getElementById('ws').classList.add('on');
@@ -660,80 +675,57 @@ setTimeout(()=>{
     document.getElementById('fab').classList.add('in');
     build(cl);
   },60);
-},2000);
+},1800);
 
 function setL(l){
   cl=l;
-  document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.textContent.trim()==={std:'Standardní',cmp:'Porovnání',hor:'Horizontální',qd:'Kompletní'}[l]));
+  document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',
+    c.textContent.trim()==={std:'Standardní',cmp:'Porovnání',hor:'Horizontální',qd:'Kompletní'}[l]));
   build(l);
 }
 
 function build(l){
   const t=document.getElementById('tiles');
-  t.dataset.l=l;
-  t.innerHTML='';
+  t.dataset.l=l; t.innerHTML='';
   const d=80;
   if(l==='std'){
     t.innerHTML=mkList('ca')+mkWork('w1','ca');
-    anim(t,d);
   } else if(l==='cmp'){
     t.innerHTML=mkList('ca')+mkWork('w1','ca')+mkWork('w2','cb')+mkList2('cb');
-    anim(t,d);
   } else if(l==='hor'){
     t.innerHTML=mkList('ca','1/span 2')+mkWork('w1','ca')+mkWork('w2','ca');
-    anim(t,d);
   } else if(l==='qd'){
     t.innerHTML=mkList('ca','1/span 2')+mkWork('w1','ca')+mkWork('w2','cb')+mkWork('w3','ca')+mkWork('w4','cb');
-    anim(t,d);
   }
-  setTimeout(()=>{rList();selP(sel);
+  t.querySelectorAll('.pnl').forEach((p,i)=>setTimeout(()=>p.classList.add('v'),i*d));
+  setTimeout(()=>{
+    rList();selP(sel);
     if(l==='cmp'){rList2();selP2(sel2);}
-    document.querySelectorAll('.pnl').forEach(p=>{
-      p.addEventListener('mousedown',()=>{document.querySelectorAll('.pnl').forEach(x=>x.classList.remove('focused'));p.classList.add('focused');});
+    t.querySelectorAll('.pnl').forEach(p=>{
+      p.addEventListener('mousedown',()=>{
+        t.querySelectorAll('.pnl').forEach(x=>x.classList.remove('focused'));
+        p.classList.add('focused');
+      });
     });
   },40);
 }
 
-function anim(t,d){
-  t.querySelectorAll('.pnl').forEach((p,i)=>{
-    setTimeout(()=>p.classList.add('v'),i*d);
-  });
-}
-
 function mkList(ctx,gr){
   const s=gr?` style="grid-row:${gr}"`:'';
-  return `<div class="pnl ${ctx}"${s}><div class="ph"><span class="pht">Díly <span class="n" id="pcnt">12</span></span><span class="phf"></span><div style="display:flex;gap:1px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="psrch" oninput="rList(this.value)"></div><ul class="plist" id="plist"></ul></div></div>`;
+  return `<div class="pnl ${ctx}"${s}><div class="ph"><span class="pht">Díly <span class="n" id="pcnt">12</span></span><span class="phf"></span><div style="display:flex;gap:2px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="psrch" oninput="rList(this.value)"></div><ul class="plist" id="plist"></ul></div></div>`;
 }
 
 function mkList2(ctx){
-  return `<div class="pnl ${ctx}"><div class="ph"><span class="pht">Díly B <span class="n" id="pcnt2">12</span></span><span class="phf"></span><div style="display:flex;gap:1px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="psrch2" oninput="rList2(this.value)"></div><ul class="plist" id="plist2"></ul></div></div>`;
-}
-
-let sel2=3;
-function rList2(q=''){
-  const el=document.getElementById('plist2');if(!el)return;
-  const f=q?D.filter(p=>p.n.includes(q)||p.nm.toLowerCase().includes(q.toLowerCase())):D;
-  const cn=document.getElementById('pcnt2');if(cn)cn.textContent=f.length;
-  el.innerHTML=f.map(p=>{
-    const ri=D.indexOf(p);
-    return `<li class="pi ${ri===sel2?'sel':''}" onclick="selP2(${ri})"><span class="pn">${p.n}</span><span class="pm">${p.nm}</span>${sparkSvg(p.sp)}<span class="pd ${SC[p.s]}"></span></li>`;
-  }).join('');
-}
-
-function selP2(i){
-  sel2=i;const p=D[i];
-  rList2(document.getElementById('psrch2')?.value||'');
-  const el=document.getElementById('w2r');
-  if(el){const id='w2';fillW(id,p);}
+  return `<div class="pnl ${ctx}"><div class="ph"><span class="pht">Díly B <span class="n" id="pcnt2">12</span></span><span class="phf"></span><div style="display:flex;gap:2px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="psrch2" oninput="rList2(this.value)"></div><ul class="plist" id="plist2"></ul></div></div>`;
 }
 
 function mkWork(id,ctx){
-  return `<div class="pnl ${ctx}" id="${id}"><div class="ph"><span class="pht" id="${id}t">Detail</span><div class="ptabs" id="${id}tb"><button class="ptab on" onclick="sTab('${id}','ops',this)">Operace</button><button class="ptab" onclick="sTab('${id}','pri',this)">Kalkulace</button><button class="ptab" onclick="sTab('${id}','drw',this)">Výkres</button></div><span class="phf"></span><div style="display:flex;gap:1px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div style="display:flex;flex-direction:column;height:100%"><div class="rib" id="${id}r"></div><div class="tc" id="${id}ops"></div><div class="tc" id="${id}pri" style="display:none"></div><div class="tc" id="${id}drw" style="display:none;flex:1"></div></div></div></div>`;
+  return `<div class="pnl ${ctx}" id="${id}"><div class="ph"><span class="pht" id="${id}t">Detail</span><div class="ptabs" id="${id}tb"><button class="ptab on" onclick="sTab('${id}','ops',this)">Operace</button><button class="ptab" onclick="sTab('${id}','pri',this)">Kalkulace</button><button class="ptab" onclick="sTab('${id}','drw',this)">Výkres</button></div><span class="phf"></span><div style="display:flex;gap:2px"><button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button><button class="pc x">×</button></div></div><div class="pb"><div style="display:flex;flex-direction:column;height:100%"><div class="rib" id="${id}r"></div><div class="tc" id="${id}ops"></div><div class="tc" id="${id}pri" style="display:none"></div><div class="tc" id="${id}drw" style="display:none;flex:1"></div></div></div></div>`;
 }
 
 function sparkSvg(pts){
   const mx=Math.max(...pts),mn=Math.min(...pts);
-  const w=28,h=10;
+  const w=30,h=11;
   const coords=pts.map((v,i)=>`${(i/(pts.length-1))*w},${h-((v-mn)/(mx-mn||1))*h}`).join(' ');
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${coords}"/></svg>`;
 }
@@ -748,24 +740,50 @@ function rList(q=''){
   }).join('');
 }
 
+function rList2(q=''){
+  const el=document.getElementById('plist2');if(!el)return;
+  const f=q?D.filter(p=>p.n.includes(q)||p.nm.toLowerCase().includes(q.toLowerCase())):D;
+  const cn=document.getElementById('pcnt2');if(cn)cn.textContent=f.length;
+  el.innerHTML=f.map(p=>{
+    const ri=D.indexOf(p);
+    return `<li class="pi ${ri===sel2?'sel':''}" onclick="selP2(${ri})"><span class="pn">${p.n}</span><span class="pm">${p.nm}</span>${sparkSvg(p.sp)}<span class="pd ${SC[p.s]}"></span></li>`;
+  }).join('');
+}
+
 function selP(i){
   sel=i;const p=D[i];
   rList(document.getElementById('psrch')?.value||'');
   document.querySelectorAll('[id^="w"][id$="r"]').forEach(el=>{
     const id=el.id.replace('r','');
-    fillW(id,p);
+    if(id!=='w2'||cl!=='cmp') fillW(id,p);
   });
   const c=document.getElementById('crumb');
-  if(c)c.innerHTML=`<span class="a">Díl ${p.n}</span><span class="sp">→</span>${p.nm}`;
+  if(c)c.innerHTML=`<span class="pnum">${p.n}</span><span class="arrow">→</span>${p.nm}`;
+}
+
+function selP2(i){
+  sel2=i;const p=D[i];
+  rList2(document.getElementById('psrch2')?.value||'');
+  fillW('w2',p);
 }
 
 function fillW(id,p){
   const r=document.getElementById(id+'r'),t=document.getElementById(id+'t');
   if(!r)return;
-  t.innerHTML=`<span style="color:var(--t4)">${p.n}</span> ${p.nm}`;
+  t.innerHTML=`<span style="color:var(--t4);font-family:var(--mono)">${p.n}</span> ${p.nm}`;
   r.classList.add('fade');
   setTimeout(()=>{
-    r.innerHTML=`<div class="rib-r"><span class="rib-i"><span class="rib-l">Díl</span><span class="rib-v m">${p.n}</span></span><span class="rib-i"><span class="rib-l">Mat.</span><span class="rib-v">${p.m}</span></span><span class="rib-i"><span class="rib-l">Ops</span><span class="rib-v m">${p.o}</span></span><span class="bdg"><span class="dot ${SC[p.s]}"></span>${SL[p.s]}</span></div><div class="rib-kpis"><div class="rib-kpi"><span class="kl">Cena/ks</span><span class="kv">${p.p}</span><span class="ku">CZK</span></div><div class="rib-kpi"><span class="kl">Dávka 50ks</span><span class="kv">${(parseFloat(p.p.replace(',','.'))*0.42).toFixed(0)},00</span><span class="ku">CZK</span></div></div><div class="acts"><button class="act brand">✎ Upravit</button><button class="act">⊕ Operace</button><button class="act">⎘ Kopie</button></div>`;
+    r.innerHTML=`<div class="rib-r">
+      <span class="rib-i"><span class="rib-l">Díl</span><span class="rib-v m">${p.n}</span></span>
+      <span class="rib-i"><span class="rib-l">Mat.</span><span class="rib-v">${p.m}</span></span>
+      <span class="rib-i"><span class="rib-l">Ops</span><span class="rib-v m">${p.o}</span></span>
+      <span class="bdg"><span class="dot ${SC[p.s]}"></span>${SL[p.s]}</span>
+    </div>
+    <div class="rib-kpis">
+      <div class="rib-kpi"><span class="kl">Cena/ks</span><span class="kv">${p.p}</span><span class="ku">CZK</span></div>
+      <div class="rib-kpi"><span class="kl">Dávka 50ks</span><span class="kv">${(parseFloat(p.p.replace(',','.'))*0.42).toFixed(0)},00</span><span class="ku">CZK</span></div>
+    </div>
+    <div class="acts"><button class="act brand">✎ Upravit</button><button class="act">⊕ Operace</button><button class="act">⎘ Kopie</button></div>`;
     r.classList.remove('fade');
   },100);
   fillOps(id,p.n);fillPri(id,p.n);fillDrw(id,p.nm);
@@ -774,15 +792,43 @@ function fillW(id,p){
 function fillOps(id,num){
   const el=document.getElementById(id+'ops');if(!el)return;
   const ops=OPS[num]||OPS['10001234'];
-  el.innerHTML=`<table class="ot"><thead><tr><th>Seq</th><th>Pracoviště</th><th>Operace</th><th class="r">Seříz.</th><th class="r">Čas/ks</th><th class="r">CZK</th></tr></thead><tbody>${ops.map((o,i)=>`<tr class="${i===0?'sel':''}"><td class="r">${o.sq}</td><td>${o.wc}</td><td>${o.op}</td><td class="r">${o.su==='—'?'<span style="color:var(--t4)">—</span>':`<span class="tb s"><span class="d"></span>${o.su}</span>`}</td><td class="r"><span class="tb o"><span class="d"></span>${o.t}</span></td><td class="r">${o.c}</td></tr>`).join('')}</tbody></table>`;
+  el.innerHTML=`<table class="ot"><thead><tr><th>Seq</th><th>Pracoviště</th><th>Operace</th><th class="r">Seříz.</th><th class="r">Čas/ks</th><th class="r">CZK</th></tr></thead><tbody>${
+    ops.map((o,i)=>`<tr class="${i===0?'sel':''}">
+      <td class="r">${o.sq}</td><td>${o.wc}</td><td>${o.op}</td>
+      <td class="r">${o.su==='—'?'<span style="color:var(--t4)">—</span>':`<span class="tb s"><span class="d"></span>${o.su}</span>`}</td>
+      <td class="r"><span class="tb o"><span class="d"></span>${o.t}</span></td>
+      <td class="r">${o.c}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function fillPri(id,num){
   const el=document.getElementById(id+'pri');if(!el)return;
   const pr=PRC[num]||PRC['10001234'];
   const tot=parseFloat(pr.u.replace(',','.')),mp=parseFloat(pr.mat.replace(',','.'))/tot,mcp=parseFloat(pr.mc.replace(',','.'))/tot,op=1-mp-mcp;
-  const r=28,circ=2*Math.PI*r,mL=circ*mp,mcL=circ*mcp,oL=circ*op;
-  el.innerHTML=`<div class="pr-w"><div class="pr-row"><div class="prc"><span class="l">Cena/ks</span><span class="v">${pr.u}</span><span class="u">CZK</span></div><div class="prc"><span class="l">Materiál</span><span class="v">${pr.mat}</span><span class="u">CZK</span></div><div class="prc"><span class="l">Obrábění</span><span class="v">${pr.mc}</span><span class="u">CZK</span></div></div><div class="ring-row"><svg class="ring-svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--b1)" stroke-width="5"/><circle cx="32" cy="32" r="${r}" fill="none" stroke="#60a5fa" stroke-width="5" stroke-dasharray="${mL} ${circ-mL}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round"/><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--red)" stroke-width="5" stroke-dasharray="${mcL} ${circ-mcL}" stroke-dashoffset="${circ*0.25-mL}" stroke-linecap="round"/><circle cx="32" cy="32" r="${r}" fill="none" stroke="#6b7280" stroke-width="5" stroke-dasharray="${oL} ${circ-oL}" stroke-dashoffset="${circ*0.25-mL-mcL}" stroke-linecap="round"/><text x="32" y="31" text-anchor="middle" fill="var(--t1)" font-family="JetBrains Mono" font-size="7" font-weight="600">${pr.u}</text><text x="32" y="38" text-anchor="middle" fill="var(--t4)" font-family="Inter" font-size="5">CZK/ks</text></svg><div class="ring-leg"><div class="rli"><span class="rld" style="background:#60a5fa"></span>Materiál<span class="rlv">${pr.mat}</span></div><div class="rli"><span class="rld" style="background:var(--red)"></span>Obrábění<span class="rlv">${pr.mc}</span></div><div class="rli"><span class="rld" style="background:#6b7280"></span>Režie<span class="rlv">${pr.oh}</span></div></div></div><table class="bt"><thead><tr><th>Množství</th><th style="text-align:right">Cena/ks</th><th style="text-align:right">Celkem</th></tr></thead><tbody>${pr.b.map(b=>`<tr><td class="q" style="font-family:var(--mono);text-align:right">${b.q} ks</td><td class="c">${b.u} CZK</td><td class="c">${b.t} CZK</td></tr>`).join('')}</tbody></table></div>`;
+  const r=29,circ=2*Math.PI*r,mL=circ*mp,mcL=circ*mcp,oL=circ*op;
+  el.innerHTML=`<div class="pr-w">
+    <div class="pr-row">
+      <div class="prc price"><span class="l">Cena/ks</span><span class="v">${pr.u}</span><span class="u">CZK</span></div>
+      <div class="prc"><span class="l">Materiál</span><span class="v">${pr.mat}</span><span class="u">CZK</span></div>
+      <div class="prc"><span class="l">Obrábění</span><span class="v">${pr.mc}</span><span class="u">CZK</span></div>
+    </div>
+    <div class="ring-row">
+      <svg class="ring-svg" viewBox="0 0 66 66">
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="var(--b1)" stroke-width="5.5"/>
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="var(--green)" stroke-width="5.5" stroke-dasharray="${mL} ${circ-mL}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round"/>
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="var(--red)" stroke-width="5.5" stroke-dasharray="${mcL} ${circ-mcL}" stroke-dashoffset="${circ*0.25-mL}" stroke-linecap="round"/>
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="#6b7280" stroke-width="5.5" stroke-dasharray="${oL} ${circ-oL}" stroke-dashoffset="${circ*0.25-mL-mcL}" stroke-linecap="round"/>
+        <text x="33" y="32" text-anchor="middle" fill="var(--t1)" font-family="JetBrains Mono" font-size="7.5" font-weight="600">${pr.u}</text>
+        <text x="33" y="39" text-anchor="middle" fill="var(--t4)" font-family="DM Sans" font-size="5.5">CZK/ks</text>
+      </svg>
+      <div class="ring-leg">
+        <div class="rli"><span class="rld" style="background:var(--green)"></span>Materiál<span class="rlv">${pr.mat}</span></div>
+        <div class="rli"><span class="rld" style="background:var(--red)"></span>Obrábění<span class="rlv">${pr.mc}</span></div>
+        <div class="rli"><span class="rld" style="background:#6b7280"></span>Režie<span class="rlv">${pr.oh}</span></div>
+      </div>
+    </div>
+    <table class="bt"><thead><tr><th>Množství</th><th style="text-align:right">Cena/ks</th><th style="text-align:right">Celkem</th></tr></thead><tbody>${
+      pr.b.map(b=>`<tr><td class="q" style="font-family:var(--mono);text-align:right">${b.q} ks</td><td class="c">${b.u} CZK</td><td class="c">${b.t} CZK</td></tr>`).join('')
+    }</tbody></table></div>`;
 }
 
 function fillDrw(id,nm){
@@ -797,24 +843,25 @@ function sTab(id,tab,btn){
   ['ops','pri','drw'].forEach(t=>{const e=document.getElementById(id+t);if(e)e.style.display=t===tab?'':'none';});
 }
 
-function toggleMax(p){p.classList.toggle('max');}
+function toggleMax(p){ p.classList.toggle('max'); }
 
-let po2=false;
 function toggleP(){
-  po2=!po2;
-  document.getElementById('mpk').classList.toggle('open',po2);
-  document.getElementById('fab').style.transform=po2?'rotate(45deg)':'';
+  po=!po;
+  document.getElementById('mpk').classList.toggle('open',po);
+  document.getElementById('fab').style.transform=po?'rotate(45deg)':'';
 }
 document.addEventListener('click',e=>{
-  if(po2&&!e.target.closest('#fab')&&!e.target.closest('#mpk')){
-    po2=false;document.getElementById('mpk').classList.remove('open');
+  if(po&&!e.target.closest('#fab')&&!e.target.closest('#mpk')){
+    po=false;document.getElementById('mpk').classList.remove('open');
     document.getElementById('fab').style.transform='';
   }
 });
 
+// Clock
 function ck(){const e=document.getElementById('ck');if(e)e.textContent=new Date().toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});}
 ck();setInterval(ck,10000);
 
+// Keyboard shortcuts
 document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&['1','2','3','4'].includes(e.key)){
     e.preventDefault();setL(['std','cmp','hor','qd'][+e.key-1]);

@@ -269,15 +269,15 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-0\.5) var(--space-3);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 12px;
+  padding: 2px var(--pad);
+  background: var(--surface);
+  border-bottom: 1px solid var(--b1);
 }
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 .tool-btn {
   display: flex;
@@ -287,27 +287,27 @@ onBeforeUnmount(() => {
   height: 24px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
+  color: var(--t3);
+  border-radius: var(--rs);
   cursor: pointer;
   transition: all 0.1s;
 }
 .tool-btn:hover:not(:disabled) {
-  background: var(--state-hover);
-  color: var(--text-primary);
+  background: var(--b1);
+  color: var(--t1);
 }
 .tool-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 .tool-btn.active {
-  background: var(--brand-subtle);
-  border: 1px solid var(--brand);
-  color: var(--brand);
+  background: var(--red-10);
+  border: 1px solid var(--red);
+  color: var(--red);
 }
 .zoom-label, .page-label {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   min-width: 40px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--bg-subtle);
+  background: var(--ground);
   position: relative;
 }
 .pdf-container.scroll-mode {
@@ -342,7 +342,7 @@ onBeforeUnmount(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--text-muted);
+  background: var(--t3);
   animation: pulse 1s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -350,15 +350,15 @@ onBeforeUnmount(() => {
   50% { opacity: 1; transform: scale(1.2); }
 }
 .pdf-error {
-  color: var(--color-danger);
-  font-size: var(--text-sm);
-  padding: var(--space-2);
+  color: var(--err);
+  font-size: var(--fs);
+  padding: 6px;
 }
 .no-pdf {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-muted);
+  color: var(--t3);
 }
 </style>

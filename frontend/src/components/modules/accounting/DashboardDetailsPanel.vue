@@ -22,8 +22,8 @@ const colors = ref<Record<string, string>>({})
 onMounted(() => {
   const s = getComputedStyle(document.documentElement)
   colors.value = {
-    revenue: s.getPropertyValue('--chart-revenue').trim() || s.getPropertyValue('--color-success').trim(),
-    material: s.getPropertyValue('--chart-material').trim() || s.getPropertyValue('--color-success').trim(),
+    revenue: s.getPropertyValue('--chart-revenue').trim() || s.getPropertyValue('--ok').trim(),
+    material: s.getPropertyValue('--chart-material').trim() || s.getPropertyValue('--t3').trim(),
   }
 })
 
@@ -159,37 +159,37 @@ const machinesBarData = computed(() =>
 .details-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-5);
+  gap: 20px;
+  padding: 16px;
   overflow-y: auto;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .section-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t1);
   margin: 0;
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--border-default);
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--b2);
 }
 
 .row-layout {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .chart-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  padding: 12px;
 }
 
 .chart-card.full-width {
@@ -197,10 +197,10 @@ const machinesBarData = computed(() =>
 }
 
 .chart-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-4) 0;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
+  margin: 0 0 12px 0;
 }
 
 .loading-placeholder {
@@ -208,7 +208,7 @@ const machinesBarData = computed(() =>
   align-items: center;
   justify-content: center;
   height: 220px;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 </style>

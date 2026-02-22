@@ -95,11 +95,11 @@ onMounted(() => {
 <style scoped>
 .windows-view {
   position: absolute;
-  top: 56px; /* Right after fixed header */
+  top: 36px; /* Right after fixed header */
   bottom: 32px; /* Above fixed footer */
   left: 0;
   right: 0;
-  background: var(--bg-base);
+  background: var(--base);
   overflow: hidden;
 }
 
@@ -112,15 +112,15 @@ onMounted(() => {
 /* Empty State */
 
 .empty-icon {
-  margin-bottom: var(--space-5);
+  margin-bottom: 16px;
   opacity: 0.3;
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 /* Empty state transition */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity var(--duration-slow) var(--ease);
+  transition: opacity 300ms var(--ease);
 }
 
 .fade-enter-from,

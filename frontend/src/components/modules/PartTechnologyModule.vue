@@ -302,7 +302,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 .left-panel {
   flex-shrink: 0;
   /* width set via :style binding */
-  padding: var(--space-3);
+  padding: var(--pad);
   height: 100%;
   overflow: hidden;
 }
@@ -310,16 +310,16 @@ watch(() => props.partNumber, (newPartNumber) => {
 /* === RESIZE HANDLE === */
 .resize-handle {
   width: 4px;
-  background: var(--border-default);
+  background: var(--b2);
   cursor: col-resize;
   flex-shrink: 0;
-  transition: background var(--transition-fast);
+  transition: background all 100ms var(--ease);
   position: relative;
 }
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--color-primary);
+  background: var(--red);
 }
 
 /* Wider hit area for easier dragging */
@@ -351,41 +351,41 @@ watch(() => props.partNumber, (newPartNumber) => {
 /* === CONTEXT INFO RIBBON === */
 .context-ribbon-wrap {
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
 }
 
 .context-ribbon {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: 6px;
+  padding: 6px var(--pad);
   cursor: pointer;
   user-select: none;
 }
 
 .context-ribbon:hover {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 .ribbon-chevron {
-  color: var(--text-tertiary);
+  color: var(--t3);
   flex-shrink: 0;
 }
 
 .ctx-article {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  font-weight: 700;
+  color: var(--t1);
   letter-spacing: 0.02em;
   flex-shrink: 0;
 }
 
 .ctx-name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-normal);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  font-weight: 400;
+  color: var(--t3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -393,7 +393,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 }
 
 .ribbon-detail-expand {
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--b2);
   max-height: 400px;
   overflow-y: auto;
 }

@@ -277,7 +277,7 @@ const resizeCursor = computed(() =>
 
 .second-panel {
   flex: 1;
-  padding: var(--space-5);
+  padding: 16px;
   overflow-y: auto;
   container-type: inline-size;
   container-name: second-panel;
@@ -286,8 +286,8 @@ const resizeCursor = computed(() =>
 /* === RESIZE HANDLE === */
 .resize-handle {
   flex-shrink: 0;
-  background: var(--border-default);
-  transition: background var(--duration-fast);
+  background: var(--b2);
+  transition: background 100ms;
   position: relative;
   z-index: 10;
 }
@@ -302,7 +302,7 @@ const resizeCursor = computed(() =>
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--color-primary);
+  background: var(--red);
 }
 
 /* second-panel nemá padding — PartDetailPanel si spravuje vlastní */
@@ -323,11 +323,11 @@ const resizeCursor = computed(() =>
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--t3);
   text-align: center;
 }
 
 .empty p {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 </style>

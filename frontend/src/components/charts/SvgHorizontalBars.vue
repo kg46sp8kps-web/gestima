@@ -69,7 +69,7 @@ function getBarWidth(value: number): number {
           :y="BAR_HEIGHT / 2"
           text-anchor="end"
           dominant-baseline="middle"
-          fill="var(--text-body)"
+          fill="var(--t2)"
           font-size="11"
           font-weight="500"
         >
@@ -82,7 +82,7 @@ function getBarWidth(value: number): number {
           :y="2"
           :width="BAR_MAX_WIDTH"
           :height="BAR_HEIGHT - 4"
-          fill="var(--bg-surface)"
+          fill="var(--surface)"
           rx="2"
         />
 
@@ -105,9 +105,9 @@ function getBarWidth(value: number): number {
           :y="BAR_HEIGHT / 2"
           text-anchor="start"
           dominant-baseline="middle"
-          fill="var(--text-secondary)"
+          fill="var(--t3)"
           font-size="10"
-          font-family="var(--font-mono)"
+          font-family="var(--mono)"
           font-weight="600"
         >
           {{ formatValue(item.value) }}
@@ -128,7 +128,7 @@ function getBarWidth(value: number): number {
 }
 
 .bar-row {
-  transition: opacity var(--duration-fast);
+  transition: opacity 100ms;
 }
 
 .bar-row:hover {

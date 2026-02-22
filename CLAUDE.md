@@ -31,8 +31,9 @@ Layer 2: GIT PRE-COMMIT HOOK (high — system-enforced locally)
   → Config: .githooks/pre-commit (activated via git config core.hooksPath)
 
 Layer 3: CLAUDE CODE HOOKS (medium-high — runs after every file edit)
-  → validate-frontend.sh: 12 checks — colors, inline styles, any, !important, axios,
-    @media queries, scoped styles, hardcoded font-size, rgb/rgba/hsl, Options API, lucide imports
+  → validate-frontend-v2.sh: 10 checks for v2 design system enforcement
+    ERRORS (block): hex colors, 'any' type, !important, missing scoped, Options API
+    WARNINGS (inform): legacy v1 tokens in tiling/, @media, inline styles, direct axios, biz calc
   → validate-backend.sh: checks auth deps, safe_commit, soft_delete, SQL injection
   → validate-wiring.sh: checks new components are imported somewhere
   → Catches issues in real-time during editing.
@@ -130,7 +131,7 @@ Every task MUST follow this sequence. No exceptions. No shortcuts.
 ### 1. UNDERSTAND before touching code
 - Read ALL files you plan to modify
 - Read related files (if editing a router, read the corresponding service, model, schema)
-- **For frontend UI work:** Reference `frontend/template.html` for visual patterns (open in browser or read the CSS/HTML sections for the component type you're building)
+- **For frontend UI work:** Reference `frontend/tiling-preview-v2.html` for visual patterns (open in browser or read the CSS/HTML sections for the component type you're building)
 - Understand the existing pattern before proposing changes
 - For infra/deployment tasks: check OS, versions, prerequisites FIRST
 
@@ -426,7 +427,7 @@ frontend/src/                 # Frontend (Vue 3, TypeScript)
 ├── api/                      # Axios API clients (20 modules)
 │   └── client.ts             # apiClient + adminClient setup
 ├── assets/css/
-│   ├── design-system.css     # v4.0 — ALL design tokens (DO NOT duplicate)
+│   ├── design-system.css     # v6.0 — pure v2 tokens, NO legacy aliases (51 tokens)
 │   ├── tailwind.css          # Utilities only
 │   ├── base.css              # Body, layout
 │   └── modules/              # Module-specific styles
@@ -515,17 +516,20 @@ frontend/e2e/                 # E2E tests (Playwright)
 
 1. **Use `<script setup lang="ts">`** — no Options API, no class components
 2. **Scoped styles:** `<style scoped>` always
-3. **Design tokens only** — never hardcode colors, use CSS variables:
+3. **Design tokens only** — never hardcode colors, use v2 CSS variables:
    ```css
-   /* CORRECT */
-   color: var(--text-primary);
-   background: var(--bg-surface);
-   border: 1px solid var(--border-default);
+   /* CORRECT — v2 tokens */
+   color: var(--t1);
+   background: var(--surface);
+   border: 1px solid var(--b2);
+   font-weight: 600;        /* literal, v2 doesn't tokenize weights */
+   padding: 6px var(--pad);  /* literal px for spacing */
 
    /* WRONG — NEVER DO THIS */
    color: #ffffff;
    background: #1a1a1a;
    border: 1px solid #333;
+   color: var(--text-primary);  /* legacy alias — removed in v6.0 */
    ```
 4. **Interactive elements MUST have `data-testid`** — buttons, inputs, links, rows
 5. **Icons:** Lucide Vue Next, size via `ICON_SIZE` constant (18px) from `config/design.ts`
@@ -534,43 +538,45 @@ frontend/e2e/                 # E2E tests (Playwright)
    - Atomic (<200 LOC), Molecular (<500 LOC), Organism (<1000 LOC)
    - If larger, split into sub-components
 
-### Design System (design-system.css) — MANDATORY REFERENCE
+### Design System v2 (design-system.css v6.0) — MANDATORY REFERENCE
+
+**Source of truth:** `tiling-preview-v2.html` (visual) + `design-system.css` v6.0 (tokens)
+**Font:** DM Sans (not Inter). Dark-only, no light mode.
+**51 tokens total:** 35 v2 + 16 app-specific. NO legacy aliases.
 
 ```css
-/* Colors — ALWAYS use these variables, never raw hex */
---brand: #991b1b;           /* Primary red */
---bg-base: #0a0a0a;         /* App background */
---bg-surface: #141414;      /* Card/panel background */
---bg-raised: #1a1a1a;       /* Elevated surfaces */
---bg-input: #0f0f0f;        /* Input fields */
---text-primary: #ffffff;    /* Main text */
---text-body: #e5e5e5;       /* Body text */
---text-secondary: #a3a3a3;  /* Secondary text */
---text-muted: #737373;      /* Muted/disabled text */
---border-default: #262626;  /* Default borders */
---border-subtle: #1a1a1a;   /* Subtle borders */
---palette-success: #22c55e;
---palette-danger: #ef4444;
---palette-warning: #eab308;
+/* ═══ V2 TOKENS — this is EVERYTHING ═══ */
 
-/* Interactive states */
---hover: rgba(255,255,255,0.04);
---active: rgba(255,255,255,0.08);
---selected: rgba(255,255,255,0.06);
---focus-ring: rgba(255,255,255,0.5);
+/* Brand */  --red  --red-glow  --red-dim  --red-10  --red-20
+/* Money */  --green  --green-10  --green-15
+/* Surfaces */  --base  --ground  --surface  --raised  --glass
+/* Text */  --t1  --t2  --t3  --t4
+/* Borders */  --b1  --b2  --b3
+/* Status */  --ok  --warn  --err
+/* Linking */  --la  --lb
+/* Font */  --font ('DM Sans')  --mono ('JetBrains Mono')
+/* Size */  --fs (12px)  --fsl (11px)
+/* Spacing */  --gap (3px)  --pad (8px)  --r (7px)  --rs (4px)
+/* Motion */  --ease  --spring
 
-/* Spacing — rem-based */
---space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
---space-4: 1rem; --space-6: 1.5rem; --space-8: 2rem;
-
-/* Typography */
---text-xs: 0.6875rem; --text-sm: 0.75rem; --text-base: 0.8125rem;
-
-/* Density system */
---density-row-height: 32px; /* compact */ or 40px /* comfortable */
+/* App-specific (charts + linking groups) */
+--chart-material  --chart-machining  --chart-setup  --chart-cooperation
+--chart-revenue  --chart-expenses  --chart-profit  --chart-wages
+--chart-depreciation  --chart-energy  --chart-tools
+--link-group-red  --link-group-blue  --link-group-green
+--link-group-yellow  --link-group-neutral
 ```
 
-**If you need a color, spacing, or size not defined here — ASK, don't invent.**
+#### What v2 does NOT tokenize (use literal values):
+- **Font-weight:** `400`, `420` (body), `500`, `600`, `700`
+- **Font-size** (beyond --fs/--fsl): `9px`, `10px`, `14px`, `16px`, `28px`
+- **Spacing:** `2px`, `4px`, `6px`, `8px` (or `var(--pad)`), `12px`, `16px`, `20px`, `24px`
+- **Shadows:** `0 4px 12px rgba(0,0,0,0.5)`
+- **Transitions:** `all 100ms var(--ease)`, `all 150ms var(--ease)`
+- **Radius** (beyond --r/--rs): `8px`, `12px`, `99px`
+- **Focus:** `rgba(255,255,255,0.5)` (outline), `rgba(255,255,255,0.03)` (bg)
+
+**If you need a color or token not listed above — ASK, don't invent.**
 
 ### Pinia Stores — ALWAYS
 
@@ -612,39 +618,45 @@ frontend/e2e/                 # E2E tests (Playwright)
 3. **Never create new CSS files** — extend existing ones if needed
 4. **Never add inline `style=""` attributes** — use classes or CSS variables
 5. **Button variants:** `.btn-primary`, `.btn-secondary`, `.btn-destructive` (all ghost/transparent)
-6. **Focus:** Always visible — `:focus-visible { outline: 2px solid var(--focus-ring) }` (WHITE, never blue)
+6. **Focus:** Always visible — `:focus-visible { outline: 2px solid rgba(255,255,255,0.5) }` (WHITE, never blue)
 7. **`<style scoped>` always** — never unscoped styles in .vue files
 8. **`@container` queries** — never `@media` queries in components (container-aware layout)
-9. **Font sizes via tokens** — `var(--text-xs)` minimum (13px). Never hardcode `font-size: Npx`
+9. **Font sizes via v2 tokens** — `var(--fs)` (12px) standard, `var(--fsl)` (11px) small labels. Hardcoded px allowed in tiling components for fine-tuning (e.g., 10.5px headers)
 
 ### UI/UX Patterns — APPROVED (follow exactly)
 
-**Visual reference:** `frontend/template.html` — open in browser to see every pattern live.
+**Visual reference:** `frontend/tiling-preview-v2.html` — open in browser to see every pattern live.
 
 | Pattern | Rule |
 |---------|------|
 | **Buttons** | Ghost only. 3 variants: `.btn-primary`, `.btn-secondary`, `.btn-destructive`. NO filled buttons. |
 | **Icon buttons** | `.icon-btn` default grey → hover white. `.icon-btn-brand` for add/edit, `.icon-btn-danger` for delete. |
 | **Badges** | Monochrome background + colored dot for status. `.badge` + `.badge-dot-ok/error/warn/neutral/brand`. |
-| **Focus ring** | WHITE (`--focus-ring`). Never blue, never red, never brand color. |
-| **Selected rows** | Neutral white overlay (`--selected`). Never brand-tinted. |
-| **Edit mode** | `--bg-raised` + `--border-strong`. NOT red border. |
+| **Focus ring** | WHITE (`rgba(255,255,255,0.5)`). Never blue, never red, never brand color. |
+| **Selected rows** | Neutral white overlay (`var(--b1)`). Never brand-tinted. |
+| **Edit mode** | `var(--raised)` + `var(--b3)`. NOT red border. |
 | **Toasts** | Monochrome body + colored left border (`.toast-ok/error/warn`). |
 | **Status colors** | ONLY in: badge dots, toast left borders, chart segments. Never as button/badge background. |
-| **Numbers & prices** | `font-family: var(--font-mono)` + `.col-num` (right-align) or `.col-currency` (right-align, nowrap). |
+| **Numbers & prices** | `font-family: var(--mono);` + `.col-num` (right-align) or `.col-currency` (right-align, nowrap). |
 | **Layout** | `@container` queries, NOT `@media`. Fluid heights, NOT fixed px heights. |
 
 ### NEVER do this (Frontend) — hook-enforced where marked
 
-- ❌ Hardcode colors (hex, rgb, rgba, hsl) — use CSS variables [HOOK-ENFORCED]
-- ❌ Hardcode `font-size: Npx` — use `var(--text-*)` tokens [HOOK-ENFORCED]
-- ❌ Use `any` type in TypeScript [HOOK-ENFORCED]
-- ❌ Use `!important` in CSS [HOOK-ENFORCED]
-- ❌ Add inline `style=""` attributes [HOOK-ENFORCED]
-- ❌ Import axios directly in components [HOOK-ENFORCED]
-- ❌ Use `@media` queries in components [HOOK-ENFORCED]
-- ❌ Use `<style>` without `scoped` [HOOK-ENFORCED]
-- ❌ Use Options API (`export default {}`) [HOOK-ENFORCED]
+**ERRORS (validate-frontend-v2.sh blocks the edit):**
+- ❌ Hardcode hex colors in .vue/.css — use `var(--token)` [HOOK: ERROR 1]
+- ❌ Use `any` type in TypeScript [HOOK: ERROR 2]
+- ❌ Use `!important` in CSS [HOOK: ERROR 3]
+- ❌ Use `<style>` without `scoped` [HOOK: ERROR 4]
+- ❌ Use Options API (`export default {}`) [HOOK: ERROR 5]
+- ❌ Use legacy/non-v2 token names (`--bg-surface`, `--text-primary`, `--brand`, `--space-*`, etc.) [HOOK: ERROR 6]
+
+**WARNINGS (hook informs, doesn't block):**
+- ⚠️ Use `@media` queries in components — prefer `@container` [HOOK: WARN 7]
+- ⚠️ Add inline `style=""` attributes — prefer CSS classes [HOOK: WARN 8]
+- ⚠️ Import axios directly in components — use api/ modules [HOOK: WARN 9]
+- ⚠️ Business calculations in frontend — compute in backend [HOOK: WARN 10]
+
+**Additional rules (not hook-enforced):**
 - ❌ Skip `data-testid` on interactive elements
 - ❌ Skip error handling on API calls
 - ❌ Ignore existing component patterns — copy them
@@ -653,7 +665,7 @@ frontend/e2e/                 # E2E tests (Playwright)
 - ❌ Use filled/colored buttons (ghost only)
 - ❌ Use colored badge backgrounds (monochrome + dot only)
 - ❌ Use blue/red focus rings (white only)
-- ❌ Use red border on edit mode (use `--border-strong`)
+- ❌ Use red border on edit mode (use `--b3`)
 - ❌ Use emoji in UI (use Lucide icons)
 
 ---
@@ -718,6 +730,20 @@ test('should create part', async ({ page }) => {
 - [ ] Input validation via Pydantic schemas
 - [ ] Rate limiting on sensitive endpoints
 - [ ] CORS configured correctly
+
+---
+
+## Subagent Model Policy
+
+Ad-hoc `Task` subagenty (ty bez `.claude/agents/*.md` definice) spouštěj vždy s explicitním modelem:
+
+| Účel | Model |
+|------|-------|
+| Coding, psaní dokumentů, refactoring | `model: sonnet` |
+| Jednoduchý research, search | `model: haiku` |
+| Audit, architektura, komplexní debugging | `model: opus` |
+
+**NIKDY nespoléhej na dědičnost od rodiče.** Vždy zadej `model` parametr v `Task` tool callu.
 
 ---
 
@@ -821,7 +847,7 @@ import { ICON_SIZE } from '@/config/design'
 | TS types/interfaces | PascalCase | `PartCreate`, `MaterialResponse` |
 | TS functions | camelCase | `fetchParts()` |
 | CSS classes | kebab-case | `.btn-primary`, `.panel-header` |
-| CSS variables | kebab-case with prefix | `--bg-surface`, `--text-primary` |
+| CSS variables | v2 short names | `--t1`, `--b2`, `--surface`, `--red`, `--fs` |
 | API routes | kebab-case plural | `/api/material-inputs` |
 | DB tables | snake_case plural | `material_inputs` |
 | data-testid | kebab-case | `create-part-button` |

@@ -41,7 +41,7 @@ const emit = defineEmits<Emits>()
 <style scoped>
 .favorite-layouts {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .favorite-btn {
@@ -50,25 +50,25 @@ const emit = defineEmits<Emits>()
   justify-content: center;
   min-width: 80px;
   height: 32px;
-  padding: 0 var(--space-3);
+  padding: 0 var(--pad);
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .favorite-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .favorite-btn.is-active {
-  background: var(--primary-color);
+  background: var(--red);
   color: white;
-  border-color: var(--primary-color);
+  border-color: var(--red);
 }
 </style>

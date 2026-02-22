@@ -76,26 +76,26 @@ function handleSelect(value: string, label: string) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   min-width: 280px;
 }
 
 .search-icon {
   position: absolute;
-  left: var(--space-3);
-  color: var(--text-secondary);
+  left: var(--pad);
+  color: var(--t3);
   pointer-events: none;
 }
 
 .search-results {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   z-index: 10003;
   max-height: 300px;
   overflow-y: auto;
@@ -104,17 +104,17 @@ function handleSelect(value: string, label: string) {
 .search-result-item {
   display: block;
   width: 100%;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--pad) 12px;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--t1);
   text-align: left;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .search-result-item:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 </style>

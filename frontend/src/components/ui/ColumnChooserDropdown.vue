@@ -101,13 +101,13 @@ function handleDragEnd() {
 <style scoped>
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + 4px);
   right: 0;
   min-width: 200px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   z-index: 1000;
   overflow: hidden;
 }
@@ -116,36 +116,36 @@ function handleDragEnd() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-subtle);
+  padding: 6px var(--pad);
+  border-bottom: 1px solid var(--b2);
+  background: var(--ground);
 }
 
 .dropdown-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .btn-reset {
   display: flex;
   align-items: center;
-  padding: var(--space-1);
+  padding: 4px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--t3);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
+  border-radius: var(--rs);
+  transition: all 100ms var(--ease);
 }
 
 .btn-reset:hover {
-  background: var(--state-hover);
-  color: var(--color-primary);
+  background: var(--b1);
+  color: var(--red);
 }
 
 .dropdown-content {
-  padding: var(--space-2);
+  padding: 6px;
   max-height: 400px;
   overflow-y: auto;
 }
@@ -153,16 +153,16 @@ function handleDragEnd() {
 .column-option {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
+  gap: 6px;
+  padding: 6px;
   cursor: grab;
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
+  border-radius: var(--rs);
+  transition: all 100ms var(--ease);
   position: relative;
 }
 
 .column-option:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .column-option.dragging {
@@ -171,8 +171,8 @@ function handleDragEnd() {
 }
 
 .column-option.drag-over {
-  background: var(--brand-subtle);
-  border-top: 2px solid var(--palette-info);
+  background: var(--red-10);
+  border-top: 2px solid var(--t3);
 }
 
 .column-option input[type="checkbox"] {
@@ -182,14 +182,14 @@ function handleDragEnd() {
 }
 
 .option-label {
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  font-size: var(--fs);
+  color: var(--t2);
   user-select: none;
   flex: 1;
 }
 
 .drag-handle {
-  color: var(--text-tertiary);
+  color: var(--t3);
   cursor: grab;
   flex-shrink: 0;
 }

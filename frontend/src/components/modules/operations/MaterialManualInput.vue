@@ -268,11 +268,11 @@ function handleCreate() {
 .parse-preview {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  gap: 6px;
+  padding: 6px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .preview-header {
@@ -282,54 +282,54 @@ function handleCreate() {
 }
 
 .preview-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
   text-transform: uppercase;
 }
 
 .preview-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .manual-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .manual-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .manual-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .manual-control {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  padding: 4px 6px;
+  background: var(--ground);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
   font-family: inherit;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .manual-control:focus {
   outline: none;
-  border-color: var(--border-strong);
-  background: var(--bg-base);
+  border-color: var(--b3);
+  background: var(--base);
 }
 
 .manual-control:disabled {
@@ -338,24 +338,24 @@ function handleCreate() {
 }
 
 .manual-control::placeholder {
-  color: var(--text-muted);
+  color: var(--t3);
 }
 
 /* Compact info row: category + weight + price */
 .info-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-base);
-  border-radius: var(--radius-sm);
+  gap: var(--pad);
+  padding: 4px 6px;
+  background: var(--base);
+  border-radius: var(--rs);
   min-height: 24px;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
   white-space: nowrap;
 }
 
@@ -365,69 +365,69 @@ function handleCreate() {
 }
 
 .info-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
   flex-shrink: 0;
 }
 
 .info-value {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .info-muted {
-  color: var(--text-muted);
+  color: var(--t3);
   font-style: italic;
 }
 
 .info-error {
-  color: var(--palette-danger);
+  color: var(--err);
 }
 
 .info-mono {
-  font-family: var(--font-mono);
-  font-weight: var(--font-semibold);
+  font-family: var(--mono);
+  font-weight: 600;
 }
 
 .info-price {
-  color: var(--palette-success);
+  color: var(--ok);
 }
 
 .preview-warning {
-  font-size: var(--text-sm);
-  color: var(--palette-danger);
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-base);
-  border-radius: var(--radius-sm);
+  font-size: var(--fs);
+  color: var(--err);
+  padding: 4px 6px;
+  background: var(--base);
+  border-radius: var(--rs);
 }
 
 .preview-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .btn-confirm {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-success);
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--ok);
   color: white;
   border: none;
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
+  border-radius: var(--rs);
+  font-weight: 600;
+  font-size: var(--fs);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .btn-confirm:hover:not(:disabled) {
-  background: var(--color-success-hover);
+  background: var(--green);
 }
 
 .btn-confirm:disabled {

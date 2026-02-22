@@ -381,7 +381,7 @@ function handleOpenDrawing(drawingId?: number) {
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: 16px;
   container-type: inline-size;
   container-name: part-detail;
 }
@@ -392,32 +392,32 @@ function handleOpenDrawing(drawingId?: number) {
 .info-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .info-card label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .info-card .value {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  color: var(--t1);
+  font-weight: 500;
 }
 
 /* Edit mode ribbon */
 .info-ribbon.editing {
-  background: var(--bg-raised);
-  border-color: var(--border-strong);
+  background: var(--raised);
+  border-color: var(--b3);
 }
 
 /* Required field indicator */
 .required {
-  color: var(--palette-danger);
+  color: var(--err);
   margin-left: 2px;
 }
 
@@ -432,53 +432,53 @@ function handleOpenDrawing(drawingId?: number) {
 /* === ICON TOOLBAR === */
 .icon-toolbar {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
   align-items: center;
   justify-content: center;
   margin-top: 2px;
-  margin-bottom: calc(-1 * var(--space-5) + 2px);
+  margin-bottom: calc(-1 * 16px + 2px);
   padding-top: 2px;
   padding-bottom: 2px;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--b2);
 }
 
 /* === EDIT INPUTS === */
 .edit-input {
   width: 100%;
-  padding: var(--space-2);
-  font-size: var(--text-sm);
+  padding: 6px;
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast);
+  color: var(--t1);
+  background: var(--base);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  transition: all 100ms;
 }
 
 .edit-input:focus {
   outline: none;
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-color: var(--b3);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
 }
 
 /* === ACTIONS SECTION === */
 .actions-section {
-  margin-top: var(--space-6);
-  padding-top: var(--space-5);
-  border-top: 2px solid var(--border-default);
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid var(--b2);
 }
 
 .actions-section h4 {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--text-lg);
-  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--t1);
   font-weight: 600;
 }
 
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-3);
+  gap: var(--pad);
   align-content: start;
 }
 
@@ -494,29 +494,29 @@ function handleOpenDrawing(drawingId?: number) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface);
+  border: 2px solid var(--b2);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all var(--duration-normal);
+  transition: all 150ms;
 }
 
 .action-button:hover {
-  border-color: var(--color-primary);
+  border-color: var(--red);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .action-icon {
-  color: var(--color-primary);
+  color: var(--red);
 }
 
 .action-label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 </style>

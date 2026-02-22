@@ -53,19 +53,19 @@ const handleClick = (event: MouseEvent) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  font-family: var(--font-sans);
-  font-weight: var(--font-medium);
-  border-radius: var(--radius-md);
+  gap: 6px;
+  font-family: var(--font);
+  font-weight: 500;
+  border-radius: var(--r);
   border: 1px solid transparent; /* Subtle borders */
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
   white-space: nowrap;
   user-select: none;
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid rgba(255,255,255,0.5);
   outline-offset: 2px;
 }
 
@@ -76,20 +76,20 @@ const handleClick = (event: MouseEvent) => {
 
 /* === SIZES === */
 .btn-sm {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
+  padding: 4px 6px;
+  font-size: var(--fs);
   height: 32px;
 }
 
 .btn-md {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
+  padding: 4px var(--pad);
+  font-size: var(--fs);
   height: 36px;
 }
 
 .btn-lg {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
+  padding: 6px 12px;
+  font-size: var(--fs);
   height: 44px;
 }
 
@@ -98,57 +98,57 @@ const handleClick = (event: MouseEvent) => {
 /* Primary - Ghost with brand accent on hover */
 .btn-primary {
   background: transparent;
-  color: var(--text-body);
-  border-color: var(--border-default);
+  color: var(--t2);
+  border-color: var(--b2);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
+  background: var(--red-10);
+  border-color: var(--red);
+  color: rgba(229, 57, 53, 0.7);
 }
 
 .btn-primary:active:not(:disabled) {
-  background: var(--brand-muted);
-  border-color: var(--brand);
-  color: var(--brand-text);
+  background: var(--red-20);
+  border-color: var(--red);
+  color: rgba(229, 57, 53, 0.7);
   transform: translateY(1px);
 }
 
 /* Secondary */
 .btn-secondary {
-  background: var(--bg-raised);
-  color: var(--text-body);
-  border-color: var(--border-default);
+  background: var(--raised);
+  color: var(--t2);
+  border-color: var(--b2);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 /* Danger - Ghost with red accent on hover */
 .btn-danger {
   background: transparent;
-  color: var(--text-body);
-  border-color: var(--border-default);
+  color: var(--t2);
+  border-color: var(--b2);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--palette-danger-light);
-  border-color: var(--status-error);
-  color: var(--status-error);
+  background: rgba(248,113,113,0.15);
+  border-color: var(--err);
+  color: var(--err);
 }
 
 /* Ghost */
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--state-hover);
-  color: var(--text-body);
+  background: var(--b1);
+  color: var(--t2);
 }
 
 /* === LOADING STATE === */
@@ -166,7 +166,7 @@ const handleClick = (event: MouseEvent) => {
   border-radius: 50%;
   border-top-color: transparent;
   animation: spin 0.6s linear infinite;
-  color: var(--brand-text);
+  color: rgba(229, 57, 53, 0.7);
 }
 
 @keyframes spin {

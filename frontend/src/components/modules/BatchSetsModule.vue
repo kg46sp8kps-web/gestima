@@ -22,11 +22,11 @@ import { ICON_SIZE } from '@/config/design'
 
 .module-placeholder h2 {
   margin: 0 0 1rem 0;
-  color: var(--text-primary);
+  color: var(--t1);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .inline-icon {
@@ -35,12 +35,12 @@ import { ICON_SIZE } from '@/config/design'
 
 .module-placeholder p {
   margin: 0.5rem 0;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .hint {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   font-style: italic;
 }
 </style>

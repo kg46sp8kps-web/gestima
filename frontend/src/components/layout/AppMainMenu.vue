@@ -1,33 +1,47 @@
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
-import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { LogOut, FilePlus, Save, Settings as SettingsIcon } from 'lucide-vue-next'
+import { useWorkspaceStore } from '@/stores/workspace'
+import type { WorkspaceType } from '@/types/workspace'
+import {
+  LogOut, Save, FilePlus, Settings as SettingsIcon,
+  Package, Wrench, FileText, Users, Database, FolderOpen,
+  Calculator, Zap
+} from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 
 interface Props {
   showMenu: boolean
-  modules: Array<{ value: string; label: string; icon: Component }>
 }
 
 interface Emits {
   (e: 'close'): void
   (e: 'logout'): void
-  (e: 'new-layout'): void
   (e: 'save-layout'): void
   (e: 'save-as-layout'): void
   (e: 'manage-layouts'): void
-  (e: 'open-module', moduleValue: string, label: string): void
+  (e: 'switch-workspace', workspace: string): void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const route = useRoute()
 const auth = useAuthStore()
+const workspaceStore = useWorkspaceStore()
 
-function openModuleItem(value: string, label: string) {
-  emit('open-module', value, label)
+const workspaces: { key: WorkspaceType; label: string; icon: typeof Package }[] = [
+  { key: 'part', label: 'Díly', icon: Package },
+  { key: 'manufacturing', label: 'Výroba', icon: Wrench },
+  { key: 'quotes', label: 'Nabídky', icon: FileText },
+  { key: 'partners', label: 'Partneři', icon: Users },
+  { key: 'materials', label: 'Materiály', icon: Database },
+  { key: 'files', label: 'Soubory', icon: FolderOpen },
+  { key: 'accounting', label: 'Účetnictví', icon: Calculator },
+  { key: 'timevision', label: 'TimeVision', icon: Zap },
+  { key: 'admin', label: 'Správa', icon: SettingsIcon },
+]
+
+function switchWorkspace(ws: WorkspaceType) {
+  emit('switch-workspace', ws)
   emit('close')
 }
 </script>
@@ -37,36 +51,34 @@ function openModuleItem(value: string, label: string) {
   <Transition name="menu-slide">
     <div v-if="showMenu" class="menu-drawer" @click.self="emit('close')">
       <div class="menu-content">
-        <!-- Moduly Section (top) -->
+        <!-- Workspaces Section -->
         <div class="menu-section">
           <div class="section-title">Moduly</div>
           <button
-            v-for="mod in modules"
-            :key="mod.value"
+            v-for="ws in workspaces"
+            :key="ws.key"
             class="menu-item"
-            @click="openModuleItem(mod.value, mod.label)"
+            :class="{ active: workspaceStore.activeWorkspace === ws.key }"
+            @click="switchWorkspace(ws.key)"
+            :data-testid="`menu-ws-${ws.key}`"
           >
-            <component :is="mod.icon" :size="ICON_SIZE.STANDARD" />
-            <span>{{ mod.label }}</span>
+            <component :is="ws.icon" :size="ICON_SIZE.STANDARD" />
+            <span>{{ ws.label }}</span>
           </button>
         </div>
 
         <div class="menu-divider"></div>
 
-        <!-- Window Layouts Section -->
+        <!-- Layouts Section -->
         <div class="menu-section">
           <div class="section-title">Layouts</div>
-          <button class="menu-item" @click="emit('new-layout')">
-            <FilePlus :size="ICON_SIZE.STANDARD" />
-            <span>Nový</span>
-          </button>
           <button class="menu-item" @click="emit('save-layout')">
             <Save :size="ICON_SIZE.STANDARD" />
             <span>Uložit aktuální</span>
           </button>
           <button class="menu-item" @click="emit('save-as-layout')">
             <FilePlus :size="ICON_SIZE.STANDARD" />
-            <span>Uložit aktivní jako...</span>
+            <span>Uložit jako...</span>
           </button>
           <button class="menu-item" @click="emit('manage-layouts')">
             <SettingsIcon :size="ICON_SIZE.STANDARD" />
@@ -111,9 +123,9 @@ function openModuleItem(value: string, label: string) {
   left: 0;
   bottom: 0;
   width: 280px;
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-default);
-  box-shadow: var(--shadow-xl);
+  background: var(--surface);
+  border-right: 1px solid var(--b2);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
   z-index: 10002;
   overflow-y: auto;
 }
@@ -122,7 +134,7 @@ function openModuleItem(value: string, label: string) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: var(--space-6);
+  padding: 20px;
 }
 
 .menu-spacer {
@@ -132,114 +144,114 @@ function openModuleItem(value: string, label: string) {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--pad);
+  padding: var(--pad) 12px;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--t1);
   text-decoration: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
   width: 100%;
   text-align: left;
 }
 
 .menu-item:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .menu-item.active {
-  background: var(--primary-color);
+  background: var(--red);
   color: white;
 }
 
 .menu-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .section-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  padding: var(--space-2) var(--space-4);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
+  padding: 6px 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .menu-divider {
   height: 1px;
-  background: var(--border-default);
-  margin: var(--space-4) 0;
+  background: var(--b2);
+  margin: 12px 0;
 }
 
 .menu-footer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .user-info {
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
+  padding: var(--pad);
+  background: var(--raised);
+  border-radius: var(--r);
 }
 
 .user-name {
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--t1);
+  font-size: var(--fs);
 }
 
 .user-role {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: var(--space-1);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-top: 4px;
 }
 
 .settings-btn {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  gap: 6px;
+  padding: var(--pad) 12px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
   text-decoration: none;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .settings-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .logout-btn {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  gap: 6px;
+  padding: var(--pad) 12px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .logout-btn:hover {
-  background: var(--color-danger);
-  border-color: var(--color-danger);
+  background: var(--err);
+  border-color: var(--err);
   color: white;
 }
 

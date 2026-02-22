@@ -258,7 +258,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 
 /* Toolbar */
@@ -266,23 +266,23 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-raised);
-  border-bottom: 1px solid var(--border-default);
-  gap: var(--space-3);
+  padding: 6px var(--pad);
+  background: var(--raised);
+  border-bottom: 1px solid var(--b2);
+  gap: var(--pad);
 }
 
 .toolbar-info {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
 .drawing-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -291,23 +291,23 @@ onMounted(async () => {
 .btn-download {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  gap: 6px;
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t1);
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
   white-space: nowrap;
 }
 
 .btn-download:hover {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand);
+  background: var(--red-10);
+  border-color: var(--red);
+  color: var(--red);
 }
 
 /* PDF Viewer */
@@ -315,7 +315,7 @@ onMounted(async () => {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: var(--bg-deepest);
+  background: var(--base);
 }
 
 .pdf-iframe {
@@ -331,16 +331,16 @@ onMounted(async () => {
 
 .empty-icon {
   opacity: 0.5;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .error-icon {
-  color: var(--status-error);
+  color: var(--err);
   opacity: 0.7;
 }
 
 .empty-hint {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 </style>

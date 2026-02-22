@@ -106,29 +106,29 @@ function onCancel() {
 .add-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .required {
-  color: var(--palette-danger);
+  color: var(--err);
 }
 
 .info-notice {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--palette-info-bg);
-  border: 1px solid var(--palette-info);
-  border-radius: var(--radius-lg);
-  color: var(--text-body);
-  font-size: var(--text-sm);
+  gap: 6px;
+  padding: var(--pad);
+  background: rgba(37,99,235,0.1);
+  border: 1px solid var(--t3);
+  border-radius: 8px;
+  color: var(--t2);
+  font-size: var(--fs);
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 </style>

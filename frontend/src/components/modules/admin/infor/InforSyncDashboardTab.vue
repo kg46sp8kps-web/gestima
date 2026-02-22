@@ -154,7 +154,7 @@ onUnmounted(() => {
 
 <style scoped>
 .sync-dashboard {
-  padding: var(--space-4);
+  padding: 12px;
   overflow-y: auto;
   height: 100%;
 }
@@ -163,42 +163,42 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .badge-running {
-  color: var(--color-success);
+  color: var(--ok);
 }
 
 .badge-stopped {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .section {
-  margin-bottom: var(--space-6);
+  margin-bottom: 20px;
 }
 
 h4 {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--space-3);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: var(--pad);
 }
 
 .spin {

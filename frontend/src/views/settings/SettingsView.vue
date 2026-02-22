@@ -425,8 +425,8 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
   display: flex;
   flex-direction: column;
   height: calc(100vh - 48px); /* Navbar height */
-  background: var(--bg-base);
-  color: var(--text-body);
+  background: var(--base);
+  color: var(--t2);
   overflow: hidden;
 }
 
@@ -434,20 +434,20 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 .settings-view select,
 .settings-view input,
 .settings-view option {
-  color: var(--text-body);
-  background: var(--bg-input);
+  color: var(--t2);
+  background: var(--ground);
 }
 
 .settings-view select option {
-  background: var(--bg-surface);
-  color: var(--text-body);
+  background: var(--surface);
+  color: var(--t2);
 }
 
 .page-header {
   flex-shrink: 0;
-  padding: var(--space-4) var(--space-6);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
 }
 
 .header-content {
@@ -460,27 +460,27 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 
 .page-title {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t1);
 }
 
 .page-subtitle {
-  margin: var(--space-1) 0 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  margin: 4px 0 0;
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-6);
+  padding: 12px 20px;
 }
 
 .settings-grid {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: var(--space-4);
+  gap: 12px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -488,13 +488,13 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 .settings-column {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .settings-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -502,92 +502,92 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-raised);
+  padding: var(--pad) 12px;
+  background: var(--raised);
   cursor: pointer;
   user-select: none;
 }
 
 .card-header:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .card-title {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .toggle-icon {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .card-body {
-  padding: var(--space-4);
-  color: var(--text-body);
+  padding: 12px;
+  color: var(--t2);
 }
 
 .card-description {
-  margin: 0 0 var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  margin: 0 0 12px;
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 /* Info rows (Account) */
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: var(--space-2);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--b1);
+  margin-bottom: 6px;
 }
 
 .info-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .info-value {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t1);
 }
 
 /* Form rows (Preferences) */
 .form-row {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--pad);
 }
 
 .form-label {
   display: block;
-  margin-bottom: var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  margin-bottom: 4px;
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
 }
 
 .form-select {
   width: 100%;
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
+  padding: 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  background: var(--ground);
+  color: var(--t2);
 }
 
 .form-row.checkbox {
-  margin-top: var(--space-4);
+  margin-top: 12px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t2);
   cursor: pointer;
 }
 
@@ -595,18 +595,18 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 .token-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .token-row {
   display: grid;
   grid-template-columns: 1fr 90px 50px;
-  gap: var(--space-3);
+  gap: var(--pad);
   align-items: center;
-  padding: var(--space-2);
-  background: var(--bg-input);
-  border-radius: var(--radius-md);
+  padding: 6px;
+  background: var(--ground);
+  border-radius: var(--r);
 }
 
 .token-info {
@@ -617,17 +617,17 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .token-name {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--color-info);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .token-desc {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -636,37 +636,37 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 .token-input-group {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .token-input {
   width: 60px;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-family: var(--font-mono);
+  padding: 4px 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-family: var(--mono);
   text-align: right;
-  background: var(--bg-surface);
-  color: var(--text-body);
+  background: var(--surface);
+  color: var(--t2);
 }
 
 .token-input:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
-  color: var(--text-body);
+  border-color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.03);
+  color: var(--t2);
 }
 
 .token-unit {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
   width: 20px;
 }
 
 .token-preview {
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  font-weight: 500;
+  color: var(--t1);
   text-align: center;
 }
 
@@ -676,8 +676,8 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 }
 
 .spacing-box {
-  background: var(--color-info);
-  border-radius: var(--radius-sm);
+  background: var(--t3);
+  border-radius: var(--rs);
   min-width: 4px;
 }
 
@@ -685,11 +685,11 @@ const densityTokens = Object.keys(defaultTokens).filter(k => k.startsWith('densi
 .global-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: var(--pad);
   max-width: 1400px;
-  margin: var(--space-6) auto 0;
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  margin: 20px auto 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 </style>

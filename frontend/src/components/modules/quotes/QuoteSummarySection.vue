@@ -47,55 +47,55 @@ defineProps<Props>()
 
 <style scoped>
 .summary-panel {
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .summary-panel h2 {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--text-lg);
-  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--t1);
 }
 
 .section-icon {
   display: inline;
-  margin-right: var(--space-3);
+  margin-right: var(--pad);
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .summary-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .summary-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .summary-value {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .summary-value.success {
-  color: var(--color-success);
+  color: var(--ok);
 }
 
 .summary-value.warning {
-  color: var(--palette-warning);
+  color: var(--warn);
 }
 
 .summary-value.error {
-  color: var(--color-danger);
+  color: var(--err);
 }
 </style>

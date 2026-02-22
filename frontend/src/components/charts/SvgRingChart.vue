@@ -63,7 +63,7 @@ const segmentPaths = computed(() => {
         :cy="center"
         :r="radius"
         fill="none"
-        :stroke="'var(--bg-raised)'"
+        :stroke="'var(--raised)'"
         :stroke-width="thickness"
       />
 
@@ -92,10 +92,10 @@ const segmentPaths = computed(() => {
           :y="centerSub ? center - 8 : center"
           text-anchor="middle"
           dominant-baseline="middle"
-          fill="var(--text-primary)"
+          fill="var(--t1)"
           font-size="20"
           font-weight="700"
-          font-family="var(--font-mono)"
+          font-family="var(--mono)"
         >
           {{ centerLabel }}
         </text>
@@ -105,7 +105,7 @@ const segmentPaths = computed(() => {
           :y="center + 12"
           text-anchor="middle"
           dominant-baseline="middle"
-          fill="var(--text-secondary)"
+          fill="var(--t3)"
           font-size="10"
           font-weight="500"
         >
@@ -136,7 +136,7 @@ const segmentPaths = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .ring-svg {
@@ -147,7 +147,7 @@ const segmentPaths = computed(() => {
 .legend {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
   width: 100%;
   max-width: 300px;
 }
@@ -155,21 +155,21 @@ const segmentPaths = computed(() => {
 .legend-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  transition: background var(--duration-fast);
+  gap: 6px;
+  padding: 6px;
+  background: var(--surface);
+  border-radius: var(--r);
+  transition: background 100ms;
 }
 
 .legend-item:hover {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 .legend-color {
   width: 16px;
   height: 16px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rs);
   flex-shrink: 0;
 }
 
@@ -177,18 +177,18 @@ const segmentPaths = computed(() => {
   display: flex;
   justify-content: space-between;
   flex: 1;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
+  gap: 6px;
+  font-size: var(--fs);
 }
 
 .legend-label {
-  color: var(--text-body);
-  font-weight: var(--font-medium);
+  color: var(--t2);
+  font-weight: 500;
 }
 
 .legend-value {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-weight: var(--font-semibold);
+  color: var(--t3);
+  font-family: var(--mono);
+  font-weight: 600;
 }
 </style>

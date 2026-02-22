@@ -234,33 +234,33 @@ onMounted(async () => {
 .admin-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
   height: 100%;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 /* Forms */
 .form-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 /* Buttons */
@@ -269,10 +269,10 @@ onMounted(async () => {
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 .spacer {

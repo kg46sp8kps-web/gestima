@@ -7,7 +7,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, type Ref } from 'vue'
-import type { LinkingGroup } from './windows'
+import type { LinkingGroup } from '@/types/workspace'
 
 export interface PartContext {
   partId: number | null

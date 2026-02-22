@@ -65,34 +65,34 @@ async function getIdoInfo() {
 
 <style scoped>
 .info-tab {
-  padding: var(--space-4);
+  padding: 12px;
   max-width: 1200px;
 }
 
 .description {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-4);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-bottom: 12px;
 }
 
 .form-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
   align-items: center;
 }
 
 .input {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  padding: 6px var(--pad);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  background: var(--ground);
+  color: var(--t1);
+  font-size: var(--fs);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--border-strong);
+  border-color: var(--b3);
 }
 
 .flex-1 {
@@ -101,17 +101,17 @@ async function getIdoInfo() {
 
 
 .info-box {
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  margin-top: var(--space-4);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: var(--r);
+  margin-top: 12px;
+  border: 1px solid var(--b2);
 }
 
 .json-preview {
-  font-family: 'Monaco', monospace;
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  color: var(--t1);
   overflow-x: auto;
   margin: 0;
   max-height: 500px;

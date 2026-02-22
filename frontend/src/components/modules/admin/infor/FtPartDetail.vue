@@ -159,25 +159,25 @@ function normClass(ratio: number | null): string {
 </template>
 
 <style scoped>
-.ft-detail { padding: var(--space-4); }
-.detail-header { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3); flex-wrap: wrap; }
-.detail-title { font-weight: 600; font-size: var(--text-sm); color: var(--text-primary); }
-.detail-meta { font-size: var(--text-sm); color: var(--text-secondary); }
-.ops-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-bottom: var(--space-2); }
-.ops-table th { background: var(--bg-surface); padding: var(--space-1) var(--space-2); text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-default); white-space: nowrap; }
-.ops-table td { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
-.cat-badge { font-weight: 600; font-size: var(--text-sm); color: var(--text-primary); }
-.mono { font-variant-numeric: tabular-nums; font-family: var(--font-mono, monospace); }
-.cv-high { color: var(--status-error); font-weight: 600; }
-.norm-ok { color: var(--status-ok); }
-.norm-warn { color: var(--status-warn); font-weight: 600; }
-.norm-extreme { color: var(--status-error); font-weight: 600; }
-.detail-actions { display: flex; gap: var(--space-2); margin: var(--space-3) 0; }
-.inference-result { margin-top: var(--space-3); padding: var(--space-3); background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-default); }
-.inference-header { display: flex; gap: var(--space-4); font-size: var(--text-sm); margin-bottom: var(--space-2); flex-wrap: wrap; align-items: center; }
-.inference-meta { font-size: var(--text-sm); color: var(--text-tertiary); }
-.match-ok { color: var(--status-ok); font-weight: 600; }
-.match-fail { color: var(--status-error); font-weight: 600; }
-.delta-pos { color: var(--status-error); }
-.delta-neg { color: var(--status-ok); }
+.ft-detail { padding: 12px; }
+.detail-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: var(--pad); flex-wrap: wrap; }
+.detail-title { font-weight: 600; font-size: var(--fs); color: var(--t1); }
+.detail-meta { font-size: var(--fs); color: var(--t3); }
+.ops-table { width: 100%; border-collapse: collapse; font-size: var(--fs); margin-bottom: 6px; }
+.ops-table th { background: var(--surface); padding: 4px 6px; text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); white-space: nowrap; }
+.ops-table td { padding: 4px 6px; border-bottom: 1px solid var(--b1); white-space: nowrap; }
+.cat-badge { font-weight: 600; font-size: var(--fs); color: var(--t1); }
+.mono { font-variant-numeric: tabular-nums; font-family: var(--mono); }
+.cv-high { color: var(--err); font-weight: 600; }
+.norm-ok { color: var(--ok); }
+.norm-warn { color: var(--warn); font-weight: 600; }
+.norm-extreme { color: var(--err); font-weight: 600; }
+.detail-actions { display: flex; gap: 6px; margin: var(--pad) 0; }
+.inference-result { margin-top: var(--pad); padding: var(--pad); background: var(--surface); border-radius: var(--r); border: 1px solid var(--b2); }
+.inference-header { display: flex; gap: 12px; font-size: var(--fs); margin-bottom: 6px; flex-wrap: wrap; align-items: center; }
+.inference-meta { font-size: var(--fs); color: var(--t3); }
+.match-ok { color: var(--ok); font-weight: 600; }
+.match-fail { color: var(--err); font-weight: 600; }
+.delta-pos { color: var(--err); }
+.delta-neg { color: var(--ok); }
 </style>

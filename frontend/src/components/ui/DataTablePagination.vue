@@ -91,39 +91,39 @@ function handlePerPageChange(event: Event) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border-top: 1px solid var(--border-default);
-  background: var(--bg-subtle);
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--b2);
+  background: var(--ground);
   flex-wrap: wrap;
   container-type: inline-size;
 }
 
 .pagination-info {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .pagination-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .pagination-btn {
-  padding: var(--space-2) var(--space-4);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  padding: 6px 12px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  color: var(--t1);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .pagination-btn:disabled {
@@ -132,31 +132,31 @@ function handlePerPageChange(event: Event) {
 }
 
 .pagination-current {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   min-width: 100px;
   text-align: center;
 }
 
 .pagination-per-page {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .pagination-per-page select {
-  margin-left: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-raised);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  margin-left: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--raised);
+  color: var(--t1);
+  font-size: var(--fs);
 }
 
 @container (max-width: 768px) {
   .data-table-pagination {
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--pad);
   }
 
   .pagination-info,

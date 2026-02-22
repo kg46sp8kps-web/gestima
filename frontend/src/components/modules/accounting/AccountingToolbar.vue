@@ -77,22 +77,22 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-5);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  gap: 12px;
+  padding: var(--pad) 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .module-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
   margin: 0;
   white-space: nowrap;
 }
@@ -100,77 +100,77 @@ const recentYears = computed(() => [currentYear - 1, currentYear, currentYear + 
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .data-badge {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  background: var(--bg-raised);
-  padding: var(--space-0\.5) var(--space-3);
-  border-radius: var(--radius-full);
+  font-size: var(--fs);
+  color: var(--t3);
+  background: var(--raised);
+  padding: 2px var(--pad);
+  border-radius: 99px;
   white-space: nowrap;
 }
 
 .year-selector {
   display: flex;
   align-items: center;
-  gap: var(--space-0\.5);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  padding: var(--space-0\.5);
+  gap: 2px;
+  background: var(--raised);
+  border-radius: var(--r);
+  padding: 2px;
 }
 
 .year-select {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--text-secondary);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  font-weight: 500;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--ground);
+  color: var(--t3);
   cursor: pointer;
-  margin-left: var(--space-0\.5);
+  margin-left: 2px;
 }
 
 .year-btn {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  font-weight: 500;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rs);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--t3);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all 100ms;
 }
 
 .year-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-body);
+  background: var(--surface);
+  color: var(--t2);
 }
 
 .year-btn.active {
-  background: var(--brand-subtle);
-  color: var(--brand-text);
-  border: 1px solid var(--brand);
+  background: var(--red-10);
+  color: rgba(229, 57, 53, 0.7);
+  border: 1px solid var(--red);
 }
 
 .refresh-btn {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  font-weight: 500;
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--t3);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all 100ms;
 }
 
 .refresh-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--red);
+  color: var(--red);
 }
 
 .refresh-btn:disabled {

@@ -145,11 +145,11 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
 </template>
 
 <style scoped>
-.browser-tab { padding: var(--space-4); max-width: 1200px; overflow: auto; }
-.input-with-button { display: flex; gap: var(--space-2); }
+.browser-tab { padding: 12px; max-width: 1200px; overflow: auto; }
+.input-with-button { display: flex; gap: 6px; }
 .input-with-button .input { flex: 1; }
-.case-warning { color: var(--brand); font-size: var(--text-sm); font-weight: 600; }
-.help-text { display: block; margin-top: var(--space-1); font-size: var(--text-sm); color: var(--text-secondary); }
-.warning-text { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--status-warn); }
-.error-box { padding: var(--space-3); background: var(--status-error-bg); border: 1px solid var(--palette-danger-light); border-radius: var(--radius-md); color: var(--status-error); font-size: var(--text-sm); margin-top: var(--space-4); }
+.case-warning { color: var(--red); font-size: var(--fs); font-weight: 600; }
+.help-text { display: block; margin-top: 4px; font-size: var(--fs); color: var(--t3); }
+.warning-text { display: inline-flex; align-items: center; gap: 4px; color: var(--warn); }
+.error-box { padding: var(--pad); background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.15); border-radius: var(--r); color: var(--err); font-size: var(--fs); margin-top: 12px; }
 </style>

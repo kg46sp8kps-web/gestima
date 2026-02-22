@@ -159,7 +159,7 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 .partner-list-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
   height: 100%;
   overflow: hidden;
 }
@@ -168,41 +168,41 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .list-header h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .btn-create {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  gap: 4px;
+  padding: 4px 6px;
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  color: var(--t1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .btn-create:hover {
-  background: var(--brand-subtle);
-  border-color: var(--brand);
-  color: var(--brand-text);
+  background: var(--red-10);
+  border-color: var(--red);
+  color: rgba(229, 57, 53, 0.7);
 }
 
 .filter-tabs {
   display: flex;
-  gap: var(--space-1);
-  border-bottom: 1px solid var(--border-default);
+  gap: 4px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .loading-list {
@@ -210,9 +210,9 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 24px;
+  color: var(--t3);
 }
 
 .partners-list {
@@ -220,44 +220,44 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .partner-item {
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   cursor: pointer;
-  transition: var(--transition-fast);
-  background: var(--bg-surface);
+  transition: all 100ms var(--ease);
+  background: var(--surface);
 }
 
 .partner-item:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .partner-item.active {
-  background: var(--state-selected);
-  border-color: var(--brand);
+  background: var(--b1);
+  border-color: var(--red);
 }
 
 .partner-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-1);
+  margin-bottom: 4px;
 }
 
 .partner-number {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--brand);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--red);
 }
 
 .partner-badges {
   display: flex;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .badge-customer,
@@ -268,17 +268,17 @@ function setTab(tab: 'all' | 'customers' | 'suppliers') {
 }
 
 .badge-customer {
-  color: var(--color-primary);
+  color: var(--red);
 }
 
 .badge-supplier {
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .partner-name {
   display: block;
-  font-size: var(--text-sm);
-  color: var(--text-body);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  color: var(--t2);
+  font-weight: 500;
 }
 </style>

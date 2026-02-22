@@ -102,7 +102,7 @@ const stackedBars = computed(() => {
             :x2="CHART_WIDTH"
             :y1="valueToY(tick)"
             :y2="valueToY(tick)"
-            stroke="var(--border-subtle)"
+            stroke="var(--b1)"
             stroke-width="1"
             stroke-dasharray="2,4"
           />
@@ -115,7 +115,7 @@ const stackedBars = computed(() => {
             :y1="0"
             :x2="0"
             :y2="CHART_HEIGHT"
-            stroke="var(--border-default)"
+            stroke="var(--b2)"
             stroke-width="1"
           />
           <g
@@ -127,9 +127,9 @@ const stackedBars = computed(() => {
               :y="valueToY(tick)"
               text-anchor="end"
               dominant-baseline="middle"
-              fill="var(--text-secondary)"
+              fill="var(--t3)"
               font-size="10"
-              font-family="var(--font-mono)"
+              font-family="var(--mono)"
             >
               {{ formatValue(tick) }}
             </text>
@@ -143,7 +143,7 @@ const stackedBars = computed(() => {
             :y1="CHART_HEIGHT"
             :x2="CHART_WIDTH"
             :y2="CHART_HEIGHT"
-            stroke="var(--border-default)"
+            stroke="var(--b2)"
             stroke-width="1"
           />
           <g
@@ -154,7 +154,7 @@ const stackedBars = computed(() => {
               :x="(bar.segments[0]?.x ?? 0) + barWidth / 2"
               :y="CHART_HEIGHT + 20"
               text-anchor="middle"
-              fill="var(--text-secondary)"
+              fill="var(--t3)"
               font-size="11"
             >
               {{ bar.label }}
@@ -206,7 +206,7 @@ const stackedBars = computed(() => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .chart-svg {
@@ -217,28 +217,28 @@ const stackedBars = computed(() => {
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--pad);
   justify-content: center;
-  padding: var(--space-2);
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
+  padding: 6px;
+  background: var(--surface);
+  border-radius: var(--r);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .legend-color {
   width: 12px;
   height: 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rs);
 }
 
 .legend-label {
-  font-weight: var(--font-medium);
+  font-weight: 500;
 }
 </style>

@@ -166,65 +166,65 @@ function handleCancel() {
 .part-create-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 20px;
   max-width: 600px;
 }
 
 .part-create-form h2 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 /* Vertical form fields */
 .form-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  gap: var(--pad);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   position: relative;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .field-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
 }
 
 .field-input {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-  transition: var(--transition-fast);
+  padding: 6px var(--pad);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  background: var(--ground);
+  color: var(--t2);
+  transition: all 100ms var(--ease);
 }
 
 .field-input:focus {
   outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.5);
 }
 
 .form-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   justify-content: flex-end;
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: var(--pad) 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 /* Icon buttons use global .icon-btn classes from design-system.css */
@@ -235,36 +235,36 @@ function handleCancel() {
 }
 
 .upload-error {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  color: var(--palette-danger);
-  background: var(--status-error-bg);
-  border: 1px solid var(--palette-danger);
-  border-radius: var(--radius-sm);
+  margin-top: 6px;
+  padding: 6px var(--pad);
+  font-size: var(--fs);
+  color: var(--err);
+  background: rgba(248,113,113,0.1);
+  border: 1px solid var(--err);
+  border-radius: var(--rs);
 }
 
 .temp-drawing-preview {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  gap: var(--pad);
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .temp-drawing-info {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .temp-filename {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-body);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t2);
   word-break: break-word;
 }
 

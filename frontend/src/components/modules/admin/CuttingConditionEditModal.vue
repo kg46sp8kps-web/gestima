@@ -82,10 +82,10 @@ function handleSave() {
 <style scoped>
 
 .modal-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
   max-width: 400px;
   width: 90%;
   max-height: 90vh;
@@ -95,29 +95,29 @@ function handleSave() {
 }
 
 .modal-header {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .modal-body {
-  padding: var(--space-4);
+  padding: 12px;
   overflow-y: auto;
   flex: 1;
 }
 
 
 .modal-footer {
-  padding: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  padding: 12px;
+  border-top: 1px solid var(--b2);
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: 6px;
 }
 </style>

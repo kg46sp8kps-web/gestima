@@ -12,9 +12,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   overflow: hidden;
   container-type: inline-size; /* Enable container queries for widgets */
   container-name: widget;
@@ -24,9 +24,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-raised);
-  border-bottom: 1px solid var(--border-default);
+  padding: 6px var(--pad);
+  background: var(--raised);
+  border-bottom: 1px solid var(--b2);
   cursor: move; /* Drag handle indicator */
   flex-shrink: 0;
   min-height: 32px;
@@ -34,15 +34,15 @@
 }
 
 .widget-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t1);
 }
 
 .widget-content {
   flex: 1;
   overflow: auto;
-  padding: var(--space-3);
+  padding: var(--pad);
 }
 
 /* === WIDGET STATES === */
@@ -53,8 +53,8 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 
 /* Error state */
@@ -64,10 +64,10 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-danger);
-  font-size: var(--text-sm);
+  color: var(--err);
+  font-size: var(--fs);
   text-align: center;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 /* Empty state */
@@ -77,16 +77,16 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
   text-align: center;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 /* === WIDGET ACTIONS === */
 .widget-actions {
   display: flex;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .widget-btn {
@@ -98,15 +98,15 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
+  border-radius: var(--rs);
+  color: var(--t3);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .widget-btn:hover {
-  background: var(--state-hover);
-  color: var(--text-primary);
+  background: var(--b1);
+  color: var(--t1);
 }
 
 .widget-btn:disabled {
@@ -119,20 +119,20 @@
 /* Container queries for widget-specific responsive behavior */
 @container widget (max-width: 300px) {
   .widget-content {
-    padding: var(--space-2);
+    padding: 6px;
   }
 
   .widget-header {
-    padding: var(--space-1) var(--space-2);
+    padding: 4px 6px;
   }
 
   .widget-title {
-    font-size: var(--text-sm);
+    font-size: var(--fs);
   }
 }
 
 @container widget (min-width: 600px) {
   .widget-content {
-    padding: var(--space-4);
+    padding: 12px;
   }
 }

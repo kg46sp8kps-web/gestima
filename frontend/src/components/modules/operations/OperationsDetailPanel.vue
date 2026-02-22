@@ -9,7 +9,6 @@
 import { ref, computed, watch, reactive, onBeforeUnmount } from 'vue'
 import { useOperationsStore } from '@/stores/operations'
 import { useMaterialsStore } from '@/stores/materials'
-import { useWindowsStore } from '@/stores/windows'
 import { operationsApi } from '@/api/operations'
 import { fetchEstimationById } from '@/api/time-vision'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
@@ -43,7 +42,6 @@ const emit = defineEmits<{
 
 const operationsStore = useOperationsStore()
 const materialsStore = useMaterialsStore()
-const windowsStore = useWindowsStore()
 
 // Keyboard shortcuts
 const { registerShortcut } = useKeyboardShortcuts()
@@ -408,9 +406,9 @@ defineExpose({
 .operations-detail-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
   height: 100%;
-  padding: var(--space-3);
+  padding: var(--pad);
   overflow: hidden;
 }
 
@@ -422,30 +420,30 @@ defineExpose({
 
 .panel-header h3 {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .header-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 /* AI estimation info label */
 .ai-info {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  gap: 4px;
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
   transition: color 0.3s ease;
 }
 
 .ai-info.is-modified {
-  color: var(--color-danger);
-  font-weight: var(--font-semibold);
+  color: var(--err);
+  font-weight: 600;
 }
 
 /* === LOADING === */
@@ -453,9 +451,9 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-6);
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 20px;
+  color: var(--t3);
 }
 
 /* === EMPTY === */
@@ -463,24 +461,24 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-6);
-  color: var(--text-tertiary);
+  gap: 6px;
+  padding: 20px;
+  color: var(--t3);
   text-align: center;
 }
 
 .empty-icon {
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .empty p {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .empty .hint {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 /* === OPERATIONS TABLE === */
@@ -492,7 +490,7 @@ defineExpose({
 .operations-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 /* Table Header */
@@ -500,16 +498,18 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--bg-surface);
+  background: rgba(255,255,255,0.025);
 }
 
 .operations-table th {
-  padding: var(--space-2) var(--space-2);
+  padding: 4px var(--pad);
   text-align: left;
-  font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-default);
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--b2);
   white-space: nowrap;
   user-select: none;
 }
@@ -519,7 +519,7 @@ defineExpose({
 .col-workcenter { min-width: 180px; }
 .col-time { width: 80px; }
 .col-coef { width: 70px; }
-.col-sum { width: 70px; font-family: var(--font-mono); }
+.col-sum { width: 70px; font-family: var(--mono); }
 .col-actions { width: 80px; text-align: right; }
 
 /* Table Body - VueDraggable */

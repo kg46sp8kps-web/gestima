@@ -195,17 +195,17 @@ onBeforeUnmount(() => {
 .typeahead-input {
   width: 100%;
   padding: 4px 6px;
-  border: 1px solid var(--primary-color);
+  border: 1px solid var(--red);
   border-radius: 4px;
-  font-size: var(--text-sm);
-  background: var(--surface-card);
-  color: var(--text-color);
+  font-size: var(--fs);
+  background: var(--surface);
+  color: var(--t2);
   outline: none;
-  box-shadow: 0 0 0 2px var(--brand-subtle);
+  box-shadow: 0 0 0 2px var(--red-10);
 }
 
 .typeahead-input:focus {
-  border-color: var(--primary-color);
+  border-color: var(--red);
 }
 
 .typeahead-dropdown {
@@ -216,8 +216,8 @@ onBeforeUnmount(() => {
   z-index: 200;
   max-height: 240px;
   overflow-y: auto;
-  background: var(--surface-overlay);
-  border: 1px solid var(--border-color);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid var(--b2);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   margin-top: 2px;
@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
 
 .typeahead-option {
   padding: 6px 10px;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -234,31 +234,31 @@ onBeforeUnmount(() => {
 
 .typeahead-option:hover,
 .typeahead-option.highlighted {
-  background: var(--surface-hover);
+  background: var(--raised);
 }
 
 .typeahead-option.selected {
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--red);
 }
 
 .typeahead-option.highlighted.selected {
-  background: var(--highlight-bg);
+  background: var(--b1);
 }
 
 .typeahead-empty {
   padding: 8px 10px;
-  font-size: var(--text-sm);
-  color: var(--text-color-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   text-align: center;
   font-style: italic;
 }
 
 .typeahead-more {
   padding: 4px 10px;
-  font-size: var(--text-sm);
-  color: var(--text-color-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   text-align: center;
-  border-top: 1px solid var(--surface-border);
+  border-top: 1px solid var(--b2);
 }
 </style>

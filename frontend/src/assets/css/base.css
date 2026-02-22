@@ -21,7 +21,7 @@ body {
   width: 95%;
   min-width: 800px;
   margin: 0 auto;
-  padding: var(--space-4) var(--space-6);
+  padding: 12px 20px;
   position: relative;
   z-index: 1;
   flex: 1;
@@ -40,7 +40,7 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset !important;
-  -webkit-text-fill-color: var(--text-primary) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--ground) inset !important;
+  -webkit-text-fill-color: var(--t1) !important;
   transition: background-color 5000s ease-in-out 0s;
 }

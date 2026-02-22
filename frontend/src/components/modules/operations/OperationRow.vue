@@ -338,34 +338,35 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 /* === OPERATION ROW === */
 .operation-row {
   cursor: pointer;
-  transition: var(--transition-fast);
+  min-height: 28px;
+  transition: background 0.04s;
 }
 
-.operation-row:hover {
-  background: var(--state-hover);
+.operation-row:hover td {
+  background: var(--b1);
 }
 
 .operation-row.is-coop {
-  border-left: 3px solid var(--color-warning);
+  border-left: 3px solid var(--warn);
 }
 
-.operation-row.is-expanded {
-  background: var(--state-selected);
+.operation-row.is-expanded td {
+  background: var(--b1);
 }
 
-.operation-row.is-selected {
-  background: var(--selected);
-  border-left: 3px solid var(--border-strong);
+.operation-row.is-selected td {
+  background: var(--red-dim);
 }
 
-.operation-row.is-selected:hover {
-  background: var(--state-selected);
+.operation-row.is-selected:hover td {
+  background: var(--red-dim);
 }
 
 /* === TABLE CELLS === */
 .operation-row td {
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--border-default);
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
   vertical-align: middle;
 }
 
@@ -374,15 +375,15 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   width: 30px;
   text-align: center;
   cursor: grab;
-  padding: var(--space-1);
-  color: var(--text-tertiary);
+  padding: 4px;
+  color: var(--t3);
   opacity: 0.4;
-  transition: opacity var(--transition-fast);
+  transition: opacity all 100ms var(--ease);
 }
 
 .col-drag:hover {
   opacity: 1;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .col-drag:active {
@@ -393,30 +394,30 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 .seq-input {
   width: 50px;
   padding: 2px 4px;
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--red);
   border-radius: 4px;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-mono);
+  font-size: var(--fs);
+  font-weight: inherit;
+  font-family: var(--mono);
   text-align: center;
-  background: var(--bg-input);
-  color: var(--text-primary);
+  background: var(--ground);
+  color: var(--t1);
   outline: none;
 }
 
 /* WorkCenter display and typeahead */
 .wc-display {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  font-weight: inherit;
+  color: var(--t2);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
+  border-radius: var(--rs);
+  transition: background all 100ms var(--ease);
 }
 
 .wc-display:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .typeahead-wrapper {
@@ -430,48 +431,53 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .op-seq {
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-family: var(--font-mono);
+  font-weight: inherit;
+  color: var(--t1);
+  font-size: var(--fs);
+  font-family: var(--mono);
 }
 
 /* Work Center Select */
 .wc-select {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 4px 6px;
+  background: var(--ground);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
 }
 
 .wc-select:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
+  border-color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.03);
 }
 
-/* Time Inputs */
+/* Time Inputs — minimal, blend into table like v2 */
 .time-input {
   width: 100%;
-  padding: var(--space-1);
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-mono);
+  padding: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: inherit;
+  font-family: var(--mono);
   text-align: right;
+  transition: all 100ms var(--ease);
+}
+
+.time-input:hover {
+  border-color: var(--b1);
 }
 
 .time-input:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
+  border-color: var(--b3);
+  background: rgba(255,255,255,0.03);
 }
 
 .time-input:disabled {
@@ -483,7 +489,7 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 .time-with-restore {
   display: flex;
   align-items: center;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 
 .time-with-restore .time-input {
@@ -501,16 +507,16 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   padding: 0;
   background: none;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--color-danger);
+  border-radius: var(--rs);
+  color: var(--err);
   cursor: pointer;
   opacity: 0.6;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .restore-btn:hover {
   opacity: 1;
-  background: var(--status-error-bg);
+  background: rgba(248,113,113,0.1);
 }
 
 /* Seq cell with AI indicator */
@@ -518,85 +524,90 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 
 .ai-indicator {
-  color: var(--status-ok);
+  color: var(--ok);
   flex-shrink: 0;
 }
 
-/* Coefficient Inputs */
+/* Coefficient Inputs — minimal, blend into table like v2 */
 .coef-input {
   width: 100%;
-  padding: var(--space-1);
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-mono);
+  padding: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
+  font-weight: inherit;
+  font-family: var(--mono);
   text-align: right;
+  transition: all 100ms var(--ease);
+}
+
+.coef-input:hover {
+  border-color: var(--b1);
 }
 
 .coef-input:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
+  border-color: var(--b3);
+  background: rgba(255,255,255,0.03);
 }
 
 /* Sum values */
 .sum-value {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  font-weight: inherit;
+  color: var(--t1);
 }
 
 .sum-value.tp {
-  color: var(--color-warning);
+  color: var(--warn);
 }
 
 .sum-value.tj {
-  color: var(--color-info);
+  color: var(--t3);
 }
 
 .sum-value.to {
-  color: var(--color-success);
+  color: var(--ok);
 }
 
 /* Actions column */
 .col-actions {
   text-align: right;
-  padding-right: var(--space-2);
+  padding-right: 6px;
 }
 
 .action-buttons {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-1);
+  padding: 4px;
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-muted);
-  transition: var(--transition-fast);
+  color: var(--t3);
+  transition: all 100ms var(--ease);
 }
 
 .action-btn:hover {
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .delete-btn:hover {
-  color: var(--color-danger);
+  color: var(--err);
 }
 
 /* Coop Badge (compact) */
@@ -606,20 +617,20 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
   justify-content: center;
   width: 20px;
   height: 20px;
-  background: var(--color-warning);
+  background: var(--warn);
   color: white;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-weight: 600;
 }
 
 /* === EXPANDED ROW === */
 .expanded-row {
-  background: var(--bg-muted);
+  background: var(--surface);
 }
 
 .expanded-row td {
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--b2);
 }
 
 .expanded-cell {
@@ -627,21 +638,21 @@ function handleCoefficientInput(field: 'manning_coefficient' | 'machine_utilizat
 }
 
 .op-settings {
-  padding: var(--space-3);
+  padding: var(--pad);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .setting-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .setting-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  color: var(--t3);
+  font-weight: 500;
 }
 </style>

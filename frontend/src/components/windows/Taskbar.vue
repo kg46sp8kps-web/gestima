@@ -88,7 +88,7 @@ const currentTime = computed(() => {
     <!-- Status indicators (right side) -->
     <div class="taskbar-status">
       <div class="status-indicator">
-        <Circle :size="8" fill="var(--status-ok)" stroke="none" />
+        <Circle :size="8" fill="var(--ok)" stroke="none" />
         <span>System Operational</span>
       </div>
       <div class="status-time">
@@ -105,20 +105,20 @@ const currentTime = computed(() => {
   left: 0;
   right: 0;
   height: 40px;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-default);
+  background: var(--surface);
+  border-top: 1px solid var(--b2);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-3);
+  padding: 0 var(--pad);
   z-index: 999;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
   backdrop-filter: blur(8px);
 }
 
 .taskbar-windows {
   display: flex;
-  gap: var(--space-1);
+  gap: 4px;
   align-items: center;
   flex: 1;
   overflow-x: auto;
@@ -130,22 +130,22 @@ const currentTime = computed(() => {
 }
 
 .taskbar-windows::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-  border-radius: var(--radius-sm);
+  background: var(--b2);
+  border-radius: var(--rs);
 }
 
 .taskbar-window-tab {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  gap: 6px;
+  padding: 4px var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t3);
+  font-size: var(--fs);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
   white-space: nowrap;
   position: relative;
   min-width: 100px;
@@ -153,16 +153,16 @@ const currentTime = computed(() => {
 }
 
 .taskbar-window-tab:hover {
-  background: var(--state-hover);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  color: var(--t1);
+  border-color: var(--b3);
 }
 
 .taskbar-window-tab.is-active {
-  background: var(--primary-color);
+  background: var(--red);
   color: white;
-  border-color: var(--primary-color);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--red);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 
 .taskbar-window-tab.is-minimized {
@@ -185,33 +185,33 @@ const currentTime = computed(() => {
 }
 
 .taskbar-empty {
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
   font-style: italic;
-  padding: 0 var(--space-3);
+  padding: 0 var(--pad);
 }
 
 .taskbar-status {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 12px;
   flex-shrink: 0;
-  margin-left: var(--space-4);
+  margin-left: 12px;
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  gap: 6px;
+  color: var(--t3);
+  font-size: var(--fs);
 }
 
 .status-time {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-family: var(--font-mono);
-  font-weight: var(--font-medium);
+  color: var(--t3);
+  font-size: var(--fs);
+  font-family: var(--mono);
+  font-weight: 500;
   min-width: 42px;
   text-align: right;
 }

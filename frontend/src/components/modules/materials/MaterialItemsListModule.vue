@@ -105,9 +105,9 @@ const resizeCursor = computed(() =>
 .layout-vertical { flex-direction: row; }
 .first-panel, .second-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .first-panel { flex-shrink: 0; }
-.second-panel { flex: 1; padding: var(--space-5); overflow-y: auto; }
-.resize-handle { flex-shrink: 0; background: var(--border-default); transition: background var(--duration-fast); position: relative; z-index: 10; }
+.second-panel { flex: 1; padding: 16px; overflow-y: auto; }
+.resize-handle { flex-shrink: 0; background: var(--b2); transition: background 100ms; position: relative; z-index: 10; }
 .layout-vertical .resize-handle { width: 4px; }
 .layout-horizontal .resize-handle { height: 4px; }
-.resize-handle:hover, .resize-handle.dragging { background: var(--color-primary); }
+.resize-handle:hover, .resize-handle.dragging { background: var(--red); }
 </style>

@@ -131,62 +131,62 @@ function formatCzk(value: number): string {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--pad);
+  padding: var(--pad) 16px;
+  border-bottom: 1px solid var(--b2);
   flex-wrap: wrap;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 
 .prefix-filters {
   display: flex;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 
 .prefix-btn {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--ground);
   cursor: pointer;
-  color: var(--text-secondary);
-  transition: all var(--duration-fast);
+  color: var(--t3);
+  transition: all 100ms;
 }
 
 .prefix-btn:hover {
-  border-color: var(--border-strong);
-  color: var(--text-body);
+  border-color: var(--b3);
+  color: var(--t2);
 }
 
 .prefix-btn.active {
-  background: var(--brand-subtle);
-  color: var(--brand-text);
-  border-color: var(--brand);
+  background: var(--red-10);
+  color: rgba(229, 57, 53, 0.7);
+  border-color: var(--red);
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  gap: 4px;
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
   cursor: pointer;
 }
 
 .mode-select {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--ground);
+  color: var(--t2);
 }
 
 .stats {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
   white-space: nowrap;
 }
 
@@ -199,38 +199,38 @@ function formatCzk(value: number): string {
   width: max-content;
   min-width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .pivot-table th,
 .pivot-table td {
-  padding: var(--density-cell-py) var(--density-cell-px);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--b1);
   white-space: nowrap;
 }
 
 .pivot-table thead th {
   position: sticky;
   top: 0;
-  background: var(--bg-surface);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--t3);
+  font-size: var(--fs);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border-bottom: 2px solid var(--border-default);
+  border-bottom: 2px solid var(--b2);
   z-index: 2;
 }
 
 .sticky-col {
   position: sticky;
-  background: var(--bg-base);
+  background: var(--base);
   z-index: 1;
 }
 
 thead .sticky-col {
   z-index: 3;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 
 .col-ucet {
@@ -250,30 +250,30 @@ thead .sticky-col {
   text-align: right;
   min-width: 85px;
   font-variant-numeric: tabular-nums;
-  color: var(--text-body);
+  color: var(--t2);
 }
 
 .mono {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .negative {
-  color: var(--color-danger);
+  color: var(--err);
 }
 
 .empty-row {
   text-align: center;
-  color: var(--text-tertiary);
-  padding: var(--space-8);
+  color: var(--t3);
+  padding: 24px;
 }
 
 tr:hover td {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 tr:hover .sticky-col {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 </style>

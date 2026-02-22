@@ -486,26 +486,26 @@ onMounted(async () => {
 .admin-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
   height: 100%;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 /* Forms */
@@ -513,18 +513,18 @@ onMounted(async () => {
 /* Buttons */
 
 .btn-sm {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
+  padding: 4px 6px;
+  font-size: var(--fs);
 }
 
 /* Form Actions */
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 .spacer {
@@ -535,24 +535,24 @@ onMounted(async () => {
 .combined-category-modal {
   display: grid;
   grid-template-columns: 350px 1fr;
-  gap: var(--space-4);
+  gap: 12px;
   align-items: start;
 }
 
 .category-form-section {
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .section-title {
-  margin: var(--space-4) 0 var(--space-3) 0;
-  font-size: var(--text-sm);
+  margin: 12px 0 var(--pad) 0;
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-default);
+  color: var(--t1);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--b2);
 }
 
 h3.section-title {
@@ -560,28 +560,28 @@ h3.section-title {
 }
 
 .tiers-management {
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .tiers-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--pad);
 }
 
 .tiers-header h3 {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
 }
 
 .tiers-table {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   overflow: hidden;
 }
 
@@ -592,45 +592,45 @@ h3.section-title {
 
 .tier-table th,
 .tier-table td {
-  padding: var(--space-2);
+  padding: 6px;
   text-align: left;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--b2);
 }
 
 .tier-table th {
-  background: var(--bg-raised);
-  font-size: var(--text-sm);
+  background: var(--raised);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--t3);
   text-transform: uppercase;
 }
 
 .editable-cell {
   cursor: text;
-  transition: all var(--duration-fast);
+  transition: all 100ms;
 }
 
 .editable-cell:hover {
-  background: var(--brand-subtle);
+  background: var(--red-10);
 }
 
 .inline-input {
   width: 100%;
-  padding: var(--space-1);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  background: var(--bg-base);
-  color: var(--text-primary);
+  padding: 4px;
+  border: 1px solid var(--red);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  background: var(--base);
+  color: var(--t1);
 }
 
 .new-row {
-  background: var(--brand-subtle);
+  background: var(--red-10);
 }
 
 .empty-cell {
   text-align: center;
-  color: var(--text-tertiary);
+  color: var(--t3);
   font-style: italic;
 }
 

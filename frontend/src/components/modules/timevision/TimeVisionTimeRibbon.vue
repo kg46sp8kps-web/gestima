@@ -58,28 +58,28 @@ function fmt(val: number | null | undefined): string {
 <style scoped>
 .time-ribbon {
   flex-shrink: 0;
-  border-top: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  border-top: 1px solid var(--b2);
+  background: var(--surface);
 }
 .ribbon-row {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
+  gap: 4px;
+  padding: 4px var(--pad);
   cursor: pointer;
   transition: background 0.15s;
   border-left: 3px solid transparent;
 }
 .ribbon-row:first-child {
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--b2);
 }
-.ribbon-row:hover { background: var(--state-hover); }
-.ribbon-row.active { border-left-color: var(--border-strong); background: var(--selected); }
+.ribbon-row:hover { background: var(--b1); }
+.ribbon-row.active { border-left-color: var(--b3); background: var(--b1); }
 .row-label {
   width: 24px;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--t3);
   flex-shrink: 0;
 }
 .time-cell {
@@ -90,19 +90,19 @@ function fmt(val: number | null | undefined): string {
   gap: 0;
 }
 .cell-label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--t3);
   letter-spacing: 0.03em;
 }
 .cell-value {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+  color: var(--t1);
 }
-.time-cell.ai .cell-value { color: var(--color-primary); }
-.time-cell.calc .cell-value { color: var(--color-primary); }
-.time-cell.human .cell-value { color: var(--text-secondary); }
-.time-cell.actual .cell-value { color: var(--color-success); }
+.time-cell.ai .cell-value { color: var(--red); }
+.time-cell.calc .cell-value { color: var(--red); }
+.time-cell.human .cell-value { color: var(--t3); }
+.time-cell.actual .cell-value { color: var(--ok); }
 </style>

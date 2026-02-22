@@ -4,8 +4,8 @@
 
 /* === OPERATION CARDS === */
 .operation-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--surface);
+    border: 1px solid var(--b2);
     border-radius: 6px;
     margin-bottom: 0.5rem;
     overflow: hidden;
@@ -22,7 +22,7 @@
 }
 
 .op-header:hover {
-    background: var(--bg-card-hover);
+    background: var(--raised);
 }
 
 .op-seq {
@@ -31,21 +31,21 @@
     justify-content: center;
     min-width: 28px;
     height: 22px;
-    background: var(--accent-red);
+    background: var(--red);
     color: white;
-    font-size: var(--text-sm);
+    font-size: var(--fs);
     font-weight: 700;
     border-radius: 4px;
 }
 
 .op-icon {
-    font-size: var(--text-lg);
+    font-size: 16px;
 }
 
 .op-name {
-    font-size: var(--text-lg);
+    font-size: 16px;
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--t1);
     flex: 1;
 }
 
@@ -64,11 +64,11 @@
 
 .mode-btn-sm {
     padding: 0.2rem 0.4rem;
-    border: 1px solid var(--border-color);
-    background: var(--bg-input);
-    color: var(--text-muted);
+    border: 1px solid var(--b2);
+    background: var(--ground);
+    color: var(--t3);
     border-radius: 3px;
-    font-size: var(--text-sm);
+    font-size: var(--fs);
     font-weight: 700;
     cursor: pointer;
     transition: all 0.1s;
@@ -77,8 +77,8 @@
 }
 
 .mode-btn-sm:hover {
-    background: var(--bg-card-hover);
-    color: var(--text-secondary);
+    background: var(--raised);
+    color: var(--t3);
 }
 
 .mode-btn-sm.active {
@@ -86,44 +86,44 @@
 }
 
 .mode-btn-sm.mode-low.active {
-    background: var(--accent-green);
-    border-color: var(--accent-green);
+    background: var(--ok);
+    border-color: var(--ok);
 }
 
 .mode-btn-sm.mode-mid.active {
-    background: var(--accent-yellow);
-    border-color: var(--accent-yellow);
-    color: #000;
+    background: var(--warn);
+    border-color: var(--warn);
+    color: var(--base);
 }
 
 .mode-btn-sm.mode-high.active {
-    background: var(--accent-orange);
-    border-color: var(--accent-orange);
+    background: var(--err);
+    border-color: var(--err);
 }
 
 /* === TIME DISPLAY === */
 .op-time-display {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    font-size: var(--fs);
+    color: var(--t3);
     white-space: nowrap;
 }
 
 .op-time-display strong {
-    color: var(--text-primary);
+    color: var(--t1);
 }
 
 /* === FEATURES SECTION === */
 .features-section {
     padding: 0.6rem;
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border-color);
+    background: var(--surface);
+    border-top: 1px solid var(--b2);
 }
 
 .no-features {
     padding: 1rem;
     text-align: center;
-    color: var(--text-muted);
-    font-size: var(--text-lg);
+    color: var(--t3);
+    font-size: 16px;
 }
 
 /* === SECTION HEADER (pro sekce uvnitř ribbonů) === */
@@ -133,22 +133,22 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--surface);
+    border: 1px solid var(--b2);
     border-radius: 0;
     transition: background 0.1s;
     user-select: none;
 }
 
 .section-header:hover {
-    background: var(--bg-card-hover);
+    background: var(--raised);
 }
 
 /* Obsah sekce - stejné pozadí jako operace */
 .section-body {
-    padding: 0.75rem !important;  /* !important kvůli x-collapse inline stylům */
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    padding: 0.75rem;  /* v6.0: removed !important — use CSS specificity */
+    background: var(--surface);
+    border: 1px solid var(--b2);
     border-top: none;
     border-radius: 0;
 }

@@ -167,48 +167,48 @@ onMounted(loadData)
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-base);
+  background: var(--base);
 }
 
 .error-bar {
-  padding: var(--space-3) var(--space-5);
-  background: var(--palette-danger-light);
-  color: var(--color-danger);
-  font-size: var(--text-sm);
-  border-bottom: 1px solid var(--palette-danger-light);
+  padding: var(--pad) 16px;
+  background: rgba(248,113,113,0.15);
+  color: var(--err);
+  font-size: var(--fs);
+  border-bottom: 1px solid rgba(248,113,113,0.15);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .data-tab-toolbar {
   display: flex;
   gap: 2px;
-  padding: var(--space-3) var(--space-5);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  padding: var(--pad) 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
 }
 
 .data-sub-btn {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  font-weight: 500;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rs);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--t3);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all 100ms;
 }
 
 .data-sub-btn:hover {
-  background: var(--bg-raised);
-  color: var(--text-body);
+  background: var(--raised);
+  color: var(--t2);
 }
 
 .data-sub-btn.active {
-  background: var(--bg-raised);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
+  background: var(--raised);
+  color: var(--t1);
+  font-weight: 600;
 }
 </style>

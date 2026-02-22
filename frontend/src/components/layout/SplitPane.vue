@@ -151,7 +151,7 @@ const leftPanelStyle = computed(() => {
 .first-panel {
   flex-shrink: 0;
   overflow: hidden;
-  transition: width var(--transition-fast), height var(--transition-fast);
+  transition: width all 100ms var(--ease), height all 100ms var(--ease);
   display: flex;
   flex-direction: column;
 
@@ -170,9 +170,9 @@ const leftPanelStyle = computed(() => {
 
 /* === RESIZE HANDLE === */
 .resize-handle {
-  background: var(--border-default);
+  background: var(--b2);
   flex-shrink: 0;
-  transition: background var(--transition-fast);
+  transition: background all 100ms var(--ease);
   position: relative;
 }
 
@@ -188,7 +188,7 @@ const leftPanelStyle = computed(() => {
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--color-primary);
+  background: var(--red);
 }
 
 /* Wider hit area for easier dragging (24px gap) */

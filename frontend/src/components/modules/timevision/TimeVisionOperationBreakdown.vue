@@ -55,27 +55,27 @@ const totalTime = computed(() => {
 
 <style scoped>
 .operation-breakdown {
-  margin-bottom: var(--space-4);
+  margin-bottom: 12px;
 }
 .operation-breakdown h4 {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-2) 0;
+  color: var(--t3);
+  margin: 0 0 6px 0;
 }
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 th, td {
-  padding: var(--space-1) var(--space-2);
+  padding: 4px 6px;
   text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--b1);
 }
 th {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   font-weight: 600;
 }
 .num {
@@ -86,11 +86,11 @@ th {
   font-weight: 500;
 }
 .notes {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 tfoot td {
-  border-top: 2px solid var(--border-default);
+  border-top: 2px solid var(--b2);
   border-bottom: none;
 }
 </style>

@@ -69,57 +69,57 @@ const contactInfo = computed(() => {
 .partner-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  gap: var(--pad);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
   min-height: 120px;
 }
 
 .partner-info {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .partner-main {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--pad);
   flex-wrap: wrap;
 }
 
 .partner-main h2 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .partner-badge {
-  padding: var(--space-1) var(--space-3);
-  background: var(--brand-subtle);
-  color: var(--brand-text);
-  border: 1px solid var(--brand);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 4px var(--pad);
+  background: var(--red-10);
+  color: rgba(229, 57, 53, 0.7);
+  border: 1px solid var(--red);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 
 .partner-type {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .type-badge {
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  padding: 4px var(--pad);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .badge-icon {
@@ -127,31 +127,31 @@ const contactInfo = computed(() => {
 }
 
 .type-badge.customer {
-  background: var(--palette-info);
+  background: var(--t3);
   color: white;
 }
 
 .type-badge.supplier {
-  background: var(--palette-secondary);
+  background: var(--t3);
   color: white;
 }
 
 .contact-summary {
   display: flex;
   align-items: center;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  padding: 6px var(--pad);
+  background: var(--raised);
+  border-radius: var(--r);
+  border: 1px solid var(--b2);
 }
 
 .contact-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .empty-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 </style>

@@ -99,20 +99,20 @@ const filteredFields = computed(() => {
 
 <style scoped>
 .field-selector {
-  margin: var(--space-4) 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
+  margin: 12px 0;
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  background: var(--surface);
 }
 
 .field-selector-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-raised);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--pad);
+  border-bottom: 1px solid var(--b2);
+  background: var(--raised);
+  border-radius: 8px 8px 0 0;
 }
 
 .field-selector-header label {
@@ -122,16 +122,16 @@ const filteredFields = computed(() => {
 
 .field-actions {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
   align-items: center;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t1);
   cursor: pointer;
 }
 
@@ -143,61 +143,61 @@ const filteredFields = computed(() => {
 .btn-link {
   background: transparent;
   border: none;
-  color: var(--color-primary);
-  font-size: var(--text-sm);
+  color: var(--red);
+  font-size: var(--fs);
   cursor: pointer;
-  padding: var(--space-1) var(--space-2);
+  padding: 4px 6px;
   text-decoration: underline;
 }
 
 .field-search {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-default);
+  padding: 6px var(--pad);
+  border-bottom: 1px solid var(--b2);
 }
 
 .field-checkboxes {
   max-height: 200px;
   overflow-y: auto;
-  padding: var(--space-2);
+  padding: 6px;
 }
 
 .field-checkbox {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--rs);
   cursor: pointer;
 }
 
 .field-checkbox:hover {
-  background: var(--bg-hover);
+  background: var(--b1);
 }
 
 .field-name {
   flex: 1;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .field-type {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-family: monospace;
+  font-size: var(--fs);
+  color: var(--t3);
+  font-family: var(--mono);
 }
 
 .input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  padding: 6px var(--pad);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  background: var(--ground);
+  color: var(--t1);
+  font-size: var(--fs);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--border-strong);
+  border-color: var(--b3);
 }
 </style>

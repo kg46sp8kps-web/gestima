@@ -108,19 +108,19 @@ defineExpose({
 .select-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 /* === LABEL === */
 .select-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-body);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t2);
 }
 
 .select-required {
-  color: var(--color-danger);
-  margin-left: var(--space-1);
+  color: var(--err);
+  margin-left: 4px;
 }
 
 /* === SELECT CONTAINER === */
@@ -131,63 +131,63 @@ defineExpose({
 
 /* === SELECT (Refined & Subtle) === */
 .select {
-  padding: var(--space-2) var(--space-3);
-  padding-right: var(--space-8); /* Space for arrow */
-  background: var(--bg-input);
-  border: 1px solid var(--border-default); /* Subtle border */
-  border-radius: var(--radius-md);
-  color: var(--text-body);
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  transition: var(--transition-fast);
+  padding: 6px var(--pad);
+  padding-right: 24px; /* Space for arrow */
+  background: var(--ground);
+  border: 1px solid var(--b2); /* Subtle border */
+  border-radius: var(--r);
+  color: var(--t2);
+  font-family: var(--font);
+  font-size: var(--fs);
+  transition: all 100ms var(--ease);
   width: 100%;
   cursor: pointer;
   appearance: none; /* Remove default arrow */
 }
 
 .select:hover:not(:disabled) {
-  border-color: var(--border-strong);
+  border-color: var(--b3);
 }
 
 /* FOCUS STATE (MODRÁ!) */
 .select:focus {
   outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.5);
   box-shadow: none;
 }
 
 /* ERROR STATE */
 .select-error-state {
-  border-color: var(--color-danger);
+  border-color: var(--err);
 }
 
 .select-error-state:focus {
-  border-color: var(--color-danger);
-  background: var(--palette-danger-light);
+  border-color: var(--err);
+  background: rgba(248,113,113,0.15);
 }
 
 /* DISABLED STATE */
 .select-disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 
 /* === CUSTOM ARROW === */
 .select-arrow {
   position: absolute;
-  right: var(--space-3);
+  right: var(--pad);
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   pointer-events: none;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .select:focus ~ .select-arrow {
-  color: var(--state-focus-border);
+  color: rgba(255,255,255,0.5);
 }
 
 .select-disabled ~ .select-arrow {
@@ -196,25 +196,25 @@ defineExpose({
 
 /* === MESSAGES === */
 .select-error {
-  font-size: var(--text-sm);
-  color: var(--color-danger);
-  margin-top: calc(-1 * var(--space-1));
+  font-size: var(--fs);
+  color: var(--err);
+  margin-top: calc(-1 * 4px);
 }
 
 .select-hint {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: calc(-1 * var(--space-1));
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-top: calc(-1 * 4px);
 }
 
 /* === OPTION STYLING (limited browser support) === */
 .select option {
-  background: var(--bg-surface);
-  color: var(--text-body);
-  padding: var(--space-2);
+  background: var(--surface);
+  color: var(--t2);
+  padding: 6px;
 }
 
 .select option:disabled {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 </style>

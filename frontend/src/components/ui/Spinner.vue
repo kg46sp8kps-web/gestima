@@ -33,8 +33,8 @@ const props = withDefaults(defineProps<{
 }
 
 .spinner {
-  border: 3px solid var(--border-default);
-  border-top: 3px solid var(--brand);
+  border: 3px solid var(--b2);
+  border-top: 3px solid var(--red);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -45,7 +45,7 @@ const props = withDefaults(defineProps<{
 }
 
 .spinner-text {
-  color: var(--text-secondary);
-  font-size: var(--text-lg);
+  color: var(--t3);
+  font-size: 16px;
 }
 </style>

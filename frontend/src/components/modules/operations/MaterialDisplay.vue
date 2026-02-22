@@ -3,14 +3,14 @@
     <!-- Inline material row - VÝRAZNĚJŠÍ BACKGROUND -->
     <div
       class="flex items-center gap-2 h-8 px-3 border rounded
-             bg-[var(--bg-raised)]
-             border-[var(--border-default)]"
+             bg-[var(--raised)]
+             border-[var(--b2)]"
     >
-      <span class="flex-1 text-xs truncate text-[var(--text-primary)]">
+      <span class="flex-1 text-xs truncate text-[var(--t1)]">
         <span class="font-medium">{{ material.item_code || material.w_nr || 'Materiál' }}</span>
-        <span class="mx-1 text-[var(--text-muted)]">&middot;</span>
-        <span class="text-[var(--text-secondary)]">{{ material.item_description || '' }}</span>
-        <span v-if="dimensionText !== '—'" class="text-[var(--text-muted)]">
+        <span class="mx-1 text-[var(--t3)]">&middot;</span>
+        <span class="text-[var(--t3)]">{{ material.item_description || '' }}</span>
+        <span v-if="dimensionText !== '—'" class="text-[var(--t3)]">
           <span class="mx-1">&middot;</span>{{ dimensionText }}
         </span>
       </span>
@@ -22,7 +22,7 @@
         {{ material.match_type }}
       </span>
       <button
-        class="p-0.5 rounded hover:bg-[var(--hover)] text-[var(--text-muted)] shrink-0"
+        class="p-0.5 rounded hover:bg-[var(--b1)] text-[var(--t3)] shrink-0"
         title="Zobrazit detaily"
         @click="detailsOpen = !detailsOpen"
       >
@@ -32,7 +32,7 @@
         />
       </button>
       <button
-        class="p-0.5 rounded hover:bg-[var(--hover)] text-[var(--text-muted)] shrink-0"
+        class="p-0.5 rounded hover:bg-[var(--b1)] text-[var(--t3)] shrink-0"
         title="Odebrat materiál"
         @click="emit('remove')"
       >
@@ -44,33 +44,33 @@
     <div
       v-if="detailsOpen"
       class="border rounded p-3
-             bg-[var(--bg-surface)]
-             border-[var(--border-default)]"
+             bg-[var(--surface)]
+             border-[var(--b2)]"
     >
       <div class="grid grid-cols-2 gap-2 text-xs">
         <div>
-          <span class="text-[var(--text-muted)]">W.Nr:</span>
-          <span class="ml-1 text-[var(--text-primary)]">{{ material.w_nr || '—' }}</span>
+          <span class="text-[var(--t3)]">W.Nr:</span>
+          <span class="ml-1 text-[var(--t1)]">{{ material.w_nr || '—' }}</span>
         </div>
         <div>
-          <span class="text-[var(--text-muted)]">Skupina:</span>
-          <span class="ml-1 text-[var(--text-primary)]">{{ material.material_group || '—' }}</span>
+          <span class="text-[var(--t3)]">Skupina:</span>
+          <span class="ml-1 text-[var(--t1)]">{{ material.material_group || '—' }}</span>
         </div>
         <div>
-          <span class="text-[var(--text-muted)]">Tvar:</span>
-          <span class="ml-1 text-[var(--text-primary)]">{{ material.shape || '—' }}</span>
+          <span class="text-[var(--t3)]">Tvar:</span>
+          <span class="ml-1 text-[var(--t1)]">{{ material.shape || '—' }}</span>
         </div>
         <div>
-          <span class="text-[var(--text-muted)]">Rozměry:</span>
-          <span class="ml-1 text-[var(--text-primary)]">{{ dimensionText }}</span>
+          <span class="text-[var(--t3)]">Rozměry:</span>
+          <span class="ml-1 text-[var(--t1)]">{{ dimensionText }}</span>
         </div>
         <div>
-          <span class="text-[var(--text-muted)]">Cenová kategorie:</span>
-          <span class="ml-1 text-[var(--text-primary)]">{{ material.price_category || '—' }}</span>
+          <span class="text-[var(--t3)]">Cenová kategorie:</span>
+          <span class="ml-1 text-[var(--t1)]">{{ material.price_category || '—' }}</span>
         </div>
         <div>
-          <span class="text-[var(--text-muted)]">Cena/kg:</span>
-          <span class="ml-1 text-[var(--text-primary)]">
+          <span class="text-[var(--t3)]">Cena/kg:</span>
+          <span class="ml-1 text-[var(--t1)]">
             {{ material.price_per_kg ? `${material.price_per_kg} Kč` : '—' }}
           </span>
         </div>

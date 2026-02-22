@@ -115,11 +115,11 @@ function isSelected(row: Record<string, unknown>): boolean {
 
 <style scoped>
 .data-table tbody tr {
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .data-table tbody tr:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .data-table tbody tr.clickable {
@@ -127,22 +127,22 @@ function isSelected(row: Record<string, unknown>): boolean {
 }
 
 .data-table tbody tr.selected {
-  background: var(--selected);
+  background: var(--b1);
 }
 
 .data-table tbody tr.selected:hover {
-  background: var(--active);
+  background: var(--b2);
 }
 
 .data-table tbody tr.highlighted {
-  background: var(--state-hover);
-  outline: 1px solid var(--border-focus);
+  background: var(--b1);
+  outline: 1px solid rgba(255,255,255,0.5);
 }
 
 .data-table td {
-  padding: var(--density-cell-py, var(--space-3)) var(--density-cell-px, var(--space-4));
-  border-bottom: 1px solid var(--border-default);
-  color: var(--text-primary);
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--b2);
+  color: var(--t1);
   vertical-align: middle;
 }
 
@@ -169,10 +169,10 @@ function isSelected(row: Record<string, unknown>): boolean {
 }
 
 .bool-true {
-  color: var(--color-success);
+  color: var(--ok);
 }
 
 .bool-false {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 </style>

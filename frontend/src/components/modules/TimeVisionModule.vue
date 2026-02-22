@@ -174,7 +174,7 @@ onMounted(() => {
 .tv-left {
   flex-shrink: 0;
   overflow-y: auto;
-  border-right: 1px solid var(--border-default);
+  border-right: 1px solid var(--b2);
 }
 .tv-resize {
   width: 4px;
@@ -184,7 +184,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 .tv-resize:hover, .tv-resize.active {
-  background: var(--color-primary);
+  background: var(--red);
 }
 .tv-middle {
   flex: 1;
@@ -196,37 +196,37 @@ onMounted(() => {
 .tv-right {
   flex-shrink: 0;
   overflow-y: auto;
-  border-left: 1px solid var(--border-default);
+  border-left: 1px solid var(--b2);
 }
 .tv-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-muted);
+  color: var(--t3);
 }
 .model-header {
   display: flex;
   gap: 0;
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
   flex-shrink: 0;
 }
 .model-header button {
   flex: 1;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px var(--pad);
   border: none;
   background: none;
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--t3);
   border-bottom: 2px solid transparent;
   transition: all 0.15s;
 }
 .model-header button.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+  color: var(--red);
+  border-bottom-color: var(--red);
   font-weight: 600;
 }
 .tv-pdf-container {

@@ -80,16 +80,16 @@ onUnmounted(() => {
 .tooltip {
   position: fixed;
   transform: translateX(-50%);
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  padding: 4px 6px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
   white-space: nowrap;
   pointer-events: none;
   z-index: 10005;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .tooltip-fade-enter-active,

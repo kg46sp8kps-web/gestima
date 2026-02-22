@@ -64,21 +64,21 @@ const emit = defineEmits<{
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  padding: 6px var(--pad);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  background: var(--ground);
+  color: var(--t1);
+  font-size: var(--fs);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--border-strong);
+  border-color: var(--b3);
 }
 </style>

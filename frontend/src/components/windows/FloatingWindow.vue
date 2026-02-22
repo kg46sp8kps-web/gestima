@@ -131,9 +131,9 @@ const windowStyle = computed(() => {
   if (props.window.maximized) {
     return {
       left: '0',
-      top: '56px',
+      top: '36px',
       width: '100vw',
-      height: 'calc(100vh - 88px)', // 56px header + 32px footer
+      height: 'calc(100vh - 68px)', // 36px header + 32px footer
       zIndex: props.window.zIndex
     }
   }
@@ -191,7 +191,7 @@ function onDragMove(event: MouseEvent) {
   let newY = dragStartWinY.value + deltaY
 
   // Apply screen boundaries (prevent dragging outside)
-  const headerHeight = 56  // CHANGED: Fixed header height
+  const headerHeight = 36  // Compact header height
   const footerHeight = 32  // CHANGED: Sticky footer height
   const minX = 0
   const minY = headerHeight
@@ -601,14 +601,14 @@ const colorOptions = [
 <style scoped>
 .floating-window {
   position: fixed;
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow var(--duration-normal) var(--ease-out);
+  transition: box-shadow 150ms cubic-bezier(0,0,0.2,1);
 }
 
 .floating-window.is-entering {
@@ -616,7 +616,7 @@ const colorOptions = [
 }
 
 .floating-window:hover {
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
 }
 
 .floating-window.is-maximized {
@@ -634,9 +634,9 @@ const colorOptions = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-default);
+  padding: 6px var(--pad);
+  background: var(--surface);
+  border-bottom: 1px solid var(--b2);
   cursor: move;
   user-select: none;
   backdrop-filter: blur(8px);
@@ -667,15 +667,15 @@ const colorOptions = [
 
 .linking-dot.clickable {
   cursor: pointer;
-  padding: var(--space-1);
+  padding: 4px;
   border: none;
   background: transparent;
-  border-radius: var(--radius-sm);
-  transition: background var(--duration-fast) var(--ease-out);
+  border-radius: var(--rs);
+  transition: background 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .linking-dot.clickable:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .color-dot {
@@ -691,11 +691,11 @@ const colorOptions = [
   top: calc(100% + 4px);
   left: 0;
   min-width: 120px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  padding: 4px;
   z-index: 100000; /* Above all floating windows */
 }
 
@@ -709,25 +709,25 @@ const colorOptions = [
 .color-option {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 6px var(--pad);
+  border-radius: var(--rs);
   border: none;
   background: transparent;
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  color: var(--t1);
+  font-size: var(--fs);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition: background 100ms cubic-bezier(0,0,0.2,1);
   width: 100%;
   text-align: left;
 }
 
 .color-option:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .color-option.is-active {
-  background: var(--active);
+  background: var(--b2);
   font-weight: 500;
 }
 
@@ -749,23 +749,23 @@ const colorOptions = [
 
 .window-title {
   font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .linked-part {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  gap: 4px;
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
 }
 
 .link-icon-inline {
@@ -791,11 +791,11 @@ const colorOptions = [
   top: calc(100% + 4px);
   right: 0;
   min-width: 180px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  padding: 4px;
   z-index: 100000; /* Above all floating windows */
 }
 
@@ -809,22 +809,22 @@ const colorOptions = [
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 6px var(--pad);
+  border-radius: var(--rs);
   border: none;
   background: transparent;
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  color: var(--t1);
+  font-size: var(--fs);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition: background 100ms cubic-bezier(0,0,0.2,1);
   width: 100%;
   text-align: left;
   position: relative;
 }
 
 .dropdown-item:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .dropdown-item span:first-of-type {
@@ -832,7 +832,7 @@ const colorOptions = [
 }
 
 .checkmark {
-  color: var(--color-primary);
+  color: var(--red);
   font-weight: bold;
   margin-left: auto;
 }
@@ -842,29 +842,29 @@ const colorOptions = [
   height: 20px;
   border: none;
   background: transparent;
-  color: var(--text-primary);
-  font-size: var(--text-lg);
+  color: var(--t1);
+  font-size: 16px;
   line-height: 1;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rs);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .btn-control:hover {
-  background: var(--state-hover);
+  background: var(--b1);
   transform: scale(1.1);
 }
 
 .btn-settings.active {
-  background: var(--color-primary);
+  background: var(--red);
   color: white;
 }
 
 .btn-close:hover {
-  background: var(--status-error);
+  background: var(--err);
   color: white;
 }
 
@@ -883,10 +883,10 @@ const colorOptions = [
   width: 20px;
   height: 20px;
   cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, var(--border-strong) 50%);
+  background: linear-gradient(135deg, transparent 50%, var(--b3) 50%);
   opacity: 0.3;
-  transition: opacity var(--duration-fast) var(--ease-out);
-  border-bottom-right-radius: var(--radius-lg);
+  transition: opacity 100ms cubic-bezier(0,0,0.2,1);
+  border-bottom-right-radius: 8px;
 }
 
 .resize-handle:hover {
@@ -904,11 +904,11 @@ const colorOptions = [
 }
 
 .window-content::-webkit-scrollbar-thumb {
-  background: var(--border-light);
-  border-radius: var(--radius-sm);
+  background: var(--b1);
+  border-radius: var(--rs);
 }
 
 .window-content::-webkit-scrollbar-thumb:hover {
-  background: var(--border-focus);
+  background: rgba(255,255,255,0.5);
 }
 </style>

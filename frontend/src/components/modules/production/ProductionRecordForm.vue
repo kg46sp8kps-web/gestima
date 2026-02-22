@@ -90,43 +90,43 @@ function handleCancel() {
 
 <style scoped>
 .add-form {
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-3);
+  padding: var(--pad);
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  margin-bottom: var(--pad);
 }
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  gap: 6px;
+  margin-bottom: 6px;
 }
-.form-field { display: flex; flex-direction: column; gap: var(--space-1); }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
 .form-field.full-width { grid-column: span 2; }
 .form-field label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 .input-sm {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-family: 'Space Grotesk', sans-serif;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  color: var(--t1);
+  font-family: var(--font);
 }
 .input-sm:focus {
   outline: none;
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 2px var(--active);
+  border-color: var(--b3);
+  box-shadow: 0 0 0 2px var(--b2);
 }
 .form-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   justify-content: flex-end;
-  margin-top: var(--space-3);
+  margin-top: var(--pad);
 }
 </style>

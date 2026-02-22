@@ -130,7 +130,7 @@ onMounted(() => {
 
 .left-panel {
   flex-shrink: 0;
-  padding: var(--space-3);
+  padding: var(--pad);
 }
 
 .right-panel {
@@ -141,8 +141,8 @@ onMounted(() => {
 .resize-handle {
   flex-shrink: 0;
   width: 4px;
-  background: var(--border-default);
-  transition: background var(--duration-fast);
+  background: var(--b2);
+  transition: background 100ms;
   cursor: col-resize;
   position: relative;
   z-index: 10;
@@ -150,6 +150,6 @@ onMounted(() => {
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--color-primary);
+  background: var(--red);
 }
 </style>

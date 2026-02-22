@@ -88,24 +88,24 @@ function handleSort(column: Column) {
 
 <style scoped>
 .data-table thead {
-  background: var(--bg-subtle);
+  background: var(--ground);
   position: sticky;
   top: 0;
   z-index: 5;
 }
 
 .data-table th {
-  padding: var(--density-cell-py, var(--space-3)) var(--density-cell-px, var(--space-4));
+  padding: 3px 10px;
   text-align: left;
-  font-weight: var(--font-semibold);
-  font-size: var(--density-font-sm, var(--text-sm));
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-default);
+  font-weight: 600;
+  font-size: var(--density-font-sm, var(--fs));
+  color: var(--t3);
+  border-bottom: 1px solid var(--b2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   user-select: none;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .data-table th.sortable {
@@ -113,21 +113,21 @@ function handleSort(column: Column) {
 }
 
 .data-table th:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .data-table th.sortable:hover {
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .data-table th.sorted {
-  color: var(--brand);
+  color: var(--red);
 }
 
 .th-content {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .th-label {

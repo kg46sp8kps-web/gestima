@@ -260,7 +260,7 @@ defineExpose({
 .material-items-list-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
   height: 100%;
   overflow: hidden;
 }
@@ -269,33 +269,33 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .list-header h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .count {
-  font-size: var(--text-sm);
-  font-weight: var(--font-normal);
-  color: var(--text-tertiary);
-  margin-left: var(--space-2);
+  font-size: var(--fs);
+  font-weight: 400;
+  color: var(--t3);
+  margin-left: 6px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .filters-row {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -314,8 +314,8 @@ defineExpose({
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   pointer-events: none;
 }
 
@@ -334,15 +334,15 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--ground);
+  border-bottom: 1px solid var(--b2);
 }
 
 .vt-th {
-  padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-muted);
+  padding: 3px 10px;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -365,17 +365,17 @@ defineExpose({
   display: flex;
   align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--b1);
   transition: background-color 60ms ease;
 }
 
-.vt-row:hover  { background: var(--hover); }
-.vt-row.selected { background: var(--selected); }
+.vt-row:hover  { background: var(--b1); }
+.vt-row.selected { background: var(--b1); }
 
 .vt-td {
-  padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  padding: 3px 10px;
+  font-size: var(--fs);
+  color: var(--t2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -392,13 +392,13 @@ defineExpose({
 .col-stock    { flex: 0.7 1 0; }
 
 .col-num {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   text-align: right;
 }
 
 .code-mono {
-  font-family: var(--font-mono);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--t1);
 }
 </style>

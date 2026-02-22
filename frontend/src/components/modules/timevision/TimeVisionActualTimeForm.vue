@@ -211,99 +211,99 @@ async function handleSave() {
 
 <style scoped>
 .actual-time-form {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 .actual-time-form h4 {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-3) 0;
+  color: var(--t3);
+  margin: 0 0 var(--pad) 0;
 }
 .deviation-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  gap: 6px;
+  margin-bottom: var(--pad);
 }
 .deviation-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-0\.5);
+  gap: 2px;
 }
 .deviation-item label {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
   text-transform: uppercase;
 }
 .deviation-item span {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
 }
-.over { color: var(--color-danger); }
-.under { color: var(--color-success); }
+.over { color: var(--err); }
+.under { color: var(--ok); }
 .form-row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-bottom: var(--space-3);
+  gap: 4px;
+  margin-bottom: var(--pad);
 }
 .field-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   text-transform: uppercase;
   font-weight: 500;
 }
 .input-select {
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-primary);
+  padding: 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  background: var(--ground);
+  color: var(--t1);
 }
 .time-input-wrapper {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 .input-time {
   width: 120px;
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-primary);
+  padding: 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  background: var(--ground);
+  color: var(--t1);
 }
 .unit {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 .input-notes {
   width: 100%;
-  padding: var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  padding: 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
   resize: vertical;
-  background: var(--bg-input);
-  color: var(--text-primary);
-  margin-bottom: var(--space-2);
+  background: var(--ground);
+  color: var(--t1);
+  margin-bottom: 6px;
 }
 .btn-save {
-  padding: var(--space-2) var(--space-4);
+  padding: 6px 12px;
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  color: var(--t1);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
 }
 .btn-save:hover {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 .btn-save:disabled {
   opacity: 0.5;

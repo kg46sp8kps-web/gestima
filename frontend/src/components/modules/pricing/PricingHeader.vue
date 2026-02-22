@@ -39,36 +39,36 @@ const frozenSetsCount = computed(() => {
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  gap: var(--pad);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
 }
 
 .part-info {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .part-info h2 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .part-info h2.placeholder {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .part-badge {
-  padding: var(--space-1) var(--space-3);
+  padding: 4px var(--pad);
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  color: var(--t1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 </style>

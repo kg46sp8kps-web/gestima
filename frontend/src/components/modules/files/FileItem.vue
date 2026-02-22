@@ -74,37 +74,37 @@ function getFileIcon(fileType: string) {
 
 <style scoped>
 .file-item {
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all 100ms;
 }
 
 .file-item:hover {
-  border-color: var(--color-primary);
-  background: var(--bg-raised);
+  border-color: var(--red);
+  background: var(--raised);
 }
 
 .file-item.selected {
-  border-color: var(--border-strong);
-  background: var(--selected);
+  border-color: var(--b3);
+  background: var(--b1);
 }
 
 .file-item.orphan {
-  border-left: 3px solid var(--color-warning);
+  border-left: 3px solid var(--warn);
 }
 
 .file-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .file-icon {
   flex-shrink: 0;
-  color: var(--color-primary);
+  color: var(--red);
 }
 
 .file-info {
@@ -112,56 +112,56 @@ function getFileIcon(fileType: string) {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .file-name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .file-size {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-size: var(--fs);
+  color: var(--t3);
+  font-family: var(--mono);
 }
 
 .file-links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .link-badge {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--base);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .primary-icon {
-  color: var(--color-warning);
+  color: var(--warn);
 }
 
 .orphan-warning {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-warning-light);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--color-warning);
+  gap: 4px;
+  margin-top: 6px;
+  padding: 4px 6px;
+  background: rgba(251,191,36,0.15);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  color: var(--warn);
 }
 </style>

@@ -108,31 +108,31 @@ defineExpose({ testConnection, isConnected })
 
 <style scoped>
 .connection-tab {
-  padding: var(--space-4);
+  padding: 12px;
   max-width: 1200px;
 }
 
 
 .mb-4 {
-  margin-bottom: var(--space-4);
+  margin-bottom: 12px;
 }
 
 .connection-info {
-  margin-top: var(--space-4);
+  margin-top: 12px;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--pad);
+  margin-bottom: 12px;
 }
 
 .info-card {
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: var(--r);
+  border: 1px solid var(--b2);
 }
 
 .info-card.full-width {
@@ -140,41 +140,41 @@ defineExpose({ testConnection, isConnected })
 }
 
 .info-label {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  margin-bottom: var(--space-1);
+  font-size: var(--fs);
+  color: var(--t3);
+  margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-value {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .info-value.mono {
-  font-family: 'Monaco', monospace;
-  font-size: var(--text-sm);
+  font-family: var(--mono);
+  font-size: var(--fs);
   word-break: break-all;
 }
 
 .info-value.success {
-  color: var(--status-ok);
+  color: var(--ok);
 }
 
 .info-value.error {
-  color: var(--status-error);
+  color: var(--err);
 }
 
 .error-box {
-  padding: var(--space-3);
-  background: var(--status-error-bg);
-  border: 1px solid var(--palette-danger-light);
-  border-radius: var(--radius-md);
-  color: var(--status-error);
-  font-size: var(--text-sm);
-  margin-top: var(--space-4);
+  padding: var(--pad);
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.15);
+  border-radius: var(--r);
+  color: var(--err);
+  font-size: var(--fs);
+  margin-top: 12px;
 }
 
 .icon {

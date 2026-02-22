@@ -80,63 +80,63 @@ function updateField(field: keyof Customer, value: string) {
 
 <style scoped>
 .customer-section {
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .customer-section h2 {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--text-lg);
-  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--t1);
 }
 
 .section-icon {
   display: inline;
-  margin-right: var(--space-3);
+  margin-right: var(--pad);
 }
 
 .customer-info {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .form-field label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-body);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t2);
 }
 
 .match-result {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--rs);
+  font-size: var(--fs);
 }
 
 .match-result.success {
-  background: var(--palette-success-faint);
-  color: var(--color-success);
+  background: rgba(52,211,153,0.08);
+  color: var(--ok);
 }
 
 .match-result.warning {
-  background: var(--palette-warning-faint);
-  color: var(--palette-warning);
+  background: rgba(251,191,36,0.08);
+  color: var(--warn);
 }
 </style>

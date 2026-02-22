@@ -1,22 +1,21 @@
 <script setup lang="ts">
 /**
- * AppHeader - Coordinator component (<250 LOC)
- * Delegates to sub-components for clean architecture
+ * AppHeader - Coordinator component
+ * Workspace-based navigation with WorkspaceSwitcher + LayoutPresetSelector
  */
 
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useWindowsStore } from '@/stores/windows'
-import { Menu, X, Package, DollarSign, Layers, LayoutGrid, Users, FileText, Database, Calculator, Zap, FolderOpen } from 'lucide-vue-next'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { Menu, X } from 'lucide-vue-next'
 import ManageLayoutsModal from '@/components/modals/ManageLayoutsModal.vue'
 import AppMainMenu from './AppMainMenu.vue'
-import AppSearchBar from './AppSearchBar.vue'
-import QuickModulesPanel from './QuickModulesPanel.vue'
-import WindowActionsBar from './WindowActionsBar.vue'
-import FavoriteLayoutsBar from './FavoriteLayoutsBar.vue'
+// FavoriteLayoutsBar removed from compact header — functionality accessible via menu
 import SaveLayoutDialog from './SaveLayoutDialog.vue'
 import AppLogo from './AppLogo.vue'
+import WorkspaceSwitcher from '@/components/tiling/WorkspaceSwitcher.vue'
+import LayoutPresetSelector from '@/components/tiling/LayoutPresetSelector.vue'
 import Tooltip from '@/components/ui/Tooltip.vue'
 import { alert } from '@/composables/useDialog'
 import { ICON_SIZE } from '@/config/design'
@@ -24,37 +23,15 @@ import { ICON_SIZE } from '@/config/design'
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
-const windowsStore = useWindowsStore()
+const workspaceStore = useWorkspaceStore()
 
 const showMenu = ref(false)
 const showSaveDialog = ref(false)
 const showSaveAsDialog = ref(false)
 const showManageLayoutsModal = ref(false)
 
-const availableModules = [
-  { value: 'part-main', label: 'Part Main', icon: Package },
-  { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
-  { value: 'part-technology', label: 'Technologie', icon: Layers },
-  { value: 'batch-sets', label: 'Batch Sets', icon: Layers },
-  { value: 'partners-list', label: 'Zákazníci', icon: Users },
-  { value: 'quotes-list', label: 'Nabídky', icon: FileText },
-  { value: 'manufacturing-items', label: 'Vyráběné položky', icon: Package },
-  { value: 'material-items-list', label: 'Materiálové položky', icon: Database },
-  { value: 'master-admin', label: 'Admin', icon: Database },
-  { value: 'accounting', label: 'Účetnictví', icon: Calculator },
-  { value: 'time-vision', label: 'TimeVision', icon: Zap },
-  { value: 'file-manager', label: 'File Manager', icon: FolderOpen }
-]
-
-const quickModules = [
-  { value: 'part-main', label: 'Part Main', icon: Package },
-  { value: 'part-pricing', label: 'Pricing', icon: DollarSign },
-  { value: 'part-technology', label: 'Technologie', icon: Layers },
-  { value: 'batch-sets', label: 'Batch Sets', icon: Layers }
-]
-
-const topFavorites = computed(() => windowsStore.favoriteViews.slice(0, 3))
-const saveLayoutName = computed(() => `Layout ${windowsStore.savedViews.length + 1}`)
+const isWorkspaceRoute = computed(() => route.path === '/workspace')
+const saveLayoutName = computed(() => `Layout ${workspaceStore.savedViews.length + 1}`)
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
@@ -70,27 +47,9 @@ async function handleLogout() {
   router.push('/login')
 }
 
-function openModule(moduleValue: string, label: string) {
-  windowsStore.openWindow(moduleValue as never, label)
-}
-
-function loadFavoriteLayout(layoutId: string) {
-  windowsStore.loadView(layoutId)
-}
-
-function handleNewLayout() {
-  windowsStore.closeAllWindows()
-  closeMenu()
-}
-
 async function handleSaveCurrentLayout() {
-  if (windowsStore.openWindows.length === 0) {
-    await alert({ title: 'Info', message: 'No windows open to save!', type: 'info' })
-    return
-  }
-
-  if (windowsStore.currentViewId) {
-    const updated = windowsStore.updateActiveView()
+  if (workspaceStore.currentViewId) {
+    const updated = workspaceStore.updateActiveView()
     if (updated) {
       closeMenu()
       return
@@ -102,29 +61,25 @@ async function handleSaveCurrentLayout() {
 }
 
 async function handleSaveCurrentAsNewLayout() {
-  if (windowsStore.openWindows.length === 0) {
-    await alert({ title: 'Info', message: 'No windows open to save!', type: 'info' })
-    return
-  }
   showSaveAsDialog.value = true
   closeMenu()
 }
 
 async function confirmSaveLayout(name: string) {
   if (!name.trim()) {
-    await alert({ title: 'Chyba validace', message: 'Please enter a layout name', type: 'warning' })
+    await alert({ title: 'Chyba validace', message: 'Zadejte název layoutu', type: 'warning' })
     return
   }
-  windowsStore.saveCurrentView(name)
+  workspaceStore.saveCurrentView(name)
   showSaveDialog.value = false
 }
 
 async function confirmSaveAsLayout(name: string) {
   if (!name.trim()) {
-    await alert({ title: 'Chyba validace', message: 'Please enter a layout name', type: 'warning' })
+    await alert({ title: 'Chyba validace', message: 'Zadejte název layoutu', type: 'warning' })
     return
   }
-  windowsStore.saveCurrentViewAs(name)
+  workspaceStore.saveCurrentView(name)
   showSaveAsDialog.value = false
 }
 
@@ -133,19 +88,11 @@ function handleManageLayouts() {
   showManageLayoutsModal.value = true
 }
 
-function arrangeWindows(mode: 'grid' | 'horizontal' | 'vertical') {
-  windowsStore.arrangeWindows(mode)
-}
-
-function closeAllWindows() {
-  windowsStore.closeAllWindows()
-}
-
-function handleOpenModule(moduleValue: string, label: string) {
-  if (route.path !== '/windows') {
-    router.push('/windows')
+function handleSwitchWorkspace(workspace: string) {
+  if (route.path !== '/workspace') {
+    router.push('/workspace')
   }
-  windowsStore.openWindow(moduleValue as never, label)
+  workspaceStore.switchWorkspace(workspace as Parameters<typeof workspaceStore.switchWorkspace>[0])
   closeMenu()
 }
 </script>
@@ -153,45 +100,25 @@ function handleOpenModule(moduleValue: string, label: string) {
 <template>
   <header class="app-header">
     <div class="header-content">
-      <!-- Left -->
+      <!-- Left: Menu + Workspace Switcher -->
       <div class="header-left">
         <Tooltip text="Menu" :delay="750">
-          <button class="menu-btn" :class="{ 'is-open': showMenu }" @click="toggleMenu">
+          <button class="menu-btn" :class="{ 'is-open': showMenu }" @click="toggleMenu" data-testid="menu-btn">
             <Menu v-if="!showMenu" :size="ICON_SIZE.STANDARD" />
             <X v-if="showMenu" :size="ICON_SIZE.STANDARD" />
           </button>
         </Tooltip>
 
-        <AppSearchBar
-          v-if="route.path === '/windows'"
-          :modules="availableModules"
-          @select="openModule"
-        />
-
-        <WindowActionsBar
-          v-if="route.path === '/windows'"
-          @arrange="arrangeWindows"
-          @close-all="closeAllWindows"
-        />
-
-        <FavoriteLayoutsBar
-          v-if="route.path === '/windows'"
-          :layouts="topFavorites"
-          :active-id="windowsStore.currentViewId"
-          @load="loadFavoriteLayout"
-        />
+        <WorkspaceSwitcher v-if="isWorkspaceRoute" />
       </div>
 
-      <!-- Center -->
+      <!-- Center: Logo -->
       <AppLogo />
 
-      <!-- Right -->
+      <!-- Right: Layout Presets (only for part/manufacturing workspaces) -->
       <div class="header-right">
-        <QuickModulesPanel
-          v-if="route.path === '/windows'"
-          :quick-modules="quickModules"
-          :available-modules="availableModules"
-          @open="openModule"
+        <LayoutPresetSelector
+          v-if="isWorkspaceRoute && workspaceStore.isPartWorkspace"
         />
       </div>
     </div>
@@ -199,20 +126,18 @@ function handleOpenModule(moduleValue: string, label: string) {
     <!-- Main Menu -->
     <AppMainMenu
       :show-menu="showMenu"
-      :modules="availableModules"
       @close="closeMenu"
       @logout="handleLogout"
-      @new-layout="handleNewLayout"
       @save-layout="handleSaveCurrentLayout"
       @save-as-layout="handleSaveCurrentAsNewLayout"
       @manage-layouts="handleManageLayouts"
-      @open-module="handleOpenModule"
+      @switch-workspace="handleSwitchWorkspace"
     />
 
     <!-- Dialogs -->
     <SaveLayoutDialog
       :show="showSaveDialog"
-      title="Save Layout"
+      title="Uložit layout"
       :default-name="saveLayoutName"
       @close="showSaveDialog = false"
       @confirm="confirmSaveLayout"
@@ -239,45 +164,66 @@ function handleOpenModule(moduleValue: string, label: string) {
   top: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: 36px;
   box-sizing: border-box;
   z-index: 10001;
-  background: var(--bg-base);
-  border-bottom: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--b1);
+  opacity: 0;
+  transform: translateY(-4px);
+  animation: header-slide-down 0.3s 0.05s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, var(--red) 30%, var(--red) 70%, transparent 95%);
+  opacity: 0.25;
+}
+
+@keyframes header-slide-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
+  padding: 0 10px;
   max-width: 100%;
   height: 100%;
-  gap: var(--space-4);
+  gap: 7px;
 }
 
 .menu-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .menu-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .menu-btn.is-open {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--red);
+  border-color: var(--red);
   color: white;
 }
 
@@ -285,14 +231,14 @@ function handleOpenModule(moduleValue: string, label: string) {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 5px;
 }
 
 .header-right {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 5px;
   justify-content: flex-end;
 }
 </style>

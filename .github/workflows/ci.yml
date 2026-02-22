@@ -1,0 +1,98 @@
+name: CI — Quality Gate
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -x -q --tb=short
+
+  frontend-build:
+    name: Frontend Build & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check & Build
+        run: npm run build
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded colors in Vue/CSS
+        run: |
+          VIOLATIONS=$(grep -rn '#[0-9a-fA-F]\{3,8\}' frontend/src/components/ frontend/src/views/ --include='*.vue' --include='*.css' | grep -v 'design-system.css' | grep -v 'var(--' | grep -v '//' | head -20 || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Hardcoded colors found (use CSS variables from design-system.css):"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "OK — no hardcoded colors"
+
+      - name: Check for TypeScript 'any' types
+        run: |
+          VIOLATIONS=$(grep -rn ': any\b\|as any\b\|<any>' frontend/src/ --include='*.ts' --include='*.vue' | grep -v 'node_modules' | grep -v '.d.ts' | head -20 || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::TypeScript 'any' types found:"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "OK — no 'any' types"
+
+      - name: Check for missing auth on backend endpoints
+        run: |
+          for file in app/routers/*.py; do
+            ENDPOINTS=$(grep -c '@router\.\(get\|post\|put\|delete\|patch\)' "$file" 2>/dev/null || echo 0)
+            AUTH=$(grep -c 'get_current_user\|require_role' "$file" 2>/dev/null || echo 0)
+            if [ "$ENDPOINTS" -gt 0 ] && [ "$AUTH" -lt "$ENDPOINTS" ]; then
+              echo "::warning::$file has $ENDPOINTS endpoints but only $AUTH auth dependencies"
+            fi
+          done
+          echo "OK — auth check complete"
+
+      - name: Check for hard deletes
+        run: |
+          VIOLATIONS=$(grep -rn 'await db\.delete(' app/routers/ --include='*.py' | head -10 || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Hard delete found (use soft_delete()):"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "OK — no hard deletes"

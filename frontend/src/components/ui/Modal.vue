@@ -119,15 +119,15 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 /* === MODAL === */
 .modal {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  background: var(--raised);
+  border: 1px solid var(--b3);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   width: 90%;
   max-height: 90vh;
   display: flex;
@@ -146,15 +146,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  padding: var(--pad) 12px;
+  border-bottom: 1px solid var(--b2);
   flex-shrink: 0;
 }
 
 .modal-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
   margin: 0;
 }
 
@@ -166,40 +166,40 @@ onUnmounted(() => {
   justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
+  border-radius: var(--r);
+  color: var(--t3);
   cursor: pointer;
-  transition: all var(--t-fast);
+  transition: all 100ms var(--ease);
   flex-shrink: 0;
 }
 
 .modal-close:hover {
-  background: var(--hover);
-  color: var(--text-primary);
-  border-color: var(--border-default);
+  background: var(--b1);
+  color: var(--t1);
+  border-color: var(--b2);
 }
 
 /* === BODY === */
 .modal-body {
-  padding: var(--space-4);
+  padding: 12px;
   overflow-y: auto;
   flex: 1;
 }
 
 /* === FOOTER === */
 .modal-footer {
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--border-default);
+  padding: var(--pad) 12px;
+  border-top: 1px solid var(--b2);
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: var(--pad);
   flex-shrink: 0;
 }
 
 /* === TRANSITIONS === */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
-  transition: opacity var(--duration-normal) var(--ease-out);
+  transition: opacity 150ms cubic-bezier(0,0,0.2,1);
 }
 
 .modal-fade-enter-from,
@@ -209,8 +209,8 @@ onUnmounted(() => {
 
 .modal-slide-enter-active,
 .modal-slide-leave-active {
-  transition: transform var(--duration-normal) var(--ease-out),
-              opacity var(--duration-normal) var(--ease-out);
+  transition: transform 150ms cubic-bezier(0,0,0.2,1),
+              opacity 150ms cubic-bezier(0,0,0.2,1);
 }
 
 .modal-slide-enter-from {

@@ -108,27 +108,27 @@ const getFeatureMeta = (type: string) => featureMetaMap.value.get(type)
 </template>
 
 <style scoped>
-.features-table { border: 1px solid var(--border-default); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: var(--space-2); }
-.table-header { display: flex; gap: var(--space-1); padding: var(--space-1) var(--space-2); background: var(--bg-raised); font-size: var(--text-sm); text-transform: uppercase; color: var(--text-tertiary); font-weight: 600; }
-.table-row { display: flex; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-top: 1px solid var(--border-default); align-items: center; background: var(--bg-surface); transition: background var(--duration-fast); }
-.table-row:hover { background: var(--state-hover); }
-.table-row.row-info { background: var(--bg-base); opacity: 0.7; }
-.table-row.row-info:hover { opacity: 1; background: var(--state-hover); }
+.features-table { border: 1px solid var(--b2); border-radius: var(--rs); overflow: hidden; margin-bottom: 6px; }
+.table-header { display: flex; gap: 4px; padding: 4px 6px; background: var(--raised); font-size: var(--fs); text-transform: uppercase; color: var(--t3); font-weight: 600; }
+.table-row { display: flex; gap: 4px; padding: 4px 6px; border-top: 1px solid var(--b2); align-items: center; background: var(--surface); transition: background 100ms; }
+.table-row:hover { background: var(--b1); }
+.table-row.row-info { background: var(--base); opacity: 0.7; }
+.table-row.row-info:hover { opacity: 1; background: var(--b1); }
 .col-indicator { width: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .indicator-dot { width: 6px; height: 6px; border-radius: 50%; }
-.indicator-dot.dot-time { background: var(--status-ok); }
-.indicator-dot.dot-info { background: var(--text-tertiary); }
+.indicator-dot.dot-time { background: var(--ok); }
+.indicator-dot.dot-info { background: var(--t3); }
 .col-type { width: 160px; flex-shrink: 0; }
 .col-count { width: 40px; flex-shrink: 0; text-align: center; }
 .col-detail { flex: 1; min-width: 0; }
 .col-time { width: 48px; flex-shrink: 0; text-align: right; }
 .col-actions { width: 28px; flex-shrink: 0; }
-.input-sm { padding: var(--space-1); border: 1px solid var(--border-default); border-radius: var(--radius-sm); font-size: var(--text-sm); background: var(--bg-input); color: var(--text-primary); width: 100%; }
-.input-sm:focus { outline: none; border-color: var(--focus-ring); background: var(--focus-bg); box-shadow: 0 0 0 1px var(--active); }
-.time-val { font-size: var(--text-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.btn-icon { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: none; color: var(--text-tertiary); cursor: pointer; border-radius: var(--radius-sm); transition: var(--transition-fast); }
-.btn-icon:hover { background: var(--status-error-bg); color: var(--status-error); }
-.btn-add { display: flex; align-items: center; gap: var(--space-1); width: 100%; padding: var(--space-2); border: none; background: none; cursor: pointer; font-size: var(--text-sm); color: var(--text-tertiary); border-top: 1px solid var(--border-default); transition: var(--transition-fast); }
-.btn-add:hover { background: var(--state-hover); color: var(--text-primary); }
-.table-footer { padding: var(--space-1) var(--space-2); font-size: var(--text-sm); color: var(--text-tertiary); text-align: right; border-top: 1px solid var(--border-default); background: var(--bg-raised); }
+.input-sm { padding: 4px; border: 1px solid var(--b2); border-radius: var(--rs); font-size: var(--fs); background: var(--ground); color: var(--t1); width: 100%; }
+.input-sm:focus { outline: none; border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.03); box-shadow: 0 0 0 1px var(--b2); }
+.time-val { font-size: var(--fs); color: var(--t3); font-variant-numeric: tabular-nums; }
+.btn-icon { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: none; color: var(--t3); cursor: pointer; border-radius: var(--rs); transition: all 100ms var(--ease); }
+.btn-icon:hover { background: rgba(248,113,113,0.1); color: var(--err); }
+.btn-add { display: flex; align-items: center; gap: 4px; width: 100%; padding: 6px; border: none; background: none; cursor: pointer; font-size: var(--fs); color: var(--t3); border-top: 1px solid var(--b2); transition: all 100ms var(--ease); }
+.btn-add:hover { background: var(--b1); color: var(--t1); }
+.table-footer { padding: 4px 6px; font-size: var(--fs); color: var(--t3); text-align: right; border-top: 1px solid var(--b2); background: var(--raised); }
 </style>

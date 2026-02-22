@@ -108,8 +108,8 @@ function selectPart(partNumber: string) {
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: var(--space-10);
-  color: var(--text-secondary);
+  padding: 32px;
+  color: var(--t3);
 }
 
 /* Empty state */
@@ -119,55 +119,55 @@ function selectPart(partNumber: string) {
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: var(--space-10);
+  padding: 32px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .empty-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: 12px;
   opacity: 0.5;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .empty p {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .hint {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  margin-top: 6px;
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 /* Parts grid */
 .parts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: 12px;
+  padding: 12px;
   overflow-y: auto;
 }
 
 /* Part card */
 .part-card {
-  padding: var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .part-card:hover {
-  border-color: var(--brand);
+  border-color: var(--red);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -176,14 +176,14 @@ function selectPart(partNumber: string) {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .part-name {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -191,19 +191,19 @@ function selectPart(partNumber: string) {
 }
 
 .article-number {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  font-family: var(--font-mono);
-  color: var(--brand);
-  background: var(--brand-subtle);
-  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: var(--fs);
+  font-family: var(--mono);
+  color: var(--red);
+  background: var(--red-10);
+  border-radius: var(--rs);
   flex-shrink: 0;
 }
 
 .part-notes {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -213,17 +213,17 @@ function selectPart(partNumber: string) {
 
 .part-meta {
   display: flex;
-  gap: var(--space-4);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-subtle);
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--b1);
 }
 
 .meta-item {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  color: var(--t3);
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .meta-icon {

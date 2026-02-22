@@ -361,7 +361,7 @@ defineExpose({
 .part-list-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
   height: 100%;
   overflow: hidden;
   container-type: inline-size;
@@ -372,34 +372,34 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .list-header h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .parts-count {
-  font-size: var(--text-sm);
-  font-weight: var(--font-normal);
-  color: var(--text-tertiary);
-  margin-left: var(--space-2);
+  font-size: var(--fs);
+  font-weight: 400;
+  color: var(--t3);
+  margin-left: 6px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 /* Filters — height/padding/font from design-system.css globals */
 .filters-row {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -422,8 +422,8 @@ defineExpose({
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--fs);
+  color: var(--t3);
   pointer-events: none;
 }
 
@@ -448,15 +448,15 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--ground);
+  border-bottom: 1px solid var(--b2);
 }
 
 .vt-th {
-  padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-muted);
+  padding: 3px 10px;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: left;
@@ -483,23 +483,34 @@ defineExpose({
   display: flex;
   align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--b1);
   transition: background-color 60ms ease;
 }
 
 .vt-row:hover {
-  background: var(--hover);
+  background: var(--b1);
 }
 
 .vt-row.selected {
-  background: var(--selected);
+  background: rgba(229,57,53,0.06);
+}
+
+.vt-row.selected::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--red);
+  border-radius: 0 1px 1px 0;
 }
 
 /* Cell — matches template.html .data-table td */
 .vt-td {
-  padding: var(--cell-py, var(--space-3)) var(--cell-px, var(--space-4));
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  padding: 3px 10px;
+  font-size: var(--fs);
+  color: var(--t2);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -520,16 +531,17 @@ defineExpose({
 
 /* Numeric columns — mono font, right-aligned (matches template.html .col-num) */
 .col-num {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   text-align: right;
 }
 
 /* ── Cell content styles ── */
 
-/* Article number: bold, mono */
+/* Article number: mono font (matches v2 .pn) */
 .article-number {
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--t1);
 }
 
 /* Dot + text (inline, same font as cell) */
@@ -586,11 +598,11 @@ defineExpose({
   }
 
   .list-header h3 {
-    font-size: var(--text-sm);
+    font-size: var(--fs);
   }
 
   .header-actions {
-    gap: var(--space-1);
+    gap: 4px;
   }
 }
 

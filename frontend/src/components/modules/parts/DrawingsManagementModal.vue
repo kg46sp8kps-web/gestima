@@ -397,76 +397,76 @@ function openDrawing(drawing: Drawing) {
 
 <style scoped>
 .section {
-  margin-bottom: var(--space-6);
+  margin-bottom: 20px;
 }
 
 .section-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-3) 0;
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-default);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
+  margin: 0 0 var(--pad) 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .state-mini {
-  padding: var(--space-4);
+  padding: 12px;
   text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 12px;
+  padding-bottom: var(--pad);
+  border-bottom: 1px solid var(--b2);
 }
 
 .count {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-8);
+  gap: var(--pad);
+  padding: 24px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .card {
   position: relative;
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: var(--transition-fast);
+  padding: var(--pad);
+  background: var(--surface);
+  border: 2px solid var(--b2);
+  border-radius: var(--r);
+  transition: all 100ms var(--ease);
 }
 
 .card:hover {
-  border-color: var(--color-primary);
+  border-color: var(--red);
 }
 
 .card.primary {
-  border-color: var(--color-success);
-  background: var(--status-ok-bg);
+  border-color: var(--ok);
+  background: rgba(52,211,153,0.1);
 }
 
 .card.broken {
-  border-color: var(--status-error);
-  background: var(--status-error-bg);
+  border-color: var(--err);
+  background: rgba(248,113,113,0.1);
   opacity: 0.75;
 }
 
@@ -475,27 +475,27 @@ function openDrawing(drawing: Drawing) {
   align-items: center;
   justify-content: center;
   height: 100px;
-  border: 1px dashed var(--border-default);
-  border-radius: var(--radius-sm);
+  border: 1px dashed var(--b2);
+  border-radius: var(--rs);
   cursor: pointer;
-  transition: var(--transition-fast);
-  color: var(--text-secondary);
+  transition: all 100ms var(--ease);
+  color: var(--t3);
 }
 
 .thumb:hover {
-  background: var(--state-hover);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--b1);
+  border-color: var(--red);
+  color: var(--red);
 }
 
 .info {
-  margin-top: var(--space-2);
+  margin-top: 6px;
 }
 
 .name {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -503,33 +503,33 @@ function openDrawing(drawing: Drawing) {
 
 .rev {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-size: var(--fs);
+  color: var(--t3);
+  font-family: var(--mono);
 }
 
 .badge-broken {
-  color: var(--status-error);
-  border-color: var(--status-error);
-  background: var(--status-error-bg);
+  color: var(--err);
+  border-color: var(--err);
+  background: rgba(248,113,113,0.1);
 }
 
 .thumb.disabled {
   cursor: not-allowed;
   opacity: 0.5;
-  color: var(--status-error);
+  color: var(--err);
 }
 
 .thumb.disabled:hover {
   background: transparent;
-  border-color: var(--border-default);
-  color: var(--status-error);
+  border-color: var(--b2);
+  color: var(--err);
 }
 
 .actions {
   display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  gap: 6px;
+  margin-top: 6px;
 }
 
 /* Icon buttons use global .icon-btn classes from design-system.css */
@@ -550,26 +550,26 @@ function openDrawing(drawing: Drawing) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-6);
-  margin-bottom: var(--space-4);
-  border: 2px dashed var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  gap: 6px;
+  padding: 20px;
+  margin-bottom: 12px;
+  border: 2px dashed var(--b2);
+  border-radius: var(--r);
+  background: var(--surface);
   cursor: pointer;
-  transition: var(--transition-fast);
-  color: var(--text-secondary);
+  transition: all 100ms var(--ease);
+  color: var(--t3);
 }
 
 .upload-zone:hover {
-  border-color: var(--color-primary);
-  background: var(--bg-raised);
-  color: var(--color-primary);
+  border-color: var(--red);
+  background: var(--raised);
+  color: var(--red);
 }
 
 .upload-zone.dragging {
-  border-color: var(--color-success);
-  background: var(--status-ok-bg);
+  border-color: var(--ok);
+  background: rgba(52,211,153,0.1);
   transform: scale(1.02);
 }
 
@@ -580,14 +580,14 @@ function openDrawing(drawing: Drawing) {
 
 .upload-label {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  font-weight: 500;
   text-align: center;
 }
 
 .upload-hint {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 </style>

@@ -226,7 +226,7 @@ function toggleAll() {
   align-items: center;
   justify-content: center;
   min-height: 120px;
-  animation: g-fade-in var(--duration-fast) var(--ease) both;
+  animation: g-fade-in 100ms var(--ease) both;
 }
 
 .data-table-empty {
@@ -234,31 +234,31 @@ function toggleAll() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-10);
-  color: var(--text-secondary);
-  animation: g-fade-in var(--duration-normal) var(--ease) both;
+  padding: 32px;
+  color: var(--t3);
+  animation: g-fade-in 150ms var(--ease) both;
 }
 
 .empty-icon {
-  margin-bottom: var(--space-4);
+  margin-bottom: 12px;
   opacity: 0.3;
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .empty-text {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   margin: 0;
 }
 
 .data-table-container {
   overflow-x: auto;
   flex: 1;
-  animation: g-fade-in var(--duration-normal) var(--ease) both;
+  animation: g-fade-in 150ms var(--ease) both;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--density-font-base, var(--text-sm));
+  font-size: var(--density-font-base, var(--fs));
 }
 </style>

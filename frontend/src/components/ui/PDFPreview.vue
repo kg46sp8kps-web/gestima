@@ -64,12 +64,12 @@ function handleClick() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 2px dashed var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  transition: var(--transition-fast);
+  gap: var(--pad);
+  padding: 12px;
+  border: 2px dashed var(--b2);
+  border-radius: var(--r);
+  background: var(--surface);
+  transition: all 100ms var(--ease);
 }
 
 .pdf-preview-card.clickable {
@@ -77,23 +77,23 @@ function handleClick() {
 }
 
 .pdf-preview-card.clickable:hover {
-  border-color: var(--color-primary);
-  background: var(--bg-raised);
+  border-color: var(--red);
+  background: var(--raised);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .pdf-preview-card.clickable:hover .pdf-icon {
-  color: var(--color-primary);
+  color: var(--red);
   transform: scale(1.1);
 }
 
 .pdf-icon {
-  color: var(--text-secondary);
+  color: var(--t3);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .pdf-info {
@@ -102,21 +102,21 @@ function handleClick() {
 }
 
 .pdf-filename {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-body);
-  margin: 0 0 var(--space-1) 0;
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t2);
+  margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .pdf-hint {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
   margin: 0;
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity all 100ms var(--ease);
 }
 
 .pdf-preview-card.clickable:hover .pdf-hint {

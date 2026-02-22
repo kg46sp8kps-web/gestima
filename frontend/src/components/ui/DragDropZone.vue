@@ -238,34 +238,34 @@ function removeFile() {
   align-items: center;
   justify-content: center;
   min-height: 150px;
-  padding: var(--space-6);
-  border: 2px dashed var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  padding: 20px;
+  border: 2px dashed var(--b2);
+  border-radius: var(--r);
+  background: var(--surface);
   cursor: pointer;
-  transition: var(--transition-normal);
+  transition: all 150ms var(--ease);
 }
 
 .drop-area:hover:not(.is-disabled):not(.is-loading) {
-  border-color: var(--color-success);
-  background: var(--state-hover);
+  border-color: var(--ok);
+  background: var(--b1);
 }
 
 .drop-area:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  box-shadow: 0 0 0 3px var(--brand-subtle);
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 3px var(--red-10);
 }
 
 .drop-area.is-dragging {
-  border-color: var(--color-success);
-  background: var(--color-success-light);
+  border-color: var(--ok);
+  background: rgba(34,197,94,0.15);
   border-style: solid;
 }
 
 .drop-area.has-error {
-  border-color: var(--color-danger);
-  background: var(--status-error-bg);
+  border-color: var(--err);
+  background: rgba(248,113,113,0.1);
 }
 
 .drop-area.is-disabled {
@@ -282,7 +282,7 @@ function removeFile() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   text-align: center;
 }
 
@@ -294,54 +294,54 @@ function removeFile() {
 }
 
 .state-icon.success {
-  color: var(--color-success);
+  color: var(--ok);
 }
 
 .state-icon.error {
-  color: var(--color-danger);
+  color: var(--err);
 }
 
 .state-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-body);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t2);
 }
 
 .state-label.success {
-  color: var(--color-success);
+  color: var(--ok);
 }
 
 .state-label.error {
-  color: var(--color-danger);
+  color: var(--err);
 }
 
 .state-hint {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .file-size {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-size: var(--fs);
+  color: var(--t3);
+  font-family: var(--mono);
 }
 
 .btn-remove {
-  margin-top: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-danger);
+  margin-top: 6px;
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--err);
   background: transparent;
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--err);
+  border-radius: var(--rs);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .btn-remove:hover {
   color: white;
-  background: var(--color-danger);
+  background: var(--err);
 }
 
 /* Spinner animation */

@@ -252,28 +252,28 @@ function toggleStaged(row: StagedPartRow) {
 </template>
 
 <style scoped>
-.import-tab { padding: var(--space-4); overflow: auto; }
-.section { margin-bottom: var(--space-6); }
-h4 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); margin: 0 0 var(--space-3) 0; }
-.query-row { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); }
+.import-tab { padding: 12px; overflow: auto; }
+.section { margin-bottom: 20px; }
+h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
 .query-row .fg-wide { flex: 3; }
-.toolbar { display: flex; gap: var(--space-2); margin: var(--space-3) 0; flex-wrap: wrap; }
-.import-btn { margin-top: var(--space-3); }
-.summary { display: flex; gap: var(--space-3); margin-bottom: var(--space-2); }
-.badge-valid { padding: var(--space-1) var(--space-2); background: var(--status-ok-bg); color: var(--status-ok); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
-.badge-error { padding: var(--space-1) var(--space-2); background: var(--status-error-bg); color: var(--status-error); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
-.badge-dup { padding: var(--space-1) var(--space-2); background: var(--status-warn-bg); color: var(--status-warn); border-radius: var(--radius-md); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
-.table-scroll { overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); max-height: 400px; }
-.staging-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.staging-table th { background: var(--bg-surface); padding: var(--space-2) var(--space-3); text-align: left; font-weight: var(--font-semibold); color: var(--text-secondary); border-bottom: 1px solid var(--border-default); position: sticky; top: 0; }
-.staging-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-subtle); }
-.staging-table tbody tr { cursor: pointer; transition: background var(--duration-fast); }
-.staging-table tbody tr:hover { background: var(--state-hover); }
-.row-error { background: var(--status-error-bg); }
-.row-dup { background: var(--status-warn-bg); }
+.toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
+.import-btn { margin-top: var(--pad); }
+.summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
+.badge-valid { padding: 4px 6px; background: rgba(52,211,153,0.1); color: var(--ok); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.badge-error { padding: 4px 6px; background: rgba(248,113,113,0.1); color: var(--err); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.badge-dup { padding: 4px 6px; background: rgba(251,191,36,0.1); color: var(--warn); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
+.staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
+.staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; }
+.staging-table td { padding: 6px var(--pad); border-bottom: 1px solid var(--b1); }
+.staging-table tbody tr { cursor: pointer; transition: background 100ms; }
+.staging-table tbody tr:hover { background: var(--b1); }
+.row-error { background: rgba(248,113,113,0.1); }
+.row-dup { background: rgba(251,191,36,0.1); }
 .status-cell { text-align: center; }
-.icon-valid { color: var(--status-ok); }
-.icon-error { color: var(--status-error); }
-.icon-dup { color: var(--status-warn); }
-.errors-cell { max-width: 300px; color: var(--status-error); font-size: var(--text-sm); }
+.icon-valid { color: var(--ok); }
+.icon-error { color: var(--err); }
+.icon-dup { color: var(--warn); }
+.errors-cell { max-width: 300px; color: var(--err); font-size: var(--fs); }
 </style>

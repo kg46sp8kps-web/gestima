@@ -49,8 +49,8 @@ function logStatusBadgeClass(status: string): string {
 
 <style scoped>
 .table-container {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   overflow: auto;
   max-height: 400px;
 }
@@ -61,49 +61,49 @@ function logStatusBadgeClass(status: string): string {
 }
 
 .logs-table th {
-  background: var(--bg-surface);
-  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  padding: 6px var(--pad);
   text-align: left;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t3);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--b2);
   position: sticky;
   top: 0;
   letter-spacing: 0.05em;
 }
 
 .logs-table td {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 6px var(--pad);
+  font-size: var(--fs);
+  border-bottom: 1px solid var(--b1);
 }
 
 .logs-table tbody tr:hover {
-  background: var(--hover);
+  background: var(--b1);
 }
 
 .status-badge {
   padding: 2px 6px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  border-radius: var(--rs);
+  font-weight: 500;
   text-transform: uppercase;
 }
 
 .badge-ok {
-  background: var(--status-ok-bg);
-  color: var(--color-success);
+  background: rgba(52,211,153,0.1);
+  color: var(--ok);
 }
 
 .badge-error {
-  background: var(--status-error-bg);
-  color: var(--color-danger);
+  background: rgba(248,113,113,0.1);
+  color: var(--err);
 }
 
 .badge-neutral {
-  background: var(--bg-raised);
-  color: var(--text-tertiary);
+  background: var(--raised);
+  color: var(--t3);
 }
 </style>

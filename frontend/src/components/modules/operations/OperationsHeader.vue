@@ -68,15 +68,15 @@ function toggle() {
 <style scoped>
 .operations-header-wrap {
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
 }
 
 .operations-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .operations-header.clickable {
@@ -85,62 +85,62 @@ function toggle() {
 }
 
 .operations-header.clickable:hover {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 .part-info {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .expand-chevron {
-  color: var(--text-tertiary);
+  color: var(--t3);
   flex-shrink: 0;
   transition: transform 0.2s;
 }
 
 .part-info h2 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .part-info h2.placeholder {
-  color: var(--text-tertiary);
+  color: var(--t3);
 }
 
 .part-badge {
-  padding: var(--space-1) var(--space-3);
-  background: var(--color-primary);
+  padding: 4px var(--pad);
+  background: var(--red);
   color: white;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 
 .ai-time-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--palette-info-bg);
-  color: var(--brand-text);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(37,99,235,0.1);
+  color: rgba(229, 57, 53, 0.7);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  font-weight: 600;
 }
 
 .count-badge {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
+  font-size: var(--fs);
+  color: var(--t3);
+  font-weight: 500;
 }
 
 /* Expandable part detail */
 .part-detail-expand {
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--b2);
   max-height: 400px;
   overflow-y: auto;
 }

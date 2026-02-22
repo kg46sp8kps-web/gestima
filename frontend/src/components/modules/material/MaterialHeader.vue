@@ -46,32 +46,32 @@ const primaryMaterial = computed(() => props.materialInputs[0] || null)
 .material-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-surface);
+  gap: var(--pad);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
+  background: var(--surface);
 }
 
 .part-info {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .part-info h2 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .part-badge {
-  padding: var(--space-1) var(--space-3);
-  background: var(--palette-primary);
+  padding: 4px var(--pad);
+  background: var(--red);
   color: white;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 
 .material-summary {
@@ -83,25 +83,25 @@ const primaryMaterial = computed(() => props.materialInputs[0] || null)
 .summary-left {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .materials-count-badge {
-  padding: var(--space-1) var(--space-3);
-  background: var(--palette-info);
+  padding: 4px var(--pad);
+  background: var(--t3);
   color: white;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 
 .material-type-badge {
-  padding: var(--space-1) var(--space-3);
-  background: var(--palette-secondary);
+  padding: 4px var(--pad);
+  background: var(--t3);
   color: white;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  font-weight: 500;
 }
 
 .empty-summary {
@@ -110,7 +110,7 @@ const primaryMaterial = computed(() => props.materialInputs[0] || null)
 }
 
 .empty-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 </style>

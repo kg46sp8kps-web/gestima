@@ -209,12 +209,12 @@ function handleShapeChange() {
 .material-dimensions-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .field-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
   flex-wrap: wrap;
 }
 
@@ -233,6 +233,6 @@ function handleShapeChange() {
 .dimensions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-  gap: var(--space-2);
+  gap: 6px;
 }
 </style>

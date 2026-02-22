@@ -146,27 +146,27 @@ onMounted(loadPivot)
 </template>
 
 <style scoped>
-.cutting-conditions-panel { height: 100%; display: flex; flex-direction: column; padding: var(--space-3); gap: var(--space-3); }
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
-.mode-selector { display: flex; gap: var(--space-1); background: var(--bg-surface); border-radius: var(--radius-md); padding: var(--space-0\.5); border: 1px solid var(--border-default); }
-.mode-btn { padding: var(--space-1) var(--space-3); border: none; background: transparent; color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); transition: all var(--duration-fast); }
-.mode-btn.active { background: var(--brand-subtle); color: var(--brand-text); border-color: var(--brand); }
-.mode-btn:hover:not(.active) { background: var(--state-hover); }
-.seed-btn { padding: var(--space-2) var(--space-4); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-primary); font-size: var(--text-sm); cursor: pointer; border-radius: var(--radius-md); transition: all var(--duration-fast); }
-.seed-btn:hover { background: var(--state-hover); }
+.cutting-conditions-panel { height: 100%; display: flex; flex-direction: column; padding: var(--pad); gap: var(--pad); }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--pad); }
+.mode-selector { display: flex; gap: 4px; background: var(--surface); border-radius: var(--r); padding: 2px; border: 1px solid var(--b2); }
+.mode-btn { padding: 4px var(--pad); border: none; background: transparent; color: var(--t3); font-size: var(--fs); font-weight: 600; cursor: pointer; border-radius: var(--rs); transition: all 100ms; }
+.mode-btn.active { background: var(--red-10); color: rgba(229, 57, 53, 0.7); border-color: var(--red); }
+.mode-btn:hover:not(.active) { background: var(--b1); }
+.seed-btn { padding: 6px 12px; border: 1px solid var(--b2); background: var(--surface); color: var(--t1); font-size: var(--fs); cursor: pointer; border-radius: var(--r); transition: all 100ms; }
+.seed-btn:hover { background: var(--b1); }
 .seed-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.error-bar { padding: var(--space-2) var(--space-3); background: var(--palette-danger-light); color: var(--palette-danger); border-radius: var(--radius-md); font-size: var(--text-sm); }
-.loading { text-align: center; padding: var(--space-6); color: var(--text-secondary); }
-.table-wrapper { flex: 1; overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-md); }
-.pivot-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.pivot-table th, .pivot-table td { padding: var(--space-1) var(--space-2); border: 1px solid var(--border-default); white-space: nowrap; }
-.pivot-table thead th { background: var(--bg-surface); position: sticky; top: 0; z-index: 2; text-align: center; }
-.sticky-col { position: sticky; left: 0; z-index: 3; background: var(--bg-surface); font-weight: 600; min-width: 120px; }
+.error-bar { padding: 6px var(--pad); background: rgba(248,113,113,0.15); color: var(--err); border-radius: var(--r); font-size: var(--fs); }
+.loading { text-align: center; padding: 20px; color: var(--t3); }
+.table-wrapper { flex: 1; overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); }
+.pivot-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: var(--fs); }
+.pivot-table th, .pivot-table td { padding: 4px 6px; border: 1px solid var(--b2); white-space: nowrap; }
+.pivot-table thead th { background: var(--surface); position: sticky; top: 0; z-index: 2; text-align: center; }
+.sticky-col { position: sticky; left: 0; z-index: 3; background: var(--surface); font-weight: 600; min-width: 120px; }
 thead .sticky-col { z-index: 4; }
-.material-name { font-weight: 500; color: var(--text-primary); }
-.op-label { font-weight: 600; font-size: var(--text-sm); }
-.op-fields { font-weight: 400; color: var(--text-secondary); font-size: var(--text-sm); }
-.cell { cursor: pointer; text-align: center; transition: background var(--duration-fast); color: var(--text-primary); }
-.cell:hover { background: var(--state-hover); }
-.cell.modified { background: var(--palette-warning-light); }
+.material-name { font-weight: 500; color: var(--t1); }
+.op-label { font-weight: 600; font-size: var(--fs); }
+.op-fields { font-weight: 400; color: var(--t3); font-size: var(--fs); }
+.cell { cursor: pointer; text-align: center; transition: background 100ms; color: var(--t1); }
+.cell:hover { background: var(--b1); }
+.cell.modified { background: rgba(251,191,36,0.15); }
 </style>

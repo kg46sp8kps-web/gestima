@@ -279,7 +279,7 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
 .detail-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 20px;
 }
 
 /* === EMPTY STATE === */
@@ -288,70 +288,70 @@ function formatDimension(value: number | null | undefined, unit = 'mm'): string 
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--t3);
   text-align: center;
 }
 
 .empty p {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 /* === ICON TOOLBAR === */
 .icon-toolbar {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
   align-items: center;
   justify-content: center;
-  margin-top: var(--space-4);
-  margin-bottom: calc(-1 * var(--space-5) + 2px);
-  padding-top: var(--space-3);
+  margin-top: 12px;
+  margin-bottom: calc(-1 * 16px + 2px);
+  padding-top: var(--pad);
   padding-bottom: 2px;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--b2);
 }
 
 /* === INFO GRID === */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .info-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .info-card label {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-card .value {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 /* === EDIT INPUTS === */
 .edit-input {
   width: 100%;
-  padding: var(--space-2);
-  font-size: var(--text-sm);
+  padding: 6px;
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast);
+  color: var(--t1);
+  background: var(--base);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  transition: all 100ms;
 }
 
 .edit-input:focus {
   outline: none;
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-color: var(--b3);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
 }
 </style>

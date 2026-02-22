@@ -101,21 +101,21 @@ function handleDaysInput(event: Event) {
 .coop-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .setting-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .coop-toggle {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  gap: 6px;
+  font-size: var(--fs);
+  color: var(--t1);
   cursor: pointer;
 }
 
@@ -129,43 +129,43 @@ function handleDaysInput(event: Event) {
 
 .coop-fields {
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--status-warn-bg);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-warning);
+  gap: var(--pad);
+  padding: var(--pad);
+  background: rgba(251,191,36,0.1);
+  border-radius: var(--r);
+  border: 1px solid var(--warn);
 }
 
 .coop-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .coop-field label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .coop-input {
   width: 80px;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
+  padding: 4px 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--ground);
+  color: var(--t1);
+  font-size: var(--fs);
 }
 
 .coop-input:focus {
   outline: none;
-  border-color: var(--state-focus-border);
-  background: var(--state-focus-bg);
+  border-color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.03);
 }
 
 .coop-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--bg-muted);
+  background: var(--surface);
 }
 </style>

@@ -81,9 +81,9 @@ onMounted(() => {
 .left-panel {
   width: 320px;
   min-width: 320px;
-  padding: var(--space-3);
+  padding: var(--pad);
   height: 100%;
-  border-right: 1px solid var(--border-default);
+  border-right: 1px solid var(--b2);
 }
 
 /* === RIGHT PANEL === */

@@ -51,40 +51,40 @@ defineProps<{
 .snapshot-tab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .snapshot-empty {
   text-align: center;
-  padding: var(--space-8);
-  color: var(--text-secondary);
+  padding: 24px;
+  color: var(--t3);
 }
 
 .snapshot-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .snapshot-content h4 {
-  margin: 0 0 var(--space-2) 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .snapshot-meta,
 .snapshot-version {
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--raised);
+  border-radius: var(--r);
+  border: 1px solid var(--b2);
 }
 
 .snapshot-meta {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .meta-item {
@@ -93,31 +93,31 @@ defineProps<{
 }
 
 .meta-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .meta-value {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
+  font-size: var(--fs);
+  color: var(--t1);
+  font-weight: 600;
 }
 
 .snapshot-version {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  color: var(--t1);
 }
 
 .snapshot-info {
-  padding: var(--space-3);
-  background: var(--hover);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
+  padding: var(--pad);
+  background: var(--b1);
+  border-radius: var(--r);
+  border: 1px solid var(--b3);
 }
 
 .snapshot-info p {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  font-size: var(--fs);
+  color: var(--t2);
 }
 </style>

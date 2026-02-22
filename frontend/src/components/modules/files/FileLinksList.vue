@@ -52,62 +52,62 @@ const emit = defineEmits<{
 
 <style scoped>
 .file-links-list {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .file-links-list h4 {
-  margin: 0 0 var(--space-3) 0;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  margin: 0 0 var(--pad) 0;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .links-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .link-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .link-info {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .link-entity {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t1);
 }
 
 .primary-star {
-  color: var(--color-warning);
+  color: var(--warn);
 }
 
 .link-revision {
-  padding: var(--space-1) var(--space-2);
-  background: var(--bg-base);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  padding: 4px 6px;
+  background: var(--base);
+  border-radius: var(--rs);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .no-links {
-  padding: var(--space-4);
+  padding: 12px;
   text-align: center;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 
 </style>

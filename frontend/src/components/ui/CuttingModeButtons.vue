@@ -57,23 +57,23 @@ const emit = defineEmits<Emits>()
 <style scoped>
 .mode-buttons {
   display: flex;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .mode-btn {
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  padding: 4px var(--pad);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--surface);
+  color: var(--t3);
+  font-size: var(--fs);
+  font-weight: 600;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .mode-btn:hover:not(:disabled) {
-  background: var(--state-hover);
+  background: var(--b1);
 }
 
 .mode-btn:disabled {
@@ -86,17 +86,17 @@ const emit = defineEmits<Emits>()
 }
 
 .mode-btn.mode-low.active {
-  background: var(--color-success);
-  border-color: var(--color-success);
+  background: var(--ok);
+  border-color: var(--ok);
 }
 
 .mode-btn.mode-mid.active {
-  background: var(--color-warning);
-  border-color: var(--color-warning);
+  background: var(--warn);
+  border-color: var(--warn);
 }
 
 .mode-btn.mode-high.active {
-  background: var(--color-danger);
-  border-color: var(--color-danger);
+  background: var(--err);
+  border-color: var(--err);
 }
 </style>

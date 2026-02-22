@@ -231,58 +231,58 @@ onMounted(() => { loadGroups() })
 .admin-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
   height: 100%;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
+  padding: var(--pad);
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .form-tabs {
   display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .form-tabs button {
-  padding: var(--space-2) var(--space-4);
+  padding: 6px 12px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--t3);
   transition: all 0.2s;
 }
 
 .form-tabs button.active {
-  color: var(--color-info);
-  border-bottom-color: var(--color-info);
+  color: var(--t3);
+  border-bottom-color: var(--t3);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 .spacer {

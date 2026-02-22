@@ -190,38 +190,38 @@ function analyticsLabel(r: TurnoverRecord): string {
   width: max-content;
   min-width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .pivot-table th,
 .pivot-table td {
-  padding: var(--density-cell-py) var(--density-cell-px);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--b1);
   white-space: nowrap;
 }
 
 .pivot-table thead th {
   position: sticky;
   top: 0;
-  background: var(--bg-surface);
-  font-weight: var(--font-semibold);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--t3);
+  font-size: var(--fs);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border-bottom: 2px solid var(--border-default);
+  border-bottom: 2px solid var(--b2);
   z-index: 2;
 }
 
 .sticky-col {
   position: sticky;
-  background: var(--bg-base);
+  background: var(--base);
   z-index: 1;
 }
 
 thead .sticky-col {
   z-index: 3;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 
 .col-ucet {
@@ -242,21 +242,21 @@ thead .sticky-col {
   text-align: right;
   min-width: 70px;
   font-variant-numeric: tabular-nums;
-  color: var(--text-body);
+  color: var(--t2);
 }
 
 .col-dal {
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--b1);
 }
 
 .mono {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: var(--fs);
+  color: var(--t3);
 }
 
 .negative {
-  color: var(--color-danger);
+  color: var(--err);
 }
 
 .account-row.expandable {
@@ -264,37 +264,37 @@ thead .sticky-col {
 }
 
 .account-row.expandable:hover td {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 .account-row.expandable:hover .sticky-col {
-  background: var(--bg-raised);
+  background: var(--raised);
 }
 
 .expand-icon {
-  font-size: var(--text-sm);
-  margin-right: var(--space-1);
-  color: var(--text-tertiary);
+  font-size: var(--fs);
+  margin-right: 4px;
+  color: var(--t3);
 }
 
 .detail-row td {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  background: var(--bg-deepest);
+  font-size: var(--fs);
+  color: var(--t3);
+  background: var(--base);
 }
 
 .detail-row .sticky-col {
-  background: var(--bg-deepest);
+  background: var(--base);
 }
 
 .detail-label {
   font-style: italic;
-  padding-left: var(--space-6);
+  padding-left: 20px;
 }
 
 .empty-row {
   text-align: center;
-  color: var(--text-tertiary);
-  padding: var(--space-8);
+  color: var(--t3);
+  padding: 24px;
 }
 </style>

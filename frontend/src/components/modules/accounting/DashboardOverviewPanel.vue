@@ -12,9 +12,9 @@ const colors = ref({ revenue: '', expenses: '', profit: '' })
 onMounted(() => {
   const s = getComputedStyle(document.documentElement)
   colors.value = {
-    revenue: s.getPropertyValue('--chart-revenue').trim() || s.getPropertyValue('--color-success').trim(),
-    expenses: s.getPropertyValue('--chart-expenses').trim() || s.getPropertyValue('--color-danger').trim(),
-    profit: s.getPropertyValue('--chart-profit').trim() || s.getPropertyValue('--color-info').trim(),
+    revenue: s.getPropertyValue('--chart-revenue').trim() || s.getPropertyValue('--ok').trim(),
+    expenses: s.getPropertyValue('--chart-expenses').trim() || s.getPropertyValue('--err').trim(),
+    profit: s.getPropertyValue('--chart-profit').trim() || s.getPropertyValue('--green').trim(),
   }
 })
 
@@ -156,35 +156,35 @@ const insights = computed(() => generateOverviewInsights(props.data))
 .overview-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-5);
+  gap: 16px;
+  padding: 16px;
   overflow-y: auto;
 }
 
 .kpi-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .kpi-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .chart-section {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  padding: 12px;
 }
 
 .chart-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-4) 0;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
+  margin: 0 0 12px 0;
 }
 
 .loading-placeholder {
@@ -192,31 +192,31 @@ const insights = computed(() => generateOverviewInsights(props.data))
   align-items: center;
   justify-content: center;
   height: 280px;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 
 .insights-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .insights-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .insight-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  gap: var(--pad);
+  padding: var(--pad) 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
 }
 
 .insight-border {
@@ -225,24 +225,24 @@ const insights = computed(() => generateOverviewInsights(props.data))
   top: 0;
   bottom: 0;
   width: 4px;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  border-radius: var(--r) 0 0 var(--r);
 }
 
 .insight-card.insight-success .insight-border {
-  background: var(--color-success);
+  background: var(--ok);
 }
 
 .insight-card.insight-warning .insight-border {
-  background: var(--color-warning);
+  background: var(--warn);
 }
 
 .insight-card.insight-danger .insight-border {
-  background: var(--color-danger);
+  background: var(--err);
 }
 
 .insight-text {
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  font-size: var(--fs);
+  color: var(--t2);
   line-height: 1.5;
 }
 </style>

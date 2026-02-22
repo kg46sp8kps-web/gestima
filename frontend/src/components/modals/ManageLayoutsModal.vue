@@ -5,7 +5,7 @@
  */
 
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { useWindowsStore } from '@/stores/windows'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { Star, Trash2, Edit3, Check, X, FolderOpen } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import { confirm, alert } from '@/composables/useDialog'
@@ -21,7 +21,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const store = useWindowsStore()
+const store = useWorkspaceStore()
 
 // Keyboard handler
 const handleKeydown = (e: KeyboardEvent) => {
@@ -88,8 +88,8 @@ async function toggleFavorite(layoutId: string) {
 }
 
 function setAsDefault(layoutId: string) {
-  const isCurrentDefault = store.defaultLayoutId === layoutId
-  store.setDefaultLayout(isCurrentDefault ? null : layoutId)
+  const isCurrentDefault = store.defaultViewId === layoutId
+  store.setDefaultView(isCurrentDefault ? null : layoutId)
 }
 
 async function deleteLayout(layoutId: string) {
@@ -195,7 +195,7 @@ function handleClose() {
                   <!-- Set as Default -->
                   <button
                     class="action-btn btn-default"
-                    :class="{ active: store.defaultLayoutId === layout.id }"
+                    :class="{ active: store.defaultViewId === layout.id }"
                     @click="setAsDefault(layout.id)"
                     title="Set as Default"
                   >
@@ -232,12 +232,12 @@ function handleClose() {
 <style scoped>
 
 .modal-container {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
   width: 600px;
   max-height: 70vh;
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
   display: flex;
   flex-direction: column;
 }
@@ -246,14 +246,14 @@ function handleClose() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
-  border-bottom: 1px solid var(--border-default);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: var(--text-lg);
-  color: var(--text-primary);
+  font-size: 16px;
+  color: var(--t1);
   font-weight: 600;
 }
 
@@ -264,44 +264,44 @@ function handleClose() {
   width: 32px;
   height: 32px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .close-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4);
+  padding: 12px;
 }
 
 .layouts-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .layout-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast) var(--ease-out);
+  padding: var(--pad) 12px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .layout-row:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .layout-name {
@@ -310,30 +310,30 @@ function handleClose() {
 }
 
 .name-text {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  font-size: var(--fs);
+  color: var(--t1);
   font-weight: 500;
 }
 
 .rename-input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  transition: all var(--duration-fast) var(--ease-out);
+  padding: 6px var(--pad);
+  background: var(--base);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
+  font-size: var(--fs);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .rename-input:focus {
   outline: none;
-  border-color: var(--brand);
+  border-color: var(--red);
 }
 
 .layout-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   align-items: center;
 }
 
@@ -344,44 +344,44 @@ function handleClose() {
   width: 32px;
   height: 32px;
   background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  color: var(--t1);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all 100ms cubic-bezier(0,0,0.2,1);
 }
 
 .action-btn:hover {
-  background: var(--state-hover);
-  border-color: var(--border-strong);
+  background: var(--b1);
+  border-color: var(--b3);
 }
 
 .btn-load:hover {
-  color: var(--color-info);
-  border-color: var(--color-info);
-  background: var(--palette-info-bg);
+  color: var(--t3);
+  border-color: var(--t3);
+  background: rgba(37,99,235,0.1);
 }
 
 .btn-favorite.active {
-  color: var(--status-warn);
-  border-color: var(--status-warn);
+  color: var(--warn);
+  border-color: var(--warn);
 }
 
 .btn-default.active {
-  color: var(--status-ok);
-  border-color: var(--status-ok);
-  background: var(--status-ok-bg);
+  color: var(--ok);
+  border-color: var(--ok);
+  background: rgba(52,211,153,0.1);
 }
 
 .btn-edit:hover {
-  color: var(--color-info);
-  border-color: var(--color-info);
+  color: var(--t3);
+  border-color: var(--t3);
 }
 
 .btn-delete:hover {
-  color: var(--status-error);
-  border-color: var(--status-error);
-  background: var(--status-error-bg);
+  color: var(--err);
+  border-color: var(--err);
+  background: rgba(248,113,113,0.1);
 }
 
 /* Transition */

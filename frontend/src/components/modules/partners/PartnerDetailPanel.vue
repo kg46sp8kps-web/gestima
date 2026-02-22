@@ -562,35 +562,35 @@ async function executeDelete() {
 /* Empty State */
 
 .empty-icon {
-  margin-bottom: var(--space-2);
+  margin-bottom: 6px;
   opacity: 0.5;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .empty p {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 /* Detail Content */
 .detail-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: 12px;
+  padding: 12px;
 }
 
 .panel-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-default);
+  gap: 6px;
+  padding-bottom: var(--pad);
+  border-bottom: 1px solid var(--b2);
 }
 
 .detail-tabs {
   display: flex;
-  gap: var(--space-1);
-  border-bottom: 1px solid var(--border-default);
+  gap: 4px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .tab-content {
@@ -599,7 +599,7 @@ async function executeDelete() {
 }
 
 .tab-panel {
-  padding: var(--space-4) 0;
+  padding: 12px 0;
 }
 
 /* Forms */
@@ -607,12 +607,12 @@ async function executeDelete() {
 .create-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .form-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .city-field {
@@ -624,18 +624,18 @@ async function executeDelete() {
 }
 
 .required {
-  color: var(--status-error);
+  color: var(--err);
 }
 
 .checkbox-group {
   display: flex;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   cursor: pointer;
 }
 
@@ -658,7 +658,7 @@ async function executeDelete() {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
+  gap: 6px;
+  margin-top: 12px;
 }
 </style>

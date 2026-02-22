@@ -184,20 +184,20 @@ partsStore.fetchParts()
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-8);
-  color: var(--text-secondary);
+  gap: var(--pad);
+  padding: 24px;
+  color: var(--t3);
   text-align: center;
 }
 
 .empty-icon {
-  margin-bottom: var(--space-2);
+  margin-bottom: 6px;
   opacity: 0.5;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .empty p {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 
 .detail-content {
@@ -209,9 +209,9 @@ partsStore.fetchParts()
 .panel-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border-default);
+  gap: var(--pad);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--b2);
   flex-shrink: 0;
 }
 </style>

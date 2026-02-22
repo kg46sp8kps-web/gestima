@@ -132,27 +132,27 @@ const props = defineProps<{
 .info-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .form-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .required {
-  color: var(--palette-danger);
+  color: var(--err);
 }
 
 .edit-lock-notice {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  gap: 6px;
+  padding: var(--pad);
+  background: var(--raised);
+  border-radius: 8px;
+  border: 1px solid var(--b2);
+  color: var(--t3);
+  font-size: var(--fs);
 }
 </style>

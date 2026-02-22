@@ -318,37 +318,37 @@ async function handleDeleteRecord(id: number) {
 
 <style scoped>
 .production-panel {
-  background: var(--bg-surface);
+  background: var(--surface);
 }
 .panel-header {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px var(--pad);
   cursor: pointer;
   user-select: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-surface);
+  background: var(--surface);
 }
-.panel-header:hover { background: var(--bg-raised); }
+.panel-header:hover { background: var(--raised); }
 .header-title {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
+  gap: 6px;
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
 }
-.chevron { transition: transform 0.2s; color: var(--text-tertiary); }
+.chevron { transition: transform 0.2s; color: var(--t3); }
 .filter-badge {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--color-primary);
-  padding: 0 var(--space-1);
-  background: var(--palette-info-bg);
-  border-radius: var(--radius-sm);
+  color: var(--red);
+  padding: 0 4px;
+  background: rgba(37,99,235,0.1);
+  border-radius: var(--rs);
 }
 .record-badge {
   display: inline-flex;
@@ -356,34 +356,34 @@ async function handleDeleteRecord(id: number) {
   justify-content: center;
   min-width: 20px;
   height: 18px;
-  padding: 0 var(--space-1);
-  background: var(--bg-raised);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  padding: 0 4px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fs);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 .collapsed-summary {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 4px;
   margin-left: auto;
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-sm);
+  font-family: var(--mono);
+  font-size: var(--fs);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
-.cs-label { color: var(--text-tertiary); font-weight: 500; font-family: inherit; }
-.cs-item.highlight { color: var(--text-primary); font-weight: 700; }
-.cs-sep { color: var(--text-tertiary); }
-.panel-content { padding: 0 var(--space-3) var(--space-3); }
-.error-bar { padding: var(--space-2) var(--space-3); background: var(--brand-subtle); color: var(--brand); border-radius: var(--radius-sm); font-size: var(--text-sm); margin-bottom: var(--space-3); }
-.summary-ribbon { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-2) var(--space-3); background: var(--bg-raised); border-radius: var(--radius-sm); margin-bottom: var(--space-3); }
-.summary-item { display: flex; gap: var(--space-1); font-size: var(--text-sm); }
-.summary-label { color: var(--text-tertiary); }
-.summary-value { font-weight: 600; color: var(--text-primary); font-family: var(--font-mono, monospace); }
+.cs-label { color: var(--t3); font-weight: 500; font-family: inherit; }
+.cs-item.highlight { color: var(--t1); font-weight: 700; }
+.cs-sep { color: var(--t3); }
+.panel-content { padding: 0 var(--pad) var(--pad); }
+.error-bar { padding: 6px var(--pad); background: var(--red-10); color: var(--red); border-radius: var(--rs); font-size: var(--fs); margin-bottom: var(--pad); }
+.summary-ribbon { display: flex; flex-wrap: wrap; gap: 12px; padding: 6px var(--pad); background: var(--raised); border-radius: var(--rs); margin-bottom: var(--pad); }
+.summary-item { display: flex; gap: 4px; font-size: var(--fs); }
+.summary-label { color: var(--t3); }
+.summary-value { font-weight: 600; color: var(--t1); font-family: var(--mono); }
 .empty-icon { opacity: 0.5; }
-.btn-add { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-md); font-size: var(--text-sm); cursor: pointer; color: var(--text-primary); width: 100%; justify-content: center; }
-.btn-add:hover { border-color: var(--brand); color: var(--brand); }
+.btn-add { display: inline-flex; align-items: center; gap: 6px; padding: 6px var(--pad); background: transparent; border: 1px solid var(--b2); border-radius: var(--r); font-size: var(--fs); cursor: pointer; color: var(--t1); width: 100%; justify-content: center; }
+.btn-add:hover { border-color: var(--red); color: var(--red); }
 </style>

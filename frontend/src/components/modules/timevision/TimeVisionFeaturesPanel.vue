@@ -205,68 +205,68 @@ function downloadTrainingData() {
 </template>
 
 <style scoped>
-.features-panel { padding: var(--space-3); }
+.features-panel { padding: var(--pad); }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--pad);
 }
 .panel-header h3 {
-  font-size: var(--text-sm); font-weight: 600; margin: 0;
+  font-size: var(--fs); font-weight: 600; margin: 0;
 }
 .model-badge {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  padding: var(--space-0\.5) var(--space-2); background: var(--bg-subtle);
-  color: var(--text-secondary); border-radius: var(--radius-sm);
-  font-size: var(--text-sm); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 6px; background: var(--ground);
+  color: var(--t3); border-radius: var(--rs);
+  font-size: var(--fs); font-weight: 600;
 }
-.empty-icon { color: var(--text-muted); opacity: 0.5; }
+.empty-icon { color: var(--t3); opacity: 0.5; }
 .info-grid {
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: var(--space-2); margin-bottom: var(--space-3);
+  gap: 6px; margin-bottom: var(--pad);
 }
-.info-item { display: flex; flex-direction: column; gap: var(--space-px); }
+.info-item { display: flex; flex-direction: column; gap: 1px; }
 .info-item label {
-  font-size: var(--text-sm); color: var(--text-muted); text-transform: uppercase;
+  font-size: var(--fs); color: var(--t3); text-transform: uppercase;
 }
-.info-item span { font-size: var(--text-sm); font-weight: 500; }
+.info-item span { font-size: var(--fs); font-weight: 500; }
 .dims-row {
-  display: flex; gap: var(--space-3); padding: var(--space-2);
-  background: var(--bg-subtle); border-radius: var(--radius-sm);
-  font-size: var(--text-sm); font-weight: 500;
-  margin-bottom: var(--space-3); font-variant-numeric: tabular-nums;
+  display: flex; gap: var(--pad); padding: 6px;
+  background: var(--ground); border-radius: var(--rs);
+  font-size: var(--fs); font-weight: 500;
+  margin-bottom: var(--pad); font-variant-numeric: tabular-nums;
 }
 .calc-controls {
-  display: flex; gap: var(--space-2); align-items: center;
-  margin: var(--space-3) 0;
+  display: flex; gap: 6px; align-items: center;
+  margin: var(--pad) 0;
 }
 .mode-select {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
-  font-size: var(--text-sm); background: var(--bg-input); color: var(--text-primary);
+  padding: 4px 6px;
+  border: 1px solid var(--b2); border-radius: var(--rs);
+  font-size: var(--fs); background: var(--ground); color: var(--t1);
 }
 .actions {
-  display: flex; gap: var(--space-2); flex-wrap: wrap;
-  margin-top: var(--space-3); padding-top: var(--space-3);
-  border-top: 1px solid var(--border-default);
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: var(--pad); padding-top: var(--pad);
+  border-top: 1px solid var(--b2);
 }
 .progress-section {
-  padding: var(--space-3); background: var(--bg-surface);
-  border-radius: var(--radius-md); margin-bottom: var(--space-4);
+  padding: var(--pad); background: var(--surface);
+  border-radius: var(--r); margin-bottom: 12px;
 }
 .progress-header {
-  display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
 }
-.progress-label { flex: 1; font-size: var(--text-sm); font-weight: 500; }
-.progress-pct { font-size: var(--text-sm); color: var(--text-muted); }
+.progress-label { flex: 1; font-size: var(--fs); font-weight: 500; }
+.progress-pct { font-size: var(--fs); color: var(--t3); }
 .progress-track {
-  height: 4px; background: var(--bg-subtle); border-radius: var(--radius-sm); overflow: hidden;
+  height: 4px; background: var(--ground); border-radius: var(--rs); overflow: hidden;
 }
 .progress-fill {
-  height: 100%; background: var(--brand); border-radius: var(--radius-sm); transition: width 0.4s ease;
+  height: 100%; background: var(--red); border-radius: var(--rs); transition: width 0.4s ease;
 }
 .error-bar {
-  padding: var(--space-2) var(--space-3);
-  background: var(--palette-danger-light); color: var(--status-error);
-  font-size: var(--text-sm); border-radius: var(--radius-sm); margin-bottom: var(--space-3);
+  padding: 6px var(--pad);
+  background: rgba(248,113,113,0.15); color: var(--err);
+  font-size: var(--fs); border-radius: var(--rs); margin-bottom: var(--pad);
 }
 </style>

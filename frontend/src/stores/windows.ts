@@ -24,7 +24,9 @@ export type WindowModule =
   | 'time-vision' // TimeVision AI time estimation
   | 'file-manager' // File Manager (ADR-044)
 
-export type LinkingGroup = 'red' | 'blue' | 'green' | 'yellow' | null
+// Re-export from workspace types for backward compatibility during tiling migration
+import type { LinkingGroup } from '@/types/workspace'
+export type { LinkingGroup } from '@/types/workspace'
 export type WindowRole = 'master' | 'child' | null
 
 export interface WindowState {
@@ -117,7 +119,7 @@ export const useWindowsStore = defineStore('windows', () => {
 
     if (position.x === -1) {
       // Center of screen with small random offset to avoid exact overlap
-      const headerHeight = 56
+      const headerHeight = 36
       const offset = (windows.value.length * 30) % 100
       finalX = Math.max(0, (window.innerWidth - defaultWidth) / 2 + offset)
       finalY = Math.max(headerHeight, (window.innerHeight - defaultHeight) / 2 + offset)
@@ -159,7 +161,7 @@ export const useWindowsStore = defineStore('windows', () => {
 
   // Find free position (no overlapping with existing windows)
   function findFreePosition(width: number, height: number) {
-    const headerHeight = 56
+    const headerHeight = 36
     const stepX = 50
     const stepY = 50
     const maxX = window.innerWidth - width
@@ -259,7 +261,7 @@ export const useWindowsStore = defineStore('windows', () => {
     const openWins = openWindows.value
     if (openWins.length === 0) return
 
-    const headerHeight = 56
+    const headerHeight = 36
     const footerHeight = 32
     const containerWidth = window.innerWidth
     const containerHeight = window.innerHeight - headerHeight - footerHeight

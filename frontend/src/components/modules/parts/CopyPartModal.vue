@@ -178,15 +178,15 @@ async function handleConfirm() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-default);
+  padding: 12px;
+  border-bottom: 1px solid var(--b2);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .btn-close {
@@ -197,49 +197,49 @@ async function handleConfirm() {
   height: 32px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rs);
   cursor: pointer;
-  color: var(--text-secondary);
-  transition: var(--transition-fast);
+  color: var(--t3);
+  transition: all 100ms var(--ease);
 }
 
 .btn-close:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--b1);
+  color: var(--t1);
 }
 
 .modal-body {
-  padding: var(--space-4);
+  padding: 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .info-text {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  font-size: var(--fs);
+  color: var(--t2);
 }
 
 .checkbox-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
 }
 
 .checkbox-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   cursor: pointer;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
+  padding: 6px;
+  border-radius: var(--rs);
+  transition: all 100ms var(--ease);
 }
 
 .checkbox-item:hover {
-  background: var(--bg-hover);
+  background: var(--b1);
 }
 
 .checkbox-item input[type="checkbox"] {
@@ -249,8 +249,8 @@ async function handleConfirm() {
 }
 
 .checkbox-item span {
-  font-size: var(--text-sm);
-  color: var(--text-body);
+  font-size: var(--fs);
+  color: var(--t2);
   user-select: none;
 }
 
@@ -258,29 +258,29 @@ async function handleConfirm() {
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .field-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--t3);
 }
 
 .field-input {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  background: var(--bg-input);
-  color: var(--text-body);
-  transition: var(--transition-fast);
+  padding: 6px var(--pad);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  font-size: var(--fs);
+  background: var(--ground);
+  color: var(--t2);
+  transition: all 100ms var(--ease);
 }
 
 .field-input:focus {
   outline: none;
-  background: var(--state-focus-bg);
-  border-color: var(--state-focus-border);
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.5);
 }
 
 .field-input:disabled {
@@ -290,28 +290,28 @@ async function handleConfirm() {
 
 /* Error message */
 .error-message {
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-error-bg);
-  border: 1px solid var(--color-error-border);
-  border-radius: var(--radius-md);
-  color: var(--color-error-text);
-  font-size: var(--text-sm);
+  padding: 6px var(--pad);
+  background: rgba(248,113,113,0.1);
+  border: 1px solid var(--err);
+  border-radius: var(--r);
+  color: var(--err);
+  font-size: var(--fs);
 }
 
 /* Divider */
 .divider {
   height: 1px;
-  background: var(--border-default);
-  margin: var(--space-2) 0;
+  background: var(--b2);
+  margin: 6px 0;
 }
 
 .modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border-top: 1px solid var(--border-default);
+  gap: 6px;
+  padding: 12px;
+  border-top: 1px solid var(--b2);
 }
 
 /* Icon buttons use global .icon-btn classes from design-system.css */

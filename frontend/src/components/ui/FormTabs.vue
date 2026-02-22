@@ -160,10 +160,10 @@ const selectTab = (index: number) => {
 /* === TAB NAVIGATION === */
 .tabs-nav {
   display: flex;
-  gap: var(--space-1);
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-subtle);
-  padding: 0 var(--space-4);
+  gap: 4px;
+  border-bottom: 1px solid var(--b2);
+  background: var(--ground);
+  padding: 0 12px;
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -172,8 +172,8 @@ const selectTab = (index: number) => {
 .form-tabs-vertical .tabs-nav {
   flex-direction: column;
   border-bottom: none;
-  border-right: 1px solid var(--border-default);
-  padding: var(--space-4) 0;
+  border-right: 1px solid var(--b2);
+  padding: 12px 0;
   min-width: 180px;
   overflow-x: visible;
   overflow-y: auto;
@@ -183,26 +183,26 @@ const selectTab = (index: number) => {
 .tab-button {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  gap: 6px;
+  padding: var(--pad) 12px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  color: var(--t3);
+  font-size: var(--fs);
+  font-weight: 500;
   cursor: pointer;
   position: relative;
   white-space: nowrap;
-  transition: var(--transition-fast);
+  transition: all 100ms var(--ease);
 }
 
 .tab-button:hover:not(.disabled) {
-  color: var(--text-primary);
-  background: var(--state-hover);
+  color: var(--t1);
+  background: var(--b1);
 }
 
 .tab-button.active {
-  color: var(--brand);
+  color: var(--red);
 }
 
 /* Active indicator (horizontal) */
@@ -213,7 +213,7 @@ const selectTab = (index: number) => {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--brand);
+  background: var(--red);
   border-radius: 1px 1px 0 0;
 }
 
@@ -235,7 +235,7 @@ const selectTab = (index: number) => {
 
 /* === TAB ICON === */
 .tab-icon {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
   line-height: 1;
 }
 
@@ -246,17 +246,17 @@ const selectTab = (index: number) => {
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-full);
-  background: var(--brand);
+  padding: 0 4px;
+  border-radius: 99px;
+  background: var(--red);
   color: white;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-size: var(--fs);
+  font-weight: 600;
 }
 
 .tab-button:not(.active) .tab-badge {
-  background: var(--bg-muted);
-  color: var(--text-secondary);
+  background: var(--surface);
+  color: var(--t3);
 }
 
 /* === TAB CONTENT === */
@@ -267,7 +267,7 @@ const selectTab = (index: number) => {
 }
 
 .tab-panel {
-  padding: var(--space-5);
+  padding: 16px;
   height: 100%;
 }
 
@@ -287,9 +287,9 @@ const selectTab = (index: number) => {
   .form-tabs-vertical .tabs-nav {
     flex-direction: row;
     border-right: none;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--b2);
     min-width: auto;
-    padding: 0 var(--space-4);
+    padding: 0 12px;
     overflow-x: auto;
   }
 

@@ -295,11 +295,11 @@ watch(() => props.partNumber, (newPartNumber) => {
 .first-panel {
   flex-shrink: 0;
   /* width/height set via :style binding */
-  padding: var(--space-3);
+  padding: var(--pad);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--pad);
   container-type: inline-size; /* Enable container queries for child components */
   container-name: part-list-panel;
 }
@@ -314,9 +314,9 @@ watch(() => props.partNumber, (newPartNumber) => {
 
 /* === RESIZE HANDLE === */
 .resize-handle {
-  background: var(--border-default);
+  background: var(--b2);
   flex-shrink: 0;
-  transition: background var(--transition-fast);
+  transition: background all 100ms var(--ease);
   position: relative;
 }
 
@@ -332,7 +332,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--color-primary);
+  background: var(--red);
 }
 
 /* Wider hit area for easier dragging */
@@ -359,7 +359,7 @@ watch(() => props.partNumber, (newPartNumber) => {
 /* === SECOND PANEL === */
 .second-panel {
   flex: 1;
-  padding: var(--space-4);
+  padding: 12px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -379,19 +379,19 @@ watch(() => props.partNumber, (newPartNumber) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 24px;
+  color: var(--t3);
   text-align: center;
   height: 100%;
 }
 
 .empty .empty-icon {
-  font-size: var(--text-lg);
-  margin-bottom: var(--space-2);
+  font-size: 16px;
+  margin-bottom: 6px;
 }
 
 .empty p {
-  font-size: var(--text-sm);
+  font-size: var(--fs);
 }
 </style>
