@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Plus, RotateCw, Search, X } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useUiStore } from '@/stores/ui'
 import type { ContextGroup } from '@/types/workspace'
 import type { Part, PartCreate } from '@/types/part'
-import { partStatusLabel } from '@/utils/partStatus'
 import Spinner from '@/components/ui/Spinner.vue'
 import Modal from '@/components/ui/Modal.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
-import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
 
 interface Props {
   leafId: string
@@ -28,10 +25,10 @@ const createArticle = ref('')
 const creating = ref(false)
 
 let searchTimer: ReturnType<typeof setTimeout>
-function onSearchInput(val: string) {
+function onSearchInput() {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    parts.search = val
+    parts.search = searchVal.value
     parts.fetchAll()
   }, 300)
 }
@@ -39,11 +36,12 @@ function onSearchInput(val: string) {
 const filtered = computed(() => {
   const q = searchVal.value.toLowerCase().trim()
   if (!q) return parts.items
-  return parts.items.filter(p =>
-    p.part_number.toLowerCase().includes(q) ||
-    (p.name ?? '').toLowerCase().includes(q) ||
-    (p.article_number ?? '').toLowerCase().includes(q) ||
-    (p.drawing_number ?? '').toLowerCase().includes(q)
+  return parts.items.filter(
+    (p) =>
+      p.part_number.toLowerCase().includes(q) ||
+      (p.name ?? '').toLowerCase().includes(q) ||
+      (p.article_number ?? '').toLowerCase().includes(q) ||
+      (p.drawing_number ?? '').toLowerCase().includes(q),
   )
 })
 
@@ -53,14 +51,12 @@ function selectPart(p: Part) {
   parts.focusPart(p.part_number, props.ctx)
 }
 
-function statusClass(status: string): string {
-  switch (status) {
-    case 'active': return 'badge-dot-ok'
-    case 'archived': return 'badge-dot-neutral'
-    case 'draft': return 'badge-dot-warn'
-    case 'quote': return 'badge-dot-brand'
-    default: return 'badge-dot-neutral'
-  }
+/** Returns CSS class for the 5px status dot — reference .pd pattern */
+function dotClass(status: string): string {
+  if (status === 'active') return 'pd ok'
+  if (status === 'draft') return 'pd w'
+  if (status === 'archived') return 'pd e'
+  return 'pd o' // quote / unknown
 }
 
 async function handleCreate() {
@@ -83,259 +79,213 @@ async function handleCreate() {
   }
 }
 
-function openCreate() {
-  showCreate.value = true
-}
-
 onMounted(() => {
-  if (!parts.hasParts) {
-    parts.fetchAll()
-  }
+  if (!parts.hasParts) parts.fetchAll()
 })
 
-watch(() => parts.statusFilter, () => {
-  parts.fetchAll()
-})
+watch(
+  () => parts.statusFilter,
+  () => parts.fetchAll(),
+)
 </script>
 
 <template>
-  <div class="plist">
-    <!-- Toolbar -->
-    <div class="plist-toolbar">
-      <div class="plist-search-wrap">
-        <Search :size="ICON_SIZE_SM" class="plist-search-icon" />
+  <div class="plist-root">
+    <!-- Search + actions -->
+    <div class="srch-w">
+      <div class="srch-wrap">
+        <svg class="srch-ico" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.5" />
+          <path d="M10 10L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
         <input
           v-model="searchVal"
-          class="plist-search"
+          class="srch"
           placeholder="Hledat díl..."
           data-testid="parts-search"
-          @input="onSearchInput(searchVal)"
+          @input="onSearchInput"
         />
         <button
           v-if="searchVal"
-          class="plist-clear"
+          class="srch-clr"
           data-testid="parts-search-clear"
           @click="searchVal = ''; parts.search = ''; parts.fetchAll()"
-        >
-          <X :size="ICON_SIZE_SM" />
-        </button>
+        >×</button>
       </div>
-
-      <div class="plist-actions">
-        <button
-          class="icon-btn"
-          title="Obnovit"
-          data-testid="parts-refresh"
-          @click="parts.fetchAll()"
-        >
-          <RotateCw :size="ICON_SIZE_SM" />
-        </button>
-        <button
-          class="icon-btn icon-btn-brand"
-          title="Nový díl"
-          data-testid="parts-create"
-          @click="openCreate"
-        >
-          <Plus :size="ICON_SIZE" />
-        </button>
-      </div>
+      <button class="hbtn" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll()">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M2.5 8a5.5 5.5 0 1 0 1-3.18M2.5 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="hbtn brand" title="Nový díl" data-testid="parts-create" @click="showCreate = true">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Status filter chips -->
-    <div class="plist-chips">
-      <button
-        :class="['plist-chip', parts.statusFilter === '' ? 'active' : '']"
-        data-testid="filter-all"
-        @click="parts.statusFilter = ''"
-      >
-        Vše
+    <!-- Status filter tabs — reference .ptab pattern -->
+    <div class="ptabs">
+      <button :class="['ptab', parts.statusFilter === '' ? 'on' : '']" data-testid="filter-all" @click="parts.statusFilter = ''">
+        Vše <span class="n">{{ parts.total }}</span>
       </button>
-      <button
-        :class="['plist-chip', parts.statusFilter === 'active' ? 'active' : '']"
-        data-testid="filter-active"
-        @click="parts.statusFilter = 'active'"
-      >
-        Aktivní
-      </button>
-      <button
-        :class="['plist-chip', parts.statusFilter === 'draft' ? 'active' : '']"
-        data-testid="filter-draft"
-        @click="parts.statusFilter = 'draft'"
-      >
-        Rozpr.
-      </button>
-      <button
-        :class="['plist-chip', parts.statusFilter === 'archived' ? 'active' : '']"
-        data-testid="filter-archived"
-        @click="parts.statusFilter = 'archived'"
-      >
-        Arch.
-      </button>
+      <button :class="['ptab', parts.statusFilter === 'active' ? 'on' : '']" data-testid="filter-active" @click="parts.statusFilter = 'active'">Aktivní</button>
+      <button :class="['ptab', parts.statusFilter === 'draft' ? 'on' : '']" data-testid="filter-draft" @click="parts.statusFilter = 'draft'">Rozpr.</button>
+      <button :class="['ptab', parts.statusFilter === 'archived' ? 'on' : '']" data-testid="filter-archived" @click="parts.statusFilter = 'archived'">Arch.</button>
     </div>
 
     <!-- Loading -->
     <div v-if="parts.loading" class="plist-state">
-      <Spinner size="sm" text="Načítám díly..." />
+      <Spinner size="sm" />
     </div>
 
     <!-- Empty -->
-    <div v-else-if="!filtered.length" class="plist-state plist-empty">
-      {{ searchVal ? 'Žádný díl nevyhovuje hledání' : 'Žádné díly' }}
+    <div v-else-if="!filtered.length" class="plist-state">
+      <span class="empty-hint">{{ searchVal ? 'Žádný díl nevyhovuje hledání' : 'Žádné díly' }}</span>
     </div>
 
-    <!-- List -->
-    <div v-else class="plist-list">
-      <button
+    <!-- Parts list — exact reference .pi pattern -->
+    <ul v-else class="plist">
+      <li
         v-for="p in filtered"
         :key="p.part_number"
-        :class="['prow', { 'prow-active': focused === p.part_number }]"
+        :class="['pi', { sel: focused === p.part_number }]"
         :data-testid="`part-row-${p.part_number}`"
         @click="selectPart(p)"
       >
-        <div class="prow-num">{{ p.part_number }}</div>
-        <div class="prow-info">
-          <div class="prow-name">{{ p.name || p.article_number || '—' }}</div>
-          <div v-if="p.article_number && p.name" class="prow-art">{{ p.article_number }}</div>
-        </div>
-        <div class="prow-badge">
-          <span class="badge">
-            <span :class="['badge-dot', statusClass(p.status)]" />
-            {{ partStatusLabel(p.status) }}
-          </span>
-        </div>
-      </button>
-    </div>
-
-    <!-- Count -->
-    <div v-if="!parts.loading && filtered.length" class="plist-footer">
-      {{ filtered.length }} / {{ parts.total }} dílů
-    </div>
+        <span class="pn">{{ p.part_number }}</span>
+        <span class="pm">{{ p.name || p.article_number || '—' }}</span>
+        <span :class="dotClass(p.status)" />
+      </li>
+    </ul>
 
     <!-- Create modal -->
     <Modal v-model="showCreate" title="Nový díl" size="sm">
       <div class="create-form">
-        <Input
-          v-model="createName"
-          label="Název dílu"
-          placeholder="např. Hřídel frézovaná"
-          data-testid="create-part-name"
-        />
-        <Input
-          v-model="createArticle"
-          label="Číslo artiklu"
-          placeholder="např. ART-12345"
-          data-testid="create-part-article"
-        />
+        <Input v-model="createName" label="Název dílu" placeholder="např. Hřídel frézovaná" data-testid="create-part-name" />
+        <Input v-model="createArticle" label="Číslo artiklu" placeholder="např. ART-12345" data-testid="create-part-article" />
       </div>
       <template #footer>
         <Button variant="ghost" @click="showCreate = false">Zrušit</Button>
-        <Button
-          variant="primary"
-          :loading="creating"
-          data-testid="create-part-submit"
-          @click="handleCreate"
-        >
-          Vytvořit díl
-        </Button>
+        <Button variant="primary" :loading="creating" data-testid="create-part-submit" @click="handleCreate">Vytvořit díl</Button>
       </template>
     </Modal>
   </div>
 </template>
 
 <style scoped>
-.plist {
+.plist-root {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  container-type: inline-size;
 }
 
-/* ─── Toolbar ─── */
-.plist-toolbar {
+/* ─── Search row — reference .srch-w ─── */
+.srch-w {
   display: flex;
   align-items: center;
-  gap: var(--gap);
-  padding: 6px var(--pad);
+  gap: 4px;
+  padding: 5px var(--pad);
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
-
-.plist-search-wrap {
+.srch-wrap {
   flex: 1;
-  min-width: 0;
   position: relative;
   display: flex;
   align-items: center;
 }
-.plist-search-icon {
+.srch-ico {
   position: absolute;
-  left: 6px;
+  left: 7px;
+  width: 11px;
+  height: 11px;
   color: var(--t4);
   pointer-events: none;
-  flex-shrink: 0;
 }
-.plist-search {
+.srch {
   width: 100%;
-  background: var(--raised);
+  height: 26px;
+  padding: 0 20px 0 24px;
+  background: rgba(255,255,255,0.03);
   border: 1px solid var(--b1);
   border-radius: var(--rs);
-  padding: 4px 24px 4px 24px;
+  color: var(--t1);
   font-size: var(--fs);
   font-family: var(--font);
-  color: var(--t1);
   outline: none;
-  transition: border-color 100ms var(--ease);
+  transition: border-color 0.1s;
 }
-.plist-search::placeholder { color: var(--t4); }
-.plist-search:focus { border-color: var(--b3); }
-.plist-clear {
+.srch::placeholder { color: var(--t4); }
+.srch:focus { border-color: var(--b3); background: rgba(255,255,255,0.05); }
+.srch-clr {
   position: absolute;
   right: 4px;
   background: none;
   border: none;
   color: var(--t4);
   cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 3px;
+}
+.srch-clr:hover { color: var(--t2); }
+
+/* Header icon buttons — reference .hbtn */
+.hbtn {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 2px;
-  border-radius: var(--rs);
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+  color: var(--t4);
+  cursor: pointer;
 }
-.plist-clear:hover { color: var(--t2); }
+.hbtn svg { width: 12px; height: 12px; }
+.hbtn:hover { background: var(--b1); color: var(--t1); }
+.hbtn.brand { color: var(--red); }
+.hbtn.brand:hover { background: var(--red-dim); }
 
-.plist-actions {
+/* ─── Filter tabs — reference .ptabs / .ptab ─── */
+.ptabs {
   display: flex;
-  gap: var(--gap);
-  flex-shrink: 0;
-}
-
-/* ─── Status chips ─── */
-.plist-chips {
-  display: flex;
-  gap: 2px;
-  padding: 4px var(--pad);
+  gap: 1px;
+  padding: 3px var(--pad);
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
-.plist-chip {
-  background: none;
-  border: 1px solid var(--b1);
+.ptab {
+  padding: 3px 7px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--t4);
+  background: transparent;
+  border: none;
   border-radius: var(--rs);
-  padding: 2px 7px;
-  font-size: var(--fsl);
-  font-family: var(--font);
-  color: var(--t3);
   cursor: pointer;
-  transition: all 80ms var(--ease);
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
-.plist-chip:hover { border-color: var(--b2); color: var(--t2); }
-.plist-chip.active {
-  background: var(--raised);
-  border-color: var(--b3);
-  color: var(--t1);
+.ptab:hover { color: var(--t3); }
+.ptab.on { color: var(--t1); background: var(--b1); }
+/* Count badge inside tab */
+.n {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--t4);
+  padding: 1px 4px;
+  background: var(--b1);
+  border-radius: 2px;
 }
 
-/* ─── State ─── */
+/* ─── States ─── */
 .plist-state {
   flex: 1;
   display: flex;
@@ -343,72 +293,73 @@ watch(() => parts.statusFilter, () => {
   justify-content: center;
   padding: 24px;
 }
-.plist-empty { color: var(--t4); font-size: var(--fs); }
+.empty-hint { font-size: var(--fs); color: var(--t4); }
 
-/* ─── List ─── */
-.plist-list {
+/* ─── Parts list — reference .plist / .pi ─── */
+.plist {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-/* ─── Part row ─── */
-.prow {
+.pi {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   padding: 5px var(--pad);
-  width: 100%;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--b1);
   cursor: pointer;
-  text-align: left;
-  transition: background 60ms;
-  color: inherit;
+  position: relative;
+  min-height: 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.025);
 }
-.prow:last-child { border-bottom: none; }
-.prow:hover { background: rgba(255,255,255,0.03); }
-.prow-active { background: rgba(255,255,255,0.06); }
-.prow-active:hover { background: rgba(255,255,255,0.08); }
+.pi:hover { background: var(--b1); }
+.pi.sel { background: rgba(229,57,53,0.06); }
+.pi.sel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--red);
+  border-radius: 0 1px 1px 0;
+}
 
-.prow-num {
+/* Part number — reference .pn */
+.pn {
   font-family: var(--mono);
-  font-size: var(--fsl);
-  color: var(--t3);
-  flex-shrink: 0;
-  width: 72px;
-}
-.prow-info {
-  flex: 1;
-  min-width: 0;
-}
-.prow-name {
   font-size: var(--fs);
+  font-weight: 500;
   color: var(--t1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.prow-art {
-  font-size: var(--fsl);
-  color: var(--t4);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.prow-badge { flex-shrink: 0; }
-
-/* ─── Footer ─── */
-.plist-footer {
-  padding: 4px var(--pad);
-  font-size: var(--fsl);
-  color: var(--t4);
-  border-top: 1px solid var(--b1);
+  min-width: 66px;
   flex-shrink: 0;
-  text-align: right;
 }
+
+/* Part name — reference .pm */
+.pm {
+  font-size: var(--fs);
+  color: var(--t3);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status dot — reference .pd */
+.pd {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pd.ok { background: var(--ok); }
+.pd.w  { background: var(--warn); }
+.pd.e  { background: var(--err); }
+.pd.o  { background: var(--t4); }
 
 /* ─── Create form ─── */
 .create-form {

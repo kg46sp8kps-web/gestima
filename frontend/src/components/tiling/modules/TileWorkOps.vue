@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { Clock, Wrench, Users } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
 import type { ContextGroup } from '@/types/workspace'
-import type { Operation } from '@/types/operation'
 import { formatDuration } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
-import { ICON_SIZE_SM } from '@/config/design'
 
 interface Props {
   leafId: string
@@ -20,123 +17,124 @@ const ops = useOperationsStore()
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
 
-const operations = computed<Operation[]>(() => {
+const operations = computed(() => {
   if (!part.value) return []
   return ops.forPart(part.value.id)
 })
 
-const totalSetup = computed(() =>
-  operations.value.reduce((s, o) => s + o.setup_time_min, 0)
-)
-const totalOp = computed(() =>
-  operations.value.reduce((s, o) => s + o.operation_time_min, 0)
-)
+const totalSetup = computed(() => operations.value.reduce((s, o) => s + o.setup_time_min, 0))
+const totalOp = computed(() => operations.value.reduce((s, o) => s + o.operation_time_min, 0))
 
-function cuttingModeLabel(mode: string): string {
-  switch (mode) {
-    case 'low': return 'LOW'
-    case 'high': return 'HIGH'
-    default: return 'MID'
-  }
+function cuttingLabel(mode: string): string {
+  if (mode === 'low') return 'LOW'
+  if (mode === 'high') return 'HIGH'
+  return 'MID'
 }
 
-function cuttingModeClass(mode: string): string {
-  switch (mode) {
-    case 'low': return 'cm-low'
-    case 'high': return 'cm-high'
-    default: return 'cm-mid'
-  }
-}
-
-watch(part, (p) => {
-  if (p && !ops.byPartId[p.id]) {
-    ops.fetchByPartId(p.id)
-  }
-}, { immediate: true })
+watch(
+  part,
+  (p) => {
+    if (p && !ops.byPartId[p.id]) ops.fetchByPartId(p.id)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div class="wops">
-    <!-- Empty: no part selected -->
-    <div v-if="!part" class="wops-state">
-      <div class="wops-state-dot" />
-      <div class="wops-state-label">Vyberte díl ze seznamu</div>
+    <!-- No part selected -->
+    <div v-if="!part" class="mod-placeholder">
+      <div class="mod-dot" />
+      <span class="mod-label">Vyberte díl ze seznamu</span>
     </div>
 
     <!-- Loading -->
-    <div v-else-if="ops.loading && !operations.length" class="wops-state">
-      <Spinner size="sm" text="Načítám operace..." />
+    <div v-else-if="ops.loading && !operations.length" class="mod-placeholder">
+      <Spinner size="sm" />
     </div>
 
     <!-- No operations -->
-    <div v-else-if="!operations.length" class="wops-state">
-      <div class="wops-state-dot" />
-      <div class="wops-state-label">Díl nemá žádné operace</div>
+    <div v-else-if="!operations.length" class="mod-placeholder">
+      <div class="mod-dot" />
+      <span class="mod-label">Díl nemá žádné operace</span>
     </div>
 
-    <!-- Operations list -->
-    <div v-else class="wops-list">
-      <!-- Summary row -->
-      <div class="wops-summary">
-        <div class="wops-sum-item">
-          <Clock :size="ICON_SIZE_SM" />
-          <span>Seřízení: {{ formatDuration(totalSetup) }}</span>
-        </div>
-        <div class="wops-sum-item">
-          <Clock :size="ICON_SIZE_SM" />
-          <span>Výroba: {{ formatDuration(totalOp) }}</span>
-        </div>
-        <div class="wops-sum-item">
-          <span class="wops-count">{{ operations.length }} op.</span>
-        </div>
-      </div>
-
-      <!-- Operation rows -->
-      <div
-        v-for="op in operations"
-        :key="op.id"
-        class="oprow"
-        :data-testid="`op-row-${op.id}`"
-      >
-        <div class="oprow-seq">{{ op.seq }}</div>
-        <div class="oprow-body">
-          <div class="oprow-top">
-            <div class="oprow-name">{{ op.name || 'Bez názvu' }}</div>
-            <div v-if="op.is_coop" class="oprow-coop">
-              <Users :size="ICON_SIZE_SM" />
-              <span>Kooperace</span>
-            </div>
-            <div v-else :class="['oprow-cm', cuttingModeClass(op.cutting_mode)]">
-              {{ cuttingModeLabel(op.cutting_mode) }}
-            </div>
+    <!-- Operations — reference .rib + .ot table pattern -->
+    <template v-else>
+      <!-- Summary ribbon -->
+      <div class="rib">
+        <div class="rib-r">
+          <div class="rib-i">
+            <span class="rib-l">Seřízení</span>
+            <span class="rib-v m">{{ formatDuration(totalSetup) }}</span>
           </div>
-          <div class="oprow-times">
-            <span class="oprow-time">
-              <Clock :size="ICON_SIZE_SM" />
-              Seřízení: {{ formatDuration(op.setup_time_min) }}
-            </span>
-            <span class="oprow-time">
-              <Wrench :size="ICON_SIZE_SM" />
-              Výroba: {{ formatDuration(op.operation_time_min) }}
-            </span>
+          <div class="rib-i">
+            <span class="rib-l">Výroba</span>
+            <span class="rib-v m">{{ formatDuration(totalOp) }}</span>
+          </div>
+          <div class="rib-i">
+            <span class="rib-l">Operací</span>
+            <span class="rib-v m">{{ operations.length }}</span>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- Operations table — reference .ot pattern -->
+      <div class="ot-wrap">
+        <table class="ot">
+          <thead>
+            <tr>
+              <th style="width:32px">#</th>
+              <th>Název</th>
+              <th class="r" style="width:90px">Seřízení</th>
+              <th class="r" style="width:90px">Výroba</th>
+              <th class="r" style="width:38px">Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="op in operations"
+              :key="op.id"
+              :data-testid="`op-row-${op.id}`"
+            >
+              <td class="mono t4">{{ op.seq }}</td>
+              <td>{{ op.name || 'Bez názvu' }}</td>
+              <td class="r">
+                <span class="tb s">
+                  <span class="d" />
+                  {{ formatDuration(op.setup_time_min) }}
+                </span>
+              </td>
+              <td class="r">
+                <span class="tb o">
+                  <span class="d" />
+                  {{ formatDuration(op.operation_time_min) }}
+                </span>
+              </td>
+              <td class="r">
+                <span v-if="op.is_coop" class="cm-badge coop">COOP</span>
+                <span v-else :class="['cm-badge', `cm-${op.cutting_mode}`]">
+                  {{ cuttingLabel(op.cutting_mode) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .wops {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
-  container-type: inline-size;
 }
 
-/* ─── States ─── */
-.wops-state {
+/* ─── Placeholder ─── */
+.mod-placeholder {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -145,127 +143,102 @@ watch(part, (p) => {
   gap: 8px;
   color: var(--t4);
 }
-.wops-state-dot {
-  width: 10px;
-  height: 10px;
+.mod-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--b2);
 }
-.wops-state-label { font-size: var(--fs); }
+.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
-/* ─── List ─── */
-.wops-list {
+/* ─── Summary ribbon — reference .rib ─── */
+.rib {
+  padding: 6px var(--pad);
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.rib-r { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.rib-i { display: flex; align-items: baseline; gap: 4px; }
+.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
+.rib-v.m { font-family: var(--mono); }
+
+/* ─── Table wrapper ─── */
+.ot-wrap {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
-/* ─── Summary row ─── */
-.wops-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px var(--pad);
-  border-bottom: 1px solid var(--b1);
-  background: var(--raised);
-  flex-shrink: 0;
+/* ─── Operations table — reference .ot ─── */
+.ot {
+  width: 100%;
+  border-collapse: collapse;
 }
-.wops-sum-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--fsl);
-  color: var(--t3);
+.ot thead {
+  background: rgba(255,255,255,0.025);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
-.wops-count {
-  font-family: var(--mono);
-  font-size: var(--fsl);
+.ot th {
+  padding: 4px var(--pad);
+  font-size: 10px;
+  font-weight: 600;
   color: var(--t4);
-  margin-left: auto;
-}
-
-/* ─── Operation row ─── */
-.oprow {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 6px var(--pad);
-  border-bottom: 1px solid var(--b1);
-}
-.oprow:last-child { border-bottom: none; }
-.oprow:hover { background: rgba(255,255,255,0.02); }
-
-.oprow-seq {
-  font-family: var(--mono);
-  font-size: var(--fsl);
-  color: var(--t4);
-  width: 24px;
-  flex-shrink: 0;
-  padding-top: 2px;
-}
-
-.oprow-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.oprow-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.oprow-name {
-  font-size: var(--fs);
-  color: var(--t1);
-  flex: 1;
-  min-width: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  border-bottom: 1px solid var(--b2);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
+.ot th.r { text-align: right; }
+.ot td {
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  color: var(--t2);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+.ot td.r { text-align: right; }
+.ot tbody tr:hover td { background: var(--b1); }
+.mono { font-family: var(--mono); }
+.t4 { color: var(--t4); }
 
-/* Cutting mode badge */
-.oprow-cm {
+/* ─── Time badge — reference .tb ─── */
+.tb {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  border-radius: 99px;
+  background: var(--b1);
+  color: var(--t2);
+  white-space: nowrap;
+}
+.tb .d {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tb.s .d { background: var(--red); }  /* setup = red dot */
+.tb.o .d { background: var(--ok); }   /* operation = green dot */
+
+/* ─── Cutting mode badge ─── */
+.cm-badge {
   font-family: var(--mono);
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  padding: 1px 5px;
+  letter-spacing: 0.06em;
+  padding: 1px 4px;
   border-radius: var(--rs);
-  flex-shrink: 0;
 }
-.cm-low { background: var(--b1); color: var(--t3); }
-.cm-mid { background: var(--b1); color: var(--t2); }
+.cm-low  { background: var(--b1); color: var(--t3); }
+.cm-mid  { background: var(--b1); color: var(--t2); }
 .cm-high { background: var(--red-10); color: var(--red); }
-
-/* Coop badge */
-.oprow-coop {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: var(--fsl);
-  color: var(--t3);
-  flex-shrink: 0;
-}
-
-.oprow-times {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.oprow-time {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: var(--fsl);
-  font-family: var(--mono);
-  color: var(--t3);
-}
+.coop   { background: var(--b1); color: var(--t3); }
 </style>

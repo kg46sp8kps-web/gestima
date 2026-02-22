@@ -22,16 +22,77 @@ const emit = defineEmits<{
 const ws = useWorkspaceStore()
 const moduleDef = computed(() => MODULE_REGISTRY[props.node.module])
 
+// Timer handle for deferred startDrag — cleared in dragend if drag is cancelled instantly
+let dragTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Creates a scaled-down ghost image of the panel — matches tiling-preview-v3 exactly.
+ * Ghost is placed off-screen at -9999px with z-index:99999 so the browser can render it
+ * for setDragImage capture. The wrapper is physically sized (w×h), inner clone is scaled.
+ */
+function createDragGhost(pnl: HTMLElement): HTMLElement {
+  const rect = pnl.getBoundingClientRect()
+  const maxW = 200, maxH = 140
+  const scale = Math.min(maxW / rect.width, maxH / rect.height, 0.45)
+  const w = Math.round(rect.width * scale)
+  const h = Math.round(rect.height * scale)
+
+  const ghost = document.createElement('div')
+  ghost.style.cssText = [
+    'position:fixed', 'top:-9999px', 'left:-9999px', 'z-index:99999',
+    `width:${w}px`, `height:${h}px`,
+    'overflow:hidden', 'border-radius:6px',
+    'border:1px solid rgba(229,57,53,0.3)',
+    'box-shadow:0 8px 24px rgba(0,0,0,0.5)',
+    'pointer-events:none',
+  ].join(';')
+
+  const inner = pnl.cloneNode(true) as HTMLElement
+  inner.style.cssText = [
+    `width:${rect.width}px`, `height:${rect.height}px`,
+    `transform:scale(${scale})`, 'transform-origin:top left',
+    'opacity:1', 'pointer-events:none',
+  ].join(';')
+  inner.querySelectorAll('.drop-zones').forEach(el => el.remove())
+  inner.classList.add('instant')
+  ghost.appendChild(inner)
+  document.body.appendChild(ghost)
+  return ghost
+}
+
 function onDragStart(e: DragEvent) {
-  ws.startDrag(props.node.id, props.node.module)
   if (e.dataTransfer) {
     e.dataTransfer.setData('text/plain', props.node.id)
     e.dataTransfer.effectAllowed = 'move'
+    const pnl = (e.currentTarget as HTMLElement).parentElement
+    if (pnl) {
+      const ghost = createDragGhost(pnl)
+      e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, 14)
+      // Defer state changes exactly like v3: setTimeout(0) ensures the drag gesture is
+      // fully captured by the browser BEFORE we apply pointer-events:none to the source
+      // panel and show drop zones. Without this deferral the reactive DOM update (via
+      // microtask) can interfere with drag initialisation in Chrome.
+      dragTimer = setTimeout(() => {
+        dragTimer = null
+        ws.startDrag(props.node.id, props.node.module)
+        // Double rAF for ghost removal — browser needs 2 paint frames after setDragImage
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (ghost.parentNode) ghost.parentNode.removeChild(ghost)
+          })
+        })
+      }, 0)
+    }
   }
   emit('drag-start')
 }
 
 function onDragEnd() {
+  // Cancel pending startDrag if drag was aborted before setTimeout fired
+  if (dragTimer !== null) {
+    clearTimeout(dragTimer)
+    dragTimer = null
+  }
   ws.endDrag()
 }
 </script>

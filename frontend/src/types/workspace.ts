@@ -63,6 +63,6 @@ export type LayoutPreset = 'std' | 'cmp' | 'hor' | 'qd'
 export type DropZone = 'top' | 'bottom' | 'left' | 'right' | 'center'
 
 export interface DragState {
-  leafId: string
+  leafId: string | null  // null = tab spawn (new leaf), string = existing leaf move
   moduleId: ModuleId
 }

@@ -747,6 +747,27 @@ Ad-hoc `Task` subagenty (ty bez `.claude/agents/*.md` definice) spouštěj vždy
 
 ---
 
+## Git — omezení výstupu příkazů
+
+**NIKDY nespouštět příkazy které vrátí stovky řádků bez ověření velikosti:**
+- ❌ `git show --stat <commit>` na velkých commitech (může vrátit 300+ řádků)
+- ❌ `git diff` bez `--stat` (vrátí celý diff)
+- ❌ `git log` bez `-n` limitu
+
+**Vždy používat:**
+```bash
+git log --oneline -10          # přehled historie
+git diff --stat HEAD           # co je unstaged
+git show --stat HEAD | tail -3 # jen summary posledního commitu
+```
+
+**Před `git show` na starší commit vždy zjistit velikost:**
+```bash
+git show --stat <hash> | tail -1  # jen summary řádek, pak rozhodnout
+```
+
+---
+
 ## Git Conventions
 
 ```

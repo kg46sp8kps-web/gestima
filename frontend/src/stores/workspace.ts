@@ -198,26 +198,33 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function moveLeaf(dragLeafId: string, targetLeafId: string, zone: DropZone) {
     if (dragLeafId === targetLeafId) return
     const dragResult = findNode(tree.value, dragLeafId)
+    const targetResult = findNode(tree.value, targetLeafId)
     if (!dragResult || dragResult.node.type !== 'leaf') return
+    if (!targetResult || targetResult.node.type !== 'leaf') return
 
-    const dragModule = (dragResult.node as LeafNode).module
-    const dragCtx = (dragResult.node as LeafNode).ctx
+    const dragLeaf = dragResult.node as LeafNode
+    const targetLeaf = targetResult.node as LeafNode
 
-    // Remove dragged leaf
+    if (zone === 'center') {
+      // Swap modules between the two leaves (positions stay, only modules exchange)
+      let t = replaceNode(tree.value, dragLeafId, { ...dragLeaf, module: targetLeaf.module, ctx: targetLeaf.ctx })
+      t = replaceNode(t, targetLeafId, { ...targetLeaf, module: dragLeaf.module, ctx: dragLeaf.ctx })
+      tree.value = t
+      return
+    }
+
+    // Edge zones — remove drag leaf, split target
     const treeWithoutDrag = removeLeaf(tree.value, dragLeafId)
     if (!treeWithoutDrag) return
-
     tree.value = treeWithoutDrag
-
-    // Now split the target
-    splitLeaf(targetLeafId, dragModule, zone, dragCtx)
+    splitLeaf(targetLeafId, dragLeaf.module, zone, dragLeaf.ctx)
   }
 
   function setSplitRatio(splitId: string, ratio: number) {
     tree.value = updateRatio(tree.value, splitId, ratio)
   }
 
-  function startDrag(leafId: string, moduleId: ModuleId) {
+  function startDrag(leafId: string | null, moduleId: ModuleId) {
     dragState.value = { leafId, moduleId }
   }
 

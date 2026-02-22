@@ -15,10 +15,13 @@ const props = defineProps<Props>()
 const ws = useWorkspaceStore()
 const maximized = ref(false)
 const showModulePicker = ref(false)
-const dropzoneActive = ref(false)
 
 const isFocused = computed(() => ws.focusedLeafId === props.node.id)
 const isDragging = computed(() => ws.dragState?.leafId === props.node.id)
+// Drop zones are active on all target panels immediately when any drag is in progress
+const dropZonesActive = computed(() =>
+  !!ws.dragState && ws.dragState.leafId !== props.node.id,
+)
 
 // Map module IDs to async components
 const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncComponent>>> = {
@@ -29,28 +32,14 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)
 
-function onDragOver(e: DragEvent) {
-  if (!ws.dragState) return
-  e.preventDefault()
-  dropzoneActive.value = true
-}
-
-function onDragLeave(e: DragEvent) {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  if (
-    e.clientX <= rect.left || e.clientX >= rect.right ||
-    e.clientY <= rect.top  || e.clientY >= rect.bottom
-  ) {
-    dropzoneActive.value = false
-  }
-}
-
 function onDrop(zone: DropZone) {
-  dropzoneActive.value = false
   if (!ws.dragState) return
-  const { leafId } = ws.dragState
+  const { leafId, moduleId } = ws.dragState
   ws.endDrag()
-  if (leafId !== props.node.id) {
+  if (leafId === null) {
+    // Tab spawn — create new panel from dragged tab
+    ws.splitLeaf(props.node.id, moduleId, zone, props.node.ctx)
+  } else if (leafId !== props.node.id) {
     ws.moveLeaf(leafId, props.node.id, zone)
   }
 }
@@ -72,8 +61,6 @@ function onFocus() {
       { instant, focused: isFocused, dragging: isDragging, max: maximized }
     ]"
     @mousedown="onFocus"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
   >
     <TilePanelHeader
       :node="node"
@@ -105,9 +92,9 @@ function onFocus() {
       </div>
     </div>
 
-    <!-- Drop zones overlay -->
+    <!-- Drop zones overlay — active on all non-source panels when drag is in progress -->
     <TileDropZones
-      :active="dropzoneActive && !!ws.dragState && ws.dragState.leafId !== node.id"
+      :active="dropZonesActive"
       :leaf-id="node.id"
       @drop="onDrop"
     />
@@ -125,8 +112,10 @@ function onFocus() {
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  width: 100%;
-  height: 100%;
+  /* Fill .tree-leaf (flex column) */
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
   opacity: 0;
   transform: scale(0.98);
   animation: pnlIn 0.35s var(--ease) forwards;
