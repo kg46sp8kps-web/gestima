@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
-import { generatePartnerData } from './helpers/test-data'
 import { openModuleViaMenu, setupWindowsView, TIMEOUTS } from './helpers/windows'
 
 test.describe('Partners Module', () => {
@@ -159,7 +158,7 @@ test.describe('Partners Module', () => {
   test('should show empty detail state when no partner selected', async ({ page }) => {
     // Before selecting any partner, the right panel should show a message
     const emptyState = page.locator('.floating-window .empty, .floating-window .empty-state')
-    const isVisible = await emptyState.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
+    const _isVisible = await emptyState.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
     // This is a soft check — the app may auto-select the first partner
     expect(true).toBe(true)
   })

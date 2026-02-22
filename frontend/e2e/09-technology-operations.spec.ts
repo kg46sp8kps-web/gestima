@@ -100,7 +100,7 @@ test.describe('Technology & Operations', () => {
 
         // Expanded content should appear
         const expanded = floatingWindow.locator('.expanded-row, .material-links, .expand-content')
-        const isExpanded = await expanded.first().isVisible({ timeout: 500 }).catch(() => false)
+        const _isExpanded = await expanded.first().isVisible({ timeout: 500 }).catch(() => false)
         // Soft assertion — some operations may not have expandable content
         expect(true).toBe(true)
       }

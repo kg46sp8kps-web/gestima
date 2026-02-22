@@ -124,7 +124,7 @@ test.describe('Admin Panel', () => {
     // Infor tab should be active by default (first tab)
     // Look for status dot indicator
     const statusDot = floatingWindow.locator('.status-dot, .connection-status')
-    const hasDot = await statusDot.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
+    const _hasDot = await statusDot.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
 
     // Infor tab content should be visible
     const inforContent = floatingWindow.locator('.infor-panel, .tab-content')

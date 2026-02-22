@@ -47,5 +47,14 @@ export default defineConfigWithVueTs(
     }
   },
 
+  // Atomic UI components intentionally use single-word names (Button, Input, Modal, etc.)
+  {
+    name: 'app/ui-component-names',
+    files: ['src/components/ui/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   skipFormatting,
 )

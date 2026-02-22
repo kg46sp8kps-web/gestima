@@ -70,7 +70,7 @@ test.describe('Settings', () => {
 
       // Success notification/toast should appear
       const toast = page.locator('.toast, .notification, [role="alert"]')
-      const hasToast = await toast.first().isVisible({ timeout: TIMEOUTS.API_LOAD }).catch(() => false)
+      const _hasToast = await toast.first().isVisible({ timeout: TIMEOUTS.API_LOAD }).catch(() => false)
       // Toast is optional — settings may save silently to localStorage
       expect(true).toBe(true)
     }

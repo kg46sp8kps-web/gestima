@@ -126,7 +126,7 @@ test.describe('Quotes Module', () => {
   test('should show empty state when no quote selected', async ({ page }) => {
     // The right panel should show empty state initially
     const emptyState = page.locator('.floating-window .empty, .floating-window .empty-state, .floating-window .empty-detail')
-    const hasEmpty = await emptyState.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
+    const _hasEmpty = await emptyState.first().isVisible({ timeout: TIMEOUTS.DEBOUNCE }).catch(() => false)
     // Either empty state is visible or no detail panel at all — both acceptable
     expect(true).toBe(true)
   })

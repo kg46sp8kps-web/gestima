@@ -2,8 +2,6 @@ import { test, expect } from '@playwright/test'
 import { login } from './helpers/auth'
 import {
   openModuleViaMenu,
-  openModuleViaSearch,
-  closeAllWindows,
   setupWindowsView,
   TIMEOUTS
 } from './helpers/windows'

@@ -45,7 +45,7 @@ test.describe('Batch Pricing Flow', () => {
 
       // Look for batch sets area
       const batchSection = floatingWindow.locator('.batch-section, .batch-sets, table')
-      const hasBatch = await batchSection.first().isVisible({ timeout: TIMEOUTS.API_LOAD }).catch(() => false)
+      const _hasBatch = await batchSection.first().isVisible({ timeout: TIMEOUTS.API_LOAD }).catch(() => false)
       expect(true).toBe(true) // Soft assertion — part may not have batches
     }
   })
