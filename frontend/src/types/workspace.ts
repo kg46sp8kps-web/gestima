@@ -36,26 +36,25 @@ export type TileNode = LeafNode | SplitNode
 export interface ModuleDefinition {
   id: ModuleId
   label: string
-  dotColor: string
   shortcut?: string
   isSub?: boolean
 }
 
 export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
-  'parts-list':    { id: 'parts-list',    label: 'Díly',         dotColor: 'var(--red)' },
-  'work-detail':   { id: 'work-detail',   label: 'Detail dílu',  dotColor: 'var(--t3)' },
-  'work-ops':      { id: 'work-ops',      label: 'Operace',      dotColor: 'var(--red)',   isSub: true },
-  'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    dotColor: 'var(--green)', isSub: true },
-  'work-drawing':  { id: 'work-drawing',  label: 'Výkres',       dotColor: 'var(--t3)',    isSub: true },
-  'work-materials':{ id: 'work-materials',label: 'Materiály',    dotColor: 'var(--t3)',    isSub: true },
-  'time-vision':   { id: 'time-vision',   label: 'TimeVision',   dotColor: 'var(--red)',   shortcut: '⌘6' },
-  'batch-sets':    { id: 'batch-sets',    label: 'Dávkové sady', dotColor: 'var(--t3)',    shortcut: '⌘7' },
-  'partners':      { id: 'partners',      label: 'Partneři',     dotColor: 'var(--t3)',    shortcut: '⌘8' },
-  'quotes':        { id: 'quotes',        label: 'Nabídky',      dotColor: 'var(--green)', shortcut: '⌘9' },
-  'production':    { id: 'production',    label: 'Výroba',       dotColor: 'var(--red)',   shortcut: '⌘0' },
-  'accounting':    { id: 'accounting',    label: 'Účetnictví',   dotColor: 'var(--t3)' },
-  'files':         { id: 'files',         label: 'Soubory',      dotColor: 'var(--t3)' },
-  'admin':         { id: 'admin',         label: 'Administrace', dotColor: 'var(--red)' },
+  'parts-list':    { id: 'parts-list',    label: 'Díly' },
+  'work-detail':   { id: 'work-detail',   label: 'Detail dílu' },
+  'work-ops':      { id: 'work-ops',      label: 'Operace',      isSub: true },
+  'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    isSub: true },
+  'work-drawing':  { id: 'work-drawing',  label: 'Výkres',       isSub: true },
+  'work-materials':{ id: 'work-materials',label: 'Materiály',    isSub: true },
+  'time-vision':   { id: 'time-vision',   label: 'TimeVision',   shortcut: '⌘6' },
+  'batch-sets':    { id: 'batch-sets',    label: 'Dávkové sady', shortcut: '⌘7' },
+  'partners':      { id: 'partners',      label: 'Partneři',     shortcut: '⌘8' },
+  'quotes':        { id: 'quotes',        label: 'Nabídky',      shortcut: '⌘9' },
+  'production':    { id: 'production',    label: 'Výroba',       shortcut: '⌘0' },
+  'accounting':    { id: 'accounting',    label: 'Účetnictví' },
+  'files':         { id: 'files',         label: 'Soubory' },
+  'admin':         { id: 'admin',         label: 'Administrace' },
 }
 
 export type LayoutPreset = 'std' | 'cmp' | 'hor' | 'qd'
@@ -65,4 +64,5 @@ export type DropZone = 'top' | 'bottom' | 'left' | 'right' | 'center'
 export interface DragState {
   leafId: string | null  // null = tab spawn (new leaf), string = existing leaf move
   moduleId: ModuleId
+  sourceCtx?: ContextGroup  // ctx of the panel that initiated the drag
 }

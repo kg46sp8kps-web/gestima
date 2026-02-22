@@ -42,7 +42,7 @@ function onTabDragStart(e: DragEvent, tab: Tab) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', moduleId)
   }
-  setTimeout(() => ws.startDrag(null, moduleId), 0)
+  setTimeout(() => ws.startDrag(null, moduleId, props.ctx), 0)
 }
 function onTabDragEnd() { ws.endDrag() }
 

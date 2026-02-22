@@ -146,7 +146,6 @@ onMounted(() => {
         :key="mod.id"
         class="mpk-i"
       >
-        <span class="mpk-dot" :style="{ background: mod.dotColor }" />
         <button class="mpk-name-btn" @click="addModule(mod.id, 'center')">{{ mod.label }}</button>
         <span v-if="mod.shortcut" class="mpk-key">{{ mod.shortcut }}</span>
         <div class="mpk-acts">
@@ -348,7 +347,6 @@ onMounted(() => {
 .mpk-i:hover { background: var(--b1); }
 .mpk-i:hover .mpk-acts { opacity: 1; }
 
-.mpk-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
 
 .mpk-name-btn {
   flex: 1; background: none; border: none; cursor: pointer;

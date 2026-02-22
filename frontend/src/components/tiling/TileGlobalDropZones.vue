@@ -29,14 +29,14 @@ function onDrop(e: DragEvent, zone: EdgeZone) {
   e.preventDefault()
   e.stopPropagation()
   if (!ws.dragState) return
-  const { leafId, moduleId } = ws.dragState
+  const { leafId, moduleId, sourceCtx } = ws.dragState
   ws.endDrag()
   if (leafId !== null) {
     // Moving an existing panel to a workspace edge
     ws.dockLeafToEdge(leafId, zone)
   } else {
-    // Tab spawn — create a new panel at the workspace edge
-    const ctx = ws.leaves[ws.leaves.length - 1]?.ctx ?? 'ca'
+    // Tab spawn — inherit ctx from the drag source panel
+    const ctx = sourceCtx ?? ws.leaves[ws.leaves.length - 1]?.ctx ?? 'ca'
     ws.spawnToEdge(moduleId, zone, ctx)
   }
   hoveredZone.value = null

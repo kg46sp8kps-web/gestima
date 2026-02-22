@@ -38,17 +38,23 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
   'work-drawing':   defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDrawing.vue')),
   'partners':       defineAsyncComponent(() => import('@/components/tiling/modules/TilePartners.vue')),
   'quotes':         defineAsyncComponent(() => import('@/components/tiling/modules/TileQuotes.vue')),
+  'time-vision':    defineAsyncComponent(() => import('@/components/tiling/modules/TileTimeVision.vue')),
+  'batch-sets':     defineAsyncComponent(() => import('@/components/tiling/modules/TileBatchSets.vue')),
+  'production':     defineAsyncComponent(() => import('@/components/tiling/modules/TileProduction.vue')),
+  'accounting':     defineAsyncComponent(() => import('@/components/tiling/modules/TileAccounting.vue')),
+  'files':          defineAsyncComponent(() => import('@/components/tiling/modules/TileFiles.vue')),
+  'admin':          defineAsyncComponent(() => import('@/components/tiling/modules/TileAdmin.vue')),
 }
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)
 
 function onDrop(zone: DropZone) {
   if (!ws.dragState) return
-  const { leafId, moduleId } = ws.dragState
+  const { leafId, moduleId, sourceCtx } = ws.dragState
   ws.endDrag()
   if (leafId === null) {
-    // Tab spawn — create new panel from dragged tab
-    ws.splitLeaf(props.node.id, moduleId, zone, props.node.ctx)
+    // Tab spawn — new panel inherits ctx of source panel, not target
+    ws.splitLeaf(props.node.id, moduleId, zone, sourceCtx ?? props.node.ctx)
   } else if (leafId !== props.node.id) {
     ws.moveLeaf(leafId, props.node.id, zone)
   }
@@ -175,6 +181,14 @@ function onFocus() {
 .pnl.cb::before {
   background: linear-gradient(90deg, transparent, var(--lb) 30%, var(--lb) 70%, transparent);
   opacity: 0.3;
+}
+.pnl.cc::before {
+  background: linear-gradient(90deg, transparent, var(--link-group-blue) 30%, var(--link-group-blue) 70%, transparent);
+  opacity: 0.35;
+}
+.pnl.cd::before {
+  background: linear-gradient(90deg, transparent, var(--link-group-yellow) 30%, var(--link-group-yellow) 70%, transparent);
+  opacity: 0.35;
 }
 
 .pb {

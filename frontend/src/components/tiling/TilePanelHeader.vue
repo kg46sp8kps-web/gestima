@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { Maximize2Icon, Minimize2Icon, XIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { MODULE_REGISTRY } from '@/types/workspace'
-import type { LeafNode } from '@/types/workspace'
+import type { LeafNode, ContextGroup } from '@/types/workspace'
 import { ICON_SIZE_SM } from '@/config/design'
 
 interface Props {
@@ -21,6 +21,38 @@ const emit = defineEmits<{
 
 const ws = useWorkspaceStore()
 const moduleDef = computed(() => MODULE_REGISTRY[props.node.module])
+
+// ─── Ctx group picker ───
+const pickerOpen = ref(false)
+
+const GROUPS: ContextGroup[] = ['ca', 'cb', 'cc', 'cd']
+const GROUP_LABELS: Record<ContextGroup, string> = { ca: 'A', cb: 'B', cc: 'C', cd: 'D' }
+const GROUP_COLORS: Record<ContextGroup, string> = {
+  ca: 'var(--la)',
+  cb: 'var(--lb)',
+  cc: 'var(--link-group-blue)',
+  cd: 'var(--link-group-yellow)',
+}
+
+function closePicker() {
+  pickerOpen.value = false
+}
+
+function openPicker() {
+  pickerOpen.value = true
+  // Add once-listener AFTER current click event cycle — prevents immediate self-close
+  nextTick(() => {
+    document.addEventListener('click', closePicker, { once: true })
+  })
+}
+
+function selectCtx(ctx: ContextGroup) {
+  ws.setLeafCtx(props.node.id, ctx)
+  pickerOpen.value = false
+}
+
+// Safety cleanup if component unmounts while picker is open
+onUnmounted(() => document.removeEventListener('click', closePicker))
 
 // Timer handle for deferred startDrag — cleared in dragend if drag is cancelled instantly
 let dragTimer: ReturnType<typeof setTimeout> | null = null
@@ -104,14 +136,23 @@ function onDragEnd() {
     @dragstart="onDragStart"
     @dragend="onDragEnd"
   >
-    <!-- Module dot + title -->
-    <div class="pht" @click="emit('open-module-picker')">
-      <span
-        class="ph-dot"
-        :style="{ background: moduleDef.dotColor }"
-      />
+    <!-- Module title — click opens ctx group picker -->
+    <div class="pht" data-testid="panel-header-title" @click.stop="openPicker">
       <span class="ph-label">{{ moduleDef.label }}</span>
-      <span v-if="node.ctx === 'cb'" class="ph-ctx">B</span>
+      <!-- Ctx group picker — hidden until pht is clicked -->
+      <div v-if="pickerOpen" class="ph-ctx-picker" data-testid="panel-ctx-picker" @click.stop>
+        <button
+          v-for="g in GROUPS"
+          :key="g"
+          class="ph-ctx-opt"
+          :class="{ active: node.ctx === g }"
+          :data-testid="`panel-ctx-opt-${g}`"
+          @click.stop="selectCtx(g)"
+        >
+          <span class="ph-ctx-swatch" :style="{ background: GROUP_COLORS[g] }" />
+          Skupina {{ GROUP_LABELS[g] }}
+        </button>
+      </div>
     </div>
 
     <div class="phf" />
@@ -153,6 +194,7 @@ function onDragEnd() {
 .ph:active { cursor: grabbing; }
 
 .pht {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -163,12 +205,6 @@ function onDragEnd() {
 }
 .pht:hover { background: var(--b1); }
 
-.ph-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
 .ph-label {
   font-size: var(--fsl);
   font-weight: 600;
@@ -177,13 +213,44 @@ function onDragEnd() {
   letter-spacing: 0.05em;
   pointer-events: none;
 }
-.ph-ctx {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--t4);
-  padding: 1px 4px;
-  background: var(--b1);
+
+.ph-ctx-picker {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--raised);
+  border: 1px solid var(--b3);
+  border-radius: var(--r);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+  min-width: 120px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.ph-ctx-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--rs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: var(--fsl);
+  color: var(--t2);
+  font-family: var(--font);
+  transition: background 0.06s;
+  white-space: nowrap;
+}
+.ph-ctx-opt:hover { background: var(--b2); color: var(--t1); }
+.ph-ctx-opt.active { background: var(--b2); font-weight: 600; color: var(--t1); }
+.ph-ctx-swatch {
+  width: 8px;
+  height: 8px;
   border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .phf { flex: 1; }

@@ -275,8 +275,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     tree.value = updateRatio(tree.value, splitId, ratio)
   }
 
-  function startDrag(leafId: string | null, moduleId: ModuleId) {
-    dragState.value = { leafId, moduleId }
+  function startDrag(leafId: string | null, moduleId: ModuleId, sourceCtx?: ContextGroup) {
+    dragState.value = { leafId, moduleId, sourceCtx }
+  }
+
+  function setLeafCtx(leafId: string, ctx: ContextGroup) {
+    const result = findNode(tree.value, leafId)
+    if (!result || result.node.type !== 'leaf') return
+    tree.value = replaceNode(tree.value, leafId, { ...result.node, ctx })
   }
 
   function endDrag() {
@@ -303,5 +309,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     setSplitRatio,
     startDrag,
     endDrag,
+    setLeafCtx,
   }
 })
