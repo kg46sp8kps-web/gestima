@@ -13,6 +13,7 @@ export type ModuleId =
   | 'accounting'
   | 'files'
   | 'admin'
+  | 'materials'
 
 export type ContextGroup = 'ca' | 'cb' | 'cc' | 'cd'
 
@@ -38,15 +39,16 @@ export interface ModuleDefinition {
   label: string
   shortcut?: string
   isSub?: boolean
+  usesCtx?: boolean  // true = module reads focusedPart(ctx), shows ctx picker
 }
 
 export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
-  'parts-list':    { id: 'parts-list',    label: 'Díly' },
-  'work-detail':   { id: 'work-detail',   label: 'Detail dílu' },
-  'work-ops':      { id: 'work-ops',      label: 'Operace',      isSub: true },
-  'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    isSub: true },
-  'work-drawing':  { id: 'work-drawing',  label: 'Výkres',       isSub: true },
-  'work-materials':{ id: 'work-materials',label: 'Materiály',    isSub: true },
+  'parts-list':    { id: 'parts-list',    label: 'Díly',         usesCtx: true },
+  'work-detail':   { id: 'work-detail',   label: 'Detail dílu',  usesCtx: true },
+  'work-ops':      { id: 'work-ops',      label: 'Operace',      isSub: true, usesCtx: true },
+  'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    isSub: true, usesCtx: true },
+  'work-drawing':  { id: 'work-drawing',  label: 'Výkres',       isSub: true, usesCtx: true },
+  'work-materials':{ id: 'work-materials',label: 'Materiály',    isSub: true, usesCtx: true },
   'time-vision':   { id: 'time-vision',   label: 'TimeVision',   shortcut: '⌘6' },
   'batch-sets':    { id: 'batch-sets',    label: 'Dávkové sady', shortcut: '⌘7' },
   'partners':      { id: 'partners',      label: 'Partneři',     shortcut: '⌘8' },
@@ -55,6 +57,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   'accounting':    { id: 'accounting',    label: 'Účetnictví' },
   'files':         { id: 'files',         label: 'Soubory' },
   'admin':         { id: 'admin',         label: 'Administrace' },
+  'materials':     { id: 'materials',     label: 'Polotovary' },
 }
 
 export type LayoutPreset = 'std' | 'cmp' | 'hor' | 'qd'

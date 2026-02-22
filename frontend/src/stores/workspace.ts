@@ -1,6 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { useUiStore } from '@/stores/ui'
+import * as layoutsApi from '@/api/layouts'
 import type { TileNode, LeafNode, SplitNode, ModuleId, ContextGroup, LayoutPreset, DropZone, DragState } from '@/types/workspace'
+import type { UserLayout } from '@/types/layout'
 
 let _id = 0
 function nid(): string { return 'n' + (++_id) }
@@ -133,8 +136,11 @@ function updateRatio(tree: TileNode, splitId: string, ratio: number): TileNode {
 export const useWorkspaceStore = defineStore('workspace', () => {
   const tree = ref<TileNode>(PRESETS.std())
   const focusedLeafId = ref<string | null>(null)
-  const currentLayout = ref<LayoutPreset>('std')
   const dragState = ref<DragState | null>(null)
+
+  // Layout management
+  const savedLayouts = ref<UserLayout[]>([])
+  const currentLayoutId = ref<number | null>(null)
 
   // Non-reactive set: tracks leaf IDs that have been mounted at least once.
   // Used by TilePanel to suppress the pnlIn animation on re-mounts (e.g. after tree restructure).
@@ -143,12 +149,122 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function isLeafSeen(id: string): boolean { return _seenLeafIds.has(id) }
 
   const leaves = computed(() => getLeaves(tree.value))
+  const headerLayouts = computed(() => savedLayouts.value.filter(l => l.show_in_header))
 
-  function setLayout(preset: LayoutPreset) {
-    currentLayout.value = preset
-    tree.value = PRESETS[preset]()
+  // ── Layout management actions ──────────────────────────────────────────────
+
+  async function fetchLayouts() {
+    const ui = useUiStore()
+    try {
+      const layouts = await layoutsApi.getAll()
+      savedLayouts.value = layouts
+      // Load default layout if currentLayoutId not yet set
+      if (currentLayoutId.value === null) {
+        const def = layouts.find(l => l.is_default) ?? layouts[0]
+        if (def) {
+          tree.value = def.tree_json
+          currentLayoutId.value = def.id
+        }
+      }
+    } catch {
+      ui.showError('Nepodařilo se načíst layouty')
+    }
+  }
+
+  function loadLayout(id: number) {
+    const layout = savedLayouts.value.find(l => l.id === id)
+    if (!layout) return
+    tree.value = layout.tree_json
+    currentLayoutId.value = id
     focusedLeafId.value = null
   }
+
+  async function saveCurrentLayout() {
+    if (currentLayoutId.value === null) return
+    const ui = useUiStore()
+    const layout = savedLayouts.value.find(l => l.id === currentLayoutId.value)
+    if (!layout) return
+    try {
+      const updated = await layoutsApi.update(layout.id, {
+        tree_json: tree.value,
+        version: layout.version,
+      })
+      const idx = savedLayouts.value.findIndex(l => l.id === updated.id)
+      if (idx !== -1) savedLayouts.value[idx] = updated
+      ui.showSuccess('Layout uložen')
+    } catch {
+      ui.showError('Nepodařilo se uložit layout')
+    }
+  }
+
+  async function createFromCurrent(name: string) {
+    const ui = useUiStore()
+    try {
+      const created = await layoutsApi.create({ name, tree_json: tree.value })
+      savedLayouts.value.push(created)
+      currentLayoutId.value = created.id
+      ui.showSuccess(`Layout "${name}" vytvořen`)
+    } catch {
+      ui.showError('Nepodařilo se vytvořit layout')
+    }
+  }
+
+  async function createBlankLayout(name: string) {
+    const ui = useUiStore()
+    const blankTree: TileNode = makeLeaf('parts-list', 'ca')
+    try {
+      const created = await layoutsApi.create({ name, tree_json: blankTree })
+      savedLayouts.value.push(created)
+      ui.showSuccess(`Layout "${name}" vytvořen`)
+    } catch {
+      ui.showError('Nepodařilo se vytvořit layout')
+    }
+  }
+
+  async function deleteLayout(id: number) {
+    const ui = useUiStore()
+    try {
+      await layoutsApi.remove(id)
+      savedLayouts.value = savedLayouts.value.filter(l => l.id !== id)
+      if (currentLayoutId.value === id) currentLayoutId.value = null
+      ui.showSuccess('Layout smazán')
+    } catch {
+      ui.showError('Nepodařilo se smazat layout')
+    }
+  }
+
+  async function setDefaultLayout(id: number) {
+    const ui = useUiStore()
+    const layout = savedLayouts.value.find(l => l.id === id)
+    if (!layout) return
+    try {
+      const updated = await layoutsApi.update(id, { is_default: true, version: layout.version })
+      // Clear defaults on others, apply full server response to updated layout
+      savedLayouts.value = savedLayouts.value.map(l =>
+        l.id === id ? updated : { ...l, is_default: false },
+      ) as typeof savedLayouts.value
+    } catch {
+      ui.showError('Nepodařilo se nastavit výchozí layout')
+    }
+  }
+
+  async function toggleHeaderVisibility(id: number) {
+    const ui = useUiStore()
+    const layout = savedLayouts.value.find(l => l.id === id)
+    if (!layout) return
+    try {
+      const updated = await layoutsApi.update(id, {
+        show_in_header: !layout.show_in_header,
+        version: layout.version,
+      })
+      const idx = savedLayouts.value.findIndex(l => l.id === id)
+      if (idx !== -1) savedLayouts.value[idx] = updated
+    } catch {
+      ui.showError('Nepodařilo se změnit viditelnost layoutu')
+    }
+  }
+
+  // ── Tree manipulation ──────────────────────────────────────────────────────
 
   function focusLeaf(id: string) {
     focusedLeafId.value = id
@@ -161,6 +277,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
     tree.value = newTree
+    currentLayoutId.value = null
     if (focusedLeafId.value === leafId) {
       const remaining = getLeaves(newTree)
       focusedLeafId.value = remaining[0]?.id ?? null
@@ -171,6 +288,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const result = findNode(tree.value, leafId)
     if (!result || result.node.type !== 'leaf') return
     tree.value = replaceNode(tree.value, leafId, { ...result.node, module: moduleId })
+    currentLayoutId.value = null
   }
 
   /** Split a leaf panel by dropping a module into a drop zone */
@@ -188,6 +306,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (zone === 'center') {
       // Replace module in same leaf
       tree.value = replaceNode(tree.value, targetLeafId, { ...target, module: newModule })
+      currentLayoutId.value = null
       return
     }
 
@@ -204,6 +323,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     )
     tree.value = replaceNode(tree.value, targetLeafId, split)
     focusedLeafId.value = newLeaf.id
+    currentLayoutId.value = null
   }
 
   /** Move a panel (drag from one leaf, drop into another) */
@@ -222,6 +342,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       let t = replaceNode(tree.value, dragLeafId, { ...dragLeaf, module: targetLeaf.module, ctx: targetLeaf.ctx })
       t = replaceNode(t, targetLeafId, { ...targetLeaf, module: dragLeaf.module, ctx: dragLeaf.ctx })
       tree.value = t
+      currentLayoutId.value = null
       return
     }
 
@@ -230,6 +351,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!treeWithoutDrag) return
     tree.value = treeWithoutDrag
     splitLeaf(targetLeafId, dragLeaf.module, zone, dragLeaf.ctx)
+    // splitLeaf already sets currentLayoutId = null
   }
 
   /** Add a panel docked to the absolute right or bottom edge of the workspace */
@@ -239,6 +361,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const edgeLeaf = getEdgeLeaf(tree.value, true)
     tree.value = replaceNode(tree.value, edgeLeaf.id, makeSplit(direction, 0.5, edgeLeaf, newLeaf))
     focusedLeafId.value = newLeaf.id
+    currentLayoutId.value = null
   }
 
   /** Spawn a new module panel at any absolute workspace edge (used by global drop zones for tab spawns) */
@@ -252,6 +375,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       : makeSplit(direction, 0.6, edgeLeaf, newLeaf)
     tree.value = replaceNode(tree.value, edgeLeaf.id, split)
     focusedLeafId.value = newLeaf.id
+    currentLayoutId.value = null
   }
 
   /** Move an existing leaf to an absolute workspace edge */
@@ -269,6 +393,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       : makeSplit(direction, 0.6, edgeLeaf, leaf)
     tree.value = replaceNode(treeWithout, edgeLeaf.id, split)
     focusedLeafId.value = leaf.id
+    currentLayoutId.value = null
   }
 
   function setSplitRatio(splitId: string, ratio: number) {
@@ -292,10 +417,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   return {
     tree,
     focusedLeafId,
-    currentLayout,
     dragState,
     leaves,
-    setLayout,
+    // Layout management
+    savedLayouts,
+    currentLayoutId,
+    headerLayouts,
+    fetchLayouts,
+    loadLayout,
+    saveCurrentLayout,
+    createFromCurrent,
+    createBlankLayout,
+    deleteLayout,
+    setDefaultLayout,
+    toggleHeaderVisibility,
+    // Tree operations
     focusLeaf,
     closeLeaf,
     changeModule,

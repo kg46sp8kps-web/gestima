@@ -136,8 +136,8 @@ function onDragEnd() {
     @dragstart="onDragStart"
     @dragend="onDragEnd"
   >
-    <!-- Module title — click opens ctx group picker -->
-    <div class="pht" data-testid="panel-header-title" @click.stop="openPicker">
+    <!-- Module title — click opens ctx group picker (only for ctx-aware modules) -->
+    <div class="pht" data-testid="panel-header-title" @click.stop="moduleDef.usesCtx ? openPicker() : undefined">
       <span class="ph-label">{{ moduleDef.label }}</span>
       <!-- Ctx group picker — hidden until pht is clicked -->
       <div v-if="pickerOpen" class="ph-ctx-picker" data-testid="panel-ctx-picker" @click.stop>
