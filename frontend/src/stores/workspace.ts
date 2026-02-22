@@ -86,6 +86,12 @@ function findNodeInSplit(
   return null
 }
 
+/** Returns the leaf at the specified absolute edge by always taking first/last child. */
+function getEdgeLeaf(tree: TileNode, takeLast: boolean): LeafNode {
+  if (tree.type === 'leaf') return tree
+  return getEdgeLeaf(tree.children[takeLast ? 1 : 0], takeLast)
+}
+
 function removeLeaf(tree: TileNode, leafId: string): TileNode | null {
   if (tree.type === 'leaf') return tree.id === leafId ? null : tree
   const newA = removeLeaf(tree.children[0], leafId)
@@ -129,6 +135,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const focusedLeafId = ref<string | null>(null)
   const currentLayout = ref<LayoutPreset>('std')
   const dragState = ref<DragState | null>(null)
+
+  // Non-reactive set: tracks leaf IDs that have been mounted at least once.
+  // Used by TilePanel to suppress the pnlIn animation on re-mounts (e.g. after tree restructure).
+  const _seenLeafIds = new Set<string>()
+  function markLeafSeen(id: string) { _seenLeafIds.add(id) }
+  function isLeafSeen(id: string): boolean { return _seenLeafIds.has(id) }
 
   const leaves = computed(() => getLeaves(tree.value))
 
@@ -220,6 +232,45 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     splitLeaf(targetLeafId, dragLeaf.module, zone, dragLeaf.ctx)
   }
 
+  /** Add a panel docked to the absolute right or bottom edge of the workspace */
+  function dockToEdge(moduleId: ModuleId, zone: 'right' | 'bottom', ctx: ContextGroup = 'ca') {
+    const newLeaf = makeLeaf(moduleId, ctx)
+    const direction = zone === 'right' ? 'horizontal' : 'vertical'
+    const edgeLeaf = getEdgeLeaf(tree.value, true)
+    tree.value = replaceNode(tree.value, edgeLeaf.id, makeSplit(direction, 0.5, edgeLeaf, newLeaf))
+    focusedLeafId.value = newLeaf.id
+  }
+
+  /** Spawn a new module panel at any absolute workspace edge (used by global drop zones for tab spawns) */
+  function spawnToEdge(moduleId: ModuleId, zone: 'left' | 'right' | 'top' | 'bottom', ctx: ContextGroup = 'ca') {
+    const newLeaf = makeLeaf(moduleId, ctx)
+    const direction = zone === 'left' || zone === 'right' ? 'horizontal' : 'vertical'
+    const isFirst = zone === 'left' || zone === 'top'
+    const edgeLeaf = getEdgeLeaf(tree.value, !isFirst)
+    const split = isFirst
+      ? makeSplit(direction, 0.4, newLeaf, edgeLeaf)
+      : makeSplit(direction, 0.6, edgeLeaf, newLeaf)
+    tree.value = replaceNode(tree.value, edgeLeaf.id, split)
+    focusedLeafId.value = newLeaf.id
+  }
+
+  /** Move an existing leaf to an absolute workspace edge */
+  function dockLeafToEdge(leafId: string, zone: 'left' | 'right' | 'top' | 'bottom') {
+    const result = findNode(tree.value, leafId)
+    if (!result || result.node.type !== 'leaf') return
+    const leaf = result.node as LeafNode
+    const treeWithout = removeLeaf(tree.value, leafId)
+    if (!treeWithout) return // last panel — can't move
+    const direction = zone === 'left' || zone === 'right' ? 'horizontal' : 'vertical'
+    const isFirst = zone === 'left' || zone === 'top'
+    const edgeLeaf = getEdgeLeaf(treeWithout, !isFirst)
+    const split = isFirst
+      ? makeSplit(direction, 0.4, leaf, edgeLeaf)
+      : makeSplit(direction, 0.6, edgeLeaf, leaf)
+    tree.value = replaceNode(treeWithout, edgeLeaf.id, split)
+    focusedLeafId.value = leaf.id
+  }
+
   function setSplitRatio(splitId: string, ratio: number) {
     tree.value = updateRatio(tree.value, splitId, ratio)
   }
@@ -243,7 +294,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closeLeaf,
     changeModule,
     splitLeaf,
+    dockToEdge,
+    spawnToEdge,
+    dockLeafToEdge,
     moveLeaf,
+    markLeafSeen,
+    isLeafSeen,
     setSplitRatio,
     startDrag,
     endDrag,

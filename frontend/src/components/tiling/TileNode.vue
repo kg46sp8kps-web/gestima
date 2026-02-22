@@ -54,6 +54,7 @@ const split = computed(() =>
     :style="nodeStyle"
   >
     <TileNode
+      :key="split.children[0].id"
       :node="split.children[0]"
       :instant="instant"
       :flex-ratio="split.ratio"
@@ -66,6 +67,7 @@ const split = computed(() =>
     />
 
     <TileNode
+      :key="split.children[1].id"
       :node="split.children[1]"
       :instant="instant"
       :flex-ratio="1 - split.ratio"
@@ -75,7 +77,8 @@ const split = computed(() =>
 
 <style scoped>
 /* Both leaf and split fill available space by default (CSS flex:1 for root node).
-   When inside a split, inline :style overrides flex with the ratio value. */
+   When inside a split, inline :style overrides flex with the ratio value.
+   flex-grow/shrink transitions smooth out panel resizes when modules are added/moved. */
 .tree-leaf {
   flex: 1;
   min-width: 0;

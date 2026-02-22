@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { LeafNode, DropZone, ModuleId } from '@/types/workspace'
 import TilePanelHeader from './TilePanelHeader.vue'
@@ -18,6 +18,11 @@ const showModulePicker = ref(false)
 
 const isFocused = computed(() => ws.focusedLeafId === props.node.id)
 const isDragging = computed(() => ws.dragState?.leafId === props.node.id)
+
+// Evaluated once at setup — never reacts to prop changes.
+// Seen panels (remounts after tree restructure) start at full opacity, no animation.
+const isInstant = props.instant || ws.isLeafSeen(props.node.id)
+onMounted(() => ws.markLeafSeen(props.node.id))
 // Drop zones are active on all target panels immediately when any drag is in progress
 const dropZonesActive = computed(() =>
   !!ws.dragState && ws.dragState.leafId !== props.node.id,
@@ -63,7 +68,7 @@ function onFocus() {
     :class="[
       'pnl',
       node.ctx,
-      { instant, focused: isFocused, dragging: isDragging, max: maximized }
+      { instant: isInstant, focused: isFocused, dragging: isDragging, max: maximized }
     ]"
     @mousedown="onFocus"
   >
@@ -121,16 +126,19 @@ function onFocus() {
   flex: 1;
   min-height: 0;
   min-width: 0;
-  opacity: 0;
-  transform: scale(0.98);
-  animation: pnlIn 0.35s var(--ease) forwards;
+  /* New panels animate in via scale — no opacity change so remount flash is invisible */
+  animation: pnlIn 0.22s var(--ease) both;
   transition: border-color 0.15s, box-shadow 0.2s;
 }
 
+/* Seen panels (remounts): skip animation entirely */
 .pnl.instant {
-  opacity: 1;
-  transform: none;
   animation: none;
+}
+
+@keyframes pnlIn {
+  from { transform: scale(0.96); opacity: 0.6; }
+  to   { transform: scale(1);    opacity: 1; }
 }
 
 .pnl.focused {
@@ -214,7 +222,4 @@ function onFocus() {
   opacity: 0.6;
 }
 
-@keyframes pnlIn {
-  to { opacity: 1; transform: scale(1); }
-}
 </style>

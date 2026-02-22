@@ -2,28 +2,25 @@
 
 ## Quick Navigation
 
-| Folder | Purpose | When to Use |
-|--------|---------|-------------|
-| **[core/](core/)** | Core rules (100 lines) | ALWAYS read first |
-| **[agents/](agents/)** | Multi-agent system | Complex tasks |
-| **[reference/](reference/)** | Patterns, design, architecture | Lookup when needed |
-| **[guides/](guides/)** | How-to guides | Specific tasks |
-| **[status/](status/)** | Current state, roadmap | Planning |
-| **[ADR/](ADR/)** | Architecture decisions | Before schema changes |
-| **[archive/](archive/)** | Old/completed docs | Historical reference |
+| Složka | Obsah | Kdy použít |
+|--------|-------|------------|
+| **[status/](status/)** | Aktuální stav, roadmap | Plánování, co je hotovo |
+| **[reference/](reference/)** | Architektura, patterns | Lookup při implementaci |
+| **[guides/](guides/)** | How-to průvodci | Konkrétní úkoly |
+| **[ADR/](ADR/)** | Architecture Decision Records | Před schéma změnami |
+| **[diagrams/](diagrams/)** | Architekturní diagramy | Vizuální přehled |
 
-## Most Important Files
+## Nejdůležitější soubory
 
-1. **[core/RULES.md](core/RULES.md)** - 7 blocking rules, mode detection
-2. **[agents/AGENT-INSTRUCTIONS.md](agents/AGENT-INSTRUCTIONS.md)** - How to use agents
-3. **[reference/DESIGN-SYSTEM.md](reference/DESIGN-SYSTEM.md)** - UI/CSS bible
-4. **[status/STATUS.md](status/STATUS.md)** - What's done, what's next
+1. **[status/STATUS.md](status/STATUS.md)** — co je hotovo, co je next
+2. **[reference/ARCHITECTURE.md](reference/ARCHITECTURE.md)** — directory structure, tech stack
+3. **[VISION.md](VISION.md)** — strategická vize, Gestima vs. Infor
+4. **[INFOR_FIELD_MAPPING.md](INFOR_FIELD_MAPPING.md)** — IDO field mapping
 
-## Mode Detection
+## Agenti a pravidla
 
-### Single Agent
-- Simple fixes, questions, 1-2 files
-
-### ŠÉFÍK Mode (Multi-Agent)
-- New features, architecture, multi-file changes
-- See: [agents/AGENT-INSTRUCTIONS.md](agents/AGENT-INSTRUCTIONS.md)
+- **AI development rules:** root `CLAUDE.md` (vždy načten)
+- **Frontend rules:** `frontend/CLAUDE.md` (auto-načten při FE práci)
+- **Backend rules:** `app/CLAUDE.md` (auto-načten při BE práci)
+- **Cartman orchestrátor:** `.claude/agents/cartman.md`
+- **Specialist agenti:** `.claude/agents/` (frontend, backend, auditor, qa)

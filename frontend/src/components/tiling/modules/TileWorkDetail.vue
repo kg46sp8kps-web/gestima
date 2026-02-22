@@ -9,6 +9,9 @@ import type { WorkCenter } from '@/types/work-center'
 import { formatMinSec } from '@/utils/formatters'
 import * as wcApi from '@/api/work-centers'
 import Spinner from '@/components/ui/Spinner.vue'
+import TileWorkMaterials from './TileWorkMaterials.vue'
+import TileWorkPricing from './TileWorkPricing.vue'
+import TileWorkDrawing from './TileWorkDrawing.vue'
 
 interface Props {
   leafId: string
@@ -521,25 +524,13 @@ function onWcBlur() {
       </div>
 
       <!-- ── Tab: Kalkulace ── -->
-      <div v-else-if="activeTab === 'pricing'" class="tab-body tab-placeholder">
-        <div class="mod-dot" />
-        <span class="mod-label">KALKULACE</span>
-        <span class="mod-hint">Modul se připravuje</span>
-      </div>
+      <TileWorkPricing v-else-if="activeTab === 'pricing'" :leaf-id="leafId" :ctx="ctx" class="tab-body" />
 
       <!-- ── Tab: Materiály ── -->
-      <div v-else-if="activeTab === 'materials'" class="tab-body tab-placeholder">
-        <div class="mod-dot" />
-        <span class="mod-label">MATERIÁLY</span>
-        <span class="mod-hint">Modul se připravuje</span>
-      </div>
+      <TileWorkMaterials v-else-if="activeTab === 'materials'" :leaf-id="leafId" :ctx="ctx" class="tab-body" />
 
       <!-- ── Tab: Výkres ── -->
-      <div v-else-if="activeTab === 'drawing'" class="tab-body tab-placeholder">
-        <div class="mod-dot" />
-        <span class="mod-label">VÝKRES</span>
-        <span class="mod-hint">Modul se připravuje</span>
-      </div>
+      <TileWorkDrawing v-else-if="activeTab === 'drawing'" :leaf-id="leafId" :ctx="ctx" class="tab-body" />
 
     </template>
   </div>

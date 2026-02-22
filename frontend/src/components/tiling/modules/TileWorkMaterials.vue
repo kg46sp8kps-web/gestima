@@ -4,6 +4,11 @@ import { usePartsStore } from '@/stores/parts'
 import * as materialInputsApi from '@/api/material-inputs'
 import type { MaterialInput, StockShape } from '@/types/material-input'
 import type { ContextGroup } from '@/types/workspace'
+
+// Module-level cache: partId → items. Survives component unmount/remount (panel moves).
+const _cache = new Map<number, MaterialInput[]>()
+// Tracks which leafId has already fetched data for which partId — skips refetch on remount.
+const _fetchedFor = new Map<string, number>()
 import { formatCurrency, formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
 
@@ -23,6 +28,7 @@ const error = ref(false)
 
 const totalWeight = computed(() => items.value.reduce((s, m) => s + (m.weight_kg ?? 0), 0))
 const totalCost = computed(() => items.value.reduce((s, m) => s + (m.cost_per_piece ?? 0), 0))
+const isRefetching = computed(() => loading.value && items.value.length > 0)
 
 const SHAPE_LABELS: Record<StockShape, string> = {
   round_bar:     'Tyč kulatá',
@@ -58,12 +64,19 @@ watch(
   part,
   async (p) => {
     if (!p) { items.value = []; return }
+    if (_cache.has(p.id)) items.value = _cache.get(p.id)!
+    // Skip refetch if this leaf already fetched this part (remount with same part)
+    if (_fetchedFor.get(props.leafId) === p.id) return
+    _fetchedFor.set(props.leafId, p.id)
     loading.value = true
     error.value = false
     try {
       items.value = await materialInputsApi.getByPartId(p.id)
+      _cache.set(p.id, items.value)
     } catch {
       error.value = true
+      _fetchedFor.delete(props.leafId)
+      if (!items.value.length) items.value = []
     } finally {
       loading.value = false
     }
@@ -73,7 +86,7 @@ watch(
 </script>
 
 <template>
-  <div class="wmat">
+  <div :class="['wmat', { refetching: isRefetching }]">
     <!-- No part selected -->
     <div v-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
@@ -164,7 +177,9 @@ watch(
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  transition: opacity 0.15s;
 }
+.wmat.refetching { opacity: 0.4; }
 
 /* ─── Placeholder ─── */
 .mod-placeholder {

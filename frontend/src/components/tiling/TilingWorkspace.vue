@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { SaveIcon, SettingsIcon, PlusIcon } from 'lucide-vue-next'
+import { SaveIcon, SettingsIcon, PlusIcon, ArrowRightIcon, ArrowDownIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAuthStore } from '@/stores/auth'
 import { MODULE_REGISTRY } from '@/types/workspace'
-import type { ModuleId, LayoutPreset } from '@/types/workspace'
+import type { ModuleId, LayoutPreset, DropZone } from '@/types/workspace'
 import TileNode from './TileNode.vue'
+import TileGlobalDropZones from './TileGlobalDropZones.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 const ws = useWorkspaceStore()
@@ -35,10 +36,16 @@ const userInitials = computed(() => {
     .slice(0, 2)
 })
 
-function addModule(id: ModuleId) {
-  // Open module in the focused leaf (replace) or add to workspace
-  if (ws.focusedLeafId) {
-    ws.changeModule(ws.focusedLeafId, id)
+function addModule(id: ModuleId, zone: DropZone = 'center') {
+  const ctx = ws.leaves.find(l => l.id === ws.focusedLeafId)?.ctx
+    ?? ws.leaves[ws.leaves.length - 1]?.ctx
+    ?? 'ca'
+  if (zone === 'right' || zone === 'bottom') {
+    ws.dockToEdge(id, zone, ctx)
+  } else {
+    const targetId = ws.focusedLeafId ?? ws.leaves[ws.leaves.length - 1]?.id
+    if (!targetId) return
+    ws.changeModule(targetId, id)
   }
   fabOpen.value = false
 }
@@ -104,6 +111,7 @@ onMounted(() => {
     <!-- Tiles area -->
     <main class="tiles">
       <TileNode :node="ws.tree" />
+      <TileGlobalDropZones />
     </main>
 
     <!-- Status bar -->
@@ -129,17 +137,27 @@ onMounted(() => {
     </button>
 
     <div :class="['mpk', { open: fabOpen }]" @click.stop>
-      <div class="mpk-h">Přidat modul</div>
-      <button
+      <div class="mpk-h">
+        <span>Přidat modul</span>
+        <span class="mpk-hint">→ vpravo · ↓ dole</span>
+      </div>
+      <div
         v-for="mod in topModules"
         :key="mod.id"
         class="mpk-i"
-        @click="addModule(mod.id)"
       >
         <span class="mpk-dot" :style="{ background: mod.dotColor }" />
-        <span>{{ mod.label }}</span>
+        <button class="mpk-name-btn" @click="addModule(mod.id, 'center')">{{ mod.label }}</button>
         <span v-if="mod.shortcut" class="mpk-key">{{ mod.shortcut }}</span>
-      </button>
+        <div class="mpk-acts">
+          <button class="mpk-act" title="Přidat vpravo" @click.stop="addModule(mod.id, 'right')">
+            <ArrowRightIcon :size="10" />
+          </button>
+          <button class="mpk-act" title="Přidat dole" @click.stop="addModule(mod.id, 'bottom')">
+            <ArrowDownIcon :size="10" />
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -318,17 +336,41 @@ onMounted(() => {
   padding: 5px 9px; font-size: 9px; font-weight: 600; color: var(--t4);
   text-transform: uppercase; letter-spacing: 0.08em;
   border-bottom: 1px solid var(--b1); background: var(--raised);
+  display: flex; align-items: center;
 }
+.mpk-hint { font-size: 8px; color: var(--t4); font-family: var(--mono); margin-left: auto; }
+
 .mpk-i {
-  display: flex; align-items: center; gap: 6px; padding: 5px 9px;
-  font-size: var(--fs); color: var(--t2); cursor: pointer;
-  transition: all 0.06s; border: none; background: none;
-  width: 100%; text-align: left; font-family: inherit;
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 9px; cursor: default;
+  transition: background 0.06s;
 }
-.mpk-i:hover { background: var(--b1); color: var(--t1); }
-.mpk-i:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: -2px; }
+.mpk-i:hover { background: var(--b1); }
+.mpk-i:hover .mpk-acts { opacity: 1; }
+
 .mpk-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-.mpk-key { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-left: auto; }
+
+.mpk-name-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  font-size: var(--fs); color: var(--t2); font-family: inherit;
+  text-align: left; padding: 1px 0;
+}
+.mpk-name-btn:hover { color: var(--t1); }
+
+.mpk-key { font-family: var(--mono); font-size: 9px; color: var(--t4); }
+
+.mpk-acts {
+  display: flex; gap: 2px; opacity: 0;
+  transition: opacity 0.08s;
+}
+.mpk-act {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--b2); border: none; border-radius: 3px;
+  color: var(--t3); cursor: pointer; transition: all 0.06s;
+}
+.mpk-act:hover { background: var(--b3); color: var(--t1); }
+.mpk-act:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
 
 /* Animations */
 @keyframes drift {

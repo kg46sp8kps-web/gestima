@@ -4,6 +4,11 @@ import { usePartsStore } from '@/stores/parts'
 import * as batchesApi from '@/api/batches'
 import type { Batch } from '@/types/batch'
 import type { ContextGroup } from '@/types/workspace'
+
+// Module-level cache: partId → batches. Survives component unmount/remount.
+const _cache = new Map<number, Batch[]>()
+// Tracks which leafId has already fetched data for which partId — skips refetch on remount.
+const _fetchedFor = new Map<string, number>()
 import { formatCurrency, formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
 
@@ -24,6 +29,7 @@ const error = ref(false)
 const defaultBatch = computed(
   () => batches.value.find(b => b.is_default) ?? batches.value[0] ?? null,
 )
+const isRefetching = computed(() => loading.value && batches.value.length > 0)
 
 function pct(value: number): string {
   return formatNumber(value, 1) + ' %'
@@ -33,12 +39,19 @@ watch(
   part,
   async (p) => {
     if (!p) { batches.value = []; return }
+    if (_cache.has(p.id)) batches.value = _cache.get(p.id)!
+    // Skip refetch if this leaf already fetched this part (remount with same part)
+    if (_fetchedFor.get(props.leafId) === p.id) return
+    _fetchedFor.set(props.leafId, p.id)
     loading.value = true
     error.value = false
     try {
       batches.value = await batchesApi.getByPartId(p.id)
+      _cache.set(p.id, batches.value)
     } catch {
       error.value = true
+      _fetchedFor.delete(props.leafId)
+      if (!batches.value.length) batches.value = []
     } finally {
       loading.value = false
     }
@@ -48,7 +61,7 @@ watch(
 </script>
 
 <template>
-  <div class="wprc">
+  <div :class="['wprc', { refetching: isRefetching }]">
     <!-- No part selected -->
     <div v-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
@@ -151,7 +164,9 @@ watch(
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  transition: opacity 0.15s;
 }
+.wprc.refetching { opacity: 0.4; }
 
 /* ─── Placeholder ─── */
 .mod-placeholder {
