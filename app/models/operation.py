@@ -6,7 +6,7 @@ ADR-024: MaterialInput refactor (v1.8.0)
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, computed_field
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
@@ -49,7 +49,12 @@ class Operation(Base, AuditMixin):
     #                      deleted_at, deleted_by, version
 
     part = relationship("Part", back_populates="operations")
+    work_center = relationship("WorkCenter", foreign_keys=[work_center_id], lazy="select")
     features = relationship("Feature", back_populates="operation", cascade="all, delete-orphan")
+
+    @property
+    def work_center_name(self) -> Optional[str]:
+        return self.work_center.name if self.work_center else None
 
     # ADR-024: M:N relationship with MaterialInput
     material_inputs = relationship(
@@ -115,6 +120,7 @@ class OperationResponse(OperationBase):
     version: int
     created_at: datetime
     updated_at: datetime
+    work_center_name: Optional[str] = None
 
     @field_validator('setup_time_min', 'operation_time_min', 'coop_price', 'coop_min_price', mode='before')
     @classmethod

@@ -48,6 +48,15 @@ export function formatDuration(minutes: number | null | undefined): string {
   return m > 0 ? `${h} h ${m} min` : `${h} h`
 }
 
+/** Duration in mm:ss format: 1.5 → "01:30", 90 → "90:00" */
+export function formatMinSec(minutes: number | null | undefined): string {
+  if (minutes == null) return '—'
+  const totalSec = Math.round(minutes * 60)
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 /** Percentage: 0.125 → "12,5 %" */
 export function formatPercent(value: number | null | undefined, decimals = 1): string {
   if (value == null) return '—'

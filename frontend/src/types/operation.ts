@@ -8,6 +8,7 @@ export interface Operation {
   type: string
   icon: string
   work_center_id: number | null
+  work_center_name: string | null
   cutting_mode: CuttingMode
   setup_time_min: number
   operation_time_min: number

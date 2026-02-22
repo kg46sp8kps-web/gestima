@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.db_helpers import set_audit, safe_commit, soft_delete
@@ -31,6 +32,7 @@ async def get_operations(
 ):
     result = await db.execute(
         select(Operation)
+        .options(selectinload(Operation.work_center))
         .where(Operation.part_id == part_id, Operation.deleted_at.is_(None))
         .order_by(Operation.seq)
         .offset(skip)
@@ -45,7 +47,11 @@ async def get_operation(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Operation).where(Operation.id == operation_id))
+    result = await db.execute(
+        select(Operation)
+        .options(selectinload(Operation.work_center))
+        .where(Operation.id == operation_id)
+    )
     operation = result.scalar_one_or_none()
     if not operation:
         raise HTTPException(status_code=404, detail="Operace nenalezena")
@@ -74,7 +80,11 @@ async def update_operation(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    result = await db.execute(select(Operation).where(Operation.id == operation_id))
+    result = await db.execute(
+        select(Operation)
+        .options(selectinload(Operation.work_center))
+        .where(Operation.id == operation_id)
+    )
     operation = result.scalar_one_or_none()
     if not operation:
         raise HTTPException(status_code=404, detail="Operace nenalezena")
