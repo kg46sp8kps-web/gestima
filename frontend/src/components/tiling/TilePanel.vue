@@ -25,9 +25,12 @@ const dropZonesActive = computed(() =>
 
 // Map module IDs to async components
 const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncComponent>>> = {
-  'parts-list': defineAsyncComponent(() => import('@/components/tiling/modules/TilePartsList.vue')),
-  'work-detail': defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDetail.vue')),
-  'work-ops': defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkOps.vue')),
+  'parts-list':     defineAsyncComponent(() => import('@/components/tiling/modules/TilePartsList.vue')),
+  'work-detail':    defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDetail.vue')),
+  'work-ops':       defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkOps.vue')),
+  'work-materials': defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkMaterials.vue')),
+  'work-pricing':   defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkPricing.vue')),
+  'work-drawing':   defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDrawing.vue')),
 }
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)
