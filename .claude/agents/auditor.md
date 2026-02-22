@@ -157,7 +157,7 @@ Kontroluješ **VŠECHNO** — od bezpečnosti přes datovou integritu až po př
 
 ### D.1 Design System Compliance
 - [ ] ZERO hardcoded hex barev — vše přes `var(--token)`
-- [ ] ZERO hardcoded `font-size: Npx` — vše přes `var(--text-*)`
+- [ ] ZERO hardcoded `font-size: Npx` — vše přes `var(--fs)`, `var(--fsl)`, nebo literal px (v2 povoluje literal px)
 - [ ] ZERO `!important` v CSS
 - [ ] ZERO inline `style=""` atributů
 - [ ] ZERO `@media` queries v komponentách (použít `@container`)
@@ -167,8 +167,8 @@ Kontroluješ **VŠECHNO** — od bezpečnosti přes datovou integritu až po př
 ### D.2 UI Patterns
 - [ ] Buttons = ghost only (`.btn-primary/secondary/destructive`)
 - [ ] Badges = monochrome + colored dot (`.badge-dot-ok/error/warn`)
-- [ ] Focus ring = WHITE (`--focus-ring`), nikdy modrý/červený
-- [ ] Numbers/prices = `var(--font-mono)`
+- [ ] Focus ring = WHITE (`rgba(255,255,255,0.5)`), nikdy modrý/červený
+- [ ] Numbers/prices = `var(--mono)`
 - [ ] Icons přes `ICON_SIZE` z `config/design.ts`
 - [ ] Text v češtině
 

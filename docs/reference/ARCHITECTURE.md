@@ -44,14 +44,19 @@ app/
 
 frontend/src/
 ├── components/
-│   ├── modules/     # Feature modules (*ListModule, *ListPanel, *DetailPanel)
-│   ├── ui/          # Reusable UI primitives (Button, Modal, DataTable)
-│   └── layout/      # App layout (Sidebar, WindowManager)
-├── stores/          # Pinia stores (per-entity CRUD + UI state)
+│   ├── boot/        # BootScreen.vue
+│   ├── ambient/     # CncBackground.vue
+│   ├── layout/      # AppHeader, StatusBar, FabButton, ModulePicker
+│   ├── workspace/   # TilesGrid.vue (binary tree → CSS grid)
+│   ├── panels/      # GlassPanel, PanelHeader, ListPanel, WorkPanel
+│   ├── ribbon/      # Ribbon, KpiCard, StatusBadge
+│   ├── content/     # OpsTable, PricingPanel, DonutChart, DrawingPanel
+│   └── ui/          # ConfirmDialog, AlertDialog, ToastContainer
+├── stores/          # Pinia stores (workspace + parts + auth + ui)
 ├── api/             # HTTP client wrappers (per-entity)
 ├── types/           # TypeScript interfaces
-├── composables/     # Vue composables (useDebounce, useDialog, etc.)
-└── config/          # Design tokens, icons, router
+├── composables/     # Vue composables (useDialog, useDarkMode, etc.)
+└── config/          # Design tokens, router
 
 scripts/             # Seed data, migrations, audit tools
 docs/                # ADRs, guides, reference
@@ -61,8 +66,8 @@ docs/                # ADRs, guides, reference
 
 | Pattern | Where | Reference |
 |---------|-------|-----------|
-| Floating Windows UI | `WindowsView.vue` + `*Module.vue` | ADR-023, ADR-025 |
-| Split-pane modules | `*ListModule.vue` (LEFT: list, RIGHT: detail) | CLAUDE.md |
+| Tiling Workspace | `WorkspaceView.vue` + panel modules | ADR-023 |
+| Module Registry | Tree-based binary layout, drag & drop panels | tiling-preview-v3.html |
 | UPSERT seeds | `scripts/seed_*.py` (idempotent, inline data) | CLAUDE.md |
 | Soft delete + versioning | `AuditMixin` in `database.py` | ADR-001, ADR-008 |
 | JWT HttpOnly Cookie | `auth_router.py` | ADR-005 |
@@ -71,9 +76,11 @@ docs/                # ADRs, guides, reference
 | Infor integration | Material import, routing import, purchase prices | ADR-032, ADR-046 |
 | Technology Builder | Auto-generate operations (saw + machine + QC) | CLAUDE.local.md |
 
-## Window Linking System
+## Context Linking System
 
-→ Presunuto do [UX-GUIDE.md](UX-GUIDE.md) sekce 2.7.
+Panels in the tiling workspace use context groups (A/B) for linked selection.
+Selecting a part in context A updates all panels in context A (e.g., parts list + work detail + operations).
+Context B enables comparison mode — a second independent selection context.
 
 ---
 
@@ -86,7 +93,7 @@ docs/                # ADRs, guides, reference
 | 008 | Optimistic locking (version column) |
 | 021 | WorkCenter (physical + virtual) |
 | 022 | BatchSet (frozen price snapshots) |
-| 023 | Workspace floating windows |
+| 023 | Tiling workspace (module registry + binary tree layout) |
 | 024 | Lean Part + MaterialInput refactor |
 | 044 | Centralized File Manager |
 | 045 | Feature-based time calculation |

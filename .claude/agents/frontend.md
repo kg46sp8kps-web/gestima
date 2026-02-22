@@ -30,7 +30,7 @@ You are the frontend specialist for Gestima. You work ONLY with Vue 3, TypeScrip
 ## Design System — ABSOLUTE LAW
 
 Every visual element MUST use CSS variables from `design-system.css` v6.0. No exceptions.
-**Visual reference:** Open `frontend/tiling-preview-v2.html` in browser to see every pattern live.
+**Visual reference:** Open `frontend/tiling-preview-v3.html` in browser to see every pattern live.
 
 ### V2 Tokens (NEVER hardcode hex/rgb/rgba/hsl)
 

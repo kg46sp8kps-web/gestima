@@ -1,6 +1,6 @@
 #!/bin/bash
 # V2 Design System Validation Hook
-# Source of truth: tiling-preview-v2.html + design-system.css v6.0
+# Source of truth: tiling-preview-v3.html + design-system.css v6.0
 # Font: DM Sans | 51 tokens total: 35 v2 + 16 app-specific
 #
 # ERRORS (block edit):
@@ -101,6 +101,14 @@ if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.css ]]; then
   fi
 fi
 
+# ── ERROR 7: Old frontend references ──
+if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.ts ]]; then
+  OLD_FE=$(grep -n 'FloatingWindow\|WindowsView\|split-pane\|windowStore\|useWindows\|floating-window\|PartnersView\|SettingsView' "$FILE" 2>/dev/null | grep -v '\/\/' | grep -v '\/\*' | head -5)
+  if [ -n "$OLD_FE" ]; then
+    ERRORS="${ERRORS}\n  [LEGACY] Old frontend reference. v3 uses tiling workspace, not floating windows:\n${OLD_FE}\n"
+  fi
+fi
+
 # ════════════════════════════════════════
 # WARNINGS — inform but DON'T block
 # ════════════════════════════════════════
@@ -168,7 +176,7 @@ if [ -n "$ERRORS" ] || [ -n "$WARNINGS" ]; then
     echo -e "$WARNINGS"
   fi
 
-  echo "Ref: tiling-preview-v2.html (visual) + design-system.css v6.0 (tokens)"
+  echo "Ref: tiling-preview-v3.html (visual) + design-system.css v6.0 (tokens)"
   echo "═══════════════════════════════════════"
 
   if [ -n "$ERRORS" ]; then

@@ -131,7 +131,7 @@ Every task MUST follow this sequence. No exceptions. No shortcuts.
 ### 1. UNDERSTAND before touching code
 - Read ALL files you plan to modify
 - Read related files (if editing a router, read the corresponding service, model, schema)
-- **For frontend UI work:** Reference `frontend/tiling-preview-v2.html` for visual patterns (open in browser or read the CSS/HTML sections for the component type you're building)
+- **For frontend UI work:** Reference `frontend/tiling-preview-v3.html` for visual patterns (open in browser or read the CSS/HTML sections for the component type you're building)
 - Understand the existing pattern before proposing changes
 - For infra/deployment tasks: check OS, versions, prerequisites FIRST
 
@@ -303,7 +303,7 @@ grep -r "new_router" app/gestima_app.py app/routers/__init__.py
 ### Frontend Performance — MANDATORY
 
 1. **Lazy-load routes** — all routes use `() => import('@/views/...')`
-2. **Lazy-load heavy modules** — use `defineAsyncComponent()` for modules in WindowsView
+2. **Lazy-load heavy modules** — use `defineAsyncComponent()` for heavy panel modules
 3. **Lazy-load heavy libraries** — PDF.js, Three.js etc. via dynamic `import()`:
    ```typescript
    // CORRECT — loaded only when needed
@@ -540,7 +540,7 @@ frontend/e2e/                 # E2E tests (Playwright)
 
 ### Design System v2 (design-system.css v6.0) — MANDATORY REFERENCE
 
-**Source of truth:** `tiling-preview-v2.html` (visual) + `design-system.css` v6.0 (tokens)
+**Source of truth:** `tiling-preview-v3.html` (visual) + `design-system.css` v6.0 (tokens)
 **Font:** DM Sans (not Inter). Dark-only, no light mode.
 **51 tokens total:** 35 v2 + 16 app-specific. NO legacy aliases.
 
@@ -625,7 +625,7 @@ frontend/e2e/                 # E2E tests (Playwright)
 
 ### UI/UX Patterns — APPROVED (follow exactly)
 
-**Visual reference:** `frontend/tiling-preview-v2.html` — open in browser to see every pattern live.
+**Visual reference:** `frontend/tiling-preview-v3.html` — open in browser to see every pattern live.
 
 | Pattern | Rule |
 |---------|------|

@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GESTIMA — Tiling Workspace v3 · Modular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Brand — the ONE chromatic accent */
+  --red: #E53935;
+  --red-glow: rgba(229,57,53,0.15);
+  --red-dim: rgba(229,57,53,0.08);
+  --red-10: rgba(229,57,53,0.10);
+  --red-20: rgba(229,57,53,0.20);
+
+  /* Money/Pricing — the only other chromatic color */
+  --green: #22c55e;
+  --green-10: rgba(34,197,94,0.10);
+  --green-15: rgba(34,197,94,0.15);
+
+  /* Surfaces — pure neutral, no blue cast */
+  --base: #08080a;
+  --ground: #0e0e10;
+  --surface: rgba(18,18,20,0.88);
+  --raised: rgba(26,26,28,0.92);
+  --glass: rgba(20,20,22,0.65);
+
+  /* Text — high contrast for readability */
+  --t1: #ededf0;
+  --t2: #cdcdd0;
+  --t3: #8e8e96;
+  --t4: #5c5c64;
+
+  /* Borders */
+  --b1: rgba(255,255,255,0.06);
+  --b2: rgba(255,255,255,0.10);
+  --b3: rgba(255,255,255,0.15);
+
+  /* Status */
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+
+  /* Context linking */
+  --la: var(--red);
+  --lb: var(--green);
+
+  /* Typography */
+  --font: 'DM Sans', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --fs: 12px;
+  --fsl: 11px;
+
+  /* Spacing */
+  --gap: 3px;
+  --pad: 8px;
+  --r: 7px;
+  --rs: 4px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.4,0,0.2,1);
+  --spring: cubic-bezier(0.34,1.56,0.64,1);
+}
+
+html, body {
+  font-family: var(--font); font-size: var(--fs); font-weight: 420;
+  line-height: 1.5; color: var(--t2); background: var(--base);
+  overflow: hidden; height: 100vh; width: 100vw;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--red-20); color: var(--t1); }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--b3); }
+
+/* ═══════════════════════════════════════
+   GRAIN TEXTURE
+   ═══════════════════════════════════════ */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none; opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* ═══════════════════════════════════════
+   BACKGROUND — CNC line grid + red orbs
+   ═══════════════════════════════════════ */
+.bg-grid {
+  position: fixed; inset: -200px; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 40s linear infinite;
+}
+.bg-orb {
+  position: fixed; z-index: 0; pointer-events: none; border-radius: 50%;
+  filter: blur(80px);
+}
+.bg-orb.a {
+  width: 500px; height: 500px; top: -10%; right: -5%;
+  background: radial-gradient(circle, var(--red-glow) 0%, transparent 70%);
+  animation: orbFloat 12s ease-in-out infinite alternate;
+}
+.bg-orb.b {
+  width: 400px; height: 400px; bottom: -15%; left: 10%;
+  background: radial-gradient(circle, rgba(229,57,53,0.06) 0%, transparent 70%);
+  animation: orbFloat 15s ease-in-out infinite alternate-reverse;
+}
+
+/* ═══════════════════════════════════════
+   LOGIN SCREEN
+   ═══════════════════════════════════════ */
+#login {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.4s var(--ease), visibility 0.4s;
+}
+#login.go { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.login-bg-grid {
+  position: absolute; inset: -200px;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 30s linear infinite;
+  opacity: 0.7;
+}
+.login-vig { position: absolute; inset: 0; background: radial-gradient(circle, transparent 20%, var(--base) 70%); }
+.login-glow {
+  position: absolute; width: 500px; height: 350px; top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, var(--red-dim) 0%, transparent 70%);
+  animation: breatheSlow 4s cubic-bezier(0.45,0,0.55,1) infinite alternate;
+  will-change: opacity, transform;
+}
+
+.login-card {
+  position: relative; z-index: 1;
+  width: 320px;
+  background: var(--surface);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid var(--b2);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  padding: 32px 28px 28px;
+  animation: fadeUp 0.5s 0.2s var(--ease) forwards;
+  opacity: 0;
+}
+.login-logo-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin-bottom: 28px;
+}
+.login-logo-mark {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid rgba(229,57,53,0.3);
+  background: var(--red-dim);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 0 16px rgba(229,57,53,0.3));
+}
+.login-logo-mark svg { width: 22px; height: 22px; stroke: var(--red); stroke-width: 1.8; fill: none; }
+.login-logo-text {
+  font-family: var(--mono); font-size: 20px; font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.login-logo-text em { color: var(--red); font-style: normal; }
+.login-logo-text span { color: var(--t1); }
+.login-sub {
+  font-size: 10px; color: var(--t4); letter-spacing: 0.25em; text-transform: uppercase;
+}
+
+.login-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.login-label { font-size: 10.5px; font-weight: 500; color: var(--t3); letter-spacing: 0.04em; }
+.login-input {
+  width: 100%; padding: 8px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t1); font-size: var(--fs); font-family: inherit;
+  outline: none; height: 34px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.login-input:focus { border-color: var(--b3); background: rgba(255,255,255,0.06); }
+.login-input[type="password"] { font-family: var(--mono); letter-spacing: 0.15em; }
+
+.login-btn {
+  width: 100%; height: 36px; margin-top: 20px;
+  background: var(--red); border: none; border-radius: var(--rs);
+  color: #fff; font-size: var(--fs); font-weight: 600; font-family: inherit;
+  cursor: pointer; letter-spacing: 0.04em;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.08s;
+  box-shadow: 0 4px 16px rgba(229,57,53,0.3);
+}
+.login-btn:hover { background: #ef5350; box-shadow: 0 4px 20px rgba(229,57,53,0.45); }
+.login-btn:active { transform: scale(0.99); }
+
+.login-footer {
+  margin-top: 16px; text-align: center;
+  font-size: 10px; color: var(--t4);
+}
+
+/* ═══════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════ */
+#boot {
+  position: fixed; inset: 0; z-index: 1000; background: var(--base);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.5s var(--ease), visibility 0.5s;
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+#boot.show { opacity: 1; visibility: visible; pointer-events: auto; }
+#boot.go { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.b-grid {
+  position: absolute; inset: -200px;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 30s linear infinite, fadeIn 1s 0.1s var(--ease) forwards;
+  opacity: 0;
+}
+.b-vig { position: absolute; inset: 0; background: radial-gradient(circle, transparent 20%, var(--base) 70%); }
+.b-glow {
+  position: absolute; width: 500px; height: 350px; top: 40%; left: 50%;
+  transform: translate(-50%,-50%);
+  background: radial-gradient(ellipse, var(--red-dim) 0%, transparent 70%);
+  opacity: 0; animation: breatheSlow 4s cubic-bezier(0.45,0,0.55,1) infinite alternate, fadeIn 1.2s 0.2s var(--ease) forwards;
+  will-change: opacity, transform;
+}
+.b-laser {
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 20%, var(--red) 50%, transparent 80%);
+  box-shadow: 0 0 20px var(--red), 0 0 60px var(--red-glow);
+}
+.b-laser.sweep { animation: laserSweep 1.2s 0.15s var(--ease) both; }
+.b-center {
+  position: relative; z-index: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 14px;
+}
+.b-mark {
+  width: 56px; height: 56px; border-radius: 50%;
+  opacity: 0; animation: fadeUp 0.5s 0.3s var(--ease) forwards;
+  filter: drop-shadow(0 0 20px rgba(229,57,53,0.4)) drop-shadow(0 0 40px rgba(229,57,53,0.15));
+}
+.b-mark svg { width: 56px; height: 56px; }
+.b-logo {
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+  letter-spacing: 0.14em; opacity: 0; animation: fadeUp 0.5s 0.4s var(--ease) forwards;
+}
+.b-logo em { color: var(--red); font-style: normal; }
+.b-logo span { color: var(--t1); }
+.b-sub {
+  font-size: 10.5px; color: var(--t3); letter-spacing: 0.3em; text-transform: uppercase;
+  opacity: 0; animation: fadeUp 0.4s 0.6s var(--ease) forwards;
+}
+.b-prog {
+  width: 120px; height: 1px; background: var(--b1); border-radius: 99px; overflow: hidden;
+  margin-top: 8px; opacity: 0; animation: fadeIn 0.3s 0.7s var(--ease) forwards;
+}
+.b-bar { height: 100%; width: 0; background: var(--red); animation: fill 1s 0.8s var(--ease) forwards; }
+.b-status {
+  font-size: 10px; color: var(--t4); letter-spacing: 0.08em;
+  font-family: var(--mono); opacity: 0; animation: fadeIn 0.3s 1s var(--ease) forwards;
+  min-height: 14px;
+}
+
+/* ═══════════════════════════════════════
+   WORKSPACE
+   ═══════════════════════════════════════ */
+#ws {
+  display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1;
+  opacity: 0; transform: scale(0.985);
+  transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+}
+#ws.on { opacity: 1; transform: scale(1); }
+
+/* ═══════════════════════════════════════
+   HEADER — 36px
+   ═══════════════════════════════════════ */
+.hdr {
+  height: 36px;
+  background: var(--surface);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--b1);
+  display: flex; align-items: center; padding: 0 10px; gap: 7px;
+  position: relative; z-index: 10; flex-shrink: 0;
+  opacity: 0; transform: translateY(-4px);
+}
+.hdr.in { animation: sD 0.3s 0.05s var(--ease) forwards; }
+
+.hlogo {
+  width: 21px; height: 21px; border-radius: 50%; flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(229,57,53,0.2));
+  transition: filter 0.2s var(--ease);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--red-dim); border: 1px solid rgba(229,57,53,0.25);
+}
+.hlogo svg { width: 11px; height: 11px; stroke: var(--red); stroke-width: 2; fill: none; }
+.hlogo:hover { filter: drop-shadow(0 0 10px rgba(229,57,53,0.4)); }
+.logo {
+  font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+  letter-spacing: 0.1em; user-select: none; flex-shrink: 0;
+}
+.logo em { color: var(--red); font-style: normal; }
+.logo span { color: var(--t1); }
+.logo-div {
+  width: 1px; height: 13px; background: var(--b2); margin: 0 3px;
+  display: inline-block; vertical-align: middle;
+}
+
+.lchips { display: flex; gap: 1px; flex-shrink: 0; }
+.lchip {
+  padding: 3px 9px; font-size: var(--fsl); font-weight: 500;
+  color: var(--t3); background: transparent; border: 1px solid transparent;
+  border-radius: var(--rs); cursor: pointer; transition: all 0.12s var(--ease);
+  font-family: inherit; white-space: nowrap;
+}
+.lchip:hover { color: var(--t2); background: var(--b1); }
+.lchip.on { color: var(--t1); background: var(--b1); border-color: var(--b2); }
+
+.hfill { flex: 1; }
+
+.hbtn {
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: var(--rs);
+  color: var(--t3); cursor: pointer; transition: all 0.1s;
+}
+.hbtn:hover { color: var(--t1); background: var(--b1); }
+.hbtn svg { width: 14px; height: 14px; stroke-width: 1.7; }
+.ava {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--red-dim); border: 1px solid rgba(229,57,53,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8.5px; font-weight: 600; color: var(--red); cursor: pointer;
+}
+
+/* ═══════════════════════════════════════
+   TREE LAYOUT — flexbox-based recursive tree
+   ═══════════════════════════════════════ */
+.tiles {
+  flex: 1; display: flex; gap: 0; padding: var(--gap);
+  position: relative; z-index: 1; min-height: 0; overflow: hidden;
+}
+
+/* A split node: horizontal = row direction, vertical = column direction */
+.tree-split {
+  display: flex; min-width: 0; min-height: 0; flex: 1; gap: 0;
+}
+.tree-split.h { flex-direction: row; }
+.tree-split.v { flex-direction: column; }
+
+/* A leaf node holds exactly one panel */
+.tree-leaf {
+  min-width: 0; min-height: 0; position: relative; overflow: hidden;
+}
+
+/* ═══════════════════════════════════════
+   RESIZE DIVIDERS — inside split nodes
+   ═══════════════════════════════════════ */
+.split-divider {
+  flex-shrink: 0; position: relative; z-index: 6;
+  background: transparent;
+  transition: background 0.12s;
+}
+.split-divider.h {
+  width: 5px; cursor: col-resize;
+}
+.split-divider.v {
+  height: 5px; cursor: row-resize;
+}
+.split-divider::after {
+  content: ''; position: absolute;
+  background: var(--b3); border-radius: 99px;
+  opacity: 0; transition: opacity 0.12s;
+}
+.split-divider.h::after {
+  top: 20%; bottom: 20%; left: 50%; transform: translateX(-50%);
+  width: 1px;
+}
+.split-divider.v::after {
+  left: 20%; right: 20%; top: 50%; transform: translateY(-50%);
+  height: 1px;
+}
+.split-divider:hover::after { opacity: 1; }
+.split-divider:hover { background: rgba(255,255,255,0.04); }
+.split-divider.active { background: var(--red-10) !important; }
+.split-divider.active::after { opacity: 1; background: var(--red); }
+
+/* ═══════════════════════════════════════
+   PANEL — glass morphism
+   ═══════════════════════════════════════ */
+.pnl {
+  background: var(--surface);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid var(--b1);
+  border-radius: var(--r); display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  transition: border-color 0.15s, box-shadow 0.2s, opacity 0.15s;
+  opacity: 0; transform: scale(0.98);
+  width: 100%; height: 100%;
+}
+.pnl.v { animation: pnlIn 0.35s var(--ease) forwards; }
+/* Instant visibility for re-rendered panels (no animation, no flash) */
+.pnl.instant { opacity: 1; transform: none; animation: none; }
+.pnl.closing { opacity: 0; transform: scale(0.96); transition: opacity 0.2s var(--ease), transform 0.2s var(--ease); pointer-events: none; }
+.pnl.focused { border-color: var(--b2); box-shadow: 0 0 0 1px var(--b1), 0 8px 32px rgba(0,0,0,0.4); }
+
+/* Context stripe */
+.pnl::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 1px; z-index: 5; opacity: 0;
+}
+.pnl.ca::before { background: linear-gradient(90deg, transparent, var(--la) 30%, var(--la) 70%, transparent); opacity: 0.4; }
+.pnl.cb::before { background: linear-gradient(90deg, transparent, var(--lb) 30%, var(--lb) 70%, transparent); opacity: 0.3; }
+
+.pnl.max {
+  position: fixed !important; inset: 38px 3px 24px 3px; z-index: 50;
+}
+
+/* Drag source ghost */
+.pnl.dragging { opacity: 0.4; pointer-events: none; }
+
+/* ═══════════════════════════════════════
+   VS CODE DROP ZONES — single overlay per panel
+   ═══════════════════════════════════════ */
+.drop-zones {
+  position: absolute; inset: 0; z-index: 40; pointer-events: none;
+  opacity: 0; transition: opacity 0.1s;
+}
+.drop-zones.active { opacity: 1; pointer-events: auto; }
+
+.drop-highlight {
+  position: absolute; border-radius: 4px;
+  background: rgba(229,57,53,0.08);
+  border: 1px solid rgba(229,57,53,0.25);
+  transition: all 0.1s var(--ease);
+  pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+}
+.drop-highlight.visible { opacity: 1; }
+.drop-highlight .dz-icon {
+  font-size: 16px; color: var(--t2); opacity: 0.7;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+.drop-highlight.center { border-style: dashed; }
+.drop-highlight.center .dz-icon { font-size: 20px; }
+/* Edge zone line indicators */
+.drop-highlight.top::after,
+.drop-highlight.bottom::after { content: ''; position: absolute; left: 10%; right: 10%; height: 2px; background: var(--red); border-radius: 99px; }
+.drop-highlight.top::after { bottom: 0; }
+.drop-highlight.bottom::after { top: 0; }
+.drop-highlight.left::after,
+.drop-highlight.right::after { content: ''; position: absolute; top: 10%; bottom: 10%; width: 2px; background: var(--red); border-radius: 99px; }
+.drop-highlight.left::after { right: 0; }
+.drop-highlight.right::after { left: 0; }
+
+/* ═══════════════════════════════════════
+   PANEL HEADER — 28px
+   ═══════════════════════════════════════ */
+.ph {
+  height: 28px; background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--b1);
+  display: flex; align-items: center; padding: 0 var(--pad); gap: 4px;
+  flex-shrink: 0; user-select: none; cursor: grab;
+}
+.ph:active { cursor: grabbing; }
+.pht {
+  font-size: var(--fsl); font-weight: 600; color: var(--t3);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  pointer-events: none;
+}
+.pht .n {
+  font-family: var(--mono); font-size: 10px; color: var(--t4);
+  padding: 1px 4px; background: var(--b1); border-radius: 2px;
+}
+
+.ptabs { display: flex; gap: 1px; margin-left: 3px; }
+.ptab {
+  padding: 3px 7px; font-size: 10.5px; font-weight: 500;
+  color: var(--t4); background: transparent; border: none;
+  border-radius: var(--rs); cursor: pointer; transition: all 0.08s; font-family: inherit;
+}
+.ptab:hover { color: var(--t3); }
+.ptab.on { color: var(--t1); background: var(--b1); }
+
+.phf { flex: 1; }
+.pc {
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 2px;
+  color: var(--t4); cursor: pointer; font-size: 9px; transition: all 0.06s; font-family: var(--font);
+}
+.pc:hover { background: var(--b1); color: var(--t1); }
+.pc.x:hover { background: rgba(248,113,113,0.12); color: var(--err); }
+
+.pb { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+
+/* ═══════════════════════════════════════
+   PARTS LIST
+   ═══════════════════════════════════════ */
+.srch-w { padding: 5px var(--pad); border-bottom: 1px solid var(--b1); }
+.srch {
+  width: 100%; padding: 4px 7px 4px 26px; background: rgba(255,255,255,0.03);
+  border: 1px solid var(--b1); border-radius: var(--rs);
+  color: var(--t1); font-size: var(--fs); font-family: inherit;
+  outline: none; height: 26px; transition: all 0.12s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5c64' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 7px center;
+}
+.srch::placeholder { color: var(--t4); }
+.srch:focus { border-color: var(--b3); background-color: rgba(255,255,255,0.05); }
+
+.plist { list-style: none; }
+.pi {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px var(--pad); cursor: pointer; transition: background 0.06s;
+  position: relative; min-height: 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+.pi:hover { background: var(--b1); }
+.pi.sel { background: rgba(229,57,53,0.06); }
+.pi.sel::after {
+  content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
+  width: 2px; background: var(--red); border-radius: 0 1px 1px 0;
+}
+.pn { font-family: var(--mono); font-size: var(--fs); font-weight: 500; color: var(--t1); min-width: 66px; }
+.pm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.pd.ok { background: var(--ok); } .pd.w { background: var(--warn); }
+.pd.e { background: var(--err); } .pd.o { background: var(--t4); }
+
+/* Sparklines — ALL neutral */
+.spark { width: 30px; height: 11px; flex-shrink: 0; }
+.spark polyline { fill: none; stroke: var(--t4); stroke-width: 1; vector-effect: non-scaling-stroke; }
+
+/* ═══════════════════════════════════════
+   RIBBON — info strip
+   ═══════════════════════════════════════ */
+.rib {
+  padding: 6px var(--pad); background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--b1); flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.rib.fade { opacity: 0.3; }
+.rib-r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rib-i { display: flex; align-items: baseline; gap: 3px; }
+.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
+.rib-v.m { font-family: var(--mono); }
+.bdg {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px; font-size: 10px; font-weight: 500;
+  border-radius: 99px; background: var(--b1); color: var(--t2);
+}
+.bdg .dot { width: 4px; height: 4px; border-radius: 50%; }
+
+/* KPI mini cards */
+.rib-kpis { display: flex; gap: 6px; margin-top: 4px; }
+.rib-kpi {
+  padding: 3px 7px; background: var(--b1); border-radius: var(--rs);
+  display: flex; align-items: center; gap: 5px;
+}
+.rib-kpi .kl { font-size: 10px; color: var(--t4); }
+.rib-kpi .kv { font-family: var(--mono); font-size: var(--fs); color: var(--green); font-weight: 600; }
+.rib-kpi .ku { font-size: 9px; color: var(--t4); }
+
+.acts { display: flex; gap: 3px; margin-top: 4px; }
+.act {
+  padding: 2px 7px; font-size: 10.5px; font-weight: 500;
+  background: transparent; border: 1px solid var(--b1);
+  border-radius: var(--rs); color: var(--t3); cursor: pointer;
+  transition: all 0.08s; font-family: inherit;
+}
+.act:hover { background: var(--b1); color: var(--t1); border-color: var(--b2); }
+.act.brand { border-color: rgba(229,57,53,0.25); color: var(--red); }
+.act.brand:hover { background: var(--red-dim); border-color: rgba(229,57,53,0.4); }
+
+/* ═══════════════════════════════════════
+   TAB CONTENT
+   ═══════════════════════════════════════ */
+.tc { flex: 1; overflow-y: auto; min-height: 0; }
+
+/* OPS TABLE */
+.ot { width: 100%; border-collapse: collapse; }
+.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
+.ot th {
+  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
+  border-bottom: 1px solid var(--b2); white-space: nowrap;
+}
+.ot th.r { text-align: right; }
+.ot td { padding: 4px var(--pad); font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.025); }
+.ot td.r { font-family: var(--mono); text-align: right; color: var(--t1); }
+.ot tbody tr { transition: background 0.04s; min-height: 28px; }
+.ot tbody tr:hover td { background: var(--b1); }
+.ot tbody tr.sel td { background: var(--red-dim); }
+
+/* Time badges */
+.tb {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 5px; font-family: var(--mono); font-size: 10px;
+  border-radius: 99px; background: var(--b1); color: var(--t2);
+}
+.tb .d { width: 3px; height: 3px; border-radius: 50%; }
+.tb.s .d { background: var(--red); }
+.tb.o .d { background: var(--ok); }
+
+/* PRICING */
+.pr-w { padding: var(--pad); display: flex; flex-direction: column; gap: 7px; }
+.pr-row { display: flex; gap: 5px; }
+.prc {
+  flex: 1; padding: 6px 8px; background: var(--b1); border-radius: var(--rs);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.prc .l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; }
+.prc .v { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--t1); }
+.prc .u { font-size: 9px; color: var(--t4); }
+.prc.price .v { color: var(--green); }
+
+.ring-row { display: flex; align-items: center; gap: 14px; }
+.ring-svg { width: 76px; height: 76px; flex-shrink: 0; }
+.ring-leg { display: flex; flex-direction: column; gap: 4px; }
+.rli { display: flex; align-items: center; gap: 5px; font-size: var(--fs); color: var(--t2); }
+.rld { width: 5px; height: 5px; border-radius: 1px; flex-shrink: 0; }
+.rlv { font-family: var(--mono); color: var(--t1); font-weight: 500; margin-left: auto; min-width: 38px; text-align: right; }
+
+.bt { width: 100%; border-collapse: collapse; }
+.bt th {
+  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
+  border-bottom: 1px solid var(--green-15); background: rgba(255,255,255,0.025);
+}
+.bt td { padding: 4px var(--pad); font-size: var(--fs); border-bottom: 1px solid rgba(255,255,255,0.025); }
+.bt .c { font-family: var(--mono); text-align: right; color: var(--green); white-space: nowrap; }
+
+/* DRAWING */
+.drw {
+  flex: 1; margin: 6px; background: rgba(255,255,255,0.015);
+  border: 1px solid var(--b1); border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; min-height: 80px;
+}
+.drw::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.drw::after {
+  content: ''; position: absolute; width: 24px; height: 24px;
+  border: 1px solid rgba(229,57,53,0.2); border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+.drw span { font-size: var(--fs); color: var(--t4); z-index: 1; }
+
+/* PLACEHOLDER MODULE */
+.mod-placeholder {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  color: var(--t4); user-select: none; min-height: 0;
+}
+.mod-placeholder .mi-dot-lg {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.mod-placeholder .mod-label {
+  font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--t4);
+}
+.mod-placeholder .mod-hint {
+  font-size: 10px; color: var(--t4); opacity: 0.6;
+}
+
+/* MODULE PICKER OVERLAY — shown over a slot */
+.slot-picker-overlay {
+  position: absolute; inset: 0; z-index: 30;
+  background: rgba(8,8,10,0.85); backdrop-filter: blur(6px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 12px; border-radius: var(--r);
+  opacity: 0; pointer-events: none; transition: opacity 0.12s;
+}
+.slot-picker-overlay.open { opacity: 1; pointer-events: auto; }
+.slot-picker-title {
+  font-size: 9px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+}
+.slot-picker-item {
+  width: 100%; display: flex; align-items: center; gap: 6px;
+  padding: 5px 9px; font-size: var(--fs); color: var(--t2);
+  background: var(--b1); border: 1px solid var(--b2); border-radius: var(--rs);
+  cursor: pointer; transition: all 0.06s; font-family: inherit;
+  max-width: 220px;
+}
+.slot-picker-item:hover { background: var(--b2); color: var(--t1); }
+.slot-picker-item .spi-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.slot-picker-item .spi-key { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-left: auto; }
+.slot-picker-cancel {
+  margin-top: 4px; padding: 3px 10px; font-size: 10.5px;
+  background: transparent; border: 1px solid var(--b1); border-radius: var(--rs);
+  color: var(--t4); cursor: pointer; font-family: inherit; transition: all 0.08s;
+}
+.slot-picker-cancel:hover { color: var(--t2); border-color: var(--b2); }
+
+/* ═══════════════════════════════════════
+   STATUS BAR — 22px
+   ═══════════════════════════════════════ */
+.sbar {
+  height: 22px; background: var(--surface);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--b1);
+  display: flex; align-items: center; padding: 0 10px; gap: 7px;
+  font-size: 10.5px; color: var(--t4); flex-shrink: 0; z-index: 10;
+  opacity: 0; animation: sU 0.3s 0.4s var(--ease) forwards;
+}
+.sbar .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); animation: pulse 3s infinite; }
+.sbar .sl { color: var(--t3); }
+.sbar .sb { flex: 1; text-align: center; font-family: var(--mono); color: var(--t4); letter-spacing: 0.01em; }
+.sbar .sb .pnum { color: var(--red); font-weight: 500; }
+.sbar .sb .arrow { opacity: 0.3; margin: 0 3px; }
+.sbar .sr { display: flex; gap: 6px; align-items: center; }
+.sbar .ck { font-family: var(--mono); color: var(--t3); }
+.sbar .sep { opacity: 0.2; }
+
+/* ═══════════════════════════════════════
+   FAB + MODULE PICKER
+   ═══════════════════════════════════════ */
+.fab {
+  position: fixed; bottom: 30px; right: 11px; width: 33px; height: 33px;
+  border-radius: 50%; background: var(--red); border: none;
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 14px rgba(229,57,53,0.35), 0 0 30px rgba(229,57,53,0.1);
+  transition: all 0.15s var(--ease); z-index: 20;
+  opacity: 0; transform: scale(0.5);
+}
+.fab.in { animation: fabIn 0.3s 0.5s var(--spring) forwards; }
+.fab:hover { background: #ef5350; transform: scale(1.08); box-shadow: 0 4px 20px rgba(229,57,53,0.45); }
+.fab svg { width: 15px; height: 15px; stroke-width: 2.5; }
+
+.mpk {
+  position: fixed; bottom: 68px; right: 11px; width: 190px;
+  background: var(--surface); backdrop-filter: blur(20px);
+  border: 1px solid var(--b2); border-radius: var(--r);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; overflow: hidden;
+  transform-origin: bottom right; transition: all 0.15s var(--ease);
+  opacity: 0; transform: scale(0.92) translateY(4px); pointer-events: none;
+}
+.mpk.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+.mpk-h {
+  padding: 5px 9px; font-size: 9px; font-weight: 600; color: var(--t4);
+  text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--b1);
+  background: var(--raised);
+}
+.mpk-i {
+  display: flex; align-items: center; gap: 6px; padding: 5px 9px;
+  font-size: var(--fs); color: var(--t2); cursor: grab; transition: all 0.06s;
+  border: none; background: none; width: 100%; text-align: left; font-family: inherit;
+}
+.mpk-i:hover { background: var(--b1); color: var(--t1); }
+.mpk-i:active { cursor: grabbing; }
+.mpk-i .k { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-left: auto; }
+.mpk-i .mi-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════ */
+@keyframes drift { from { transform: translate(0,0); } to { transform: translate(60px,60px); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes breatheSlow { from { opacity: 0.25; transform: translate(-50%,-50%) scale(0.97); } to { opacity: 0.55; transform: translate(-50%,-50%) scale(1.04); } }
+@keyframes laserSweep { 0% { transform: translateY(-100vh); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(100vh); opacity: 0; } }
+@keyframes fill { 0% { width: 0; } 60% { width: 75%; } 100% { width: 100%; } }
+@keyframes sD { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sU { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pnlIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+@keyframes fabIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes orbFloat { from { transform: translate(0,0); } to { transform: translate(-30px, 20px); } }
+</style>
+</head>
+<body>
+<!-- Ambient layers -->
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+
+<!-- LOGIN SCREEN -->
+<div id="login">
+  <div class="login-bg-grid"></div>
+  <div class="login-vig"></div>
+  <div class="login-glow"></div>
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <div class="login-logo-mark">
+        <img src="/logo.png" alt="Gestima" style="width:28px;height:28px;object-fit:contain">
+      </div>
+      <div class="login-logo-text"><em>GESTI</em><span>MA</span></div>
+      <div class="login-sub">Kalkulace CNC výroby</div>
+    </div>
+    <div class="login-field">
+      <label class="login-label">Uživatelské jméno</label>
+      <input class="login-input" id="login-user" type="text" value="admin" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label class="login-label">Heslo</label>
+      <input class="login-input" id="login-pass" type="password" value="admin123" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Přihlásit se</button>
+    <div class="login-footer">KOVO RYBKA s.r.o. &nbsp;·&nbsp; v3.0</div>
+  </div>
+</div>
+
+<!-- BOOT -->
+<div id="boot">
+  <div class="b-grid"></div><div class="b-vig"></div><div class="b-glow"></div>
+  <div class="b-laser" id="b-laser"></div>
+  <div class="b-center">
+    <div class="b-mark">
+      <img src="/logo.png" alt="Gestima" style="width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(229,57,53,0.4))">
+    </div>
+    <div class="b-logo"><em>GESTI</em><span>MA</span></div>
+    <div class="b-sub">Načítání systému…</div>
+    <div class="b-prog"><div class="b-bar"></div></div>
+    <div class="b-status" id="b-status">Inicializace…</div>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div id="ws">
+  <header class="hdr" id="hdr">
+    <div class="hlogo">
+      <img src="/logo.png" alt="Gestima" style="width:18px;height:18px;object-fit:contain">
+    </div>
+    <div class="logo"><em>GESTI</em><span>MA</span></div>
+    <span class="logo-div"></span>
+    <div class="lchips" id="lchips">
+      <button class="lchip on" onclick="setLayout('std')">Standardní</button>
+      <button class="lchip" onclick="setLayout('cmp')">Porovnání</button>
+      <button class="lchip" onclick="setLayout('hor')">Horizontální</button>
+      <button class="lchip" onclick="setLayout('qd')">Kompletní</button>
+    </div>
+    <div class="hfill"></div>
+    <div style="display:flex;gap:3px">
+      <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></button>
+      <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
+      <div class="ava" id="ws-ava">JN</div>
+    </div>
+  </header>
+
+  <main class="tiles" id="tiles"></main>
+
+  <footer class="sbar">
+    <span class="dot"></span><span class="sl">Připojeno</span>
+    <span class="sb" id="crumb"><span class="pnum">10001234</span><span class="arrow">→</span>Hřídel hlavní Ø45×280</span>
+    <span class="sr">
+      <span class="ck" id="ck"></span><span class="sep">·</span>
+      <span>KOVO RYBKA s.r.o.</span><span class="sep">·</span><span style="font-family:var(--mono);opacity:0.5">v3.0</span>
+    </span>
+  </footer>
+
+  <button class="fab" id="fab" onclick="toggleModulePicker()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <div class="mpk" id="mpk">
+    <div class="mpk-h">Přidat modul</div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   DATA — exact copy from v2
+   ════════════════════════════════════════════════════ */
+const D = [
+  {n:'10001234',nm:'Hřídel hlavní Ø45×280',s:'ok',m:'Ocel 12 050.1',o:4,p:'234,50',sp:[2,5,3,7,4,6,8,5]},
+  {n:'10001235',nm:'Příruba upínací M12',s:'ok',m:'Ocel 11 523',o:3,p:'117,20',sp:[4,3,5,2,6,4,3,5]},
+  {n:'10001236',nm:'Pouzdro kluzné Ø30',s:'w',m:'Bronz CuSn8',o:2,p:'89,60',sp:[1,3,2,4,3,2,4,5]},
+  {n:'10001237',nm:'Čep vodící 16h7×95',s:'ok',m:'Ocel 14 220.4',o:3,p:'156,80',sp:[3,6,4,5,7,5,4,6]},
+  {n:'10001238',nm:'Víko ložiskové A45',s:'ok',m:'Litina 42 2420',o:5,p:'312,40',sp:[5,4,6,8,7,6,8,9]},
+  {n:'10001239',nm:'Distanční kroužek',s:'o',m:'Ocel 11 373',o:1,p:'18,30',sp:[1,1,2,1,2,1,1,2]},
+  {n:'10001240',nm:'Táhlo ovládací L=320',s:'ok',m:'Ocel 12 050.1',o:3,p:'145,70',sp:[4,5,3,6,5,4,6,5]},
+  {n:'10001241',nm:'Ozubené kolo Z=24',s:'e',m:'Ocel 14 220.4',o:6,p:'478,90',sp:[6,8,7,9,8,7,9,8]},
+  {n:'10001242',nm:'Deska základová 200×300',s:'ok',m:'Litina 42 2420',o:4,p:'267,30',sp:[4,5,6,4,5,7,6,5]},
+  {n:'10001243',nm:'Matice speciální M36',s:'ok',m:'Ocel 11 600',o:2,p:'42,10',sp:[2,3,2,3,4,3,2,3]},
+  {n:'10001244',nm:'Vřeteno upínací Ø50',s:'w',m:'Ocel 12 050.1',o:5,p:'389,00',sp:[5,7,6,8,7,6,8,7]},
+  {n:'10001245',nm:'Klín Woodruffův 8×7',s:'ok',m:'Ocel 11 600',o:1,p:'12,80',sp:[1,2,1,1,2,1,2,1]},
+];
+
+const OPS = {
+  '10001234':[
+    {sq:10,wc:'DMG MORI NLX',op:'Soustružení',su:'15:00',t:'4:32',c:'45,30'},
+    {sq:20,wc:'HAAS VF-2',op:'Frézování drážky',su:'12:00',t:'8:15',c:'82,50'},
+    {sq:30,wc:'BUA 28',op:'Broušení Ø45h6',su:'8:00',t:'3:20',c:'33,30'},
+    {sq:40,wc:'KONTROLA',op:'Měření 3D',su:'—',t:'2:00',c:'20,00'},
+  ],
+  '10001235':[
+    {sq:10,wc:'DMG MORI NLX',op:'Soustružení čela',su:'10:00',t:'3:10',c:'31,70'},
+    {sq:20,wc:'HAAS VF-2',op:'Vrtání 6× Ø12',su:'8:00',t:'5:45',c:'57,50'},
+    {sq:30,wc:'ZÁMEČNÍK',op:'Odjehlení',su:'—',t:'4:00',c:'28,00'},
+  ],
+};
+
+const PRC = {
+  '10001234':{u:'234,50',mat:'45,80',mc:'181,10',oh:'7,60',b:[
+    {q:1,u:'234,50',t:'234,50'},{q:10,u:'65,30',t:'653,00'},
+    {q:50,u:'38,70',t:'1 935,00'},{q:100,u:'32,10',t:'3 210,00'},
+  ]},
+  '10001235':{u:'117,20',mat:'22,40',mc:'89,30',oh:'5,50',b:[
+    {q:1,u:'117,20',t:'117,20'},{q:10,u:'42,80',t:'428,00'},
+    {q:50,u:'28,90',t:'1 445,00'},
+  ]},
+};
+
+const SL = {ok:'Aktivní',w:'Čeká',e:'Chyba',o:'Koncept'};
+const SC = {ok:'ok',w:'w',e:'e',o:'o'};
+
+/* ════════════════════════════════════════════════════
+   MODULE REGISTRY
+   ════════════════════════════════════════════════════ */
+const MODULE_REGISTRY = {
+  'parts-list': {
+    label: 'Díly',
+    dot: 'var(--red)',
+    render(leafId, ctx) {
+      return `<div class="srch-w"><input class="srch" placeholder="Hledat díl…" id="srch-${leafId}" oninput="renderPartsList('${leafId}',this.value)"></div><ul class="plist" id="plist-${leafId}"></ul>`;
+    }
+  },
+  'work-detail': {
+    label: 'Detail dílu',
+    dot: 'var(--t3)',
+    render(leafId, ctx) {
+      return `<div style="display:flex;flex-direction:column;height:100%"><div class="rib" id="rib-${leafId}"></div><div class="tc" id="tab-ops-${leafId}"></div><div class="tc" id="tab-pri-${leafId}" style="display:none"></div><div class="tc" id="tab-drw-${leafId}" style="display:none;flex:1"></div></div>`;
+    }
+  },
+  'time-vision': {
+    label: 'TimeVision',
+    dot: 'var(--red)',
+    key: '⌘6',
+    render(leafId, ctx) { return placeholderHtml('TimeVision', 'var(--red)', 'Analýza časů výroby'); }
+  },
+  'batch-sets': {
+    label: 'Dávkové sady',
+    dot: 'var(--t3)',
+    key: '⌘7',
+    render(leafId, ctx) { return placeholderHtml('Dávkové sady', 'var(--t3)', 'Správa cenových rodin'); }
+  },
+  'partners': {
+    label: 'Partneři',
+    dot: 'var(--t3)',
+    key: '⌘8',
+    render(leafId, ctx) { return placeholderHtml('Partneři', 'var(--t3)', 'Zákazníci a dodavatelé'); }
+  },
+  'quotes': {
+    label: 'Nabídky',
+    dot: 'var(--green)',
+    key: '⌘9',
+    render(leafId, ctx) { return placeholderHtml('Nabídky', 'var(--green)', 'Cenové nabídky zákazníkům'); }
+  },
+  'production': {
+    label: 'Výroba',
+    dot: 'var(--red)',
+    key: '⌘0',
+    render(leafId, ctx) { return placeholderHtml('Výroba', 'var(--red)', 'Záznamy výrobních operací'); }
+  },
+  'accounting': {
+    label: 'Účetnictví',
+    dot: 'var(--t3)',
+    render(leafId, ctx) { return placeholderHtml('Účetnictví', 'var(--t3)', 'Přehled obratů a hospodaření'); }
+  },
+  'files': {
+    label: 'Soubory',
+    dot: 'var(--t3)',
+    render(leafId, ctx) { return placeholderHtml('Soubory', 'var(--t3)', 'Výkresy a dokumentace'); }
+  },
+  /* ── Sub-modules: torn-off tabs from work-detail ── */
+  'work-ops': {
+    label: 'Operace',
+    dot: 'var(--red)',
+    isSub: true,
+    render(leafId, ctx) {
+      return `<div class="tc" id="tab-ops-${leafId}" style="flex:1;overflow-y:auto"></div>`;
+    }
+  },
+  'work-pricing': {
+    label: 'Kalkulace',
+    dot: 'var(--green)',
+    isSub: true,
+    render(leafId, ctx) {
+      return `<div class="tc" id="tab-pri-${leafId}" style="flex:1;overflow-y:auto"></div>`;
+    }
+  },
+  'work-drawing': {
+    label: 'Výkres',
+    dot: 'var(--t3)',
+    isSub: true,
+    render(leafId, ctx) {
+      return `<div class="tc" id="tab-drw-${leafId}" style="flex:1;display:flex"></div>`;
+    }
+  },
+  'work-materials': {
+    label: 'Materiály',
+    dot: 'var(--t3)',
+    isSub: true,
+    render(leafId, ctx) {
+      return placeholderHtml('Materiály', 'var(--t3)', 'Materiálové vstupy dílu');
+    }
+  },
+};
+
+function placeholderHtml(label, dotColor, hint) {
+  return `<div class="mod-placeholder">
+    <div class="mi-dot-lg" style="background:${dotColor}"></div>
+    <div class="mod-label">${label}</div>
+    <div class="mod-hint">${hint}</div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════════
+   TREE DATA STRUCTURE
+   node = { type:'leaf', id, module, ctx }
+        | { type:'split', direction:'horizontal'|'vertical', ratio:0.5, children:[node,node], id }
+   ════════════════════════════════════════════════════ */
+let _nodeIdCounter = 0;
+function nid() { return 'n' + (++_nodeIdCounter); }
+
+function makeLeaf(module, ctx) {
+  return { type: 'leaf', id: nid(), module, ctx: ctx || 'ca' };
+}
+function makeSplit(direction, ratio, a, b) {
+  return { type: 'split', id: nid(), direction, ratio: ratio || 0.5, children: [a, b] };
+}
+
+/* Layout presets as trees */
+const LAYOUT_PRESETS = {
+  std: () => makeSplit('horizontal', 0.22,
+    makeLeaf('parts-list', 'ca'),
+    makeLeaf('work-detail', 'ca')
+  ),
+  cmp: () => makeSplit('horizontal', 0.16,
+    makeLeaf('parts-list', 'ca'),
+    makeSplit('horizontal', 0.5,
+      makeLeaf('work-detail', 'ca'),
+      makeSplit('horizontal', 0.5,
+        makeLeaf('work-detail', 'cb'),
+        makeLeaf('parts-list', 'cb')
+      )
+    )
+  ),
+  hor: () => makeSplit('horizontal', 0.22,
+    makeLeaf('parts-list', 'ca'),
+    makeSplit('vertical', 0.5,
+      makeLeaf('work-detail', 'ca'),
+      makeLeaf('work-detail', 'ca')
+    )
+  ),
+  qd: () => makeSplit('horizontal', 0.18,
+    makeLeaf('parts-list', 'ca'),
+    makeSplit('horizontal', 0.5,
+      makeSplit('vertical', 0.5,
+        makeLeaf('work-detail', 'ca'),
+        makeLeaf('work-detail', 'ca')
+      ),
+      makeSplit('vertical', 0.5,
+        makeLeaf('work-detail', 'cb'),
+        makeLeaf('work-detail', 'cb')
+      )
+    )
+  ),
+};
+
+/* ════════════════════════════════════════════════════
+   WORKSPACE STATE
+   ════════════════════════════════════════════════════ */
+const state = {
+  layout: 'std',
+  tree: null,           // Current layout tree
+  focusedLeafId: null,
+  modulePickerOpen: false,
+  slotPickerOpen: null,
+  selectedPart: 0,
+  selectedPart2: 3,
+  tabState: {},         // leafId → active tab
+};
+
+/* Drag state */
+let dragState = null;
+/* Resize state */
+let resizeState = null;
+
+/* ════════════════════════════════════════════════════
+   TREE UTILITIES
+   ════════════════════════════════════════════════════ */
+
+/* Find node by id — returns { node, parent, childIndex } or null */
+function findNode(tree, id, parent, childIndex) {
+  if (!tree) return null;
+  if (tree.id === id) return { node: tree, parent: parent || null, childIndex: childIndex ?? null };
+  if (tree.type === 'split') {
+    const r0 = findNode(tree.children[0], id, tree, 0);
+    if (r0) return r0;
+    const r1 = findNode(tree.children[1], id, tree, 1);
+    if (r1) return r1;
+  }
+  return null;
+}
+
+/* Get all leaf nodes */
+function getLeaves(tree) {
+  if (!tree) return [];
+  if (tree.type === 'leaf') return [tree];
+  return [...getLeaves(tree.children[0]), ...getLeaves(tree.children[1])];
+}
+
+/* Remove leaf from tree, collapsing the split.
+   Returns new tree (or null if only node). */
+function removeLeaf(tree, leafId) {
+  if (!tree) return null;
+  if (tree.type === 'leaf') return tree.id === leafId ? null : tree;
+  const newA = removeLeaf(tree.children[0], leafId);
+  const newB = removeLeaf(tree.children[1], leafId);
+  if (newA === null) return newB;
+  if (newB === null) return newA;
+  return { ...tree, children: [newA, newB] };
+}
+
+/* Replace a leaf with a new node */
+function replaceNode(tree, targetId, newNode) {
+  if (!tree) return tree;
+  if (tree.id === targetId) return newNode;
+  if (tree.type === 'leaf') return tree;
+  return {
+    ...tree,
+    children: [
+      replaceNode(tree.children[0], targetId, newNode),
+      replaceNode(tree.children[1], targetId, newNode),
+    ]
+  };
+}
+
+/* ════════════════════════════════════════════════════
+   RENDER ENGINE — recursive tree → DOM
+   ════════════════════════════════════════════════════ */
+function renderWorkspace() {
+  const tilesEl = document.getElementById('tiles');
+
+  // Build new tree from preset if none or layout changed
+  state.tree = LAYOUT_PRESETS[state.layout]();
+
+  const rootEl = renderNode(state.tree);
+  // Replace in a single operation to avoid flash
+  tilesEl.replaceChildren(rootEl);
+
+  // Animate panels
+  const panels = tilesEl.querySelectorAll('.pnl');
+  panels.forEach((p, i) => {
+    setTimeout(() => p.classList.add('v'), i * 70);
+  });
+
+  setTimeout(() => {
+    initPanelFocus();
+    initDragDrop();
+    refreshAllLeaves();
+  }, 40);
+
+  updateModulePickerItems();
+}
+
+function renderNode(node) {
+  if (node.type === 'leaf') {
+    return renderLeaf(node);
+  } else {
+    return renderSplit(node);
+  }
+}
+
+function renderLeaf(node) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tree-leaf';
+  wrapper.dataset.leafId = node.id;
+  wrapper.style.flex = '1';
+  wrapper.style.minWidth = '0';
+  wrapper.style.minHeight = '0';
+
+  const pnl = buildPanel(node);
+  wrapper.appendChild(pnl);
+  return wrapper;
+}
+
+function renderSplit(node) {
+  const wrap = document.createElement('div');
+  wrap.className = `tree-split ${node.direction === 'horizontal' ? 'h' : 'v'}`;
+  wrap.dataset.splitId = node.id;
+
+  const childA = renderNode(node.children[0]);
+  const divider = document.createElement('div');
+  divider.className = `split-divider ${node.direction === 'horizontal' ? 'h' : 'v'}`;
+  divider.dataset.splitId = node.id;
+  const childB = renderNode(node.children[1]);
+
+  // Apply ratio as flex values
+  const ra = node.ratio;
+  const rb = 1 - node.ratio;
+  childA.style.flex = `${ra} ${ra} 0%`;
+  childB.style.flex = `${rb} ${rb} 0%`;
+
+  // Enforce min size
+  if (node.direction === 'horizontal') {
+    childA.style.minWidth = '120px';
+    childB.style.minWidth = '120px';
+  } else {
+    childA.style.minHeight = '120px';
+    childB.style.minHeight = '120px';
+  }
+
+  wrap.appendChild(childA);
+  wrap.appendChild(divider);
+  wrap.appendChild(childB);
+
+  // Wire up divider resize
+  wireDivider(divider, node, childA, childB);
+
+  return wrap;
+}
+
+function wireDivider(divider, splitNode, childA, childB) {
+  const isH = splitNode.direction === 'horizontal';
+
+  divider.addEventListener('dblclick', () => {
+    splitNode.ratio = 0.5;
+    const ra = 0.5, rb = 0.5;
+    childA.style.flex = `${ra} ${ra} 0%`;
+    childB.style.flex = `${rb} ${rb} 0%`;
+  });
+
+  divider.addEventListener('mousedown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    divider.classList.add('active');
+    const startPos = isH ? e.clientX : e.clientY;
+    const startRatio = splitNode.ratio;
+    const container = divider.parentElement;
+
+    resizeState = { splitNode, divider, childA, childB, isH, startPos, startRatio, container };
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   PANEL BUILDER
+   ════════════════════════════════════════════════════ */
+function buildPanel(leafNode) {
+  const mod = MODULE_REGISTRY[leafNode.module];
+  const ctx = leafNode.ctx || '';
+
+  const pnl = document.createElement('div');
+  pnl.className = `pnl ${ctx}`;
+  pnl.dataset.leafId = leafNode.id;
+  pnl.dataset.moduleId = leafNode.module;
+
+  const tabsHtml = buildHeaderTabs(leafNode.module, leafNode.id);
+  const titleHtml = buildHeaderTitle(leafNode.module, mod);
+
+  pnl.innerHTML = `
+    <div class="ph" draggable="true" data-leaf-id="${leafNode.id}">
+      ${titleHtml}
+      ${tabsHtml}
+      <span class="phf"></span>
+      <div style="display:flex;gap:2px;align-items:center">
+        <button class="pc ctx-toggle" data-leaf-id="${leafNode.id}" onclick="toggleContext('${leafNode.id}')" title="Kontext: ${ctx === 'cb' ? 'B (zelený)' : 'A (červený)'}">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--${ctx === 'cb' ? 'lb' : 'la'});display:inline-block"></span>
+        </button>
+        <button class="pc" onclick="openSlotPicker('${leafNode.id}')" title="Změnit modul">⊞</button>
+        <button class="pc" onclick="toggleMax(this.closest('.pnl'))">□</button>
+        <button class="pc x" onclick="removeLeafNode('${leafNode.id}')">×</button>
+      </div>
+    </div>
+    <div class="pb" id="pb-${leafNode.id}">
+      ${mod ? mod.render(leafNode.id, ctx) : ''}
+    </div>
+    <div class="slot-picker-overlay" id="spo-${leafNode.id}">
+      <div class="slot-picker-title">Vybrat modul</div>
+      ${buildSlotPickerItems(leafNode.id)}
+      <button class="slot-picker-cancel" onclick="closeSlotPicker('${leafNode.id}')">Zrušit</button>
+    </div>
+    <div class="drop-zones" id="dz-${leafNode.id}" data-leaf="${leafNode.id}">
+      <div class="drop-highlight" id="dh-${leafNode.id}"><span class="dz-icon"></span></div>
+    </div>
+  `;
+
+  return pnl;
+}
+
+function buildHeaderTitle(moduleId, mod) {
+  if (moduleId === 'parts-list') {
+    return `<span class="pht">Díly <span class="n">12</span></span>`;
+  }
+  if (moduleId === 'work-detail') {
+    return `<span class="pht">Detail</span>`;
+  }
+  const label = mod ? mod.label : moduleId;
+  return `<span class="pht">${label}</span>`;
+}
+
+function buildHeaderTabs(moduleId, leafId) {
+  if (moduleId !== 'work-detail') return '';
+  return `<div class="ptabs" id="tabs-${leafId}">
+    <button class="ptab on" draggable="true" ondragstart="startTabDrag(event,'${leafId}','work-ops')" onclick="switchTab('${leafId}','ops',this)">Operace</button>
+    <button class="ptab" draggable="true" ondragstart="startTabDrag(event,'${leafId}','work-pricing')" onclick="switchTab('${leafId}','pri',this)">Kalkulace</button>
+    <button class="ptab" draggable="true" ondragstart="startTabDrag(event,'${leafId}','work-drawing')" onclick="switchTab('${leafId}','drw',this)">Výkres</button>
+    <button class="ptab" draggable="true" ondragstart="startTabDrag(event,'${leafId}','work-materials')" onclick="switchTab('${leafId}','mat',this)">Materiály</button>
+  </div>`;
+}
+
+function buildSlotPickerItems(leafId) {
+  return Object.entries(MODULE_REGISTRY).map(([id, mod]) => `
+    <button class="slot-picker-item" onclick="assignModuleToLeaf('${leafId}','${id}')">
+      <span class="spi-dot" style="background:${mod.dot}"></span>
+      ${mod.label}
+      ${mod.key ? `<span class="spi-key">${mod.key}</span>` : ''}
+    </button>
+  `).join('');
+}
+
+/* ════════════════════════════════════════════════════
+   LEAF MODULE ASSIGNMENT
+   ════════════════════════════════════════════════════ */
+function assignModuleToLeaf(leafId, moduleId) {
+  const found = findNode(state.tree, leafId);
+  if (found && found.node.type === 'leaf') {
+    found.node.module = moduleId;
+  }
+  closeSlotPicker(leafId);
+  // Re-render just that panel's body
+  reRenderLeafContent(leafId, moduleId, found ? found.node.ctx : 'ca');
+}
+
+function reRenderLeafContent(leafId, moduleId, ctx) {
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  if (!pnl) { renderWorkspace(); return; }
+  pnl.dataset.moduleId = moduleId;
+  const pb = document.getElementById(`pb-${leafId}`);
+  const mod = MODULE_REGISTRY[moduleId];
+  if (pb && mod) {
+    pb.innerHTML = mod.render(leafId, ctx);
+    refreshLeaf(leafId, moduleId, ctx);
+  }
+  // Update header
+  const pht = pnl.querySelector('.pht');
+  if (pht) pht.outerHTML = buildHeaderTitle(moduleId, mod);
+  const ptabs = pnl.querySelector('.ptabs');
+  if (moduleId === 'work-detail' && !ptabs) {
+    // Insert tabs after pht
+    const phEl = pnl.querySelector('.ph');
+    const phfEl = phEl ? phEl.querySelector('.phf') : null;
+    if (phfEl) {
+      const tabsDiv = document.createElement('div');
+      tabsDiv.innerHTML = buildHeaderTabs(moduleId, leafId);
+      phfEl.parentNode.insertBefore(tabsDiv.firstElementChild, phfEl);
+    }
+  } else if (moduleId !== 'work-detail' && ptabs) {
+    ptabs.remove();
+  }
+}
+
+function openSlotPicker(leafId) {
+  closeAllSlotPickers();
+  const overlay = document.getElementById(`spo-${leafId}`);
+  if (overlay) {
+    overlay.classList.add('open');
+    state.slotPickerOpen = leafId;
+  }
+}
+
+function closeSlotPicker(leafId) {
+  const overlay = document.getElementById(`spo-${leafId}`);
+  if (overlay) overlay.classList.remove('open');
+  if (state.slotPickerOpen === leafId) state.slotPickerOpen = null;
+}
+
+function closeAllSlotPickers() {
+  document.querySelectorAll('.slot-picker-overlay.open').forEach(el => el.classList.remove('open'));
+  state.slotPickerOpen = null;
+}
+
+function removeLeafNode(leafId) {
+  if (!state.tree) return;
+  const leaves = getLeaves(state.tree);
+  if (leaves.length <= 1) return;
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  let removed = false;
+  const doRemove = () => {
+    if (removed) return;
+    removed = true;
+    state.tree = removeLeaf(state.tree, leafId);
+    if (!state.tree) { state.tree = makeLeaf('parts-list', 'ca'); }
+    reRenderTree();
+  };
+  if (pnl) {
+    pnl.classList.add('closing');
+    pnl.addEventListener('transitionend', doRemove, { once: true });
+    setTimeout(doRemove, 250);
+  } else {
+    doRemove();
+  }
+}
+
+/* Toggle context (ca ↔ cb) for a panel and refresh its data */
+function toggleContext(leafId) {
+  const found = findNode(state.tree, leafId);
+  if (!found || found.node.type !== 'leaf') return;
+  const newCtx = found.node.ctx === 'cb' ? 'ca' : 'cb';
+  found.node.ctx = newCtx;
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  if (pnl) {
+    pnl.classList.remove('ca', 'cb');
+    pnl.classList.add(newCtx);
+    // Update the context toggle button appearance
+    const ctxBtn = pnl.querySelector('.ctx-toggle');
+    if (ctxBtn) {
+      ctxBtn.title = `Kontext: ${newCtx === 'cb' ? 'B (zelený)' : 'A (červený)'}`;
+      const dot = ctxBtn.querySelector('span');
+      if (dot) dot.style.background = `var(--${newCtx === 'cb' ? 'lb' : 'la'})`;
+    }
+  }
+  // Refresh the leaf with new context data
+  refreshLeaf(leafId, found.node.module, newCtx);
+}
+
+/* Update panel context class (ca/cb) in-place without re-render */
+function updatePanelContext(leafId, ctx) {
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  if (!pnl) return;
+  pnl.classList.remove('ca', 'cb');
+  if (ctx) pnl.classList.add(ctx);
+  const ctxBtn = pnl.querySelector('.ctx-toggle');
+  if (ctxBtn) {
+    ctxBtn.title = `Kontext: ${ctx === 'cb' ? 'B (zelený)' : 'A (červený)'}`;
+    const dot = ctxBtn.querySelector('span');
+    if (dot) dot.style.background = `var(--${ctx === 'cb' ? 'lb' : 'la'})`;
+  }
+}
+
+/* Re-render the tree DOM without full reset (preserves data) */
+function reRenderTree() {
+  const tilesEl = document.getElementById('tiles');
+  const newRoot = renderNode(state.tree);
+
+  // CRITICAL: Remove old DOM first to prevent duplicate element IDs.
+  // When staging area is in document.body alongside old tilesEl content,
+  // document.getElementById returns the OLD element (first in document order),
+  // causing data to be written to elements that get discarded.
+  // All operations below are synchronous — no paint/flash occurs.
+  tilesEl.textContent = '';
+
+  // Hidden staging area for pre-populating data before display
+  const stage = document.createElement('div');
+  stage.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:100vw;height:100vh;visibility:hidden;pointer-events:none';
+  document.body.appendChild(stage);
+  stage.appendChild(newRoot);
+
+  // Make panels visible instantly (no animation)
+  stage.querySelectorAll('.pnl').forEach(p => p.classList.add('instant'));
+
+  // Fill all panels with data while hidden (no visible refresh)
+  refreshAllLeaves();
+
+  // Move the fully-populated tree into the visible tiles area
+  tilesEl.appendChild(newRoot);
+  document.body.removeChild(stage);
+
+  initPanelFocus();
+  initDragDrop();
+}
+
+/* ════════════════════════════════════════════════════
+   REFRESH LEAVES — populate data after render
+   ════════════════════════════════════════════════════ */
+function refreshAllLeaves() {
+  getLeaves(state.tree).forEach(leaf => {
+    refreshLeaf(leaf.id, leaf.module, leaf.ctx);
+  });
+}
+
+function refreshLeaf(leafId, moduleId, ctx) {
+  if (moduleId === 'parts-list') {
+    renderPartsList(leafId, '');
+  } else if (moduleId === 'work-detail') {
+    const partIdx = ctx === 'cb' ? state.selectedPart2 : state.selectedPart;
+    fillWorkDetail(leafId, D[partIdx], ctx);
+  } else if (moduleId === 'work-ops') {
+    const partIdx = ctx === 'cb' ? state.selectedPart2 : state.selectedPart;
+    fillOpsTab(leafId, D[partIdx].n);
+  } else if (moduleId === 'work-pricing') {
+    const partIdx = ctx === 'cb' ? state.selectedPart2 : state.selectedPart;
+    fillPriTab(leafId, D[partIdx].n);
+  } else if (moduleId === 'work-drawing') {
+    const partIdx = ctx === 'cb' ? state.selectedPart2 : state.selectedPart;
+    fillDrwTab(leafId, D[partIdx].nm);
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   PARTS LIST RENDERING
+   ════════════════════════════════════════════════════ */
+function sparkSvg(pts) {
+  const mx = Math.max(...pts), mn = Math.min(...pts);
+  const w = 30, h = 11;
+  const coords = pts.map((v, i) => `${(i / (pts.length - 1)) * w},${h - ((v - mn) / (mx - mn || 1)) * h}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${coords}"/></svg>`;
+}
+
+function renderPartsList(leafId, query) {
+  const el = document.getElementById(`plist-${leafId}`);
+  if (!el) return;
+
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  const ctx = pnl ? (pnl.classList.contains('cb') ? 'cb' : 'ca') : 'ca';
+  const currentSel = ctx === 'cb' ? state.selectedPart2 : state.selectedPart;
+
+  const filtered = query
+    ? D.filter(p => p.n.includes(query) || p.nm.toLowerCase().includes(query.toLowerCase()))
+    : D;
+
+  el.innerHTML = filtered.map(p => {
+    const ri = D.indexOf(p);
+    const isSel = ri === currentSel;
+    return `<li class="pi ${isSel ? 'sel' : ''}" onclick="selectPart(${ri},'${leafId}')">
+      <span class="pn">${p.n}</span>
+      <span class="pm">${p.nm}</span>
+      ${sparkSvg(p.sp)}
+      <span class="pd ${SC[p.s]}"></span>
+    </li>`;
+  }).join('');
+}
+
+function selectPart(idx, fromLeafId) {
+  const pnl = document.querySelector(`[data-leaf-id="${fromLeafId}"].pnl`);
+  const ctx = pnl ? (pnl.classList.contains('cb') ? 'cb' : 'ca') : 'ca';
+
+  if (ctx === 'cb') {
+    state.selectedPart2 = idx;
+  } else {
+    state.selectedPart = idx;
+    const crumb = document.getElementById('crumb');
+    if (crumb) {
+      const p = D[idx];
+      crumb.innerHTML = `<span class="pnum">${p.n}</span><span class="arrow">→</span>${p.nm}`;
+    }
+  }
+
+  // Re-render all parts lists
+  document.querySelectorAll('[data-leaf-id].pnl').forEach(panelEl => {
+    const lid = panelEl.dataset.leafId;
+    const mid = panelEl.dataset.moduleId;
+    if (mid === 'parts-list') {
+      const srchEl = document.getElementById(`srch-${lid}`);
+      renderPartsList(lid, srchEl ? srchEl.value : '');
+    }
+  });
+
+  // Update all work-detail and sub-module panels with matching context
+  const linkedModules = ['work-detail', 'work-ops', 'work-pricing', 'work-drawing', 'work-materials'];
+  document.querySelectorAll('[data-leaf-id].pnl').forEach(panelEl => {
+    const lid = panelEl.dataset.leafId;
+    const mid = panelEl.dataset.moduleId;
+    if (linkedModules.includes(mid)) {
+      const panelCtx = panelEl.classList.contains('cb') ? 'cb' : 'ca';
+      if (panelCtx === ctx) {
+        refreshLeaf(lid, mid, panelCtx);
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   WORK DETAIL — ribbon + tabs
+   ════════════════════════════════════════════════════ */
+function fillWorkDetail(leafId, part, ctx) {
+  if (!part) return;
+  const ribEl = document.getElementById(`rib-${leafId}`);
+  if (!ribEl) return;
+
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  if (pnl) {
+    const phtEl = pnl.querySelector('.pht');
+    if (phtEl) {
+      phtEl.innerHTML = `<span style="color:var(--t4);font-family:var(--mono)">${part.n}</span>&nbsp;${part.nm}`;
+    }
+  }
+
+  ribEl.innerHTML = `<div class="rib-r">
+    <span class="rib-i"><span class="rib-l">Díl</span><span class="rib-v m">${part.n}</span></span>
+    <span class="rib-i"><span class="rib-l">Mat.</span><span class="rib-v">${part.m}</span></span>
+    <span class="rib-i"><span class="rib-l">Ops</span><span class="rib-v m">${part.o}</span></span>
+    <span class="bdg"><span class="dot ${SC[part.s]}"></span>${SL[part.s]}</span>
+  </div>
+  <div class="rib-kpis">
+    <div class="rib-kpi"><span class="kl">Cena/ks</span><span class="kv">${part.p}</span><span class="ku">CZK</span></div>
+    <div class="rib-kpi"><span class="kl">Dávka 50ks</span><span class="kv">${(parseFloat(part.p.replace(',', '.')) * 0.42).toFixed(0)},00</span><span class="ku">CZK</span></div>
+  </div>
+  <div class="acts"><button class="act brand">✎ Upravit</button><button class="act">⊕ Operace</button><button class="act">⎘ Kopie</button></div>`;
+
+  fillOpsTab(leafId, part.n);
+  fillPriTab(leafId, part.n);
+  fillDrwTab(leafId, part.nm);
+}
+
+function fillOpsTab(leafId, partNum) {
+  const el = document.getElementById(`tab-ops-${leafId}`);
+  if (!el) return;
+  const ops = OPS[partNum] || OPS['10001234'];
+  el.innerHTML = `<table class="ot">
+    <thead><tr>
+      <th>Seq</th><th>Pracoviště</th><th>Operace</th>
+      <th class="r">Seříz.</th><th class="r">Čas/ks</th><th class="r">CZK</th>
+    </tr></thead>
+    <tbody>${ops.map((o, i) => `<tr class="${i === 0 ? 'sel' : ''}">
+      <td class="r">${o.sq}</td><td>${o.wc}</td><td>${o.op}</td>
+      <td class="r">${o.su === '—' ? '<span style="color:var(--t4)">—</span>' : `<span class="tb s"><span class="d"></span>${o.su}</span>`}</td>
+      <td class="r"><span class="tb o"><span class="d"></span>${o.t}</span></td>
+      <td class="r">${o.c}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function fillPriTab(leafId, partNum) {
+  const el = document.getElementById(`tab-pri-${leafId}`);
+  if (!el) return;
+  const pr = PRC[partNum] || PRC['10001234'];
+  const tot = parseFloat(pr.u.replace(',', '.'));
+  const mp = parseFloat(pr.mat.replace(',', '.')) / tot;
+  const mcp = parseFloat(pr.mc.replace(',', '.')) / tot;
+  const op = 1 - mp - mcp;
+  const r = 29, circ = 2 * Math.PI * r;
+  const mL = circ * mp, mcL = circ * mcp, oL = circ * op;
+  el.innerHTML = `<div class="pr-w">
+    <div class="pr-row">
+      <div class="prc price"><span class="l">Cena/ks</span><span class="v">${pr.u}</span><span class="u">CZK</span></div>
+      <div class="prc"><span class="l">Materiál</span><span class="v">${pr.mat}</span><span class="u">CZK</span></div>
+      <div class="prc"><span class="l">Obrábění</span><span class="v">${pr.mc}</span><span class="u">CZK</span></div>
+    </div>
+    <div class="ring-row">
+      <svg class="ring-svg" viewBox="0 0 66 66">
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="var(--b1)" stroke-width="5.5"/>
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="var(--green)" stroke-width="5.5" stroke-dasharray="${mL} ${circ - mL}" stroke-dashoffset="${circ * 0.25}" stroke-linecap="round"/>
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="var(--red)" stroke-width="5.5" stroke-dasharray="${mcL} ${circ - mcL}" stroke-dashoffset="${circ * 0.25 - mL}" stroke-linecap="round"/>
+        <circle cx="33" cy="33" r="${r}" fill="none" stroke="#6b7280" stroke-width="5.5" stroke-dasharray="${oL} ${circ - oL}" stroke-dashoffset="${circ * 0.25 - mL - mcL}" stroke-linecap="round"/>
+        <text x="33" y="32" text-anchor="middle" fill="var(--t1)" font-family="JetBrains Mono" font-size="7.5" font-weight="600">${pr.u}</text>
+        <text x="33" y="39" text-anchor="middle" fill="var(--t4)" font-family="DM Sans" font-size="5.5">CZK/ks</text>
+      </svg>
+      <div class="ring-leg">
+        <div class="rli"><span class="rld" style="background:var(--green)"></span>Materiál<span class="rlv">${pr.mat}</span></div>
+        <div class="rli"><span class="rld" style="background:var(--red)"></span>Obrábění<span class="rlv">${pr.mc}</span></div>
+        <div class="rli"><span class="rld" style="background:#6b7280"></span>Režie<span class="rlv">${pr.oh}</span></div>
+      </div>
+    </div>
+    <table class="bt">
+      <thead><tr><th>Množství</th><th style="text-align:right">Cena/ks</th><th style="text-align:right">Celkem</th></tr></thead>
+      <tbody>${pr.b.map(b => `<tr>
+        <td style="font-family:var(--mono);text-align:right">${b.q} ks</td>
+        <td class="c">${b.u} CZK</td>
+        <td class="c">${b.t} CZK</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function fillDrwTab(leafId, partName) {
+  const el = document.getElementById(`tab-drw-${leafId}`);
+  if (!el) return;
+  el.innerHTML = `<div class="drw"><span>Výkres — ${partName}</span></div>`;
+}
+
+/* ════════════════════════════════════════════════════
+   TAB SWITCHING
+   ════════════════════════════════════════════════════ */
+function switchTab(leafId, tab, btn) {
+  const tabsEl = document.getElementById(`tabs-${leafId}`);
+  if (tabsEl) tabsEl.querySelectorAll('.ptab').forEach(t => t.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  ['ops', 'pri', 'drw', 'mat'].forEach(t => {
+    const el = document.getElementById(`tab-${t}-${leafId}`);
+    if (el) el.style.display = t === tab ? '' : 'none';
+  });
+  state.tabState[leafId] = tab;
+}
+
+/* ════════════════════════════════════════════════════
+   TAB DRAG — tear off tabs into separate panels
+   ════════════════════════════════════════════════════ */
+function startTabDrag(e, leafId, subModuleId) {
+  e.stopPropagation();
+  const pnl = document.querySelector(`[data-leaf-id="${leafId}"].pnl`);
+  const ctx = pnl ? (pnl.classList.contains('cb') ? 'cb' : 'ca') : 'ca';
+  dragState = { sourceLeafId: leafId, sourceModuleId: subModuleId, sourceCtx: ctx, fromPicker: false, fromTab: true };
+  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.setData('text/plain', subModuleId);
+  // Create ghost — scaled-down copy of the parent panel
+  if (pnl) {
+    const ghost = createDragGhost(pnl);
+    e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, 14);
+    setTimeout(() => cleanupDragGhost(ghost), 0);
+  }
+  // Show drop zones on ALL panels (including current — can split self)
+  setTimeout(() => showAllDropZones(null), 0);
+}
+
+document.addEventListener('dragend', () => {
+  if (dragState && dragState.fromTab) {
+    hideAllDropZones();
+    dragState = null;
+  }
+});
+
+/* ════════════════════════════════════════════════════
+   MAXIMIZE
+   ════════════════════════════════════════════════════ */
+function toggleMax(pnl) { pnl.classList.toggle('max'); }
+
+/* ════════════════════════════════════════════════════
+   PANEL FOCUS
+   ════════════════════════════════════════════════════ */
+function initPanelFocus() {
+  document.querySelectorAll('.pnl').forEach(p => {
+    p.addEventListener('mousedown', () => {
+      document.querySelectorAll('.pnl').forEach(x => x.classList.remove('focused'));
+      p.classList.add('focused');
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   DRAG GHOST — scaled-down panel preview
+   ════════════════════════════════════════════════════ */
+function createDragGhost(pnl) {
+  const rect = pnl.getBoundingClientRect();
+  const maxW = 200, maxH = 140;
+  const scale = Math.min(maxW / rect.width, maxH / rect.height, 0.45);
+  const w = Math.round(rect.width * scale);
+  const h = Math.round(rect.height * scale);
+
+  // Create a wrapper at final physical size
+  const ghost = document.createElement('div');
+  ghost.style.cssText = `
+    position: fixed; top: -9999px; left: -9999px; z-index: 99999;
+    width: ${w}px; height: ${h}px; overflow: hidden;
+    border-radius: 6px; border: 1px solid rgba(229,57,53,0.3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    pointer-events: none; background: var(--surface);
+  `;
+
+  // Clone panel, scale it inside the wrapper
+  const inner = pnl.cloneNode(true);
+  inner.style.cssText = `
+    width: ${rect.width}px; height: ${rect.height}px;
+    transform: scale(${scale}); transform-origin: top left;
+    opacity: 1; pointer-events: none;
+  `;
+  inner.querySelectorAll('.drop-zones, .slot-picker-overlay').forEach(el => el.remove());
+  inner.classList.add('instant');
+  ghost.appendChild(inner);
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
+function cleanupDragGhost(ghost) {
+  // Browser needs the element in DOM at the moment setDragImage is called.
+  // Remove on next frame after browser has captured it.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   DRAG & DROP — VS Code style with drop zones
+   ════════════════════════════════════════════════════ */
+
+// dragState: { sourceLeafId, sourceModuleId, sourceCtx, fromPicker, fromTab }
+
+function initDragDrop() {
+  // Wire up panel headers for drag
+  document.querySelectorAll('.pnl').forEach(pnl => {
+    const ph = pnl.querySelector('.ph');
+    if (!ph) return;
+
+    ph.addEventListener('dragstart', e => {
+      const leafId = pnl.dataset.leafId;
+      const moduleId = pnl.dataset.moduleId;
+      const ctx = pnl.classList.contains('cb') ? 'cb' : 'ca';
+      dragState = { sourceLeafId: leafId, sourceModuleId: moduleId, sourceCtx: ctx, fromPicker: false };
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', leafId);
+      // Create scaled-down ghost of the panel
+      const ghost = createDragGhost(pnl);
+      e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, 14);
+      setTimeout(() => { pnl.classList.add('dragging'); cleanupDragGhost(ghost); }, 0);
+      setTimeout(() => showAllDropZones(leafId), 0);
+    });
+
+    ph.addEventListener('dragend', () => {
+      pnl.classList.remove('dragging');
+      hideAllDropZones();
+      dragState = null;
+    });
+  });
+
+  // Wire up drop zone overlays — geometric zone detection
+  document.querySelectorAll('.drop-zones').forEach(dzWrap => {
+    dzWrap.addEventListener('dragover', e => {
+      if (!dragState) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = dragState.fromPicker ? 'copy' : 'move';
+
+      const rect = dzWrap.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;   // 0..1
+      const y = (e.clientY - rect.top) / rect.height;    // 0..1
+      const zone = computeDropZone(x, y);
+
+      const hl = dzWrap.querySelector('.drop-highlight');
+      positionDropHighlight(hl, zone);
+      dzWrap._currentZone = zone;
+    });
+
+    dzWrap.addEventListener('dragleave', e => {
+      if (dzWrap.contains(e.relatedTarget)) return;
+      const hl = dzWrap.querySelector('.drop-highlight');
+      if (hl) { hl.classList.remove('visible'); hl.className = 'drop-highlight'; }
+      dzWrap._currentZone = null;
+    });
+
+    dzWrap.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!dragState) return;
+      const leafId = dzWrap.dataset.leaf;
+      const zone = dzWrap._currentZone || 'center';
+      handleDrop(leafId, zone);
+    });
+  });
+}
+
+function showAllDropZones(excludeLeafId) {
+  document.querySelectorAll('.drop-zones').forEach(dzWrap => {
+    const pnl = dzWrap.closest('.pnl');
+    if (!pnl) return;
+    if (pnl.dataset.leafId === excludeLeafId) return;
+    dzWrap.classList.add('active');
+  });
+}
+
+function hideAllDropZones() {
+  document.querySelectorAll('.drop-zones.active').forEach(el => {
+    el.classList.remove('active');
+    const hl = el.querySelector('.drop-highlight');
+    if (hl) { hl.classList.remove('visible'); hl.className = 'drop-highlight'; }
+  });
+}
+
+function computeDropZone(x, y) {
+  // Edge threshold — 22% from each edge = edge zone
+  const T = 0.22;
+  if (y < T) return 'top';
+  if (y > 1 - T) return 'bottom';
+  if (x < T) return 'left';
+  if (x > 1 - T) return 'right';
+  return 'center';
+}
+
+function positionDropHighlight(el, zone) {
+  // Reset
+  el.className = 'drop-highlight visible ' + zone;
+  const icon = el.querySelector('.dz-icon');
+  switch (zone) {
+    case 'center':
+      el.style.cssText = 'inset: 15% 15%';
+      icon.textContent = '⊡';
+      break;
+    case 'top':
+      el.style.cssText = 'top: 0; left: 0; right: 0; height: 45%';
+      icon.textContent = '↑';
+      break;
+    case 'bottom':
+      el.style.cssText = 'bottom: 0; left: 0; right: 0; height: 45%';
+      icon.textContent = '↓';
+      break;
+    case 'left':
+      el.style.cssText = 'top: 0; left: 0; bottom: 0; width: 45%';
+      icon.textContent = '←';
+      break;
+    case 'right':
+      el.style.cssText = 'top: 0; right: 0; bottom: 0; width: 45%';
+      icon.textContent = '→';
+      break;
+  }
+}
+
+function handleDrop(targetLeafId, zone) {
+  if (!dragState) return;
+  const { sourceLeafId, sourceModuleId, sourceCtx, fromPicker, fromTab } = dragState;
+  const isNewPanel = fromPicker || fromTab;  // these create NEW panels, don't move source
+
+  if (targetLeafId === sourceLeafId && !isNewPanel) {
+    hideAllDropZones();
+    dragState = null;
+    return;
+  }
+
+  const targetResult = findNode(state.tree, targetLeafId);
+  if (!targetResult) return;
+  const targetLeaf = targetResult.node;
+
+  if (zone === 'center') {
+    if (isNewPanel) {
+      targetLeaf.module = sourceModuleId;
+      targetLeaf.ctx = sourceCtx;
+      // In-place content swap — no reRenderTree needed
+      reRenderLeafContent(targetLeafId, sourceModuleId, sourceCtx);
+      updatePanelContext(targetLeafId, sourceCtx);
+    } else {
+      // Swap modules between two panels
+      const targetModule = targetLeaf.module;
+      const targetCtx = targetLeaf.ctx;
+      targetLeaf.module = sourceModuleId;
+      targetLeaf.ctx = sourceCtx;
+      const sourceResult = findNode(state.tree, sourceLeafId);
+      if (sourceResult && sourceResult.node.type === 'leaf') {
+        sourceResult.node.module = targetModule;
+        sourceResult.node.ctx = targetCtx;
+      }
+      // In-place swap — just re-render content of both panels
+      reRenderLeafContent(targetLeafId, sourceModuleId, sourceCtx);
+      updatePanelContext(targetLeafId, sourceCtx);
+      reRenderLeafContent(sourceLeafId, targetModule, targetCtx);
+      updatePanelContext(sourceLeafId, targetCtx);
+    }
+    hideAllDropZones();
+    dragState = null;
+    return;
+  } else {
+    // Split the target leaf into two
+    const newLeaf = makeLeaf(sourceModuleId, sourceCtx);
+    let splitDir, newRatio, firstChild, secondChild;
+
+    if (zone === 'top') {
+      splitDir = 'vertical'; newRatio = 0.4;
+      firstChild = newLeaf;
+      secondChild = { ...targetLeaf, id: nid() };
+    } else if (zone === 'bottom') {
+      splitDir = 'vertical'; newRatio = 0.6;
+      firstChild = { ...targetLeaf, id: nid() };
+      secondChild = newLeaf;
+    } else if (zone === 'left') {
+      splitDir = 'horizontal'; newRatio = 0.35;
+      firstChild = newLeaf;
+      secondChild = { ...targetLeaf, id: nid() };
+    } else { // right
+      splitDir = 'horizontal'; newRatio = 0.65;
+      firstChild = { ...targetLeaf, id: nid() };
+      secondChild = newLeaf;
+    }
+
+    const newSplit = makeSplit(splitDir, newRatio, firstChild, secondChild);
+
+    // Replace target with split
+    state.tree = replaceNode(state.tree, targetLeaf.id, newSplit);
+    // If moving existing panel (not new), also remove the source leaf
+    if (!isNewPanel) {
+      state.tree = removeLeaf(state.tree, sourceLeafId);
+    }
+
+    hideAllDropZones();
+    dragState = null;
+    reRenderTree();
+    return;
+  }
+
+  hideAllDropZones();
+  dragState = null;
+  reRenderTree();
+}
+
+/* ════════════════════════════════════════════════════
+   FAB MODULE PICKER — draggable items
+   ════════════════════════════════════════════════════ */
+function updateModulePickerItems() {
+  const mpk = document.getElementById('mpk');
+  const itemsHtml = Object.entries(MODULE_REGISTRY).filter(([id, mod]) => !mod.isSub).map(([id, mod]) => `
+    <div class="mpk-i" draggable="true" data-module-id="${id}"
+         ondragstart="startPickerDrag(event,'${id}')"
+         ondragend="endPickerDrag()"
+         onclick="addModuleFromPicker('${id}')">
+      <span class="mi-dot" style="background:${mod.dot}"></span>
+      ${mod.label}
+      ${mod.key ? `<span class="k">${mod.key}</span>` : ''}
+    </div>
+  `).join('');
+  mpk.innerHTML = `<div class="mpk-h">Přidat modul (přetáhni nebo klikni)</div>${itemsHtml}`;
+}
+
+function startPickerDrag(e, moduleId) {
+  dragState = { sourceLeafId: null, sourceModuleId: moduleId, sourceCtx: 'ca', fromPicker: true };
+  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.setData('text/plain', moduleId);
+  // Keep picker open during drag so the drag event propagates correctly.
+  // Close it only on dragend.
+  setTimeout(() => {
+    closeFabPicker();
+    showAllDropZones(null);
+  }, 0);
+}
+
+function endPickerDrag() {
+  hideAllDropZones();
+  closeFabPicker();
+  if (dragState && dragState.fromPicker) dragState = null;
+}
+
+function addModuleFromPicker(moduleId) {
+  // Add to the last leaf in the tree
+  const leaves = getLeaves(state.tree);
+  if (leaves.length > 0) {
+    const last = leaves[leaves.length - 1];
+    // Split last leaf horizontally, new module on right
+    const existingLeafCopy = { ...last, id: nid() };
+    const newLeaf = makeLeaf(moduleId, 'ca');
+    const newSplit = makeSplit('horizontal', 0.5, existingLeafCopy, newLeaf);
+    state.tree = replaceNode(state.tree, last.id, newSplit);
+  } else {
+    state.tree = makeLeaf(moduleId, 'ca');
+  }
+  closeFabPicker();
+  reRenderTree();
+}
+
+function toggleModulePicker() {
+  state.modulePickerOpen = !state.modulePickerOpen;
+  document.getElementById('mpk').classList.toggle('open', state.modulePickerOpen);
+  const fab = document.getElementById('fab');
+  fab.style.transform = state.modulePickerOpen ? 'rotate(45deg)' : '';
+}
+
+function closeFabPicker() {
+  state.modulePickerOpen = false;
+  document.getElementById('mpk').classList.remove('open');
+  const fab = document.getElementById('fab');
+  if (fab) fab.style.transform = '';
+}
+
+/* ════════════════════════════════════════════════════
+   RESIZE — smooth flex ratio update
+   ════════════════════════════════════════════════════ */
+document.addEventListener('mousemove', e => {
+  if (!resizeState) return;
+  const { splitNode, divider, childA, childB, isH, startPos, startRatio, container } = resizeState;
+
+  const rect = container.getBoundingClientRect();
+  const totalSize = isH ? rect.width : rect.height;
+  const divSize = isH ? 5 : 5; // divider size in px
+  const available = totalSize - divSize;
+
+  const currentPos = isH ? e.clientX : e.clientY;
+  const containerStart = isH ? rect.left : rect.top;
+  const relPos = currentPos - containerStart;
+  const newRatio = Math.max(120 / available, Math.min(1 - 120 / available, relPos / available));
+
+  splitNode.ratio = newRatio;
+  const ra = newRatio;
+  const rb = 1 - newRatio;
+  childA.style.flex = `${ra} ${ra} 0%`;
+  childB.style.flex = `${rb} ${rb} 0%`;
+});
+
+document.addEventListener('mouseup', () => {
+  if (!resizeState) return;
+  resizeState.divider.classList.remove('active');
+  resizeState = null;
+});
+
+/* ════════════════════════════════════════════════════
+   LAYOUT SWITCHING
+   ════════════════════════════════════════════════════ */
+function setLayout(layoutKey) {
+  state.layout = layoutKey;
+  const labels = { std: 'Standardní', cmp: 'Porovnání', hor: 'Horizontální', qd: 'Kompletní' };
+  document.querySelectorAll('.lchip').forEach(c => {
+    c.classList.toggle('on', c.textContent.trim() === labels[layoutKey]);
+  });
+  renderWorkspace();
+}
+
+/* ════════════════════════════════════════════════════
+   CLOCK
+   ════════════════════════════════════════════════════ */
+function updateClock() {
+  const el = document.getElementById('ck');
+  if (el) el.textContent = new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+/* ════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && ['1', '2', '3', '4'].includes(e.key)) {
+    e.preventDefault();
+    setLayout(['std', 'cmp', 'hor', 'qd'][+e.key - 1]);
+  }
+  if (e.key === 'Escape') {
+    closeAllSlotPickers();
+    closeFabPicker();
+  }
+});
+
+document.addEventListener('click', e => {
+  if (state.modulePickerOpen && !e.target.closest('#fab') && !e.target.closest('#mpk')) {
+    closeFabPicker();
+  }
+  if (state.slotPickerOpen && !e.target.closest('.slot-picker-overlay') && !e.target.closest('.pc')) {
+    closeAllSlotPickers();
+  }
+});
+
+/* ════════════════════════════════════════════════════
+   LOGIN → BOOT → WORKSPACE FLOW
+   ════════════════════════════════════════════════════ */
+const BOOT_MESSAGES = [
+  'Inicializace databáze…',
+  'Načítání konfigurací…',
+  'Načítání dílů a materiálů…',
+  'Připojení k pracovišti…',
+  'Ověřování uživatele…',
+  'Systém připraven.',
+];
+
+function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const user = document.getElementById('login-user').value.trim();
+  btn.disabled = true;
+  btn.textContent = 'Přihlašování…';
+  btn.style.opacity = '0.7';
+
+  // Update avatar initials
+  const ava = document.getElementById('ws-ava');
+  if (ava && user) {
+    const parts = user.split(' ');
+    ava.textContent = parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : user.slice(0, 2).toUpperCase();
+  }
+
+  setTimeout(() => {
+    // Hide login
+    document.getElementById('login').classList.add('go');
+
+    // Show boot
+    const bootEl = document.getElementById('boot');
+    bootEl.classList.add('show');
+
+    // Start laser animation
+    const laser = document.getElementById('b-laser');
+    laser.classList.add('sweep');
+
+    // Animate boot messages
+    const statusEl = document.getElementById('b-status');
+    let msgIdx = 0;
+    const msgInterval = setInterval(() => {
+      if (statusEl && msgIdx < BOOT_MESSAGES.length) {
+        statusEl.textContent = BOOT_MESSAGES[msgIdx++];
+      } else {
+        clearInterval(msgInterval);
+      }
+    }, 120);
+
+    // After boot animation, show workspace
+    setTimeout(() => {
+      bootEl.classList.add('go');
+      bootEl.classList.remove('show');
+      const ws = document.getElementById('ws');
+      ws.classList.add('on');
+      setTimeout(() => {
+        document.getElementById('hdr').classList.add('in');
+        document.getElementById('fab').classList.add('in');
+        renderWorkspace();
+      }, 60);
+    }, 1000);
+  }, 600);
+}
+
+// Allow pressing Enter in password field to login
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('login-user').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('login-pass').focus();
+});
+</script>
+</body>
+</html>
