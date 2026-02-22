@@ -1,11 +1,14 @@
 export type UserRole = 'admin' | 'operator' | 'viewer'
 
+/** Mirrors backend UserResponse schema */
 export interface User {
   id: number
   username: string
-  full_name: string | null
+  email: string | null
   role: UserRole
   is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface LoginRequest {
@@ -13,7 +16,9 @@ export interface LoginRequest {
   password: string
 }
 
+/** Mirrors backend TokenResponse — returned by POST /auth/login */
 export interface TokenResponse {
-  access_token: string
-  token_type: string
+  status: string
+  username: string
+  role: UserRole
 }

@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { OptimisticLockError, ValidationError, NotFoundError } from '@/types/api'
 
-/** Regular API client — uses JWT from localStorage */
+/** Regular API client — uses HttpOnly cookie for auth (withCredentials) */
 export const apiClient = axios.create({
   baseURL: '/api',
   timeout: 30_000,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -12,18 +13,11 @@ export const apiClient = axios.create({
 export const adminClient = axios.create({
   baseURL: '/admin/api',
   timeout: 30_000,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
-function attachAuthInterceptor(client: typeof apiClient) {
-  client.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  })
-
+function attachResponseInterceptor(client: typeof apiClient) {
   client.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -33,8 +27,10 @@ function attachAuthInterceptor(client: typeof apiClient) {
       const detail: string = data?.detail ?? 'Neznámá chyba'
 
       if (status === 401) {
-        localStorage.removeItem('access_token')
-        window.location.href = '/login'
+        // Only redirect if not already on login page (avoids redirect loop during fetchMe)
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
         return Promise.reject(new Error('Relace vypršela. Přihlaste se znovu.'))
       }
 
@@ -55,8 +51,8 @@ function attachAuthInterceptor(client: typeof apiClient) {
   )
 }
 
-attachAuthInterceptor(apiClient)
-attachAuthInterceptor(adminClient)
+attachResponseInterceptor(apiClient)
+attachResponseInterceptor(adminClient)
 
 /** Re-export error classes for convenience */
 export { OptimisticLockError, ValidationError, NotFoundError }

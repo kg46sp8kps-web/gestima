@@ -26,7 +26,7 @@ const topModules = computed(() =>
 )
 
 const userInitials = computed(() => {
-  const name = auth.user?.full_name ?? auth.user?.username ?? 'US'
+  const name = auth.user?.username ?? 'US'
   return name
     .split(' ')
     .map((w) => w[0])
@@ -95,7 +95,7 @@ onMounted(() => {
         <button class="hbtn" title="Nastavení" @click.stop>
           <SettingsIcon :size="ICON_SIZE_SM" />
         </button>
-        <div class="ava" :title="auth.user?.full_name ?? ''" @click.stop="auth.logout()">
+        <div class="ava" :title="auth.user?.username ?? ''" @click.stop="auth.logout()">
           {{ userInitials }}
         </div>
       </div>

@@ -21,12 +21,27 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
-  const token = localStorage.getItem('access_token')
-  if (!to.meta.public && !token) {
+// Check auth once per session — avoids calling /auth/me on every navigation
+let authInitialized = false
+
+router.beforeEach(async (to) => {
+  // Dynamic import avoids circular dep: router ↔ auth store
+  const { useAuthStore } = await import('@/stores/auth')
+  const auth = useAuthStore()
+
+  if (!authInitialized) {
+    authInitialized = true
+    if (!auth.isLoggedIn) {
+      // Try to restore session from existing HttpOnly cookie
+      await auth.fetchMe()
+    }
+  }
+
+  if (!to.meta.public && !auth.isLoggedIn) {
     return { name: 'login' }
   }
-  if (to.name === 'login' && token) {
+
+  if (to.name === 'login' && auth.isLoggedIn) {
     return { name: 'workspace' }
   }
 })
