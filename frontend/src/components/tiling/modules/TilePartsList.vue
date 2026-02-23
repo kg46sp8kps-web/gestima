@@ -5,12 +5,9 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useUiStore } from '@/stores/ui'
 import * as materialsApi from '@/api/materials'
 import type { ContextGroup } from '@/types/workspace'
-import type { Part, PartCreate, PartStatus } from '@/types/part'
+import type { Part, PartStatus } from '@/types/part'
 import type { MaterialItem } from '@/types/material-item'
 import Spinner from '@/components/ui/Spinner.vue'
-import Modal from '@/components/ui/Modal.vue'
-import Input from '@/components/ui/Input.vue'
-import Button from '@/components/ui/Button.vue'
 
 type TypeFilter = 'all' | 'parts' | 'materials'
 
@@ -26,10 +23,6 @@ const ui = useUiStore()
 
 const searchVal = ref('')
 const typeFilter = ref<TypeFilter>('all')
-const showCreate = ref(false)
-const createName = ref('')
-const createArticle = ref('')
-const creating = ref(false)
 
 // ─── Materials state ───
 const materialItems = ref<MaterialItem[]>([])
@@ -99,26 +92,6 @@ function dotClass(status: string): string {
   return 'pd o'
 }
 
-async function handleCreate() {
-  if (!createName.value.trim() && !createArticle.value.trim()) {
-    ui.showError('Zadejte alespoň název nebo číslo artiklu')
-    return
-  }
-  creating.value = true
-  const payload: PartCreate = {
-    name: createName.value.trim(),
-    article_number: createArticle.value.trim(),
-  }
-  const part = await parts.createPart(payload)
-  creating.value = false
-  if (part) {
-    showCreate.value = false
-    createName.value = ''
-    createArticle.value = ''
-    catalog.focusItem({ type: 'part', number: part.part_number }, props.ctx)
-  }
-}
-
 async function fetchMaterials() {
   if (materialsLoading.value) return
   materialsLoading.value = true
@@ -170,17 +143,6 @@ watch(
       <button class="icon-btn icon-btn-sm" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll(); fetchMaterials()">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M2.5 8a5.5 5.5 0 1 0 1-3.18M2.5 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button
-        v-if="typeFilter !== 'materials'"
-        class="icon-btn icon-btn-brand icon-btn-sm"
-        title="Nový díl"
-        data-testid="parts-create"
-        @click="showCreate = true"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
@@ -254,17 +216,6 @@ watch(
       </template>
     </ul>
 
-    <!-- Create modal -->
-    <Modal v-model="showCreate" title="Nový díl" size="sm">
-      <div class="create-form">
-        <Input v-model="createName" label="Název dílu" placeholder="např. Hřídel frézovaná" data-testid="create-part-name" />
-        <Input v-model="createArticle" label="Číslo artiklu" placeholder="např. ART-12345" data-testid="create-part-article" />
-      </div>
-      <template #footer>
-        <Button variant="ghost" @click="showCreate = false">Zrušit</Button>
-        <Button variant="primary" :loading="creating" data-testid="create-part-submit" @click="handleCreate">Vytvořit díl</Button>
-      </template>
-    </Modal>
   </div>
 </template>
 
@@ -446,10 +397,5 @@ watch(
   flex-shrink: 0;
 }
 
-/* ─── Create form ─── */
-.create-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+
 </style>
