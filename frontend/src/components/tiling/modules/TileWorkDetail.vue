@@ -3,6 +3,8 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useAuthStore } from '@/stores/auth'
+import { useDialog } from '@/composables/useDialog'
 import type { ContextGroup, ModuleId } from '@/types/workspace'
 import type { Operation, CuttingMode } from '@/types/operation'
 import type { WorkCenter } from '@/types/work-center'
@@ -22,6 +24,8 @@ const props = defineProps<Props>()
 const parts = usePartsStore()
 const ops = useOperationsStore()
 const ws = useWorkspaceStore()
+const auth = useAuthStore()
+const dialog = useDialog()
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
 
@@ -131,6 +135,12 @@ interface EditDraft {
 const editingOpId = ref<number | null>(null)
 const editDraft = ref<EditDraft | null>(null)
 const saving = ref(false)
+const creating = ref(false)
+
+const nextSeq = computed(() => {
+  if (!displayedOps.value.length) return 10
+  return Math.max(...displayedOps.value.map(o => o.seq)) + 10
+})
 
 // WC typeahead state
 const wcQuery = ref('')
@@ -215,9 +225,51 @@ async function saveEdit() {
   saving.value = false
 }
 
+async function addOp() {
+  if (!part.value || creating.value) return
+  creating.value = true
+  const op = await ops.createOp({
+    part_id: part.value.id,
+    seq: nextSeq.value,
+    cutting_mode: 'mid',
+    setup_time_min: 30,
+    operation_time_min: 0,
+  })
+  creating.value = false
+  if (op) { await nextTick(); await startEdit(op, 'wc') }
+}
+
+async function advanceOrCreate() {
+  const idx = displayedOps.value.findIndex(o => o.id === editingOpId.value)
+  const nextOp = idx >= 0 && idx < displayedOps.value.length - 1
+    ? displayedOps.value[idx + 1] : null
+  saveEdit()
+  await nextTick()
+  if (nextOp) startEdit(nextOp, 'wc')
+  else addOp()
+}
+
+async function deleteOp(op: Operation, e: MouseEvent) {
+  e.stopPropagation()
+  const ok = await dialog.confirm({
+    title: 'Smazat operaci?',
+    message: `Operace ${op.work_center_name ?? 'bez pracoviště'} (seq ${op.seq}) bude trvale smazána.`,
+    confirmLabel: 'Smazat',
+    cancelLabel: 'Zrušit',
+  })
+  if (!ok || !part.value) return
+  await ops.removeOp(op.id, part.value.id)
+}
+
 function onRowKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+  if (e.key === 'Enter') { e.preventDefault(); advanceOrCreate() }
   if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+}
+
+function onOptimeKeydown(e: KeyboardEvent) {
+  if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); advanceOrCreate() }
+  else if (e.key === 'Enter') { e.preventDefault(); advanceOrCreate() }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
 }
 
 // Cutting mode / coop cycling
@@ -254,7 +306,7 @@ function onWcKeydown(e: KeyboardEvent) {
     if (wcOpen.value && hit) {
       selectWc(hit)
     } else {
-      saveEdit()
+      advanceOrCreate()
     }
   } else if (e.key === 'Escape') {
     e.preventDefault()
@@ -388,6 +440,13 @@ function onWcBlur() {
         <div v-else-if="!displayedOps.length" class="tab-state">
           <div class="mod-dot" />
           <span class="mod-label">Žádné operace</span>
+          <button
+            class="add-op-btn"
+            style="width: auto; padding: 4px 12px; margin-top: 4px; border: 1px solid var(--b2); border-radius: var(--rs);"
+            :disabled="creating"
+            data-testid="add-op-btn"
+            @click="addOp"
+          >+ Přidat operaci</button>
         </div>
         <!-- Summary + table -->
         <template v-else>
@@ -411,6 +470,7 @@ function onWcBlur() {
                 <th class="r" style="width:85px">Seřízení</th>
                 <th class="r" style="width:85px">Výroba</th>
                 <th class="r" style="width:36px">M</th>
+                <th v-if="auth.isAdmin" style="width:20px"></th>
               </tr>
             </thead>
             <tbody>
@@ -424,7 +484,8 @@ function onWcBlur() {
                 <template v-if="editingOpId === op.id && editDraft">
                   <td @click.stop="focusField('seq')">
                     <input
-                      class="ei ei-num"
+                      v-select-on-focus
+                      class="ei"
                       type="text"
                       inputmode="numeric"
                       :value="editDraft.seq"
@@ -451,8 +512,8 @@ function onWcBlur() {
                         v-if="editDraft.work_center_id"
                         class="wc-clr"
                         tabindex="-1"
-                        @mousedown.prevent="clearWc"
                         title="Odebrat pracoviště"
+                        @mousedown.prevent="clearWc"
                       >×</button>
                       <!-- Dropdown -->
                       <div v-if="wcOpen && filteredWcs.length" class="wc-drop">
@@ -470,7 +531,8 @@ function onWcBlur() {
                   </td>
                   <td class="r" @click.stop="focusField('setup')">
                     <input
-                      class="ei ei-num r"
+                      v-select-on-focus
+                      class="ei r"
                       type="text"
                       inputmode="decimal"
                       :value="editDraft.setup_time_min"
@@ -481,13 +543,14 @@ function onWcBlur() {
                   </td>
                   <td class="r" @click.stop="focusField('optime')">
                     <input
-                      class="ei ei-num r"
+                      v-select-on-focus
+                      class="ei r"
                       type="text"
                       inputmode="decimal"
                       :value="editDraft.operation_time_min"
                       data-testid="edit-optime"
                       @change="editDraft.operation_time_min = parseNum($event)"
-                      @keydown="onRowKeydown"
+                      @keydown="onOptimeKeydown"
                     />
                   </td>
                   <td class="r" @click.stop="cycleCutting">
@@ -496,6 +559,7 @@ function onWcBlur() {
                       {{ cuttingLabel(editDraft.cutting_mode) }}
                     </span>
                   </td>
+                  <td v-if="auth.isAdmin" />
                 </template>
 
                 <!-- ── Display mode ── -->
@@ -512,13 +576,29 @@ function onWcBlur() {
                     <span v-if="op.is_coop" class="cm-badge coop">CO</span>
                     <span v-else :class="['cm-badge', `cm-${op.cutting_mode}`]">{{ cuttingLabel(op.cutting_mode) }}</span>
                   </td>
+                  <td v-if="auth.isAdmin" class="del-td">
+                    <button
+                      class="del-op-btn"
+                      tabindex="-1"
+                      title="Smazat operaci"
+                      data-testid="del-op-btn"
+                      @click.stop="deleteOp(op, $event)"
+                    >×</button>
+                  </td>
                 </template>
               </tr>
             </tbody>
           </table>
+          <!-- Add operation -->
+          <button
+            class="add-op-btn"
+            :disabled="creating"
+            data-testid="add-op-inline-btn"
+            @click="addOp"
+          >+ Přidat operaci</button>
           <!-- Edit hint -->
           <div v-if="editingOpId !== null" class="edit-hint">
-            <span>Enter uloží · Esc zruší</span>
+            <span>Tab přepíná · Enter / Tab z výroby uloží a přejde · Esc zruší</span>
           </div>
         </template>
       </div>
@@ -558,7 +638,7 @@ function onWcBlur() {
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-.mod-hint { font-size: 10px; opacity: 0.6; }
+.mod-hint { font-size: var(--fsm); opacity: 0.6; }
 
 /* ─── Compact info bar ─── */
 .det-bar {
@@ -571,12 +651,12 @@ function onWcBlur() {
   flex-shrink: 0;
   overflow: hidden;
 }
-.det-pn { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
+.det-pn { font-family: var(--mono); font-size: var(--fs); font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
 .det-nm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .det-bgs { display: flex; gap: 3px; flex-shrink: 0; }
 
 /* ─── Badge ─── */
-.bdg { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-size: 10px; font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2); }
+.bdg { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2); }
 .bdg .dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
 .dot.ok { background: var(--ok); }
 .dot.w  { background: var(--warn); }
@@ -588,18 +668,18 @@ function onWcBlur() {
 .rib-sep { border-top: 1px solid var(--b1); }
 .rib-r { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
-.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
 .rib-v.m { font-family: var(--mono); }
 
 /* ─── Tab strip ─── */
 .ptabs { display: flex; gap: 1px; padding: 3px var(--pad); border-bottom: 1px solid var(--b2); flex-shrink: 0; background: rgba(255,255,255,0.015); }
-.ptab { padding: 3px 7px; font-size: 10.5px; font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 3px; }
+.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 3px; }
 .ptab:hover { color: var(--t3); }
 .ptab.on { color: var(--t1); background: var(--b1); }
 .ptab[draggable="true"] { cursor: grab; }
 .ptab[draggable="true"]:active { cursor: grabbing; }
-.n { font-family: var(--mono); font-size: 10px; color: var(--t4); padding: 1px 4px; background: var(--b1); border-radius: 2px; }
+.n { font-family: var(--mono); font-size: var(--fsm); color: var(--t4); padding: 1px 4px; background: var(--b1); border-radius: 2px; }
 
 /* ─── Tab body ─── */
 .tab-body { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; display: flex; flex-direction: column; }
@@ -607,45 +687,45 @@ function onWcBlur() {
 .tab-placeholder { align-items: center; justify-content: center; gap: 8px; color: var(--t4); }
 
 /* ─── Operations table ─── */
-.ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
-.ot th { padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; text-align: left; border-bottom: 1px solid var(--b2); white-space: nowrap; }
-.ot th.r { text-align: right; }
-.ot td { padding: 2px var(--pad); font-size: var(--fs); color: var(--t2); border-bottom: 1px solid rgba(255,255,255,0.025); }
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); cursor: pointer; }
 .mono { font-family: var(--mono); }
 .t4 { color: var(--t4); }
-.wc-cell { font-family: var(--mono); font-size: 10px; color: var(--t3); }
+.wc-cell { font-family: var(--mono); font-size: var(--fsm); color: var(--t3); }
 
 /* ─── Editing row ─── */
-.op-editing td { background: var(--raised) !important; border-bottom-color: var(--b3) !important; padding-top: 1px; padding-bottom: 1px; }
-.op-editing:hover td { background: var(--raised) !important; }
+.ot tbody tr.op-editing td,
+.ot tbody tr.op-editing:hover td {
+  background: var(--b1);
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.ot tbody tr.op-editing { box-shadow: inset 2px 0 0 var(--red-dim); }
 
-/* ─── Inline edit inputs ─── */
+/* ─── Ghost input styly ─── */
 .ei {
-  background: var(--surface);
-  border: 1px solid var(--b3);
-  border-radius: var(--rs);
-  color: var(--t1);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  color: var(--t2);
   font-family: var(--mono);
-  font-size: 11px;
-  padding: 2px 4px;
+  font-size: var(--fs);
+  padding: 0;
   outline: none;
   width: 100%;
   box-sizing: border-box;
+  line-height: inherit;
 }
-.ei:focus { border-color: rgba(255,255,255,0.3); }
-.ei-num { width: 48px; text-align: center; }
-.ei-num.r { text-align: right; }
-.ei-num { text-align: center; }
-.ei-num.r { text-align: right; }
-.ei::selection { background: transparent; }
+.ei:focus {
+  color: var(--t1);
+  border-bottom-color: var(--b3);
+}
+.ei.r { text-align: right; }
+.ei::selection { background: var(--b2); }
+.ei-wc { font-family: var(--font); }
 
 /* ─── WC typeahead ─── */
 .wc-td { position: relative; }
 .wc-wrap { position: relative; display: flex; align-items: center; gap: 2px; }
-.ei-wc { flex: 1; min-width: 0; font-family: var(--font); font-size: 11px; }
 .wc-clr {
   flex-shrink: 0;
   width: 14px;
@@ -654,7 +734,7 @@ function onWcBlur() {
   border: none;
   color: var(--t4);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fsh);
   line-height: 1;
   padding: 0;
   display: flex;
@@ -685,13 +765,52 @@ function onWcBlur() {
   font-size: var(--fs);
 }
 .wc-opt:hover, .wc-opt.hi { background: var(--b2); }
-.wc-num { font-family: var(--mono); font-size: 10px; color: var(--t4); flex-shrink: 0; }
+.wc-num { font-family: var(--mono); font-size: var(--fsm); color: var(--t4); flex-shrink: 0; }
 .wc-nm { color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─── Delete button ─── */
+.del-td { width: 20px; padding: 0 4px 0 0; }
+.del-op-btn {
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--t4);
+  font-size: var(--fsh);
+  line-height: 1;
+  padding: 0;
+  border-radius: var(--rs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.op-row:hover .del-op-btn { opacity: 1; }
+.del-op-btn:hover { color: var(--err); }
+
+/* ─── Add operation button ─── */
+.add-op-btn {
+  display: block;
+  width: 100%;
+  padding: 5px var(--pad);
+  text-align: left;
+  font-size: var(--fsl);
+  color: var(--t4);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--b1);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color 100ms var(--ease);
+}
+.add-op-btn:hover:not(:disabled) { color: var(--t2); }
+.add-op-btn:disabled { opacity: 0.35; cursor: default; }
 
 /* ─── Edit hint ─── */
 .edit-hint {
   padding: 3px var(--pad);
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   border-top: 1px solid var(--b1);
   flex-shrink: 0;
@@ -699,13 +818,13 @@ function onWcBlur() {
 }
 
 /* ─── Time badge ─── */
-.tb { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-family: var(--mono); font-size: 10px; border-radius: 99px; background: var(--b1); color: var(--t2); white-space: nowrap; }
+.tb { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-family: var(--mono); font-size: var(--fsm); border-radius: 99px; background: var(--b1); color: var(--t2); white-space: nowrap; }
 .tb .d { width: 3px; height: 3px; border-radius: 50%; flex-shrink: 0; }
 .tb.s .d { background: var(--red); }
 .tb.o .d { background: var(--ok); }
 
 /* ─── Cutting mode badge ─── */
-.cm-badge { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.06em; padding: 1px 4px; border-radius: var(--rs); }
+.cm-badge { font-family: var(--mono); font-size: var(--fss); font-weight: 600; letter-spacing: 0.06em; padding: 1px 4px; border-radius: var(--rs); }
 .cm-low  { background: var(--b1); color: var(--t3); }
 .cm-mid  { background: var(--b1); color: var(--t2); }
 .cm-high { background: var(--red-10); color: var(--red); }
