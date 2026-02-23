@@ -34,3 +34,7 @@ export async function freeze(batchNumber: string): Promise<Batch> {
   const { data } = await apiClient.post<Batch>(`/batches/${batchNumber}/freeze`)
   return data
 }
+
+export async function recalculateByPartId(partId: number): Promise<void> {
+  await apiClient.post(`/batches/part/${partId}/recalculate`)
+}
