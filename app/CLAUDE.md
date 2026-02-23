@@ -163,6 +163,41 @@ API response → Pinia store → Component → Template
 
 ---
 
+## Structural Change Checklist — POVINNÉ před odstraněním/přejmenováním pole
+
+**NIKDY nezačínáš editovat, dokud neprovedéš tento scan:**
+
+```bash
+# 1. Najdi VŠECHNA použití pole v celém projektu
+grep -rn "field_name" app/ tests/ scripts/ alembic/ --include="*.py"
+
+# 2. Vypiš existující migration revision IDs (před vytvořením nové migrace)
+python3 -c "
+import glob, re
+for f in sorted(glob.glob('alembic/versions/*.py')):
+    c = open(f).read()
+    m = re.search(r\"revision = '(.+?)'\", c)
+    if m: print(m.group(1), '-', f.split('/')[-1])
+"
+```
+
+**Pravidlo:** Nejdřív grep → seznam VŠECH souborů k úpravě → pak uprav VŠE najednou.
+
+Typická místa výskytu odstraňovaného pole:
+- `app/models/` — definice
+- `app/schemas/` — Pydantic Create/Update/Response
+- `app/routers/` — query parametry, filtry
+- `app/services/` — business logika
+- `app/seed_data.py`, `scripts/` — seed skripty
+- `tests/` — test fixtures, asserty
+- `alembic/versions/` — starší migrace které pole přidávaly
+- `frontend/src/types/` — TypeScript typy
+
+**NIKDY iterativně** (fix → test → další chyba → fix → test...).
+Jeden scan → jeden implementační průchod → testy projdou napoprvé.
+
+---
+
 ## Testing — Backend Patterns
 
 ```python

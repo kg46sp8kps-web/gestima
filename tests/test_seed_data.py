@@ -33,9 +33,9 @@ async def test_seed_demo_parts_adr017_compliance(db_session):
     # Run seed function
     await seed_demo_parts(db_session)
 
-    # Get all demo parts
+    # Get all demo parts (identified by article_number prefix)
     result = await db_session.execute(
-        select(Part).where(Part.notes.like("%DEMO%"))
+        select(Part).where(Part.article_number.like("ART-DEMO-%"))
     )
     demo_parts = result.scalars().all()
 
@@ -81,7 +81,7 @@ async def test_seed_demo_parts_no_hardcoded_numbers(db_session):
     await seed_demo_parts(db_session)
 
     result = await db_session.execute(
-        select(Part).where(Part.notes.like("%DEMO%"))
+        select(Part).where(Part.article_number.like("ART-DEMO-%"))
     )
     demo_parts = result.scalars().all()
 
@@ -114,7 +114,7 @@ async def test_seed_demo_parts_unique(db_session):
     await seed_demo_parts(db_session)
 
     result = await db_session.execute(
-        select(Part.part_number).where(Part.notes.like("%DEMO%"))
+        select(Part.part_number).where(Part.article_number.like("ART-DEMO-%"))
     )
     part_numbers = [row[0] for row in result.all()]
 
@@ -136,7 +136,7 @@ async def test_seed_demo_parts_idempotent(db_session):
     await seed_demo_parts(db_session)
 
     result = await db_session.execute(
-        select(Part).where(Part.notes.like("%DEMO%"))
+        select(Part).where(Part.article_number.like("ART-DEMO-%"))
     )
     demo_parts = result.scalars().all()
 
@@ -160,7 +160,7 @@ async def test_seed_demo_parts_pydantic_validation(db_session):
     await seed_demo_parts(db_session)
 
     result = await db_session.execute(
-        select(Part).where(Part.notes.like("%DEMO%"))
+        select(Part).where(Part.article_number.like("ART-DEMO-%"))
     )
     demo_parts = result.scalars().all()
 

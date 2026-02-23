@@ -276,10 +276,8 @@ async def create_part(
         name=data.name,
         drawing_number=data.drawing_number,
         customer_revision=data.customer_revision,
-        notes=data.notes,
         revision="A",
         status="active",
-        length=0.0
     )
     set_audit(part, current_user.username)
     db.add(part)
@@ -370,8 +368,6 @@ async def duplicate_part(
         revision=original.revision,
         customer_revision=original.customer_revision,
         drawing_number=original.drawing_number,
-        length=original.length,
-        notes=original.notes,
         status="draft",
     )
     set_audit(new_part, current_user.username)
@@ -533,8 +529,6 @@ async def get_part_full(
         "part_number": part.part_number,
         "article_number": part.article_number,
         "name": part.name,
-        "length": part.length,
-        "notes": part.notes,
         "version": part.version,
         "created_at": part.created_at.isoformat(),
         "updated_at": part.updated_at.isoformat(),

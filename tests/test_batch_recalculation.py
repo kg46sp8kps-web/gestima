@@ -71,7 +71,6 @@ async def test_recalculate_batch_costs_basic(db_session):
     part = Part(
         part_number="10000050",  # ADR-017: 8-digit number
         name="Test díl",
-        length=100.0,  # mm - délka dílu (ne polotovaru!)
         created_by="test"
     )
     db_session.add(part)

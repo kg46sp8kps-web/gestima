@@ -96,7 +96,6 @@ async def setup_test_data(test_engine):
         part = Part(
             part_number="1000100",  # ADR-017
             name="Test Part for Performance",
-            length=100.0,
             created_by="test"
         )
         session.add(part)

@@ -122,7 +122,6 @@ class PartImporter(InforImporterBase[Part]):
             revision="A",
             status=mapped_data.get("status", "quote"),
             source="infor_import",
-            length=0.0
         )
 
         logger.info(

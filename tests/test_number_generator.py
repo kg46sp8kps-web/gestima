@@ -158,7 +158,6 @@ class TestNumberGeneratorCollisions:
                 part = Part(
                     part_number=number,
                     name=f"Part {i}",
-
                     created_by="test"
                 )
                 db_session.add(part)
@@ -271,8 +270,7 @@ class TestNumberGeneratorIntegration:
 
         # Create part without specifying part_number (ADR-024: no material fields on Part)
         part_data = PartCreate(
-            name="Test Part",
-            length=100.0
+            name="Test Part"
         )
 
         # Note: This would require mocking Depends() which is complex
@@ -282,7 +280,6 @@ class TestNumberGeneratorIntegration:
         part = Part(
             part_number=number,
             name="Test Part",
-            length=100.0,
             created_by="testuser"
         )
         db_session.add(part)

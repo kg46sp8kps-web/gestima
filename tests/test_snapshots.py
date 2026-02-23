@@ -105,7 +105,6 @@ async def sample_part(db_session, sample_materials):
     part = Part(
         part_number="10000099",  # ADR-017: 8-digit number
         name="Test Snapshot Part",
-        length=100.0,
         created_by="test",
         updated_by="test"
     )

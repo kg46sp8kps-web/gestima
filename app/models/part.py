@@ -8,7 +8,7 @@ ADR-024: MaterialInput refactor (v1.8.0)
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING, List
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
@@ -33,10 +33,6 @@ class Part(Base, AuditMixin):
     drawing_number = Column(String(50), nullable=True)         # Číslo výkresu (zobrazené v hlavičce)
     status = Column(String(20), default="active", nullable=False)  # Lifecycle status (validated by Pydantic)
     source = Column(String(20), default="manual", nullable=False)  # Původ dílu: manual, infor_import, quote_request
-    # Rozměry dílu (ne polotovaru!)
-    length = Column(Float, default=0.0)  # mm - délka obráběné části
-
-    notes = Column(String(500), default="")
     # DEPRECATED: drawing_path - use drawings relationship (multiple drawings support)
     # Kept for backwards compatibility during migration period
     # Will be removed after migration to drawings table
@@ -72,8 +68,6 @@ class PartBase(BaseModel):
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     status: PartStatus = Field(PartStatus.ACTIVE, description="Status dílu (default: active)")
     source: PartSource = Field(PartSource.MANUAL, description="Původ dílu (manual, infor_import, quote_request)")
-    length: float = Field(0.0, ge=0, description="Délka obráběné části v mm")
-    notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
 
 class PartCreate(BaseModel):
@@ -82,7 +76,6 @@ class PartCreate(BaseModel):
     name: str = Field("", max_length=200, description="Název dílu")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
-    notes: Optional[str] = Field(None, max_length=500, description="Poznámky")
 
 
 class PartUpdate(BaseModel):
@@ -93,8 +86,6 @@ class PartUpdate(BaseModel):
     customer_revision: Optional[str] = Field(None, max_length=50)
     drawing_number: Optional[str] = Field(None, max_length=50)
     status: Optional[PartStatus] = None
-    length: Optional[float] = Field(None, ge=0)
-    notes: Optional[str] = Field(None, max_length=500)
     version: int  # Optimistic locking (ADR-008)
 
 

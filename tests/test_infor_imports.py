@@ -115,7 +115,6 @@ async def test_routing_importer_basic(db_session: AsyncSession):
         name="Test Routing Part",
         revision="A",
         status="active",
-        length=0.0
     )
     db_session.add(part)
     try:
@@ -195,7 +194,6 @@ async def test_production_importer_basic(db_session: AsyncSession):
         name="Test Production Part",
         revision="A",
         status="active",
-        length=0.0
     )
     db_session.add(part)
     try:

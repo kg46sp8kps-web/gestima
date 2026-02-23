@@ -11,8 +11,6 @@ export interface Part {
   drawing_number: string | null
   status: PartStatus
   source: PartSource
-  length: number
-  notes: string
   file_id: number | null
   version: number
   created_at: string
@@ -25,7 +23,6 @@ export interface PartCreate {
   name: string
   customer_revision?: string
   drawing_number?: string
-  notes?: string
 }
 
 export interface PartUpdate {
@@ -36,8 +33,6 @@ export interface PartUpdate {
   customer_revision?: string
   drawing_number?: string
   status?: PartStatus
-  length?: number
-  notes?: string
   version: number
 }
 

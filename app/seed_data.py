@@ -35,9 +35,9 @@ async def seed_demo_parts(db: AsyncSession):
             logger.warning("No materials found - skipping demo parts creation")
             return
 
-        # Check if demo parts already exist (by notes="DEMO")
+        # Check if demo parts already exist (by article_number prefix)
         result = await db.execute(
-            select(Part).where(Part.notes.like("%DEMO - Vzorový díl%"))
+            select(Part).where(Part.article_number.like("ART-DEMO-%"))
         )
         existing_demo = result.scalars().all()
 
@@ -50,24 +50,9 @@ async def seed_demo_parts(db: AsyncSession):
 
         # Demo parts data (WITHOUT hardcoded part_numbers!)
         demo_parts_data = [
-            {
-                "article_number": "ART-DEMO-001",
-                "name": "Demo hřídel",
-                "length": 150.0,
-                "notes": "DEMO - Vzorový díl pro testování. Můžete smazat a znovu se vytvoří při restartu."
-            },
-            {
-                "article_number": "ART-DEMO-002",
-                "name": "Demo pouzdro",
-                "length": 80.0,
-                "notes": "DEMO - Vzorový díl pro testování. Můžete smazat a znovu se vytvoří při restartu."
-            },
-            {
-                "article_number": "ART-DEMO-003",
-                "name": "Demo příruba",
-                "length": 200.0,
-                "notes": "DEMO - Vzorový díl pro testování. Můžete smazat a znovu se vytvoří při restartu."
-            },
+            {"article_number": "ART-DEMO-001", "name": "Demo hřídel"},
+            {"article_number": "ART-DEMO-002", "name": "Demo pouzdro"},
+            {"article_number": "ART-DEMO-003", "name": "Demo příruba"},
         ]
 
         # Step 1: Create Parts first (without material)
@@ -77,8 +62,6 @@ async def seed_demo_parts(db: AsyncSession):
                 part_number=part_numbers[i],  # ADR-017 v2.0 compliant (10XXXXXX)
                 article_number=data["article_number"],
                 name=data["name"],
-                length=data["length"],
-                notes=data["notes"],
                 created_by="system_seed"
             )
             db.add(part)
@@ -98,9 +81,8 @@ async def seed_demo_parts(db: AsyncSession):
                     material_item_id=material.id,
                     stock_shape=material.shape,  # Use shape from MaterialItem
                     stock_diameter=material.diameter if material.shape == StockShape.ROUND_BAR else None,
-                    stock_length=part.length if part.length else 100.0,  # Use part length or default
+                    stock_length=100.0,
                     quantity=1,
-                    notes="DEMO - Auto-generated material input",
                 )
                 db.add(material_input)
 

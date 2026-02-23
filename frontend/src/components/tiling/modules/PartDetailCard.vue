@@ -104,7 +104,7 @@ let qlDragTimer: ReturnType<typeof setTimeout> | null = null
 function onQlDragStart(e: DragEvent, moduleId: ModuleId) {
   if (!e.dataTransfer) return
   e.dataTransfer.setData('text/plain', moduleId)
-  e.dataTransfer.effectAllowed = 'copy'
+  e.dataTransfer.effectAllowed = 'move'
   qlDragTimer = setTimeout(() => {
     qlDragTimer = null
     ws.startDrag(null, moduleId, props.ctx)
@@ -214,23 +214,19 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 
     <!-- Quick-link strip -->
     <div class="ql-strip">
-      <div
+      <button
         v-for="ql in QUICK_LINKS"
         :key="ql.module"
-        class="ql-wrap"
-        draggable="true"
+        class="ql-btn"
+        :data-testid="`open-${ql.module}`"
         :title="`Otevřít ${ql.label} — klik vedle, táhnout kamkoli`"
+        draggable="true"
+        @click="openModule(ql.module)"
         @dragstart="onQlDragStart($event, ql.module)"
         @dragend="onQlDragEnd"
       >
-        <button
-          class="ql-btn"
-          :data-testid="`open-${ql.module}`"
-          @click="openModule(ql.module)"
-        >
-          {{ ql.label }}
-        </button>
-      </div>
+        {{ ql.label }}
+      </button>
     </div>
 
     <!-- Scrollable body -->
@@ -406,8 +402,8 @@ watch(() => props.part.id, loadFiles, { immediate: true })
   transition: color 100ms var(--ease), background 100ms var(--ease);
 }
 .ql-btn:hover { color: var(--t1); background: var(--b1); }
-.ql-wrap { display: contents; cursor: grab; }
-.ql-wrap:active { cursor: grabbing; }
+.ql-btn[draggable="true"] { cursor: grab; }
+.ql-btn[draggable="true"]:active { cursor: grabbing; }
 
 /* ─── Scrollable body ─── */
 .form-body {

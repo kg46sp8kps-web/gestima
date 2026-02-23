@@ -13,7 +13,6 @@ async def test_create_part_with_article_number(db_session):
         part_number="P-001",
         article_number="ART-12345",
         name="Test díl",
-        length=100.0,
         created_by="test"
     )
     db_session.add(part)
