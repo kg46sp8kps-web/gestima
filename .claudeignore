@@ -1,5 +1,6 @@
 # Archive - historical docs, not needed for development
 docs/archive/
+docs/ADR/archive/
 docs/audits/
 docs/sprints/
 docs/diagrams/

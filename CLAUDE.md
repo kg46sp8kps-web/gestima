@@ -243,6 +243,61 @@ frontend/e2e/                 # E2E tests (Playwright)
 
 ---
 
+## Documentation Policy — ADR Workflow
+
+### Kdy psát ADR (a kdy NE)
+
+| Piš ADR | NIC nepíš |
+|---|---|
+| Nový architektonický pattern s tradeoffs | Bugfix |
+| Breaking change datového modelu | Nový endpoint podle vzoru |
+| Integrace třetí strany | UI komponenta |
+| Bezpečnostní model | Rozšíření existujícího ADR |
+| Neobvyklé rozhodnutí které by budoucí Claude "opravil" | Test, refactor, cleanup |
+
+**Pravidlo:** Ptej se — *"Pochopí Claude z kódu proč to tak je?"* Pokud ano → žádný ADR.
+
+### ADR Workflow
+
+```
+1. PLÁNOVÁNÍ  → plný ADR (kontext + alternativy + tradeoffs)
+2. IMPLEMENTACE → kód + testy
+3. PO IMPLEMENTACI → vytvoř kompaktní ADR (max 35 řádků)
+                   → přesuň plný ADR do docs/ADR/archive/
+                   → .claudeignore ignoruje archive/ → žádný noise
+```
+
+### Kompaktní ADR šablona (max 35 řádků)
+
+```markdown
+# ADR-NNN: Název [ACCEPTED | PARTIAL | PLANNED | SUPERSEDED BY ADR-XXX]
+> Archive: docs/ADR/archive/NNN-filename.md — Claude může požádat o přečtení
+
+## Rozhodnutí
+Jedna věta co bylo rozhodnuto.
+
+## Pattern
+- `app/models/xyz.py` — co zde najdeš
+- `frontend/src/` — kde žije frontend část
+
+## Nesmíš
+- co nedělat (1-3 bullets)
+```
+
+### CHANGELOG
+
+- Claude **neudržuje CHANGELOG** automaticky — jen na explicitní žádost
+- Aktualizuj ručně při releasu (ne per-task)
+- Formát: verze + datum + max 5 bulletů
+
+### Existující ADRy
+
+Kompaktní ADRy jsou v `docs/ADR/` (Claude je čte).
+Plné originály jsou v `docs/ADR/archive/` (Claude je NEČTE — .claudeignore).
+Pokud potřebuješ plný kontext → řekni Claudovi: *"Přečti docs/ADR/archive/NNN-..."*
+
+---
+
 ## Subagent Model Policy
 
 Ad-hoc `Task` subagenty spouštěj vždy s explicitním modelem:
