@@ -739,15 +739,16 @@ watch(
   flex: 1;
   height: 28px;
   padding: 0 8px;
-  background: var(--raised);
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fs);
   font-family: var(--mono);
   outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.parse-input:focus { border-color: var(--b3); }
+.parse-input:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .parse-input::placeholder { color: var(--t4); }
 
 .parse-result {
@@ -859,16 +860,17 @@ watch(
   width: 52px;
   height: 20px;
   padding: 0 4px;
-  background: var(--surface);
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fsm);
   font-family: var(--mono);
   outline: none;
   text-align: right;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.dim-input-inline:focus { border-color: var(--b3); }
+.dim-input-inline:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 /* Remove number input spinners */
 .dim-input-inline::-webkit-inner-spin-button,
 .dim-input-inline::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -943,14 +945,15 @@ watch(
 .add-op-btn { margin-top: 2px; }
 .op-select {
   flex: 1;
-  height: 24px;
+  height: 28px;
   padding: 0 6px;
-  background: var(--surface);
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fs);
   outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.op-select:focus { border-color: var(--b3); }
+.op-select:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 </style>

@@ -348,17 +348,19 @@ onMounted(load)
 .row-clickable { cursor: pointer; }
 .action-cell { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
 .ei {
-  background: var(--surface); border: 1px solid var(--b3); border-radius: var(--rs);
-  color: var(--t1); font-size: var(--fs); padding: 2px 4px; outline: none;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
+  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.ei:focus { border-color: rgba(255,255,255,0.3); }
+.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .ei-num { font-family: var(--mono); width: 56px; text-align: right; }
 .ei-sm { font-family: var(--mono); width: 48px; }
 .ei-wide { width: 100%; }
 .ei-sel {
-  background: var(--surface); border: 1px solid var(--b3); border-radius: var(--rs);
-  color: var(--t1); font-size: var(--fs); padding: 2px 4px; outline: none; cursor: pointer;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
+  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none; cursor: pointer;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.ei-sel:focus { border-color: rgba(255,255,255,0.3); }
+.ei-sel:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .rates-cell { display: flex; gap: 2px; flex-wrap: wrap; }
 </style>

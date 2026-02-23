@@ -279,12 +279,13 @@ onMounted(load)
 .ptab:hover { color: var(--t3); }
 .ptab.on { color: var(--t1); background: var(--b1); }
 .srch-inp {
-  flex: 1; background: var(--b1); border: 1px solid var(--b2);
-  border-radius: var(--rs); color: var(--t1); font-size: var(--fs);
+  flex: 1; height: 28px; background: rgba(255,255,255,0.04); border: 1px solid var(--b2);
+  border-radius: var(--rs); color: var(--t2); font-size: var(--fs);
   padding: 3px 6px; outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
 .srch-inp::placeholder { color: var(--t4); }
-.srch-inp:focus { border-color: var(--b3); }
+.srch-inp:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .srch-count { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
 .mod-placeholder {
   flex: 1; display: flex; flex-direction: column;
@@ -301,14 +302,15 @@ onMounted(load)
 .row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
 .row-editing:hover td { background: var(--raised); }
 .ei {
-  background: var(--surface);
-  border: 1px solid var(--b3);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fs);
   padding: 2px 4px;
   outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.ei:focus { border-color: rgba(255,255,255,0.3); }
+.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .ei-num { font-family: var(--mono); width: 64px; text-align: right; }
 </style>

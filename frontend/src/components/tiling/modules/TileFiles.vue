@@ -159,16 +159,18 @@ onMounted(load)
 }
 .srch-inp {
   flex: 1;
-  background: var(--b1);
+  height: 28px;
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fs);
   padding: 3px 6px;
   outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
 .srch-inp::placeholder { color: var(--t4); }
-.srch-inp:focus { border-color: var(--b3); }
+.srch-inp:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .srch-count {
   font-size: var(--fsm);
   color: var(--t4);

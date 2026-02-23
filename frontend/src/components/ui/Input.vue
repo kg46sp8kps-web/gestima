@@ -13,6 +13,7 @@ interface Props {
   min?: number
   max?: number
   step?: number
+  testid?: string
 }
 
 withDefaults(defineProps<Props>(), {
@@ -21,6 +22,7 @@ withDefaults(defineProps<Props>(), {
   disabled: false,
   required: false,
   autofocus: false,
+  testid: 'input',
 })
 
 const emit = defineEmits<{
@@ -55,7 +57,7 @@ function onKeydown(e: KeyboardEvent) {
       :max="max"
       :step="step"
       :class="['input-ctrl', { 'input-mono': mono }]"
-      data-testid="input"
+      :data-testid="testid"
       v-select-on-focus
       @input="onInput"
       @keydown="onKeydown"
@@ -83,27 +85,28 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 .input-required {
-  color: var(--red);
+  color: var(--warn);
   margin-left: 2px;
 }
 
 .input-ctrl {
-  height: 32px;
-  padding: 0 10px;
+  height: 28px;
+  padding: 3px 6px;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fs);
   font-family: var(--font);
   outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease);
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
   width: 100%;
 }
 .input-ctrl::placeholder { color: var(--t4); }
 .input-ctrl:focus {
   border-color: var(--b3);
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.07);
+  color: var(--t1);
 }
 .input-ctrl:focus-visible {
   outline: 2px solid rgba(255,255,255,0.5);
@@ -116,15 +119,14 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 .input-error .input-ctrl {
-  border-color: var(--err);
+  border-color: var(--warn);
 }
 .input-error .input-ctrl:focus {
-  border-color: var(--err);
-  box-shadow: 0 0 0 2px rgba(248,113,113,0.15);
+  border-color: var(--warn);
 }
 
 .input-disabled .input-ctrl {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 

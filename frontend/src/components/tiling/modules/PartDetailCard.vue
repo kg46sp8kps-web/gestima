@@ -5,9 +5,10 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { useUiStore } from '@/stores/ui'
 import { useDialog } from '@/composables/useDialog'
 import * as filesApi from '@/api/files'
-import type { Part, PartStatus, PartUpdate } from '@/types/part'
+import type { Part, PartUpdate } from '@/types/part'
 import type { ContextGroup, ModuleId } from '@/types/workspace'
 import type { FileWithLinks } from '@/types/file-record'
+import Input from '@/components/ui/Input.vue'
 import Spinner from '@/components/ui/Spinner.vue'
 
 interface Props {
@@ -24,26 +25,20 @@ const dialog = useDialog()
 
 // ─── Edit draft ───
 interface Draft {
-  name: string
-  article_number: string
-  drawing_number: string
-  revision: string
-  customer_revision: string
-  status: PartStatus
-  length: string
-  notes: string
+  name: string | null
+  article_number: string | null
+  drawing_number: string | null
+  revision: string | null
+  customer_revision: string | null
 }
 
 function toDraft(p: Part): Draft {
   return {
-    name: p.name ?? '',
-    article_number: p.article_number ?? '',
-    drawing_number: p.drawing_number ?? '',
-    revision: p.revision ?? '',
-    customer_revision: p.customer_revision ?? '',
-    status: p.status,
-    length: p.length > 0 ? String(p.length) : '',
-    notes: p.notes ?? '',
+    name: p.name ?? null,
+    article_number: p.article_number ?? null,
+    drawing_number: p.drawing_number ?? null,
+    revision: p.revision ?? null,
+    customer_revision: p.customer_revision ?? null,
   }
 }
 
@@ -53,14 +48,11 @@ const saving = ref(false)
 const isDirty = computed(() => {
   const p = props.part
   return (
-    draft.value.name !== (p.name ?? '') ||
-    draft.value.article_number !== (p.article_number ?? '') ||
-    draft.value.drawing_number !== (p.drawing_number ?? '') ||
-    draft.value.revision !== (p.revision ?? '') ||
-    draft.value.customer_revision !== (p.customer_revision ?? '') ||
-    draft.value.status !== p.status ||
-    draft.value.length !== (p.length > 0 ? String(p.length) : '') ||
-    draft.value.notes !== (p.notes ?? '')
+    draft.value.name !== (p.name ?? null) ||
+    draft.value.article_number !== (p.article_number ?? null) ||
+    draft.value.drawing_number !== (p.drawing_number ?? null) ||
+    draft.value.revision !== (p.revision ?? null) ||
+    draft.value.customer_revision !== (p.customer_revision ?? null)
   )
 })
 
@@ -77,16 +69,12 @@ watch(
 async function save() {
   if (!isDirty.value || saving.value) return
   saving.value = true
-  const rawLen = parseFloat(draft.value.length.replace(',', '.'))
   const update: PartUpdate = {
     name: draft.value.name || undefined,
     article_number: draft.value.article_number || undefined,
     drawing_number: draft.value.drawing_number || undefined,
     revision: draft.value.revision || undefined,
     customer_revision: draft.value.customer_revision || undefined,
-    status: draft.value.status,
-    length: draft.value.length && !isNaN(rawLen) ? rawLen : undefined,
-    notes: draft.value.notes,
     version: props.part.version,
   }
   const updated = await parts.updatePart(props.part.part_number, update)
@@ -96,25 +84,6 @@ async function save() {
 
 function reset() {
   draft.value = toDraft(props.part)
-}
-
-// ─── Status helpers ───
-function statusDot(status: string): string {
-  if (status === 'active') return 'ok'
-  if (status === 'draft') return 'w'
-  if (status === 'archived') return 'e'
-  return 'o'
-}
-function statusLabel(status: string): string {
-  if (status === 'active') return 'Aktivní'
-  if (status === 'draft') return 'Rozpr.'
-  if (status === 'archived') return 'Arch.'
-  return 'Nabídka'
-}
-function sourceLabel(source: string): string {
-  if (source === 'infor_import') return 'Infor'
-  if (source === 'quote_request') return 'Nabídka'
-  return 'Manuální'
 }
 
 // ─── Quick links ───
@@ -127,6 +96,27 @@ const QUICK_LINKS: Array<{ label: string; module: ModuleId }> = [
 
 function openModule(moduleId: ModuleId) {
   ws.splitLeaf(props.leafId, moduleId, 'right', props.ctx)
+}
+
+// DnD — tab spawn (leafId = null → nový panel, ctx zdrojového panelu)
+let qlDragTimer: ReturnType<typeof setTimeout> | null = null
+
+function onQlDragStart(e: DragEvent, moduleId: ModuleId) {
+  if (!e.dataTransfer) return
+  e.dataTransfer.setData('text/plain', moduleId)
+  e.dataTransfer.effectAllowed = 'copy'
+  qlDragTimer = setTimeout(() => {
+    qlDragTimer = null
+    ws.startDrag(null, moduleId, props.ctx)
+  }, 0)
+}
+
+function onQlDragEnd() {
+  if (qlDragTimer !== null) {
+    clearTimeout(qlDragTimer)
+    qlDragTimer = null
+  }
+  ws.endDrag()
 }
 
 // ─── Files ───
@@ -220,30 +210,27 @@ watch(() => props.part.id, loadFiles, { immediate: true })
     <div class="det-bar">
       <span class="det-pn">{{ part.part_number }}</span>
       <span class="det-nm">{{ part.name || part.article_number || '—' }}</span>
-      <div class="det-bgs">
-        <span class="bdg">
-          <span :class="['dot', statusDot(part.status)]" />
-          {{ statusLabel(part.status) }}
-        </span>
-        <span v-if="part.source !== 'manual'" class="bdg">
-          <span class="dot o" />
-          {{ sourceLabel(part.source) }}
-        </span>
-      </div>
     </div>
 
     <!-- Quick-link strip -->
     <div class="ql-strip">
-      <button
+      <div
         v-for="ql in QUICK_LINKS"
         :key="ql.module"
-        class="ql-btn"
-        :data-testid="`open-${ql.module}`"
-        :title="`Otevřít ${ql.label} v novém panelu`"
-        @click="openModule(ql.module)"
+        class="ql-wrap"
+        draggable="true"
+        :title="`Otevřít ${ql.label} — klik vedle, táhnout kamkoli`"
+        @dragstart="onQlDragStart($event, ql.module)"
+        @dragend="onQlDragEnd"
       >
-        {{ ql.label }} ↗
-      </button>
+        <button
+          class="ql-btn"
+          :data-testid="`open-${ql.module}`"
+          @click="openModule(ql.module)"
+        >
+          {{ ql.label }}
+        </button>
+      </div>
     </div>
 
     <!-- Scrollable body -->
@@ -253,88 +240,50 @@ watch(() => props.part.id, loadFiles, { immediate: true })
       <div class="form-section">
         <div class="field-row">
           <div class="field field-grow">
-            <label class="fl">Název</label>
-            <input
-              v-model="draft.name"
-              class="fi"
+            <Input
+              :modelValue="draft.name"
+              @update:modelValue="draft.name = $event as string | null"
+              label="Název"
               placeholder="—"
-              data-testid="field-name"
+              testid="field-name"
             />
           </div>
           <div class="field">
-            <label class="fl">Artikl</label>
-            <input
-              v-model="draft.article_number"
-              class="fi"
+            <Input
+              :modelValue="draft.article_number"
+              @update:modelValue="draft.article_number = $event as string | null"
+              label="Artikl"
               placeholder="—"
-              data-testid="field-article"
+              testid="field-article"
             />
           </div>
         </div>
         <div class="field-row">
           <div class="field field-grow">
-            <label class="fl">Výkres č.</label>
-            <input
-              v-model="draft.drawing_number"
-              class="fi"
+            <Input
+              :modelValue="draft.drawing_number"
+              @update:modelValue="draft.drawing_number = $event as string | null"
+              label="Výkres č."
               placeholder="—"
-              data-testid="field-drawing-number"
+              testid="field-drawing-number"
             />
           </div>
           <div class="field field-sm">
-            <label class="fl">Rev.</label>
-            <input
-              v-model="draft.revision"
-              class="fi"
+            <Input
+              :modelValue="draft.revision"
+              @update:modelValue="draft.revision = $event as string | null"
+              label="Rev."
               placeholder="—"
-              data-testid="field-revision"
+              testid="field-revision"
             />
           </div>
           <div class="field field-sm">
-            <label class="fl">Rev. zák.</label>
-            <input
-              v-model="draft.customer_revision"
-              class="fi"
+            <Input
+              :modelValue="draft.customer_revision"
+              @update:modelValue="draft.customer_revision = $event as string | null"
+              label="Rev. zák."
               placeholder="—"
-              data-testid="field-customer-revision"
-            />
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="fl">Stav</label>
-            <select
-              v-model="draft.status"
-              class="fi fi-sel"
-              data-testid="field-status"
-            >
-              <option value="draft">Rozpracovaný</option>
-              <option value="active">Aktivní</option>
-              <option value="archived">Archivovaný</option>
-              <option value="quote">Nabídka</option>
-            </select>
-          </div>
-          <div class="field field-sm">
-            <label class="fl">Délka (mm)</label>
-            <input
-              v-model="draft.length"
-              type="text"
-              inputmode="decimal"
-              class="fi fi-num"
-              placeholder="—"
-              data-testid="field-length"
-            />
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field field-grow">
-            <label class="fl">Poznámky</label>
-            <textarea
-              v-model="draft.notes"
-              class="fi fi-ta"
-              placeholder="—"
-              rows="3"
-              data-testid="field-notes"
+              testid="field-customer-revision"
             />
           </div>
         </div>
@@ -434,13 +383,6 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 }
 .det-pn { font-size: var(--fs); font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
 .det-nm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.det-bgs { display: flex; gap: 3px; flex-shrink: 0; }
-.bdg { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2); }
-.bdg .dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-.dot.ok { background: var(--ok); }
-.dot.w  { background: var(--warn); }
-.dot.e  { background: var(--err); }
-.dot.o  { background: var(--t4); }
 
 /* ─── Quick-link strip ─── */
 .ql-strip {
@@ -464,6 +406,8 @@ watch(() => props.part.id, loadFiles, { immediate: true })
   transition: color 100ms var(--ease), background 100ms var(--ease);
 }
 .ql-btn:hover { color: var(--t1); background: var(--b1); }
+.ql-wrap { display: contents; cursor: grab; }
+.ql-wrap:active { cursor: grabbing; }
 
 /* ─── Scrollable body ─── */
 .form-body {
@@ -496,41 +440,6 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 }
 .field-grow { flex: 1; }
 .field-sm { width: 80px; flex-shrink: 0; }
-
-/* Form label */
-.fl {
-  font-size: var(--fsm);
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* Ghost input */
-.fi {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--b1);
-  border-radius: 0;
-  color: var(--t2);
-  font-size: var(--fs);
-  font-family: var(--font);
-  padding: 2px 0;
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-  transition: border-color 100ms var(--ease), color 100ms var(--ease);
-}
-.fi:focus { color: var(--t1); border-bottom-color: var(--b3); }
-.fi::placeholder { color: var(--t4); }
-.fi-sel { cursor: pointer; background: transparent; }
-.fi-num { font-family: var(--mono); }
-.fi-ta {
-  resize: vertical;
-  min-height: 52px;
-  line-height: 1.4;
-}
 
 /* ─── Save bar ─── */
 .save-bar {

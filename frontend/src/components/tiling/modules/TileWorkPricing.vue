@@ -678,19 +678,20 @@ function toggleExpand(setId: number) {
 }
 .qty-input {
   width: 44px;
+  height: 22px;
   padding: 1px 4px;
-  background: var(--b1);
-  border: none;
-  border-bottom: 1px solid var(--b2);
-  border-radius: var(--rs) var(--rs) 0 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
   color: var(--t2);
   font-size: var(--fsm);
   font-family: var(--mono);
   text-align: right;
   outline: none;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
 .qty-input::placeholder { color: var(--t4); font-family: var(--font); }
-.qty-input:focus { border-bottom-color: var(--b3); color: var(--t1); background: var(--b2); }
+.qty-input:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 /* Remove browser spinner arrows */
 .qty-input::-webkit-outer-spin-button,
 .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

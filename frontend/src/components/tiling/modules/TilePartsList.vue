@@ -254,17 +254,17 @@ watch(
   width: 100%;
   height: 26px;
   padding: 0 20px 0 24px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--b1);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--b2);
   border-radius: var(--rs);
-  color: var(--t1);
+  color: var(--t2);
   font-size: var(--fs);
   font-family: var(--font);
   outline: none;
-  transition: border-color 0.1s;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
 .srch::placeholder { color: var(--t4); }
-.srch:focus { border-color: var(--b3); background: rgba(255,255,255,0.05); }
+.srch:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 /* search clear — positioned inside search wrap */
 .srch-clr {
   position: absolute;
