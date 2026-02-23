@@ -23,6 +23,13 @@ from app.models.material_norm import MaterialNorm
 logger = logging.getLogger(__name__)
 
 
+class SuggestedMaterialItem(BaseModel):
+    """Kandidát na katalogovou položku — pro výběr když je více shod."""
+    id: int
+    code: str
+    name: str
+
+
 class ParseResult(BaseModel):
     """Výsledek parsingu materiálového popisu"""
 
@@ -53,9 +60,13 @@ class ParseResult(BaseModel):
     suggested_price_category_name: Optional[str] = None
     suggested_price_per_kg: Optional[float] = None
 
+    # Primární kandidát (první / nejlepší shoda)
     suggested_material_item_id: Optional[int] = None
     suggested_material_item_code: Optional[str] = None
     suggested_material_item_name: Optional[str] = None
+
+    # Všichni kandidáti (pokud je jich více se stejnými rozměry — různé povrchy/tolerance)
+    suggested_material_items: List[SuggestedMaterialItem] = Field(default_factory=list)
 
     # Meta
     confidence: float = Field(..., ge=0.0, le=1.0)
@@ -304,18 +315,26 @@ class MaterialParserService:
                     f"Nenalezena cenová kategorie pro {result.suggested_material_group_name} + {shape_label}"
                 )
 
-        # 5. Find MaterialItem (pokud máme group + shape + rozměry)
+        # 5. Find MaterialItems (pokud máme group + shape + rozměry)
         if result.suggested_material_group_id and result.shape:
-            item = await self._find_material_item(
+            items = await self._find_material_items(
                 material_group_id=result.suggested_material_group_id,
                 shape=result.shape,
                 diameter=result.diameter,
                 width=result.width,
                 height=result.height,
                 thickness=result.thickness,
-                wall_thickness=result.wall_thickness
+                wall_thickness=result.wall_thickness,
+                material_norm=result.material_norm,
             )
-            if item:
+            if items:
+                # Naplnit seznam všech kandidátů
+                result.suggested_material_items = [
+                    SuggestedMaterialItem(id=i.id, code=i.code, name=i.name)
+                    for i in items
+                ]
+                # Primární = první (setříděno dle code v _find_material_items)
+                item = items[0]
                 result.suggested_material_item_id = item.id
                 result.suggested_material_item_code = item.code
                 result.suggested_material_item_name = item.name
@@ -639,7 +658,7 @@ class MaterialParserService:
         logger.debug(f"_find_price_category: NO CATEGORY FOUND for material_group_id={material_group_id}, shape={shape}")
         return None
 
-    async def _find_material_item(
+    async def _find_material_items(
         self,
         material_group_id: int,
         shape: StockShape,
@@ -647,24 +666,37 @@ class MaterialParserService:
         width: Optional[float] = None,
         height: Optional[float] = None,
         thickness: Optional[float] = None,
-        wall_thickness: Optional[float] = None
-    ) -> Optional[MaterialItem]:
+        wall_thickness: Optional[float] = None,
+        material_norm: Optional[str] = None,
+    ) -> List[MaterialItem]:
         """
-        Najde existující MaterialItem podle group + shape + rozměry.
+        Najde katalogové položky podle group + shape + rozměry. Vrací seznam (max 8).
 
-        Exact match - všechny rozměry se musí shodovat.
+        Více výsledků nastane např. když existuje C45 D20 tažená i C45 D20 h6 —
+        uživatel pak vybírá z nabídky.
 
         Note: MaterialItem model NEMÁ atribut 'height'.
         Pro flat_bar/square_bar:
           - Parser používá: width, height
           - MaterialItem má: width, thickness
           - Mapping: height → thickness (pro FLAT_BAR)
+
+        material_norm: Norma po normalizaci (W.Nr. nebo název plasty).
+          Filtruje code LIKE '{material_norm}%' — kód položky začíná normou.
+          Zabraňuje záměně norem ve stejné skupině (1.0036 vs 1.0503, POM vs PA66).
+          Aplikuje se pro jakoukoli normu délky >= 3 znaky.
         """
         conditions = [
             MaterialItem.material_group_id == material_group_id,
             MaterialItem.shape == shape,
             MaterialItem.deleted_at.is_(None)
         ]
+
+        # Filtr podle normy v kódu položky — zabraňuje záměně norem v rámci skupiny.
+        # Kód polotovaru má formát "1.0503-KR040.000-T" nebo "POM-C-KR020-T".
+        # LIKE '{norm}%' najde jen položky dané normy.
+        if material_norm and len(material_norm) >= 3:
+            conditions.append(MaterialItem.code.ilike(f'{material_norm}%'))
 
         # Přidat rozměrové podmínky (pouze nenulové hodnoty)
         if diameter is not None:
@@ -687,7 +719,8 @@ class MaterialParserService:
         result = await self.db.execute(
             select(MaterialItem)
             .where(*conditions)
-            .limit(1)
+            .order_by(MaterialItem.code)
+            .limit(8)
         )
 
-        return result.scalar_one_or_none()
+        return list(result.scalars().all())

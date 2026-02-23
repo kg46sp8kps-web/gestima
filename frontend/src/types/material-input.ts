@@ -83,6 +83,12 @@ export interface MaterialInputUpdate {
   version: number
 }
 
+export interface SuggestedMaterialItem {
+  id: number
+  code: string
+  name: string
+}
+
 export interface ParseResult {
   raw_input: string
   shape: StockShape | null
@@ -105,6 +111,7 @@ export interface ParseResult {
   suggested_material_item_id: number | null
   suggested_material_item_code: string | null
   suggested_material_item_name: string | null
+  suggested_material_items: SuggestedMaterialItem[]
   confidence: number
   matched_pattern: string
   warnings: string[]

@@ -5,7 +5,7 @@ import { usePartsStore } from '@/stores/parts'
 import { useUiStore } from '@/stores/ui'
 import * as materialInputsApi from '@/api/material-inputs'
 import * as operationsApi from '@/api/operations'
-import type { MaterialInput, StockShape, MaterialInputCreate, MaterialInputUpdate, ParseResult } from '@/types/material-input'
+import type { MaterialInput, StockShape, MaterialInputCreate, MaterialInputUpdate, ParseResult, SuggestedMaterialItem } from '@/types/material-input'
 import type { ContextGroup } from '@/types/workspace'
 import { formatCurrency, formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
@@ -49,6 +49,7 @@ const showAdd = ref(false)
 const parseInput = ref('')
 const parsing = ref(false)
 const parseResult = ref<ParseResult | null>(null)
+const selectedItem = ref<SuggestedMaterialItem | null>(null)
 const creating = ref(false)
 
 const totalWeight = computed(() => items.value.reduce((s, m) => s + (m.weight_kg ?? 0), 0))
@@ -253,8 +254,12 @@ async function doParse() {
   if (!parseInput.value.trim()) return
   parsing.value = true
   parseResult.value = null
+  selectedItem.value = null
   try {
-    parseResult.value = await materialInputsApi.parse(parseInput.value.trim())
+    const pr = await materialInputsApi.parse(parseInput.value.trim())
+    parseResult.value = pr
+    // Předvyber první kandidát (primární)
+    selectedItem.value = pr.suggested_material_items[0] ?? null
   } catch {
     ui.showError('Chyba při parsování')
   } finally {
@@ -269,12 +274,14 @@ async function confirmCreate() {
     ui.showError('Nelze vytvořit: nerozpoznaná cenová kategorie nebo tvar')
     return
   }
+  // Použij vybraného kandidáta (pokud uživatel vybral), jinak primární
+  const itemId = selectedItem.value?.id ?? pr.suggested_material_item_id ?? null
   creating.value = true
   try {
     const payload: MaterialInputCreate = {
       part_id: part.value.id,
       price_category_id: pr.suggested_price_category_id,
-      material_item_id: pr.suggested_material_item_id ?? null,
+      material_item_id: itemId,
       stock_shape: pr.shape,
       stock_diameter:       pr.diameter ?? null,
       stock_length:         pr.length ?? null,
@@ -408,13 +415,19 @@ watch(
               <span class="pr-lbl">Cenová kategorie</span>
               <span class="pr-val">{{ parseResult.suggested_price_category_name }}</span>
             </template>
-            <template v-if="parseResult.suggested_material_item_name">
-              <span class="pr-lbl">Položka katalogu</span>
-              <div class="pr-item-block">
-                <span class="pr-val">{{ parseResult.suggested_material_item_name }}</span>
-                <span v-if="parseResult.suggested_material_item_code" class="pr-code mono">
-                  {{ parseResult.suggested_material_item_code }}
-                </span>
+            <template v-if="parseResult.suggested_material_items.length > 0">
+              <span class="pr-lbl">{{ parseResult.suggested_material_items.length > 1 ? 'Vyberte položku' : 'Položka katalogu' }}</span>
+              <div class="pr-items-list">
+                <button
+                  v-for="it in parseResult.suggested_material_items"
+                  :key="it.id"
+                  :class="['pr-item-opt', { 'pr-item-selected': selectedItem?.id === it.id }]"
+                  :data-testid="`item-opt-${it.id}`"
+                  @click="selectedItem = it"
+                >
+                  <span class="pr-item-opt-name">{{ it.name }}</span>
+                  <span class="pr-item-opt-code mono">{{ it.code }}</span>
+                </button>
               </div>
             </template>
             <span class="pr-lbl">Shoda</span>
@@ -654,7 +667,7 @@ watch(
 }
 .rib-r { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
-.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
 .rib-v.m { font-family: var(--mono); }
 .rib-v.green { color: var(--green); }
@@ -697,27 +710,40 @@ watch(
   gap: 4px 10px;
   align-items: start;
 }
-.pr-lbl { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; padding-top: 2px; }
+.pr-lbl { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; padding-top: 2px; }
 .pr-val { font-size: var(--fs); color: var(--t1); }
 .pr-val.mono { font-family: var(--mono); }
 .pr-ok { color: var(--ok); }
 .pr-warn { color: var(--warn); }
 
-/* Catalog item: name + code stacked */
-.pr-item-block { display: flex; flex-direction: column; gap: 3px; }
-.pr-code {
-  display: inline-block;
-  width: fit-content;
-  font-size: 11px;
-  color: var(--t1);
-  background: var(--b2);
-  border: 1px solid var(--b3);
-  padding: 1px 6px;
+/* Kandidáti — výběrový seznam */
+.pr-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pr-item-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 7px;
+  background: var(--raised);
+  border: 1px solid var(--b2);
   border-radius: var(--rs);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 100ms var(--ease);
+}
+.pr-item-opt:hover { border-color: var(--b3); }
+.pr-item-opt.pr-item-selected { border-color: var(--t3); background: var(--b1); }
+.pr-item-opt-name { font-size: var(--fs); color: var(--t1); }
+.pr-item-opt-code {
+  font-size: var(--fsx);
+  color: var(--t3);
 }
 .pr-warning {
   margin-top: 4px;
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--warn);
 }
 .pr-actions {
@@ -735,36 +761,6 @@ watch(
 }
 
 /* ─── Table ─── */
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
 .row-editing td { background: rgba(255,255,255,0.03); }
 .edit-td { padding: 0 !important; }
 
@@ -776,7 +772,7 @@ watch(
 /* Catalog code badge in the table — monospace, distinct from name */
 .mat-code {
   display: inline-block;
-  font-size: 10.5px;
+  font-size: var(--fsx);
   color: var(--t2);
   background: var(--b1);
   border: 1px solid var(--b2);
@@ -784,12 +780,12 @@ watch(
   border-radius: var(--rs);
   margin-top: 2px;
 }
-.mat-sub { font-size: 10px; margin-top: 1px; color: var(--t4); }
+.mat-sub { font-size: var(--fsm); margin-top: 1px; color: var(--t4); }
 
 /* ─── Op chips (summary column) ─── */
 .op-chips { display: flex; flex-wrap: wrap; gap: 3px; }
 .op-chip {
-  font-size: 10px;
+  font-size: var(--fsm);
   padding: 1px 5px;
   border-radius: 99px;
   background: var(--b1);
@@ -801,7 +797,7 @@ watch(
 .price-badge {
   display: inline-block;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fsm);
   padding: 1px 5px;
   border-radius: 99px;
   background: var(--b1);
@@ -824,7 +820,7 @@ watch(
 }
 .edit-section:last-child { border-right: none; }
 .edit-sec-title {
-  font-size: 10px;
+  font-size: var(--fsm);
   font-weight: 600;
   color: var(--t4);
   text-transform: uppercase;
@@ -835,7 +831,7 @@ watch(
   gap: 6px;
 }
 .locked-hint {
-  font-size: 9px;
+  font-size: var(--fss);
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
@@ -852,7 +848,7 @@ watch(
   margin-bottom: 8px;
 }
 .dim-lbl {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   white-space: nowrap;
 }

@@ -274,10 +274,11 @@ async def test_unfrozen_batch_hard_delete(db_session, sample_batch, mock_admin):
     # Smazat nezmrazený batch (returns None = 204 No Content)
     await delete_batch(batch_number, db_session, mock_admin)
 
-    # Zkontrolovat, že batch už neexistuje (hard delete)
+    # Zkontrolovat, že batch je soft-deleted (deleted_at nastaven)
     query_result = await db_session.execute(select(Batch).where(Batch.id == batch_id))
     deleted_batch = query_result.scalar_one_or_none()
-    assert deleted_batch is None  # Smazán z DB
+    assert deleted_batch is not None  # Záznam zůstane v DB (soft delete)
+    assert deleted_batch.deleted_at is not None  # Ale označen jako smazaný
 
 
 # ============================================================================

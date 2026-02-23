@@ -123,7 +123,10 @@ async def get_work_center(
 ):
     """Detail pracoviště podle čísla"""
     result = await db.execute(
-        select(WorkCenter).where(WorkCenter.work_center_number == work_center_number)
+        select(WorkCenter).where(
+            WorkCenter.work_center_number == work_center_number,
+            WorkCenter.deleted_at.is_(None)
+        )
     )
     work_center = result.scalar_one_or_none()
     if not work_center:
