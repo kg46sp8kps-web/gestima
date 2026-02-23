@@ -112,13 +112,13 @@ watch(
           @click="searchVal = ''; parts.search = ''; parts.fetchAll()"
         >×</button>
       </div>
-      <button class="icon-btn" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll()">
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <button class="icon-btn icon-btn-sm" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M2.5 8a5.5 5.5 0 1 0 1-3.18M2.5 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="icon-btn icon-btn-brand" title="Nový díl" data-testid="parts-create" @click="showCreate = true">
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <button class="icon-btn icon-btn-brand icon-btn-sm" title="Nový díl" data-testid="parts-create" @click="showCreate = true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
