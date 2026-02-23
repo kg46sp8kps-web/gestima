@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useUiStore } from './ui'
+import { useCatalogStore } from './catalog'
 import * as partsApi from '@/api/parts'
 import type { Part, PartCreate, PartUpdate, PartListParams, PartStatus } from '@/types/part'
 import type { ContextGroup } from '@/types/workspace'
@@ -14,23 +15,25 @@ export const usePartsStore = defineStore('parts', () => {
   const search = ref('')
   const statusFilter = ref<PartStatus | ''>('')
 
-  // Per context group: focused part_number
-  const focusByCtx = ref<Partial<Record<ContextGroup, string>>>({})
-
   const hasParts = computed(() => items.value.length > 0)
 
   function getFocusedPart(ctx: ContextGroup): Part | null {
-    const pn = focusByCtx.value[ctx]
-    if (!pn) return null
-    return items.value.find(p => p.part_number === pn) ?? null
+    const catalog = useCatalogStore()
+    const focused = catalog.getFocusedItem(ctx)
+    if (!focused || focused.type !== 'part') return null
+    return items.value.find(p => p.part_number === focused.number) ?? null
   }
 
   function getFocusedPartNumber(ctx: ContextGroup): string | null {
-    return focusByCtx.value[ctx] ?? null
+    const catalog = useCatalogStore()
+    const focused = catalog.getFocusedItem(ctx)
+    if (!focused || focused.type !== 'part') return null
+    return focused.number
   }
 
   function focusPart(partNumber: string, ctx: ContextGroup) {
-    focusByCtx.value = { ...focusByCtx.value, [ctx]: partNumber }
+    const catalog = useCatalogStore()
+    catalog.focusItem({ type: 'part', number: partNumber }, ctx)
   }
 
   async function fetchAll(params?: PartListParams) {
@@ -117,7 +120,6 @@ export const usePartsStore = defineStore('parts', () => {
     loading,
     search,
     statusFilter,
-    focusByCtx,
     hasParts,
     getFocusedPart,
     getFocusedPartNumber,

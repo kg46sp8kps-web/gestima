@@ -1,3 +1,10 @@
+export type CatalogItemType = 'part' | 'material'
+
+export interface CatalogFocusItem {
+  type: CatalogItemType
+  number: string  // part_number nebo material_number
+}
+
 export type ModuleId =
   | 'parts-list'
   | 'work-detail'
@@ -43,7 +50,7 @@ export interface ModuleDefinition {
 }
 
 export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
-  'parts-list':    { id: 'parts-list',    label: 'Díly',         usesCtx: true },
+  'parts-list':    { id: 'parts-list',    label: 'Položky',      usesCtx: true },
   'work-detail':   { id: 'work-detail',   label: 'Detail dílu',  usesCtx: true },
   'work-ops':      { id: 'work-ops',      label: 'Operace',      isSub: true, usesCtx: true },
   'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    isSub: true, usesCtx: true },

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { PlusIcon, PencilIcon, XIcon, CheckIcon, Link2OffIcon } from 'lucide-vue-next'
+import { ref, computed, watch, reactive } from 'vue'
+import { PlusIcon, XIcon, CheckIcon, Link2OffIcon, ChevronDownIcon } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useUiStore } from '@/stores/ui'
+import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
 import * as materialInputsApi from '@/api/material-inputs'
 import * as operationsApi from '@/api/operations'
 import type { MaterialInput, StockShape, MaterialInputCreate, MaterialInputUpdate, ParseResult, SuggestedMaterialItem } from '@/types/material-input'
@@ -24,6 +25,7 @@ interface Props {
 const props = defineProps<Props>()
 const parts = usePartsStore()
 const ui = useUiStore()
+const typeGuard = useItemTypeGuard(['part'])
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
 
@@ -32,10 +34,12 @@ const loading = ref(false)
 const error = ref(false)
 const isRefetching = computed(() => loading.value && items.value.length > 0)
 
-// ─── Edit dimensions ───
-const editingId = ref<number | null>(null)
-const editDims = ref<Record<string, number | null>>({})
-const saving = ref(false)
+// ─── Inline dimension editing — per-row, auto-save on blur ───
+const rowDims = reactive<Record<number, Record<string, number | null>>>({})
+const savingRowIds = ref<number[]>([])
+
+// ─── Detail expand (operation links) ───
+const expandedId = ref<number | null>(null)
 
 // ─── Operation linking ───
 const partOps = ref<Array<{ id: number; seq: number; name: string; type: string }>>([])
@@ -56,69 +60,180 @@ const totalWeight = computed(() => items.value.reduce((s, m) => s + (m.weight_kg
 const totalCost = computed(() => items.value.reduce((s, m) => s + (m.cost_per_piece ?? 0), 0))
 
 const SHAPE_LABELS: Record<StockShape, string> = {
-  round_bar:     'Tyč kulatá',
-  square_bar:    'Tyč čtvercová',
-  flat_bar:      'Tyč plochá',
-  hexagonal_bar: 'Tyč šestihranná',
+  round_bar:     'Kulatina',
+  square_bar:    'Čtyřhran',
+  flat_bar:      'Plochá ocel',
+  hexagonal_bar: 'Šestihran',
   plate:         'Plech',
   tube:          'Trubka',
   casting:       'Odlitek',
   forging:       'Výkovek',
 }
 
-// All editable fields when no catalog item is linked (generic material)
-const DIM_FIELDS_FULL: Record<StockShape, string[]> = {
-  round_bar:     ['stock_diameter', 'stock_length'],
-  hexagonal_bar: ['stock_diameter', 'stock_length'],
-  square_bar:    ['stock_width', 'stock_length'],
-  flat_bar:      ['stock_width', 'stock_height', 'stock_length'],
-  plate:         ['stock_width', 'stock_height'],
-  tube:          ['stock_diameter', 'stock_wall_thickness', 'stock_length'],
-  casting:       ['stock_length'],
-  forging:       ['stock_length'],
+// ─── Inline dim slots ───
+interface DimSlot {
+  kind: 'sep' | 'locked' | 'editable'
+  text?: string
+  field?: string
 }
 
-// Only variable fields when catalog item is linked (cross-section is fixed by catalog)
-// For bars: only length. For plates: width + height (sheet piece dimensions). Castings: nothing.
-const DIM_FIELDS_LOCKED: Record<StockShape, string[]> = {
-  round_bar:     ['stock_length'],
-  hexagonal_bar: ['stock_length'],
-  square_bar:    ['stock_length'],
-  flat_bar:      ['stock_length'],
-  plate:         ['stock_width', 'stock_height'],
-  tube:          ['stock_length'],
-  casting:       [],
-  forging:       [],
-}
+// dimSlots — data-driven z BE hodnot material_item.diameter/width/thickness/wall_thickness.
+// Pokud katalog definuje rozměr (non-null) → locked badge s hodnotou z katalogu.
+// Pokud katalog rozměr nemá (null nebo žádný katalog) → editable input.
+function dimSlots(m: MaterialInput): DimSlot[] {
+  const mi = m.material_item
+  const slots: DimSlot[] = []
 
-function editFields(m: MaterialInput): string[] {
-  return m.material_item ? DIM_FIELDS_LOCKED[m.stock_shape] : DIM_FIELDS_FULL[m.stock_shape]
-}
-
-const DIM_LABELS: Record<string, string> = {
-  stock_diameter:       'Průměr (mm)',
-  stock_length:         'Délka (mm)',
-  stock_width:          'Šířka (mm)',
-  stock_height:         'Výška (mm)',
-  stock_wall_thickness: 'Tl. stěny (mm)',
-}
-
-function dimLabel(m: MaterialInput): string {
-  const d = (v: number | null) => v != null ? String(v) : '?'
   switch (m.stock_shape) {
     case 'round_bar':
-    case 'hexagonal_bar':
-      return `\u00D8${d(m.stock_diameter)} \u00D7 ${d(m.stock_length)} mm`
-    case 'square_bar':
-      return `${d(m.stock_width)} \u00D7 ${d(m.stock_length)} mm`
-    case 'flat_bar':
-      return `${d(m.stock_width)} \u00D7 ${d(m.stock_height)} \u00D7 ${d(m.stock_length)} mm`
-    case 'plate':
-      return `${d(m.stock_width)} \u00D7 ${d(m.stock_height)} mm`
-    case 'tube':
-      return `\u00D8${d(m.stock_diameter)} \u00D7 ${d(m.stock_length)}, t=${d(m.stock_wall_thickness)} mm`
-    default:
-      return m.stock_length != null ? `${d(m.stock_length)} mm` : '—'
+    case 'hexagonal_bar': {
+      const sym = m.stock_shape === 'round_bar' ? '∅' : '⬡'
+      if (mi?.diameter != null) {
+        slots.push({ kind: 'locked', text: `${sym}${mi.diameter}` })
+      } else {
+        slots.push({ kind: 'sep', text: sym })
+        slots.push({ kind: 'editable', field: 'stock_diameter' })
+      }
+      slots.push({ kind: 'sep', text: '×' })
+      slots.push({ kind: 'editable', field: 'stock_length' })
+      slots.push({ kind: 'sep', text: 'mm' })
+      break
+    }
+    case 'square_bar': {
+      if (mi?.width != null) {
+        slots.push({ kind: 'locked', text: `□${mi.width}` })
+      } else {
+        slots.push({ kind: 'sep', text: '□' })
+        slots.push({ kind: 'editable', field: 'stock_width' })
+      }
+      slots.push({ kind: 'sep', text: '×' })
+      slots.push({ kind: 'editable', field: 'stock_length' })
+      slots.push({ kind: 'sep', text: 'mm' })
+      break
+    }
+    case 'flat_bar': {
+      // width → stock_width, thickness → stock_height (tloušťka průřezu tyče)
+      if (mi?.width != null) {
+        slots.push({ kind: 'locked', text: `${mi.width}` })
+      } else {
+        slots.push({ kind: 'editable', field: 'stock_width' })
+      }
+      slots.push({ kind: 'sep', text: '×' })
+      if (mi?.thickness != null) {
+        slots.push({ kind: 'locked', text: `${mi.thickness}` })
+      } else {
+        slots.push({ kind: 'editable', field: 'stock_height' })
+      }
+      slots.push({ kind: 'sep', text: '×' })
+      slots.push({ kind: 'editable', field: 'stock_length' })
+      slots.push({ kind: 'sep', text: 'mm' })
+      break
+    }
+    case 'plate': {
+      // Tři scénáře dle katalogové položky:
+      // 1. Přířez (3 fixní): mi.width && mi.height → stock_width i stock_height locked
+      // 2. Pás (2 fixní): mi.width, mi.height == null → stock_width locked, stock_height = délka řezu
+      // 3. Volný výřez: mi.width == null → obě variabilní
+      if (mi?.width != null) {
+        slots.push({ kind: 'locked', text: `${mi.width}` })
+      } else {
+        slots.push({ kind: 'editable', field: 'stock_width' })
+      }
+      slots.push({ kind: 'sep', text: '×' })
+      if (mi?.height != null) {
+        slots.push({ kind: 'locked', text: `${mi.height}` })
+      } else {
+        slots.push({ kind: 'editable', field: 'stock_height' })
+      }
+      if (mi?.thickness != null) {
+        slots.push({ kind: 'sep', text: ' t' })
+        slots.push({ kind: 'locked', text: `${mi.thickness}mm` })
+      } else {
+        slots.push({ kind: 'sep', text: 'mm' })
+      }
+      break
+    }
+    case 'tube': {
+      if (mi?.diameter != null) {
+        slots.push({ kind: 'locked', text: `∅${mi.diameter}` })
+      } else {
+        slots.push({ kind: 'sep', text: '∅' })
+        slots.push({ kind: 'editable', field: 'stock_diameter' })
+      }
+      slots.push({ kind: 'sep', text: ' t' })
+      if (mi?.wall_thickness != null) {
+        slots.push({ kind: 'locked', text: `${mi.wall_thickness}` })
+      } else {
+        slots.push({ kind: 'editable', field: 'stock_wall_thickness' })
+      }
+      slots.push({ kind: 'sep', text: '×' })
+      slots.push({ kind: 'editable', field: 'stock_length' })
+      slots.push({ kind: 'sep', text: 'mm' })
+      break
+    }
+    case 'casting':
+    case 'forging': {
+      // Tvary bez jednoznačné geometrie — délka orientační
+      slots.push({ kind: 'editable', field: 'stock_length' })
+      slots.push({ kind: 'sep', text: 'mm' })
+      break
+    }
+  }
+  return slots
+}
+
+function initRowDims(m: MaterialInput) {
+  rowDims[m.id] = {
+    stock_diameter:       m.stock_diameter,
+    stock_length:         m.stock_length,
+    stock_width:          m.stock_width,
+    stock_height:         m.stock_height,
+    stock_wall_thickness: m.stock_wall_thickness,
+  }
+}
+
+async function saveRowDims(m: MaterialInput) {
+  const dims = rowDims[m.id]
+  if (!dims) return
+  const changed = (
+    toNum(dims.stock_diameter) !== m.stock_diameter ||
+    toNum(dims.stock_length) !== m.stock_length ||
+    toNum(dims.stock_width) !== m.stock_width ||
+    toNum(dims.stock_height) !== m.stock_height ||
+    toNum(dims.stock_wall_thickness) !== m.stock_wall_thickness
+  )
+  if (!changed) return
+  savingRowIds.value = [...savingRowIds.value, m.id]
+  try {
+    const payload: MaterialInputUpdate = {
+      stock_diameter:       toNum(dims.stock_diameter),
+      stock_length:         toNum(dims.stock_length),
+      stock_width:          toNum(dims.stock_width),
+      stock_height:         toNum(dims.stock_height),
+      stock_wall_thickness: toNum(dims.stock_wall_thickness),
+      version: m.version,
+    }
+    const updated = await materialInputsApi.update(m.id, payload)
+    const idx = items.value.findIndex(x => x.id === m.id)
+    if (idx >= 0) {
+      items.value[idx] = updated
+      _cache.set(part.value!.id, [...items.value])
+      initRowDims(updated)
+    }
+  } catch {
+    ui.showError('Chyba při ukládání rozměrů')
+    initRowDims(m)
+  } finally {
+    savingRowIds.value = savingRowIds.value.filter(id => id !== m.id)
+  }
+}
+
+function toggleExpand(id: number) {
+  if (expandedId.value === id) {
+    expandedId.value = null
+    linkingOpFor.value = null
+  } else {
+    expandedId.value = id
   }
 }
 
@@ -145,49 +260,6 @@ function toNum(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null
   const n = Number(v)
   return isNaN(n) ? null : n
-}
-
-function startEdit(m: MaterialInput) {
-  editingId.value = m.id
-  editDims.value = {
-    stock_diameter:       m.stock_diameter,
-    stock_length:         m.stock_length,
-    stock_width:          m.stock_width,
-    stock_height:         m.stock_height,
-    stock_wall_thickness: m.stock_wall_thickness,
-  }
-  linkingOpFor.value = null
-}
-
-function cancelEdit() {
-  editingId.value = null
-  linkingOpFor.value = null
-}
-
-async function saveEdit(m: MaterialInput) {
-  saving.value = true
-  try {
-    const payload: MaterialInputUpdate = {
-      stock_diameter:       toNum(editDims.value.stock_diameter),
-      stock_length:         toNum(editDims.value.stock_length),
-      stock_width:          toNum(editDims.value.stock_width),
-      stock_height:         toNum(editDims.value.stock_height),
-      stock_wall_thickness: toNum(editDims.value.stock_wall_thickness),
-      version: m.version,
-    }
-    const updated = await materialInputsApi.update(m.id, payload)
-    const idx = items.value.findIndex(x => x.id === m.id)
-    if (idx >= 0) {
-      items.value[idx] = updated
-      _cache.set(part.value!.id, [...items.value])
-    }
-    editingId.value = null
-    ui.showSuccess('Rozměry uloženy')
-  } catch {
-    ui.showError('Chyba při ukládání rozměrů')
-  } finally {
-    saving.value = false
-  }
 }
 
 async function loadPartOps() {
@@ -274,7 +346,6 @@ async function confirmCreate() {
     ui.showError('Nelze vytvořit: nerozpoznaná cenová kategorie nebo tvar')
     return
   }
-  // Použij vybraného kandidáta (pokud uživatel vybral), jinak primární
   const itemId = selectedItem.value?.id ?? pr.suggested_material_item_id ?? null
   creating.value = true
   try {
@@ -295,6 +366,7 @@ async function confirmCreate() {
     _fetchedFor.delete(props.leafId)
     loading.value = true
     items.value = await materialInputsApi.getByPartId(part.value.id)
+    items.value.forEach(initRowDims)
     _cache.set(part.value.id, [...items.value])
     showAdd.value = false
     parseInput.value = ''
@@ -313,21 +385,25 @@ watch(
   async (p) => {
     if (!p) {
       items.value = []
-      editingId.value = null
+      expandedId.value = null
       partOpsLoaded.value = false
       partOps.value = []
       return
     }
-    if (_cache.has(p.id)) items.value = _cache.get(p.id)!
+    if (_cache.has(p.id)) {
+      items.value = _cache.get(p.id)!
+      items.value.forEach(initRowDims)
+    }
     if (_fetchedFor.get(props.leafId) === p.id) return
     _fetchedFor.set(props.leafId, p.id)
     loading.value = true
     error.value = false
-    editingId.value = null
+    expandedId.value = null
     partOpsLoaded.value = false
     partOps.value = []
     try {
       items.value = await materialInputsApi.getByPartId(p.id)
+      items.value.forEach(initRowDims)
       _cache.set(p.id, [...items.value])
     } catch {
       error.value = true
@@ -343,8 +419,14 @@ watch(
 
 <template>
   <div :class="['wmat', { refetching: isRefetching }]">
+    <!-- Unsupported item type -->
+    <div v-if="!typeGuard.isSupported(props.ctx)" class="mod-placeholder">
+      <div class="mod-dot" />
+      <span class="mod-label">Nedostupné pro {{ typeGuard.focusedTypeName(props.ctx) }}</span>
+    </div>
+
     <!-- No part selected -->
-    <div v-if="!part" class="mod-placeholder">
+    <div v-else-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Vyberte díl ze seznamu</span>
     </div>
@@ -473,7 +555,10 @@ watch(
           </thead>
           <tbody v-for="m in items" :key="m.id">
             <!-- Main row -->
-            <tr :class="{ 'row-editing': editingId === m.id }" :data-testid="`mat-row-${m.id}`">
+            <tr
+              :class="['mat-row', { 'row-expanded': expandedId === m.id, saving: savingRowIds.includes(m.id) }]"
+              :data-testid="`mat-row-${m.id}`"
+            >
               <td class="t4">{{ m.seq + 1 }}</td>
               <td>
                 <div class="mat-name">{{ matPrimary(m) }}</div>
@@ -481,8 +566,25 @@ watch(
                 <div v-if="matSub(m)" class="mat-sub t4">{{ matSub(m) }}</div>
               </td>
               <td>
-                <div>{{ SHAPE_LABELS[m.stock_shape] }}</div>
-                <div class="mat-sub t4">{{ dimLabel(m) }}</div>
+                <div class="mat-shape">{{ SHAPE_LABELS[m.stock_shape] }}</div>
+                <div v-if="rowDims[m.id]" class="inline-dims">
+                  <template v-for="(slot, si) in dimSlots(m)" :key="si">
+                    <span v-if="slot.kind === 'sep'" class="dim-sep">{{ slot.text }}</span>
+                    <span v-else-if="slot.kind === 'locked'" class="dim-badge-ro">{{ slot.text }}</span>
+                    <input
+                      v-else
+                      v-model.number="rowDims[m.id]![slot.field!]"
+                      type="number"
+                      class="dim-input-inline"
+                      :data-testid="`inline-dim-${slot.field}-${m.id}`"
+                      step="0.1"
+                      min="0"
+                      @blur="saveRowDims(m)"
+                      @keydown.enter.prevent="saveRowDims(m)"
+                      @keydown.esc="initRowDims(m)"
+                    />
+                  </template>
+                </div>
               </td>
               <td>
                 <div class="op-chips">
@@ -500,117 +602,69 @@ watch(
               </td>
               <td>
                 <button
-                  v-if="editingId !== m.id"
                   class="icon-btn"
-                  :data-testid="`edit-mat-${m.id}`"
-                  title="Upravit rozměry"
-                  @click="startEdit(m)"
+                  :class="{ 'icon-btn-brand': expandedId === m.id }"
+                  :data-testid="`expand-mat-${m.id}`"
+                  title="Vazby na operace"
+                  @click="toggleExpand(m.id)"
                 >
-                  <PencilIcon :size="ICON_SIZE_SM" />
-                </button>
-                <button
-                  v-else
-                  class="icon-btn"
-                  :data-testid="`cancel-edit-mat-${m.id}`"
-                  title="Zrušit"
-                  @click="cancelEdit"
-                >
-                  <XIcon :size="ICON_SIZE_SM" />
+                  <ChevronDownIcon :size="ICON_SIZE_SM" :class="['expand-icon', { 'expanded': expandedId === m.id }]" />
                 </button>
               </td>
             </tr>
 
-            <!-- Edit row -->
-            <tr v-if="editingId === m.id" :data-testid="`edit-row-${m.id}`">
-              <td colspan="7" class="edit-td">
-                <div class="edit-panel">
-                  <!-- Dimension inputs -->
-                  <div class="edit-section">
-                    <div class="edit-sec-title">
-                      Rozměry
-                      <span v-if="m.material_item" class="locked-hint">průřez fixní dle katalogu</span>
-                    </div>
-                    <div v-if="editFields(m).length === 0" class="t4 fsl">Rozměry definuje katalogová položka</div>
-                    <div v-else class="dim-grid">
-                      <template v-for="field in editFields(m)" :key="field">
-                        <label class="dim-lbl">{{ DIM_LABELS[field] }}</label>
-                        <input
-                          v-model.number="editDims[field]"
-                          type="number"
-                          class="dim-input"
-                          :data-testid="`dim-${field}-${m.id}`"
-                          step="0.1"
-                          min="0"
-                        />
-                      </template>
-                    </div>
-                    <div v-if="editFields(m).length > 0" class="edit-actions">
+            <!-- Detail row — operation links -->
+            <tr v-if="expandedId === m.id" :data-testid="`detail-row-${m.id}`">
+              <td colspan="7" class="detail-td">
+                <div class="detail-panel">
+                  <div class="detail-title">Vazby na operace</div>
+                  <div class="op-list">
+                    <div v-if="!m.operations.length" class="t4 fsl">Žádné vazby</div>
+                    <div v-for="op in m.operations" :key="op.id" class="op-item">
+                      <span class="op-item-name">{{ op.seq }}. {{ op.name }}</span>
                       <button
-                        class="icon-btn icon-btn-brand icon-btn-sm"
-                        :disabled="saving"
-                        :data-testid="`save-dims-${m.id}`"
-                        @click="saveEdit(m)"
+                        class="icon-btn icon-btn-danger icon-btn-sm"
+                        :data-testid="`unlink-op-${m.id}-${op.id}`"
+                        title="Odebrat vazbu"
+                        @click="removeOpLink(m, op.id)"
                       >
-                        <Spinner v-if="saving" size="sm" :inline="true" />
-                        <CheckIcon v-else :size="ICON_SIZE_SM" />
-                      </button>
-                      <button class="btn-secondary" :data-testid="`cancel-dims-${m.id}`" @click="cancelEdit">
-                        Zrušit
+                        <Link2OffIcon :size="ICON_SIZE_SM" />
                       </button>
                     </div>
                   </div>
-
-                  <!-- Operation links -->
-                  <div class="edit-section">
-                    <div class="edit-sec-title">Vazby na operace</div>
-                    <div class="op-list">
-                      <div v-if="!m.operations.length" class="t4 fsl">Žádné vazby</div>
-                      <div v-for="op in m.operations" :key="op.id" class="op-item">
-                        <span class="op-item-name">{{ op.seq }}. {{ op.name }}</span>
-                        <button
-                          class="icon-btn icon-btn-danger icon-btn-sm"
-                          :data-testid="`unlink-op-${m.id}-${op.id}`"
-                          title="Odebrat vazbu"
-                          @click="removeOpLink(m, op.id)"
-                        >
-                          <Link2OffIcon :size="ICON_SIZE_SM" />
-                        </button>
-                      </div>
-                    </div>
-                    <div v-if="linkingOpFor === m.id" class="link-op-row">
-                      <select
-                        v-model.number="selectedOpId"
-                        class="op-select"
-                        :data-testid="`op-select-${m.id}`"
-                      >
-                        <option :value="null" disabled>Vyberte operaci…</option>
-                        <option v-for="op in availableOps" :key="op.id" :value="op.id">
-                          {{ op.seq }}. {{ op.name }}
-                        </option>
-                      </select>
-                      <button
-                        class="icon-btn icon-btn-brand"
-                        :disabled="!selectedOpId || linkingSaving"
-                        :data-testid="`confirm-link-op-${m.id}`"
-                        @click="confirmLinkOp(m)"
-                      >
-                        <CheckIcon :size="ICON_SIZE_SM" />
-                      </button>
-                      <button
-                        class="icon-btn"
-                        :data-testid="`cancel-link-op-${m.id}`"
-                        @click="linkingOpFor = null"
-                      >
-                        <XIcon :size="ICON_SIZE_SM" />
-                      </button>
-                    </div>
+                  <div v-if="linkingOpFor === m.id" class="link-op-row">
+                    <select
+                      v-model.number="selectedOpId"
+                      class="op-select"
+                      :data-testid="`op-select-${m.id}`"
+                    >
+                      <option :value="null" disabled>Vyberte operaci…</option>
+                      <option v-for="op in availableOps" :key="op.id" :value="op.id">
+                        {{ op.seq }}. {{ op.name }}
+                      </option>
+                    </select>
                     <button
-                      v-else
-                      class="btn-secondary add-op-btn"
-                      :data-testid="`add-op-link-${m.id}`"
-                      @click="startLinkOp(m.id)"
-                    >Přidat operaci</button>
+                      class="icon-btn icon-btn-brand"
+                      :disabled="!selectedOpId || linkingSaving"
+                      :data-testid="`confirm-link-op-${m.id}`"
+                      @click="confirmLinkOp(m)"
+                    >
+                      <CheckIcon :size="ICON_SIZE_SM" />
+                    </button>
+                    <button
+                      class="icon-btn"
+                      :data-testid="`cancel-link-op-${m.id}`"
+                      @click="linkingOpFor = null"
+                    >
+                      <XIcon :size="ICON_SIZE_SM" />
+                    </button>
                   </div>
+                  <button
+                    v-else
+                    class="btn-secondary add-op-btn"
+                    :data-testid="`add-op-link-${m.id}`"
+                    @click="startLinkOp(m.id)"
+                  >Přidat operaci</button>
                 </div>
               </td>
             </tr>
@@ -755,16 +809,16 @@ watch(
   min-height: 0;
 }
 
-/* ─── Table ─── */
-.row-editing td { background: rgba(255,255,255,0.03); }
-.edit-td { padding: 0; }
-
+/* ─── Table rows ─── */
+.mat-row:hover td { background: rgba(255,255,255,0.025); }
+.mat-row.saving { opacity: 0.6; }
+.row-expanded td { background: rgba(255,255,255,0.03); }
+.detail-td { padding: 0; }
 
 .t4 { color: var(--t4); }
 .fsl { font-size: var(--fsl); }
 
 .mat-name { font-weight: 500; color: var(--t1); }
-/* Catalog code badge in the table — monospace, distinct from name */
 .mat-code {
   display: inline-block;
   font-size: var(--fsx);
@@ -776,6 +830,53 @@ watch(
   margin-top: 2px;
 }
 .mat-sub { font-size: var(--fsm); margin-top: 1px; color: var(--t4); }
+.mat-shape { font-size: var(--fsm); color: var(--t3); margin-bottom: 3px; }
+
+/* ─── Inline dims ─── */
+.inline-dims {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+.dim-sep {
+  font-size: var(--fsm);
+  color: var(--t4);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.dim-badge-ro {
+  font-size: var(--fsm);
+  font-family: var(--mono);
+  color: var(--t3);
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  padding: 1px 5px;
+  border-radius: var(--rs);
+  white-space: nowrap;
+}
+.dim-input-inline {
+  width: 52px;
+  height: 20px;
+  padding: 0 4px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fsm);
+  font-family: var(--mono);
+  outline: none;
+  text-align: right;
+}
+.dim-input-inline:focus { border-color: var(--b3); }
+/* Remove number input spinners */
+.dim-input-inline::-webkit-inner-spin-button,
+.dim-input-inline::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.dim-input-inline[type=number] { -moz-appearance: textfield; }
+
+/* ─── Expand button icon rotation ─── */
+.expand-icon { transition: transform 150ms var(--ease); }
+.expand-icon.expanded { transform: rotate(180deg); }
 
 /* ─── Op chips (summary column) ─── */
 .op-chips { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -799,74 +900,23 @@ watch(
   white-space: nowrap;
 }
 
-/* ─── Edit panel ─── */
-.edit-panel {
-  display: flex;
-  gap: 0;
+/* ─── Detail panel (operation links) ─── */
+.detail-panel {
+  padding: 8px var(--pad);
   background: var(--raised);
   border-top: 1px solid var(--b2);
   border-bottom: 1px solid var(--b2);
 }
-.edit-section {
-  flex: 1;
-  padding: 10px var(--pad);
-  border-right: 1px solid var(--b2);
-}
-.edit-section:last-child { border-right: none; }
-.edit-sec-title {
+.detail-title {
   font-size: var(--fsm);
   font-weight: 600;
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.locked-hint {
-  font-size: var(--fss);
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--t4);
-  background: var(--b1);
-  padding: 1px 5px;
-  border-radius: 99px;
-}
-.dim-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 5px 10px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.dim-lbl {
-  font-size: var(--fsm);
-  color: var(--t4);
-  white-space: nowrap;
-}
-.dim-input {
-  height: 24px;
-  padding: 0 6px;
-  background: var(--surface);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t1);
-  font-size: var(--fs);
-  font-family: var(--mono);
-  outline: none;
-  width: 100%;
-}
-.dim-input:focus { border-color: var(--b3); }
-
-.edit-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+  margin-bottom: 6px;
 }
 
-/* ─── Op list in edit panel ─── */
+/* ─── Op list in detail panel ─── */
 .op-list {
   display: flex;
   flex-direction: column;
@@ -890,7 +940,7 @@ watch(
   align-items: center;
   margin-top: 6px;
 }
-.add-op-btn { margin-top: 6px; }
+.add-op-btn { margin-top: 2px; }
 .op-select {
   flex: 1;
   height: 24px;

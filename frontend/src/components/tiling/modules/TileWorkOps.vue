@@ -2,6 +2,7 @@
 import { computed, watch } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
+import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
 import type { ContextGroup } from '@/types/workspace'
 import { formatDuration } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
@@ -14,6 +15,7 @@ interface Props {
 const props = defineProps<Props>()
 const parts = usePartsStore()
 const ops = useOperationsStore()
+const typeGuard = useItemTypeGuard(['part'])
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
 
@@ -42,8 +44,14 @@ watch(
 
 <template>
   <div class="wops">
+    <!-- Unsupported item type -->
+    <div v-if="!typeGuard.isSupported(props.ctx)" class="mod-placeholder">
+      <div class="mod-dot" />
+      <span class="mod-label">Nedostupné pro {{ typeGuard.focusedTypeName(props.ctx) }}</span>
+    </div>
+
     <!-- No part selected -->
-    <div v-if="!part" class="mod-placeholder">
+    <div v-else-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Vyberte díl ze seznamu</span>
     </div>

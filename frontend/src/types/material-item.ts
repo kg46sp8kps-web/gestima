@@ -16,6 +16,7 @@ export interface MaterialItem {
   shape: StockShape
   diameter: number | null
   width: number | null
+  height: number | null
   thickness: number | null
   wall_thickness: number | null
   weight_per_meter: number | null
@@ -35,4 +36,12 @@ export interface MaterialItem {
 export interface MaterialItemListResponse {
   items: MaterialItem[]
   total: number
+}
+
+export interface MaterialItemDetail extends MaterialItem {
+  price_category: {
+    id: number
+    code: string
+    name: string
+  }
 }

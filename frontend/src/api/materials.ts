@@ -1,9 +1,14 @@
 import { apiClient } from './client'
-import type { MaterialItemListResponse } from '@/types/material-item'
+import type { MaterialItemDetail, MaterialItemListResponse } from '@/types/material-item'
 import type { MaterialGroup, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryUpdate } from '@/types/admin-user'
 
 export async function getItems(params?: { group_id?: number; skip?: number; limit?: number }): Promise<MaterialItemListResponse> {
   const { data } = await apiClient.get<MaterialItemListResponse>('/materials/items', { params })
+  return data
+}
+
+export async function getByNumber(materialNumber: string): Promise<MaterialItemDetail> {
+  const { data } = await apiClient.get<MaterialItemDetail>(`/materials/items/${encodeURIComponent(materialNumber)}`)
   return data
 }
 

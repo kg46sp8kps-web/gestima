@@ -3,15 +3,19 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { CheckIcon, XIcon } from 'lucide-vue-next'
 import { ICON_SIZE_SM } from '@/config/design'
 import { usePartsStore } from '@/stores/parts'
+import { useCatalogStore } from '@/stores/catalog'
 import { useOperationsStore } from '@/stores/operations'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAuthStore } from '@/stores/auth'
 import { useDialog } from '@/composables/useDialog'
+import { useUiStore } from '@/stores/ui'
 import type { ContextGroup, ModuleId } from '@/types/workspace'
 import type { Operation, CuttingMode } from '@/types/operation'
 import type { WorkCenter } from '@/types/work-center'
-import { formatMinSec } from '@/utils/formatters'
+import type { MaterialItemDetail } from '@/types/material-item'
+import { formatMinSec, formatNumber } from '@/utils/formatters'
 import * as wcApi from '@/api/work-centers'
+import * as materialsApi from '@/api/materials'
 import Spinner from '@/components/ui/Spinner.vue'
 import TileWorkMaterials from './TileWorkMaterials.vue'
 import TileWorkPricing from './TileWorkPricing.vue'
@@ -24,12 +28,51 @@ interface Props {
 
 const props = defineProps<Props>()
 const parts = usePartsStore()
+const catalog = useCatalogStore()
 const ops = useOperationsStore()
 const ws = useWorkspaceStore()
 const auth = useAuthStore()
 const dialog = useDialog()
+const ui = useUiStore()
 
+const catalogItem = computed(() => catalog.getFocusedItem(props.ctx))
 const part = computed(() => parts.getFocusedPart(props.ctx))
+
+// ─── Material detail — loaded when catalogItem.type === 'material' ───
+const materialDetail = ref<MaterialItemDetail | null>(null)
+const materialLoading = ref(false)
+
+const SHAPE_LABELS: Record<string, string> = {
+  round_bar:     'Kulatina',
+  square_bar:    'Čtyřhran',
+  flat_bar:      'Plochá ocel',
+  hexagonal_bar: 'Šestihran',
+  plate:         'Plech',
+  tube:          'Trubka',
+  casting:       'Odlitek',
+  forging:       'Výkovek',
+}
+
+watch(
+  catalogItem,
+  async (item) => {
+    if (!item || item.type !== 'material') {
+      materialDetail.value = null
+      return
+    }
+    if (materialDetail.value?.material_number === item.number) return
+    materialLoading.value = true
+    try {
+      materialDetail.value = await materialsApi.getByNumber(item.number)
+    } catch {
+      ui.showError('Chyba při načítání polotovaru')
+      materialDetail.value = null
+    } finally {
+      materialLoading.value = false
+    }
+  },
+  { immediate: true },
+)
 
 // ─── Tabs ───
 type Tab = 'ops' | 'pricing' | 'materials' | 'drawing'
@@ -346,14 +389,88 @@ function onWcBlur() {
 <template>
   <div :class="['wdet', { refetching: isRefetching }]">
     <!-- ── Empty state ── -->
-    <div v-if="!part" class="mod-placeholder">
+    <div v-if="!catalogItem" class="mod-placeholder">
       <div class="mod-dot" />
-      <span class="mod-label">Vyberte díl ze seznamu</span>
-      <span class="mod-hint">Klikněte na díl v panelu Díly</span>
+      <span class="mod-label">Vyberte položku ze seznamu</span>
+      <span class="mod-hint">Klikněte na díl nebo polotovar v panelu Položky</span>
+    </div>
+
+    <!-- ── Material detail ── -->
+    <div v-else-if="catalogItem.type === 'material'" class="mat-det">
+      <div v-if="materialLoading" class="mod-placeholder">
+        <Spinner size="sm" />
+      </div>
+      <template v-else-if="materialDetail">
+        <!-- Info bar -->
+        <div class="det-bar">
+          <span class="det-pn">{{ materialDetail.material_number }}</span>
+          <span class="det-nm">{{ materialDetail.name }}</span>
+          <div class="det-bgs">
+            <span class="bdg">
+              <span class="dot o" />
+              {{ SHAPE_LABELS[materialDetail.shape] ?? materialDetail.shape }}
+            </span>
+          </div>
+        </div>
+        <!-- Fields ribbon -->
+        <div class="rib">
+          <div class="rib-r">
+            <div v-if="materialDetail.code" class="rib-i">
+              <span class="rib-l">Kód</span>
+              <span class="rib-v m">{{ materialDetail.code }}</span>
+            </div>
+            <div v-if="materialDetail.diameter != null" class="rib-i">
+              <span class="rib-l">∅</span>
+              <span class="rib-v m">{{ formatNumber(materialDetail.diameter) }} mm</span>
+            </div>
+            <div v-if="materialDetail.width != null" class="rib-i">
+              <span class="rib-l">Šířka</span>
+              <span class="rib-v m">{{ formatNumber(materialDetail.width) }} mm</span>
+            </div>
+            <div v-if="materialDetail.thickness != null" class="rib-i">
+              <span class="rib-l">Tloušťka</span>
+              <span class="rib-v m">{{ formatNumber(materialDetail.thickness) }} mm</span>
+            </div>
+            <div v-if="materialDetail.wall_thickness != null" class="rib-i">
+              <span class="rib-l">Stěna</span>
+              <span class="rib-v m">{{ formatNumber(materialDetail.wall_thickness) }} mm</span>
+            </div>
+            <div v-if="materialDetail.weight_per_meter != null" class="rib-i">
+              <span class="rib-l">kg/m</span>
+              <span class="rib-v m">{{ formatNumber(materialDetail.weight_per_meter, 3) }}</span>
+            </div>
+            <div v-if="materialDetail.standard_length != null" class="rib-i">
+              <span class="rib-l">Std. délka</span>
+              <span class="rib-v m">{{ formatNumber(materialDetail.standard_length) }} mm</span>
+            </div>
+          </div>
+        </div>
+        <!-- Extra ribbon -->
+        <div class="rib">
+          <div class="rib-r">
+            <div v-if="materialDetail.norms" class="rib-i">
+              <span class="rib-l">Normy</span>
+              <span class="rib-v">{{ materialDetail.norms }}</span>
+            </div>
+            <div v-if="materialDetail.supplier_code" class="rib-i">
+              <span class="rib-l">Kód dodavatele</span>
+              <span class="rib-v m">{{ materialDetail.supplier_code }}</span>
+            </div>
+            <div class="rib-i">
+              <span class="rib-l">Cen. kat.</span>
+              <span class="rib-v">{{ materialDetail.price_category.code }} · {{ materialDetail.price_category.name }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <div v-else class="mod-placeholder">
+        <div class="mod-dot" />
+        <span class="mod-label">Polotovar nenalezen</span>
+      </div>
     </div>
 
     <!-- ── Part loaded ── -->
-    <template v-else>
+    <template v-else-if="part">
 
       <!-- Compact info bar -->
       <div class="det-bar">
@@ -840,6 +957,14 @@ function onWcBlur() {
 }
 .add-op-btn-sm:hover:not(:disabled) { color: var(--t1); border-color: var(--b3); }
 .add-op-btn-sm:disabled { opacity: 0.35; cursor: default; }
+
+/* ─── Material detail container ─── */
+.mat-det {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
 
 /* ─── Edit hint ─── */
 .edit-hint {

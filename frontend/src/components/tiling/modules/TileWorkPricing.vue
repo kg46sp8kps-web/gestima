@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { usePartsStore } from '@/stores/parts'
+import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
 import * as batchesApi from '@/api/batches'
 import type { Batch } from '@/types/batch'
 import type { ContextGroup } from '@/types/workspace'
@@ -19,6 +20,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const parts = usePartsStore()
+const typeGuard = useItemTypeGuard(['part'])
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
 
@@ -62,8 +64,14 @@ watch(
 
 <template>
   <div :class="['wprc', { refetching: isRefetching }]">
+    <!-- Unsupported item type -->
+    <div v-if="!typeGuard.isSupported(props.ctx)" class="mod-placeholder">
+      <div class="mod-dot" />
+      <span class="mod-label">Nedostupné pro {{ typeGuard.focusedTypeName(props.ctx) }}</span>
+    </div>
+
     <!-- No part selected -->
-    <div v-if="!part" class="mod-placeholder">
+    <div v-else-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Vyberte díl ze seznamu</span>
     </div>

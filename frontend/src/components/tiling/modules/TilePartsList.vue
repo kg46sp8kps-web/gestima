@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { usePartsStore } from '@/stores/parts'
+import { useCatalogStore } from '@/stores/catalog'
 import { useUiStore } from '@/stores/ui'
+import * as materialsApi from '@/api/materials'
 import type { ContextGroup } from '@/types/workspace'
-import type { Part, PartCreate } from '@/types/part'
+import type { Part, PartCreate, PartStatus } from '@/types/part'
+import type { MaterialItem } from '@/types/material-item'
 import Spinner from '@/components/ui/Spinner.vue'
 import Modal from '@/components/ui/Modal.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
+
+type TypeFilter = 'all' | 'parts' | 'materials'
 
 interface Props {
   leafId: string
@@ -16,24 +21,44 @@ interface Props {
 
 const props = defineProps<Props>()
 const parts = usePartsStore()
+const catalog = useCatalogStore()
 const ui = useUiStore()
 
 const searchVal = ref('')
+const typeFilter = ref<TypeFilter>('all')
 const showCreate = ref(false)
 const createName = ref('')
 const createArticle = ref('')
 const creating = ref(false)
 
+// ─── Materials state ───
+const materialItems = ref<MaterialItem[]>([])
+const materialsTotal = ref(0)
+const materialsLoading = ref(false)
+
+const SHAPE_LABELS: Record<string, string> = {
+  round_bar:     'Kulatina',
+  square_bar:    'Čtyřhran',
+  flat_bar:      'Plochá ocel',
+  hexagonal_bar: 'Šestihran',
+  plate:         'Plech',
+  tube:          'Trubka',
+  casting:       'Odlitek',
+  forging:       'Výkovek',
+}
+
 let searchTimer: ReturnType<typeof setTimeout>
 function onSearchInput() {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    parts.search = searchVal.value
-    parts.fetchAll()
+    if (typeFilter.value !== 'materials') {
+      parts.search = searchVal.value
+      parts.fetchAll()
+    }
   }, 300)
 }
 
-const filtered = computed(() => {
+const filteredParts = computed(() => {
   const q = searchVal.value.toLowerCase().trim()
   if (!q) return parts.items
   return parts.items.filter(
@@ -45,10 +70,25 @@ const filtered = computed(() => {
   )
 })
 
-const focused = computed(() => parts.getFocusedPartNumber(props.ctx))
+const filteredMaterials = computed(() => {
+  const q = searchVal.value.toLowerCase().trim()
+  if (!q) return materialItems.value
+  return materialItems.value.filter(
+    (m) =>
+      m.material_number.toLowerCase().includes(q) ||
+      m.name.toLowerCase().includes(q) ||
+      m.code.toLowerCase().includes(q),
+  )
+})
+
+const focusedItem = computed(() => catalog.getFocusedItem(props.ctx))
 
 function selectPart(p: Part) {
-  parts.focusPart(p.part_number, props.ctx)
+  catalog.focusItem({ type: 'part', number: p.part_number }, props.ctx)
+}
+
+function selectMaterial(m: MaterialItem) {
+  catalog.focusItem({ type: 'material', number: m.material_number }, props.ctx)
 }
 
 /** Returns CSS class for the 5px status dot — reference .pd pattern */
@@ -56,7 +96,7 @@ function dotClass(status: string): string {
   if (status === 'active') return 'pd ok'
   if (status === 'draft') return 'pd w'
   if (status === 'archived') return 'pd e'
-  return 'pd o' // quote / unknown
+  return 'pd o'
 }
 
 async function handleCreate() {
@@ -75,12 +115,27 @@ async function handleCreate() {
     showCreate.value = false
     createName.value = ''
     createArticle.value = ''
-    parts.focusPart(part.part_number, props.ctx)
+    catalog.focusItem({ type: 'part', number: part.part_number }, props.ctx)
+  }
+}
+
+async function fetchMaterials() {
+  if (materialsLoading.value) return
+  materialsLoading.value = true
+  try {
+    const result = await materialsApi.getItems({ limit: 500 })
+    materialItems.value = result.items
+    materialsTotal.value = result.total
+  } catch {
+    ui.showError('Chyba při načítání polotovarů')
+  } finally {
+    materialsLoading.value = false
   }
 }
 
 onMounted(() => {
   if (!parts.hasParts) parts.fetchAll()
+  fetchMaterials()
 })
 
 watch(
@@ -101,7 +156,7 @@ watch(
         <input
           v-model="searchVal"
           class="srch"
-          placeholder="Hledat díl..."
+          placeholder="Hledat..."
           data-testid="parts-search"
           @input="onSearchInput"
         />
@@ -112,51 +167,91 @@ watch(
           @click="searchVal = ''; parts.search = ''; parts.fetchAll()"
         >×</button>
       </div>
-      <button class="icon-btn icon-btn-sm" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll()">
+      <button class="icon-btn icon-btn-sm" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll(); fetchMaterials()">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M2.5 8a5.5 5.5 0 1 0 1-3.18M2.5 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="icon-btn icon-btn-brand icon-btn-sm" title="Nový díl" data-testid="parts-create" @click="showCreate = true">
+      <button
+        v-if="typeFilter !== 'materials'"
+        class="icon-btn icon-btn-brand icon-btn-sm"
+        title="Nový díl"
+        data-testid="parts-create"
+        @click="showCreate = true"
+      >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
 
-    <!-- Status filter tabs — reference .ptab pattern -->
+    <!-- Type filter tabs — Vše / Díly / Polotovary -->
     <div class="ptabs">
-      <button :class="['ptab', parts.statusFilter === '' ? 'on' : '']" data-testid="filter-all" @click="parts.statusFilter = ''">
-        Vše <span class="n">{{ parts.total }}</span>
+      <button :class="['ptab', typeFilter === 'all' ? 'on' : '']" data-testid="type-filter-all" @click="typeFilter = 'all'">
+        Vše
       </button>
-      <button :class="['ptab', parts.statusFilter === 'active' ? 'on' : '']" data-testid="filter-active" @click="parts.statusFilter = 'active'">Aktivní</button>
-      <button :class="['ptab', parts.statusFilter === 'draft' ? 'on' : '']" data-testid="filter-draft" @click="parts.statusFilter = 'draft'">Rozpr.</button>
-      <button :class="['ptab', parts.statusFilter === 'archived' ? 'on' : '']" data-testid="filter-archived" @click="parts.statusFilter = 'archived'">Arch.</button>
+      <button :class="['ptab', typeFilter === 'parts' ? 'on' : '']" data-testid="type-filter-parts" @click="typeFilter = 'parts'">
+        Díly <span class="n">{{ parts.total }}</span>
+      </button>
+      <button :class="['ptab', typeFilter === 'materials' ? 'on' : '']" data-testid="type-filter-materials" @click="typeFilter = 'materials'">
+        Polotovary <span class="n">{{ materialsTotal }}</span>
+      </button>
+    </div>
+
+    <!-- Status filter tabs (only when showing parts) -->
+    <div v-if="typeFilter !== 'materials'" class="ptabs ptabs-sub">
+      <button :class="['ptab', parts.statusFilter === '' ? 'on' : '']" data-testid="filter-all" @click="parts.statusFilter = ''">
+        Vše
+      </button>
+      <button :class="['ptab', parts.statusFilter === 'active' ? 'on' : '']" data-testid="filter-active" @click="parts.statusFilter = 'active' as PartStatus">Aktivní</button>
+      <button :class="['ptab', parts.statusFilter === 'draft' ? 'on' : '']" data-testid="filter-draft" @click="parts.statusFilter = 'draft' as PartStatus">Rozpr.</button>
+      <button :class="['ptab', parts.statusFilter === 'archived' ? 'on' : '']" data-testid="filter-archived" @click="parts.statusFilter = 'archived' as PartStatus">Arch.</button>
     </div>
 
     <!-- Loading -->
-    <div v-if="parts.loading" class="plist-state">
+    <div v-if="parts.loading || materialsLoading" class="plist-state">
       <Spinner size="sm" />
     </div>
 
     <!-- Empty -->
-    <div v-else-if="!filtered.length" class="plist-state">
+    <div v-else-if="typeFilter !== 'materials' && !filteredParts.length && typeFilter !== 'all'" class="plist-state">
       <span class="empty-hint">{{ searchVal ? 'Žádný díl nevyhovuje hledání' : 'Žádné díly' }}</span>
     </div>
+    <div v-else-if="typeFilter === 'materials' && !filteredMaterials.length" class="plist-state">
+      <span class="empty-hint">{{ searchVal ? 'Žádný polotovar nevyhovuje hledání' : 'Žádné polotovary' }}</span>
+    </div>
 
-    <!-- Parts list — exact reference .pi pattern -->
+    <!-- Unified list -->
     <ul v-else class="plist">
-      <li
-        v-for="p in filtered"
-        :key="p.part_number"
-        :class="['pi', { sel: focused === p.part_number }]"
-        :data-testid="`part-row-${p.part_number}`"
-        @click="selectPart(p)"
-      >
-        <span class="pn">{{ p.part_number }}</span>
-        <span class="pm">{{ p.name || p.article_number || '—' }}</span>
-        <span :class="dotClass(p.status)" />
-      </li>
+      <!-- Parts section -->
+      <template v-if="typeFilter !== 'materials'">
+        <li
+          v-for="p in filteredParts"
+          :key="`part-${p.part_number}`"
+          :class="['pi', { sel: focusedItem?.type === 'part' && focusedItem.number === p.part_number }]"
+          :data-testid="`part-row-${p.part_number}`"
+          @click="selectPart(p)"
+        >
+          <span class="pn">{{ p.part_number }}</span>
+          <span class="pm">{{ p.name || p.article_number || '—' }}</span>
+          <span :class="dotClass(p.status)" />
+        </li>
+      </template>
+
+      <!-- Materials section -->
+      <template v-if="typeFilter !== 'parts'">
+        <li
+          v-for="m in filteredMaterials"
+          :key="`mat-${m.material_number}`"
+          :class="['pi pi-mat', { sel: focusedItem?.type === 'material' && focusedItem.number === m.material_number }]"
+          :data-testid="`material-row-${m.material_number}`"
+          @click="selectMaterial(m)"
+        >
+          <span class="pn">{{ m.material_number }}</span>
+          <span class="pm">{{ m.name }}</span>
+          <span class="mat-shape-badge">{{ SHAPE_LABELS[m.shape] ?? m.shape }}</span>
+        </li>
+      </template>
     </ul>
 
     <!-- Create modal -->
@@ -236,6 +331,10 @@ watch(
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
+.ptabs-sub {
+  padding: 2px var(--pad);
+  background: rgba(255,255,255,0.01);
+}
 .ptab {
   padding: 3px 7px;
   font-size: var(--fsx);
@@ -254,7 +353,6 @@ watch(
 .ptab.on { color: var(--t1); background: var(--b1); }
 /* Count badge inside tab */
 .n {
-  
   font-size: var(--fsm);
   color: var(--t4);
   padding: 1px 4px;
@@ -308,7 +406,6 @@ watch(
 
 /* Part number — reference .pn */
 .pn {
-  
   font-size: var(--fs);
   font-weight: 500;
   color: var(--t1);
@@ -337,6 +434,17 @@ watch(
 .pd.w  { background: var(--warn); }
 .pd.e  { background: var(--err); }
 .pd.o  { background: var(--t4); }
+
+/* Material row badge */
+.mat-shape-badge {
+  font-size: var(--fsm);
+  padding: 1px 5px;
+  border-radius: var(--rs);
+  background: var(--b1);
+  color: var(--t3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 /* ─── Create form ─── */
 .create-form {
