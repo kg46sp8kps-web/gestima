@@ -9,6 +9,13 @@ export interface AdminUser {
   version: number
 }
 
+export interface AdminUserUpdate {
+  email?: string | null
+  role?: string
+  is_active?: boolean
+  version: number
+}
+
 export interface MaterialGroup {
   id: number
   code: string
@@ -19,6 +26,18 @@ export interface MaterialGroup {
   cutting_speed_turning?: number | null
   cutting_speed_milling?: number | null
   cutting_data_source?: string | null
+  version: number
+}
+
+export interface MaterialGroupUpdate {
+  code?: string
+  name?: string
+  density?: number | null
+  iso_group?: string | null
+  hardness_hb?: number | null
+  cutting_speed_turning?: number | null
+  cutting_speed_milling?: number | null
+  version: number
 }
 
 export interface MaterialPriceCategory {
@@ -32,6 +51,26 @@ export interface MaterialPriceCategory {
   cutting_speed_milling: number | null
   material_group_id: number | null
   material_group: MaterialGroup | null
+  version: number
+}
+
+export interface MaterialPriceCategoryUpdate {
+  name?: string
+  shape?: string | null
+  iso_group?: string | null
+  cutting_speed_turning?: number | null
+  cutting_speed_milling?: number | null
+  version: number
+}
+
+export interface MaterialNormUpdate {
+  w_nr?: string | null
+  en_iso?: string | null
+  csn?: string | null
+  aisi?: string | null
+  material_group_id?: number | null
+  note?: string | null
+  version: number
 }
 
 export interface MaterialNorm {

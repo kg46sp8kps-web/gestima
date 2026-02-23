@@ -109,6 +109,17 @@ if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.ts ]]; then
   fi
 fi
 
+# ── ERROR 8: Hardcoded font-size values ──
+# Tokenized values: 9px 10px 10.5px 11px 12px 12.5px 13px 14px
+# Intentional literals (OK): 8px 8.5px 15px 16px 20px 24px 28px 48px
+if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.css ]]; then
+  HARDCODED_FONT=$(grep -n 'font-size:\s*\(9px\|10px\|10\.5px\|11px\|12px\|12\.5px\|13px\|14px\)' "$FILE" 2>/dev/null \
+    | grep -v 'var(--' | grep -v '/\*')
+  if [ -n "$HARDCODED_FONT" ]; then
+    ERRORS="${ERRORS}\n  [FONT] Hardcoded font-size. Use token: --fsm(10px) --fsx(10.5px) --fss(9px) --fsh(14px) --fs(12px) --fsl(11px):\n${HARDCODED_FONT}\n"
+  fi
+fi
+
 # ════════════════════════════════════════
 # WARNINGS — inform but DON'T block
 # ════════════════════════════════════════

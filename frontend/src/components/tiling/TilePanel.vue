@@ -101,10 +101,7 @@ function onFocus() {
 
       <!-- Placeholder for unimplemented modules -->
       <div v-else class="mod-placeholder">
-        <div
-          class="mi-dot-lg"
-          :style="{ background: 'var(--t4)' }"
-        />
+        <div class="mi-dot-lg" />
         <div class="mod-label">{{ node.module }}</div>
         <div class="mod-hint">Modul se připravuje</div>
       </div>
@@ -160,7 +157,7 @@ function onFocus() {
 }
 
 .pnl.max {
-  position: fixed !important;
+  position: fixed;
   inset: 38px 3px 24px 3px;
   z-index: 50;
 }
@@ -224,6 +221,7 @@ function onFocus() {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background: var(--t4);
 }
 .mod-label {
   font-size: var(--fsl);
@@ -233,7 +231,7 @@ function onFocus() {
   color: var(--t4);
 }
 .mod-hint {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   opacity: 0.6;
 }

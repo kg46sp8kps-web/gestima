@@ -136,7 +136,7 @@ watch(
                 <span v-if="b.is_default" class="def-dot" title="Výchozí dávka" />
                 <span v-if="b.is_frozen" class="frozen-badge" title="Zmrazená cena">ZAM</span>
               </td>
-              <td class="r mono">{{ formatNumber(b.quantity, 0) }}</td>
+              <td class="r">{{ formatNumber(b.quantity, 0) }}</td>
               <td class="r">
                 <span class="pct-badge mat">{{ pct(b.material_percent) }}</span>
               </td>
@@ -146,7 +146,7 @@ watch(
               <td class="r">
                 <span class="pct-badge setup">{{ pct(b.setup_percent) }}</span>
               </td>
-              <td class="r mono">{{ formatCurrency(b.unit_cost) }}</td>
+              <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
               <td class="r">
                 <span class="price-val">{{ formatCurrency(b.unit_price) }}</span>
               </td>
@@ -196,9 +196,9 @@ watch(
 }
 .rib-r { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
-.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
-.rib-v.m { font-family: var(--mono); }
+.rib-v.m { }
 .rib-v.green { color: var(--green); }
 
 /* ─── Table wrapper ─── */
@@ -210,39 +210,8 @@ watch(
 }
 
 /* ─── Table ─── */
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
 .row-default td { background: rgba(255,255,255,0.015); }
-.mono { font-family: var(--mono); }
+
 
 /* ─── Indicators ─── */
 .def-dot {
@@ -255,7 +224,6 @@ watch(
 }
 .frozen-badge {
   display: inline-block;
-  font-family: var(--mono);
   font-size: 8px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -268,8 +236,7 @@ watch(
 /* ─── Percent badges ─── */
 .pct-badge {
   display: inline-block;
-  font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fsm);
   padding: 1px 4px;
   border-radius: var(--rs);
   background: var(--b1);
@@ -280,7 +247,6 @@ watch(
 
 /* ─── Price value ─── */
 .price-val {
-  font-family: var(--mono);
   font-weight: 600;
   color: var(--green);
 }

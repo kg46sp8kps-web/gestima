@@ -94,7 +94,7 @@ onMounted(() => {
       <!-- Header actions -->
       <div class="hactions">
         <button
-          class="hbtn"
+          class="icon-btn"
           title="Uložit layout"
           :class="{ 'hbtn-dim': ws.currentLayoutId === null }"
           data-testid="save-layout-btn"
@@ -103,7 +103,7 @@ onMounted(() => {
           <SaveIcon :size="ICON_SIZE_SM" />
         </button>
         <button
-          class="hbtn"
+          class="icon-btn"
           title="Správa layoutů"
           data-testid="layout-manager-btn"
           @click.stop="showLayoutManager = true"
@@ -239,7 +239,7 @@ onMounted(() => {
 .hlogo svg { width: 11px; height: 11px; stroke: var(--red); }
 
 .logo {
-  font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+  font-size: var(--fs); font-weight: 700;
   letter-spacing: 0.1em; user-select: none; flex-shrink: 0;
 }
 .logo em { color: var(--red); font-style: normal; }
@@ -264,13 +264,6 @@ onMounted(() => {
 .hfill { flex: 1; }
 
 .hactions { display: flex; align-items: center; gap: 3px; }
-.hbtn {
-  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: none; border-radius: var(--rs);
-  color: var(--t3); cursor: pointer; transition: all 0.1s;
-}
-.hbtn:hover { color: var(--t1); background: var(--b1); }
-.hbtn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
 .hbtn-dim { opacity: 0.4; }
 
 .ava {
@@ -304,7 +297,7 @@ onMounted(() => {
   align-items: center;
   padding: 0 10px;
   gap: 7px;
-  font-size: 10.5px;
+  font-size: var(--fsx);
   color: var(--t4);
   flex-shrink: 0;
   z-index: 10;
@@ -344,12 +337,12 @@ onMounted(() => {
 }
 .mpk.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
 .mpk-h {
-  padding: 5px 9px; font-size: 9px; font-weight: 600; color: var(--t4);
+  padding: 5px 9px; font-size: var(--fss); font-weight: 600; color: var(--t4);
   text-transform: uppercase; letter-spacing: 0.08em;
   border-bottom: 1px solid var(--b1); background: var(--raised);
   display: flex; align-items: center;
 }
-.mpk-hint { font-size: 8px; color: var(--t4); font-family: var(--mono); margin-left: auto; }
+.mpk-hint { font-size: 8px; color: var(--t4); margin-left: auto; }
 
 .mpk-i {
   display: flex; align-items: center; gap: 6px;
@@ -367,7 +360,7 @@ onMounted(() => {
 }
 .mpk-name-btn:hover { color: var(--t1); }
 
-.mpk-key { font-family: var(--mono); font-size: 9px; color: var(--t4); }
+.mpk-key { font-size: var(--fss); color: var(--t4); }
 
 .mpk-acts {
   display: flex; gap: 2px; opacity: 0;

@@ -17,7 +17,6 @@ Pokud zpráva obsahuje slovo **"blbost"** (nebo "blbé", "jednoduchá věc", "qu
 - **Odpověz přímo, hned, bez plánování**
 - Žádné sub-agenty, žádný routing
 - Krátká odpověď, rovnou k věci
-- Na konci: `💡 Příště řekni: [technická formulace]`
 
 ### Jinak → pokračuj na Krok 2
 
@@ -54,21 +53,6 @@ Modely per úkol:
 
 ---
 
-## Krok 4 — Výuka uživatele
-
-**Na konci KAŽDÉ odpovědi** (i delegované) přidej:
-
-```
-💡 Příště řekni: "[technická formulace tohoto úkolu]"
-```
-
-Příklady:
-- Uživatel: "nefunguje mi cena v té tabulce" → `💡 Příště řekni: "v DataTable.vue se nezobrazuje hodnota unit_cost z API response"`
-- Uživatel: "chci přidat tlačítko pro smazání" → `💡 Příště řekni: "přidej soft-delete endpoint DELETE /api/xyz/{id} a Button.vue s variant='danger' v XyzPanel.vue"`
-- Uživatel: "něco je špatně s loginem" → `💡 Příště řekni: "login endpoint vrací 401 přestože credentials jsou správné — zkontroluj auth dependency"`
-
-Cíl: uživatel se postupně naučí technický jazyk a jeho prompty budou přesnější.
-
 ---
 
 ## Pravidla Cartmana
@@ -104,5 +88,4 @@ Cíl: uživatel se postupně naučí technický jazyk a jeho prompty budou přes
 
 "jak funguje optimistic locking?"
 → jednoduchá otázka → odpovím přímo
-💡 Příště řekni: "vysvětli optimistic locking pattern s version field v Gestima"
 ```

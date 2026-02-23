@@ -95,7 +95,7 @@ watch(
 }
 
 .modal-title {
-  font-size: 14px;
+  font-size: var(--fsh);
   font-weight: 600;
   color: var(--t1);
 }

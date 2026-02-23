@@ -112,14 +112,14 @@ watch(
             :key="r.id"
             :data-testid="`prod-row-${r.id}`"
           >
-            <td class="t4 mono">{{ r.production_date ?? '—' }}</td>
-            <td class="mono t4">{{ r.infor_order_number ?? '—' }}</td>
-            <td class="r mono">{{ r.batch_quantity ?? '—' }}</td>
-            <td class="r t4 mono">{{ r.operation_seq != null ? r.operation_seq * 10 : '—' }}</td>
+            <td class="t4">{{ r.production_date ?? '—' }}</td>
+            <td class="t4">{{ r.infor_order_number ?? '—' }}</td>
+            <td class="r">{{ r.batch_quantity ?? '—' }}</td>
+            <td class="r t4">{{ r.operation_seq != null ? r.operation_seq * 10 : '—' }}</td>
             <td class="t3">{{ r.work_center_name ?? '—' }}</td>
-            <td class="r mono">{{ r.planned_time_min != null ? formatNumber(r.planned_time_min, 2) : '—' }}</td>
-            <td class="r mono">{{ r.actual_time_min != null ? formatNumber(r.actual_time_min, 2) : '—' }}</td>
-            <td :class="['r', 'mono', deltaClass(r)]">{{ deltaLabel(r) }}</td>
+            <td class="r">{{ r.planned_time_min != null ? formatNumber(r.planned_time_min, 2) : '—' }}</td>
+            <td class="r">{{ r.actual_time_min != null ? formatNumber(r.actual_time_min, 2) : '—' }}</td>
+            <td :class="['r', deltaClass(r)]">{{ deltaLabel(r) }}</td>
           </tr>
         </tbody>
       </table>
@@ -154,7 +154,7 @@ watch(
 }
 .mod-dot.err { background: var(--err); }
 .mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-.mod-hint { font-size: 10px; opacity: 0.6; }
+.mod-hint { font-size: var(--fsm); opacity: 0.6; }
 
 .ot-wrap {
   flex: 1;
@@ -162,37 +162,7 @@ watch(
   overflow-x: auto;
   min-height: 0;
 }
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 3px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t3 { color: var(--t3); }
 .t4 { color: var(--t4); }
 .r { text-align: right; }

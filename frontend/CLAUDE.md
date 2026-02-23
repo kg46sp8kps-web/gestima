@@ -93,7 +93,7 @@
 
 **Co v2 NETOKENIZUJE (použij literál):**
 - Font-weight: `400`, `420` (body), `500`, `600`, `700`
-- Font-size (mimo --fs/--fsl): `9px`, `10px`, `14px`, `16px`, `28px`
+- Font-size — tokenizované: viz tabulka výše. Literály OK: `8px`, `8.5px`, `15px`, `16px`, `20px`, `24px`, `28px`, `48px` (one-off layout hodnoty)
 - Spacing: `2px`, `4px`, `6px`, `8px`, `12px`, `16px`, `20px`, `24px`
 - Shadows: `0 4px 12px rgba(0,0,0,0.5)`
 - Transitions: `all 100ms var(--ease)`, `all 150ms var(--ease)`
@@ -101,6 +101,28 @@
 - Focus: `rgba(255,255,255,0.5)` (outline), `rgba(255,255,255,0.03)` (bg)
 
 **Pokud potřebuješ token který není v seznamu — ZEPTEJ SE, nevymýšlej.**
+
+---
+
+## Katalog UI prvků — MANDATORY
+
+**Source of truth:** `frontend/tiling-preview-v3.html` → sekce `#styleguide`
+
+### Pravidlo: Nový prvek = přidat do katalogu
+
+Když vytváříš nový UI prvek nebo komponentu:
+1. **Zkontroluj katalog** — prvek možná již existuje
+2. **Použij existující vzor** — kopíruj HTML/CSS z `#styleguide` sekce
+3. **Pokud prvek v katalogu chybí** — přidej ho do `tiling-preview-v3.html#styleguide`
+
+Katalog obsahuje: Typography, Tables (.ot/.bt), Badges, Buttons, Inputs, Panel anatomy, KPI cards, Status indicators, Save actions.
+
+### Save action vzor — JEDNOTA (SSoT)
+
+**Vždy jedno řešení.** Pro uložení/potvrzení:
+- Inline editace v tabulce → **ikona Check** (`.icon-btn` s `<Check />`)
+- Formuláře/dialogy → **`.btn-primary` s textem "Uložit"**
+- Nikdy míchat vzory na stejném místě
 
 ---
 
@@ -129,7 +151,16 @@
 5. **Button varianty:** `.btn-primary`, `.btn-secondary`, `.btn-destructive` (všechny ghost/transparent)
 6. **Focus:** vždy viditelný — `:focus-visible { outline: 2px solid rgba(255,255,255,0.5) }` (BÍLÝ, nikdy modrý)
 7. **`@container` queries** — nikdy `@media` v komponentách
-8. **Font velikosti:** `var(--fs)` (12px) standard, `var(--fsl)` (11px) malé popisky. Hardcoded px OK v tiling komponentách (např. 10.5px headers)
+8. **Font scale — VŽDY používej tokeny:**
+   ```
+   --fs  (12px)   standard body, table cells, module picker items
+   --fsl (11px)   panel headers, DataTable th
+   --fsx (10.5px) tabs, action buttons, status bar, login labels
+   --fsm (10px)   table th (uppercase), ribbon labels, badges, KPI labels
+   --fss (9px)    KPI units, shortcut keys, meta text, avatar
+   --fsh (14px)   pricing values, section headers, modal titles
+   ```
+   NIKDY hardcoded px pro tyto velikosti — hook [ERROR 8] zastaví commit.
 
 ---
 
@@ -198,6 +229,7 @@ try {
 - ❌ `<style>` bez `scoped` [HOOK: ERROR 4]
 - ❌ Options API (`export default {}`) [HOOK: ERROR 5]
 - ❌ Legacy tokeny (`--bg-surface`, `--text-primary`, `--brand`, `--space-*`) [HOOK: ERROR 6]
+- ❌ Hardcoded `font-size: NNpx` pro tokenizované hodnoty (9/10/10.5/11/12/12.5/13/14px) [HOOK: ERROR 8]
 
 **WARNINGS — hook informuje, neblokuje:**
 - ⚠️ `@media` queries v komponentách — prefer `@container` [HOOK: WARN 7]

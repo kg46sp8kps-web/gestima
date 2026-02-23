@@ -157,7 +157,7 @@ async function submit() {
 .login-logo-text em { color: var(--red); font-style: normal; }
 .login-logo-text span { color: var(--t1); }
 .login-sub {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -169,7 +169,7 @@ async function submit() {
   margin-bottom: 12px;
 }
 .login-label {
-  font-size: 10.5px;
+  font-size: var(--fsx);
   font-weight: 500;
   color: var(--t3);
   letter-spacing: 0.04em;
@@ -213,7 +213,7 @@ async function submit() {
 .login-footer {
   margin-top: 16px;
   text-align: center;
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
 }
 @keyframes drift {

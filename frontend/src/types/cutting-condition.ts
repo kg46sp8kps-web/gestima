@@ -7,6 +7,14 @@ export interface CuttingConditionCell {
   version: number
 }
 
+export interface CuttingConditionUpdate {
+  Vc?: number | null
+  f?: number | null
+  Ap?: number | null
+  notes?: string | null
+  version: number
+}
+
 export interface CuttingConditionOperation {
   operation_type: string
   operation: string

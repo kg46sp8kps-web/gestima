@@ -67,13 +67,13 @@ onMounted(() => loadOverview(year.value))
     <!-- Year selector -->
     <div class="yr-bar">
       <button
-        class="yr-btn"
+        class="icon-btn yr-btn"
         data-testid="year-prev"
         @click="year--"
       >‹</button>
       <span class="yr-val">{{ year }}</span>
       <button
-        class="yr-btn"
+        class="icon-btn yr-btn"
         data-testid="year-next"
         @click="year++"
       >›</button>
@@ -132,12 +132,12 @@ onMounted(() => loadOverview(year.value))
             <template v-for="m in data.monthly" :key="m.mesic">
               <tr v-if="m.revenue > 0 || m.expenses > 0" :data-testid="`month-row-${m.mesic}`">
                 <td>{{ MONTHS[m.mesic - 1] }}</td>
-                <td class="r mono green">{{ formatCurrency(m.revenue) }}</td>
-                <td class="r mono t3">{{ formatCurrency(m.expenses) }}</td>
-                <td :class="['r', 'mono', m.profit >= 0 ? 'green' : 'red']">
+                <td class="r green">{{ formatCurrency(m.revenue) }}</td>
+                <td class="r t3">{{ formatCurrency(m.expenses) }}</td>
+                <td :class="['r', m.profit >= 0 ? 'green' : 'red']">
                   {{ formatCurrency(m.profit) }}
                 </td>
-                <td class="r t4 mono">
+                <td class="r t4">
                   {{ m.revenue > 0 ? (m.profit / m.revenue * 100).toFixed(1) + ' %' : '—' }}
                 </td>
               </tr>
@@ -190,22 +190,16 @@ onMounted(() => loadOverview(year.value))
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
+/* yr-btn overrides icon-btn size + adds border for year nav context */
 .yr-btn {
   width: 20px;
   height: 20px;
   background: var(--b1);
   border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: var(--fsh);
 }
-.yr-btn:hover { border-color: var(--b3); color: var(--t1); }
+.yr-btn:hover { border-color: var(--b3); }
 .yr-val {
-  font-family: var(--mono);
   font-size: var(--fs);
   font-weight: 600;
   color: var(--t1);
@@ -230,15 +224,14 @@ onMounted(() => loadOverview(year.value))
   padding: 4px 8px;
 }
 .kpi-label {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 500;
 }
 .kpi-val {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs);
   font-weight: 600;
   color: var(--t1);
   white-space: nowrap;
@@ -246,9 +239,8 @@ onMounted(() => loadOverview(year.value))
 .kpi-val.green { color: var(--green); }
 .kpi-val.red { color: var(--err); }
 .kpi-yoy {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
-  font-family: var(--mono);
 }
 .yoy-pos { color: var(--ok); }
 .yoy-neg { color: var(--err); }
@@ -261,37 +253,7 @@ onMounted(() => loadOverview(year.value))
   overflow-x: hidden;
   min-height: 0;
 }
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t3 { color: var(--t3); }
 .green { color: var(--green); }
 .red { color: var(--err); }

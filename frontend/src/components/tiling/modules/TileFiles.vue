@@ -112,9 +112,9 @@ onMounted(load)
               <td>
                 <span class="type-badge">{{ f.file_type.toUpperCase() }}</span>
               </td>
-              <td class="r mono t4">{{ formatSize(f.file_size) }}</td>
+              <td class="r t4">{{ formatSize(f.file_size) }}</td>
               <td class="t4">{{ f.created_at.split('T')[0] }}</td>
-              <td class="r mono t4">{{ f.links.length || '—' }}</td>
+              <td class="r t4">{{ f.links.length || '—' }}</td>
             </tr>
           </tbody>
         </table>
@@ -170,10 +170,9 @@ onMounted(load)
 .srch-inp::placeholder { color: var(--t4); }
 .srch-inp:focus { border-color: var(--b3); }
 .srch-count {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   white-space: nowrap;
-  font-family: var(--mono);
 }
 
 .ot-wrap {
@@ -182,38 +181,7 @@ onMounted(load)
   overflow-x: hidden;
   min-height: 0;
 }
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 .r { text-align: right; }
 
@@ -224,8 +192,7 @@ onMounted(load)
 
 .type-badge {
   display: inline-block;
-  font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fss);
   font-weight: 600;
   padding: 1px 4px;
   border-radius: var(--rs);

@@ -48,8 +48,12 @@
   /* ─── Typography ─── */
   --font: 'DM Sans', -apple-system, sans-serif;
   --mono: 'JetBrains Mono', monospace;
-  --fs: 12px;
-  --fsl: 11px;
+  --fs:  12px;    /* standard body, table cells, module picker items */
+  --fsl: 11px;    /* panel headers, DataTable th */
+  --fsx: 10.5px;  /* tabs, action buttons, status bar, login labels */
+  --fsm: 10px;    /* table th (uppercase), ribbon labels, badges, KPI labels */
+  --fss: 9px;     /* KPI units, shortcut keys, meta text, avatar */
+  --fsh: 14px;    /* pricing values, section headers, modal titles */
 
   /* ─── Spacing ─── */
   --gap: 3px;
@@ -128,14 +132,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 12px;
+  height: 26px;
+  padding: 0 10px;
   background: transparent;
   border: 1px solid var(--red);
   border-radius: var(--rs);
   color: var(--red);
   font-family: var(--font);
-  font-size: var(--fs);
+  font-size: var(--fsx);
   font-weight: 500;
   cursor: pointer;
   transition: all 100ms var(--ease);
@@ -159,14 +163,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 12px;
+  height: 26px;
+  padding: 0 10px;
   background: transparent;
   border: 1px solid var(--b3);
   border-radius: var(--rs);
   color: var(--t2);
   font-family: var(--font);
-  font-size: var(--fs);
+  font-size: var(--fsx);
   font-weight: 500;
   cursor: pointer;
   transition: all 100ms var(--ease);
@@ -190,14 +194,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 12px;
+  height: 26px;
+  padding: 0 10px;
   background: transparent;
   border: 1px solid var(--err);
   border-radius: var(--rs);
   color: var(--err);
   font-family: var(--font);
-  font-size: var(--fs);
+  font-size: var(--fsx);
   font-weight: 500;
   cursor: pointer;
   transition: all 100ms var(--ease);
@@ -281,14 +285,74 @@ body {
    TABLE COLUMNS
    ═══════════════════════════════════════ */
 .col-num {
-  font-family: var(--mono);
   text-align: right;
 }
 .col-currency {
-  font-family: var(--mono);
   text-align: right;
   white-space: nowrap;
 }
+.act-cell {
+  width: 52px;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* ═══════════════════════════════════════
+   OPERATIONS TABLE (.ot) — shared tiling module table
+   ═══════════════════════════════════════ */
+.ot { width: 100%; border-collapse: collapse; }
+.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
+.ot th {
+  padding: 4px var(--pad);
+  font-size: var(--fsm);
+  font-weight: 600;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  border-bottom: 1px solid var(--b2);
+  white-space: nowrap;
+}
+.ot th.r { text-align: right; }
+.ot td {
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  color: var(--t2);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+.ot td.r { text-align: right; color: var(--t1); }
+.ot tbody tr { transition: background 0.04s; }
+.ot tbody tr:hover td { background: var(--b1); }
+.ot tbody tr.sel td { background: rgba(255,255,255,0.06); }
+
+/* ═══════════════════════════════════════
+   BATCH/PRICING TABLE (.bt) — green accent variant
+   ═══════════════════════════════════════ */
+.bt { width: 100%; border-collapse: collapse; }
+.bt thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
+.bt th {
+  padding: 4px var(--pad);
+  font-size: var(--fsm);
+  font-weight: 600;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  border-bottom: 1px solid var(--green-10);
+  white-space: nowrap;
+}
+.bt th.r { text-align: right; }
+.bt td {
+  padding: 4px var(--pad);
+  font-size: var(--fs);
+  color: var(--t2);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+.bt td.r { text-align: right; color: var(--t1); }
+.bt tbody tr { transition: background 0.04s; }
+.bt tbody tr:hover td { background: var(--b1); }
+.bt tbody tr.sel td { background: var(--green-10); }
 
 /* ═══════════════════════════════════════
    GRAIN TEXTURE

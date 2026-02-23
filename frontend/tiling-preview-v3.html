@@ -609,7 +609,7 @@ body::after {
 .ot td.r { font-family: var(--mono); text-align: right; color: var(--t1); }
 .ot tbody tr { transition: background 0.04s; min-height: 28px; }
 .ot tbody tr:hover td { background: var(--b1); }
-.ot tbody tr.sel td { background: var(--red-dim); }
+.ot tbody tr.sel td { background: rgba(255,255,255,0.06); }
 
 /* Time badges */
 .tb {
@@ -791,6 +791,29 @@ body::after {
 @keyframes fabIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes orbFloat { from { transform: translate(0,0); } to { transform: translate(-30px, 20px); } }
+
+/* ── Design System shared classes (used in Style Guide + workspace) ── */
+.badge { display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;background:var(--b1);border:1px solid var(--b2);border-radius:99px;font-size:11px;font-weight:500;color:var(--t2);white-space:nowrap; }
+.badge-dot { width:5px;height:5px;border-radius:50%;flex-shrink:0; }
+.badge-dot-ok { background:var(--ok); }
+.badge-dot-error { background:var(--err); }
+.badge-dot-warn { background:var(--warn); }
+.badge-dot-neutral { background:var(--t4); }
+.badge-dot-brand { background:var(--red); }
+.btn-primary { display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;background:transparent;border:1px solid var(--red);border-radius:4px;color:var(--red);font-family:var(--font);font-size:10.5px;font-weight:500;cursor:pointer;white-space:nowrap;letter-spacing:0.02em;transition:all 100ms; }
+.btn-primary:hover { background:var(--red-10); }
+.btn-secondary { display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;background:transparent;border:1px solid var(--b3);border-radius:4px;color:var(--t2);font-family:var(--font);font-size:10.5px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all 100ms; }
+.btn-secondary:hover { background:var(--b1);color:var(--t1); }
+.btn-destructive { display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;background:transparent;border:1px solid var(--err);border-radius:4px;color:var(--err);font-family:var(--font);font-size:10.5px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all 100ms; }
+.btn-destructive:hover { background:rgba(248,113,113,0.1); }
+.icon-btn { display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:transparent;border:none;border-radius:4px;color:var(--t3);cursor:pointer;transition:all 100ms;flex-shrink:0; }
+.icon-btn:hover { color:var(--t1);background:var(--b1); }
+.icon-btn-sm { width:24px;height:24px; }
+.icon-btn-brand { color:var(--red); }
+.icon-btn-brand:hover { color:var(--red);background:var(--red-10); }
+.icon-btn-danger { color:var(--t3); }
+.icon-btn-danger:hover { color:var(--err);background:rgba(248,113,113,0.1); }
+.act-cell { width:52px;white-space:nowrap;text-align:right;padding-right:4px; }
 </style>
 </head>
 <body>
@@ -855,7 +878,11 @@ body::after {
       <button class="lchip" onclick="setLayout('qd')">Kompletní</button>
     </div>
     <div class="hfill"></div>
-    <div style="display:flex;gap:3px">
+    <div style="display:flex;gap:3px;align-items:center">
+      <button class="hbtn" id="guide-toggle-btn" onclick="toggleGuide()" title="Living Style Guide" style="border:1px solid var(--b2);color:var(--t3);font-size:10px;font-weight:600;letter-spacing:0.04em;padding:0 7px;width:auto;gap:4px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px;height:13px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        GUIDE
+      </button>
       <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></button>
       <button class="hbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
       <div class="ava" id="ws-ava">JN</div>
@@ -2209,6 +2236,332 @@ document.getElementById('login-pass').addEventListener('keydown', e => {
 document.getElementById('login-user').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('login-pass').focus();
 });
+
+// ── Living Style Guide toggle ──
+let guideActive = false;
+function toggleGuide() {
+  guideActive = !guideActive;
+  const guide = document.getElementById('styleguide');
+  const btn = document.getElementById('guide-toggle-btn');
+  guide.style.display = guideActive ? 'block' : 'none';
+  btn.style.color = guideActive ? 'var(--red)' : '';
+  btn.style.borderColor = guideActive ? 'var(--red)' : '';
+}
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LIVING STYLE GUIDE — #styleguide
+     SSoT pro všechny UI prvky. Přidej nový prvek sem + do CLAUDE.md.
+     ══════════════════════════════════════════════════════════ -->
+<div id="styleguide" style="display:none;position:fixed;inset:36px 0 0 0;z-index:100;overflow:auto;padding:24px 32px;background:var(--ground)">
+<style>
+.sg-section { margin-bottom: 40px; }
+.sg-title { font-size: 10px; font-weight: 600; color: var(--t4); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--b2); padding-bottom: 8px; margin-bottom: 16px; }
+.sg-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.sg-label { font-size: 10px; color: var(--t4); font-family: 'JetBrains Mono', monospace; min-width: 100px; }
+.sg-note { font-size: 10px; color: var(--t4); font-family: 'JetBrains Mono', monospace; }
+.sg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.sg-card { background: var(--surface); border: 1px solid var(--b2); border-radius: 7px; padding: 14px; }
+.sg-card-title { font-size: 10px; font-weight: 600; color: var(--t4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+.sg-divider { height: 1px; background: var(--b1); margin: 10px 0; }
+.sg-swatch { display: inline-flex; align-items: center; gap: 6px; }
+.sg-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+table.sg-table { width: 100%; border-collapse: collapse; }
+table.sg-table th { padding: 4px 8px; font-size: 10px; font-weight: 600; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; text-align: left; border-bottom: 1px solid var(--b2); white-space: nowrap; }
+table.sg-table td { padding: 4px 8px; font-size: 12px; color: var(--t2); border-bottom: 1px solid rgba(255,255,255,0.025); }
+.ei-demo { background: var(--surface); border: 1px solid var(--b3); border-radius: 4px; color: var(--t1); font-size: 12px; padding: 3px 6px; outline: none; font-family: 'DM Sans', sans-serif; width: 160px; }
+.ei-demo-mono { font-family: 'JetBrains Mono', monospace; width: 80px; text-align: right; }
+.ei-demo-err { border-color: var(--err); }
+/* icon-btn replicated */
+.sg-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: transparent; border: none; border-radius: 4px; color: var(--t3); cursor: pointer; }
+.sg-icon-btn:hover { color: var(--t1); background: var(--b1); }
+.sg-icon-btn-brand { color: var(--red); }
+.sg-icon-btn-brand:hover { color: var(--red); background: var(--red-10); }
+.sg-icon-btn-ok { color: var(--t3); }
+.sg-icon-btn-ok:hover { color: var(--ok); }
+.sg-icon-btn-sm { width: 24px; height: 24px; }
+</style>
+
+<!-- ── HEADER ── -->
+<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:32px">
+  <div style="font-size:18px;font-weight:600;color:var(--t1)">Living Style Guide</div>
+  <div style="font-size:10px;color:var(--t4);font-family:'JetBrains Mono',monospace">design-system.css v6.0 · SSoT</div>
+  <div style="margin-left:auto;font-size:10px;color:var(--t4)">Přidej nový UI prvek → přidej ho sem</div>
+</div>
+
+<!-- ══════════════════════════════
+     1. TYPOGRAPHY — font scale
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">1. Typography — Font Scale</div>
+  <div class="sg-card" style="max-width:640px">
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">--fsh (14px)</span>
+      <span style="font-size:14px;color:var(--t1);font-weight:500">Pricing values · Section headers · Modal titles</span>
+    </div>
+    <div class="sg-divider"></div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">--fs (12px)</span>
+      <span style="font-size:12px;color:var(--t2)">Standard body text · Table cells · Module picker items</span>
+    </div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">--fsl (11px)</span>
+      <span style="font-size:11px;color:var(--t2)">Panel headers · DataTable th · Small labels</span>
+    </div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">--fsx (10.5px)</span>
+      <span style="font-size:10.5px;color:var(--t2)">Tabs · Action buttons · Status bar · Login labels</span>
+    </div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">--fsm (10px)</span>
+      <span style="font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:0.04em">TABLE TH · RIBBON LABELS · BADGE TEXT</span>
+    </div>
+    <div class="sg-divider"></div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">--fss (9px)</span>
+      <span style="font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">KPI units · Shortcut keys · Meta text</span>
+    </div>
+    <div class="sg-divider"></div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label">Literály OK</span>
+      <span style="font-size:10px;color:var(--t4)">8px · 8.5px · 15px · 16px · 20px · 24px · 28px · 48px (one-off layout)</span>
+    </div>
+    <div class="sg-row" style="align-items:baseline">
+      <span class="sg-label" style="color:var(--err)">Hook ERROR 8</span>
+      <span style="font-size:10px;color:var(--err)">9px/10px/10.5px/11px/12px/13px/14px jako literál → commit selže</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     2. SAVE / CANCEL ACTIONS — SSoT
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">2. Save / Cancel Actions — Jednotný vzor</div>
+  <div class="sg-grid">
+    <!-- Inline row -->
+    <div class="sg-card">
+      <div class="sg-card-title">Inline tabulkový řádek (row → inputs)</div>
+      <div style="font-size:10px;color:var(--t4);margin-bottom:10px">icon-btn + Enter/Esc · VŽDY tento vzor v .ot tabulce</div>
+      <table class="sg-table">
+        <thead><tr><th>#</th><th>Pracoviště</th><th class="r">Čas</th><th></th></tr></thead>
+        <tbody>
+          <tr style="background:var(--raised)">
+            <td><input class="ei-demo" value="1" style="width:36px;text-align:center"></td>
+            <td><input class="ei-demo" value="CNC Fanuc 30i" style="width:120px"></td>
+            <td><input class="ei-demo ei-demo-mono" value="3.50"></td>
+            <td style="text-align:right;padding-right:4px;white-space:nowrap">
+              <button class="sg-icon-btn sg-icon-btn-ok sg-icon-btn-sm" title="Uložit (Enter)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="sg-icon-btn sg-icon-btn-sm" title="Zrušit (Esc)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:8px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">class="icon-btn icon-btn-brand icon-btn-sm" · @click="saveEdit"<br>Enter uloží · Esc zruší</div>
+    </div>
+    <!-- Expanded panel -->
+    <div class="sg-card">
+      <div class="sg-card-title">Rozbalený edit panel (formulář)</div>
+      <div style="font-size:10px;color:var(--t4);margin-bottom:10px">btn-primary/secondary · pro větší edit sekce pod řádkem</div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--raised);border-radius:4px">
+        <div style="display:flex;gap:6px">
+          <div style="flex:1"><div style="font-size:10px;color:var(--t4);margin-bottom:3px">Délka (mm)</div><input class="ei-demo" value="280" style="width:80px"></div>
+          <div style="flex:1"><div style="font-size:10px;color:var(--t4);margin-bottom:3px">Průměr (mm)</div><input class="ei-demo" value="45" style="width:80px"></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button style="display:inline-flex;align-items:center;height:26px;padding:0 10px;background:transparent;border:1px solid var(--red);border-radius:4px;color:var(--red);font-size:11px;font-weight:500;cursor:pointer">Uložit</button>
+          <button style="display:inline-flex;align-items:center;height:26px;padding:0 10px;background:transparent;border:1px solid var(--b3);border-radius:4px;color:var(--t2);font-size:11px;font-weight:500;cursor:pointer">Zrušit</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">class="btn-primary" → Uložit<br>class="btn-secondary" → Zrušit</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     3. TABLES
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">3. Tables</div>
+  <div class="sg-grid">
+    <!-- .ot -->
+    <div class="sg-card">
+      <div class="sg-card-title">.ot — Operations table (standard)</div>
+      <table class="ot">
+        <thead><tr><th>#</th><th>Pracoviště</th><th class="r">Seřízení</th><th class="r">Výroba</th></tr></thead>
+        <tbody>
+          <tr><td class="mono t4">1</td><td>CNC Fanuc 30i</td><td class="r mono t1">0:30</td><td class="r mono t1">3:20</td></tr>
+          <tr class="sel"><td class="mono t4">2</td><td>Frézka DMU 60</td><td class="r mono t1">1:00</td><td class="r mono t1">8:45</td></tr>
+          <tr><td class="mono t4">3</td><td>Bruska BRH 20</td><td class="r mono t1">0:15</td><td class="r mono t1">12:00</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">&lt;table class="ot"&gt; · Globální v design-system.css</div>
+    </div>
+    <!-- .bt -->
+    <div class="sg-card">
+      <div class="sg-card-title">.bt — Batch/Pricing table (green accent)</div>
+      <table class="bt">
+        <thead><tr><th>Dávka</th><th class="r">Ks</th><th class="r">Cena/ks</th><th class="r">Celkem</th></tr></thead>
+        <tbody>
+          <tr><td>Zákazník A</td><td class="r mono t4">50</td><td class="r mono t1">1 250,00</td><td class="r mono" style="color:var(--green)">62 500,00</td></tr>
+          <tr class="sel"><td>Zákazník B</td><td class="r mono t4">200</td><td class="r mono t1">1 180,00</td><td class="r mono" style="color:var(--green)">236 000,00</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">&lt;table class="bt"&gt; · Green border-bottom variant</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     4. BADGES
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">4. Badges</div>
+  <div class="sg-row">
+    <span class="badge"><span class="badge-dot badge-dot-ok"></span>Aktivní</span>
+    <span class="sg-note">.badge-dot-ok</span>
+    <span class="badge"><span class="badge-dot badge-dot-error"></span>Chyba</span>
+    <span class="sg-note">.badge-dot-error</span>
+    <span class="badge"><span class="badge-dot badge-dot-warn"></span>Varování</span>
+    <span class="sg-note">.badge-dot-warn</span>
+    <span class="badge"><span class="badge-dot badge-dot-neutral"></span>Neaktivní</span>
+    <span class="sg-note">.badge-dot-neutral</span>
+    <span class="badge"><span class="badge-dot badge-dot-brand"></span>Označeno</span>
+    <span class="sg-note">.badge-dot-brand</span>
+  </div>
+  <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">Monochrome body + colored dot. Nikdy colored background.</div>
+</div>
+
+<!-- ══════════════════════════════
+     5. BUTTONS
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">5. Buttons</div>
+  <div class="sg-row">
+    <button class="btn-primary">Přidat díl</button>
+    <span class="sg-note">.btn-primary</span>
+    <button class="btn-secondary">Zrušit</button>
+    <span class="sg-note">.btn-secondary</span>
+    <button class="btn-destructive">Smazat</button>
+    <span class="sg-note">.btn-destructive</span>
+  </div>
+  <div class="sg-row" style="margin-top:8px">
+    <button class="icon-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:18px;height:18px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <span class="sg-note">.icon-btn (grey→white)</span>
+    <button class="icon-btn icon-btn-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:18px;height:18px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+    <span class="sg-note">.icon-btn-brand (edit/add)</span>
+    <button class="icon-btn icon-btn-danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:18px;height:18px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+    </button>
+    <span class="sg-note">.icon-btn-danger (delete)</span>
+    <button class="icon-btn icon-btn-brand icon-btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+    <button class="icon-btn icon-btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px;height:13px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <span class="sg-note">.icon-btn-sm (inline save/cancel)</span>
+  </div>
+  <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">Ghost only. Nikdy filled. Focus: outline 2px solid rgba(255,255,255,0.5)</div>
+</div>
+
+<!-- ══════════════════════════════
+     6. INPUTS
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">6. Inputs</div>
+  <div class="sg-row">
+    <input class="ei-demo" placeholder="Text hodnota…" value="">
+    <span class="sg-note">Standard input (.ei)</span>
+    <input class="ei-demo ei-demo-mono" value="1 234.50">
+    <span class="sg-note">Mono numeric (.ei + mono)</span>
+    <input class="ei-demo ei-demo-err" value="Chybná hodnota">
+    <span class="sg-note">Error state (.ei border: --err)</span>
+  </div>
+  <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">background: var(--surface) · border: 1px solid var(--b3) · focus: border var(--b3) brighter</div>
+</div>
+
+<!-- ══════════════════════════════
+     7. STATUS INDICATORS
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">7. Status Indicators</div>
+  <div class="sg-row">
+    <div class="sg-swatch"><div class="sg-color-dot" style="background:var(--ok)"></div><span style="font-size:11px;color:var(--ok)">OK / Aktivní</span></div>
+    <span class="sg-note">--ok (#34d399) · badges, toast border, charts</span>
+  </div>
+  <div class="sg-row">
+    <div class="sg-swatch"><div class="sg-color-dot" style="background:var(--warn)"></div><span style="font-size:11px;color:var(--warn)">Varování</span></div>
+    <span class="sg-note">--warn (#fbbf24) · badges, toast border, charts</span>
+  </div>
+  <div class="sg-row">
+    <div class="sg-swatch"><div class="sg-color-dot" style="background:var(--err)"></div><span style="font-size:11px;color:var(--err)">Chyba / Smazáno</span></div>
+    <span class="sg-note">--err (#f87171) · badges, toast border, charts, input errors</span>
+  </div>
+  <div class="sg-row">
+    <div class="sg-swatch"><div class="sg-color-dot" style="background:var(--red)"></div><span style="font-size:11px;color:var(--red)">Brand / Accent</span></div>
+    <span class="sg-note">--red (#E53935) · buttons, links, active states — NE status!</span>
+  </div>
+  <div class="sg-row">
+    <div class="sg-swatch"><div class="sg-color-dot" style="background:var(--green)"></div><span style="font-size:11px;color:var(--green)">Money / Pricing</span></div>
+    <span class="sg-note">--green (#22c55e) · ceny, revenue, profit — POUZE finanční data</span>
+  </div>
+  <div style="margin-top:6px;font-size:9px;color:var(--t4)">Status barvy POUZE v: badge dots, toast borders, chart segments. Nikdy jako button/badge background.</div>
+</div>
+
+<!-- ══════════════════════════════
+     8. KPI RIBBON
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">8. KPI Ribbon</div>
+  <div style="display:flex;align-items:center;gap:0;background:var(--surface);border-bottom:1px solid var(--b1);padding:0 8px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 12px 5px 0;border-right:1px solid var(--b1)">
+      <div>
+        <div style="font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:0.05em;font-weight:500">Seřízení</div>
+        <div style="font-size:14px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.02em">1:30<span style="font-size:9px;color:var(--t4);margin-left:2px">min</span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-right:1px solid var(--b1)">
+      <div>
+        <div style="font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:0.05em;font-weight:500">Výroba</div>
+        <div style="font-size:14px;color:var(--t1);font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.02em">12:45<span style="font-size:9px;color:var(--t4);margin-left:2px">min</span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 12px">
+      <div>
+        <div style="font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:0.05em;font-weight:500">Celková cena</div>
+        <div style="font-size:14px;color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.02em">4 250<span style="font-size:9px;color:var(--t4);margin-left:2px">CZK</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">Label: --fsm uppercase · Value: --fsh mono · Unit: --fss</div>
+</div>
+
+<!-- ══════════════════════════════
+     9. RULE: Nový prvek = přidat sem
+     ══════════════════════════════ -->
+<div class="sg-section">
+  <div class="sg-title">9. Pravidlo — Nový UI prvek</div>
+  <div style="background:var(--surface);border:1px solid var(--b2);border-left:3px solid var(--red);border-radius:7px;padding:14px;max-width:600px">
+    <div style="font-size:12px;color:var(--t1);font-weight:500;margin-bottom:8px">Před vytvořením → zkontroluj katalog. Po vytvoření → přidej sem.</div>
+    <div style="font-size:11px;color:var(--t2);line-height:1.7">
+      1. Zkontroluj sekce výše — prvek možná již existuje<br>
+      2. Použij existující HTML/CSS vzor — kopíruj přesně<br>
+      3. Pokud prvek chybí — přidej do <code style="font-family:monospace;background:var(--b1);padding:1px 4px;border-radius:3px">tiling-preview-v3.html#styleguide</code><br>
+      4. Aktualizuj <code style="font-family:monospace;background:var(--b1);padding:1px 4px;border-radius:3px">frontend/CLAUDE.md</code> — přidej do tabulky komponent
+    </div>
+  </div>
+</div>
+
+</div><!-- /#styleguide -->
+
 </body>
 </html>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { CheckIcon, XIcon } from 'lucide-vue-next'
+import { ICON_SIZE_SM } from '@/config/design'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -441,8 +443,7 @@ function onWcBlur() {
           <div class="mod-dot" />
           <span class="mod-label">Žádné operace</span>
           <button
-            class="add-op-btn"
-            style="width: auto; padding: 4px 12px; margin-top: 4px; border: 1px solid var(--b2); border-radius: var(--rs);"
+            class="add-op-btn-sm"
             :disabled="creating"
             data-testid="add-op-btn"
             @click="addOp"
@@ -470,7 +471,7 @@ function onWcBlur() {
                 <th class="r" style="width:85px">Seřízení</th>
                 <th class="r" style="width:85px">Výroba</th>
                 <th class="r" style="width:36px">M</th>
-                <th v-if="auth.isAdmin" style="width:20px"></th>
+                <th style="width:52px"></th>
               </tr>
             </thead>
             <tbody>
@@ -559,12 +560,29 @@ function onWcBlur() {
                       {{ cuttingLabel(editDraft.cutting_mode) }}
                     </span>
                   </td>
-                  <td v-if="auth.isAdmin" />
+                  <td class="act-cell">
+                    <button
+                      class="icon-btn icon-btn-brand icon-btn-sm"
+                      data-testid="op-save-btn"
+                      title="Uložit (Enter)"
+                      @click.stop="saveEdit"
+                    >
+                      <CheckIcon :size="ICON_SIZE_SM" />
+                    </button>
+                    <button
+                      class="icon-btn icon-btn-sm"
+                      data-testid="op-cancel-btn"
+                      title="Zrušit (Esc)"
+                      @click.stop="cancelEdit"
+                    >
+                      <XIcon :size="ICON_SIZE_SM" />
+                    </button>
+                  </td>
                 </template>
 
                 <!-- ── Display mode ── -->
                 <template v-else>
-                  <td class="mono t4" @click="startEdit(op, 'seq')">{{ op.seq }}</td>
+                  <td class="t4" @click="startEdit(op, 'seq')">{{ op.seq }}</td>
                   <td class="wc-cell" @click="startEdit(op, 'wc')">{{ op.work_center_name || '—' }}</td>
                   <td class="r" @click="startEdit(op, 'setup')">
                     <span class="tb s"><span class="d" />{{ formatMinSec(op.setup_time_min) }}</span>
@@ -576,8 +594,9 @@ function onWcBlur() {
                     <span v-if="op.is_coop" class="cm-badge coop">CO</span>
                     <span v-else :class="['cm-badge', `cm-${op.cutting_mode}`]">{{ cuttingLabel(op.cutting_mode) }}</span>
                   </td>
-                  <td v-if="auth.isAdmin" class="del-td">
+                  <td class="del-td">
                     <button
+                      v-if="auth.isAdmin"
                       class="del-op-btn"
                       tabindex="-1"
                       title="Smazat operaci"
@@ -651,7 +670,7 @@ function onWcBlur() {
   flex-shrink: 0;
   overflow: hidden;
 }
-.det-pn { font-family: var(--mono); font-size: var(--fs); font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
+.det-pn { font-size: var(--fs); font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
 .det-nm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .det-bgs { display: flex; gap: 3px; flex-shrink: 0; }
 
@@ -670,7 +689,7 @@ function onWcBlur() {
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
 .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
-.rib-v.m { font-family: var(--mono); }
+.rib-v.m { }
 
 /* ─── Tab strip ─── */
 .ptabs { display: flex; gap: 1px; padding: 3px var(--pad); border-bottom: 1px solid var(--b2); flex-shrink: 0; background: rgba(255,255,255,0.015); }
@@ -679,7 +698,7 @@ function onWcBlur() {
 .ptab.on { color: var(--t1); background: var(--b1); }
 .ptab[draggable="true"] { cursor: grab; }
 .ptab[draggable="true"]:active { cursor: grabbing; }
-.n { font-family: var(--mono); font-size: var(--fsm); color: var(--t4); padding: 1px 4px; background: var(--b1); border-radius: 2px; }
+.n { font-size: var(--fsm); color: var(--t4); padding: 1px 4px; background: var(--b1); border-radius: 2px; }
 
 /* ─── Tab body ─── */
 .tab-body { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; display: flex; flex-direction: column; }
@@ -687,9 +706,9 @@ function onWcBlur() {
 .tab-placeholder { align-items: center; justify-content: center; gap: 8px; color: var(--t4); }
 
 /* ─── Operations table ─── */
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
-.wc-cell { font-family: var(--mono); font-size: var(--fsm); color: var(--t3); }
+.wc-cell { font-size: var(--fsm); color: var(--t3); }
 
 /* ─── Editing row ─── */
 .ot tbody tr.op-editing td,
@@ -707,7 +726,6 @@ function onWcBlur() {
   border-bottom: 1px solid transparent;
   border-radius: 0;
   color: var(--t2);
-  font-family: var(--mono);
   font-size: var(--fs);
   padding: 0;
   outline: none;
@@ -765,7 +783,7 @@ function onWcBlur() {
   font-size: var(--fs);
 }
 .wc-opt:hover, .wc-opt.hi { background: var(--b2); }
-.wc-num { font-family: var(--mono); font-size: var(--fsm); color: var(--t4); flex-shrink: 0; }
+.wc-num { font-size: var(--fsm); color: var(--t4); flex-shrink: 0; }
 .wc-nm { color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ─── Delete button ─── */
@@ -807,6 +825,22 @@ function onWcBlur() {
 .add-op-btn:hover:not(:disabled) { color: var(--t2); }
 .add-op-btn:disabled { opacity: 0.35; cursor: default; }
 
+.add-op-btn-sm {
+  width: auto;
+  padding: 4px 12px;
+  margin-top: 4px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: none;
+  color: var(--t3);
+  font-size: var(--fsl);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: color 100ms var(--ease);
+}
+.add-op-btn-sm:hover:not(:disabled) { color: var(--t1); border-color: var(--b3); }
+.add-op-btn-sm:disabled { opacity: 0.35; cursor: default; }
+
 /* ─── Edit hint ─── */
 .edit-hint {
   padding: 3px var(--pad);
@@ -818,13 +852,13 @@ function onWcBlur() {
 }
 
 /* ─── Time badge ─── */
-.tb { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-family: var(--mono); font-size: var(--fsm); border-radius: 99px; background: var(--b1); color: var(--t2); white-space: nowrap; }
+.tb { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-size: var(--fsm); border-radius: 99px; background: var(--b1); color: var(--t2); white-space: nowrap; }
 .tb .d { width: 3px; height: 3px; border-radius: 50%; flex-shrink: 0; }
 .tb.s .d { background: var(--red); }
 .tb.o .d { background: var(--ok); }
 
 /* ─── Cutting mode badge ─── */
-.cm-badge { font-family: var(--mono); font-size: var(--fss); font-weight: 600; letter-spacing: 0.06em; padding: 1px 4px; border-radius: var(--rs); }
+.cm-badge { font-size: var(--fss); font-weight: 600; letter-spacing: 0.06em; padding: 1px 4px; border-radius: var(--rs); }
 .cm-low  { background: var(--b1); color: var(--t3); }
 .cm-mid  { background: var(--b1); color: var(--t2); }
 .cm-high { background: var(--red-10); color: var(--red); }

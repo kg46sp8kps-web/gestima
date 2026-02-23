@@ -74,7 +74,7 @@ onMounted(load)
         <button
           v-for="s in (['all', 'DRAFT', 'SENT', 'APPROVED', 'REJECTED'] as const)"
           :key="s"
-          :class="['tab-btn', { active: statusFilter === s }]"
+          :class="['ptab', { on: statusFilter === s }]"
           :data-testid="`quote-filter-${s}`"
           @click="statusFilter = s"
         >
@@ -107,14 +107,14 @@ onMounted(load)
               :key="q.id"
               :data-testid="`quote-row-${q.id}`"
             >
-              <td class="mono t4">{{ q.quote_number }}</td>
+              <td class="t4">{{ q.quote_number }}</td>
               <td class="title-cell">{{ q.title }}</td>
               <td>
                 <span :class="['status-badge', `s-${q.status.toLowerCase()}`]">
                   {{ STATUS_LABELS[q.status] }}
                 </span>
               </td>
-              <td class="r mono">{{ formatCurrency(q.total) }}</td>
+              <td class="r">{{ formatCurrency(q.total) }}</td>
               <td class="t4">{{ formatDate(q.offer_deadline) }}</td>
             </tr>
           </tbody>
@@ -160,29 +160,14 @@ onMounted(load)
   flex-shrink: 0;
   overflow-x: auto;
 }
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--rs);
-  color: var(--t4);
-  font-size: 10px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.1s, background 0.1s;
-}
-.tab-btn:hover { color: var(--t2); background: var(--b1); }
-.tab-btn.active { color: var(--t1); border-color: var(--b2); background: var(--b1); }
+.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.ptab:hover { color: var(--t3); }
+.ptab.on { color: var(--t1); background: var(--b1); }
 .tab-count {
-  font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fss);
   color: var(--t4);
 }
-.tab-btn.active .tab-count { color: var(--t3); }
+.ptab.on .tab-count { color: var(--t3); }
 
 /* ─── Table wrapper ─── */
 .ot-wrap {
@@ -193,38 +178,7 @@ onMounted(load)
 }
 
 /* ─── Table ─── */
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 .title-cell {
   max-width: 0;
@@ -236,7 +190,7 @@ onMounted(load)
 /* ─── Status badge ─── */
 .status-badge {
   display: inline-block;
-  font-size: 9px;
+  font-size: var(--fss);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;

@@ -81,7 +81,7 @@ const TABS: { id: AdminTab; label: string }[] = [
 
 .ptab {
   padding: 3px 7px;
-  font-size: 10.5px;
+  font-size: var(--fsx);
   font-weight: 500;
   color: var(--t4);
   background: transparent;

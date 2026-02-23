@@ -95,13 +95,13 @@ onMounted(load)
               :key="p.id"
               :data-testid="`partner-row-${p.id}`"
             >
-              <td class="mono t4">{{ p.partner_number }}</td>
+              <td class="t4">{{ p.partner_number }}</td>
               <td>
                 <div class="firm-name">{{ p.company_name }}</div>
                 <div v-if="p.email" class="firm-sub t4">{{ p.email }}</div>
               </td>
               <td class="t4">{{ p.city ?? '—' }}</td>
-              <td class="mono t4">{{ p.ico ?? '—' }}</td>
+              <td class="t4">{{ p.ico ?? '—' }}</td>
               <td>
                 <span v-if="p.is_customer" class="type-badge cust" title="Zákazník">Z</span>
                 <span v-if="p.is_supplier" class="type-badge supp" title="Dodavatel">D</span>
@@ -163,10 +163,9 @@ onMounted(load)
 .srch-inp::placeholder { color: var(--t4); }
 .srch-inp:focus { border-color: var(--b3); }
 .srch-count {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   white-space: nowrap;
-  font-family: var(--mono);
 }
 
 /* ─── Table wrapper ─── */
@@ -178,40 +177,11 @@ onMounted(load)
 }
 
 /* ─── Table ─── */
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 
 .firm-name { font-weight: 500; color: var(--t1); }
-.firm-sub { font-size: 10px; margin-top: 1px; }
+.firm-sub { font-size: var(--fsm); margin-top: 1px; }
 
 /* ─── Type badges ─── */
 .type-badge {
@@ -221,9 +191,8 @@ onMounted(load)
   width: 14px;
   height: 14px;
   border-radius: var(--rs);
-  font-size: 9px;
+  font-size: var(--fss);
   font-weight: 700;
-  font-family: var(--mono);
   margin-right: 2px;
 }
 .type-badge.cust { background: var(--green-10); color: var(--green); }

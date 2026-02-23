@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { SaveIcon, PlusIcon, Trash2Icon, StarIcon, EyeIcon, EyeOffIcon } from 'lucide-vue-next'
+import { Trash2Icon, StarIcon, EyeIcon, EyeOffIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useDialog } from '@/composables/useDialog'
 import Modal from '@/components/ui/Modal.vue'
-import { ICON_SIZE_SM } from '@/config/design'
 
 defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -60,28 +59,25 @@ async function handleToggleHeader(id: number) {
     <!-- Toolbar -->
     <div class="lm-toolbar">
       <button
-        class="lm-btn"
+        class="btn-secondary"
         data-testid="layout-create-from-current"
         @click="handleCreateFromCurrent"
       >
-        <PlusIcon :size="ICON_SIZE_SM" />
         Z aktuálního
       </button>
       <button
-        class="lm-btn"
+        class="btn-secondary"
         data-testid="layout-create-blank"
         @click="handleCreateBlank"
       >
-        <PlusIcon :size="ICON_SIZE_SM" />
         Čistý
       </button>
       <button
-        class="lm-btn lm-btn-primary"
+        class="btn-primary"
         :disabled="ws.currentLayoutId === null"
         data-testid="layout-save-current"
         @click="handleSaveCurrent"
       >
-        <SaveIcon :size="ICON_SIZE_SM" />
         Uložit
       </button>
     </div>
@@ -111,7 +107,7 @@ async function handleToggleHeader(id: number) {
           </td>
           <td class="lm-td-center">
             <button
-              class="lm-icon-btn"
+              class="icon-btn icon-btn-sm"
               :title="layout.show_in_header ? 'Skrýt z headeru' : 'Zobrazit v headeru'"
               :data-testid="`layout-toggle-header-${layout.id}`"
               @click="handleToggleHeader(layout.id)"
@@ -122,7 +118,7 @@ async function handleToggleHeader(id: number) {
           </td>
           <td class="lm-td-center">
             <button
-              :class="['lm-icon-btn', { 'lm-icon-btn-active': layout.is_default }]"
+              :class="['icon-btn', 'icon-btn-sm', { 'lm-star-active': layout.is_default }]"
               :title="layout.is_default ? 'Výchozí layout' : 'Nastavit jako výchozí'"
               :disabled="layout.is_default || savingId === layout.id"
               :data-testid="`layout-set-default-${layout.id}`"
@@ -133,7 +129,7 @@ async function handleToggleHeader(id: number) {
           </td>
           <td class="lm-td-actions">
             <button
-              class="lm-icon-btn lm-icon-btn-danger"
+              class="icon-btn icon-btn-sm icon-btn-danger"
               title="Smazat layout"
               :disabled="deletingId === layout.id"
               :data-testid="`layout-delete-${layout.id}`"
@@ -154,26 +150,6 @@ async function handleToggleHeader(id: number) {
   gap: 6px;
   margin-bottom: 12px;
 }
-
-.lm-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  font-size: var(--fs);
-  font-family: inherit;
-  font-weight: 500;
-  color: var(--t2);
-  background: var(--raised);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  cursor: pointer;
-  transition: all 100ms var(--ease);
-}
-.lm-btn:hover { color: var(--t1); border-color: var(--b3); }
-.lm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.lm-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
-.lm-btn-primary { color: var(--t1); border-color: var(--b3); }
 
 .lm-empty {
   padding: 20px;
@@ -221,22 +197,6 @@ async function handleToggleHeader(id: number) {
 .lm-name { color: var(--t2); }
 .lm-row-active .lm-name { color: var(--t1); font-weight: 500; }
 
-.lm-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: none;
-  border-radius: var(--rs);
-  color: var(--t4);
-  cursor: pointer;
-  transition: all 80ms;
-}
-.lm-icon-btn:hover { color: var(--t1); background: var(--b2); }
-.lm-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.lm-icon-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 1px; }
-.lm-icon-btn.lm-icon-btn-active { color: var(--warn); }
-.lm-icon-btn.lm-icon-btn-danger:hover { color: var(--err); }
+/* star active state — gold color for default layout indicator */
+.lm-star-active { color: var(--warn); }
 </style>

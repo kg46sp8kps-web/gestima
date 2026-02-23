@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { CheckIcon, XIcon } from 'lucide-vue-next'
 import * as ccApi from '@/api/cutting-conditions'
 import type { CuttingConditionPivotResponse } from '@/types/cutting-condition'
 import { formatNumber } from '@/utils/formatters'
+import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import { ICON_SIZE_SM } from '@/config/design'
 
 type Mode = 'low' | 'mid' | 'high'
 
+const ui = useUiStore()
 const mode = ref<Mode>('mid')
 const pivot = ref<CuttingConditionPivotResponse | null>(null)
 const loading = ref(false)
@@ -14,13 +18,30 @@ const error = ref(false)
 const search = ref('')
 
 interface FlatRow {
+  id: number
+  matCode: string
+  opKey: string
   material: string
   operation: string
   operationType: string
   Vc: number | null
   f: number | null
   Ap: number | null
+  version: number
 }
+
+interface CcDraft {
+  id: number
+  matCode: string
+  opKey: string
+  Vc: number | null
+  f: number | null
+  Ap: number | null
+  version: number
+}
+
+const editingId = ref<number | null>(null)
+const editDraft = ref<CcDraft | null>(null)
 
 const flatRows = computed<FlatRow[]>(() => {
   if (!pivot.value) return []
@@ -33,12 +54,16 @@ const flatRows = computed<FlatRow[]>(() => {
       const cell = matCells[key]
       if (!cell) continue
       rows.push({
+        id: cell.id,
+        matCode,
+        opKey: key,
         material: material_names[matCode] ?? matCode,
         operation: op.label,
         operationType: op.operation_type,
         Vc: cell.Vc,
         f: cell.f,
         Ap: cell.Ap,
+        version: cell.version,
       })
     }
   }
@@ -54,6 +79,48 @@ const filtered = computed(() => {
     r.operationType.toLowerCase().includes(q),
   )
 })
+
+function startEdit(row: FlatRow) {
+  editingId.value = row.id
+  editDraft.value = {
+    id: row.id,
+    matCode: row.matCode,
+    opKey: row.opKey,
+    Vc: row.Vc,
+    f: row.f,
+    Ap: row.Ap,
+    version: row.version,
+  }
+}
+
+async function saveEdit() {
+  const draft = editDraft.value
+  if (!draft) return
+  const id = draft.id
+  const matCode = draft.matCode
+  const opKey = draft.opKey
+  editingId.value = null
+  editDraft.value = null
+  try {
+    const updated = await ccApi.update(id, { Vc: draft.Vc, f: draft.f, Ap: draft.Ap, version: draft.version })
+    if (pivot.value?.cells[matCode]?.[opKey]) {
+      pivot.value.cells[matCode][opKey] = updated
+    }
+    ui.showSuccess('Podmínka uložena')
+  } catch {
+    ui.showError('Chyba při ukládání podmínky')
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editDraft.value = null
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+}
 
 async function load() {
   loading.value = true
@@ -78,7 +145,7 @@ onMounted(load)
         <button
           v-for="m in (['low', 'mid', 'high'] as Mode[])"
           :key="m"
-          :class="['mtab', mode === m ? 'on' : '']"
+          :class="['ptab', mode === m ? 'on' : '']"
           :data-testid="`cc-mode-${m}`"
           @click="mode = m"
         >
@@ -115,19 +182,85 @@ onMounted(load)
             <th class="r" style="width:72px">Vc (m/min)</th>
             <th class="r" style="width:72px">f (mm/ot)</th>
             <th class="r" style="width:72px">Ap (mm)</th>
+            <th />
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="(row, i) in filtered"
             :key="i"
+            :class="['row-clickable', { 'row-editing': editingId === row.id }]"
             :data-testid="`cc-row-${i}`"
+            @click="editingId !== row.id ? startEdit(row) : undefined"
+            @keydown.capture="editingId === row.id ? onKeydown($event) : undefined"
           >
             <td>{{ row.material }}</td>
             <td class="t4">{{ row.operation }}</td>
-            <td class="r mono">{{ row.Vc != null ? formatNumber(row.Vc, 0) : '—' }}</td>
-            <td class="r mono t4">{{ row.f != null ? formatNumber(row.f, 4) : '—' }}</td>
-            <td class="r mono t4">{{ row.Ap != null ? formatNumber(row.Ap, 2) : '—' }}</td>
+            <td class="r">
+              <template v-if="editingId === row.id && editDraft">
+                <input
+                  v-model.number="editDraft.Vc"
+                  type="number"
+                  class="ei ei-num"
+                  step="1"
+                  :data-testid="`cc-edit-vc-${row.id}`"
+                />
+              </template>
+              <template v-else>
+                <span class="">{{ row.Vc != null ? formatNumber(row.Vc, 0) : '—' }}</span>
+              </template>
+            </td>
+            <td class="r">
+              <template v-if="editingId === row.id && editDraft">
+                <input
+                  v-model.number="editDraft.f"
+                  type="number"
+                  class="ei ei-num"
+                  step="0.001"
+                  :data-testid="`cc-edit-f-${row.id}`"
+                />
+              </template>
+              <template v-else>
+                <span class="t4">{{ row.f != null ? formatNumber(row.f, 4) : '—' }}</span>
+              </template>
+            </td>
+            <td class="r">
+              <template v-if="editingId === row.id && editDraft">
+                <input
+                  v-model.number="editDraft.Ap"
+                  type="number"
+                  class="ei ei-num"
+                  step="0.1"
+                  :data-testid="`cc-edit-ap-${row.id}`"
+                />
+              </template>
+              <template v-else>
+                <span class="t4">{{ row.Ap != null ? formatNumber(row.Ap, 2) : '—' }}</span>
+              </template>
+            </td>
+            <template v-if="editingId === row.id && editDraft">
+              <td class="act-cell">
+                <button
+                  class="icon-btn icon-btn-brand icon-btn-sm"
+                  data-testid="cc-save-btn"
+                  title="Uložit (Enter)"
+                  @click.stop="saveEdit"
+                >
+                  <CheckIcon :size="ICON_SIZE_SM" />
+                </button>
+                <button
+                  class="icon-btn icon-btn-sm"
+                  data-testid="cc-cancel-btn"
+                  title="Zrušit (Esc)"
+                  @click.stop="cancelEdit"
+                >
+                  <XIcon :size="ICON_SIZE_SM" />
+                </button>
+              </td>
+            </template>
+            <template v-else>
+              <td />
+            </template>
           </tr>
         </tbody>
       </table>
@@ -142,12 +275,9 @@ onMounted(load)
   padding: 5px var(--pad); border-bottom: 1px solid var(--b1); flex-shrink: 0;
 }
 .mode-tabs { display: flex; gap: 2px; }
-.mtab {
-  padding: 2px 7px; font-size: var(--fsl); font-weight: 500; color: var(--t4);
-  background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font);
-}
-.mtab:hover { color: var(--t3); }
-.mtab.on { color: var(--t1); background: var(--b1); }
+.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); }
+.ptab:hover { color: var(--t3); }
+.ptab.on { color: var(--t1); background: var(--b1); }
 .srch-inp {
   flex: 1; background: var(--b1); border: 1px solid var(--b2);
   border-radius: var(--rs); color: var(--t1); font-size: var(--fs);
@@ -155,7 +285,7 @@ onMounted(load)
 }
 .srch-inp::placeholder { color: var(--t4); }
 .srch-inp:focus { border-color: var(--b3); }
-.srch-count { font-size: 10px; color: var(--t4); white-space: nowrap; font-family: var(--mono); }
+.srch-count { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
 .mod-placeholder {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 8px; color: var(--t4);
@@ -164,21 +294,21 @@ onMounted(load)
 .mod-dot.err { background: var(--err); }
 .mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
-.ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
-.ot th {
-  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
-  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
-  border-bottom: 1px solid var(--b2); white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad); font-size: var(--fs); color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 .r { text-align: right; }
+.row-clickable { cursor: pointer; }
+.row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
+.row-editing:hover td { background: var(--raised); }
+.ei {
+  background: var(--surface);
+  border: 1px solid var(--b3);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
+  padding: 2px 4px;
+  outline: none;
+}
+.ei:focus { border-color: rgba(255,255,255,0.3); }
+.ei-num { font-family: var(--mono); width: 64px; text-align: right; }
 </style>

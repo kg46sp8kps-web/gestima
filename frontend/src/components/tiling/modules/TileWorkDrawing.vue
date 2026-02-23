@@ -201,8 +201,7 @@ watch(
 .file-item.active { background: var(--b1); color: var(--t1); }
 
 .file-type {
-  font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fss);
   font-weight: 600;
   padding: 1px 4px;
   border-radius: var(--rs);
@@ -217,7 +216,7 @@ watch(
   white-space: nowrap;
 }
 .file-size {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   flex-shrink: 0;
 }
@@ -244,7 +243,7 @@ watch(
   font-weight: 500;
 }
 .file-info-meta {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
 }
 .dl-link {

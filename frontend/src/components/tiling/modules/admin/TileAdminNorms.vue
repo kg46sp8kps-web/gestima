@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { CheckIcon, XIcon } from 'lucide-vue-next'
 import * as adminApi from '@/api/admin'
 import type { MaterialNorm } from '@/types/admin-user'
+import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import { ICON_SIZE_SM } from '@/config/design'
+
+const ui = useUiStore()
 
 const norms = ref<MaterialNorm[]>([])
 const loading = ref(false)
 const error = ref(false)
 const search = ref('')
+
+const editingId = ref<number | null>(null)
+const editDraft = ref<{ w_nr: string | null; en_iso: string | null; csn: string | null; aisi: string | null; version: number } | null>(null)
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -30,6 +38,37 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function startEdit(n: MaterialNorm) {
+  editingId.value = n.id
+  editDraft.value = { w_nr: n.w_nr, en_iso: n.en_iso, csn: n.csn, aisi: n.aisi, version: n.version }
+}
+
+async function saveEdit() {
+  const id = editingId.value
+  const draft = editDraft.value
+  if (!id || !draft) return
+  editingId.value = null
+  editDraft.value = null
+  try {
+    const updated = await adminApi.updateMaterialNorm(id, draft)
+    const idx = norms.value.findIndex(n => n.id === id)
+    if (idx !== -1) norms.value[idx] = updated
+    ui.showSuccess('Norma uložena')
+  } catch {
+    ui.showError('Chyba při ukládání normy')
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editDraft.value = null
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
 }
 
 onMounted(load)
@@ -68,6 +107,7 @@ onMounted(load)
             <th style="width:80px">ČSN</th>
             <th style="width:60px">AISI</th>
             <th>Skupina</th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -75,12 +115,83 @@ onMounted(load)
             v-for="n in filtered"
             :key="n.id"
             :data-testid="`norm-row-${n.id}`"
+            :class="['row-clickable', { 'row-editing': editingId === n.id }]"
+            @click="editingId !== n.id ? startEdit(n) : undefined"
+            @keydown.capture="editingId === n.id ? onKeydown($event) : undefined"
           >
-            <td class="mono">{{ n.w_nr ?? '—' }}</td>
-            <td class="mono t3">{{ n.en_iso ?? '—' }}</td>
-            <td class="mono t4">{{ n.csn ?? '—' }}</td>
-            <td class="mono t4">{{ n.aisi ?? '—' }}</td>
-            <td class="t4">{{ n.material_group?.name ?? '—' }}</td>
+            <template v-if="editingId === n.id && editDraft">
+              <td>
+                <input
+                  class="ei ei-nm"
+                  type="text"
+                  :value="editDraft.w_nr ?? ''"
+                  :data-testid="`norm-w-nr-input-${n.id}`"
+                  @input="editDraft.w_nr = ($event.target as HTMLInputElement).value.toUpperCase()"
+                  @keydown="onKeydown"
+                  @click.stop
+                />
+              </td>
+              <td>
+                <input
+                  class="ei ei-nm"
+                  type="text"
+                  :value="editDraft.en_iso ?? ''"
+                  :data-testid="`norm-en-iso-input-${n.id}`"
+                  @input="editDraft.en_iso = ($event.target as HTMLInputElement).value.toUpperCase()"
+                  @keydown="onKeydown"
+                  @click.stop
+                />
+              </td>
+              <td>
+                <input
+                  class="ei ei-nm"
+                  type="text"
+                  :value="editDraft.csn ?? ''"
+                  :data-testid="`norm-csn-input-${n.id}`"
+                  @input="editDraft.csn = ($event.target as HTMLInputElement).value.toUpperCase()"
+                  @keydown="onKeydown"
+                  @click.stop
+                />
+              </td>
+              <td>
+                <input
+                  class="ei ei-nm"
+                  type="text"
+                  :value="editDraft.aisi ?? ''"
+                  :data-testid="`norm-aisi-input-${n.id}`"
+                  @input="editDraft.aisi = ($event.target as HTMLInputElement).value.toUpperCase()"
+                  @keydown="onKeydown"
+                  @click.stop
+                />
+              </td>
+              <td class="t4">{{ n.material_group?.name ?? '—' }}</td>
+              <td class="act-cell">
+                <button
+                  class="icon-btn icon-btn-brand icon-btn-sm"
+                  data-testid="norm-save-btn"
+                  title="Uložit (Enter)"
+                  @click.stop="saveEdit"
+                >
+                  <CheckIcon :size="ICON_SIZE_SM" />
+                </button>
+                <button
+                  class="icon-btn icon-btn-sm"
+                  data-testid="norm-cancel-btn"
+                  title="Zrušit (Esc)"
+                  @click.stop="cancelEdit"
+                >
+                  <XIcon :size="ICON_SIZE_SM" />
+                </button>
+              </td>
+            </template>
+            <template v-else>
+              <td class="">{{ n.w_nr ?? '—' }}</td>
+              <td class="t3">{{ n.en_iso ?? '—' }}</td>
+              <td class="t4">{{ n.csn ?? '—' }}</td>
+              <td class="t4">{{ n.aisi ?? '—' }}</td>
+              <td class="t4">{{ n.material_group?.name ?? '—' }}</td>
+              <td />
+            </template>
           </tr>
         </tbody>
       </table>
@@ -101,7 +212,7 @@ onMounted(load)
 }
 .srch-inp::placeholder { color: var(--t4); }
 .srch-inp:focus { border-color: var(--b3); }
-.srch-count { font-size: 10px; color: var(--t4); white-space: nowrap; font-family: var(--mono); }
+.srch-count { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
 .mod-placeholder {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 8px; color: var(--t4);
@@ -110,19 +221,19 @@ onMounted(load)
 .mod-dot.err { background: var(--err); }
 .mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
-.ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
-.ot th {
-  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
-  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
-  border-bottom: 1px solid var(--b2); white-space: nowrap;
-}
-.ot td {
-  padding: 4px var(--pad); font-size: var(--fs); color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle;
-}
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+.ot tbody tr.row-clickable { cursor: pointer; }
+.ot tbody tr.row-clickable:hover td { background: var(--b1); }
+
 .t3 { color: var(--t3); }
 .t4 { color: var(--t4); }
+
+/* Inline edit */
+.row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
+.row-editing:hover td { background: var(--raised); }
+.ei {
+  background: var(--surface); border: 1px solid var(--b3); border-radius: var(--rs);
+  color: var(--t1); font-size: var(--fs); padding: 2px 4px; outline: none;
+}
+.ei:focus { border-color: rgba(255,255,255,0.3); }
+.ei-nm { font-family: var(--mono); width: 100%; }
 </style>

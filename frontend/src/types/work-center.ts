@@ -19,4 +19,18 @@ export interface WorkCenter {
   has_milling: boolean
   is_active: boolean
   priority: number
+  version: number
+}
+
+export interface WorkCenterUpdate {
+  name?: string
+  work_center_type?: string
+  hourly_rate_amortization?: number | null
+  hourly_rate_labor?: number | null
+  hourly_rate_tools?: number | null
+  hourly_rate_overhead?: number | null
+  max_workpiece_diameter?: number | null
+  axes?: number | null
+  is_active?: boolean
+  version: number
 }

@@ -187,9 +187,9 @@ onMounted(loadSync)
                   <div class="step-name">{{ s.step_name }}</div>
                   <div v-if="s.last_error" class="step-err t4">{{ s.last_error }}</div>
                 </td>
-                <td class="mono t4">{{ s.last_sync_at ? formatDate(s.last_sync_at) : '—' }}</td>
-                <td class="r mono t4">{{ s.created_count }}</td>
-                <td class="r mono" :class="s.error_count > 0 ? 'err-text' : 't4'">
+                <td class="t4">{{ s.last_sync_at ? formatDate(s.last_sync_at) : '—' }}</td>
+                <td class="r t4">{{ s.created_count }}</td>
+                <td class="r" :class="s.error_count > 0 ? 'err-text' : 't4'">
                   {{ s.error_count }}
                 </td>
                 <td>
@@ -224,19 +224,19 @@ onMounted(loadSync)
                 :data-testid="`sync-log-${l.id}`"
               >
                 <td class="t4">{{ l.step_name }}</td>
-                <td class="mono t4">{{ formatDate(l.created_at) }}</td>
+                <td class="t4">{{ formatDate(l.created_at) }}</td>
                 <td>
                   <span class="badge">
                     <span :class="LOG_STATUS_CLASSES[l.status] ?? 'badge-dot neutral'" />
                     {{ l.status }}
                   </span>
                 </td>
-                <td class="r mono t4">{{ l.fetched_count }}</td>
-                <td class="r mono t4">{{ l.created_count }}</td>
-                <td class="r mono" :class="l.error_count > 0 ? 'err-text' : 't4'">
+                <td class="r t4">{{ l.fetched_count }}</td>
+                <td class="r t4">{{ l.created_count }}</td>
+                <td class="r" :class="l.error_count > 0 ? 'err-text' : 't4'">
                   {{ l.error_count }}
                 </td>
-                <td class="r mono t4">
+                <td class="r t4">
                   {{ l.duration_ms != null ? `${l.duration_ms} ms` : '—' }}
                 </td>
               </tr>
@@ -344,7 +344,7 @@ onMounted(loadSync)
   background: rgba(255,255,255,0.01);
 }
 .ptab {
-  padding: 3px 7px; font-size: 10.5px; font-weight: 500; color: var(--t4);
+  padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4);
   background: transparent; border: none; border-radius: var(--rs);
   cursor: pointer; font-family: var(--font);
 }
@@ -361,14 +361,14 @@ onMounted(loadSync)
   font-size: var(--fsl); color: var(--t2); font-weight: 500;
 }
 .section-label {
-  padding: 4px var(--pad) 3px; font-size: 10px; font-weight: 600; color: var(--t4);
+  padding: 4px var(--pad) 3px; font-size: var(--fsm); font-weight: 600; color: var(--t4);
   text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--b1);
   background: rgba(255,255,255,0.015); flex-shrink: 0;
 }
 .ot-half { max-height: 40%; overflow-y: auto; overflow-x: hidden; }
 .ot-flex { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .step-name { font-size: var(--fs); color: var(--t2); }
-.step-err { font-size: 10px; margin-top: 1px; }
+.step-err { font-size: var(--fsm); margin-top: 1px; }
 
 /* Import */
 .import-panel {
@@ -390,7 +390,7 @@ onMounted(loadSync)
 }
 .preview-counts { display: flex; gap: 10px; align-items: center; }
 .preview-actions { display: flex; gap: 6px; align-items: center; }
-.cnt { font-size: var(--fsl); font-weight: 600; font-family: var(--mono); }
+.cnt { font-size: var(--fsl); font-weight: 600; }
 .cnt.ok { color: var(--ok); }
 .import-error {
   padding: 8px; background: var(--red-10); color: var(--red);
@@ -411,20 +411,6 @@ onMounted(loadSync)
 .err-item { font-size: var(--fsl); color: var(--t3); padding: 2px 6px; background: var(--b1); border-radius: var(--rs); }
 
 /* Tables */
-.ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
-.ot th {
-  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
-  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
-  border-bottom: 1px solid var(--b2); white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad); font-size: var(--fs); color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
 
 /* Shared */
 .mod-placeholder {
@@ -436,26 +422,15 @@ onMounted(loadSync)
 .mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .badge {
   display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px;
-  font-size: 10px; font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2);
+  font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2);
 }
 .badge-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
 .badge-dot.ok { background: var(--ok); }
 .badge-dot.neutral { background: var(--t4); }
 .badge-dot.err { background: var(--err); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 .r { text-align: right; }
 .err-text { color: var(--err); }
 
-/* Buttons */
-.btn-primary, .btn-secondary {
-  padding: 4px 10px; font-size: var(--fsl); font-weight: 600;
-  border-radius: var(--rs); border: 1px solid var(--b2); cursor: pointer;
-  font-family: var(--font); transition: all 100ms var(--ease);
-}
-.btn-primary { background: var(--raised); color: var(--t1); border-color: var(--b3); }
-.btn-primary:hover:not(:disabled) { background: var(--glass); }
-.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-secondary { background: transparent; color: var(--t3); }
-.btn-secondary:hover { color: var(--t1); background: var(--b1); }
 </style>

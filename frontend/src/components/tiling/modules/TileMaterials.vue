@@ -131,15 +131,15 @@ onMounted(load)
               :key="m.id"
               :data-testid="`material-row-${m.id}`"
             >
-              <td class="mono t4">{{ m.material_number }}</td>
-              <td class="mono">{{ m.code }}</td>
+              <td class="t4">{{ m.material_number }}</td>
+              <td class="">{{ m.code }}</td>
               <td>
                 <div class="mat-name">{{ m.name }}</div>
                 <div v-if="m.norms" class="mat-sub t4">{{ m.norms }}</div>
               </td>
               <td class="t4">{{ SHAPE_LABELS[m.shape] ?? m.shape }}</td>
-              <td class="mono t3">{{ dimLabel(m) }}</td>
-              <td class="r mono t4">
+              <td class="t3">{{ dimLabel(m) }}</td>
+              <td class="r t4">
                 {{ m.weight_per_meter != null ? formatNumber(m.weight_per_meter, 3) : '—' }}
               </td>
             </tr>
@@ -198,10 +198,9 @@ onMounted(load)
 .srch-inp::placeholder { color: var(--t4); }
 .srch-inp:focus { border-color: var(--b3); }
 .srch-count {
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
   white-space: nowrap;
-  font-family: var(--mono);
 }
 
 /* Table wrapper */
@@ -213,42 +212,11 @@ onMounted(load)
 }
 
 /* Table */
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t3 { color: var(--t3); }
 .t4 { color: var(--t4); }
 .r { text-align: right; }
 
 .mat-name { font-weight: 500; color: var(--t1); }
-.mat-sub { font-size: 10px; margin-top: 1px; }
+.mat-sub { font-size: var(--fsm); margin-top: 1px; }
 </style>

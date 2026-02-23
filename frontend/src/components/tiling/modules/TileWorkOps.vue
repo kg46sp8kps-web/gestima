@@ -97,7 +97,7 @@ watch(
               :key="op.id"
               :data-testid="`op-row-${op.id}`"
             >
-              <td class="mono t4">{{ op.seq }}</td>
+              <td class="t4">{{ op.seq }}</td>
               <td>{{ op.name || 'Bez názvu' }}</td>
               <td class="r">
                 <span class="tb s">
@@ -160,9 +160,9 @@ watch(
 }
 .rib-r { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
-.rib-l { font-size: 10px; color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
-.rib-v.m { font-family: var(--mono); }
+.rib-v.m { }
 
 /* ─── Table wrapper ─── */
 .ot-wrap {
@@ -173,37 +173,7 @@ watch(
 }
 
 /* ─── Operations table — reference .ot ─── */
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 
 /* ─── Time badge — reference .tb ─── */
@@ -212,8 +182,7 @@ watch(
   align-items: center;
   gap: 3px;
   padding: 1px 5px;
-  font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fsm);
   border-radius: 99px;
   background: var(--b1);
   color: var(--t2);
@@ -230,8 +199,7 @@ watch(
 
 /* ─── Cutting mode badge ─── */
 .cm-badge {
-  font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--fss);
   font-weight: 600;
   letter-spacing: 0.06em;
   padding: 1px 4px;

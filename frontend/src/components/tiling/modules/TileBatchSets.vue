@@ -56,17 +56,17 @@ onMounted(load)
       <div class="srch-bar">
         <div class="flt-grp">
           <button
-            :class="['flt-btn', statusFilter === 'all' ? 'on' : '']"
+            :class="['ptab', statusFilter === 'all' ? 'on' : '']"
             data-testid="filter-all"
             @click="statusFilter = 'all'"
           >Vše</button>
           <button
-            :class="['flt-btn', statusFilter === 'draft' ? 'on' : '']"
+            :class="['ptab', statusFilter === 'draft' ? 'on' : '']"
             data-testid="filter-draft"
             @click="statusFilter = 'draft'"
           >Draft</button>
           <button
-            :class="['flt-btn', statusFilter === 'frozen' ? 'on' : '']"
+            :class="['ptab', statusFilter === 'frozen' ? 'on' : '']"
             data-testid="filter-frozen"
             @click="statusFilter = 'frozen'"
           >Zmrazené</button>
@@ -97,12 +97,12 @@ onMounted(load)
               :key="s.id"
               :data-testid="`batch-set-row-${s.id}`"
             >
-              <td class="mono t4">{{ s.set_number }}</td>
+              <td class="t4">{{ s.set_number }}</td>
               <td>
                 <div class="set-name">{{ s.name }}</div>
                 <div v-if="s.part_id" class="set-sub t4">Díl #{{ s.part_id }}</div>
               </td>
-              <td class="mono t4 r">{{ s.batch_count }}</td>
+              <td class="t4 r">{{ s.batch_count }}</td>
               <td>
                 <span v-if="s.status === 'frozen'" class="badge frozen">
                   <span class="badge-dot neutral" />
@@ -156,24 +156,13 @@ onMounted(load)
   flex-shrink: 0;
 }
 .flt-grp { display: flex; gap: 2px; }
-.flt-btn {
-  padding: 2px 7px;
-  font-size: 10.5px;
-  font-weight: 500;
-  color: var(--t4);
-  background: transparent;
-  border: none;
-  border-radius: var(--rs);
-  cursor: pointer;
-  font-family: var(--font);
-}
-.flt-btn:hover { color: var(--t3); }
-.flt-btn.on { color: var(--t1); background: var(--b1); }
+.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); }
+.ptab:hover { color: var(--t3); }
+.ptab.on { color: var(--t1); background: var(--b1); }
 .srch-count {
   margin-left: auto;
-  font-size: 10px;
+  font-size: var(--fsm);
   color: var(--t4);
-  font-family: var(--mono);
   white-space: nowrap;
 }
 
@@ -183,48 +172,18 @@ onMounted(load)
   overflow-x: hidden;
   min-height: 0;
 }
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 
 .set-name { font-weight: 500; color: var(--t1); }
-.set-sub { font-size: 10px; margin-top: 1px; }
+.set-sub { font-size: var(--fsm); margin-top: 1px; }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   padding: 1px 5px;
-  font-size: 10px;
+  font-size: var(--fsm);
   font-weight: 500;
   border-radius: 99px;
   background: var(--b1);

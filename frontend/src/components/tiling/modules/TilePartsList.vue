@@ -107,17 +107,17 @@ watch(
         />
         <button
           v-if="searchVal"
-          class="srch-clr"
+          class="icon-btn srch-clr"
           data-testid="parts-search-clear"
           @click="searchVal = ''; parts.search = ''; parts.fetchAll()"
         >×</button>
       </div>
-      <button class="hbtn" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll()">
+      <button class="icon-btn" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll()">
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M2.5 8a5.5 5.5 0 1 0 1-3.18M2.5 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="hbtn brand" title="Nový díl" data-testid="parts-create" @click="showCreate = true">
+      <button class="icon-btn icon-btn-brand" title="Nový díl" data-testid="parts-create" @click="showCreate = true">
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
@@ -219,37 +219,14 @@ watch(
 }
 .srch::placeholder { color: var(--t4); }
 .srch:focus { border-color: var(--b3); background: rgba(255,255,255,0.05); }
+/* search clear — positioned inside search wrap */
 .srch-clr {
   position: absolute;
   right: 4px;
-  background: none;
-  border: none;
-  color: var(--t4);
-  cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fsh);
   line-height: 1;
   padding: 0 3px;
 }
-.srch-clr:hover { color: var(--t2); }
-
-/* Header icon buttons — reference .hbtn */
-.hbtn {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 2px;
-  color: var(--t4);
-  cursor: pointer;
-}
-.hbtn svg { width: 12px; height: 12px; }
-.hbtn:hover { background: var(--b1); color: var(--t1); }
-.hbtn.brand { color: var(--red); }
-.hbtn.brand:hover { background: var(--red-dim); }
 
 /* ─── Filter tabs — reference .ptabs / .ptab ─── */
 .ptabs {
@@ -261,7 +238,7 @@ watch(
 }
 .ptab {
   padding: 3px 7px;
-  font-size: 10.5px;
+  font-size: var(--fsx);
   font-weight: 500;
   color: var(--t4);
   background: transparent;
@@ -277,8 +254,8 @@ watch(
 .ptab.on { color: var(--t1); background: var(--b1); }
 /* Count badge inside tab */
 .n {
-  font-family: var(--mono);
-  font-size: 10px;
+  
+  font-size: var(--fsm);
   color: var(--t4);
   padding: 1px 4px;
   background: var(--b1);
@@ -331,7 +308,7 @@ watch(
 
 /* Part number — reference .pn */
 .pn {
-  font-family: var(--mono);
+  
   font-size: var(--fs);
   font-weight: 500;
   color: var(--t1);

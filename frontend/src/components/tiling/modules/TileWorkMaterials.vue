@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { PlusIcon, PencilIcon, XIcon, CheckIcon, Link2Icon, Link2OffIcon } from 'lucide-vue-next'
+import { PlusIcon, PencilIcon, XIcon, CheckIcon, Link2OffIcon } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useUiStore } from '@/stores/ui'
 import * as materialInputsApi from '@/api/material-inputs'
@@ -426,12 +426,12 @@ watch(
                   @click="selectedItem = it"
                 >
                   <span class="pr-item-opt-name">{{ it.name }}</span>
-                  <span class="pr-item-opt-code mono">{{ it.code }}</span>
+                  <span class="pr-item-opt-code">{{ it.code }}</span>
                 </button>
               </div>
             </template>
             <span class="pr-lbl">Shoda</span>
-            <span :class="['pr-val', 'mono', parseResult.confidence > 0.7 ? 'pr-ok' : 'pr-warn']">
+            <span :class="['pr-val', parseResult.confidence > 0.7 ? 'pr-ok' : 'pr-warn']">
               {{ Math.round(parseResult.confidence * 100) }}%
             </span>
           </div>
@@ -474,15 +474,15 @@ watch(
           <tbody v-for="m in items" :key="m.id">
             <!-- Main row -->
             <tr :class="{ 'row-editing': editingId === m.id }" :data-testid="`mat-row-${m.id}`">
-              <td class="mono t4">{{ m.seq + 1 }}</td>
+              <td class="t4">{{ m.seq + 1 }}</td>
               <td>
                 <div class="mat-name">{{ matPrimary(m) }}</div>
-                <div v-if="m.material_item?.code" class="mat-code mono">{{ m.material_item.code }}</div>
+                <div v-if="m.material_item?.code" class="mat-code">{{ m.material_item.code }}</div>
                 <div v-if="matSub(m)" class="mat-sub t4">{{ matSub(m) }}</div>
               </td>
               <td>
                 <div>{{ SHAPE_LABELS[m.stock_shape] }}</div>
-                <div class="mat-sub t4 mono">{{ dimLabel(m) }}</div>
+                <div class="mat-sub t4">{{ dimLabel(m) }}</div>
               </td>
               <td>
                 <div class="op-chips">
@@ -492,7 +492,7 @@ watch(
                   <span v-if="!m.operations.length" class="t4 fsl">—</span>
                 </div>
               </td>
-              <td class="r mono">
+              <td class="r">
                 {{ m.weight_kg != null ? formatNumber(m.weight_kg, 3) + ' kg' : '—' }}
               </td>
               <td class="r">
@@ -546,14 +546,13 @@ watch(
                     </div>
                     <div v-if="editFields(m).length > 0" class="edit-actions">
                       <button
-                        class="btn-primary"
+                        class="icon-btn icon-btn-brand icon-btn-sm"
                         :disabled="saving"
                         :data-testid="`save-dims-${m.id}`"
                         @click="saveEdit(m)"
                       >
                         <Spinner v-if="saving" size="sm" :inline="true" />
                         <CheckIcon v-else :size="ICON_SIZE_SM" />
-                        Uložit
                       </button>
                       <button class="btn-secondary" :data-testid="`cancel-dims-${m.id}`" @click="cancelEdit">
                         Zrušit
@@ -607,14 +606,10 @@ watch(
                     </div>
                     <button
                       v-else
-                      class="btn-secondary"
-                      style="margin-top:6px"
+                      class="btn-secondary add-op-btn"
                       :data-testid="`add-op-link-${m.id}`"
                       @click="startLinkOp(m.id)"
-                    >
-                      <Link2Icon :size="ICON_SIZE_SM" />
-                      Přidat operaci
-                    </button>
+                    >Přidat operaci</button>
                   </div>
                 </div>
               </td>
@@ -669,7 +664,7 @@ watch(
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
 .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
-.rib-v.m { font-family: var(--mono); }
+.rib-v.m { }
 .rib-v.green { color: var(--green); }
 
 .add-active { background: var(--red-10); }
@@ -712,7 +707,7 @@ watch(
 }
 .pr-lbl { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; padding-top: 2px; }
 .pr-val { font-size: var(--fs); color: var(--t1); }
-.pr-val.mono { font-family: var(--mono); }
+
 .pr-ok { color: var(--ok); }
 .pr-warn { color: var(--warn); }
 
@@ -762,9 +757,9 @@ watch(
 
 /* ─── Table ─── */
 .row-editing td { background: rgba(255,255,255,0.03); }
-.edit-td { padding: 0 !important; }
+.edit-td { padding: 0; }
 
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 .fsl { font-size: var(--fsl); }
 
@@ -796,7 +791,6 @@ watch(
 /* ─── Price badge ─── */
 .price-badge {
   display: inline-block;
-  font-family: var(--mono);
   font-size: var(--fsm);
   padding: 1px 5px;
   border-radius: 99px;
@@ -896,6 +890,7 @@ watch(
   align-items: center;
   margin-top: 6px;
 }
+.add-op-btn { margin-top: 6px; }
 .op-select {
   flex: 1;
   height: 24px;

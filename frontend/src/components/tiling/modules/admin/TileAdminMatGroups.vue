@@ -1,14 +1,33 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { CheckIcon, XIcon } from 'lucide-vue-next'
 import * as materialsApi from '@/api/materials'
 import type { MaterialGroup } from '@/types/admin-user'
 import { formatNumber } from '@/utils/formatters'
+import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import { ICON_SIZE_SM } from '@/config/design'
+
+interface GroupDraft {
+  code: string
+  name: string
+  iso_group: string | null
+  density: number | null
+  hardness_hb: number | null
+  cutting_speed_turning: number | null
+  cutting_speed_milling: number | null
+  version: number
+}
+
+const ui = useUiStore()
 
 const groups = ref<MaterialGroup[]>([])
 const loading = ref(false)
 const error = ref(false)
 const search = ref('')
+
+const editingId = ref<number | null>(null)
+const editDraft = ref<GroupDraft | null>(null)
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -30,6 +49,46 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function startEdit(g: MaterialGroup) {
+  editingId.value = g.id
+  editDraft.value = {
+    code: g.code,
+    name: g.name,
+    iso_group: g.iso_group ?? null,
+    density: g.density,
+    hardness_hb: g.hardness_hb ?? null,
+    cutting_speed_turning: g.cutting_speed_turning ?? null,
+    cutting_speed_milling: g.cutting_speed_milling ?? null,
+    version: g.version,
+  }
+}
+
+async function saveEdit() {
+  const id = editingId.value
+  const draft = editDraft.value
+  if (!id || !draft) return
+  editingId.value = null
+  editDraft.value = null
+  try {
+    const updated = await materialsApi.updateGroup(id, draft)
+    const idx = groups.value.findIndex(g => g.id === id)
+    if (idx !== -1) groups.value[idx] = updated
+    ui.showSuccess('Skupina uložena')
+  } catch {
+    ui.showError('Chyba při ukládání skupiny')
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editDraft.value = null
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
 }
 
 onMounted(load)
@@ -70,6 +129,7 @@ onMounted(load)
             <th class="r" style="width:72px">Tvrdost</th>
             <th class="r" style="width:78px">Vc soustr.</th>
             <th class="r" style="width:78px">Vc fréz.</th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -77,22 +137,111 @@ onMounted(load)
             v-for="g in filtered"
             :key="g.id"
             :data-testid="`mat-group-row-${g.id}`"
+            :class="['row-clickable', { 'row-editing': editingId === g.id }]"
+            @click="editingId !== g.id ? startEdit(g) : undefined"
+            @keydown.capture="editingId === g.id ? onKeydown($event) : undefined"
           >
-            <td class="mono t3">{{ g.code }}</td>
-            <td>{{ g.name }}</td>
-            <td class="t4">{{ g.iso_group ?? '—' }}</td>
-            <td class="r mono t4">
-              {{ g.density != null ? formatNumber(g.density, 2) : '—' }}
-            </td>
-            <td class="r mono t4">
-              {{ g.hardness_hb != null ? formatNumber(g.hardness_hb, 0) : '—' }}
-            </td>
-            <td class="r mono t4">
-              {{ g.cutting_speed_turning != null ? formatNumber(g.cutting_speed_turning, 0) : '—' }}
-            </td>
-            <td class="r mono t4">
-              {{ g.cutting_speed_milling != null ? formatNumber(g.cutting_speed_milling, 0) : '—' }}
-            </td>
+            <!-- EDIT MODE -->
+            <template v-if="editingId === g.id && editDraft">
+              <td>
+                <input
+                  v-model="editDraft.code"
+                  type="text"
+                  class="ei ei-sm-text"
+                  :data-testid="`mat-group-edit-code-${g.id}`"
+                />
+              </td>
+              <td>
+                <input
+                  v-model="editDraft.name"
+                  type="text"
+                  class="ei ei-wide"
+                  :data-testid="`mat-group-edit-name-${g.id}`"
+                />
+              </td>
+              <td>
+                <input
+                  v-model="editDraft.iso_group"
+                  type="text"
+                  class="ei ei-xs"
+                  :data-testid="`mat-group-edit-iso-${g.id}`"
+                />
+              </td>
+              <td class="r">
+                <input
+                  v-model.number="editDraft.density"
+                  type="number"
+                  class="ei ei-num"
+                  step="0.01"
+                  :data-testid="`mat-group-edit-density-${g.id}`"
+                />
+              </td>
+              <td class="r">
+                <input
+                  v-model.number="editDraft.hardness_hb"
+                  type="number"
+                  class="ei ei-num"
+                  step="1"
+                  :data-testid="`mat-group-edit-hardness-${g.id}`"
+                />
+              </td>
+              <td class="r">
+                <input
+                  v-model.number="editDraft.cutting_speed_turning"
+                  type="number"
+                  class="ei ei-num"
+                  step="1"
+                  :data-testid="`mat-group-edit-vc-turn-${g.id}`"
+                />
+              </td>
+              <td class="r">
+                <input
+                  v-model.number="editDraft.cutting_speed_milling"
+                  type="number"
+                  class="ei ei-num"
+                  step="1"
+                  :data-testid="`mat-group-edit-vc-mill-${g.id}`"
+                />
+              </td>
+              <td class="act-cell">
+                <button
+                  class="icon-btn icon-btn-brand icon-btn-sm"
+                  data-testid="mg-save-btn"
+                  title="Uložit (Enter)"
+                  @click.stop="saveEdit"
+                >
+                  <CheckIcon :size="ICON_SIZE_SM" />
+                </button>
+                <button
+                  class="icon-btn icon-btn-sm"
+                  data-testid="mg-cancel-btn"
+                  title="Zrušit (Esc)"
+                  @click.stop="cancelEdit"
+                >
+                  <XIcon :size="ICON_SIZE_SM" />
+                </button>
+              </td>
+            </template>
+
+            <!-- VIEW MODE -->
+            <template v-else>
+              <td class="t3">{{ g.code }}</td>
+              <td>{{ g.name }}</td>
+              <td class="t4">{{ g.iso_group ?? '—' }}</td>
+              <td class="r t4">
+                {{ g.density != null ? formatNumber(g.density, 2) : '—' }}
+              </td>
+              <td class="r t4">
+                {{ g.hardness_hb != null ? formatNumber(g.hardness_hb, 0) : '—' }}
+              </td>
+              <td class="r t4">
+                {{ g.cutting_speed_turning != null ? formatNumber(g.cutting_speed_turning, 0) : '—' }}
+              </td>
+              <td class="r t4">
+                {{ g.cutting_speed_milling != null ? formatNumber(g.cutting_speed_milling, 0) : '—' }}
+              </td>
+              <td />
+            </template>
           </tr>
         </tbody>
       </table>
@@ -113,7 +262,7 @@ onMounted(load)
 }
 .srch-inp::placeholder { color: var(--t4); }
 .srch-inp:focus { border-color: var(--b3); }
-.srch-count { font-size: 10px; color: var(--t4); white-space: nowrap; font-family: var(--mono); }
+.srch-count { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
 .mod-placeholder {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 8px; color: var(--t4);
@@ -122,22 +271,27 @@ onMounted(load)
 .mod-dot.err { background: var(--err); }
 .mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
-.ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
-.ot th {
-  padding: 4px var(--pad); font-size: 10px; font-weight: 600; color: var(--t4);
-  text-transform: uppercase; letter-spacing: 0.04em; text-align: left;
-  border-bottom: 1px solid var(--b2); white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad); font-size: var(--fs); color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025); vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t3 { color: var(--t3); }
 .t4 { color: var(--t4); }
 .r { text-align: right; }
+
+/* Inline editing */
+.row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
+.row-editing:hover td { background: var(--raised); }
+.row-clickable { cursor: pointer; }
+.ei {
+  background: var(--surface);
+  border: 1px solid var(--b3);
+  border-radius: var(--rs);
+  color: var(--t1);
+  font-size: var(--fs);
+  padding: 2px 4px;
+  outline: none;
+}
+.ei:focus { border-color: rgba(255,255,255,0.3); }
+.ei-num { font-family: var(--mono); width: 64px; text-align: right; }
+.ei-xs { width: 44px; }
+.ei-sm-text { width: 56px; }
+.ei-wide { width: 100%; }
 </style>

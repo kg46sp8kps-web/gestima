@@ -103,13 +103,13 @@ onMounted(load)
                 {{ item.status }}
               </span>
             </td>
-            <td class="r mono">
+            <td class="r">
               {{ item.estimated_time_min != null ? formatNumber(item.estimated_time_min, 1) : '—' }}
             </td>
-            <td class="r mono">
+            <td class="r">
               {{ item.actual_time_min != null ? formatNumber(item.actual_time_min, 1) : '—' }}
             </td>
-            <td :class="['r', 'mono', accuracyClass(item)]">{{ accuracyPct(item) }}</td>
+            <td :class="['r', accuracyClass(item)]">{{ accuracyPct(item) }}</td>
           </tr>
         </tbody>
       </table>
@@ -149,50 +149,19 @@ onMounted(load)
   overflow-x: hidden;
   min-height: 0;
 }
-.ot {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ot thead {
-  background: rgba(255,255,255,0.025);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.ot th {
-  padding: 4px var(--pad);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: left;
-  border-bottom: 1px solid var(--b2);
-  white-space: nowrap;
-}
-.ot th.r { text-align: right; }
-.ot td {
-  padding: 4px var(--pad);
-  font-size: var(--fs);
-  color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
-  vertical-align: middle;
-}
-.ot td.r { text-align: right; }
-.ot tbody tr:hover td { background: var(--b1); }
-.mono { font-family: var(--mono); }
+
 .t4 { color: var(--t4); }
 .r { text-align: right; }
 
 .tv-name { font-weight: 500; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
-.tv-sub { font-size: 10px; margin-top: 1px; }
+.tv-sub { font-size: var(--fsm); margin-top: 1px; }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   padding: 1px 5px;
-  font-size: 10px;
+  font-size: var(--fsm);
   font-weight: 500;
   border-radius: 99px;
   background: var(--b1);

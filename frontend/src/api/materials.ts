@@ -1,6 +1,6 @@
 import { apiClient } from './client'
 import type { MaterialItemListResponse } from '@/types/material-item'
-import type { MaterialGroup, MaterialPriceCategory } from '@/types/admin-user'
+import type { MaterialGroup, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryUpdate } from '@/types/admin-user'
 
 export async function getItems(params?: { group_id?: number; skip?: number; limit?: number }): Promise<MaterialItemListResponse> {
   const { data } = await apiClient.get<MaterialItemListResponse>('/materials/items', { params })
@@ -12,7 +12,17 @@ export async function getGroups(): Promise<MaterialGroup[]> {
   return data
 }
 
+export async function updateGroup(id: number, payload: MaterialGroupUpdate): Promise<MaterialGroup> {
+  const { data } = await apiClient.put<MaterialGroup>(`/materials/groups/${id}`, payload)
+  return data
+}
+
 export async function getPriceCategories(): Promise<MaterialPriceCategory[]> {
   const { data } = await apiClient.get<MaterialPriceCategory[]>('/materials/price-categories')
+  return data
+}
+
+export async function updatePriceCategory(id: number, payload: MaterialPriceCategoryUpdate): Promise<MaterialPriceCategory> {
+  const { data } = await apiClient.put<MaterialPriceCategory>(`/materials/price-categories/${id}`, payload)
   return data
 }
