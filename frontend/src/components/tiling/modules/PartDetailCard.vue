@@ -64,6 +64,10 @@ const isDirty = computed(() => {
   )
 })
 
+// Přepnutí na jiný díl → vždy reset draftu
+watch(() => props.part.part_number, () => { draft.value = toDraft(props.part) })
+
+// Aktualizace stejného dílu zvenku (po save, refresh) → reset jen pokud není dirty
 watch(
   () => props.part,
   (p) => { if (!isDirty.value) draft.value = toDraft(p) },
