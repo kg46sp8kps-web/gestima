@@ -192,6 +192,12 @@ class MaterialItemSummary(BaseModel):
     code: str
     name: str
     material_number: str
+    # Rozměry katalogové položky — FE je používá pro data-driven locking
+    diameter: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None   # přířez výška (3. fixní rozměr pro plate)
+    thickness: Optional[float] = None
+    wall_thickness: Optional[float] = None
 
 
 class PriceCategorySummary(BaseModel):

@@ -237,6 +237,7 @@ body {
   flex-shrink: 0;
 }
 .icon-btn:hover { color: var(--t1); background: var(--b1); }
+.icon-btn:active:not(:disabled) { transform: scale(0.9); background: var(--b2); }
 .icon-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
 .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -322,7 +323,7 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.025);
 }
 .ot td.r { text-align: right; color: var(--t1); }
-.ot tbody tr { transition: background 0.04s; }
+.ot tbody tr { transition: background 80ms var(--ease); }
 .ot tbody tr:hover td { background: var(--b1); }
 .ot tbody tr.sel td { background: rgba(255,255,255,0.06); }
 
@@ -350,7 +351,7 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.025);
 }
 .bt td.r { text-align: right; color: var(--t1); }
-.bt tbody tr { transition: background 0.04s; }
+.bt tbody tr { transition: background 80ms var(--ease); }
 .bt tbody tr:hover td { background: var(--b1); }
 .bt tbody tr.sel td { background: var(--green-10); }
 

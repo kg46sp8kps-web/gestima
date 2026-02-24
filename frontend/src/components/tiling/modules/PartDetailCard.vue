@@ -10,6 +10,8 @@ import type { ContextGroup, ModuleId } from '@/types/workspace'
 import type { FileWithLinks } from '@/types/file-record'
 import Input from '@/components/ui/Input.vue'
 import Spinner from '@/components/ui/Spinner.vue'
+import Button from '@/components/ui/Button.vue'
+import { X } from 'lucide-vue-next'
 
 interface Props {
   part: Part
@@ -92,6 +94,7 @@ const QUICK_LINKS: Array<{ label: string; module: ModuleId }> = [
   { label: 'Kalkulace', module: 'work-pricing' },
   { label: 'Materiály', module: 'work-materials' },
   { label: 'Výkres',   module: 'work-drawing' },
+  { label: '3D Model', module: 'work-3d' },
 ]
 
 function openModule(moduleId: ModuleId) {
@@ -287,17 +290,17 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 
       <!-- Save bar — only when dirty -->
       <div v-if="isDirty" class="save-bar">
-        <button
-          class="btn-ghost"
+        <Button
+          variant="ghost"
           data-testid="reset-btn"
           @click="reset"
-        >Zahodit</button>
-        <button
-          class="btn-primary"
+        >Zahodit</Button>
+        <Button
+          variant="primary"
           :disabled="saving"
           data-testid="save-btn"
           @click="save"
-        >{{ saving ? 'Ukládání…' : 'Uložit' }}</button>
+        >{{ saving ? 'Ukládání…' : 'Uložit' }}</Button>
       </div>
 
       <!-- ── Files section ── -->
@@ -326,11 +329,11 @@ watch(() => props.part.id, loadFiles, { immediate: true })
               title="Stáhnout"
             >↓</a>
             <button
-              class="fdel"
+              class="icon-btn icon-btn-danger fdel"
               :data-testid="`del-file-${f.id}`"
               title="Smazat soubor"
               @click="deleteFile(f, $event)"
-            >×</button>
+            ><X :size="12" /></button>
           </div>
         </div>
 
@@ -446,42 +449,21 @@ watch(() => props.part.id, loadFiles, { immediate: true })
   border-bottom: 1px solid var(--b1);
   background: rgba(255,255,255,0.015);
   flex-shrink: 0;
+  animation: savebar-in 150ms var(--ease);
 }
-.btn-ghost {
-  padding: 4px 12px;
-  font-size: var(--fsl);
-  color: var(--t3);
-  background: transparent;
-  border: 1px solid var(--b1);
-  border-radius: var(--rs);
-  cursor: pointer;
-  font-family: var(--font);
-  transition: color 100ms var(--ease), border-color 100ms var(--ease);
+@keyframes savebar-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.btn-ghost:hover { color: var(--t1); border-color: var(--b3); }
-.btn-primary {
-  padding: 4px 14px;
-  font-size: var(--fsl);
-  font-weight: 600;
-  color: var(--t1);
-  background: transparent;
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  cursor: pointer;
-  font-family: var(--font);
-  transition: border-color 100ms var(--ease);
-}
-.btn-primary:hover:not(:disabled) { border-color: var(--b3); }
-.btn-primary:disabled { opacity: 0.4; cursor: default; }
 
 /* ─── Section header ─── */
 .sec-hdr {
-  padding: 5px var(--pad) 3px;
-  font-size: var(--fsm);
+  padding: 5px var(--pad);
+  font-size: var(--fsl);
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-weight: 500;
+  font-weight: 600;
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
@@ -538,25 +520,12 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 }
 .fdl:hover { color: var(--t1); }
 .fdel {
-  width: 16px;
-  height: 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--t4);
-  font-size: var(--fsh);
-  line-height: 1;
-  padding: 0;
-  border-radius: var(--rs);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 20px;
+  height: 20px;
   opacity: 0;
   flex-shrink: 0;
-  transition: color 100ms var(--ease);
 }
 .file-row:hover .fdel { opacity: 1; }
-.fdel:hover { color: var(--err); }
 
 /* ─── Drop zone ─── */
 .drop-zone {

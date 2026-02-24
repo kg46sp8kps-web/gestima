@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { Plus, RefreshCw, Lock, Copy, Trash2, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import Button from '@/components/ui/Button.vue'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
 import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
@@ -342,15 +343,15 @@ function toggleExpand(setId: number) {
     <template v-else>
       <!-- Header toolbar -->
       <div class="hdr">
-        <button
-          class="btn-secondary"
-          :disabled="submitting['create-set']"
+        <Button
+          variant="secondary"
+          :disabled="!!submitting['create-set']"
           data-testid="pricing-create-set-btn"
           @click="createSet"
         >
           <Plus :size="ICON_SIZE_SM" />
           Nová sada
-        </button>
+        </Button>
         <div class="hdr-gap" />
         <Spinner v-if="isBusy" size="sm" inline />
       </div>
@@ -415,7 +416,7 @@ function toggleExpand(setId: number) {
                 @keydown.enter.prevent="addBatch(set.id)"
               />
               <button
-                class="icon-btn icon-btn"
+                class="icon-btn"
                 title="Přidat dávku"
                 :disabled="!!submitting[`add-${set.id}`]"
                 :data-testid="`add-batch-${set.id}`"
@@ -525,7 +526,7 @@ function toggleExpand(setId: number) {
               @keydown.enter.prevent="createLooseBatch"
             />
             <button
-              class="icon-btn icon-btn"
+              class="icon-btn"
               title="Přidat dávku"
               :disabled="!!submitting['new-loose']"
               data-testid="create-loose-btn"
@@ -534,15 +535,15 @@ function toggleExpand(setId: number) {
               <Plus :size="ICON_SIZE_SM" />
             </button>
           </div>
-          <button
-            class="btn-secondary"
+          <Button
+            variant="secondary"
             :disabled="!!submitting['freeze-loose']"
             data-testid="freeze-loose-btn"
             @click="freezeLooseBatches"
           >
             <Lock :size="ICON_SIZE_SM" />
             Zmrazit jako sadu
-          </button>
+          </Button>
         </div>
         <table class="ot">
           <thead>
@@ -700,7 +701,7 @@ function toggleExpand(setId: number) {
 /* ─── Loose section ─── */
 .loose-section {
   flex-shrink: 0;
-  border-top: 2px solid var(--b2);
+  border-top: 1px solid var(--b1);
 }
 .section-hdr {
   display: flex;

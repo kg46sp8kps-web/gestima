@@ -519,7 +519,7 @@ body::after {
   width: 100%; padding: 4px 7px 4px 26px; background: rgba(255,255,255,0.03);
   border: 1px solid var(--b1); border-radius: var(--rs);
   color: var(--t1); font-size: var(--fs); font-family: inherit;
-  outline: none; height: 26px; transition: all 0.12s;
+  outline: none; height: 28px; transition: all 0.12s;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5c64' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: 7px center;
 }
@@ -2269,9 +2269,10 @@ function toggleGuide() {
 table.sg-table { width: 100%; border-collapse: collapse; }
 table.sg-table th { padding: 4px 8px; font-size: 10px; font-weight: 600; color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; text-align: left; border-bottom: 1px solid var(--b2); white-space: nowrap; }
 table.sg-table td { padding: 4px 8px; font-size: 12px; color: var(--t2); border-bottom: 1px solid rgba(255,255,255,0.025); }
-.ei-demo { background: var(--surface); border: 1px solid var(--b3); border-radius: 4px; color: var(--t1); font-size: 12px; padding: 3px 6px; outline: none; font-family: 'DM Sans', sans-serif; width: 160px; }
+.ei-demo { background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: 4px; color: var(--t2); font-size: 12px; padding: 3px 6px; outline: none; font-family: 'DM Sans', sans-serif; width: 160px; transition: border-color 120ms, background 120ms, color 120ms; }
+.ei-demo:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .ei-demo-mono { font-family: 'JetBrains Mono', monospace; width: 80px; text-align: right; }
-.ei-demo-err { border-color: var(--err); }
+.ei-demo-err { border-color: var(--warn); }
 /* icon-btn replicated */
 .sg-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: transparent; border: none; border-radius: 4px; color: var(--t3); cursor: pointer; }
 .sg-icon-btn:hover { color: var(--t1); background: var(--b1); }
@@ -2379,6 +2380,23 @@ table.sg-table td { padding: 4px 8px; font-size: 12px; color: var(--t2); border-
       </div>
       <div style="margin-top:8px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">class="btn-primary" → Uložit<br>class="btn-secondary" → Zrušit</div>
     </div>
+    <!-- Save bar (dirty-state) -->
+    <div class="sg-card">
+      <div class="sg-card-title">Save bar — dirty state slide-in</div>
+      <div style="font-size:10px;color:var(--t4);margin-bottom:10px">Zobrazí se animovaně při změně formuláře</div>
+      <div style="display:flex;justify-content:flex-end;gap:6px;padding:6px 8px;background:rgba(255,255,255,0.015);border-radius:4px;border:1px solid var(--b1)">
+        <button class="btn-secondary">Zahodit</button>
+        <button class="btn-primary">Uložit</button>
+      </div>
+      <div style="margin-top:8px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">.save-bar { animation: savebar-in 150ms var(--ease); }<br>@keyframes savebar-in { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }</div>
+    </div>
+    <!-- Section header -->
+    <div class="sg-card">
+      <div class="sg-card-title">Section header (.sec-hdr)</div>
+      <div style="font-size:10px;color:var(--t4);margin-bottom:10px">Odděluje sekce v panel body</div>
+      <div style="font-size:var(--fsl);font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:0.05em;padding:5px 8px;border-bottom:1px solid var(--b1)">Soubory</div>
+      <div style="margin-top:8px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">font-size: var(--fsl) · font-weight: 600 · color: var(--t4)<br>padding: 5px var(--pad) · text-transform: uppercase</div>
+    </div>
   </div>
 </div>
 
@@ -2474,19 +2492,79 @@ table.sg-table td { padding: 4px 8px; font-size: 12px; color: var(--t2); border-
 </div>
 
 <!-- ══════════════════════════════
-     6. INPUTS
+     6. INPUTS — Ghost styl (canonical)
      ══════════════════════════════ -->
 <div class="sg-section">
-  <div class="sg-title">6. Inputs</div>
-  <div class="sg-row">
-    <input class="ei-demo" placeholder="Text hodnota…" value="">
-    <span class="sg-note">Standard input (.ei)</span>
-    <input class="ei-demo ei-demo-mono" value="1 234.50">
-    <span class="sg-note">Mono numeric (.ei + mono)</span>
-    <input class="ei-demo ei-demo-err" value="Chybná hodnota">
-    <span class="sg-note">Error state (.ei border: --err)</span>
+  <div class="sg-title">6. Inputs — Ghost styl</div>
+  <div class="sg-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+
+    <!-- Základní stavy -->
+    <div class="sg-card">
+      <div class="sg-card-title">Text input — prázdný</div>
+      <input class="ei-demo" placeholder="Placeholder text…" value="" style="width:100%">
+    </div>
+    <div class="sg-card">
+      <div class="sg-card-title">Text input — s hodnotou</div>
+      <input class="ei-demo" value="CNC Fanuc 30i" style="width:100%">
+    </div>
+    <div class="sg-card">
+      <div class="sg-card-title">Numeric / mono input</div>
+      <input class="ei-demo ei-demo-mono" value="1 234.50" style="width:100%">
+    </div>
+
+    <!-- Select -->
+    <div class="sg-card">
+      <div class="sg-card-title">Select / dropdown</div>
+      <div style="position:relative">
+        <select class="ei-demo" style="width:100%;appearance:none;padding-right:20px;cursor:pointer">
+          <option value="">— vyber pracoviště —</option>
+          <option value="1">Frézování</option>
+          <option value="2">Soustružení</option>
+        </select>
+        <svg style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:10px;height:10px;color:var(--t4);pointer-events:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <!-- Disabled -->
+    <div class="sg-card">
+      <div class="sg-card-title">Disabled stav</div>
+      <input class="ei-demo" value="Nelze editovat" style="width:100%;opacity:0.4;cursor:not-allowed" disabled>
+    </div>
+
+    <!-- Error — amber -->
+    <div class="sg-card">
+      <div class="sg-card-title">Error stav (amber --warn)</div>
+      <input class="ei-demo ei-demo-err" value="Neplatná hodnota" style="width:100%">
+      <div style="font-size:10px;color:var(--err);margin-top:4px">Toto pole je povinné.</div>
+    </div>
+
+    <!-- Field s labelem (jako Input.vue) -->
+    <div class="sg-card">
+      <div class="sg-card-title">Input.vue — label + input + hint</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:0.06em">
+          Délka (mm)<span style="color:var(--warn);margin-left:2px">*</span>
+        </label>
+        <input class="ei-demo" value="280" style="width:100%">
+        <span style="font-size:11px;color:var(--t4)">Zadej délku v milimetrech</span>
+      </div>
+    </div>
+
+    <!-- Textarea -->
+    <div class="sg-card" style="grid-column:span 2">
+      <div class="sg-card-title">Textarea — poznámky</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:0.06em">Poznámka</label>
+        <textarea class="ei-demo" rows="3" placeholder="Volný text…" style="width:100%;resize:vertical;min-height:56px;padding:4px 6px"></textarea>
+      </div>
+    </div>
+
   </div>
-  <div style="margin-top:6px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">background: var(--surface) · border: 1px solid var(--b3) · focus: border var(--b3) brighter</div>
+  <div style="margin-top:10px;font-size:9px;color:var(--t4);font-family:'JetBrains Mono',monospace">
+    base: bg rgba(255,255,255,0.04) · border: 1px solid var(--b2) · border-radius: var(--rs) · color: var(--t2)
+    &nbsp;|&nbsp; focus: bg rgba(255,255,255,0.07) + border var(--b3) + color var(--t1)
+    &nbsp;|&nbsp; error: border var(--warn) · disabled: opacity 0.4
+  </div>
 </div>
 
 <!-- ══════════════════════════════

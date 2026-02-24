@@ -71,4 +71,6 @@ defineEmits<{ click: [event: MouseEvent] }>()
 
 .btn-ghost { border: 1px solid transparent; color: var(--t3); }
 .btn-ghost:hover:not(:disabled) { background: var(--b1); color: var(--t1); }
+
+.btn:active:not(:disabled) { transform: scale(0.97); }
 </style>

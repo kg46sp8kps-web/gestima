@@ -252,7 +252,7 @@ watch(
 }
 .srch {
   width: 100%;
-  height: 26px;
+  height: 28px;
   padding: 0 20px 0 24px;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
@@ -341,6 +341,7 @@ watch(
   position: relative;
   min-height: 28px;
   border-bottom: 1px solid rgba(255,255,255,0.025);
+  transition: background 80ms var(--ease);
 }
 .pi:hover { background: var(--b1); }
 .pi.sel { background: rgba(229,57,53,0.06); }

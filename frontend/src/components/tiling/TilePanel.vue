@@ -46,6 +46,7 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
   'files':          defineAsyncComponent(() => import('@/components/tiling/modules/TileFiles.vue')),
   'admin':          defineAsyncComponent(() => import('@/components/tiling/modules/TileAdmin.vue')),
   'materials':      defineAsyncComponent(() => import('@/components/tiling/modules/TileMaterials.vue')),
+  'work-3d':        defineAsyncComponent(() => import('@/components/tiling/modules/TileViewer3D.vue')),
 }
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)

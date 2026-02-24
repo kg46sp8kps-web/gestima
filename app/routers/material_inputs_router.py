@@ -115,6 +115,9 @@ async def list_material_inputs(
                     'height': mat.stock_height,
                     'wall_thickness': mat.stock_wall_thickness
                 }
+                # Plate: thickness musí přijít z katalogové položky (stock_* pole ho nemají)
+                if mat.stock_shape == StockShape.PLATE and mat.material_item:
+                    dimensions['thickness'] = mat.material_item.thickness
 
                 calc = await calculate_material_weight_and_price(
                     stock_shape=mat.stock_shape,
@@ -226,10 +229,13 @@ async def update_material_input(
 ):
     """Aktualizace materiálového vstupu (optimistic locking)"""
 
-    # Get current material with operations
+    # Get current material with operations + material_item (needed for plate thickness)
     result = await db.execute(
         select(MaterialInput)
-        .options(selectinload(MaterialInput.operations))
+        .options(
+            selectinload(MaterialInput.operations),
+            selectinload(MaterialInput.material_item),
+        )
         .where(
             and_(
                 MaterialInput.id == material_id,
@@ -304,6 +310,9 @@ async def update_material_input(
                 'height': updated_material.stock_height,
                 'wall_thickness': updated_material.stock_wall_thickness
             }
+            # Plate: thickness musí přijít z katalogové položky
+            if updated_material.stock_shape == StockShape.PLATE and updated_material.material_item:
+                dimensions['thickness'] = updated_material.material_item.thickness
 
             calc = await calculate_material_weight_and_price(
                 stock_shape=updated_material.stock_shape,

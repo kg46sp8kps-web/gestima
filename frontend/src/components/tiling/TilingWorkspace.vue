@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { SaveIcon, SettingsIcon, PlusIcon, ArrowRightIcon, ArrowDownIcon } from 'lucide-vue-next'
+import { SaveIcon, SettingsIcon, PlusIcon, ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAuthStore } from '@/stores/auth'
 import { MODULE_REGISTRY } from '@/types/workspace'
-import type { ModuleId, DropZone } from '@/types/workspace'
+import type { ModuleId } from '@/types/workspace'
 import TileNode from './TileNode.vue'
 import TileGlobalDropZones from './TileGlobalDropZones.vue'
 import LayoutManager from './LayoutManager.vue'
@@ -31,17 +31,11 @@ const userInitials = computed(() => {
     .slice(0, 2)
 })
 
-function addModule(id: ModuleId, zone: DropZone = 'center') {
+function addModule(id: ModuleId, zone: 'left' | 'right' | 'top' | 'bottom' = 'right') {
   const ctx = ws.leaves.find(l => l.id === ws.focusedLeafId)?.ctx
     ?? ws.leaves[ws.leaves.length - 1]?.ctx
     ?? 'ca'
-  if (zone === 'right' || zone === 'bottom') {
-    ws.dockToEdge(id, zone, ctx)
-  } else {
-    const targetId = ws.focusedLeafId ?? ws.leaves[ws.leaves.length - 1]?.id
-    if (!targetId) return
-    ws.changeModule(targetId, id)
-  }
+  ws.dockToEdge(id, zone, ctx)
   fabOpen.value = false
 }
 
@@ -147,18 +141,21 @@ onMounted(() => {
     <div :class="['mpk', { open: fabOpen }]" @click.stop>
       <div class="mpk-h">
         <span>Přidat modul</span>
-        <span class="mpk-hint">→ vpravo · ↓ dole</span>
+        <span class="mpk-hint">klik → vpravo</span>
       </div>
       <div
         v-for="mod in topModules"
         :key="mod.id"
         class="mpk-i"
       >
-        <button class="mpk-name-btn" @click="addModule(mod.id, 'center')">{{ mod.label }}</button>
+        <button class="mpk-name-btn" @click="addModule(mod.id, 'right')">{{ mod.label }}</button>
         <span v-if="mod.shortcut" class="mpk-key">{{ mod.shortcut }}</span>
         <div class="mpk-acts">
-          <button class="mpk-act" title="Přidat vpravo" @click.stop="addModule(mod.id, 'right')">
-            <ArrowRightIcon :size="10" />
+          <button class="mpk-act" title="Přidat vlevo" @click.stop="addModule(mod.id, 'left')">
+            <ArrowLeftIcon :size="10" />
+          </button>
+          <button class="mpk-act" title="Přidat nahoře" @click.stop="addModule(mod.id, 'top')">
+            <ArrowUpIcon :size="10" />
           </button>
           <button class="mpk-act" title="Přidat dole" @click.stop="addModule(mod.id, 'bottom')">
             <ArrowDownIcon :size="10" />

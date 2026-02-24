@@ -145,7 +145,8 @@ class MaterialItem(Base, AuditMixin):
     # Geometrie polotovaru
     shape = Column(Enum(StockShape), nullable=False)                      # ROUND_BAR, SQUARE_BAR, ...
     diameter = Column(Float, nullable=True)                               # mm (pro round_bar, hexagonal_bar)
-    width = Column(Float, nullable=True)                                  # mm (pro square_bar, flat_bar, plate)
+    width = Column(Float, nullable=True)                                  # mm (pro square_bar, flat_bar, plate/pás)
+    height = Column(Float, nullable=True)                                 # mm (pro plate přířez — výška přířezu)
     thickness = Column(Float, nullable=True)                              # mm (pro plate, flat_bar)
     wall_thickness = Column(Float, nullable=True)                         # mm (pro tube - tloušťka stěny)
 
@@ -345,7 +346,8 @@ class MaterialItemBase(BaseModel):
     name: str = Field(..., max_length=200, description="Název položky")
     shape: StockShape = Field(..., description="Tvar polotovaru")
     diameter: Optional[float] = Field(None, ge=0, description="Průměr v mm (pro round_bar)")
-    width: Optional[float] = Field(None, ge=0, description="Šířka v mm (pro square/flat/plate)")
+    width: Optional[float] = Field(None, ge=0, description="Šířka v mm (pro square/flat/plate/pás)")
+    height: Optional[float] = Field(None, ge=0, description="Výška v mm (pro plate přířez — 3. fixní rozměr)")
     thickness: Optional[float] = Field(None, ge=0, description="Tloušťka v mm (pro plate)")
     wall_thickness: Optional[float] = Field(None, ge=0, description="Tloušťka stěny v mm (pro tube)")
     weight_per_meter: Optional[float] = Field(None, gt=0, description="Hmotnost na metr v kg/m (z katalogu)")
@@ -366,7 +368,8 @@ class MaterialItemCreate(BaseModel):
     name: str = Field(..., max_length=200, description="Název položky")
     shape: StockShape = Field(..., description="Tvar polotovaru")
     diameter: Optional[float] = Field(None, ge=0, description="Průměr v mm (pro round_bar)")
-    width: Optional[float] = Field(None, ge=0, description="Šířka v mm (pro square/flat/plate)")
+    width: Optional[float] = Field(None, ge=0, description="Šířka v mm (pro square/flat/plate/pás)")
+    height: Optional[float] = Field(None, ge=0, description="Výška v mm (pro plate přířez — 3. fixní rozměr)")
     thickness: Optional[float] = Field(None, ge=0, description="Tloušťka v mm (pro plate)")
     wall_thickness: Optional[float] = Field(None, ge=0, description="Tloušťka stěny v mm (pro tube)")
     weight_per_meter: Optional[float] = Field(None, gt=0, description="Hmotnost na metr v kg/m (z katalogu)")
@@ -387,6 +390,7 @@ class MaterialItemUpdate(BaseModel):
     shape: Optional[StockShape] = None
     diameter: Optional[float] = Field(None, ge=0)
     width: Optional[float] = Field(None, ge=0)
+    height: Optional[float] = Field(None, ge=0)
     thickness: Optional[float] = Field(None, ge=0)
     wall_thickness: Optional[float] = Field(None, ge=0)
     weight_per_meter: Optional[float] = Field(None, gt=0)

@@ -303,7 +303,7 @@ onMounted(async () => {
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
-.rib-r { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.rib-r { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
 .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }

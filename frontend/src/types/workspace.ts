@@ -21,6 +21,7 @@ export type ModuleId =
   | 'files'
   | 'admin'
   | 'materials'
+  | 'work-3d'
 
 export type ContextGroup = 'ca' | 'cb' | 'cc' | 'cd'
 
@@ -65,6 +66,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   'files':         { id: 'files',         label: 'Soubory' },
   'admin':         { id: 'admin',         label: 'Administrace' },
   'materials':     { id: 'materials',     label: 'Polotovary' },
+  'work-3d':       { id: 'work-3d',       label: '3D Model',     isSub: true, usesCtx: true },
 }
 
 export type LayoutPreset = 'std' | 'cmp' | 'hor' | 'qd'

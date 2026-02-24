@@ -90,7 +90,7 @@ function onChange(e: Event) {
 
 .select-ctrl {
   width: 100%;
-  height: 32px;
+  height: 28px;
   padding: 0 28px 0 10px;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);

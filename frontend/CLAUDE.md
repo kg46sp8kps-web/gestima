@@ -16,6 +16,7 @@
 | **Button.vue** | Multi-variant button | `variant` (primary/secondary/danger/ghost), `size`, `loading`, `disabled` |
 | **Input.vue** | Text/number/password input with validation | `modelValue`, `label`, `type`, `error`, `hint`, `mono` |
 | **Select.vue** | Native select dropdown | `modelValue`, `options` ({value,label}[]), `placeholder`, `error` |
+| **Textarea.vue** | Multi-line text input (ghost style) | `modelValue`, `label`, `placeholder`, `error`, `hint`, `rows`, `disabled`, `required` |
 | **Modal.vue** | Dialog modal (Teleport) | `modelValue`, `title`, `size` (sm/md/lg/xl), slots: header/default/footer |
 | **FormTabs.vue** | Tab layout for forms | `tabs` (string[]), `modelValue` (active index), `vertical`, `keepAlive` |
 | **DataTable.vue** | Full data grid (sort/select/paginate) | `data`, `columns` (Column[]), `loading`, `selectable`, `pagination` |

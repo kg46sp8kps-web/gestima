@@ -13,6 +13,12 @@ export interface MaterialItemSummary {
   code: string
   name: string
   material_number: string
+  // Rozměry katalogové položky — data-driven locking ve FE
+  diameter: number | null
+  width: number | null
+  height: number | null   // přířez výška (3. fixní rozměr pro plate)
+  thickness: number | null
+  wall_thickness: number | null
 }
 
 export interface PriceCategorySummary {
