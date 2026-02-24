@@ -16,6 +16,7 @@ import type { InforIdoDataParams } from '@/types/infor'
 import { useUiStore } from '@/stores/ui'
 import { Search, Download } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
+import Input from '@/components/ui/Input.vue'
 import InforDataTable from './InforDataTable.vue'
 
 const DEFAULT_IDO = 'SLDocumentObjects_Exts'
@@ -66,27 +67,27 @@ async function loadInforData() {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="section">
     <h4>1. Načíst dokumenty z Infor</h4>
 
     <div class="query-row">
       <div class="form-group">
         <label>IDO</label>
-        <input v-model="selectedIdo" type="text" class="input" />
+        <Input v-model="selectedIdo" label="IDO" />
       </div>
       <div class="form-group fg-wide">
         <label>Properties</label>
-        <input v-model="idoProperties" type="text" class="input" />
+        <Input v-model="idoProperties" label="Properties" />
       </div>
     </div>
     <div class="query-row">
       <div class="form-group fg-wide">
         <label>Filter (SQL WHERE)</label>
-        <input v-model="idoFilter" type="text" class="input" :placeholder="DEFAULT_FILTER" />
+        <Input v-model="idoFilter" label="Filter (SQL WHERE)" :placeholder="DEFAULT_FILTER" />
       </div>
       <div class="form-group">
         <label>Limit</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <input v-model.number="idoLimit" type="number" class="input" min="-1" max="50000" />
       </div>
     </div>

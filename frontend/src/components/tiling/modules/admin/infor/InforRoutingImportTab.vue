@@ -19,6 +19,7 @@ import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle } fr
 import { ICON_SIZE } from '@/config/design'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforDataTable from './InforDataTable.vue'
+import Input from '@/components/ui/Input.vue'
 import type { StagedRoutingRow } from '@/types/infor'
 
 const DEFAULT_PROPERTIES = 'OperNum,DerJobItem,Wc,JshSchedHrs,JshSetupHrs,DerRunLbrHrs,DerRunMchHrs,ObsDate'
@@ -236,42 +237,34 @@ function fmt(val: unknown, decimals = 2): string {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="import-tab">
     <!-- STEP 1: Load data -->
     <div class="section">
       <h4>1. Načíst data z Infor</h4>
 
       <div class="query-row">
-        <div class="form-group">
-          <label>IDO</label>
-          <input v-model="selectedIdo" type="text" class="input" placeholder="SLJobRoutes" />
+        <Input v-model="selectedIdo" label="IDO" placeholder="SLJobRoutes" data-testid="infor-routing-ido" />
+        <div class="fg-wide">
+          <Input v-model="idoProperties" label="Properties" data-testid="infor-routing-properties" />
         </div>
-        <div class="form-group fg-wide">
-          <label>Properties</label>
-          <input v-model="idoProperties" type="text" class="input" />
-        </div>
-        <div class="form-group">
-          <label>Limit</label>
-          <input v-model.number="idoLimit" type="number" class="input" />
-        </div>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
+        <input v-model.number="idoLimit" type="number" class="input limit-input" data-testid="infor-routing-limit" />
       </div>
 
       <div class="query-row">
-        <div class="form-group fg-wide">
-          <label>Filter (SQL WHERE)</label>
-          <input v-model="idoFilter" type="text" class="input" placeholder="DerJobItem LIKE 'A%'" />
+        <div class="fg-wide">
+          <Input v-model="idoFilter" label="Filter (SQL WHERE)" placeholder="DerJobItem LIKE 'A%'" data-testid="infor-routing-filter" />
         </div>
       </div>
 
       <div class="toolbar">
-        <button @click="loadInforData" :disabled="loading || !isConnected || !idoProperties" class="btn-secondary">
+        <button @click="loadInforData" :disabled="loading || !isConnected || !idoProperties" class="btn-secondary" data-testid="infor-routing-load">
           <Search :size="ICON_SIZE" /> {{ loading ? 'Načítám...' : 'Načíst data' }}
         </button>
-        <button @click="stageAll" :disabled="inforData.length === 0 || loading" class="btn-secondary">
+        <button @click="stageAll" :disabled="inforData.length === 0 || loading" class="btn-secondary" data-testid="infor-routing-stage">
           <Download :size="ICON_SIZE" /> Stage vše ({{ inforData.length.toLocaleString() }})
         </button>
-        <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary">
+        <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary" data-testid="infor-routing-fetch-fields">
           <FileText :size="ICON_SIZE" /> {{ fetchingFields ? '...' : 'Načíst pole' }}
         </button>
       </div>
@@ -307,9 +300,9 @@ function fmt(val: unknown, decimals = 2): string {
         <span class="badge"><span class="badge-dot-error"></span>{{ errorCount.toLocaleString() }} chyb</span>
       </div>
       <div class="toolbar">
-        <button @click="doSelectAll" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
-        <button @click="doDeselectAll" class="btn-secondary"><X :size="ICON_SIZE" /> Zrušit výběr</button>
-        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive"><Trash2 :size="ICON_SIZE" /> Vymazat</button>
+        <button @click="doSelectAll" class="btn-secondary" data-testid="infor-routing-select-all"><Check :size="ICON_SIZE" /> Vybrat vše</button>
+        <button @click="doDeselectAll" class="btn-secondary" data-testid="infor-routing-deselect-all"><X :size="ICON_SIZE" /> Zrušit výběr</button>
+        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive" data-testid="infor-routing-clear"><Trash2 :size="ICON_SIZE" /> Vymazat</button>
       </div>
 
       <!-- Virtual scroll container -->
@@ -338,6 +331,7 @@ function fmt(val: unknown, decimals = 2): string {
                 :class="{ 'row-error': !row.validation.is_valid }"
                 :style="{ height: ROW_HEIGHT + 'px' }"
                 @click="toggleRow(row.row_index)">
+              <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
               <td class="col-check"><input type="checkbox" :checked="isSelected(row.row_index)" /></td>
               <td class="status-cell">
                 <XCircle v-if="!row.validation.is_valid" :size="ICON_SIZE" class="icon-error" />
@@ -359,7 +353,7 @@ function fmt(val: unknown, decimals = 2): string {
         </table>
       </div>
 
-      <button @click="executeImport" :disabled="selectedValidCount === 0 || importing" class="btn-primary import-btn">
+      <button @click="executeImport" :disabled="selectedValidCount === 0 || importing" class="btn-primary import-btn" data-testid="infor-routing-import">
         <Download :size="ICON_SIZE" /> Importovat {{ selectedValidCount.toLocaleString() }} operací
       </button>
     </div>
@@ -370,8 +364,9 @@ function fmt(val: unknown, decimals = 2): string {
 .import-tab { padding: 12px; overflow: auto; }
 .section { margin-bottom: 20px; }
 h4 { font-size: var(--fsh); font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
-.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
+.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); align-items: flex-end; }
 .query-row .fg-wide { flex: 3; }
+.limit-input { width: 80px; }
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }

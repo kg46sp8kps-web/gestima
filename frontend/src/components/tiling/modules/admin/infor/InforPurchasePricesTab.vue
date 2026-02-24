@@ -114,14 +114,15 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="root">
     <div class="toolbar">
       <label class="filter-label">Od:</label>
+      <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
       <select v-model="yearFrom" class="year-select">
         <option :value="2024">2024</option><option :value="2025">2025</option><option :value="2026">2026</option>
       </select>
       <label class="filter-label">Do:</label>
+      <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
       <select v-model="yearTo" class="year-select">
         <option :value="2024">2024</option><option :value="2025">2025</option><option :value="2026">2026</option>
       </select>
@@ -157,6 +158,7 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
         <table class="data-table">
           <thead>
             <tr>
+              <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
               <th class="col-check"><input type="checkbox" :checked="allSelected" @change="toggleAll" /></th>
               <th class="sortable" @click="toggleSort('name')">Kategorie{{ sortIcon('name') }}</th>
               <th>Tvar</th>
@@ -175,6 +177,7 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 
               <tr :class="{ 'row-selected': selected.has(cat.price_category_id) }">
                 <td class="col-check">
+                  <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                   <input type="checkbox" :checked="selected.has(cat.price_category_id)"
                          :disabled="!isEligible(cat)" @change="toggleSelect(cat.price_category_id)" />
                 </td>

@@ -16,6 +16,7 @@ import { getIdoInfo, getIdoData } from '@/api/infor'
 import type { InforIdoDataParams } from '@/types/infor'
 import { useUiStore } from '@/stores/ui'
 import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle } from 'lucide-vue-next'
+import Input from '@/components/ui/Input.vue'
 import { ICON_SIZE } from '@/config/design'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforDataTable from './InforDataTable.vue'
@@ -235,7 +236,6 @@ function fmtDim(val: unknown): string {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="import-tab">
     <!-- STEP 1: Load data -->
     <div class="section">
@@ -243,23 +243,21 @@ function fmtDim(val: unknown): string {
 
       <div class="query-row">
         <div class="form-group">
-          <label>IDO</label>
-          <input v-model="selectedIdo" type="text" class="input" placeholder="SLJobmatls" />
+          <Input v-model="selectedIdo" label="IDO" placeholder="SLJobmatls" />
         </div>
         <div class="form-group fg-wide">
-          <label>Properties</label>
-          <input v-model="idoProperties" type="text" class="input" />
+          <Input v-model="idoProperties" label="Properties" />
         </div>
         <div class="form-group">
           <label>Limit</label>
+          <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
           <input v-model.number="idoLimit" type="number" class="input" />
         </div>
       </div>
 
       <div class="query-row">
         <div class="form-group fg-wide">
-          <label>Filter (SQL WHERE)</label>
-          <input v-model="idoFilter" type="text" class="input" placeholder="ItmItem LIKE 'A%'" />
+          <Input v-model="idoFilter" label="Filter (SQL WHERE)" placeholder="ItmItem LIKE 'A%'" />
         </div>
       </div>
 
@@ -336,6 +334,7 @@ function fmtDim(val: unknown): string {
                 :class="{ 'row-error': !row.validation.is_valid }"
                 :style="{ height: ROW_HEIGHT + 'px' }"
                 @click="toggleRow(row.row_index)">
+              <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
               <td class="col-check"><input type="checkbox" :checked="isSelected(row.row_index)" /></td>
               <td class="status-cell">
                 <XCircle v-if="!row.validation.is_valid" :size="ICON_SIZE" class="icon-error" />

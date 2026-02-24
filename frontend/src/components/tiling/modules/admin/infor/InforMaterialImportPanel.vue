@@ -7,6 +7,7 @@
 
 import { ref, computed } from 'vue'
 import { useDialog } from '@/composables/useDialog'
+import Input from '@/components/ui/Input.vue'
 import { ICON_SIZE, ICON_SIZE_SM, ICON_SIZE_LG } from '@/config/design'
 import {
   previewMaterialImport,
@@ -395,7 +396,6 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="import-panel">
     <div class="split-layout">
       <!-- LEFT: Source Data -->
@@ -407,7 +407,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
           <div class="form-group">
             <label>IDO Name</label>
             <div class="input-with-button">
-              <input v-model="selectedIdo" class="input" placeholder="SLItems" />
+              <Input v-model="selectedIdo" placeholder="SLItems" :bare="true" />
               <button @click="fetchFields" :disabled="fetchingFields" class="icon-btn" title="Načíst pole">
                 <FileText :size="ICON_SIZE" v-if="!fetchingFields" />
                 <span v-else class="spinner"></span>
@@ -427,11 +427,9 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
               <div v-show="showFieldChooser" class="field-chooser-content">
                 <!-- Search Box -->
                 <div class="field-search">
-                  <input
+                  <Input
                     v-model="fieldSearchQuery"
-                    type="text"
                     placeholder="Search fields..."
-                    class="input search-input"
                     @click.stop
                   />
                 </div>
@@ -439,6 +437,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
                 <!-- Field Checkboxes -->
                 <div class="field-checkboxes">
                   <label v-for="field in filteredFields" :key="field.name" class="field-checkbox">
+                    <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                     <input
                       type="checkbox"
                       :value="field.name"
@@ -459,12 +458,13 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
         <div class="form-grid-2">
           <div class="form-group">
             <label>Filter (WHERE clause)</label>
-            <input v-model="idoFilter" class="input" placeholder="Item LIKE 'A%'" />
+            <Input v-model="idoFilter" label="Filter (WHERE clause)" placeholder="Item LIKE 'A%'" />
             <small class="help-text">Example: Item LIKE 'A%'</small>
           </div>
 
           <div class="form-group">
             <label>Limit</label>
+            <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
             <input v-model.number="idoLimit" type="number" class="input" />
           </div>
         </div>
@@ -505,6 +505,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
               </thead>
               <tbody>
                 <tr v-for="(row, idx) in inforData" :key="idx" @click="toggleRow(row)">
+                  <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                   <td><input type="checkbox" :checked="selectedRows.includes(row)" /></td>
                   <td v-for="key in Object.keys(row).filter(k => !k.startsWith('_'))" :key="key">{{ row[key] }}</td>
                 </tr>
@@ -536,11 +537,9 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
           <!-- Staging Header -->
           <div class="table-header">
             <div>
-              <input
+              <Input
                 v-model="stagingSearchQuery"
-                type="text"
                 placeholder="Search..."
-                class="input search-input-inline"
               />
               <small class="help-text-inline">{{ selectedStagedRows.length }} / {{ filteredStagedRows.length }} selected</small>
             </div>
@@ -593,6 +592,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
                   :class="getRowClass(row)"
                   @click="toggleStagedRow(row)"
                 >
+                  <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                   <td><input type="checkbox" :checked="selectedStagedRows.includes(row)" @click.stop="toggleStagedRow(row)" /></td>
                   <td class="status-cell">
                     <CheckCircle v-if="getStatusIcon(row) === 'success'" :size="ICON_SIZE" class="status-icon-success" />

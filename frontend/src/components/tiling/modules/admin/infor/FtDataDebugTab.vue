@@ -193,11 +193,11 @@ function opsSummary(ops: FtPartOperation[]): string {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="ft-debug-tab">
     <div class="toolbar">
       <div class="form-group">
         <label>Min VP</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <input v-model.number="minVp" type="number" min="1" max="20" class="input input-sm" data-testid="ft-min-vp" />
       </div>
       <button @click="loadParts" :disabled="loading" class="btn-secondary" data-testid="ft-load-btn">
@@ -212,6 +212,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       <div class="filter-sep">|</div>
       <div class="form-group">
         <label>CV metrika</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model="cvMetric" class="input input-md">
           <option value="off">Vypnuto</option>
           <option value="time">Strojní čas</option>
@@ -221,6 +222,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       </div>
       <div v-if="cvMetric !== 'off'" class="form-group">
         <label>Kategorie</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model="cvCategory" class="input input-md">
           <option value="lathe">LATHE</option>
           <option value="mill">MILL</option>
@@ -229,6 +231,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       </div>
       <div v-if="cvMetric !== 'off'" class="form-group">
         <label>Max CV</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model.number="cvFilterMax" class="input input-sm">
           <option :value="0.3">0.3</option>
           <option :value="0.5">0.5</option>
@@ -240,6 +243,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       <div class="filter-sep">|</div>
       <div class="form-group">
         <label>Plnění normy</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model="normFilterMode" class="input input-md">
           <option value="off">Vypnuto</option>
           <option value="range">Rozsah</option>
@@ -247,6 +251,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       </div>
       <div v-if="normFilterMode === 'range'" class="form-group">
         <label>Kategorie</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model="normCategory" class="input input-md">
           <option value="lathe">LATHE</option>
           <option value="mill">MILL</option>
@@ -255,6 +260,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       </div>
       <div v-if="normFilterMode === 'range'" class="form-group">
         <label>Min</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model.number="normMin" class="input input-sm">
           <option :value="0.3">0.3x</option>
           <option :value="0.5">0.5x</option>
@@ -264,6 +270,7 @@ function opsSummary(ops: FtPartOperation[]): string {
       </div>
       <div v-if="normFilterMode === 'range'" class="form-group">
         <label>Max</label>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <select v-model.number="normMax" class="input input-sm">
           <option :value="1.2">1.2x</option>
           <option :value="1.5">1.5x</option>
@@ -308,6 +315,7 @@ function opsSummary(ops: FtPartOperation[]): string {
             <tr :class="['part-row', { 'row-skipped': !part.is_eligible, 'row-expanded': expandedId === part.part_id }]"
                 :style="{ height: ROW_HEIGHT + 'px' }">
               <td class="col-check" @click.stop="toggleSelect(part.part_id)">
+                <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                 <input type="checkbox" :checked="selectedIds.has(part.part_id)" />
               </td>
               <td class="clickable" @click="toggleExpand(part.part_id)" data-testid="ft-part-row">{{ part.article_number }}</td>

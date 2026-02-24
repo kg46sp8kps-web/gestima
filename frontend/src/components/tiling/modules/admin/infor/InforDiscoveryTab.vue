@@ -8,6 +8,7 @@ import { discoverIdos } from '@/api/infor'
 import { useDialog } from '@/composables/useDialog'
 import { ArrowRight } from 'lucide-vue-next'
 import { ICON_SIZE_SM } from '@/config/design'
+import Input from '@/components/ui/Input.vue'
 
 const { alert } = useDialog()
 
@@ -54,13 +55,15 @@ function useIdoForBrowse(idoName: string) {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="discovery-tab">
     <p class="description">Hledat dostupné IDO (Intelligent Data Objects) kolekce</p>
 
     <div class="form-group">
-      <label>Custom IDO Names (comma-separated, optional)</label>
-      <input v-model="customIdoNames" type="text" placeholder="e.g., SLItems,Items,ItemMaster" class="input" />
+      <Input
+        v-model="customIdoNames"
+        label="Custom IDO Names (comma-separated, optional)"
+        placeholder="e.g., SLItems,Items,ItemMaster"
+      />
     </div>
 
     <button @click="runDiscovery" :disabled="discoveryLoading || !props.isConnected" class="btn-primary">

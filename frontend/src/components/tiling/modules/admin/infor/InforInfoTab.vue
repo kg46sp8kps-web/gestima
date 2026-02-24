@@ -6,6 +6,7 @@
 import { ref } from 'vue'
 import { getIdoInfo as getInforIdoInfo } from '@/api/infor'
 import { useDialog } from '@/composables/useDialog'
+import Input from '@/components/ui/Input.vue'
 
 const { alert } = useDialog()
 
@@ -47,12 +48,11 @@ async function getIdoInfo() {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="info-tab">
     <p class="description">Načíst metadata IDO — vlastnosti a schéma</p>
 
     <div class="form-row">
-      <input v-model="selectedIdoForInfo" type="text" placeholder="Enter IDO name" class="input flex-1" />
+      <Input v-model="selectedIdoForInfo" :bare="true" placeholder="Enter IDO name" class="flex-1" />
       <button @click="getIdoInfo" :disabled="idoInfoLoading || !props.isConnected" class="btn-primary">
         {{ idoInfoLoading ? 'Načítám...' : 'Načíst info' }}
       </button>

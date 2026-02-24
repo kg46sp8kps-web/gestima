@@ -129,7 +129,6 @@ async function executeImport() {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="import-tab">
     <!-- STEP 1: Query panel (IDO config + Load + Field selector) -->
     <InforDocumentQueryPanel
@@ -161,9 +160,9 @@ async function executeImport() {
       </div>
 
       <div class="toolbar">
-        <button @click="doSelectAll" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
-        <button @click="doDeselectAll" class="btn-secondary"><X :size="ICON_SIZE" /> Zrušit výběr</button>
-        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive">
+        <button @click="doSelectAll" class="btn-secondary" data-testid="infor-docs-select-all"><Check :size="ICON_SIZE" /> Vybrat vše</button>
+        <button @click="doDeselectAll" class="btn-secondary" data-testid="infor-docs-deselect-all"><X :size="ICON_SIZE" /> Zrušit výběr</button>
+        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive" data-testid="infor-docs-clear">
           <Trash2 :size="ICON_SIZE" /> Vymazat
         </button>
       </div>
@@ -187,6 +186,7 @@ async function executeImport() {
               :class="{ 'row-error': !row.is_valid, 'row-dup': row.is_duplicate }"
               @click="toggleRow(row.row_index)"
             >
+              <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
               <td class="col-check"><input type="checkbox" :checked="isSelected(row.row_index)" /></td>
               <td class="status-cell">
                 <XCircle v-if="!row.is_valid" :size="ICON_SIZE" class="icon-error" />
@@ -215,6 +215,7 @@ async function executeImport() {
         @click="executeImport"
         :disabled="selectedValidCount === 0 || importing"
         class="btn-primary import-btn"
+        data-testid="infor-docs-import"
       >
         <Download :size="ICON_SIZE" />
         {{ importing ? 'Importuji...' : `Importovat ${selectedValidCount} dokumentů` }}
@@ -226,7 +227,7 @@ async function executeImport() {
 <style scoped>
 .import-tab { padding: 12px; overflow: auto; }
 .section { margin-bottom: 20px; }
-h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+h4 { font-size: var(--fsh); font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; flex-wrap: wrap; }

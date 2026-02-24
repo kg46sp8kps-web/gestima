@@ -17,6 +17,7 @@ import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle, Ale
 import { ICON_SIZE } from '@/config/design'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforDataTable from './InforDataTable.vue'
+import Input from '@/components/ui/Input.vue'
 import type { StagedPartRow, InforIdoDataParams } from '@/types/infor'
 
 const DEFAULT_PROPERTIES = 'Item,FamilyCode,Description,DrawingNbr,Revision,RybTridaNazev1'
@@ -147,42 +148,34 @@ function toggleStaged(row: StagedPartRow) {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="import-tab">
     <!-- STEP 1: Load data -->
     <div class="section">
       <h4>1. Načíst data z Infor</h4>
 
       <div class="query-row">
-        <div class="form-group">
-          <label>IDO</label>
-          <input v-model="selectedIdo" type="text" class="input" placeholder="SLItems" />
+        <Input v-model="selectedIdo" label="IDO" placeholder="SLItems" data-testid="infor-parts-ido" />
+        <div class="fg-wide">
+          <Input v-model="idoProperties" label="Properties" data-testid="infor-parts-properties" />
         </div>
-        <div class="form-group fg-wide">
-          <label>Properties</label>
-          <input v-model="idoProperties" type="text" class="input" />
-        </div>
-        <div class="form-group">
-          <label>Limit</label>
-          <input v-model.number="idoLimit" type="number" class="input" />
-        </div>
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
+        <input v-model.number="idoLimit" type="number" class="input limit-input" data-testid="infor-parts-limit" />
       </div>
 
       <div class="query-row">
-        <div class="form-group fg-wide">
-          <label>Filter (SQL WHERE)</label>
-          <input v-model="idoFilter" type="text" class="input" placeholder="FamilyCode LIKE 'Výrobek'" />
+        <div class="fg-wide">
+          <Input v-model="idoFilter" label="Filter (SQL WHERE)" placeholder="FamilyCode LIKE 'Výrobek'" data-testid="infor-parts-filter" />
         </div>
       </div>
 
       <div class="toolbar">
-        <button @click="loadInforData" :disabled="loading || !isConnected || !idoProperties" class="btn-secondary">
+        <button @click="loadInforData" :disabled="loading || !isConnected || !idoProperties" class="btn-secondary" data-testid="infor-parts-load">
           <Search :size="ICON_SIZE" /> {{ loading ? 'Načítám...' : 'Načíst data' }}
         </button>
-        <button @click="stageAll" :disabled="inforData.length === 0 || loading" class="btn-secondary">
+        <button @click="stageAll" :disabled="inforData.length === 0 || loading" class="btn-secondary" data-testid="infor-parts-stage">
           <Download :size="ICON_SIZE" /> Stage vše ({{ inforData.length }})
         </button>
-        <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary">
+        <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary" data-testid="infor-parts-fetch-fields">
           <FileText :size="ICON_SIZE" /> {{ fetchingFields ? '...' : 'Načíst pole' }}
         </button>
       </div>
@@ -211,9 +204,9 @@ function toggleStaged(row: StagedPartRow) {
         <span class="badge"><span class="badge-dot-warn"></span>{{ stagedRows.filter(r => r.validation.is_duplicate).length }} duplicit</span>
       </div>
       <div class="toolbar">
-        <button @click="selectedStaged = [...stagedRows]" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
-        <button @click="selectedStaged = []" class="btn-secondary"><X :size="ICON_SIZE" /> Zrušit výběr</button>
-        <button @click="stagedRows = []; selectedStaged = []" class="btn-destructive"><Trash2 :size="ICON_SIZE" /> Vymazat</button>
+        <button @click="selectedStaged = [...stagedRows]" class="btn-secondary" data-testid="infor-parts-select-all"><Check :size="ICON_SIZE" /> Vybrat vše</button>
+        <button @click="selectedStaged = []" class="btn-secondary" data-testid="infor-parts-deselect-all"><X :size="ICON_SIZE" /> Zrušit výběr</button>
+        <button @click="stagedRows = []; selectedStaged = []" class="btn-destructive" data-testid="infor-parts-clear"><Trash2 :size="ICON_SIZE" /> Vymazat</button>
       </div>
       <div class="ot-wrap">
         <table class="ot">
@@ -232,6 +225,7 @@ function toggleStaged(row: StagedPartRow) {
             <tr v-for="row in stagedRows" :key="row.row_index"
                 :class="{ 'row-error': !row.validation.is_valid, 'row-dup': row.validation.is_duplicate }"
                 @click="toggleStaged(row)">
+              <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
               <td><input type="checkbox" :checked="selectedStaged.includes(row)" /></td>
               <td class="status-cell">
                 <XCircle v-if="!row.validation.is_valid" :size="ICON_SIZE" class="icon-error" />
@@ -247,7 +241,7 @@ function toggleStaged(row: StagedPartRow) {
           </tbody>
         </table>
       </div>
-      <button @click="executeImport" :disabled="selectedStaged.length === 0 || importing" class="btn-primary import-btn">
+      <button @click="executeImport" :disabled="selectedStaged.length === 0 || importing" class="btn-primary import-btn" data-testid="infor-parts-import">
         <Download :size="ICON_SIZE" /> Importovat {{ selectedStaged.filter(r => r.validation.is_valid).length }} položek
       </button>
     </div>
@@ -258,8 +252,9 @@ function toggleStaged(row: StagedPartRow) {
 .import-tab { padding: 12px; overflow: auto; }
 .section { margin-bottom: 20px; }
 h4 { font-size: var(--fsh); font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
-.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
+.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); align-items: flex-end; }
 .query-row .fg-wide { flex: 3; }
+.limit-input { width: 80px; }
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }

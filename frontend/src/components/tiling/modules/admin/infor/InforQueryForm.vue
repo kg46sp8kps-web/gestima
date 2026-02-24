@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Input from '@/components/ui/Input.vue'
+
 interface Props {
   properties: string
   filter: string
@@ -17,38 +19,32 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="form-grid">
     <div class="form-group">
-      <label>Properties</label>
-      <input
-        :value="properties"
-        @input="emit('update:properties', ($event.target as HTMLInputElement).value)"
-        type="text"
-        class="input"
+      <Input
+        :model-value="properties"
+        @update:model-value="emit('update:properties', $event as string)"
+        label="Properties"
       />
     </div>
     <div class="form-group">
-      <label>Filter (SQL WHERE)</label>
-      <input
-        :value="filter"
-        @input="emit('update:filter', ($event.target as HTMLInputElement).value)"
-        type="text"
+      <Input
+        :model-value="filter"
+        @update:model-value="emit('update:filter', $event as string)"
+        label="Filter (SQL WHERE)"
         placeholder="Item LIKE 'A%'"
-        class="input"
       />
     </div>
     <div class="form-group">
-      <label>Order By</label>
-      <input
-        :value="orderBy"
-        @input="emit('update:orderBy', ($event.target as HTMLInputElement).value)"
-        type="text"
-        class="input"
+      <Input
+        :model-value="orderBy"
+        @update:model-value="emit('update:orderBy', $event as string)"
+        label="Order By"
       />
     </div>
     <div class="form-group">
       <label>Limit</label>
+      <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
       <input
         :value="limit"
         @input="emit('update:limit', parseInt(($event.target as HTMLInputElement).value, 10))"

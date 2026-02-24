@@ -109,6 +109,16 @@ if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.ts ]]; then
   fi
 fi
 
+# ── ERROR 9: Block-level eslint-disable bypass for UI component rules ──
+# Per-line (eslint-disable-next-line) is allowed for genuine edge cases.
+# Block-level disables mean "I chose workaround instead of proper component".
+if [[ "$FILE" == *.vue ]]; then
+  ESLINT_BYPASS=$(grep -n '<!--.*eslint-disable vue/no-restricted-html-elements' "$FILE" 2>/dev/null | grep -v 'next-line' | head -3)
+  if [ -n "$ESLINT_BYPASS" ]; then
+    ERRORS="${ERRORS}\n  [UI] Block-level eslint-disable vue/no-restricted-html-elements. Use <Input>, <Select>, <InlineInput> instead of raw HTML:\n${ESLINT_BYPASS}\n"
+  fi
+fi
+
 # ── ERROR 8: Hardcoded font-size values ──
 # Tokenized values: 9px 10px 12px 12.5px 13px 14px
 # Intentional literals (OK): 8px 8.5px 10.5px 11px 15px 16px 20px 24px 28px 48px

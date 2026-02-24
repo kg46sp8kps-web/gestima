@@ -5,6 +5,7 @@ import type { InforIdoDataParams } from '@/types/infor'
 import { useDialog } from '@/composables/useDialog'
 import { Search, FileText, AlertTriangle } from 'lucide-vue-next'
 import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
+import Input from '@/components/ui/Input.vue'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforQueryForm from './InforQueryForm.vue'
 import InforDataTable from './InforDataTable.vue'
@@ -106,12 +107,11 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="browser-tab">
     <div class="form-group">
       <label>IDO Name * <span class="case-warning">(rozlišuje velká/malá písmena)</span></label>
       <div class="input-with-button">
-        <input v-model="selectedIdo" type="text" placeholder="e.g., IteCzDics" class="input" />
+        <Input v-model="selectedIdo" placeholder="e.g., IteCzDics" />
         <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary">
           <FileText :size="ICON_SIZE" v-if="!fetchingFields" />
           {{ fetchingFields ? 'Načítám...' : 'Načíst pole' }}

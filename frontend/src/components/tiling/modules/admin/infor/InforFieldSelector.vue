@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import Input from '@/components/ui/Input.vue'
 
 interface Field {
   name: string
@@ -53,12 +54,12 @@ const filteredFields = computed(() => {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="field-selector">
     <div class="field-selector-header">
       <label>Select Fields ({{ selectedFields.length }}/{{ filteredFields.length }})</label>
       <div class="field-actions">
         <label class="checkbox-label">
+          <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
           <input
             type="checkbox"
             :checked="hideUdfFields"
@@ -72,11 +73,10 @@ const filteredFields = computed(() => {
     </div>
 
     <div class="field-search">
-      <input
+      <Input
         v-model="fieldSearchQuery"
-        type="text"
+        :bare="true"
         placeholder="Search fields..."
-        class="input search-input"
       />
     </div>
 
@@ -86,6 +86,7 @@ const filteredFields = computed(() => {
         :key="field.name"
         class="field-checkbox"
       >
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <input
           type="checkbox"
           :checked="selectedFields.includes(field.name)"

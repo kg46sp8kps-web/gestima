@@ -11,6 +11,7 @@ import { useUiStore } from '@/stores/ui'
 import { Plus, Trash2, Save } from 'lucide-vue-next'
 import { ICON_SIZE } from '@/config/design'
 import type { WcMapping } from '@/types/infor'
+import InlineInput from '@/components/ui/InlineInput.vue'
 
 const uiStore = useUiStore()
 const mapping = ref<WcMapping>({})
@@ -77,7 +78,6 @@ function getStatusText(row: MappingRow): string {
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="wc-mapping-editor">
     <div class="header">
       <h4>Work Center Mapping</h4>
@@ -109,10 +109,10 @@ function getStatusText(row: MappingRow): string {
           <tbody>
             <tr v-for="(row, idx) in rows" :key="idx">
               <td>
-                <input v-model="row.inforCode" class="input" placeholder="např. WC01" />
+                <InlineInput v-model="row.inforCode" placeholder="např. WC01" />
               </td>
               <td>
-                <input v-model="row.gestimaWc" class="input" placeholder="např. 1" />
+                <InlineInput v-model="row.gestimaWc" placeholder="např. 1" />
               </td>
               <td class="status-cell">
                 <span class="badge">

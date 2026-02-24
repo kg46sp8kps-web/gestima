@@ -9,6 +9,7 @@
 
 import { ref, computed } from 'vue'
 import { ICON_SIZE, ICON_SIZE_SM, ICON_SIZE_LG } from '@/config/design'
+import Input from '@/components/ui/Input.vue'
 import {
   Search,
   Download,
@@ -169,7 +170,6 @@ checkStatus()
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="drawing-import-panel">
     <!-- HEADER -->
     <div class="panel-header">
@@ -254,11 +254,9 @@ checkStatus()
 
       <!-- SEARCH -->
       <div class="search-row">
-        <input
+        <Input
           v-model="searchQuery"
-          type="text"
           placeholder="Hledat ve slozce nebo cisle dilu..."
-          class="search-input"
           data-testid="drawing-search"
         />
       </div>
@@ -268,6 +266,7 @@ checkStatus()
         <!-- Header -->
         <div class="folder-row folder-header">
           <div class="col-check">
+            <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
             <input
               type="checkbox"
               :checked="allReadySelected"
@@ -294,6 +293,7 @@ checkStatus()
           data-testid="drawing-folder-row"
         >
           <div class="col-check">
+            <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
             <input
               v-if="folder.status === 'ready'"
               type="checkbox"
