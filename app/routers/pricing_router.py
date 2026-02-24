@@ -30,8 +30,8 @@ from app.models.batch_set import (
 from app.models.part import Part
 from app.models.material import MaterialItem
 from app.models.material_input import MaterialInput
+from app.services import batch_set_service
 from app.services.snapshot_service import create_batch_snapshot
-from app.services.batch_service import recalculate_batch_costs
 from app.services.number_generator import NumberGenerator, NumberGenerationError
 
 logger = logging.getLogger(__name__)
@@ -49,28 +49,28 @@ async def list_all_batch_sets(
     current_user: User = Depends(get_current_user)
 ):
     """List all batch sets (for standalone module view)."""
-    query = select(BatchSet).where(BatchSet.deleted_at.is_(None))
+    batch_counts_subq = (
+        select(Batch.batch_set_id, func.count(Batch.id).label("batch_count"))
+        .where(Batch.deleted_at.is_(None))
+        .group_by(Batch.batch_set_id)
+        .subquery()
+    )
+
+    query = (
+        select(BatchSet, func.coalesce(batch_counts_subq.c.batch_count, 0).label("batch_count"))
+        .outerjoin(batch_counts_subq, BatchSet.id == batch_counts_subq.c.batch_set_id)
+        .where(BatchSet.deleted_at.is_(None))
+        .order_by(BatchSet.created_at.desc())
+    )
 
     if status:
         query = query.where(BatchSet.status == status)
 
-    query = query.order_by(BatchSet.created_at.desc())
-
     result = await db.execute(query)
-    batch_sets = result.scalars().all()
+    rows = result.all()
 
-    # Add batch_count for each set
-    response = []
-    for bs in batch_sets:
-        count_result = await db.execute(
-            select(func.count(Batch.id)).where(
-                Batch.batch_set_id == bs.id,
-                Batch.deleted_at.is_(None)
-            )
-        )
-        batch_count = count_result.scalar() or 0
-
-        response.append(BatchSetListResponse(
+    return [
+        BatchSetListResponse(
             id=bs.id,
             set_number=bs.set_number,
             part_id=bs.part_id,
@@ -80,9 +80,9 @@ async def list_all_batch_sets(
             created_at=bs.created_at,
             version=bs.version,
             batch_count=batch_count
-        ))
-
-    return response
+        )
+        for bs, batch_count in rows
+    ]
 
 
 @router.get("/part/{part_id}/batch-sets", response_model=List[BatchSetListResponse])
@@ -92,26 +92,25 @@ async def list_batch_sets_for_part(
     current_user: User = Depends(get_current_user)
 ):
     """List all batch sets for a specific part."""
-    query = select(BatchSet).where(
-        BatchSet.part_id == part_id,
-        BatchSet.deleted_at.is_(None)
-    ).order_by(BatchSet.created_at.desc())
+    batch_counts_subq = (
+        select(Batch.batch_set_id, func.count(Batch.id).label("batch_count"))
+        .where(Batch.deleted_at.is_(None))
+        .group_by(Batch.batch_set_id)
+        .subquery()
+    )
+
+    query = (
+        select(BatchSet, func.coalesce(batch_counts_subq.c.batch_count, 0).label("batch_count"))
+        .outerjoin(batch_counts_subq, BatchSet.id == batch_counts_subq.c.batch_set_id)
+        .where(BatchSet.part_id == part_id, BatchSet.deleted_at.is_(None))
+        .order_by(BatchSet.created_at.desc())
+    )
 
     result = await db.execute(query)
-    batch_sets = result.scalars().all()
+    rows = result.all()
 
-    # Add batch_count for each set
-    response = []
-    for bs in batch_sets:
-        count_result = await db.execute(
-            select(func.count(Batch.id)).where(
-                Batch.batch_set_id == bs.id,
-                Batch.deleted_at.is_(None)
-            )
-        )
-        batch_count = count_result.scalar() or 0
-
-        response.append(BatchSetListResponse(
+    return [
+        BatchSetListResponse(
             id=bs.id,
             set_number=bs.set_number,
             part_id=bs.part_id,
@@ -121,9 +120,9 @@ async def list_batch_sets_for_part(
             created_at=bs.created_at,
             version=bs.version,
             batch_count=batch_count
-        ))
-
-    return response
+        )
+        for bs, batch_count in rows
+    ]
 
 
 @router.get("/batch-sets/{set_id}", response_model=BatchSetWithBatchesResponse)
@@ -301,56 +300,31 @@ async def freeze_batch_set(
     if batch_set.status == "frozen":
         raise HTTPException(status_code=409, detail="Sada je již zmrazena")
 
-    # Filter active batches
     active_batches = [b for b in batch_set.batches if b.deleted_at is None]
 
     if len(active_batches) == 0:
         raise HTTPException(status_code=400, detail="Nelze zmrazit prázdnou sadu")
 
-    now = datetime.utcnow()
-
     try:
-        # Atomically freeze all batches
-        for batch in active_batches:
-            snapshot = await create_batch_snapshot(batch, current_user.username, db)
-            batch.is_frozen = True
-            batch.frozen_at = now
-            batch.frozen_by_id = current_user.id
-            batch.snapshot_data = snapshot
-            batch.unit_price_frozen = batch.unit_cost
-            batch.total_price_frozen = batch.total_cost
-
-        # Freeze the set itself
-        batch_set.status = "frozen"
-        batch_set.frozen_at = now
-        batch_set.frozen_by_id = current_user.id
-        batch_set.updated_by = current_user.username
-        batch_set.updated_at = now
-
-        await safe_commit(db, batch_set, "zmrazení sady")
-
-        logger.info(
-            f"Frozen batch set {set_id} with {len(active_batches)} batches",
-            extra={"batch_set_id": set_id, "user": current_user.username}
-        )
-
-        return BatchSetWithBatchesResponse(
-            id=batch_set.id,
-            set_number=batch_set.set_number,
-            part_id=batch_set.part_id,
-            name=batch_set.name,
-            status=batch_set.status,
-            frozen_at=batch_set.frozen_at,
-            frozen_by_id=batch_set.frozen_by_id,
-            created_at=batch_set.created_at,
-            updated_at=batch_set.updated_at,
-            version=batch_set.version,
-            batches=[BatchResponse.model_validate(b) for b in sorted(active_batches, key=lambda x: x.quantity)]
-        )
+        await batch_set_service.freeze_batch_set_batches(batch_set, active_batches, current_user, db)
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error(f"Database error freezing batch set {set_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze při zmrazování sady")
+
+    return BatchSetWithBatchesResponse(
+        id=batch_set.id,
+        set_number=batch_set.set_number,
+        part_id=batch_set.part_id,
+        name=batch_set.name,
+        status=batch_set.status,
+        frozen_at=batch_set.frozen_at,
+        frozen_by_id=batch_set.frozen_by_id,
+        created_at=batch_set.created_at,
+        updated_at=batch_set.updated_at,
+        version=batch_set.version,
+        batches=[BatchResponse.model_validate(b) for b in sorted(active_batches, key=lambda x: x.quantity)]
+    )
 
 
 @router.post("/batch-sets/{set_id}/recalculate", response_model=BatchSetWithBatchesResponse)
@@ -382,32 +356,7 @@ async def recalculate_batch_set(
     active_batches = [b for b in batch_set.batches if b.deleted_at is None]
 
     try:
-        for batch in active_batches:
-            await recalculate_batch_costs(batch, db)
-
-        batch_set.updated_by = current_user.username
-        batch_set.updated_at = datetime.utcnow()
-
-        await safe_commit(db, batch_set, "přepočet sady")
-
-        logger.info(
-            f"Recalculated batch set {set_id} with {len(active_batches)} batches",
-            extra={"batch_set_id": set_id, "user": current_user.username}
-        )
-
-        return BatchSetWithBatchesResponse(
-            id=batch_set.id,
-            set_number=batch_set.set_number,
-            part_id=batch_set.part_id,
-            name=batch_set.name,
-            status=batch_set.status,
-            frozen_at=batch_set.frozen_at,
-            frozen_by_id=batch_set.frozen_by_id,
-            created_at=batch_set.created_at,
-            updated_at=batch_set.updated_at,
-            version=batch_set.version,
-            batches=[BatchResponse.model_validate(b) for b in sorted(active_batches, key=lambda x: x.quantity)]
-        )
+        await batch_set_service.recalculate_all_batches(batch_set, active_batches, current_user, db)
     except ValueError as e:
         await db.rollback()
         logger.error(f"Validation error recalculating batch set {set_id}: {e}", exc_info=True)
@@ -416,6 +365,20 @@ async def recalculate_batch_set(
         await db.rollback()
         logger.error(f"Database error recalculating batch set {set_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba databáze")
+
+    return BatchSetWithBatchesResponse(
+        id=batch_set.id,
+        set_number=batch_set.set_number,
+        part_id=batch_set.part_id,
+        name=batch_set.name,
+        status=batch_set.status,
+        frozen_at=batch_set.frozen_at,
+        frozen_by_id=batch_set.frozen_by_id,
+        created_at=batch_set.created_at,
+        updated_at=batch_set.updated_at,
+        version=batch_set.version,
+        batches=[BatchResponse.model_validate(b) for b in sorted(active_batches, key=lambda x: x.quantity)]
+    )
 
 
 @router.post("/batch-sets/{set_id}/clone", response_model=BatchSetResponse)
@@ -437,64 +400,17 @@ async def clone_batch_set(
     if not original:
         raise HTTPException(status_code=404, detail="Sada nenalezena")
 
-    # Generate new set_number
     try:
-        set_number = await NumberGenerator.generate_batch_set_number(db)
+        new_set = await batch_set_service.clone_batch_set(original, current_user, db)
     except NumberGenerationError as e:
-        logger.error(f"Failed to generate batch set number for clone: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo sady.")
+        await db.rollback()
+        logger.error(f"Failed to generate numbers for clone of set {set_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat čísla.")
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error(f"Database error cloning batch set {set_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba databáze při klonování")
 
-    # Create new batch set
-    new_set = BatchSet(
-        set_number=set_number,
-        part_id=original.part_id,
-        name=generate_batch_set_name(),  # New timestamp
-        status="draft"
-    )
-    set_audit(new_set, current_user.username)
-    db.add(new_set)
-
-    # Flush to get the new set ID
-    await db.flush()
-
-    # Clone all active batches
-    active_batches = [b for b in original.batches if b.deleted_at is None]
-    for batch in active_batches:
-        try:
-            batch_number = await NumberGenerator.generate_batch_number(db)
-        except NumberGenerationError as e:
-            await db.rollback()
-            logger.error(f"Failed to generate batch number for clone: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo šarže.")
-
-        new_batch = Batch(
-            batch_number=batch_number,
-            part_id=batch.part_id,
-            batch_set_id=new_set.id,
-            quantity=batch.quantity,
-            is_default=False,
-            unit_time_min=batch.unit_time_min,
-            material_cost=batch.material_cost,
-            machining_cost=batch.machining_cost,
-            setup_cost=batch.setup_cost,
-            overhead_cost=batch.overhead_cost,
-            margin_cost=batch.margin_cost,
-            coop_cost=batch.coop_cost,
-            unit_cost=batch.unit_cost,
-            total_cost=batch.total_cost,
-            material_weight_kg=batch.material_weight_kg,
-            material_price_per_kg=batch.material_price_per_kg,
-            # NOT frozen
-        )
-        set_audit(new_batch, current_user.username)
-        db.add(new_batch)
-
-    new_set = await safe_commit(db, new_set, "klonování sady")
-
-    logger.info(
-        f"Cloned batch set {set_id} -> {new_set.id} with {len(active_batches)} batches",
-        extra={"original_id": set_id, "new_id": new_set.id, "user": current_user.username}
-    )
     return new_set
 
 
@@ -533,6 +449,7 @@ async def add_batch_to_set(
         raise HTTPException(status_code=500, detail="Nepodařilo se vygenerovat číslo šarže.")
 
     # Create batch
+    from app.services.batch_service import recalculate_batch_costs
     batch = Batch(
         batch_number=batch_number,
         part_id=batch_set.part_id,

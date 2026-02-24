@@ -18,16 +18,17 @@ class TestPartValidations:
         # part_number není součástí PartCreate (auto-generated v backendu)
         assert not hasattr(part, 'part_number') or part.part_number is None
 
-    def test_article_number_has_default(self):
-        """article_number has default empty string (ADR-024)"""
+    def test_article_number_is_required(self):
+        """article_number je povinné pole"""
         from app.models.part import PartCreate
-        part = PartCreate()  # Both article_number and name have defaults
-        assert part.article_number == ""
+        with pytest.raises(ValidationError) as exc_info:
+            PartCreate()  # article_number chybí
+        assert "article_number" in str(exc_info.value)
 
     def test_name_has_default(self):
-        """name has default empty string (ADR-024)"""
+        """name má default prázdný string"""
         from app.models.part import PartCreate
-        part = PartCreate()
+        part = PartCreate(article_number="ART-001")
         assert part.name == ""
 
     def test_article_number_max_length(self):

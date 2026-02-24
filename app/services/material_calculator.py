@@ -259,7 +259,7 @@ def calculate_volume(stock_shape: StockShape, dimensions: Dict[str, float]) -> f
 
         elif stock_shape == StockShape.HEXAGONAL_BAR:
             return calculate_volume_hexagonal_bar(
-                side=dimensions.get('diameter', 0),
+                side=dimensions.get('diameter', 0) / 2,
                 length=dimensions.get('length', 0)
             )
 
