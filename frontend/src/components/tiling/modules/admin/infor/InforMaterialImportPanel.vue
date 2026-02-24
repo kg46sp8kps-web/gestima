@@ -762,7 +762,6 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--base);
 }
 
 .split-layout {
@@ -877,7 +876,6 @@ h4 {
   margin: var(--pad) 0;
   border: 1px solid var(--b2);
   border-radius: var(--r);
-  background: var(--base);
 }
 
 .data-table, .staging-table {
@@ -1026,7 +1024,7 @@ h4 {
   align-items: center;
   padding: 6px var(--pad);
   cursor: pointer;
-  background: var(--base);
+  background: var(--raised);
   border-radius: var(--r);
   user-select: none;
   transition: all 150ms var(--ease);

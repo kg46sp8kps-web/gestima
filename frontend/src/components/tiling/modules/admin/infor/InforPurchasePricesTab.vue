@@ -235,7 +235,7 @@ const isEligible = (cat: PriceCategoryAnalysis) => cat.tiers.every(t => t.suffic
 </template>
 
 <style scoped>
-.root { display: flex; flex-direction: column; height: 100%; gap: 12px; padding: 12px; background: var(--base); }
+.root { display: flex; flex-direction: column; height: 100%; gap: 12px; padding: 12px; }
 .toolbar { display: flex; align-items: center; gap: var(--pad); flex-wrap: wrap; }
 .filter-label { font-size: var(--fs); color: var(--t3); }
 .year-select { padding: 4px 6px; font-size: var(--fs); background: var(--ground); border: 1px solid var(--b2); border-radius: var(--r); color: var(--t1); }

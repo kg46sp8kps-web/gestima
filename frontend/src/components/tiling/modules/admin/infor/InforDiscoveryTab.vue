@@ -154,7 +154,7 @@ function useIdoForBrowse(idoName: string) {
   align-items: center;
   justify-content: space-between;
   padding: 6px;
-  background: var(--base);
+  background: var(--raised);
   border-radius: var(--rs);
 }
 

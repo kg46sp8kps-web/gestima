@@ -505,7 +505,7 @@ checkStatus()
   border-bottom: 1px solid var(--b2);
   position: sticky;
   top: 0;
-  background: var(--base);
+  background: var(--ground);
   z-index: 1;
 }
 

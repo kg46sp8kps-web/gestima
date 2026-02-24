@@ -143,7 +143,7 @@ function getStatusText(row: MappingRow): string {
   flex-direction: column;
   gap: 12px;
   padding: 12px;
-  background: var(--base);
+  
 }
 
 .header h4 {
