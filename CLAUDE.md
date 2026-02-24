@@ -120,6 +120,29 @@ Every task MUST follow this sequence. No shortcuts.
 - Read ALL files you plan to modify + related files
 - **Frontend UI work:** Reference `frontend/tiling-preview-v3.html` for visual patterns
 - For infra tasks: check OS, versions, prerequisites FIRST
+- **Model/DB changes:** Run Model Change Protocol below BEFORE opening any model file
+
+#### Model Change Protocol — MANDATORY before editing `app/models/*.py`
+
+```bash
+# 1. Find ALL usages of the changed fields/class across entire codebase
+grep -rn "FieldName\|ClassName" app/ tests/ alembic/ scripts/ --include="*.py"
+
+# 2. List existing migration revision IDs (avoid collision)
+python3 -c "
+import glob, re
+for f in sorted(glob.glob('alembic/versions/*.py')):
+    c = open(f).read()
+    m = re.search(r\"revision(?:\s*:\s*str)?\s*=\s*['\\\"](.*?)['\\\"]\", c)
+    if m: print(m.group(1), f.split('/')[-1])
+"
+
+# 3. Map ALL affected files BEFORE first edit:
+#    models → schemas → routers → services → tests → seed_data → migrations
+```
+
+**Teprve po tomto researchi** udělej VŠECHNY změny najednou. Jeden průchod, ne iterace.
+`model-impact.sh` hook tě po každé editaci modelu upozorní na zbývající reference.
 
 ### 2. PLAN before implementing
 - For any change touching 3+ files → use EnterPlanMode

@@ -1,11 +1,21 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/pre-model-edit.sh \"$CLAUDE_FILE_PATH\"" }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           { "type": "command", "command": "bash .claude/hooks/validate-backend.sh \"$CLAUDE_FILE_PATH\"" },
-          { "type": "command", "command": "bash .claude/hooks/validate-frontend-v2.sh \"$CLAUDE_FILE_PATH\"" }
+          { "type": "command", "command": "bash .claude/hooks/validate-frontend-v2.sh \"$CLAUDE_FILE_PATH\"" },
+          { "type": "command", "command": "bash .claude/hooks/validate-migrations.sh \"$CLAUDE_FILE_PATH\"" },
+          { "type": "command", "command": "bash .claude/hooks/model-impact.sh \"$CLAUDE_FILE_PATH\"" }
         ]
       },
       {
