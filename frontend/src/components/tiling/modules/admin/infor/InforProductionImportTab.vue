@@ -1,0 +1,412 @@
+<script setup lang="ts">
+/**
+ * Production Import Tab - Import ProductionRecords from Infor SLJobRoutes
+ *
+ * Default properties pre-filled, ready to load immediately.
+ * Virtual scroll for 200k+ rows — only renders visible rows.
+ * Set-based selection for O(1) checks at scale.
+ */
+
+import { ref, computed } from 'vue'
+import { useDialog } from '@/composables/useDialog'
+import { previewProductionImport, executeProductionImport } from '@/api/infor-jobs'
+import { getIdoInfo, getIdoData } from '@/api/infor'
+import type { InforIdoDataParams } from '@/types/infor'
+import { useUiStore } from '@/stores/ui'
+import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle } from 'lucide-vue-next'
+import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
+import InforFieldSelector from './InforFieldSelector.vue'
+import InforDataTable from './InforDataTable.vue'
+import type { StagedProductionRow } from '@/types/infor'
+
+const DEFAULT_PROPERTIES = 'Job,JobItem,OperNum,Wc,JobQtyReleased,JshSetupHrs,DerRunMchHrs,DerRunLbrHrs,SetupHrsT,RunHrsTMch,RunHrsTLbr,ObsDate'
+const ROW_HEIGHT = 36
+const VISIBLE_ROWS = 60
+
+const props = defineProps<{ isConnected: boolean }>()
+
+const uiStore = useUiStore()
+const { alert } = useDialog()
+
+// IDO state
+const selectedIdo = ref('SLJobRoutes')
+const idoProperties = ref(DEFAULT_PROPERTIES)
+const idoFilter = ref("Type = 'J'")
+const idoLimit = ref(100)
+const inforData = ref<Record<string, unknown>[]>([])
+const loading = ref(false)
+
+// Optional field selector
+const availableFields = ref<Array<{ name: string; type: string; required: boolean; readOnly: boolean }>>([])
+const selectedFields = ref<string[]>(DEFAULT_PROPERTIES.split(','))
+const fetchingFields = ref(false)
+const hideUdfFields = ref(true)
+const showFieldSelector = ref(false)
+
+// Staging state
+const stagedRows = ref<StagedProductionRow[]>([])
+const selectedIndices = ref<Set<number>>(new Set())
+const importing = ref(false)
+const selectAll = ref(true)
+
+// Virtual scroll
+const scrollTop = ref(0)
+const tableContainer = ref<HTMLElement | null>(null)
+
+const totalHeight = computed(() => stagedRows.value.length * ROW_HEIGHT)
+const startIndex = computed(() => Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - 10))
+const endIndex = computed(() => Math.min(stagedRows.value.length, startIndex.value + VISIBLE_ROWS))
+const visibleRows = computed(() => stagedRows.value.slice(startIndex.value, endIndex.value))
+const offsetY = computed(() => startIndex.value * ROW_HEIGHT)
+
+const validCount = computed(() => stagedRows.value.filter(r => r.validation.is_valid).length)
+const errorCount = computed(() => stagedRows.value.length - validCount.value)
+const selectedValidCount = computed(() => {
+  if (selectAll.value) return validCount.value
+  let count = 0
+  for (const idx of selectedIndices.value) {
+    if (stagedRows.value[idx]?.validation.is_valid) count++
+  }
+  return count
+})
+
+// Progress state
+const progressDone = ref(0)
+const progressTotal = ref(0)
+const progressLabel = ref('')
+
+function onTableScroll(e: Event) {
+  scrollTop.value = (e.target as HTMLElement).scrollTop
+}
+
+function isSelected(rowIndex: number): boolean {
+  return selectAll.value ? true : selectedIndices.value.has(rowIndex)
+}
+
+function toggleRow(rowIndex: number) {
+  if (selectAll.value) {
+    selectAll.value = false
+    selectedIndices.value = new Set(stagedRows.value.map((_, i) => i))
+    selectedIndices.value.delete(rowIndex)
+  } else {
+    if (selectedIndices.value.has(rowIndex)) {
+      selectedIndices.value.delete(rowIndex)
+    } else {
+      selectedIndices.value.add(rowIndex)
+    }
+  }
+}
+
+function doSelectAll() {
+  selectAll.value = true
+  selectedIndices.value.clear()
+}
+
+function doDeselectAll() {
+  selectAll.value = false
+  selectedIndices.value.clear()
+}
+
+function getSelectedRows(): StagedProductionRow[] {
+  if (selectAll.value) return stagedRows.value
+  return [...selectedIndices.value]
+    .map(i => stagedRows.value[i])
+    .filter((r): r is StagedProductionRow => r != null)
+}
+
+async function fetchFieldsForIdo() {
+  if (!selectedIdo.value) { await alert({ title: 'Chyba', message: 'Zadejte IDO name' }); return }
+  fetchingFields.value = true
+  try {
+    const data = await getIdoInfo(selectedIdo.value)
+    const fields = data.info || []
+    availableFields.value = fields.map((f: { name: string; dataType?: string; required?: boolean; readOnly?: boolean }) => ({
+      name: f.name, type: f.dataType || 'String', required: f.required || false, readOnly: f.readOnly || false
+    }))
+    const hints = ['Job', 'JobItem', 'OperNum', 'Wc', 'Qty', 'Setup', 'RunMch', 'RunLbr', 'DerRun']
+    const current = idoProperties.value.split(',').map(s => s.trim()).filter(Boolean)
+    selectedFields.value = current.length > 0
+      ? current.filter(name => availableFields.value.some(f => f.name === name))
+      : availableFields.value.filter(f => hints.some(h => f.name.includes(h))).map(f => f.name).slice(0, 12)
+    showFieldSelector.value = true
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
+    await alert({ title: 'Chyba', message: 'Nepodařilo se načíst pole: ' + (err.response?.data?.detail || err.message) })
+  } finally {
+    fetchingFields.value = false
+  }
+}
+
+function toggleField(fieldName: string) {
+  const idx = selectedFields.value.indexOf(fieldName)
+  if (idx > -1) selectedFields.value.splice(idx, 1)
+  else selectedFields.value.push(fieldName)
+  idoProperties.value = selectedFields.value.join(',')
+}
+
+function selectAllFields() {
+  selectedFields.value = availableFields.value.map(f => f.name)
+  idoProperties.value = selectedFields.value.join(',')
+}
+
+function deselectAllFields() {
+  selectedFields.value = []
+  idoProperties.value = ''
+}
+
+async function loadInforData() {
+  if (!props.isConnected) { uiStore.showError('Nejste připojeni k Infor ION API'); return }
+  if (!idoProperties.value) { uiStore.showError('Žádné sloupce k načtení'); return }
+  loading.value = true
+  try {
+    const params: InforIdoDataParams = {
+      properties: idoProperties.value,
+      limit: idoLimit.value,
+      ...(idoFilter.value ? { filter: idoFilter.value } : {})
+    }
+    const data = await getIdoData(selectedIdo.value, params)
+    inforData.value = data.data || []
+    uiStore.showSuccess(`Načteno ${inforData.value.length.toLocaleString()} řádků`)
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { detail?: string } }; message?: string }
+    uiStore.showError(err.response?.data?.detail || err.message || 'Chyba načtení dat')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function stageAll() {
+  if (inforData.value.length === 0) { uiStore.showError('Žádná data k zobrazení'); return }
+  loading.value = true
+  progressDone.value = 0
+  progressTotal.value = inforData.value.length
+  progressLabel.value = 'Stage'
+  try {
+    const result = await previewProductionImport(
+      inforData.value,
+      (done, total) => { progressDone.value = done; progressTotal.value = total }
+    )
+    for (const row of result.rows) {
+      row.infor_data = {}
+    }
+    stagedRows.value = result.rows
+    selectAll.value = true
+    selectedIndices.value.clear()
+    uiStore.showSuccess(`Staged: ${result.valid_count.toLocaleString()} valid, ${result.error_count.toLocaleString()} errors, ${result.duplicate_count.toLocaleString()} duplicates`)
+  } catch (error: unknown) {
+    uiStore.showError((error as Error).message || 'Chyba preview')
+  } finally {
+    loading.value = false
+    progressDone.value = 0
+    progressTotal.value = 0
+    progressLabel.value = ''
+  }
+}
+
+async function executeImport() {
+  const rows = getSelectedRows().filter(r => r.validation.is_valid)
+  if (rows.length === 0) { uiStore.showError('Žádné validní řádky k importu'); return }
+  importing.value = true
+  progressDone.value = 0
+  progressTotal.value = rows.length
+  progressLabel.value = 'Import'
+  try {
+    const result = await executeProductionImport(
+      rows,
+      (done, total) => { progressDone.value = done; progressTotal.value = total }
+    )
+    uiStore.showSuccess(`Import: ${result.created_count} vytvořeno, ${result.updated_count} aktualizováno, ${result.skipped_count} přeskočeno`)
+    stagedRows.value = []
+    selectAll.value = true
+    selectedIndices.value.clear()
+  } catch (error: unknown) {
+    uiStore.showError((error as Error).message || 'Chyba importu')
+  } finally {
+    importing.value = false
+    progressDone.value = 0
+    progressTotal.value = 0
+    progressLabel.value = ''
+  }
+}
+
+function fmt(val: unknown, decimals = 1): string {
+  if (val == null) return '-'
+  const n = Number(val)
+  return isNaN(n) ? '-' : n.toFixed(decimals)
+}
+
+
+</script>
+
+<template>
+  <!-- eslint-disable vue/no-restricted-html-elements -->
+  <div class="import-tab">
+    <!-- STEP 1: Load data -->
+    <div class="section">
+      <h4>1. Načíst data z Infor</h4>
+
+      <div class="query-row">
+        <div class="form-group">
+          <label>IDO</label>
+          <input v-model="selectedIdo" type="text" class="input" placeholder="SLJobRoutes" />
+        </div>
+        <div class="form-group fg-wide">
+          <label>Properties</label>
+          <input v-model="idoProperties" type="text" class="input" />
+        </div>
+        <div class="form-group">
+          <label>Limit</label>
+          <input v-model.number="idoLimit" type="number" class="input" />
+        </div>
+      </div>
+
+      <div class="query-row">
+        <div class="form-group fg-wide">
+          <label>Filter (SQL WHERE)</label>
+          <input v-model="idoFilter" type="text" class="input" placeholder="Type = 'J'" />
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button @click="loadInforData" :disabled="loading || !isConnected || !idoProperties" class="btn-secondary">
+          <Search :size="ICON_SIZE" /> {{ loading ? 'Načítám...' : 'Načíst data' }}
+        </button>
+        <button @click="stageAll" :disabled="inforData.length === 0 || loading" class="btn-secondary">
+          <Download :size="ICON_SIZE" /> Stage vše ({{ inforData.length.toLocaleString() }})
+        </button>
+        <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary">
+          <FileText :size="ICON_SIZE" /> {{ fetchingFields ? '...' : 'Načíst pole' }}
+        </button>
+      </div>
+
+      <InforFieldSelector
+        v-if="showFieldSelector && availableFields.length > 0"
+        :available-fields="availableFields"
+        :selected-fields="selectedFields"
+        :hide-udf-fields="hideUdfFields"
+        @toggle-field="toggleField"
+        @select-all="selectAllFields"
+        @deselect-all="deselectAllFields"
+        @update:hide-udf-fields="hideUdfFields = $event"
+      />
+
+      <div v-if="progressTotal > 0" class="progress-bar-container">
+        <div class="progress-info">{{ progressLabel }}: {{ progressDone.toLocaleString() }} / {{ progressTotal.toLocaleString() }}</div>
+        <div class="progress-track">
+          <div class="progress-fill" :style="{ width: (progressDone / progressTotal * 100) + '%' }"></div>
+        </div>
+      </div>
+
+      <InforDataTable :data="inforData" />
+    </div>
+
+    <!-- STEP 2: Staging & Import (virtual scroll) -->
+    <div class="section" v-if="stagedRows.length > 0">
+      <h4>2. Review & Import ({{ stagedRows.length.toLocaleString() }} řádků)</h4>
+      <div class="summary">
+        <span class="badge-valid"><CheckCircle :size="ICON_SIZE_SM" /> {{ validCount.toLocaleString() }} valid</span>
+        <span class="badge-error"><XCircle :size="ICON_SIZE_SM" /> {{ errorCount.toLocaleString() }} errors</span>
+      </div>
+      <div class="toolbar">
+        <button @click="doSelectAll" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
+        <button @click="doDeselectAll" class="btn-secondary"><X :size="ICON_SIZE" /> Zrušit výběr</button>
+        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive">
+          <Trash2 :size="ICON_SIZE" /> Vymazat
+        </button>
+      </div>
+
+      <!-- Virtual scroll container -->
+      <div class="table-scroll" ref="tableContainer" @scroll="onTableScroll">
+        <table class="staging-table">
+          <thead>
+            <tr>
+              <th class="col-check">☑</th>
+              <th class="col-status">St</th>
+              <th class="col-text">Article #</th>
+              <th class="col-text">Job</th>
+              <th class="col-val">OP</th>
+              <th class="col-val">Ks</th>
+              <th class="col-val">Setup plán</th>
+              <th class="col-val">Stroj plán</th>
+              <th class="col-val">Obsl plán</th>
+              <th class="col-val">Man plán</th>
+              <th class="col-val">Setup real</th>
+              <th class="col-val">Stroj real</th>
+              <th class="col-val">Obsl real</th>
+              <th class="col-val">Man real</th>
+              <th class="col-text">WC</th>
+              <th class="col-errors">Chyby</th>
+            </tr>
+          </thead>
+          <tbody :style="{ height: totalHeight + 'px', position: 'relative' }">
+            <!-- Spacer top -->
+            <tr v-if="offsetY > 0" :style="{ height: offsetY + 'px' }"><td colspan="16"></td></tr>
+            <!-- Visible rows only -->
+            <tr v-for="row in visibleRows" :key="row.row_index"
+                :class="{ 'row-error': !row.validation.is_valid }"
+                :style="{ height: ROW_HEIGHT + 'px' }"
+                @click="toggleRow(row.row_index)">
+              <td class="col-check"><input type="checkbox" :checked="isSelected(row.row_index)" /></td>
+              <td class="col-status">
+                <XCircle v-if="!row.validation.is_valid" :size="ICON_SIZE_SM" class="icon-error" />
+                <CheckCircle v-else :size="ICON_SIZE_SM" class="icon-valid" />
+              </td>
+              <td class="col-text">{{ row.mapped_data.article_number || '-' }}</td>
+              <td class="col-text">{{ row.mapped_data.infor_order_number || '-' }}</td>
+              <td class="col-val">{{ row.mapped_data.operation_seq }}</td>
+              <td class="col-val">{{ row.mapped_data.batch_quantity ?? '-' }}</td>
+              <td class="col-val">{{ fmt(row.mapped_data.planned_setup_min) }}</td>
+              <td class="col-val">{{ fmt(row.mapped_data.planned_time_min, 2) }}</td>
+              <td class="col-val">{{ fmt(row.mapped_data.planned_labor_time_min, 2) }}</td>
+              <td class="col-val">{{ row.mapped_data.manning_coefficient != null ? fmt(row.mapped_data.manning_coefficient, 0) + '%' : '-' }}</td>
+              <td class="col-val">{{ fmt(row.mapped_data.actual_setup_min) }}</td>
+              <td class="col-val highlight">{{ fmt(row.mapped_data.actual_time_min, 2) }}</td>
+              <td class="col-val">{{ fmt(row.mapped_data.actual_labor_time_min, 2) }}</td>
+              <td class="col-val">{{ row.mapped_data.actual_manning_coefficient != null ? fmt(row.mapped_data.actual_manning_coefficient, 0) + '%' : '-' }}</td>
+              <td class="col-text">{{ row.mapped_data.infor_wc_code || '-' }}</td>
+              <td class="col-errors">{{ row.validation.errors.join(', ') || '-' }}</td>
+            </tr>
+            <!-- Spacer bottom -->
+            <tr v-if="endIndex < stagedRows.length" :style="{ height: (stagedRows.length - endIndex) * ROW_HEIGHT + 'px' }"><td colspan="16"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button @click="executeImport" :disabled="selectedValidCount === 0 || importing" class="btn-primary import-btn">
+        <Download :size="ICON_SIZE" /> Importovat {{ selectedValidCount.toLocaleString() }} záznamů
+      </button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.import-tab { padding: 12px; overflow: auto; }
+.section { margin-bottom: 20px; }
+h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+.query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
+.query-row .fg-wide { flex: 3; }
+.toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
+.import-btn { margin-top: var(--pad); }
+.summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
+.badge-valid { padding: 4px 6px; background: var(--raised); color: var(--ok); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.badge-error { padding: 4px 6px; background: var(--raised); color: var(--err); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
+.table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
+.staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
+.staging-table th { background: var(--surface); padding: 4px 6px; text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+.staging-table td { padding: 4px 6px; border-bottom: 1px solid var(--b1); white-space: nowrap; }
+.staging-table tbody tr { cursor: pointer; }
+.staging-table tbody tr:hover { background: var(--b1); }
+.row-error { background: rgba(248,113,113,0.1); }
+.col-check { width: 28px; text-align: center; }
+.col-status { width: 28px; text-align: center; }
+.col-text { text-align: left; }
+.col-val { text-align: left; font-variant-numeric: tabular-nums; }
+.col-val.highlight { font-weight: 600; color: var(--t1); }
+.col-errors { max-width: 200px; color: var(--err); font-size: var(--fs); overflow: hidden; text-overflow: ellipsis; }
+.icon-valid { color: var(--ok); }
+.icon-error { color: var(--err); }
+.progress-bar-container { margin: var(--pad) 0; }
+.progress-info { font-size: var(--fs); color: var(--t3); margin-bottom: 4px; }
+.progress-track { height: 6px; background: var(--surface); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--red); border-radius: 99px; transition: width 200ms var(--ease); }
+</style>
