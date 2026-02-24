@@ -772,9 +772,8 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 
 .left-panel, .right-panel {
   overflow: auto;
-  padding: 16px;
+  padding: 12px;
   flex-shrink: 0;
-  background: var(--base);
 }
 
 .resize-handle {
