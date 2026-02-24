@@ -8,6 +8,16 @@ import type { UserLayout } from '@/types/layout'
 let _id = 0
 function nid(): string { return 'n' + (++_id) }
 
+/** After loading a tree from JSON, sync _id so new nodes never collide with existing ones. */
+function syncIdCounter(tree: TileNode): void {
+  const n = parseInt(tree.id.slice(1), 10)
+  if (n > _id) _id = n
+  if (tree.type === 'split') {
+    syncIdCounter(tree.children[0])
+    syncIdCounter(tree.children[1])
+  }
+}
+
 function makeLeaf(module: ModuleId, ctx: ContextGroup = 'ca'): LeafNode {
   return { type: 'leaf', id: nid(), module, ctx }
 }
@@ -158,6 +168,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const def = layouts.find(l => l.is_default) ?? layouts[0]
         if (def) {
           tree.value = def.tree_json
+          syncIdCounter(def.tree_json)
           currentLayoutId.value = def.id
         }
       }
@@ -170,6 +181,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const layout = savedLayouts.value.find(l => l.id === id)
     if (!layout) return
     tree.value = layout.tree_json
+    syncIdCounter(layout.tree_json)
     currentLayoutId.value = id
     focusedLeafId.value = null
   }
