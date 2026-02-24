@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
 import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
+import { useDialog } from '@/composables/useDialog'
 import * as wcApi from '@/api/work-centers'
 import type { ContextGroup } from '@/types/workspace'
-import type { Operation, CuttingMode } from '@/types/operation'
+import type { Operation } from '@/types/operation'
 import type { WorkCenter } from '@/types/work-center'
-import { formatDuration } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
-import InlineInput from '@/components/ui/InlineInput.vue'
-import InlineSelect from '@/components/ui/InlineSelect.vue'
+import WcCombobox from '@/components/ui/WcCombobox.vue'
 
 interface Props {
   leafId: string
@@ -18,17 +17,18 @@ interface Props {
 }
 
 interface OpDraft {
-  name: string
   setup_time_min: number | null
   operation_time_min: number | null
   work_center_id: number | null
-  cutting_mode: CuttingMode
+  ke: number
+  ko: number
 }
 
 const props = defineProps<Props>()
 const parts = usePartsStore()
 const ops = useOperationsStore()
 const typeGuard = useItemTypeGuard(['part'])
+const dialog = useDialog()
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
 
@@ -37,73 +37,82 @@ const operations = computed(() => {
   return ops.forPart(part.value.id)
 })
 
-const totalSetup = computed(() => operations.value.reduce((s, o) => s + o.setup_time_min, 0))
-const totalOp = computed(() => operations.value.reduce((s, o) => s + o.operation_time_min, 0))
-
 const workCenters = ref<WorkCenter[]>([])
 const drafts = reactive<Record<number, OpDraft>>({})
+const activeOpId = ref<number | null>(null)
+const openDetails = ref(new Set<number>())
 
-/** Safe accessor — always returns the reactive draft object */
+const wcComboRefs = ref<Record<number, { focus: () => void }>>({})
+const optimeRefs = ref<Record<number, HTMLInputElement>>({})
+const keRefs = ref<Record<number, HTMLInputElement>>({})
+const koRefs = ref<Record<number, HTMLInputElement>>({})
+
 function d(opId: number): OpDraft {
-  return drafts[opId] ?? { name: '', setup_time_min: 0, operation_time_min: 0, work_center_id: null, cutting_mode: 'mid' }
+  return (
+    drafts[opId] ?? {
+      setup_time_min: 0,
+      operation_time_min: 0,
+      work_center_id: null,
+      ke: 100,
+      ko: 100,
+    }
+  )
 }
 
 function initDraft(op: Operation) {
   if (!drafts[op.id]) {
     drafts[op.id] = {
-      name: op.name,
       setup_time_min: op.setup_time_min,
       operation_time_min: op.operation_time_min,
       work_center_id: op.work_center_id,
-      cutting_mode: op.cutting_mode,
+      ke: op.manning_coefficient,
+      ko: op.machine_utilization_coefficient,
     }
   }
 }
 
 function resetDraft(op: Operation) {
   drafts[op.id] = {
-    name: op.name,
     setup_time_min: op.setup_time_min,
     operation_time_min: op.operation_time_min,
     work_center_id: op.work_center_id,
-    cutting_mode: op.cutting_mode,
+    ke: op.manning_coefficient,
+    ko: op.machine_utilization_coefficient,
   }
 }
 
 async function saveOp(op: Operation) {
   const draft = drafts[op.id]
   if (!draft || !part.value) return
-  const setup = draft.setup_time_min == null || isNaN(draft.setup_time_min) ? 0 : draft.setup_time_min
-  const optime = draft.operation_time_min == null || isNaN(draft.operation_time_min) ? 0 : draft.operation_time_min
+  const setup =
+    draft.setup_time_min == null || isNaN(draft.setup_time_min) ? 0 : draft.setup_time_min
+  const optime =
+    draft.operation_time_min == null || isNaN(draft.operation_time_min)
+      ? 0
+      : draft.operation_time_min
   const changed =
-    draft.name !== op.name ||
     setup !== op.setup_time_min ||
     optime !== op.operation_time_min ||
     draft.work_center_id !== op.work_center_id ||
-    draft.cutting_mode !== op.cutting_mode
+    draft.ke !== op.manning_coefficient ||
+    draft.ko !== op.machine_utilization_coefficient
   if (!changed) return
   draft.setup_time_min = setup
   draft.operation_time_min = optime
   await ops.updateOp(op.id, part.value.id, {
-    name: draft.name,
     setup_time_min: setup,
     operation_time_min: optime,
     work_center_id: draft.work_center_id ?? undefined,
-    cutting_mode: draft.cutting_mode,
+    manning_coefficient: draft.ke,
+    machine_utilization_coefficient: draft.ko,
     version: op.version,
   })
 }
 
-function onWcChange(op: Operation, val: string) {
+async function onWcSelect(op: Operation, id: number | null) {
   const dr = drafts[op.id]
-  if (dr) dr.work_center_id = val ? Number(val) : null
-  saveOp(op)
-}
-
-function onModeChange(op: Operation, val: string) {
-  const dr = drafts[op.id]
-  if (dr) dr.cutting_mode = val as CuttingMode
-  saveOp(op)
+  if (dr) dr.work_center_id = id
+  await saveOp(op)
 }
 
 function onEscape(e: KeyboardEvent, op: Operation) {
@@ -112,11 +121,123 @@ function onEscape(e: KeyboardEvent, op: Operation) {
   ;(e.target as HTMLElement).blur()
 }
 
-watch(
-  operations,
-  (list) => { list.forEach(initDraft) },
-  { immediate: true },
+function onTimeInput(e: Event, opId: number, field: 'setup_time_min' | 'operation_time_min') {
+  const val = (e.target as HTMLInputElement).value
+  const n = parseFloat(val)
+  const dr = drafts[opId]
+  if (dr) dr[field] = isNaN(n) ? null : n
+}
+
+function onCoefInput(e: Event, opId: number, field: 'ke' | 'ko') {
+  const val = (e.target as HTMLInputElement).value
+  const n = parseFloat(val)
+  const dr = drafts[opId]
+  if (dr) dr[field] = isNaN(n) ? 100 : n
+}
+
+function keTime(draft: OpDraft): number {
+  const strojni = draft.operation_time_min ?? 0
+  return draft.ke > 0 ? strojni / (draft.ke / 100) : 0
+}
+
+function koTime(draft: OpDraft): number {
+  return keTime(draft) * (draft.ko / 100)
+}
+
+function fmtHint(n: number): string {
+  return Math.round(n).toLocaleString('cs')
+}
+
+const totalSetup = computed(() =>
+  operations.value.reduce((s, o) => s + (drafts[o.id]?.setup_time_min ?? o.setup_time_min), 0),
 )
+
+const totalStrojni = computed(() =>
+  operations.value.reduce(
+    (s, o) => s + (drafts[o.id]?.operation_time_min ?? o.operation_time_min),
+    0,
+  ),
+)
+
+const totalKe = computed(() =>
+  operations.value.reduce((s, o) => {
+    const dr = drafts[o.id]
+    return dr ? s + keTime(dr) : s
+  }, 0),
+)
+
+const totalKo = computed(() =>
+  operations.value.reduce((s, o) => {
+    const dr = drafts[o.id]
+    return dr ? s + koTime(dr) : s
+  }, 0),
+)
+
+function toggleDetail(opId: number) {
+  const s = new Set(openDetails.value)
+  if (s.has(opId)) s.delete(opId)
+  else s.add(opId)
+  openDetails.value = s
+}
+
+function onFocusRow(opId: number) {
+  activeOpId.value = opId
+}
+
+async function deleteOp(opId: number) {
+  const op = operations.value.find((o) => o.id === opId)
+  if (!op || !part.value) return
+  const confirmed = await dialog.confirm({
+    title: 'Smazat operaci',
+    message: `Opravdu smazat operaci č. ${op.seq}?`,
+    confirmLabel: 'Smazat',
+    dangerous: true,
+  })
+  if (confirmed) {
+    await ops.removeOp(op.id, part.value.id)
+    if (activeOpId.value === opId) activeOpId.value = null
+    const s = new Set(openDetails.value)
+    s.delete(opId)
+    openDetails.value = s
+    delete drafts[opId]
+  }
+}
+
+async function addOp() {
+  if (!part.value) return
+  const newOp = await ops.createOp({
+    part_id: part.value.id,
+    manning_coefficient: 100,
+    machine_utilization_coefficient: 100,
+  })
+  if (newOp) {
+    await nextTick()
+    wcComboRefs.value[newOp.id]?.focus()
+  }
+}
+
+async function onEnterLastField(op: Operation) {
+  await saveOp(op)
+  await addOp()
+}
+
+function handleCtrlD() {
+  if (activeOpId.value != null) deleteOp(activeOpId.value)
+}
+
+function focusOptime(opId: number) {
+  optimeRefs.value[opId]?.focus()
+}
+
+function focusKe(opId: number) {
+  keRefs.value[opId]?.focus()
+}
+
+function focusKo(opId: number) {
+  koRefs.value[opId]?.focus()
+}
+
+watch(operations, (list) => list.forEach(initDraft), { immediate: true })
 
 watch(
   part,
@@ -128,159 +249,245 @@ watch(
 
 onMounted(async () => {
   try {
-    workCenters.value = (await wcApi.getAll()).filter(w => w.is_active)
+    workCenters.value = (await wcApi.getAll()).filter((w) => w.is_active)
   } catch {
-    // WC list is optional
+    // WC seznam je volitelný
   }
 })
 </script>
 
 <template>
   <div class="wops">
-    <!-- Unsupported item type -->
     <div v-if="!typeGuard.isSupported(props.ctx)" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Nedostupné pro {{ typeGuard.focusedTypeName(props.ctx) }}</span>
     </div>
 
-    <!-- No part selected -->
     <div v-else-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Vyberte díl ze seznamu</span>
     </div>
 
-    <!-- Loading -->
     <div v-else-if="ops.loading && !operations.length" class="mod-placeholder">
       <Spinner size="sm" />
     </div>
 
-    <!-- No operations -->
     <div v-else-if="!operations.length" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Díl nemá žádné operace</span>
     </div>
 
-    <!-- Operations -->
     <template v-else>
-      <!-- Summary ribbon -->
-      <div class="rib">
-        <div class="rib-r">
-          <div class="rib-i">
-            <span class="rib-l">Seřízení</span>
-            <span class="rib-v">{{ formatDuration(totalSetup) }}</span>
-          </div>
-          <div class="rib-i">
-            <span class="rib-l">Výroba</span>
-            <span class="rib-v">{{ formatDuration(totalOp) }}</span>
-          </div>
-          <div class="rib-i">
-            <span class="rib-l">Operací</span>
-            <span class="rib-v">{{ operations.length }}</span>
-          </div>
-        </div>
+
+      <!-- Shortcut bar -->
+      <div class="sc-bar">
+        <span class="kbd">Tab</span><span class="sc-l">= další pole</span>
+        <div class="sc-div" />
+        <span class="kbd">↓</span><span class="sc-l">= dropdown WC</span>
+        <div class="sc-div" />
+        <span class="kbd">↵</span><span class="sc-l">= uloží + nový řádek</span>
+        <div class="sc-div" />
+        <span class="kbd">Ctrl+D</span><span class="sc-l">= smazat řádek</span>
+        <div class="sc-div" />
+        <span class="kbd">▶</span><span class="sc-l">= detail</span>
+        <div class="sc-div" />
+        <span class="kbd">Esc</span><span class="sc-l">= zahodit</span>
       </div>
 
-      <!-- Operations table -->
-      <div class="ot-wrap">
-        <table class="ot">
+      <!-- Tabulka -->
+      <div class="tbl-wrap" @keydown.ctrl.d.prevent="handleCtrlD">
+        <table class="ops">
           <thead>
             <tr>
-              <th style="width:28px">#</th>
-              <th>Název</th>
-              <th style="width:96px">Pracoviště</th>
-              <th class="r" style="width:66px">Seř. (min)</th>
-              <th class="r" style="width:66px">Výr. (min)</th>
-              <th class="r" style="width:48px">Mode</th>
+              <th style="width: 22px" />
+              <th style="width: 28px">#</th>
+              <th style="width: 160px">Pracoviště</th>
+              <th class="r" style="width: 80px">Seřízení</th>
+              <th class="r" style="width: 84px">Strojní čas</th>
+              <th class="r" style="width: 96px">Ke % <span class="th-sub">· čas stroje</span></th>
+              <th class="r" style="width: 96px">Ko % <span class="th-sub">· obsluha</span></th>
+              <th style="width: 26px" />
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="op in operations"
-              :key="op.id"
-              :data-testid="`op-row-${op.id}`"
-              class="op-row"
-            >
-              <td class="t4">{{ op.seq }}</td>
-              <td>
-                <InlineInput
-                  ghost
-                  class="gi-text"
-                  type="text"
-                  :modelValue="d(op.id).name"
-                  placeholder="Název…"
-                  :data-testid="`op-name-${op.id}`"
-                  @update:modelValue="d(op.id).name = ($event as string) ?? ''"
-                  @blur="saveOp(op)"
-                  @keydown.enter.prevent="($event.target as HTMLElement).blur()"
-                  @keydown.escape="onEscape($event, op)"
-                />
-              </td>
-              <td>
-                <InlineSelect
-                  ghost
-                  class="gi-sel"
-                  :modelValue="d(op.id).work_center_id !== null ? String(d(op.id).work_center_id) : ''"
-                  :data-testid="`op-wc-${op.id}`"
-                  @update:modelValue="onWcChange(op, $event)"
-                  @keydown.escape="onEscape($event, op)"
-                >
-                  <option value="">—</option>
-                  <option v-for="wc in workCenters" :key="wc.id" :value="String(wc.id)">{{ wc.name }}</option>
-                </InlineSelect>
-              </td>
-              <td class="r">
-                <InlineInput
-                  ghost
-                  numeric
-                  class="gi-num"
-                  type="number"
-                  step="1"
-                  min="0"
-                  :modelValue="d(op.id).setup_time_min"
-                  :data-testid="`op-setup-${op.id}`"
-                  @update:modelValue="(v) => { const dr = drafts[op.id]; if (dr) dr.setup_time_min = typeof v === 'number' ? v : null }"
-                  @blur="saveOp(op)"
-                  @keydown.enter.prevent="($event.target as HTMLElement).blur()"
-                  @keydown.escape="onEscape($event, op)"
-                />
-              </td>
-              <td class="r">
-                <InlineInput
-                  ghost
-                  numeric
-                  class="gi-num"
-                  type="number"
-                  step="1"
-                  min="0"
-                  :modelValue="d(op.id).operation_time_min"
-                  :data-testid="`op-optime-${op.id}`"
-                  @update:modelValue="(v) => { const dr = drafts[op.id]; if (dr) dr.operation_time_min = typeof v === 'number' ? v : null }"
-                  @blur="saveOp(op)"
-                  @keydown.enter.prevent="($event.target as HTMLElement).blur()"
-                  @keydown.escape="onEscape($event, op)"
-                />
-              </td>
-              <td class="r">
-                <InlineSelect
-                  v-if="!op.is_coop"
-                  ghost
-                  small
-                  class="gi-sel-sm"
-                  :modelValue="d(op.id).cutting_mode"
-                  :data-testid="`op-mode-${op.id}`"
-                  @update:modelValue="onModeChange(op, $event)"
-                  @keydown.escape="onEscape($event, op)"
-                >
-                  <option value="low">LOW</option>
-                  <option value="mid">MID</option>
-                  <option value="high">HIGH</option>
-                </InlineSelect>
-                <span v-else class="badge coop-badge">COOP</span>
+            <template v-for="op in operations" :key="op.id">
+
+              <tr
+                class="op-row"
+                :class="{ act: activeOpId === op.id }"
+                :data-testid="`op-row-${op.id}`"
+                @focusin="onFocusRow(op.id)"
+              >
+                <td class="seq-cell td-icon">
+                  <button
+                    class="chev"
+                    :class="{ open: openDetails.has(op.id) }"
+                    :data-testid="`op-chev-${op.id}`"
+                    @click.stop="toggleDetail(op.id)"
+                  >▶</button>
+                </td>
+
+                <td><span class="seq-num">{{ String(op.seq).padStart(2, '0') }}</span></td>
+
+                <td>
+                  <WcCombobox
+                    :ref="(el) => { if (el) wcComboRefs[op.id] = el as unknown as { focus: () => void } }"
+                    :modelValue="d(op.id).work_center_id"
+                    :options="workCenters"
+                    :data-testid="`op-wc-${op.id}`"
+                    @update:modelValue="onWcSelect(op, $event)"
+                  />
+                </td>
+
+                <td class="r">
+                  <input
+                    v-select-on-focus
+                    class="inp num"
+                    type="number"
+                    step="1"
+                    min="0"
+                    :value="d(op.id).setup_time_min ?? ''"
+                    placeholder="0"
+                    :data-testid="`op-setup-${op.id}`"
+                    @input="onTimeInput($event, op.id, 'setup_time_min')"
+                    @blur="saveOp(op)"
+                    @keydown.enter.prevent="focusOptime(op.id)"
+                    @keydown.escape="onEscape($event, op)"
+                  />
+                </td>
+
+                <td class="r">
+                  <input
+                    :ref="(el) => { if (el) optimeRefs[op.id] = el as HTMLInputElement }"
+                    v-select-on-focus
+                    class="inp num"
+                    type="number"
+                    step="1"
+                    min="0"
+                    :value="d(op.id).operation_time_min ?? ''"
+                    placeholder="0"
+                    :data-testid="`op-optime-${op.id}`"
+                    @input="onTimeInput($event, op.id, 'operation_time_min')"
+                    @blur="saveOp(op)"
+                    @keydown.enter.prevent="focusKe(op.id)"
+                    @keydown.escape="onEscape($event, op)"
+                  />
+                </td>
+
+                <td class="r">
+                  <div class="coef-cell">
+                    <input
+                      :ref="(el) => { if (el) keRefs[op.id] = el as HTMLInputElement }"
+                      v-select-on-focus
+                      class="inp num inp-coef"
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="200"
+                      :value="d(op.id).ke"
+                      :data-testid="`op-ke-${op.id}`"
+                      @input="onCoefInput($event, op.id, 'ke')"
+                      @blur="saveOp(op)"
+                      @keydown.enter.prevent="focusKo(op.id)"
+                      @keydown.escape="onEscape($event, op)"
+                    />
+                    <span class="coef-hint ke-hint">{{ fmtHint(keTime(d(op.id))) }}</span>
+                  </div>
+                </td>
+
+                <td class="r">
+                  <div class="coef-cell">
+                    <input
+                      :ref="(el) => { if (el) koRefs[op.id] = el as HTMLInputElement }"
+                      v-select-on-focus
+                      class="inp num inp-coef"
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="200"
+                      :value="d(op.id).ko"
+                      :data-testid="`op-ko-${op.id}`"
+                      @input="onCoefInput($event, op.id, 'ko')"
+                      @blur="saveOp(op)"
+                      @keydown.enter.prevent="onEnterLastField(op)"
+                      @keydown.escape="onEscape($event, op)"
+                    />
+                    <span class="coef-hint ko-hint">{{ fmtHint(koTime(d(op.id))) }}</span>
+                  </div>
+                </td>
+
+                <td class="td-icon">
+                  <button
+                    class="del-btn"
+                    :data-testid="`op-del-${op.id}`"
+                    title="Smazat (Ctrl+D)"
+                    @click="deleteOp(op.id)"
+                  >×</button>
+                </td>
+              </tr>
+
+              <!-- Collapsible detail -->
+              <tr v-show="openDetails.has(op.id)" class="detail-tr">
+                <td colspan="8">
+                  <div class="detail-inner">
+                    <div class="detail-section">
+                      <div class="ds-head">Navázaný materiál</div>
+                      <div class="ds-placeholder">Připravujeme…</div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="ds-head">Nástroje</div>
+                      <div class="ds-placeholder">Připravujeme…</div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="ds-head">Řezné podmínky</div>
+                      <div class="ds-placeholder">Připravujeme…</div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="ds-head">Kroky operace</div>
+                      <div class="ds-placeholder">Připravujeme…</div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+            </template>
+
+            <tr class="add-tr">
+              <td colspan="8">
+                <button class="add-btn" data-testid="op-add-btn" @click="addOp">
+                  <span class="add-plus">+</span>
+                  Přidat operaci
+                  <span class="kbd add-hint">↵ z posledního pole</span>
+                </button>
               </td>
             </tr>
+
           </tbody>
         </table>
       </div>
+
+      <!-- Summary bar — DOLE -->
+      <div class="sum-bar">
+        <div class="sum-kpi">
+          <span class="sum-label">Σ Seřízení</span>
+          <div><span class="sum-val">{{ Math.round(totalSetup) }}</span><span class="sum-unit">min</span></div>
+        </div>
+        <div class="sum-kpi">
+          <span class="sum-label">Σ Strojní čas</span>
+          <div><span class="sum-val">{{ Math.round(totalStrojni) }}</span><span class="sum-unit">min</span></div>
+        </div>
+        <div class="sum-kpi">
+          <span class="sum-label">Σ Čas stroje</span>
+          <div><span class="sum-val">{{ Math.round(totalKe) }}</span><span class="sum-unit">min</span></div>
+          <span class="sum-formula sum-formula-ke">Σ (strojní ÷ Ke)</span>
+        </div>
+        <div class="sum-kpi">
+          <span class="sum-label">Σ Čas obsluhy</span>
+          <div><span class="sum-val">{{ Math.round(totalKo) }}</span><span class="sum-unit">min</span></div>
+          <span class="sum-formula sum-formula-ko">Σ (čas stroje × Ko)</span>
+        </div>
+      </div>
+
     </template>
   </div>
 </template>
@@ -291,6 +498,8 @@ onMounted(async () => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  padding: 6px var(--pad) var(--pad);
+  gap: 6px;
 }
 
 /* ─── Placeholder ─── */
@@ -306,49 +515,251 @@ onMounted(async () => {
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
-/* ─── Summary ribbon ─── */
-.rib {
-  padding: 6px var(--pad);
-  background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid var(--b1);
+/* ─── Shortcut bar ─── */
+.sc-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
   flex-shrink: 0;
 }
-.rib-r { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.rib-i { display: flex; align-items: baseline; gap: 4px; }
-.rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-.rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  background: var(--raised);
+  border: 1px solid var(--b3);
+  border-radius: var(--rs);
+  font-size: var(--fss);
+  color: var(--t4);
+  font-family: var(--font);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.sc-l { font-size: var(--fss); color: var(--t4); }
+.sc-div { width: 1px; height: 10px; background: var(--b2); flex-shrink: 0; }
 
 /* ─── Table wrapper ─── */
-.ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+.tbl-wrap {
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  overflow: visible;
+  flex: 1;
+  min-height: 0;
+}
 
 /* ─── Table ─── */
-.t4 { color: var(--t4); }
-.r { text-align: right; }
-.op-row:hover td { background: rgba(255,255,255,0.015); }
-
-/* ─── Ghost input/select size overrides — base styles in InlineInput/InlineSelect ─── */
-.gi-text { width: 100%; }
-
-.gi-num {
- 
+.ops { width: 100%; border-collapse: collapse; }
+.ops thead { background: rgba(255, 255, 255, 0.02); }
+.ops th {
+  padding: 5px 8px;
+  font-family: var(--font);
   font-size: var(--fsm);
-  color: var(--t3);
-  width: 54px;
+  font-weight: 400;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  border-bottom: 1px solid var(--b2);
+  white-space: nowrap;
+}
+.ops th.r { text-align: right; }
+.th-sub { font-size: var(--fss); color: var(--t4); margin-left: 3px; letter-spacing: 0; }
+
+/* ─── Op row ─── */
+.op-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 60ms var(--ease);
+}
+.op-row:hover { background: rgba(255, 255, 255, 0.025); }
+.op-row.act { background: rgba(255, 255, 255, 0.035); }
+.op-row.act .seq-cell { box-shadow: inset 3px 0 0 var(--red); }
+.op-row td {
+  padding: 4px 8px;
+  font-size: var(--fs);
+  color: var(--t2);
+  vertical-align: middle;
+  border: none;
+}
+.op-row td.r { text-align: right; }
+.op-row td.td-icon { padding: 0 4px; text-align: center; }
+.op-row:hover .del-btn,
+.op-row.act .del-btn { opacity: 1; }
+
+/* ─── Seq ─── */
+.seq-num {
+  font-family: var(--font);
+  font-size: var(--fsm);
+  color: var(--t4);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.op-row.act .seq-num { color: var(--red); }
+
+/* ─── Chevron ─── */
+.chev {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fss);
+  color: var(--t4);
+  background: none;
+  border: none;
+  border-radius: var(--rs);
+  cursor: pointer;
+  padding: 0;
+  transition: color 80ms var(--ease), background 80ms var(--ease), transform 120ms var(--ease);
+}
+.chev:hover { background: var(--b2); color: var(--t3); }
+.chev.open { transform: rotate(90deg); color: var(--t3); }
+
+/* ─── Inputs ─── */
+.inp {
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  color: var(--t2);
+  font-family: var(--font);
+  font-size: var(--fs);
+  padding: 3px 6px;
+  outline: none;
+  width: 100%;
+  transition: border-color 80ms var(--ease), background 80ms var(--ease), color 80ms var(--ease);
+}
+.inp::placeholder { color: var(--t4); font-size: var(--fss); }
+.inp:focus { border-color: var(--b3); background: rgba(255, 255, 255, 0.08); color: var(--t1); }
+.inp:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.5); outline-offset: 2px; }
+.inp.num { text-align: right; width: 52px; font-variant-numeric: tabular-nums; }
+.inp.inp-coef { width: 42px; }
+.inp[type='number']::-webkit-outer-spin-button,
+.inp[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.inp[type='number'] { -moz-appearance: textfield; }
+input::selection { background: transparent; }
+
+/* ─── Ke / Ko ─── */
+.coef-cell { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.coef-hint {
+  font-family: var(--font);
+  font-size: var(--fsm);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
   text-align: right;
 }
-.gi-num:focus { color: var(--t1); }
-/* Hide native number spinners */
-.gi-num::-webkit-outer-spin-button,
-.gi-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.gi-num[type=number] { -moz-appearance: textfield; }
+.ke-hint { color: var(--chart-material); }
+.ko-hint { color: var(--chart-machining); }
 
-/* gi-sel: WC select width override */
-.gi-sel { width: 100%; }
-.gi-sel:focus { color: var(--t2); }
+/* ─── Delete ─── */
+.del-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--rs);
+  color: var(--t4);
+  cursor: pointer;
+  font-size: var(--fs);
+  line-height: 1;
+  opacity: 0;
+  padding: 0;
+  transition: opacity 70ms var(--ease), background 70ms var(--ease),
+    color 70ms var(--ease), border-color 70ms var(--ease);
+}
+.del-btn:hover {
+  color: var(--err);
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+}
 
-/* gi-sel-sm: mode select size override */
-.gi-sel-sm { width: 44px; }
+/* ─── Add row ─── */
+.add-tr td { padding: 0; border-top: 1px dashed rgba(255, 255, 255, 0.06); }
+.add-btn {
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--t4);
+  font-family: var(--font);
+  font-size: var(--fsm);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 80ms var(--ease), color 80ms var(--ease);
+}
+.add-btn:hover { background: var(--b1); color: var(--t2); }
+.add-plus { font-size: var(--fs); line-height: 1; color: var(--t3); }
+.add-hint { margin-left: auto; }
 
-/* coop-badge: COOP indicator — extends global .badge */
-.coop-badge { color: var(--t3); }
+/* ─── Detail ─── */
+.detail-tr { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.ops tbody .detail-tr td { padding: 0; background: var(--raised); }
+.detail-inner {
+  padding: 12px 10px 14px 50px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ds-head {
+  font-family: var(--font);
+  font-size: var(--fsm);
+  font-weight: 400;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--b2);
+}
+.ds-placeholder { font-size: var(--fsm); color: var(--t4); font-style: italic; }
+
+/* ─── Summary bar ─── */
+.sum-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--b2);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sum-kpi {
+  background: var(--raised);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sum-label {
+  font-size: var(--fsm);
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+}
+.sum-val {
+  font-family: var(--font);
+  font-size: var(--fsh);
+  color: var(--t1);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.sum-unit { font-size: var(--fss); color: var(--t4); margin-left: 3px; }
+.sum-formula { font-size: var(--fss); font-family: var(--font); margin-top: 1px; }
+.sum-formula-ke { color: rgba(96, 165, 250, 0.55); }
+.sum-formula-ko { color: rgba(167, 139, 250, 0.5); }
 </style>
