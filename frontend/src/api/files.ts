@@ -1,7 +1,10 @@
 import { apiClient } from './client'
-import type { FileWithLinks, FileListResponse } from '@/types/file-record'
+import type { FileRecord, FileLink, FileWithLinks, FileListResponse } from '@/types/file-record'
 
-interface FileUploadResponse { file: FileWithLinks }
+// Matches backend FileUploadResponse (FileRecordResponse + optional link)
+interface BackendUploadResponse extends FileRecord {
+  link: FileLink | null
+}
 
 export async function listByEntity(entityType: string, entityId: number): Promise<FileWithLinks[]> {
   const { data } = await apiClient.get<FileListResponse>('/files', {
@@ -33,8 +36,12 @@ export async function upload(
   formData.append('entity_type', entityType)
   formData.append('entity_id', String(entityId))
   formData.append('link_type', linkType)
-  const { data } = await apiClient.post<FileUploadResponse>('/files/upload', formData)
-  return data.file
+  // Content-Type must be undefined so browser sets multipart/form-data with correct boundary
+  // (apiClient default 'application/json' would break FormData parsing on the backend)
+  const { data } = await apiClient.post<BackendUploadResponse>('/files/upload', formData, {
+    headers: { 'Content-Type': undefined },
+  })
+  return { ...data, links: data.link ? [data.link] : [] }
 }
 
 export async function deleteFile(fileId: number): Promise<void> {

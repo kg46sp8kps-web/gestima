@@ -129,6 +129,13 @@ const uploading = ref(false)
 const isDragOver = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
+const ALLOWED_EXTENSIONS = ['pdf', 'step', 'stp', 'nc', 'tap', 'mpf', 'cnc', 'gcode', 'dxf']
+
+function isAllowedFile(file: File): boolean {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  return ALLOWED_EXTENSIONS.includes(ext)
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`
@@ -162,6 +169,10 @@ async function loadFiles() {
 
 async function handleUpload(file: File) {
   if (uploading.value) return
+  if (!isAllowedFile(file)) {
+    ui.showError(`Nepodporovaný typ souboru. Povolené: ${ALLOWED_EXTENSIONS.join(', ')}`)
+    return
+  }
   uploading.value = true
   try {
     const f = await filesApi.upload(file, 'part', props.part.id, inferLinkType(file.name))
@@ -350,10 +361,11 @@ watch(() => props.part.id, loadFiles, { immediate: true })
             ref="fileInput"
             type="file"
             class="file-inp"
+            accept=".pdf,.step,.stp,.nc,.tap,.mpf,.cnc,.gcode,.dxf"
             @change="onFileInput"
           />
           <span class="dz-text">{{ uploading ? 'Nahrávání…' : 'Přetáhněte soubor nebo klikněte' }}</span>
-          <span class="dz-hint">PDF · DXF · DWG · STEP · NC</span>
+          <span class="dz-hint">PDF · DXF · STEP / STP · NC · TAP · MPF</span>
         </div>
       </template>
 

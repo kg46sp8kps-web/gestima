@@ -68,6 +68,10 @@ class FileService:
         "stp": "application/step",
         "nc": "text/plain",
         "gcode": "text/plain",
+        "tap": "text/plain",
+        "mpf": "text/plain",
+        "cnc": "text/plain",
+        "dxf": "application/dxf",
         "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }
 
@@ -1113,6 +1117,10 @@ class FileService:
             'stp': 'step',
             'nc': 'nc',
             'gcode': 'nc',
+            'tap': 'nc',   # CNC programs (Fanuc/Mazak)
+            'mpf': 'nc',   # CNC programs (Siemens 840D)
+            'cnc': 'nc',   # CNC programs (generic)
+            'dxf': 'dxf',  # 2D CAD drawings
             'xlsx': 'xlsx',
         }
 
