@@ -66,7 +66,7 @@ async def test_create_part_sqlalchemy_error_rollback(mock_user):
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Database error"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="10000001", name="Test Part 2")
+    data = PartCreate(article_number="ART-ERR-002", name="Test Part 2")
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -242,7 +242,7 @@ async def test_transaction_atomicity(mock_user):
     db_mock.commit = AsyncMock(side_effect=SQLAlchemyError("Transaction failed"))
     db_mock.rollback = AsyncMock()
 
-    data = PartCreate(part_number="10000201", name="New Name")  # ADR-017 v2.0: 8 digits
+    data = PartCreate(article_number="ART-ERR-201", name="New Name")
 
     # Act
     with pytest.raises(HTTPException):

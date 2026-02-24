@@ -28,8 +28,8 @@ async def test_part(client: AsyncClient, admin_headers):
     # The test_db_session fixture already creates materials
 
     data = {
+        "article_number": "ART-PRICING-001",
         "name": "Pricing Test Part",
-        "description": "Part for pricing router tests"
     }
 
     response = await client.post("/api/parts/", json=data, headers=admin_headers)

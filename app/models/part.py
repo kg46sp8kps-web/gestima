@@ -79,7 +79,7 @@ class PartBase(BaseModel):
 
 class PartCreate(BaseModel):
     """Create new part - simplified (part_number auto-generated 10XXXXXX)"""
-    article_number: str = Field("", max_length=50, description="Dodavatelské číslo")
+    article_number: str = Field(..., min_length=1, max_length=50, description="Dodavatelské číslo (povinné)")
     name: str = Field("", max_length=200, description="Název dílu")
     customer_revision: Optional[str] = Field(None, max_length=50, description="Zákaznická revize")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")

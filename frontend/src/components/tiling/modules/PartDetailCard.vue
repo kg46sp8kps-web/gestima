@@ -226,8 +226,8 @@ watch(() => props.part.id, loadFiles, { immediate: true })
   <div class="pdc">
     <!-- Info bar -->
     <div class="det-bar">
-      <span class="det-pn">{{ part.part_number }}</span>
-      <span class="det-nm">{{ part.name || part.article_number || '—' }}</span>
+      <span class="det-pn">{{ part.article_number || '—' }}</span>
+      <span class="det-nm">{{ part.name || '—' }}</span>
       <span class="det-uom">{{ part.uom }}</span>
     </div>
 
@@ -253,17 +253,9 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 
       <!-- ── Part fields ── -->
       <div class="form-section">
+        <!-- Row 1: Artikl | Název -->
         <div class="field-row">
-          <div class="field field-grow">
-            <Input
-              :modelValue="draft.name"
-              @update:modelValue="draft.name = $event as string | null"
-              label="Název"
-              placeholder="—"
-              testid="field-name"
-            />
-          </div>
-          <div class="field">
+          <div class="field field-half">
             <Input
               :modelValue="draft.article_number"
               @update:modelValue="draft.article_number = $event as string | null"
@@ -272,7 +264,17 @@ watch(() => props.part.id, loadFiles, { immediate: true })
               testid="field-article"
             />
           </div>
+          <div class="field field-half">
+            <Input
+              :modelValue="draft.name"
+              @update:modelValue="draft.name = $event as string | null"
+              label="Název"
+              placeholder="—"
+              testid="field-name"
+            />
+          </div>
         </div>
+        <!-- Row 2: Výkres č. | Rev. zák. | Rev. | Hmotnost -->
         <div class="field-row">
           <div class="field field-grow">
             <Input
@@ -281,6 +283,15 @@ watch(() => props.part.id, loadFiles, { immediate: true })
               label="Výkres č."
               placeholder="—"
               testid="field-drawing-number"
+            />
+          </div>
+          <div class="field field-sm">
+            <Input
+              :modelValue="draft.customer_revision"
+              @update:modelValue="draft.customer_revision = $event as string | null"
+              label="Rev. zák."
+              placeholder="—"
+              testid="field-customer-revision"
             />
           </div>
           <div class="field field-sm">
@@ -294,25 +305,19 @@ watch(() => props.part.id, loadFiles, { immediate: true })
           </div>
           <div class="field field-sm">
             <Input
-              :modelValue="draft.customer_revision"
-              @update:modelValue="draft.customer_revision = $event as string | null"
-              label="Rev. zák."
-              placeholder="—"
-              testid="field-customer-revision"
-            />
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field field-sm">
-            <Input
               :modelValue="draft.unit_weight !== null ? String(draft.unit_weight) : ''"
               @update:modelValue="draft.unit_weight = $event ? Number($event) || null : null"
-              label="Hmotnost (kg/ks)"
+              label="Hmotnost"
               placeholder="—"
               type="number"
               testid="field-unit-weight"
             />
           </div>
+        </div>
+        <!-- Interní č. — pravý dolní roh -->
+        <div class="sec-corner">
+          <span class="info-lbl">Interní č.</span>
+          <span class="info-val" data-testid="field-part-number">{{ part.part_number }}</span>
         </div>
       </div>
 
@@ -463,7 +468,27 @@ watch(() => props.part.id, loadFiles, { immediate: true })
   min-width: 0;
 }
 .field-grow { flex: 1; }
+.field-half { flex: 1; min-width: 0; }
 .field-sm { width: 80px; flex-shrink: 0; }
+
+/* Interní číslo — pravý dolní roh sekce */
+.sec-corner {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+}
+.info-lbl {
+  font-size: var(--fsm);
+  color: var(--t4);
+  flex-shrink: 0;
+}
+.info-val {
+  font-size: var(--fs);
+  color: var(--t3);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
 
 /* ─── Save bar ─── */
 .save-bar {

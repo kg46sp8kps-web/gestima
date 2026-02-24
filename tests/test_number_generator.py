@@ -270,6 +270,7 @@ class TestNumberGeneratorIntegration:
 
         # Create part without specifying part_number (ADR-024: no material fields on Part)
         part_data = PartCreate(
+            article_number="ART-GEN-001",
             name="Test Part"
         )
 

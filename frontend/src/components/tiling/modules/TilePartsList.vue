@@ -193,8 +193,8 @@ watch(
           :data-testid="`part-row-${p.part_number}`"
           @click="selectPart(p)"
         >
-          <span class="pn">{{ p.part_number }}</span>
-          <span class="pm">{{ p.name || p.article_number || '—' }}</span>
+          <span class="pn">{{ p.article_number || '—' }}</span>
+          <span class="pm">{{ p.name || '—' }}</span>
           <span :class="dotClass(p.status)" />
         </li>
       </template>
@@ -342,13 +342,16 @@ watch(
   border-radius: 0 1px 1px 0;
 }
 
-/* Part number — reference .pn */
+/* Article number (primary ID) — fixní šířka = zarovnaný sloupec */
 .pn {
   font-size: var(--fs);
   font-weight: 500;
   color: var(--t1);
-  min-width: 66px;
+  width: 110px;
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Part name — reference .pm */
