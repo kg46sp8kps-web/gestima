@@ -94,8 +94,8 @@ async function saveOp(op: Operation) {
     setup !== op.setup_time_min ||
     optime !== op.operation_time_min ||
     draft.work_center_id !== op.work_center_id ||
-    draft.ke !== op.manning_coefficient ||
-    draft.ko !== op.machine_utilization_coefficient
+    draft.ke !== op.machine_utilization_coefficient ||
+    draft.ko !== op.manning_coefficient
   if (!changed) return
   draft.setup_time_min = setup
   draft.operation_time_min = optime
