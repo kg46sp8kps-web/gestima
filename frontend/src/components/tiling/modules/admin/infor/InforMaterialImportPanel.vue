@@ -562,8 +562,8 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
           </div>
 
           <!-- Staging Table -->
-          <div class="table-wrapper">
-            <table class="staging-table">
+          <div class="table-wrapper ot-wrap">
+            <table class="ot">
               <thead>
                 <tr>
                   <th>☑</th>
@@ -959,7 +959,7 @@ h4 {
 }
 
 .row-duplicate {
-  background: rgba(251,191,36,0.1);
+  background: var(--warn-10);
 }
 
 .status-cell {

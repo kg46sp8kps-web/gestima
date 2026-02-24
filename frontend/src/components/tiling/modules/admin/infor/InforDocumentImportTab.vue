@@ -168,8 +168,8 @@ async function executeImport() {
         </button>
       </div>
 
-      <div class="table-scroll">
-        <table class="staging-table">
+      <div class="ot-wrap">
+        <table class="ot">
           <thead>
             <tr>
               <th class="col-check">☑</th>
@@ -230,14 +230,9 @@ h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad)
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; flex-wrap: wrap; }
-.table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
-.staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
-.staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; }
-.staging-table td { padding: 6px var(--pad); border-bottom: 1px solid var(--b1); white-space: nowrap; }
-.staging-table tbody tr { cursor: pointer; }
-.staging-table tbody tr:hover { background: var(--b1); }
-.row-error { background: rgba(248,113,113,0.1); }
-.row-dup { background: rgba(251,191,36,0.1); }
+.ot-wrap { overflow-y: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 360px; }
+.row-error td { background: var(--err-10); }
+.row-dup td { background: var(--warn-10); }
 .col-check { width: 32px; text-align: center; }
 .col-status { width: 40px; text-align: center; }
 .col-ext { width: 60px; }

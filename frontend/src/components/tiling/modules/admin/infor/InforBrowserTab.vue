@@ -155,5 +155,5 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
 .case-warning { color: var(--red); font-size: var(--fs); font-weight: 600; }
 .help-text { display: block; margin-top: 4px; font-size: var(--fs); color: var(--t3); }
 .warning-text { display: inline-flex; align-items: center; gap: 4px; color: var(--warn); }
-.error-box { padding: var(--pad); background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.15); border-radius: var(--r); color: var(--err); font-size: var(--fs); margin-top: 12px; }
+.error-box { padding: var(--pad); background: var(--err-10); border: 1px solid var(--err-15); border-radius: var(--r); color: var(--err); font-size: var(--fs); margin-top: 12px; }
 </style>

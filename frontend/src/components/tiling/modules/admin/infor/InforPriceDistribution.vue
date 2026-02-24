@@ -131,7 +131,7 @@ async function applySuggested() {
 .dist-stats b { color: var(--t1); font-variant-numeric: tabular-nums; }
 .dist-bar-wrap { padding: 6px 0; }
 .dist-bar { position: relative; height: 28px; background: var(--b1); border-radius: var(--rs); border: 1px solid var(--b1); }
-.dist-range { position: absolute; top: 2px; bottom: 2px; background: rgba(37,99,235,0.1); border-radius: var(--rs); }
+.dist-range { position: absolute; top: 2px; bottom: 2px; background: var(--b2); border-radius: var(--rs); }
 .dist-marker { position: absolute; top: 0; bottom: 0; width: 2px; }
 .dist-median { background: var(--t3); }
 .dist-tier-line { background: var(--err); }
@@ -143,14 +143,14 @@ async function applySuggested() {
 .dist-hint, .dist-empty { font-size: var(--fs); color: var(--t3); font-style: italic; }
 .red-text { color: var(--err); }
 .green-text { color: var(--ok); }
-.suggestions { padding: var(--pad); background: rgba(52,211,153,0.1); border: 1px solid rgba(34,197,94,0.15); border-radius: var(--r); display: flex; flex-direction: column; gap: 6px; }
+.suggestions { padding: var(--pad); background: var(--ok-10); border: 1px solid var(--green-15); border-radius: var(--r); display: flex; flex-direction: column; gap: 6px; }
 .suggest-title { font-size: var(--fs); font-weight: 500; color: var(--t1); }
 .suggest-row { display: flex; gap: var(--pad); font-size: var(--fs); align-items: center; }
 .suggest-change { font-variant-numeric: tabular-nums; color: var(--t1); }
 .old-val { color: var(--err); text-decoration: line-through; }
 .new-val { color: var(--ok); font-weight: 500; }
 .suggest-reason { color: var(--t3); }
-.btn-apply { align-self: flex-start; padding: 6px var(--pad); font-size: var(--fs); background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.15); border-radius: var(--r); color: var(--ok); cursor: pointer; transition: all 100ms var(--ease); margin-top: 4px; }
-.btn-apply:hover:not(:disabled) { background: rgba(34,197,94,0.15); }
+.btn-apply { align-self: flex-start; padding: 6px var(--pad); font-size: var(--fs); background: var(--green-15); border: 1px solid var(--green-15); border-radius: var(--r); color: var(--ok); cursor: pointer; transition: all 100ms var(--ease); margin-top: 4px; }
+.btn-apply:hover:not(:disabled) { background: var(--green-15); }
 .btn-apply:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

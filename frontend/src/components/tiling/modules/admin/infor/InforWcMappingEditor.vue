@@ -96,8 +96,8 @@ function getStatusText(row: MappingRow): string {
         </button>
       </div>
 
-      <div class="table-wrapper">
-        <table class="mapping-table">
+      <div class="ot-wrap">
+        <table class="ot">
           <thead>
             <tr>
               <th>Infor WC Code</th>
@@ -115,12 +115,13 @@ function getStatusText(row: MappingRow): string {
                 <input v-model="row.gestimaWc" class="input" placeholder="např. 1" />
               </td>
               <td class="status-cell">
-                <span :class="['status-badge', getStatusText(row) === 'OK' ? 'ok' : 'incomplete']">
+                <span class="badge">
+                  <span :class="getStatusText(row) === 'OK' ? 'badge-dot badge-dot-ok' : 'badge-dot badge-dot-warn'"></span>
                   {{ getStatusText(row) }}
                 </span>
               </td>
               <td class="actions-cell">
-                <button @click="removeRow(idx)" class="btn-destructive">
+                <button @click="removeRow(idx)" class="icon-btn icon-btn-sm icon-btn-danger">
                   <Trash2 :size="ICON_SIZE" />
                 </button>
               </td>
@@ -146,7 +147,7 @@ function getStatusText(row: MappingRow): string {
 }
 
 .header h4 {
-  font-size: 16px;
+  font-size: var(--fsh);
   font-weight: 600;
   color: var(--t1);
   margin: 0;
@@ -170,60 +171,18 @@ function getStatusText(row: MappingRow): string {
   flex-wrap: wrap;
 }
 
-.table-wrapper {
-  overflow: auto;
+.ot-wrap {
+  overflow-y: auto;
   border: 1px solid var(--b2);
   border-radius: var(--r);
 }
 
-.mapping-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs);
-}
-
-.mapping-table th {
-  background: var(--surface);
-  padding: 6px var(--pad);
-  text-align: left;
-  font-weight: 600;
-  color: var(--t3);
-  border-bottom: 1px solid var(--b2);
-  position: sticky;
-  top: 0;
-}
-
-.mapping-table td {
-  padding: 6px var(--pad);
-  border-bottom: 1px solid var(--b1);
-}
-
-
 .status-cell {
   text-align: center;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 6px;
-  border-radius: var(--rs);
-  font-size: var(--fs);
-  font-weight: 600;
-}
-
-.status-badge.ok {
-  background: rgba(52,211,153,0.1);
-  color: var(--ok);
-}
-
-.status-badge.incomplete {
-  background: rgba(251,191,36,0.1);
-  color: var(--warn);
 }
 
 .actions-cell {
   text-align: center;
   width: 60px;
 }
-
 </style>

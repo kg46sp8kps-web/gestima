@@ -114,11 +114,11 @@ onUnmounted(() => {
   <div class="sync-dashboard">
     <div class="status-header">
       <div class="status-indicator">
-        <span v-if="running" class="badge badge-running">
+        <span v-if="running" class="badge">
           <span class="badge-dot badge-dot-ok"></span>
           Běží
         </span>
-        <span v-else class="badge badge-stopped">
+        <span v-else class="badge">
           <span class="badge-dot badge-dot-neutral"></span>
           Zastaveno
         </span>
@@ -177,14 +177,6 @@ onUnmounted(() => {
   gap: 6px;
 }
 
-.badge-running {
-  color: var(--ok);
-}
-
-.badge-stopped {
-  color: var(--t3);
-}
-
 .header-actions {
   display: flex;
   align-items: center;
@@ -196,7 +188,7 @@ onUnmounted(() => {
 }
 
 h4 {
-  font-size: var(--fs);
+  font-size: var(--fsh);
   font-weight: 600;
   color: var(--t1);
   margin-bottom: var(--pad);

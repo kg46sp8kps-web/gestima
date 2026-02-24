@@ -215,8 +215,8 @@ function toggleStaged(row: StagedPartRow) {
         <button @click="selectedStaged = []" class="btn-secondary"><X :size="ICON_SIZE" /> Zrušit výběr</button>
         <button @click="stagedRows = []; selectedStaged = []" class="btn-destructive"><Trash2 :size="ICON_SIZE" /> Vymazat</button>
       </div>
-      <div class="table-scroll">
-        <table class="staging-table">
+      <div class="ot-wrap">
+        <table class="ot">
           <thead>
             <tr>
               <th>☑</th>
@@ -257,20 +257,15 @@ function toggleStaged(row: StagedPartRow) {
 <style scoped>
 .import-tab { padding: 12px; overflow: auto; }
 .section { margin-bottom: 20px; }
-h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+h4 { font-size: var(--fsh); font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
 .query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
 .query-row .fg-wide { flex: 3; }
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
-.table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
-.staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
-.staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; }
-.staging-table td { padding: 6px var(--pad); border-bottom: 1px solid var(--b1); }
-.staging-table tbody tr { cursor: pointer; transition: background 100ms; }
-.staging-table tbody tr:hover { background: var(--b1); }
-.row-error { background: rgba(248,113,113,0.1); }
-.row-dup { background: rgba(251,191,36,0.1); }
+.ot-wrap { overflow-y: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 360px; }
+.row-error td { background: var(--err-10); }
+.row-dup td { background: var(--warn-10); }
 .status-cell { text-align: center; }
 .icon-valid { color: var(--ok); }
 .icon-error { color: var(--err); }

@@ -38,8 +38,8 @@ function formatRelativeTime(isoDate: string | null): string {
 </script>
 
 <template>
-  <div class="table-container">
-    <table class="steps-table">
+  <div class="ot-wrap">
+    <table class="ot">
       <thead>
         <tr>
           <th>Krok</th>
@@ -87,41 +87,7 @@ function formatRelativeTime(isoDate: string | null): string {
 </template>
 
 <style scoped>
-.table-container {
-  border: 1px solid var(--b2);
-  border-radius: var(--r);
-  overflow: auto;
-  max-height: 400px;
-}
-
-.steps-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.steps-table th {
-  background: var(--surface);
-  padding: 6px var(--pad);
-  text-align: left;
-  font-size: var(--fs);
-  font-weight: 600;
-  color: var(--t3);
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--b2);
-  position: sticky;
-  top: 0;
-  letter-spacing: 0.05em;
-}
-
-.steps-table td {
-  padding: 6px var(--pad);
-  font-size: var(--fs);
-  border-bottom: 1px solid var(--b1);
-}
-
-.steps-table tbody tr:hover {
-  background: var(--b1);
-}
+.ot-wrap { overflow-y: auto; max-height: 320px; border: 1px solid var(--b2); border-radius: var(--r); }
 
 .action-buttons {
   display: flex;

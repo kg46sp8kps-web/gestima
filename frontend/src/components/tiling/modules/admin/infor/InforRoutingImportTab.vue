@@ -313,8 +313,8 @@ function fmt(val: unknown, decimals = 2): string {
       </div>
 
       <!-- Virtual scroll container -->
-      <div class="table-scroll" ref="tableContainer" @scroll="onTableScroll">
-        <table class="staging-table">
+      <div class="ot-wrap" ref="tableContainer" @scroll="onTableScroll">
+        <table class="ot">
           <thead>
             <tr>
               <th class="col-check">☑</th>
@@ -369,19 +369,14 @@ function fmt(val: unknown, decimals = 2): string {
 <style scoped>
 .import-tab { padding: 12px; overflow: auto; }
 .section { margin-bottom: 20px; }
-h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
+h4 { font-size: var(--fsh); font-weight: 600; color: var(--t1); margin: 0 0 var(--pad) 0; }
 .query-row { display: flex; gap: var(--pad); margin-bottom: var(--pad); }
 .query-row .fg-wide { flex: 3; }
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
-.table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
-.staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
-.staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; }
-.staging-table td { padding: 4px var(--pad); border-bottom: 1px solid var(--b1); white-space: nowrap; }
-.staging-table tbody tr { cursor: pointer; }
-.staging-table tbody tr:hover { background: var(--b1); }
-.row-error { background: rgba(248,113,113,0.1); }
+.ot-wrap { overflow-y: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 360px; }
+.row-error td { background: var(--err-10); }
 .col-check { width: 32px; text-align: center; }
 .col-status { width: 40px; text-align: center; }
 .col-num { text-align: right; font-variant-numeric: tabular-nums; }
