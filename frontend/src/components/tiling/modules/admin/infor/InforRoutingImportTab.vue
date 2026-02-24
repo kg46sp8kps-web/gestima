@@ -16,7 +16,7 @@ import { getIdoInfo, getIdoData } from '@/api/infor'
 import type { InforIdoDataParams } from '@/types/infor'
 import { useUiStore } from '@/stores/ui'
 import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle } from 'lucide-vue-next'
-import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
+import { ICON_SIZE } from '@/config/design'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforDataTable from './InforDataTable.vue'
 import type { StagedRoutingRow } from '@/types/infor'
@@ -303,8 +303,8 @@ function fmt(val: unknown, decimals = 2): string {
     <div class="section" v-if="stagedRows.length > 0">
       <h4>2. Review & Import ({{ stagedRows.length.toLocaleString() }} řádků)</h4>
       <div class="summary">
-        <span class="badge-valid"><CheckCircle :size="ICON_SIZE_SM" /> {{ validCount.toLocaleString() }} valid</span>
-        <span class="badge-error"><XCircle :size="ICON_SIZE_SM" /> {{ errorCount.toLocaleString() }} errors</span>
+        <span class="badge"><span class="badge-dot-ok"></span>{{ validCount.toLocaleString() }} valid</span>
+        <span class="badge"><span class="badge-dot-error"></span>{{ errorCount.toLocaleString() }} chyb</span>
       </div>
       <div class="toolbar">
         <button @click="doSelectAll" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
@@ -375,8 +375,6 @@ h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad)
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
-.badge-valid { padding: 4px 6px; background: var(--raised); color: var(--ok); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
-.badge-error { padding: 4px 6px; background: var(--raised); color: var(--err); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
 .table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
 .staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
 .staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; }

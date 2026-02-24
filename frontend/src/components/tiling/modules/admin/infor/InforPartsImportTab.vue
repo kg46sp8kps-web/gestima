@@ -14,7 +14,7 @@ import { previewPartsImport, executePartsImport } from '@/api/infor-jobs'
 import { getIdoInfo, getIdoData } from '@/api/infor'
 import { useUiStore } from '@/stores/ui'
 import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle, AlertTriangle } from 'lucide-vue-next'
-import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
+import { ICON_SIZE } from '@/config/design'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforDataTable from './InforDataTable.vue'
 import type { StagedPartRow, InforIdoDataParams } from '@/types/infor'
@@ -206,9 +206,9 @@ function toggleStaged(row: StagedPartRow) {
     <div class="section" v-if="stagedRows.length > 0">
       <h4>2. Review & Import</h4>
       <div class="summary">
-        <span class="badge-valid"><CheckCircle :size="ICON_SIZE_SM" /> {{ stagedRows.filter(r => r.validation.is_valid).length }} valid</span>
-        <span class="badge-error"><XCircle :size="ICON_SIZE_SM" /> {{ stagedRows.filter(r => !r.validation.is_valid).length }} errors</span>
-        <span class="badge-dup"><AlertTriangle :size="ICON_SIZE_SM" /> {{ stagedRows.filter(r => r.validation.is_duplicate).length }} duplicit</span>
+        <span class="badge"><span class="badge-dot-ok"></span>{{ stagedRows.filter(r => r.validation.is_valid).length }} valid</span>
+        <span class="badge"><span class="badge-dot-error"></span>{{ stagedRows.filter(r => !r.validation.is_valid).length }} chyb</span>
+        <span class="badge"><span class="badge-dot-warn"></span>{{ stagedRows.filter(r => r.validation.is_duplicate).length }} duplicit</span>
       </div>
       <div class="toolbar">
         <button @click="selectedStaged = [...stagedRows]" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
@@ -263,9 +263,6 @@ h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad)
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
-.badge-valid { padding: 4px 6px; background: rgba(52,211,153,0.1); color: var(--ok); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
-.badge-error { padding: 4px 6px; background: rgba(248,113,113,0.1); color: var(--err); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
-.badge-dup { padding: 4px 6px; background: rgba(251,191,36,0.1); color: var(--warn); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
 .table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
 .staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
 .staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; }

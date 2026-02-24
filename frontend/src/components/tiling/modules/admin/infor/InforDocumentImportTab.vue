@@ -11,7 +11,7 @@ import { ref, computed } from 'vue'
 import { previewDocumentImport, executeDocumentImport } from '@/api/infor-jobs'
 import { useUiStore } from '@/stores/ui'
 import { Download, Trash2, Check, X, CheckCircle, XCircle, AlertTriangle } from 'lucide-vue-next'
-import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
+import { ICON_SIZE } from '@/config/design'
 import InforDocumentQueryPanel from './InforDocumentQueryPanel.vue'
 import type { StagedDocumentRow } from '@/types/infor'
 
@@ -154,10 +154,10 @@ async function executeImport() {
 
       <!-- Summary stats -->
       <div class="summary">
-        <span class="badge-neutral">Celkem: {{ stagedRows.length }}</span>
-        <span class="badge-valid"><CheckCircle :size="ICON_SIZE_SM" /> Napárováno: {{ matchedCount }}</span>
-        <span class="badge-dup"><AlertTriangle :size="ICON_SIZE_SM" /> Duplikáty: {{ duplicateCount }}</span>
-        <span class="badge-error"><XCircle :size="ICON_SIZE_SM" /> Chyby: {{ errorCount }}</span>
+        <span class="badge"><span class="badge-dot-neutral"></span>Celkem: {{ stagedRows.length }}</span>
+        <span class="badge"><span class="badge-dot-ok"></span>Napárováno: {{ matchedCount }}</span>
+        <span class="badge"><span class="badge-dot-warn"></span>Duplikáty: {{ duplicateCount }}</span>
+        <span class="badge"><span class="badge-dot-error"></span>Chyby: {{ errorCount }}</span>
       </div>
 
       <div class="toolbar">
@@ -230,10 +230,6 @@ h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad)
 .toolbar { display: flex; gap: 6px; margin: var(--pad) 0; flex-wrap: wrap; }
 .import-btn { margin-top: var(--pad); }
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; flex-wrap: wrap; }
-.badge-neutral { padding: 4px 6px; background: var(--surface); color: var(--t3); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
-.badge-valid { padding: 4px 6px; background: var(--raised); color: var(--ok); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
-.badge-error { padding: 4px 6px; background: var(--raised); color: var(--err); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
-.badge-dup { padding: 4px 6px; background: var(--raised); color: var(--warn); border-radius: var(--r); font-size: var(--fs); display: inline-flex; align-items: center; gap: 4px; }
 .table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
 .staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
 .staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; }
@@ -251,7 +247,7 @@ h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad)
 .icon-valid { color: var(--ok); }
 .icon-error { color: var(--err); }
 .icon-dup { color: var(--warn); }
-.part-match { color: var(--t1); font-family: var(--mono); font-size: var(--fs); }
+.part-match { color: var(--t1); font-family: var(--font); font-size: var(--fs); }
 .part-none { color: var(--t3); font-style: italic; font-size: var(--fs); }
 .errors-cell { max-width: 260px; color: var(--err); font-size: var(--fs); overflow: hidden; text-overflow: ellipsis; }
 .warn-text { color: var(--warn); }

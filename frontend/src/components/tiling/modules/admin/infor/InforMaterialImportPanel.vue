@@ -400,7 +400,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
     <div class="split-layout">
       <!-- LEFT: Source Data -->
       <div class="left-panel" :style="{ width: panelSize + '%' }">
-        <h4>1. Load from Infor</h4>
+        <h4>1. Načíst z Infor</h4>
 
         <!-- IDO Name + Field Chooser in 2 columns -->
         <div class="form-grid-ido">
@@ -408,7 +408,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
             <label>IDO Name</label>
             <div class="input-with-button">
               <input v-model="selectedIdo" class="input" placeholder="SLItems" />
-              <button @click="fetchFields" :disabled="fetchingFields" class="icon-btn" title="Fetch Fields">
+              <button @click="fetchFields" :disabled="fetchingFields" class="icon-btn" title="Načíst pole">
                 <FileText :size="ICON_SIZE" v-if="!fetchingFields" />
                 <span v-else class="spinner"></span>
               </button>
@@ -473,7 +473,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
         <div class="data-section">
           <div class="table-header">
             <div class="table-header-left">
-              <button @click="loadInforData" :disabled="loading || !isConnected" class="icon-btn icon-btn-primary" title="Load Data">
+              <button @click="loadInforData" :disabled="loading || !isConnected" class="icon-btn icon-btn-primary" title="Načíst data">
                 <Search :size="ICON_SIZE" v-if="!loading" />
                 <span v-else class="spinner"></span>
               </button>
@@ -523,14 +523,14 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 
       <!-- RIGHT: Staging -->
       <div class="right-panel" :style="{ width: (100 - panelSize) + '%' }">
-        <h4>2. Review & Import</h4>
+        <h4>2. Náhled & Import</h4>
 
         <div v-if="stagedRows.length > 0">
           <!-- Summary -->
           <div class="summary">
-            <span class="badge-valid"><Check :size="ICON_SIZE_SM" /> {{ validCount }} valid</span>
-            <span class="badge-error"><X :size="ICON_SIZE_SM" /> {{ errorCount }} errors</span>
-            <span class="badge-duplicate"><AlertTriangle :size="ICON_SIZE_SM" /> {{ duplicateCount }} duplicates</span>
+            <span class="badge"><span class="badge-dot-ok"></span>{{ validCount }} platných</span>
+            <span class="badge"><span class="badge-dot-error"></span>{{ errorCount }} chyb</span>
+            <span class="badge"><span class="badge-dot-warn"></span>{{ duplicateCount }} duplicitních</span>
           </div>
 
           <!-- Staging Header -->
@@ -567,23 +567,23 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
               <thead>
                 <tr>
                   <th>☑</th>
-                  <th>Status</th>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Shape</th>
-                  <th>Surf</th>
+                  <th>Stav</th>
+                  <th>Kód materiálu</th>
+                  <th>Název</th>
+                  <th>Tvar</th>
+                  <th>Povrch</th>
                   <th>Ø</th>
                   <th>WT</th>
                   <th>W</th>
                   <th>T</th>
                   <th>L</th>
                   <th>kg/m</th>
-                  <th>Group</th>
-                  <th>Price Cat</th>
-                  <th>Supplier</th>
-                  <th>Stock</th>
-                  <th>Norms</th>
-                  <th>Errors</th>
+                  <th>Skupina</th>
+                  <th>Cenová kat.</th>
+                  <th>Dodavatel</th>
+                  <th>Sklad</th>
+                  <th>Normy</th>
+                  <th>Chyby</th>
                 </tr>
               </thead>
               <tbody>
@@ -630,14 +630,14 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 
           <button @click="executeImport" :disabled="selectedValidCount === 0 || importing" class="btn-primary">
             <Download :size="ICON_SIZE_SM" v-if="!importing" />
-            {{ importing ? 'Importing...' : `Import ${selectedValidCount} Materials` }}
+            {{ importing ? 'Importuji...' : `Importovat ${selectedValidCount} materiálů` }}
           </button>
         </div>
 
         <div v-else class="placeholder">
           <p class="empty-state">
             <Package :size="ICON_SIZE_LG" :stroke-width="1.5" />
-            <span>Stage rows from left panel to preview here</span>
+            <span>Staging z levého panelu — náhled se zobrazí zde</span>
           </p>
         </div>
       </div>
@@ -720,7 +720,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 
           <!-- Not Found -->
           <div v-if="testResultNotFound && testResultNotFound.length > 0" class="test-section">
-            <label><XCircle :size="ICON_SIZE_SM" /> Not Found:</label>
+            <label><XCircle :size="ICON_SIZE_SM" /> Nenalezeno:</label>
             <div class="not-found-list">
               <span v-for="field in testResultNotFound" :key="field" class="not-found-item">
                 {{ field }}
@@ -730,7 +730,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
 
           <!-- Errors -->
           <div v-if="testResultErrors && testResultErrors.length > 0" class="test-section">
-            <label><XCircle :size="ICON_SIZE_SM" /> Errors:</label>
+            <label><XCircle :size="ICON_SIZE_SM" /> Chyby:</label>
             <ul class="error-list">
               <li v-for="(error, idx) in testResultErrors" :key="idx" class="error-item">
                 {{ error }}
@@ -750,7 +750,7 @@ function getStatusIcon(row: StagedMaterialRow): 'error' | 'warning' | 'success' 
         </div>
 
         <div class="modal-footer">
-          <button @click="closeTestModal" class="btn-primary">Close</button>
+          <button @click="closeTestModal" class="btn-primary">Zavřít</button>
         </div>
       </div>
     </div>
@@ -953,48 +953,6 @@ h4 {
   flex-wrap: wrap;
 }
 
-.badge-valid {
-  padding: 6px var(--pad);
-  background: var(--green-10);
-  color: var(--green);
-  border: 1px solid var(--green-15);
-  border-radius: var(--r);
-  font-size: var(--fs);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.badge-error {
-  padding: 6px var(--pad);
-  background: var(--red-10);
-  color: var(--err);
-  border: 1px solid var(--red-20);
-  border-radius: var(--r);
-  font-size: var(--fs);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.badge-duplicate {
-  padding: 6px var(--pad);
-  background: rgba(251,191,36,0.1);
-  color: var(--warn);
-  border: 1px solid rgba(251,191,36,0.15);
-  border-radius: var(--r);
-  font-size: var(--fs);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.row-valid {
-  background: var(--green-10);
-}
 
 .row-error {
   background: var(--red-10);

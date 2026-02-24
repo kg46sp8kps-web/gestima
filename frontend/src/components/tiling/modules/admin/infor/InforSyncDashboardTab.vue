@@ -116,11 +116,11 @@ onUnmounted(() => {
       <div class="status-indicator">
         <span v-if="running" class="badge badge-running">
           <span class="badge-dot badge-dot-ok"></span>
-          Running
+          Běží
         </span>
         <span v-else class="badge badge-stopped">
           <span class="badge-dot badge-dot-neutral"></span>
-          Stopped
+          Zastaveno
         </span>
       </div>
       <div class="header-actions">
@@ -128,16 +128,16 @@ onUnmounted(() => {
           <RefreshCw :size="ICON_SIZE" :class="{ spin: loading }" />
         </button>
         <button v-if="!running" @click="handleStart" class="btn-primary">
-          <Play :size="ICON_SIZE_SM" /> Start
+          <Play :size="ICON_SIZE_SM" /> Spustit
         </button>
         <button v-else @click="handleStop" class="btn-secondary">
-          <Square :size="ICON_SIZE_SM" /> Stop
+          <Square :size="ICON_SIZE_SM" /> Zastavit
         </button>
       </div>
     </div>
 
     <div class="section">
-      <h4>Pipeline Steps</h4>
+      <h4>Kroky pipeline</h4>
       <SyncStepsTable
         :steps="steps"
         :triggering-step="triggeringStep"
@@ -147,7 +147,7 @@ onUnmounted(() => {
     </div>
 
     <div class="section">
-      <h4>Recent Logs (last 50)</h4>
+      <h4>Poslední logy (posl. 50)</h4>
       <SyncLogsTable :logs="logs" />
     </div>
   </div>

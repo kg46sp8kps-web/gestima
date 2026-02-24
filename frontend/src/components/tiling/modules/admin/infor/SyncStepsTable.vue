@@ -42,39 +42,39 @@ function formatRelativeTime(isoDate: string | null): string {
     <table class="steps-table">
       <thead>
         <tr>
-          <th>Step</th>
+          <th>Krok</th>
           <th>IDO</th>
-          <th>Status</th>
-          <th>Last Sync</th>
-          <th>C/U/E</th>
-          <th>Actions</th>
+          <th>Stav</th>
+          <th>Poslední sync</th>
+          <th>V/A/Ch</th>
+          <th>Akce</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="step in steps" :key="step.id">
           <td>{{ step.step_name }}</td>
-          <td class="font-mono text-xs">{{ step.ido_name }}</td>
+          <td class="cell-mono">{{ step.ido_name }}</td>
           <td>
             <CheckCircle v-if="stepStatus(step) === 'ok'" :size="ICON_SIZE_SM" class="icon-ok" />
             <XCircle v-else-if="stepStatus(step) === 'error'" :size="ICON_SIZE_SM" class="icon-error" />
             <Clock v-else :size="ICON_SIZE_SM" class="icon-idle" />
           </td>
-          <td class="text-xs text-secondary">{{ formatRelativeTime(step.last_sync_at) }}</td>
-          <td class="font-mono text-xs">{{ step.created_count }}/{{ step.updated_count }}/{{ step.error_count }}</td>
+          <td class="cell-time">{{ formatRelativeTime(step.last_sync_at) }}</td>
+          <td class="cell-mono">{{ step.created_count }}/{{ step.updated_count }}/{{ step.error_count }}</td>
           <td>
             <div class="action-buttons">
               <button
                 @click="emit('trigger', step.step_name)"
                 :disabled="triggeringStep === step.step_name"
                 class="icon-btn icon-btn-sm"
-                title="Trigger now"
+                title="Spustit"
               >
                 <Play :size="ICON_SIZE_SM" />
               </button>
               <button
                 @click="emit('toggle-enabled', step)"
                 :class="['icon-btn', 'icon-btn-sm', { active: step.enabled }]"
-                title="Toggle enabled"
+                title="Povolit/zakázat"
               >
                 <Power :size="ICON_SIZE_SM" />
               </button>
@@ -137,6 +137,16 @@ function formatRelativeTime(isoDate: string | null): string {
 }
 
 .icon-idle {
+  color: var(--t3);
+}
+
+.cell-mono {
+  font-size: var(--fsm);
+  color: var(--t2);
+}
+
+.cell-time {
+  font-size: var(--fsm);
   color: var(--t3);
 }
 </style>

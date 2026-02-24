@@ -1,25 +1,27 @@
 <script setup lang="ts">
 /**
- * Production Import Tab - Import ProductionRecords from Infor SLJobRoutes
+ * Job Materials Import Tab - Import MaterialInputs from Infor SLJobmatls
  *
- * Default properties pre-filled, ready to load immediately.
- * Virtual scroll for 200k+ rows — only renders visible rows.
- * Set-based selection for O(1) checks at scale.
+ * Default properties pre-filled: ItmItem,Item,OperNum,MatlQtyConv,UM
+ * User can click "Načíst pole" to expand selection via InforFieldSelector.
+ * "Načíst data" works immediately without fetching fields first.
+ *
+ * Virtual scroll for large datasets — only renders visible rows.
  */
 
 import { ref, computed } from 'vue'
 import { useDialog } from '@/composables/useDialog'
-import { previewProductionImport, executeProductionImport } from '@/api/infor-jobs'
+import { previewJobMaterialsImport, executeJobMaterialsImport } from '@/api/infor-jobs'
 import { getIdoInfo, getIdoData } from '@/api/infor'
 import type { InforIdoDataParams } from '@/types/infor'
 import { useUiStore } from '@/stores/ui'
 import { FileText, Search, Download, Trash2, Check, X, CheckCircle, XCircle } from 'lucide-vue-next'
-import { ICON_SIZE, ICON_SIZE_SM } from '@/config/design'
+import { ICON_SIZE } from '@/config/design'
 import InforFieldSelector from './InforFieldSelector.vue'
 import InforDataTable from './InforDataTable.vue'
-import type { StagedProductionRow } from '@/types/infor'
+import type { StagedJobMaterialRow } from '@/types/infor'
 
-const DEFAULT_PROPERTIES = 'Job,JobItem,OperNum,Wc,JobQtyReleased,JshSetupHrs,DerRunMchHrs,DerRunLbrHrs,SetupHrsT,RunHrsTMch,RunHrsTLbr,ObsDate'
+const DEFAULT_PROPERTIES = 'ItmItem,Item,OperNum,MatlQtyConv,UM'
 const ROW_HEIGHT = 36
 const VISIBLE_ROWS = 60
 
@@ -29,9 +31,9 @@ const uiStore = useUiStore()
 const { alert } = useDialog()
 
 // IDO state
-const selectedIdo = ref('SLJobRoutes')
+const selectedIdo = ref('SLJobmatls')
 const idoProperties = ref(DEFAULT_PROPERTIES)
-const idoFilter = ref("Type = 'J'")
+const idoFilter = ref("Type = 'S'")
 const idoLimit = ref(100)
 const inforData = ref<Record<string, unknown>[]>([])
 const loading = ref(false)
@@ -44,7 +46,7 @@ const hideUdfFields = ref(true)
 const showFieldSelector = ref(false)
 
 // Staging state
-const stagedRows = ref<StagedProductionRow[]>([])
+const stagedRows = ref<StagedJobMaterialRow[]>([])
 const selectedIndices = ref<Set<number>>(new Set())
 const importing = ref(false)
 const selectAll = ref(true)
@@ -53,12 +55,12 @@ const selectAll = ref(true)
 const scrollTop = ref(0)
 const tableContainer = ref<HTMLElement | null>(null)
 
-const totalHeight = computed(() => stagedRows.value.length * ROW_HEIGHT)
 const startIndex = computed(() => Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - 10))
 const endIndex = computed(() => Math.min(stagedRows.value.length, startIndex.value + VISIBLE_ROWS))
 const visibleRows = computed(() => stagedRows.value.slice(startIndex.value, endIndex.value))
 const offsetY = computed(() => startIndex.value * ROW_HEIGHT)
 
+// Counts
 const validCount = computed(() => stagedRows.value.filter(r => r.validation.is_valid).length)
 const errorCount = computed(() => stagedRows.value.length - validCount.value)
 const selectedValidCount = computed(() => {
@@ -107,11 +109,9 @@ function doDeselectAll() {
   selectedIndices.value.clear()
 }
 
-function getSelectedRows(): StagedProductionRow[] {
+function getSelectedRows(): StagedJobMaterialRow[] {
   if (selectAll.value) return stagedRows.value
-  return [...selectedIndices.value]
-    .map(i => stagedRows.value[i])
-    .filter((r): r is StagedProductionRow => r != null)
+  return [...selectedIndices.value].map(i => stagedRows.value[i]).filter((r): r is StagedJobMaterialRow => !!r)
 }
 
 async function fetchFieldsForIdo() {
@@ -123,11 +123,8 @@ async function fetchFieldsForIdo() {
     availableFields.value = fields.map((f: { name: string; dataType?: string; required?: boolean; readOnly?: boolean }) => ({
       name: f.name, type: f.dataType || 'String', required: f.required || false, readOnly: f.readOnly || false
     }))
-    const hints = ['Job', 'JobItem', 'OperNum', 'Wc', 'Qty', 'Setup', 'RunMch', 'RunLbr', 'DerRun']
     const current = idoProperties.value.split(',').map(s => s.trim()).filter(Boolean)
-    selectedFields.value = current.length > 0
-      ? current.filter(name => availableFields.value.some(f => f.name === name))
-      : availableFields.value.filter(f => hints.some(h => f.name.includes(h))).map(f => f.name).slice(0, 12)
+    selectedFields.value = current.filter(name => availableFields.value.some(f => f.name === name))
     showFieldSelector.value = true
   } catch (error: unknown) {
     const err = error as { response?: { data?: { detail?: string } }; message?: string }
@@ -182,10 +179,11 @@ async function stageAll() {
   progressTotal.value = inforData.value.length
   progressLabel.value = 'Stage'
   try {
-    const result = await previewProductionImport(
+    const result = await previewJobMaterialsImport(
       inforData.value,
       (done, total) => { progressDone.value = done; progressTotal.value = total }
     )
+    // Strip infor_data to save memory
     for (const row of result.rows) {
       row.infor_data = {}
     }
@@ -211,7 +209,7 @@ async function executeImport() {
   progressTotal.value = rows.length
   progressLabel.value = 'Import'
   try {
-    const result = await executeProductionImport(
+    const result = await executeJobMaterialsImport(
       rows,
       (done, total) => { progressDone.value = done; progressTotal.value = total }
     )
@@ -229,13 +227,11 @@ async function executeImport() {
   }
 }
 
-function fmt(val: unknown, decimals = 1): string {
+function fmtDim(val: unknown): string {
   if (val == null) return '-'
   const n = Number(val)
-  return isNaN(n) ? '-' : n.toFixed(decimals)
+  return isNaN(n) ? '-' : n.toFixed(1)
 }
-
-
 </script>
 
 <template>
@@ -243,12 +239,12 @@ function fmt(val: unknown, decimals = 1): string {
   <div class="import-tab">
     <!-- STEP 1: Load data -->
     <div class="section">
-      <h4>1. Načíst data z Infor</h4>
+      <h4>1. Načíst materiály z Infor</h4>
 
       <div class="query-row">
         <div class="form-group">
           <label>IDO</label>
-          <input v-model="selectedIdo" type="text" class="input" placeholder="SLJobRoutes" />
+          <input v-model="selectedIdo" type="text" class="input" placeholder="SLJobmatls" />
         </div>
         <div class="form-group fg-wide">
           <label>Properties</label>
@@ -263,7 +259,7 @@ function fmt(val: unknown, decimals = 1): string {
       <div class="query-row">
         <div class="form-group fg-wide">
           <label>Filter (SQL WHERE)</label>
-          <input v-model="idoFilter" type="text" class="input" placeholder="Type = 'J'" />
+          <input v-model="idoFilter" type="text" class="input" placeholder="ItmItem LIKE 'A%'" />
         </div>
       </div>
 
@@ -279,6 +275,7 @@ function fmt(val: unknown, decimals = 1): string {
         </button>
       </div>
 
+      <!-- Optional: expanded field selector -->
       <InforFieldSelector
         v-if="showFieldSelector && availableFields.length > 0"
         :available-fields="availableFields"
@@ -290,6 +287,7 @@ function fmt(val: unknown, decimals = 1): string {
         @update:hide-udf-fields="hideUdfFields = $event"
       />
 
+      <!-- Progress bar -->
       <div v-if="progressTotal > 0" class="progress-bar-container">
         <div class="progress-info">{{ progressLabel }}: {{ progressDone.toLocaleString() }} / {{ progressTotal.toLocaleString() }}</div>
         <div class="progress-track">
@@ -310,9 +308,7 @@ function fmt(val: unknown, decimals = 1): string {
       <div class="toolbar">
         <button @click="doSelectAll" class="btn-secondary"><Check :size="ICON_SIZE" /> Vybrat vše</button>
         <button @click="doDeselectAll" class="btn-secondary"><X :size="ICON_SIZE" /> Zrušit výběr</button>
-        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive">
-          <Trash2 :size="ICON_SIZE" /> Vymazat
-        </button>
+        <button @click="stagedRows = []; selectAll = true; selectedIndices.clear()" class="btn-destructive"><Trash2 :size="ICON_SIZE" /> Vymazat</button>
       </div>
 
       <!-- Virtual scroll container -->
@@ -321,59 +317,60 @@ function fmt(val: unknown, decimals = 1): string {
           <thead>
             <tr>
               <th class="col-check">☑</th>
-              <th class="col-status">St</th>
-              <th class="col-text">Article #</th>
-              <th class="col-text">Job</th>
-              <th class="col-val">OP</th>
-              <th class="col-val">Ks</th>
-              <th class="col-val">Setup plán</th>
-              <th class="col-val">Stroj plán</th>
-              <th class="col-val">Obsl plán</th>
-              <th class="col-val">Man plán</th>
-              <th class="col-val">Setup real</th>
-              <th class="col-val">Stroj real</th>
-              <th class="col-val">Obsl real</th>
-              <th class="col-val">Man real</th>
-              <th class="col-text">WC</th>
-              <th class="col-errors">Chyby</th>
+              <th class="col-status">Status</th>
+              <th>Díl</th>
+              <th>Materiál</th>
+              <th class="col-num">OperNum</th>
+              <th class="col-num">Množství</th>
+              <th>Shape</th>
+              <th class="col-num">Rozměry</th>
+              <th>Cenová kat.</th>
+              <th>Chyby</th>
             </tr>
           </thead>
-          <tbody :style="{ height: totalHeight + 'px', position: 'relative' }">
+          <tbody>
             <!-- Spacer top -->
-            <tr v-if="offsetY > 0" :style="{ height: offsetY + 'px' }"><td colspan="16"></td></tr>
+            <tr v-if="offsetY > 0" :style="{ height: offsetY + 'px' }"><td colspan="10"></td></tr>
             <!-- Visible rows only -->
             <tr v-for="row in visibleRows" :key="row.row_index"
                 :class="{ 'row-error': !row.validation.is_valid }"
                 :style="{ height: ROW_HEIGHT + 'px' }"
                 @click="toggleRow(row.row_index)">
               <td class="col-check"><input type="checkbox" :checked="isSelected(row.row_index)" /></td>
-              <td class="col-status">
-                <XCircle v-if="!row.validation.is_valid" :size="ICON_SIZE_SM" class="icon-error" />
-                <CheckCircle v-else :size="ICON_SIZE_SM" class="icon-valid" />
+              <td class="status-cell">
+                <XCircle v-if="!row.validation.is_valid" :size="ICON_SIZE" class="icon-error" />
+                <CheckCircle v-else :size="ICON_SIZE" class="icon-valid" />
               </td>
-              <td class="col-text">{{ row.mapped_data.article_number || '-' }}</td>
-              <td class="col-text">{{ row.mapped_data.infor_order_number || '-' }}</td>
-              <td class="col-val">{{ row.mapped_data.operation_seq }}</td>
-              <td class="col-val">{{ row.mapped_data.batch_quantity ?? '-' }}</td>
-              <td class="col-val">{{ fmt(row.mapped_data.planned_setup_min) }}</td>
-              <td class="col-val">{{ fmt(row.mapped_data.planned_time_min, 2) }}</td>
-              <td class="col-val">{{ fmt(row.mapped_data.planned_labor_time_min, 2) }}</td>
-              <td class="col-val">{{ row.mapped_data.manning_coefficient != null ? fmt(row.mapped_data.manning_coefficient, 0) + '%' : '-' }}</td>
-              <td class="col-val">{{ fmt(row.mapped_data.actual_setup_min) }}</td>
-              <td class="col-val highlight">{{ fmt(row.mapped_data.actual_time_min, 2) }}</td>
-              <td class="col-val">{{ fmt(row.mapped_data.actual_labor_time_min, 2) }}</td>
-              <td class="col-val">{{ row.mapped_data.actual_manning_coefficient != null ? fmt(row.mapped_data.actual_manning_coefficient, 0) + '%' : '-' }}</td>
-              <td class="col-text">{{ row.mapped_data.infor_wc_code || '-' }}</td>
-              <td class="col-errors">{{ row.validation.errors.join(', ') || '-' }}</td>
+              <td>{{ row.mapped_data.article_number || '-' }}</td>
+              <td>{{ row.mapped_data.material_item_code || '-' }}</td>
+              <td class="col-num">{{ row.mapped_data.operation_seq ?? '-' }}</td>
+              <td class="col-num">{{ row.mapped_data.matl_qty ?? '-' }} {{ row.mapped_data.unit || '' }}</td>
+              <td>{{ row.mapped_data.stock_shape || '-' }}</td>
+              <td class="col-num">
+                <template v-if="row.mapped_data.stock_diameter">∅{{ fmtDim(row.mapped_data.stock_diameter) }}</template>
+
+                <template v-else-if="row.mapped_data.stock_width">{{ fmtDim(row.mapped_data.stock_width) }}x{{ fmtDim(row.mapped_data.stock_height) }}</template>
+
+                <template v-else>-</template>
+
+                <template v-if="row.mapped_data.stock_length"> L{{ fmtDim(row.mapped_data.stock_length) }}</template>
+
+              </td>
+              <td>{{ row.mapped_data.price_category_name || (row.mapped_data.price_category_id ? `#${row.mapped_data.price_category_id}` : '-') }}</td>
+              <td class="errors-cell">
+                <span v-if="row.validation.errors.length">{{ row.validation.errors.join(', ') }}</span>
+                <span v-else-if="row.validation.warnings.length" class="warnings-text">{{ row.validation.warnings.join(', ') }}</span>
+                <span v-else>-</span>
+              </td>
             </tr>
             <!-- Spacer bottom -->
-            <tr v-if="endIndex < stagedRows.length" :style="{ height: (stagedRows.length - endIndex) * ROW_HEIGHT + 'px' }"><td colspan="16"></td></tr>
+            <tr v-if="endIndex < stagedRows.length" :style="{ height: (stagedRows.length - endIndex) * ROW_HEIGHT + 'px' }"><td colspan="10"></td></tr>
           </tbody>
         </table>
       </div>
 
       <button @click="executeImport" :disabled="selectedValidCount === 0 || importing" class="btn-primary import-btn">
-        <Download :size="ICON_SIZE" /> Importovat {{ selectedValidCount.toLocaleString() }} záznamů
+        <Download :size="ICON_SIZE" /> Importovat {{ selectedValidCount.toLocaleString() }} materiálů
       </button>
     </div>
   </div>
@@ -390,19 +387,19 @@ h4 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 0 0 var(--pad)
 .summary { display: flex; gap: var(--pad); margin-bottom: 6px; }
 .table-scroll { overflow: auto; border: 1px solid var(--b2); border-radius: var(--r); max-height: 400px; }
 .staging-table { width: 100%; border-collapse: collapse; font-size: var(--fs); }
-.staging-table th { background: var(--surface); padding: 4px 6px; text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
-.staging-table td { padding: 4px 6px; border-bottom: 1px solid var(--b1); white-space: nowrap; }
+.staging-table th { background: var(--surface); padding: 6px var(--pad); text-align: left; font-weight: 600; color: var(--t3); border-bottom: 1px solid var(--b2); position: sticky; top: 0; z-index: 1; }
+.staging-table td { padding: 4px var(--pad); border-bottom: 1px solid var(--b1); white-space: nowrap; }
 .staging-table tbody tr { cursor: pointer; }
 .staging-table tbody tr:hover { background: var(--b1); }
 .row-error { background: rgba(248,113,113,0.1); }
-.col-check { width: 28px; text-align: center; }
-.col-status { width: 28px; text-align: center; }
-.col-text { text-align: left; }
-.col-val { text-align: left; font-variant-numeric: tabular-nums; }
-.col-val.highlight { font-weight: 600; color: var(--t1); }
-.col-errors { max-width: 200px; color: var(--err); font-size: var(--fs); overflow: hidden; text-overflow: ellipsis; }
+.col-check { width: 32px; text-align: center; }
+.col-status { width: 40px; text-align: center; }
+.col-num { text-align: right; font-variant-numeric: tabular-nums; }
+.status-cell { text-align: center; }
 .icon-valid { color: var(--ok); }
 .icon-error { color: var(--err); }
+.errors-cell { max-width: 300px; color: var(--err); font-size: var(--fs); }
+.warnings-text { color: var(--t3); }
 .progress-bar-container { margin: var(--pad) 0; }
 .progress-info { font-size: var(--fs); color: var(--t3); margin-bottom: 4px; }
 .progress-track { height: 6px; background: var(--surface); border-radius: 99px; overflow: hidden; }

@@ -198,20 +198,6 @@ function getStatusText(row: MappingRow): string {
   border-bottom: 1px solid var(--b1);
 }
 
-.input {
-  width: 100%;
-  padding: 4px 6px;
-  border: 1px solid var(--b2);
-  background: var(--base);
-  color: var(--t1);
-  border-radius: var(--rs);
-  font-size: var(--fs);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--b3);
-}
 
 .status-cell {
   text-align: center;

@@ -65,8 +65,8 @@ function initDraft(op: Operation) {
       setup_time_min: op.setup_time_min,
       operation_time_min: op.operation_time_min,
       work_center_id: op.work_center_id,
-      ke: op.manning_coefficient,
-      ko: op.machine_utilization_coefficient,
+      ke: op.machine_utilization_coefficient,
+      ko: op.manning_coefficient,
     }
   }
 }
@@ -76,8 +76,8 @@ function resetDraft(op: Operation) {
     setup_time_min: op.setup_time_min,
     operation_time_min: op.operation_time_min,
     work_center_id: op.work_center_id,
-    ke: op.manning_coefficient,
-    ko: op.machine_utilization_coefficient,
+    ke: op.machine_utilization_coefficient,
+    ko: op.manning_coefficient,
   }
 }
 
@@ -103,8 +103,8 @@ async function saveOp(op: Operation) {
     setup_time_min: setup,
     operation_time_min: optime,
     work_center_id: draft.work_center_id ?? undefined,
-    manning_coefficient: draft.ke,
-    machine_utilization_coefficient: draft.ko,
+    machine_utilization_coefficient: draft.ke,
+    manning_coefficient: draft.ko,
     version: op.version,
   })
 }
@@ -205,8 +205,10 @@ async function deleteOp(opId: number) {
 
 async function addOp() {
   if (!part.value) return
+  const maxSeq = operations.value.length > 0 ? Math.max(...operations.value.map((o) => o.seq)) : 0
   const newOp = await ops.createOp({
     part_id: part.value.id,
+    seq: maxSeq + 10,
     manning_coefficient: 100,
     machine_utilization_coefficient: 100,
   })
@@ -323,6 +325,7 @@ onMounted(async () => {
                     class="chev"
                     :class="{ open: openDetails.has(op.id) }"
                     :data-testid="`op-chev-${op.id}`"
+                    tabindex="-1"
                     @click.stop="toggleDetail(op.id)"
                   >▶</button>
                 </td>
@@ -340,6 +343,7 @@ onMounted(async () => {
                 </td>
 
                 <td class="r">
+                  <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                   <input
                     v-select-on-focus
                     class="inp num"
@@ -357,6 +361,7 @@ onMounted(async () => {
                 </td>
 
                 <td class="r">
+                  <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                   <input
                     :ref="(el) => { if (el) optimeRefs[op.id] = el as HTMLInputElement }"
                     v-select-on-focus
@@ -376,6 +381,7 @@ onMounted(async () => {
 
                 <td class="r">
                   <div class="coef-cell">
+                    <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                     <input
                       :ref="(el) => { if (el) keRefs[op.id] = el as HTMLInputElement }"
                       v-select-on-focus
@@ -397,6 +403,7 @@ onMounted(async () => {
 
                 <td class="r">
                   <div class="coef-cell">
+                    <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
                     <input
                       :ref="(el) => { if (el) koRefs[op.id] = el as HTMLInputElement }"
                       v-select-on-focus
@@ -421,6 +428,7 @@ onMounted(async () => {
                     class="del-btn"
                     :data-testid="`op-del-${op.id}`"
                     title="Smazat (Ctrl+D)"
+                    tabindex="-1"
                     @click="deleteOp(op.id)"
                   >×</button>
                 </td>

@@ -68,18 +68,5 @@ const emit = defineEmits<{
   gap: var(--pad);
 }
 
-.input {
-  width: 100%;
-  padding: 6px var(--pad);
-  border: 1px solid var(--b2);
-  border-radius: var(--r);
-  background: var(--ground);
-  color: var(--t1);
-  font-size: var(--fs);
-}
 
-.input:focus {
-  outline: none;
-  border-color: var(--b3);
-}
 </style>

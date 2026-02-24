@@ -56,7 +56,7 @@ function useIdoForBrowse(idoName: string) {
 <template>
   <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="discovery-tab">
-    <p class="description">Find available IDO (Intelligent Data Objects) collections</p>
+    <p class="description">Hledat dostupné IDO (Intelligent Data Objects) kolekce</p>
 
     <div class="form-group">
       <label>Custom IDO Names (comma-separated, optional)</label>
@@ -64,24 +64,24 @@ function useIdoForBrowse(idoName: string) {
     </div>
 
     <button @click="runDiscovery" :disabled="discoveryLoading || !props.isConnected" class="btn-primary">
-      {{ discoveryLoading ? 'Discovering...' : 'Run Discovery' }}
+      {{ discoveryLoading ? 'Hledám...' : 'Spustit discovery' }}
     </button>
 
     <div v-if="discoveryResults" class="discovery-results">
       <div v-if="foundIdos.length > 0" class="found-box">
-        <div class="result-header">Found IDOs ({{ foundIdos.length }})</div>
+        <div class="result-header">Nalezená IDO ({{ foundIdos.length }})</div>
         <div class="ido-list">
           <div v-for="ido in foundIdos" :key="ido" class="ido-item">
             <span class="ido-name">{{ ido }}</span>
             <button @click="useIdoForBrowse(ido)" class="btn-secondary">
-              Browse <ArrowRight :size="ICON_SIZE_SM" />
+              Procházet <ArrowRight :size="ICON_SIZE_SM" />
             </button>
           </div>
         </div>
       </div>
 
       <div v-if="discoveryResults.not_found.length > 0" class="not-found-box">
-        <div class="result-header">Not Found ({{ discoveryResults.not_found.length }})</div>
+        <div class="result-header">Nenalezeno ({{ discoveryResults.not_found.length }})</div>
         <div class="tag-list">
           <span v-for="ido in discoveryResults.not_found" :key="ido" class="tag">{{ ido }}</span>
         </div>

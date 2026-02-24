@@ -49,12 +49,12 @@ async function getIdoInfo() {
 <template>
   <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="info-tab">
-    <p class="description">Get detailed metadata about IDO properties and schema</p>
+    <p class="description">Načíst metadata IDO — vlastnosti a schéma</p>
 
     <div class="form-row">
       <input v-model="selectedIdoForInfo" type="text" placeholder="Enter IDO name" class="input flex-1" />
       <button @click="getIdoInfo" :disabled="idoInfoLoading || !props.isConnected" class="btn-primary">
-        {{ idoInfoLoading ? 'Loading...' : 'Get Info' }}
+        {{ idoInfoLoading ? 'Načítám...' : 'Načíst info' }}
       </button>
     </div>
 
@@ -82,19 +82,6 @@ async function getIdoInfo() {
   align-items: center;
 }
 
-.input {
-  padding: 6px var(--pad);
-  border: 1px solid var(--b2);
-  border-radius: var(--r);
-  background: var(--ground);
-  color: var(--t1);
-  font-size: var(--fs);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--b3);
-}
 
 .flex-1 {
   flex: 1;

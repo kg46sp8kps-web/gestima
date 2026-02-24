@@ -250,6 +250,32 @@ body {
 .icon-btn-danger:hover { color: var(--err); background: rgba(248,113,113,0.1); }
 
 /* ═══════════════════════════════════════
+   INPUT — dark themed, for admin/utility forms
+   ═══════════════════════════════════════ */
+.input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  background: var(--base);
+  color: var(--t1);
+  font-family: var(--font);
+  font-size: var(--fs);
+  transition: border-color 100ms var(--ease);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--b3);
+}
+.input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.input::placeholder {
+  color: var(--t4);
+}
+
+/* ═══════════════════════════════════════
    BADGES — monochrome + dot
    ═══════════════════════════════════════ */
 .badge {

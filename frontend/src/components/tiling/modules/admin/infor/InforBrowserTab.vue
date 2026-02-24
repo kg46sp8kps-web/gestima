@@ -109,15 +109,15 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
   <!-- eslint-disable vue/no-restricted-html-elements -->
   <div class="browser-tab">
     <div class="form-group">
-      <label>IDO Name * <span class="case-warning">(case-sensitive!)</span></label>
+      <label>IDO Name * <span class="case-warning">(rozlišuje velká/malá písmena)</span></label>
       <div class="input-with-button">
         <input v-model="selectedIdo" type="text" placeholder="e.g., IteCzDics" class="input" />
         <button @click="fetchFieldsForIdo" :disabled="fetchingFields || !selectedIdo" class="btn-secondary">
           <FileText :size="ICON_SIZE" v-if="!fetchingFields" />
-          {{ fetchingFields ? 'Loading...' : 'Fetch Fields' }}
+          {{ fetchingFields ? 'Načítám...' : 'Načíst pole' }}
         </button>
       </div>
-      <small class="help-text warning-text"><AlertTriangle :size="ICON_SIZE_SM" /> Use exact case</small>
+      <small class="help-text warning-text"><AlertTriangle :size="ICON_SIZE_SM" /> Zachovat přesný zápis</small>
     </div>
     <InforFieldSelector
       v-if="availableFields.length > 0"
@@ -141,7 +141,7 @@ defineExpose({ setIdo: (ido: string) => (selectedIdo.value = ido) })
     />
     <button @click="browseIdo" :disabled="idoDataLoading || !props.isConnected" class="btn-primary">
       <Search :size="ICON_SIZE" v-if="!idoDataLoading" />
-      {{ idoDataLoading ? 'Loading...' : 'Load Data' }}
+      {{ idoDataLoading ? 'Načítám...' : 'Načíst data' }}
     </button>
     <div v-if="idoDataError" class="error-box">{{ idoDataError }}</div>
     <InforDataTable :data="idoData || []" />

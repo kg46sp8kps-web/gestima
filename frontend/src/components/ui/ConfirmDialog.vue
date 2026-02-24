@@ -1,15 +1,29 @@
 <script setup lang="ts">
+import { ref, watch, nextTick } from 'vue'
 import { useDialog } from '@/composables/useDialog'
 import Button from './Button.vue'
 
 const { confirmDialog, resolveConfirm } = useDialog()
+
+const boxRef = ref<HTMLElement | null>(null)
+
+watch(
+  () => confirmDialog.value,
+  async (val) => {
+    if (val) {
+      await nextTick()
+      const btns = boxRef.value?.querySelectorAll<HTMLButtonElement>('button')
+      btns?.[btns.length - 1]?.focus()
+    }
+  },
+)
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="confirmDialog" class="modal-backdrop" @click.self="resolveConfirm(false)">
-        <div class="confirm-box" role="alertdialog">
+        <div ref="boxRef" class="confirm-box" role="alertdialog">
           <h3 class="confirm-title">{{ confirmDialog.title }}</h3>
           <p class="confirm-message">{{ confirmDialog.message }}</p>
           <div class="confirm-actions">
