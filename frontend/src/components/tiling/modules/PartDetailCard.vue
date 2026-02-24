@@ -32,6 +32,7 @@ interface Draft {
   drawing_number: string | null
   revision: string | null
   customer_revision: string | null
+  unit_weight: number | null
 }
 
 function toDraft(p: Part): Draft {
@@ -41,6 +42,7 @@ function toDraft(p: Part): Draft {
     drawing_number: p.drawing_number ?? null,
     revision: p.revision ?? null,
     customer_revision: p.customer_revision ?? null,
+    unit_weight: p.unit_weight ?? null,
   }
 }
 
@@ -54,7 +56,8 @@ const isDirty = computed(() => {
     draft.value.article_number !== (p.article_number ?? null) ||
     draft.value.drawing_number !== (p.drawing_number ?? null) ||
     draft.value.revision !== (p.revision ?? null) ||
-    draft.value.customer_revision !== (p.customer_revision ?? null)
+    draft.value.customer_revision !== (p.customer_revision ?? null) ||
+    draft.value.unit_weight !== (p.unit_weight ?? null)
   )
 })
 
@@ -77,6 +80,7 @@ async function save() {
     drawing_number: draft.value.drawing_number || undefined,
     revision: draft.value.revision || undefined,
     customer_revision: draft.value.customer_revision || undefined,
+    unit_weight: draft.value.unit_weight ?? null,
     version: props.part.version,
   }
   const updated = await parts.updatePart(props.part.part_number, update)
@@ -224,6 +228,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
     <div class="det-bar">
       <span class="det-pn">{{ part.part_number }}</span>
       <span class="det-nm">{{ part.name || part.article_number || '—' }}</span>
+      <span class="det-uom">{{ part.uom }}</span>
     </div>
 
     <!-- Quick-link strip -->
@@ -294,6 +299,18 @@ watch(() => props.part.id, loadFiles, { immediate: true })
               label="Rev. zák."
               placeholder="—"
               testid="field-customer-revision"
+            />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field field-sm">
+            <Input
+              :modelValue="draft.unit_weight !== null ? String(draft.unit_weight) : ''"
+              @update:modelValue="draft.unit_weight = $event ? Number($event) || null : null"
+              label="Hmotnost (kg/ks)"
+              placeholder="—"
+              type="number"
+              testid="field-unit-weight"
             />
           </div>
         </div>
@@ -389,6 +406,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 }
 .det-pn { font-size: var(--fs); font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
 .det-nm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.det-uom { font-size: var(--fsm); font-weight: 600; color: var(--t4); flex-shrink: 0; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Quick-link strip ─── */
 .ql-strip {

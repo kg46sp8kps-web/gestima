@@ -137,6 +137,8 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
                 FieldMapping("Thickness", "thickness"),
                 FieldMapping("WallThickness", "wall_thickness", fallback_fields=["WallThick"]),
                 FieldMapping("WeightPerMeter", "weight_per_meter", fallback_fields=["Weight"]),
+                FieldMapping("UM", "infor_um"),                                  # ADR-050: měrná jednotka (KG/EA/M)
+                FieldMapping("UnitWeight", "unit_weight"),                       # ADR-050: hmotnost/kus (kg/ks)
                 FieldMapping("StandardLength", "standard_length", fallback_fields=["Length"]),
                 FieldMapping("Norms", "norms"),
                 FieldMapping("SupplierCode", "supplier_code", fallback_fields=["SuppCode"]),
@@ -727,6 +729,29 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
         material_numbers = await NumberGenerator.generate_material_numbers_batch(db, 1)
         material_number = material_numbers[0]
 
+        # ADR-050: Mapovat Infor UM na UOM trojici
+        infor_um = mapped_data.get("infor_um", "")  # KG, EA, M apod.
+        uom = 'kg'
+        conv_uom = None
+        conv_factor = None
+
+        if infor_um == 'EA':
+            uom = 'ks'
+        elif infor_um == 'M':
+            # Infor ukládá metr jako základní jednotku → konverzní pár
+            uom = 'kg'
+            conv_uom = 'm'
+            conv_factor = mapped_data.get("unit_weight")  # UnitWeight z Inforu
+
+        # Fallback: pokud shape profilu a weight_per_meter zadán → konverzní pár
+        weight_per_meter = mapped_data.get("weight_per_meter")
+        if not conv_factor and weight_per_meter:
+            shape = mapped_data.get("shape")
+            profile_shapes = {'round_bar', 'square_bar', 'flat_bar', 'hexagonal_bar', 'tube'}
+            if shape and (shape.value if hasattr(shape, 'value') else shape) in profile_shapes:
+                conv_uom = 'm'
+                conv_factor = weight_per_meter
+
         return MaterialItem(
             material_number=material_number,
             code=mapped_data["code"],
@@ -736,7 +761,7 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
             width=mapped_data.get("width"),
             thickness=mapped_data.get("thickness"),
             wall_thickness=mapped_data.get("wall_thickness"),
-            weight_per_meter=mapped_data.get("weight_per_meter"),
+            weight_per_meter=weight_per_meter,
             standard_length=mapped_data.get("standard_length"),
             norms=mapped_data.get("norms"),
             supplier_code=mapped_data.get("supplier_code"),
@@ -744,7 +769,10 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
             stock_available=mapped_data.get("stock_available", 0.0),
             material_group_id=mapped_data.get("material_group_id"),
             price_category_id=mapped_data.get("price_category_id"),
-            surface_treatment=mapped_data.get("surface_treatment")
+            surface_treatment=mapped_data.get("surface_treatment"),
+            uom=uom,
+            conv_uom=conv_uom,
+            conv_factor=conv_factor,
         )
 
     async def check_duplicate(

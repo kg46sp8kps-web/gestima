@@ -19,7 +19,7 @@ Usage:
 import logging
 import math
 from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -27,6 +27,7 @@ from fastapi import HTTPException, status
 
 from app.models.enums import StockShape
 from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialPriceTier
+from app.services import unit_converter
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class MaterialCalculation:
     quantity: int = 1
     tier_id: Optional[int] = None    # Selected MaterialPriceTier.id
     tier_range: str = ""             # e.g., "0-15 kg"
+    weight_source: str = "volume"    # "catalog" (conv_factor) or "volume" (geometry)
 
 
 # ============================================================================
@@ -367,12 +369,19 @@ async def find_price_tier(
 # MAIN CALCULATION FUNCTION
 # ============================================================================
 
+_PROFILE_SHAPES = frozenset({
+    StockShape.ROUND_BAR, StockShape.SQUARE_BAR,
+    StockShape.FLAT_BAR, StockShape.HEXAGONAL_BAR, StockShape.TUBE
+})
+
+
 async def calculate_material_weight_and_price(
     stock_shape: StockShape,
     dimensions: Dict[str, float],
     price_category_id: int,
     quantity: int = 1,
-    db: AsyncSession = None
+    db: AsyncSession = None,
+    material_item=None,  # Optional MaterialItem instance for catalog priority (ADR-050)
 ) -> MaterialCalculation:
     """
     Calculate material weight and price based on geometry and quantity.
@@ -467,7 +476,29 @@ async def calculate_material_weight_and_price(
     result.volume_dm3 = round(volume_mm3 / 1_000_000, 6)
 
     # === 3. CALCULATE WEIGHT ===
-    weight_per_piece = result.volume_dm3 * result.density
+    # Priority 1: Katalogový faktor (conv_uom + conv_factor nastaven na MaterialItem)
+    catalog_weight: Optional[float] = None
+    if material_item and material_item.conv_uom and material_item.conv_factor:
+        try:
+            stock_length = dimensions.get('length', 0) or 0
+            if stock_shape in _PROFILE_SHAPES and stock_length > 0:
+                catalog_weight = unit_converter.to_base_uom(
+                    stock_length, material_item.conv_uom, material_item.conv_factor
+                )
+            elif stock_shape in (StockShape.CASTING, StockShape.FORGING):
+                # ks-based: conv_factor = kg/ks
+                catalog_weight = material_item.conv_factor
+        except ValueError as e:
+            logger.warning(f"Catalog weight calc failed for material_item {material_item.id}: {e}")
+
+    if catalog_weight is not None and catalog_weight > 0:
+        weight_per_piece = catalog_weight
+        result.weight_source = "catalog"
+    else:
+        # Priority 2: Výpočet z objemu (fallback)
+        weight_per_piece = result.volume_dm3 * result.density
+        result.weight_source = "volume"
+
     result.weight_kg = round(weight_per_piece, 3)
     result.total_weight_kg = round(weight_per_piece * quantity, 3)
 

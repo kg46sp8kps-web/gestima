@@ -198,6 +198,10 @@ class MaterialItemSummary(BaseModel):
     height: Optional[float] = None   # přířez výška (3. fixní rozměr pro plate)
     thickness: Optional[float] = None
     wall_thickness: Optional[float] = None
+    # UOM (ADR-050) — pro určení weight_source na FE
+    uom: str = 'kg'
+    conv_uom: Optional[str] = None
+    conv_factor: Optional[float] = None
 
 
 class PriceCategorySummary(BaseModel):
@@ -215,6 +219,7 @@ class MaterialInputWithOperationsResponse(MaterialInputResponse):
     weight_kg: Optional[float] = Field(None, description="Hmotnost za kus v kg (kalkulováno)")
     cost_per_piece: Optional[float] = Field(None, description="Cena za kus v Kč (kalkulováno)")
     price_per_kg: Optional[float] = Field(None, description="Cena za kg z tieru (kalkulováno)")
+    weight_source: Optional[str] = Field(None, description="Zdroj výpočtu váhy: 'catalog' (katalogový faktor) nebo 'volume' (z objemu)")
 
     # Nested entity summaries
     material_item: Optional[MaterialItemSummary] = Field(None, description="Konkrétní materiálová položka")

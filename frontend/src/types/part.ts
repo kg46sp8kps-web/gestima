@@ -12,6 +12,9 @@ export interface Part {
   status: PartStatus
   source: PartSource
   file_id: number | null
+  // UOM (ADR-050)
+  uom: 'ks'                    // vždy ks pro díly
+  unit_weight: number | null   // kg/ks (pro Infor, expedici)
   version: number
   created_at: string
   updated_at: string
@@ -33,6 +36,7 @@ export interface PartUpdate {
   customer_revision?: string
   drawing_number?: string
   status?: PartStatus
+  unit_weight?: number | null
   version: number
 }
 

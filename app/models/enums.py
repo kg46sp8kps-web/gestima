@@ -44,6 +44,14 @@ class StockShape(str, Enum):
     FORGING = "forging"           # Výkovek
 
 
+class UnitOfMeasure(str, Enum):
+    """Měrné jednotky (ADR-050)"""
+    KS = "ks"   # kusy / pieces (Infor: EA)
+    KG = "kg"   # kilogramy
+    M  = "m"    # metry (typicky jen conv_uom)
+    MM = "mm"   # milimetry (typicky jen conv_uom)
+
+
 class CuttingMode(str, Enum):
     LOW = "low"
     MID = "mid"

@@ -160,4 +160,9 @@ function onKeydown(e: KeyboardEvent) {
 .input-hint-error {
   color: var(--err);
 }
+
+/* ─── Remove number input spinners ─── */
+.input-ctrl::-webkit-outer-spin-button,
+.input-ctrl::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.input-ctrl[type=number] { -moz-appearance: textfield; }
 </style>

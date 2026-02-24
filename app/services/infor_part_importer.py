@@ -53,6 +53,7 @@ class PartImporter(InforImporterBase[Part]):
                 FieldMapping("Revision", "customer_revision", required=False),
                 FieldMapping("RybTridaNazev1", "infor_status", required=False),
                 FieldMapping("FamilyCode", "family_code", required=False),
+                FieldMapping("UnitWeight", "unit_weight", required=False),  # ADR-050
             ],
             duplicate_check_field="article_number"
         )
@@ -112,6 +113,8 @@ class PartImporter(InforImporterBase[Part]):
         # Generate part_number (10XXXXXX pattern - same as parts_router)
         part_number = await NumberGenerator.generate_part_number(db)
 
+        unit_weight = mapped_data.get("unit_weight")
+
         part = Part(
             part_number=part_number,
             article_number=mapped_data.get("article_number"),
@@ -122,6 +125,9 @@ class PartImporter(InforImporterBase[Part]):
             revision="A",
             status=mapped_data.get("status", "quote"),
             source="infor_import",
+            # UOM (ADR-050)
+            uom="ks",
+            unit_weight=unit_weight,
         )
 
         logger.info(

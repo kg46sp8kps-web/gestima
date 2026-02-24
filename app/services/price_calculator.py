@@ -13,8 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.enums import StockShape
+from app.services import unit_converter
 
 logger = logging.getLogger(__name__)
+
+
+_PROFILE_SHAPES = frozenset({
+    StockShape.ROUND_BAR, StockShape.SQUARE_BAR,
+    StockShape.FLAT_BAR, StockShape.HEXAGONAL_BAR, StockShape.TUBE
+})
 
 
 @dataclass
@@ -24,6 +31,7 @@ class MaterialCost:
     price_per_kg: float = 0
     cost: float = 0
     density: float = 0  # kg/dm³ (pro snapshot)
+    weight_source: str = "volume"  # "catalog" nebo "volume" (ADR-050)
 
 
 @dataclass
@@ -747,9 +755,32 @@ async def calculate_stock_cost_from_material_input(
             r = stock_diameter / 2
             volume_mm3 = math.pi * r**2 * stock_length
 
-    # Převod na hmotnost
-    volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
-    weight_kg = volume_dm3 * material_group.density
+    # === Priority výpočtu váhy (ADR-050) ===
+    # Priority 1: Katalogový faktor (conv_uom + conv_factor nastaven na MaterialItem)
+    material_item = material_input.material_item
+    weight_kg = 0.0
+    weight_source = "volume"
+
+    if material_item and material_item.conv_uom and material_item.conv_factor:
+        try:
+            if stock_shape in _PROFILE_SHAPES and stock_length > 0:
+                weight_kg = unit_converter.to_base_uom(
+                    stock_length, material_item.conv_uom, material_item.conv_factor
+                )
+            elif stock_shape in (StockShape.CASTING, StockShape.FORGING):
+                weight_kg = material_item.conv_factor  # kg/ks
+            if weight_kg > 0:
+                weight_source = "catalog"
+        except ValueError as e:
+            logger.warning(
+                f"Catalog weight calc failed for material_item {material_item.id}: {e}. Fallback to volume."
+            )
+            weight_kg = 0.0
+
+    if weight_source == "volume":
+        # Priority 2: Výpočet z objemu (fallback)
+        volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
+        weight_kg = volume_dm3 * material_group.density
 
     # Zohlednit MaterialInput.quantity (kolik kusů polotovaru na 1 díl)
     weight_kg_per_part = weight_kg * material_input.quantity
@@ -761,11 +792,12 @@ async def calculate_stock_cost_from_material_input(
     # Cena za 1 kus dílu (včetně quantity materiálů)
     cost = weight_kg_per_part * price_per_kg
 
-    result.volume_mm3 = round(volume_mm3, 0)
+    result.volume_mm3 = round(volume_mm3 if weight_source == "volume" else 0.0, 0)
     result.weight_kg = round(weight_kg_per_part, 3)  # Celková váha za 1 díl
     result.price_per_kg = price_per_kg  # Pro snapshot (ADR-012)
     result.density = material_group.density
     result.cost = round(cost, 2)
+    result.weight_source = weight_source  # ADR-050
 
     return result
 

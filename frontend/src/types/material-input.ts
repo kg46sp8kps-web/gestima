@@ -19,6 +19,10 @@ export interface MaterialItemSummary {
   height: number | null   // přířez výška (3. fixní rozměr pro plate)
   thickness: number | null
   wall_thickness: number | null
+  // UOM (ADR-050) — pro weight_source badge
+  uom: string
+  conv_uom: string | null
+  conv_factor: number | null
 }
 
 export interface PriceCategorySummary {
@@ -51,6 +55,7 @@ export interface MaterialInput {
   weight_kg: number | null
   cost_per_piece: number | null
   price_per_kg: number | null
+  weight_source: 'catalog' | 'volume' | null  // ADR-050
   material_item: MaterialItemSummary | null
   price_category: PriceCategorySummary | null
   operations: OperationSummary[]

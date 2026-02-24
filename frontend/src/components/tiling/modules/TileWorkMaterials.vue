@@ -601,7 +601,14 @@ watch(
                 </div>
               </td>
               <td class="r">
-                {{ m.weight_kg != null ? formatNumber(m.weight_kg, 3) + ' kg' : '—' }}
+                <div class="wt-cell">
+                  <span>{{ m.weight_kg != null ? formatNumber(m.weight_kg, 3) + ' kg' : '—' }}</span>
+                  <span
+                    v-if="m.weight_source"
+                    :class="['badge', 'wsrc-badge', m.weight_source === 'catalog' ? 'wsrc-catalog' : 'wsrc-volume']"
+                    :title="m.weight_source === 'catalog' ? 'Váha z katalogu (conv_factor)' : 'Váha z objemu (hustota × objem)'"
+                  >{{ m.weight_source === 'catalog' ? 'katalog' : 'objem' }}</span>
+                </div>
               </td>
               <td class="r">
                 <span class="badge price-val">{{ formatCurrency(m.cost_per_piece) }}</span>
@@ -892,6 +899,20 @@ watch(
 
 /* price-val: pricing value — extends global .badge */
 .price-val { color: var(--green); }
+
+/* ─── Weight cell with source badge ─── */
+.wt-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.wsrc-badge {
+  font-size: var(--fss);
+  padding: 0px 4px;
+}
+.wsrc-catalog { color: var(--ok); }
+.wsrc-volume  { color: var(--t4); }
 
 /* ─── Detail panel (operation links) ─── */
 .detail-panel {

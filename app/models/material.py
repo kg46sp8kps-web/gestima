@@ -7,7 +7,7 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
-from app.models.enums import StockShape
+from app.models.enums import StockShape, UnitOfMeasure
 
 
 class MaterialGroup(Base, AuditMixin):
@@ -150,8 +150,13 @@ class MaterialItem(Base, AuditMixin):
     thickness = Column(Float, nullable=True)                              # mm (pro plate, flat_bar)
     wall_thickness = Column(Float, nullable=True)                         # mm (pro tube - tloušťka stěny)
 
+    # Měrné jednotky (ADR-050 — Migration a0b1c2d3e4f5)
+    uom = Column(String(4), nullable=False, default='kg')                 # Základní jednotka (kg/ks)
+    conv_uom = Column(String(4), nullable=True)                           # Konverzní jednotka (m/mm)
+    conv_factor = Column(Float, nullable=True)                            # 1 conv_uom = conv_factor uom
+
     # Katalogové informace (Migration 2026-01-27)
-    weight_per_meter = Column(Float, nullable=True)                       # kg/m (z katalogu dodavatele)
+    weight_per_meter = Column(Float, nullable=True)                       # kg/m (z katalogu — DEPRECATED, nahrazeno conv_uom='m'+conv_factor)
     standard_length = Column(Float, nullable=True)                        # mm (typicky 6000mm)
     norms = Column(String(200), nullable=True)                            # "EN 10025, EN 10060"
     supplier_code = Column(String(50), nullable=True)                     # "T125110001" (TheSteel kód)
@@ -350,7 +355,11 @@ class MaterialItemBase(BaseModel):
     height: Optional[float] = Field(None, ge=0, description="Výška v mm (pro plate přířez — 3. fixní rozměr)")
     thickness: Optional[float] = Field(None, ge=0, description="Tloušťka v mm (pro plate)")
     wall_thickness: Optional[float] = Field(None, ge=0, description="Tloušťka stěny v mm (pro tube)")
-    weight_per_meter: Optional[float] = Field(None, gt=0, description="Hmotnost na metr v kg/m (z katalogu)")
+    # UOM (ADR-050)
+    uom: str = Field('kg', max_length=4, description="Základní měrná jednotka (kg/ks)")
+    conv_uom: Optional[str] = Field(None, max_length=4, description="Konverzní jednotka (m/mm) — pro katalogový přepočet")
+    conv_factor: Optional[float] = Field(None, gt=0, description="1 conv_uom = conv_factor uom (např. 1 m = 15.41 kg)")
+    weight_per_meter: Optional[float] = Field(None, gt=0, description="Hmotnost na metr v kg/m (DEPRECATED — použij conv_uom='m' + conv_factor)")
     standard_length: Optional[float] = Field(None, gt=0, description="Standardní dodací délka v mm (typicky 6000)")
     norms: Optional[str] = Field(None, max_length=200, description="Normy (např. EN 10025, EN 10060)")
     supplier_code: Optional[str] = Field(None, max_length=50, description="Kód dodavatele (např. T125110001)")
@@ -372,7 +381,11 @@ class MaterialItemCreate(BaseModel):
     height: Optional[float] = Field(None, ge=0, description="Výška v mm (pro plate přířez — 3. fixní rozměr)")
     thickness: Optional[float] = Field(None, ge=0, description="Tloušťka v mm (pro plate)")
     wall_thickness: Optional[float] = Field(None, ge=0, description="Tloušťka stěny v mm (pro tube)")
-    weight_per_meter: Optional[float] = Field(None, gt=0, description="Hmotnost na metr v kg/m (z katalogu)")
+    # UOM (ADR-050)
+    uom: str = Field('kg', max_length=4, description="Základní měrná jednotka (kg/ks)")
+    conv_uom: Optional[str] = Field(None, max_length=4, description="Konverzní jednotka (m/mm)")
+    conv_factor: Optional[float] = Field(None, gt=0, description="1 conv_uom = conv_factor uom")
+    weight_per_meter: Optional[float] = Field(None, gt=0, description="Hmotnost na metr v kg/m (DEPRECATED)")
     standard_length: Optional[float] = Field(None, gt=0, description="Standardní dodací délka v mm (typicky 6000)")
     norms: Optional[str] = Field(None, max_length=200, description="Normy (např. EN 10025, EN 10060)")
     supplier_code: Optional[str] = Field(None, max_length=50, description="Kód dodavatele (např. T125110001)")
@@ -393,6 +406,10 @@ class MaterialItemUpdate(BaseModel):
     height: Optional[float] = Field(None, ge=0)
     thickness: Optional[float] = Field(None, ge=0)
     wall_thickness: Optional[float] = Field(None, ge=0)
+    # UOM (ADR-050)
+    uom: Optional[str] = Field(None, max_length=4)
+    conv_uom: Optional[str] = Field(None, max_length=4)
+    conv_factor: Optional[float] = Field(None, gt=0)
     weight_per_meter: Optional[float] = Field(None, gt=0)
     standard_length: Optional[float] = Field(None, gt=0)
     norms: Optional[str] = Field(None, max_length=200)

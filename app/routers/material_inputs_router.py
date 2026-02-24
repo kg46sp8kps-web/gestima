@@ -124,18 +124,21 @@ async def list_material_inputs(
                     dimensions=dimensions,
                     price_category_id=mat.price_category_id,
                     quantity=mat.quantity,
-                    db=db
+                    db=db,
+                    material_item=mat.material_item,  # ADR-050: catalog priority
                 )
 
                 mat_dict['weight_kg'] = calc.weight_kg
                 mat_dict['cost_per_piece'] = calc.total_cost / mat.quantity if mat.quantity > 0 else 0
                 mat_dict['price_per_kg'] = calc.price_per_kg
+                mat_dict['weight_source'] = calc.weight_source  # ADR-050
             except Exception as e:
                 # If calculation fails, leave as None
                 logger.warning("Failed to calculate for material %s: %s", mat.id, e)
                 mat_dict['weight_kg'] = None
                 mat_dict['cost_per_piece'] = None
                 mat_dict['price_per_kg'] = None
+                mat_dict['weight_source'] = None
 
         enriched_materials.append(mat_dict)
 
@@ -298,7 +301,8 @@ async def update_material_input(
         **MaterialInputWithOperationsResponse.model_validate(updated_material).model_dump(),
         'weight_kg': None,
         'cost_per_piece': None,
-        'price_per_kg': None
+        'price_per_kg': None,
+        'weight_source': None,
     }
 
     if updated_material.stock_shape and updated_material.price_category_id:
@@ -319,12 +323,14 @@ async def update_material_input(
                 dimensions=dimensions,
                 price_category_id=updated_material.price_category_id,
                 quantity=updated_material.quantity,
-                db=db
+                db=db,
+                material_item=updated_material.material_item,  # ADR-050: catalog priority
             )
 
             mat_dict['weight_kg'] = calc.weight_kg
             mat_dict['cost_per_piece'] = calc.total_cost / updated_material.quantity if updated_material.quantity > 0 else 0
             mat_dict['price_per_kg'] = calc.price_per_kg
+            mat_dict['weight_source'] = calc.weight_source  # ADR-050
         except Exception as e:
             logger.warning("Failed to calculate for material %s: %s", material_id, e)
 

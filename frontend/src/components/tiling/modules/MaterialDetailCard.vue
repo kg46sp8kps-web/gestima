@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { Check, X } from 'lucide-vue-next'
 import { useUiStore } from '@/stores/ui'
 import * as materialsApi from '@/api/materials'
 import type { MaterialItemDetail } from '@/types/material-item'
 import { formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
+import InlineSelect from '@/components/ui/InlineSelect.vue'
+import { ICON_SIZE_SM } from '@/config/design'
 
 interface Props {
   materialNumber: string
@@ -15,6 +19,63 @@ const ui = useUiStore()
 
 const detail = ref<MaterialItemDetail | null>(null)
 const loading = ref(false)
+const saving = ref(false)
+
+// ── Edit state (vždy aktivní, edit-in-place) ──
+const editUom = ref<string>('kg')
+const editConvUom = ref<string>('')       // '' = žádná konverze
+const editConvFactor = ref<number | null>(null)
+
+watch(editConvUom, (val) => {
+  if (!val) editConvFactor.value = null
+})
+
+function initEdit(d: MaterialItemDetail) {
+  editUom.value = d.uom
+  editConvUom.value = d.conv_uom ?? ''
+  editConvFactor.value = d.conv_factor
+}
+
+const isDirty = computed(() => {
+  if (!detail.value) return false
+  return (
+    editUom.value !== detail.value.uom ||
+    (editConvUom.value || null) !== detail.value.conv_uom ||
+    editConvFactor.value !== detail.value.conv_factor
+  )
+})
+
+const previewText = computed(() => {
+  if (!editConvUom.value || editConvFactor.value == null) return null
+  return `1 ${editConvUom.value} = ${editConvFactor.value} ${editUom.value}`
+})
+
+function discardChanges() {
+  if (detail.value) initEdit(detail.value)
+}
+
+async function saveChanges() {
+  if (!detail.value) return
+  if (editConvUom.value && (editConvFactor.value == null || editConvFactor.value <= 0)) {
+    ui.showError('Konverzní faktor musí být kladné číslo')
+    return
+  }
+  saving.value = true
+  try {
+    detail.value = await materialsApi.updateItem(detail.value.material_number, {
+      uom: editUom.value,
+      conv_uom: editConvUom.value || null,
+      conv_factor: editConvFactor.value,
+      version: detail.value.version,
+    })
+    initEdit(detail.value)
+    ui.showSuccess('UOM uloženo')
+  } catch {
+    ui.showError('Chyba při ukládání UOM')
+  } finally {
+    saving.value = false
+  }
+}
 
 const SHAPE_LABELS: Record<string, string> = {
   round_bar:     'Kulatina',
@@ -35,6 +96,7 @@ watch(
     loading.value = true
     try {
       detail.value = await materialsApi.getByNumber(num)
+      initEdit(detail.value)
     } catch {
       ui.showError('Chyba při načítání polotovaru')
       detail.value = null
@@ -61,6 +123,17 @@ watch(
             <span class="dot o" />
             {{ SHAPE_LABELS[detail.shape] ?? detail.shape }}
           </span>
+          <InlineSelect
+            v-model="editUom"
+            :ghost="true"
+            :small="true"
+            class="uom-select"
+            data-testid="mat-uom-select"
+            title="Základní měrná jednotka"
+          >
+            <option value="kg">kg</option>
+            <option value="ks">ks</option>
+          </InlineSelect>
         </div>
       </div>
       <!-- Dimensions ribbon -->
@@ -86,14 +159,60 @@ watch(
             <span class="rib-l">Stěna</span>
             <span class="rib-v m">{{ formatNumber(detail.wall_thickness) }} mm</span>
           </div>
-          <div v-if="detail.weight_per_meter != null" class="rib-i">
-            <span class="rib-l">kg/m</span>
-            <span class="rib-v m">{{ formatNumber(detail.weight_per_meter, 3) }}</span>
-          </div>
           <div v-if="detail.standard_length != null" class="rib-i">
             <span class="rib-l">Std. délka</span>
             <span class="rib-v m">{{ formatNumber(detail.standard_length) }} mm</span>
           </div>
+        </div>
+      </div>
+      <!-- Conversion ribbon -->
+      <div class="rib conv-rib">
+        <div class="conv-row">
+          <span class="rib-l">Konverze</span>
+          <span class="conv-eq">1</span>
+          <InlineSelect
+            v-model="editConvUom"
+            :ghost="true"
+            class="conv-uom-sel"
+            data-testid="mat-conv-uom-select"
+          >
+            <option value="">—</option>
+            <option value="m">m</option>
+            <option value="mm">mm</option>
+          </InlineSelect>
+          <template v-if="editConvUom">
+            <span class="conv-eq">=</span>
+            <InlineInput
+              v-model="editConvFactor"
+              :numeric="true"
+              :ghost="true"
+              placeholder="0.000"
+              class="conv-factor-inp"
+              data-testid="mat-conv-factor-input"
+            />
+            <span class="conv-uom-label">{{ editUom }}</span>
+          </template>
+          <span v-if="previewText" class="conv-preview">{{ previewText }}</span>
+          <template v-if="isDirty">
+            <button
+              class="icon-btn"
+              :disabled="saving"
+              data-testid="mat-uom-save"
+              title="Uložit"
+              @click="saveChanges"
+            >
+              <Check :size="ICON_SIZE_SM" />
+            </button>
+            <button
+              class="icon-btn"
+              :disabled="saving"
+              data-testid="mat-uom-cancel"
+              title="Zrušit"
+              @click="discardChanges"
+            >
+              <X :size="ICON_SIZE_SM" />
+            </button>
+          </template>
         </div>
       </div>
       <!-- Extra ribbon -->
@@ -155,7 +274,10 @@ watch(
 }
 .det-pn { font-size: var(--fs); font-weight: 600; color: var(--t1); flex-shrink: 0; letter-spacing: 0.02em; }
 .det-nm { font-size: var(--fs); color: var(--t3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.det-bgs { display: flex; gap: 3px; flex-shrink: 0; }
+.det-bgs { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+/* ─── UOM select in bar ─── */
+.uom-select { flex-shrink: 0; }
 
 /* ─── Badge ─── */
 .bdg { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2); }
@@ -172,4 +294,33 @@ watch(
 .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
 .rib-v.m { }
+
+/* ─── Conversion ribbon ─── */
+.conv-rib { }
+.conv-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 22px;
+}
+.conv-eq {
+  font-size: var(--fsm);
+  color: var(--t4);
+  font-weight: 500;
+}
+.conv-uom-sel { min-width: 32px; }
+.conv-factor-inp { width: 64px; }
+.conv-uom-label {
+  font-size: var(--fsm);
+  color: var(--t4);
+  font-weight: 500;
+}
+.conv-preview {
+  font-size: var(--fsm);
+  color: var(--ok);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-left: 4px;
+}
 </style>

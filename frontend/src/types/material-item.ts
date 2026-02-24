@@ -8,6 +8,8 @@ export type StockShape =
   | 'casting'
   | 'forging'
 
+export type UnitOfMeasure = 'kg' | 'ks' | 'm' | 'mm'
+
 export interface MaterialItem {
   id: number
   material_number: string
@@ -19,7 +21,11 @@ export interface MaterialItem {
   height: number | null
   thickness: number | null
   wall_thickness: number | null
-  weight_per_meter: number | null
+  // UOM (ADR-050)
+  uom: UnitOfMeasure           // základní měrná jednotka (kg/ks)
+  conv_uom: 'm' | 'mm' | null  // konverzní jednotka pro katalogový přepočet
+  conv_factor: number | null   // 1 conv_uom = conv_factor uom (např. 1 m = 15.41 kg)
+  weight_per_meter: number | null  // DEPRECATED — ponecháno pro backwards compat
   standard_length: number | null
   norms: string | null
   supplier_code: string | null

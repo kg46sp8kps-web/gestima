@@ -8,7 +8,7 @@ ADR-024: MaterialInput refactor (v1.8.0)
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING, List
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Enum, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
@@ -37,6 +37,10 @@ class Part(Base, AuditMixin):
     # Kept for backwards compatibility during migration period
     # Will be removed after migration to drawings table
     drawing_path = Column(String(500), nullable=True)
+
+    # Měrné jednotky (ADR-050 — Migration a0b1c2d3e4f5)
+    uom = Column(String(4), nullable=False, default='ks')                 # Vždy ks pro díly
+    unit_weight = Column(Float, nullable=True)                            # kg/ks (pro Infor UnitWeight, expedici)
 
     # ADR-044 Phase 2b: Primary drawing reference (FileRecord)
     file_id = Column(Integer, ForeignKey("file_records.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -68,6 +72,9 @@ class PartBase(BaseModel):
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     status: PartStatus = Field(PartStatus.ACTIVE, description="Status dílu (default: active)")
     source: PartSource = Field(PartSource.MANUAL, description="Původ dílu (manual, infor_import, quote_request)")
+    # UOM (ADR-050)
+    uom: str = Field('ks', max_length=4, description="Měrná jednotka (vždy ks pro díly)")
+    unit_weight: Optional[float] = Field(None, gt=0, description="Hmotnost na kus v kg (pro Infor UnitWeight)")
 
 
 class PartCreate(BaseModel):
@@ -86,6 +93,7 @@ class PartUpdate(BaseModel):
     customer_revision: Optional[str] = Field(None, max_length=50)
     drawing_number: Optional[str] = Field(None, max_length=50)
     status: Optional[PartStatus] = None
+    unit_weight: Optional[float] = Field(None, gt=0, description="Hmotnost na kus v kg (pro Infor UnitWeight)")
     version: int  # Optimistic locking (ADR-008)
 
 
