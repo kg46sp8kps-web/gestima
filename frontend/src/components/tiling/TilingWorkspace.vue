@@ -104,7 +104,7 @@ onMounted(() => {
         >
           <SettingsIcon :size="ICON_SIZE_SM" />
         </button>
-        <div class="ava" :title="auth.user?.username ?? ''" @click.stop="auth.logout()">
+        <div class="ava" data-testid="user-avatar-btn" :title="auth.user?.username ?? ''" @click.stop="auth.logout()">
           {{ userInitials }}
         </div>
       </div>
@@ -148,16 +148,16 @@ onMounted(() => {
         :key="mod.id"
         class="mpk-i"
       >
-        <button class="mpk-name-btn" @click="addModule(mod.id, 'right')">{{ mod.label }}</button>
+        <button class="mpk-name-btn" :data-testid="`module-btn-${mod.id}`" @click="addModule(mod.id, 'right')">{{ mod.label }}</button>
         <span v-if="mod.shortcut" class="mpk-key">{{ mod.shortcut }}</span>
         <div class="mpk-acts">
-          <button class="mpk-act" title="Přidat vlevo" @click.stop="addModule(mod.id, 'left')">
+          <button class="mpk-act" :data-testid="`module-left-${mod.id}`" title="Přidat vlevo" @click.stop="addModule(mod.id, 'left')">
             <ArrowLeftIcon :size="10" />
           </button>
-          <button class="mpk-act" title="Přidat nahoře" @click.stop="addModule(mod.id, 'top')">
+          <button class="mpk-act" :data-testid="`module-top-${mod.id}`" title="Přidat nahoře" @click.stop="addModule(mod.id, 'top')">
             <ArrowUpIcon :size="10" />
           </button>
-          <button class="mpk-act" title="Přidat dole" @click.stop="addModule(mod.id, 'bottom')">
+          <button class="mpk-act" :data-testid="`module-bottom-${mod.id}`" title="Přidat dole" @click.stop="addModule(mod.id, 'bottom')">
             <ArrowDownIcon :size="10" />
           </button>
         </div>
@@ -249,9 +249,9 @@ onMounted(() => {
 
 .lchips { display: flex; gap: 1px; flex-shrink: 0; }
 .lchip {
-  padding: 3px 9px; font-size: var(--fsl); font-weight: 500;
+  padding: 3px 9px; font-size: var(--fsm); font-weight: 500;
   color: var(--t3); background: transparent; border: 1px solid transparent;
-  border-radius: var(--rs); cursor: pointer; transition: all 0.12s var(--ease);
+  border-radius: var(--rs); cursor: pointer; transition: all 120ms var(--ease);
   font-family: inherit; white-space: nowrap;
 }
 .lchip:hover { color: var(--t2); background: var(--b1); }
@@ -294,7 +294,7 @@ onMounted(() => {
   align-items: center;
   padding: 0 10px;
   gap: 7px;
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   color: var(--t4);
   flex-shrink: 0;
   z-index: 10;
@@ -306,7 +306,7 @@ onMounted(() => {
 .sbar-label { color: var(--t3); }
 .sbar-fill { flex: 1; }
 .sbar-right { display: flex; gap: 6px; align-items: center; }
-.sbar-clock { font-family: var(--mono); color: var(--t3); }
+.sbar-clock { color: var(--t3); }
 .sbar-sep { opacity: 0.2; }
 
 /* FAB */
@@ -317,7 +317,7 @@ onMounted(() => {
   color: var(--t1); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 3px 14px rgba(229,57,53,0.35), 0 0 30px rgba(229,57,53,0.1);
-  transition: all 0.15s var(--ease); z-index: 20;
+  transition: all 150ms var(--ease); z-index: 20;
 }
 .fab:hover { background: var(--red); filter: brightness(1.1); transform: scale(1.08); }
 .fab:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
@@ -329,7 +329,7 @@ onMounted(() => {
   border: 1px solid var(--b2); border-radius: var(--r);
   box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; overflow: hidden;
   transform-origin: bottom right;
-  transition: all 0.15s var(--ease);
+  transition: all 150ms var(--ease);
   opacity: 0; transform: scale(0.92) translateY(4px); pointer-events: none;
 }
 .mpk.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
@@ -344,7 +344,7 @@ onMounted(() => {
 .mpk-i {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 9px; cursor: default;
-  transition: background 0.06s;
+  transition: background 60ms var(--ease);
 }
 .mpk-i:hover { background: var(--b1); }
 .mpk-i:hover .mpk-acts { opacity: 1; }
@@ -361,13 +361,13 @@ onMounted(() => {
 
 .mpk-acts {
   display: flex; gap: 2px; opacity: 0;
-  transition: opacity 0.08s;
+  transition: opacity 80ms var(--ease);
 }
 .mpk-act {
   width: 18px; height: 18px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--b2); border: none; border-radius: 3px;
-  color: var(--t3); cursor: pointer; transition: all 0.06s;
+  background: var(--b2); border: none; border-radius: var(--rs);
+  color: var(--t3); cursor: pointer; transition: all 60ms var(--ease);
 }
 .mpk-act:hover { background: var(--b3); color: var(--t1); }
 .mpk-act:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }

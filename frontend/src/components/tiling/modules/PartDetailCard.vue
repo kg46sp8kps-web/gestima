@@ -329,7 +329,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
             class="file-row"
             :data-testid="`file-row-${f.id}`"
           >
-            <span class="ftype">{{ linkTypeBadge(f.links.find(l => l.entity_type === 'part')?.link_type ?? 'drawing') }}</span>
+            <span class="badge">{{ linkTypeBadge(f.links.find(l => l.entity_type === 'part')?.link_type ?? 'drawing') }}</span>
             <span class="fname">{{ f.original_filename }}</span>
             <span class="fsize">{{ formatBytes(f.file_size) }}</span>
             <a
@@ -357,13 +357,8 @@ watch(() => props.part.id, loadFiles, { immediate: true })
           @drop="onDrop"
           @click="fileInput?.click()"
         >
-          <input
-            ref="fileInput"
-            type="file"
-            class="file-inp"
-            accept=".pdf,.step,.stp,.nc,.tap,.mpf,.cnc,.gcode,.dxf"
-            @change="onFileInput"
-          />
+          <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
+          <input ref="fileInput" type="file" class="file-inp" accept=".pdf,.step,.stp,.nc,.tap,.mpf,.cnc,.gcode,.dxf" @change="onFileInput" /> <!-- intentional: programmatic trigger -->
           <span class="dz-text">{{ uploading ? 'Nahrávání…' : 'Přetáhněte soubor nebo klikněte' }}</span>
           <span class="dz-hint">PDF · DXF · STEP / STP · NC · TAP · MPF</span>
         </div>
@@ -406,7 +401,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 }
 .ql-btn {
   padding: 3px 9px;
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   font-weight: 500;
   color: var(--t4);
   background: transparent;
@@ -471,7 +466,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 /* ─── Section header ─── */
 .sec-hdr {
   padding: 5px var(--pad);
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -501,16 +496,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 .file-row:hover { background: var(--b1); }
-.ftype {
-  font-size: var(--fss);
-  font-weight: 600;
-  padding: 1px 4px;
-  border-radius: var(--rs);
-  background: var(--b2);
-  color: var(--t3);
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-}
+/* File type badge uses global .badge from design-system.css */
 .fname {
   flex: 1;
   font-size: var(--fs);
@@ -522,7 +508,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 }
 .fsize { font-size: var(--fsm); color: var(--t4); flex-shrink: 0; }
 .fdl {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   color: var(--t4);
   text-decoration: none;
   padding: 2px 5px;
@@ -556,7 +542,7 @@ watch(() => props.part.id, loadFiles, { immediate: true })
 .drop-zone:hover { border-color: var(--b3); background: rgba(255,255,255,0.02); }
 .drop-zone.dz-over { border-color: var(--b3); background: rgba(255,255,255,0.04); }
 .drop-zone.dz-busy { opacity: 0.5; cursor: default; pointer-events: none; }
-.dz-text { font-size: var(--fsl); color: var(--t3); }
+.dz-text { font-size: var(--fsm); color: var(--t3); }
 .dz-hint { font-size: var(--fsm); color: var(--t4); }
 .file-inp { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; pointer-events: none; }
 </style>

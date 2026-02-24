@@ -10,6 +10,9 @@ import type { MaterialInput, StockShape, MaterialInputCreate, MaterialInputUpdat
 import type { ContextGroup } from '@/types/workspace'
 import { formatCurrency, formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
+import InlineSelect from '@/components/ui/InlineSelect.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 // Module-level cache: partId → items. Survives component unmount/remount (panel moves).
@@ -472,8 +475,9 @@ watch(
       <!-- Add form -->
       <div v-if="showAdd" class="add-form">
         <div class="add-row">
-          <input
+          <Input
             v-model="parseInput"
+            bare
             class="parse-input"
             placeholder="Např. D20 1.4301 100mm"
             data-testid="parse-input"
@@ -570,15 +574,17 @@ watch(
                 <div v-if="rowDims[m.id]" class="inline-dims">
                   <template v-for="(slot, si) in dimSlots(m)" :key="si">
                     <span v-if="slot.kind === 'sep'" class="dim-sep">{{ slot.text }}</span>
-                    <span v-else-if="slot.kind === 'locked'" class="dim-badge-ro">{{ slot.text }}</span>
-                    <input
+                    <span v-else-if="slot.kind === 'locked'" class="badge dim-locked">{{ slot.text }}</span>
+                    <InlineInput
                       v-else
-                      v-model.number="rowDims[m.id]![slot.field!]"
+                      numeric
                       type="number"
                       class="dim-input-inline"
+                      :modelValue="rowDims[m.id]?.[slot.field!] ?? null"
                       :data-testid="`inline-dim-${slot.field}-${m.id}`"
                       step="0.1"
                       min="0"
+                      @update:modelValue="(v) => { rowDims[m.id]![slot.field!] = v as number | null }"
                       @blur="saveRowDims(m)"
                       @keydown.enter.prevent="saveRowDims(m)"
                       @keydown.esc="initRowDims(m)"
@@ -598,7 +604,7 @@ watch(
                 {{ m.weight_kg != null ? formatNumber(m.weight_kg, 3) + ' kg' : '—' }}
               </td>
               <td class="r">
-                <span class="price-badge">{{ formatCurrency(m.cost_per_piece) }}</span>
+                <span class="badge price-val">{{ formatCurrency(m.cost_per_piece) }}</span>
               </td>
               <td>
                 <button
@@ -633,16 +639,17 @@ watch(
                     </div>
                   </div>
                   <div v-if="linkingOpFor === m.id" class="link-op-row">
-                    <select
-                      v-model.number="selectedOpId"
+                    <InlineSelect
+                      :modelValue="selectedOpId !== null ? String(selectedOpId) : ''"
                       class="op-select"
                       :data-testid="`op-select-${m.id}`"
+                      @update:modelValue="selectedOpId = $event ? Number($event) : null"
                     >
-                      <option :value="null" disabled>Vyberte operaci…</option>
-                      <option v-for="op in availableOps" :key="op.id" :value="op.id">
+                      <option value="" disabled>Vyberte operaci…</option>
+                      <option v-for="op in availableOps" :key="op.id" :value="String(op.id)">
                         {{ op.seq }}. {{ op.name }}
                       </option>
-                    </select>
+                    </InlineSelect>
                     <button
                       class="icon-btn icon-btn-brand"
                       :disabled="!selectedOpId || linkingSaving"
@@ -681,7 +688,7 @@ watch(
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  transition: opacity 0.15s;
+  transition: opacity 150ms var(--ease);
 }
 .wmat.refetching { opacity: 0.4; }
 
@@ -702,7 +709,7 @@ watch(
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Ribbon ─── */
 .rib {
@@ -744,7 +751,7 @@ watch(
   border-radius: var(--rs);
   color: var(--t2);
   font-size: var(--fs);
-  font-family: var(--mono);
+ 
   outline: none;
   transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
@@ -788,7 +795,7 @@ watch(
 .pr-item-opt.pr-item-selected { border-color: var(--t3); background: var(--b1); }
 .pr-item-opt-name { font-size: var(--fs); color: var(--t1); }
 .pr-item-opt-code {
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   color: var(--t3);
 }
 .pr-warning {
@@ -817,12 +824,12 @@ watch(
 .detail-td { padding: 0; }
 
 .t4 { color: var(--t4); }
-.fsl { font-size: var(--fsl); }
+.fsl { font-size: var(--fsm); }
 
 .mat-name { font-weight: 500; color: var(--t1); }
 .mat-code {
   display: inline-block;
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   color: var(--t2);
   background: var(--b1);
   border: 1px solid var(--b2);
@@ -843,34 +850,26 @@ watch(
 .dim-sep {
   font-size: var(--fsm);
   color: var(--t4);
-  font-family: var(--mono);
+ 
   white-space: nowrap;
 }
-.dim-badge-ro {
-  font-size: var(--fsm);
-  font-family: var(--mono);
+/* dim-locked: catalog-locked dimension display — extends global .badge */
+.dim-locked {
+ 
   color: var(--t3);
-  background: var(--b1);
-  border: 1px solid var(--b2);
-  padding: 1px 5px;
+  border-color: var(--b2);
   border-radius: var(--rs);
   white-space: nowrap;
 }
+/* dim-input-inline: size + mono overrides on top of InlineInput .ii base styles */
 .dim-input-inline {
   width: 52px;
   height: 20px;
   padding: 0 4px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
   font-size: var(--fsm);
-  font-family: var(--mono);
-  outline: none;
+ 
   text-align: right;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.dim-input-inline:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 /* Remove number input spinners */
 .dim-input-inline::-webkit-inner-spin-button,
 .dim-input-inline::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -891,16 +890,8 @@ watch(
   white-space: nowrap;
 }
 
-/* ─── Price badge ─── */
-.price-badge {
-  display: inline-block;
-  font-size: var(--fsm);
-  padding: 1px 5px;
-  border-radius: 99px;
-  background: var(--b1);
-  color: var(--green);
-  white-space: nowrap;
-}
+/* price-val: pricing value — extends global .badge */
+.price-val { color: var(--green); }
 
 /* ─── Detail panel (operation links) ─── */
 .detail-panel {
@@ -943,17 +934,10 @@ watch(
   margin-top: 6px;
 }
 .add-op-btn { margin-top: 2px; }
+/* op-select: size override on top of InlineSelect .is base styles */
 .op-select {
   flex: 1;
   height: 28px;
   padding: 0 6px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: var(--fs);
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.op-select:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 </style>

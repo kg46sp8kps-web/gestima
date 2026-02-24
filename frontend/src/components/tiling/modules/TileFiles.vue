@@ -4,6 +4,7 @@ import * as filesApi from '@/api/files'
 import type { FileWithLinks } from '@/types/file-record'
 import type { ContextGroup } from '@/types/workspace'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
 
 interface Props {
   leafId: string
@@ -68,12 +69,13 @@ onMounted(load)
     <template v-else>
       <!-- Search -->
       <div class="srch-bar">
-        <input
+        <Input
           v-model="searchQuery"
-          class="srch-inp"
+          bare
           type="text"
           placeholder="Hledat soubor…"
-          data-testid="files-search-input"
+          testid="files-search-input"
+          class="srch-inp"
         />
         <span class="srch-count">{{ filtered.length }} / {{ items.length }}</span>
       </div>
@@ -110,7 +112,7 @@ onMounted(load)
                 </div>
               </td>
               <td>
-                <span class="type-badge">{{ f.file_type.toUpperCase() }}</span>
+                <span class="badge">{{ f.file_type.toUpperCase() }}</span>
               </td>
               <td class="r t4">{{ formatSize(f.file_size) }}</td>
               <td class="t4">{{ f.created_at.split('T')[0] }}</td>
@@ -147,7 +149,7 @@ onMounted(load)
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 .srch-bar {
   display: flex;
@@ -157,20 +159,8 @@ onMounted(load)
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
-.srch-inp {
-  flex: 1;
-  height: 28px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: var(--fs);
-  padding: 3px 6px;
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.srch-inp::placeholder { color: var(--t4); }
-.srch-inp:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
+/* .srch-inp layout: visual styles come from Input component's .input-ctrl */
+.srch-inp { flex: 1; }
 .srch-count {
   font-size: var(--fsm);
   color: var(--t4);
@@ -192,14 +182,5 @@ onMounted(load)
 .file-name.clickable { color: var(--t1); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .file-name.clickable:hover { color: var(--t2); }
 
-.type-badge {
-  display: inline-block;
-  font-size: var(--fss);
-  font-weight: 600;
-  padding: 1px 4px;
-  border-radius: var(--rs);
-  background: var(--b2);
-  color: var(--t3);
-  letter-spacing: 0.04em;
-}
+/* File type badges use global .badge from design-system.css */
 </style>

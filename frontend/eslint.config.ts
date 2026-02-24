@@ -56,5 +56,28 @@ export default defineConfigWithVueTs(
     },
   },
 
+  // Block raw HTML form elements — use UI components instead
+  {
+    name: 'app/use-ui-components',
+    files: ['src/components/**/*.vue', 'src/views/**/*.vue'],
+    ignores: ['src/components/ui/**', 'src/views/auth/**'],
+    rules: {
+      'vue/no-restricted-html-elements': ['error',
+        {
+          element: 'input',
+          message: 'Use <Input>, <Input bare>, <InlineInput>, or <DragDropZone>. For file inputs add <!-- intentional: programmatic trigger -->.',
+        },
+        {
+          element: 'select',
+          message: 'Use <InlineSelect>, <TypeAheadSelect>, or <CuttingModeButtons>.',
+        },
+        {
+          element: 'textarea',
+          message: 'Use <Textarea> from components/ui/.',
+        },
+      ],
+    },
+  },
+
   skipFormatting,
 )

@@ -86,7 +86,7 @@ async function handleToggleHeader(id: number) {
     <div v-if="ws.savedLayouts.length === 0" class="lm-empty">
       Žádné layouty
     </div>
-    <table v-else class="lm-table">
+    <table v-else class="ot lm-table">
       <thead>
         <tr>
           <th class="lm-th-name">Název</th>
@@ -158,29 +158,12 @@ async function handleToggleHeader(id: number) {
   font-size: var(--fs);
 }
 
-.lm-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs);
-}
-
-.lm-th-name,
-.lm-th-center,
-.lm-th-actions {
-  padding: 4px 8px;
-  text-align: left;
-  font-size: var(--fsl);
-  font-weight: 600;
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--b1);
-}
+/* .lm-table extends global .ot — layout/column overrides only */
 .lm-th-center { text-align: center; }
 
 .lm-row {
   border-bottom: 1px solid var(--b1);
-  transition: background 80ms;
+  transition: background 80ms var(--ease);
 }
 .lm-row:hover { background: var(--b1); }
 .lm-row-active { background: rgba(255,255,255,0.03); }

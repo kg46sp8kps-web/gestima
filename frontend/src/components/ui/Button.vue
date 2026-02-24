@@ -56,8 +56,8 @@ defineEmits<{ click: [event: MouseEvent] }>()
 }
 
 /* Sizes */
-.btn-sz-md { height: 26px; padding: 0 10px; font-size: var(--fsx); }
-.btn-sz-sm { height: 24px; padding: 0 8px; font-size: var(--fsl); }
+.btn-sz-md { height: 26px; padding: 0 10px; font-size: var(--fsm); }
+.btn-sz-sm { height: 24px; padding: 0 8px; font-size: var(--fsm); }
 
 /* Variants */
 .btn-primary { border: 1px solid var(--red); color: var(--red); }

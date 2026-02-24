@@ -5,6 +5,7 @@ import type { MaterialItem } from '@/types/material-item'
 import type { ContextGroup } from '@/types/workspace'
 import { formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
 
 interface Props {
   leafId: string
@@ -96,7 +97,8 @@ onMounted(load)
     <template v-else>
       <!-- Search toolbar -->
       <div class="srch-bar">
-        <input
+        <Input
+          bare
           v-model="searchQuery"
           class="srch-inp"
           type="text"
@@ -174,7 +176,7 @@ onMounted(load)
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* Search bar */
 .srch-bar {

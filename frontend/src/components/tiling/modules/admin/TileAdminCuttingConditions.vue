@@ -6,6 +6,8 @@ import type { CuttingConditionPivotResponse } from '@/types/cutting-condition'
 import { formatNumber } from '@/utils/formatters'
 import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 type Mode = 'low' | 'mid' | 'high'
@@ -152,7 +154,8 @@ onMounted(load)
           {{ m === 'low' ? 'Nízká' : m === 'mid' ? 'Střední' : 'Vysoká' }}
         </button>
       </div>
-      <input
+      <Input
+        bare
         v-model="search"
         class="srch-inp"
         type="text"
@@ -198,11 +201,13 @@ onMounted(load)
             <td class="t4">{{ row.operation }}</td>
             <td class="r">
               <template v-if="editingId === row.id && editDraft">
-                <input
-                  v-model.number="editDraft.Vc"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.Vc"
+                  @update:modelValue="editDraft.Vc = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="1"
+                  class="ei-num"
                   :data-testid="`cc-edit-vc-${row.id}`"
                 />
               </template>
@@ -212,11 +217,13 @@ onMounted(load)
             </td>
             <td class="r">
               <template v-if="editingId === row.id && editDraft">
-                <input
-                  v-model.number="editDraft.f"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.f"
+                  @update:modelValue="editDraft.f = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="0.001"
+                  class="ei-num"
                   :data-testid="`cc-edit-f-${row.id}`"
                 />
               </template>
@@ -226,11 +233,13 @@ onMounted(load)
             </td>
             <td class="r">
               <template v-if="editingId === row.id && editDraft">
-                <input
-                  v-model.number="editDraft.Ap"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.Ap"
+                  @update:modelValue="editDraft.Ap = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="0.1"
+                  class="ei-num"
                   :data-testid="`cc-edit-ap-${row.id}`"
                 />
               </template>
@@ -275,7 +284,7 @@ onMounted(load)
   padding: 5px var(--pad); border-bottom: 1px solid var(--b1); flex-shrink: 0;
 }
 .mode-tabs { display: flex; gap: 2px; }
-.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); }
+.ptab { padding: 3px 7px; font-size: var(--fsm); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); }
 .ptab:hover { color: var(--t3); }
 .ptab.on { color: var(--t1); background: var(--b1); }
 .srch-inp {
@@ -293,7 +302,7 @@ onMounted(load)
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 
 .t4 { color: var(--t4); }
@@ -301,16 +310,6 @@ onMounted(load)
 .row-clickable { cursor: pointer; }
 .row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
 .row-editing:hover td { background: var(--raised); }
-.ei {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: var(--fs);
-  padding: 2px 4px;
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
-.ei-num { font-family: var(--mono); width: 64px; text-align: right; }
+/* visual styles come from InlineInput component */
+.ei-num { width: 64px; text-align: right; }
 </style>

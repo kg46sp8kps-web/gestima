@@ -6,6 +6,8 @@ import type { MaterialGroup } from '@/types/admin-user'
 import { formatNumber } from '@/utils/formatters'
 import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 interface GroupDraft {
@@ -97,7 +99,8 @@ onMounted(load)
 <template>
   <div class="tab-content">
     <div class="srch-bar">
-      <input
+      <Input
+        bare
         v-model="search"
         class="srch-inp"
         type="text"
@@ -144,62 +147,73 @@ onMounted(load)
             <!-- EDIT MODE -->
             <template v-if="editingId === g.id && editDraft">
               <td>
-                <input
-                  v-model="editDraft.code"
+                <InlineInput
+                  :modelValue="editDraft.code"
+                  @update:modelValue="editDraft.code = ($event as string) ?? ''"
                   type="text"
-                  class="ei ei-sm-text"
+                  class="ei-sm-text"
                   :data-testid="`mat-group-edit-code-${g.id}`"
                 />
               </td>
               <td>
-                <input
-                  v-model="editDraft.name"
+                <InlineInput
+                  :modelValue="editDraft.name"
+                  @update:modelValue="editDraft.name = ($event as string) ?? ''"
                   type="text"
-                  class="ei ei-wide"
+                  class="ei-wide"
                   :data-testid="`mat-group-edit-name-${g.id}`"
                 />
               </td>
               <td>
-                <input
-                  v-model="editDraft.iso_group"
+                <InlineInput
+                  :modelValue="editDraft.iso_group"
+                  @update:modelValue="editDraft.iso_group = ($event as string) || null"
                   type="text"
-                  class="ei ei-xs"
+                  class="ei-xs"
                   :data-testid="`mat-group-edit-iso-${g.id}`"
                 />
               </td>
               <td class="r">
-                <input
-                  v-model.number="editDraft.density"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.density"
+                  @update:modelValue="editDraft.density = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="0.01"
+                  class="ei-num"
                   :data-testid="`mat-group-edit-density-${g.id}`"
                 />
               </td>
               <td class="r">
-                <input
-                  v-model.number="editDraft.hardness_hb"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.hardness_hb"
+                  @update:modelValue="editDraft.hardness_hb = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="1"
+                  class="ei-num"
                   :data-testid="`mat-group-edit-hardness-${g.id}`"
                 />
               </td>
               <td class="r">
-                <input
-                  v-model.number="editDraft.cutting_speed_turning"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.cutting_speed_turning"
+                  @update:modelValue="editDraft.cutting_speed_turning = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="1"
+                  class="ei-num"
                   :data-testid="`mat-group-edit-vc-turn-${g.id}`"
                 />
               </td>
               <td class="r">
-                <input
-                  v-model.number="editDraft.cutting_speed_milling"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.cutting_speed_milling"
+                  @update:modelValue="editDraft.cutting_speed_milling = $event as number | null"
                   type="number"
-                  class="ei ei-num"
                   step="1"
+                  class="ei-num"
                   :data-testid="`mat-group-edit-vc-mill-${g.id}`"
                 />
               </td>
@@ -270,7 +284,7 @@ onMounted(load)
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 
 .t3 { color: var(--t3); }
@@ -281,18 +295,8 @@ onMounted(load)
 .row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
 .row-editing:hover td { background: var(--raised); }
 .row-clickable { cursor: pointer; }
-.ei {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: var(--fs);
-  padding: 2px 4px;
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
-.ei-num { font-family: var(--mono); width: 64px; text-align: right; }
+/* visual styles come from InlineInput component */
+.ei-num { width: 64px; text-align: right; }
 .ei-xs { width: 44px; }
 .ei-sm-text { width: 56px; }
 .ei-wide { width: 100%; }

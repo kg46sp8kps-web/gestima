@@ -179,7 +179,7 @@ onMounted(() => loadOverview(year.value))
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* Year selector */
 .yr-bar {

@@ -206,7 +206,7 @@ function onDragEnd() {
 .pht:hover { background: var(--b1); }
 
 .ph-label {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
@@ -238,7 +238,7 @@ function onDragEnd() {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   color: var(--t2);
   font-family: var(--font);
   transition: background 0.06s;

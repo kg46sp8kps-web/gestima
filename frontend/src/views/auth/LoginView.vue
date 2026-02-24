@@ -149,7 +149,7 @@ async function submit() {
   stroke: var(--red);
 }
 .login-logo-text {
-  font-family: var(--mono);
+ 
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -169,7 +169,7 @@ async function submit() {
   margin-bottom: 12px;
 }
 .login-label {
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   font-weight: 500;
   color: var(--t3);
   letter-spacing: 0.04em;
@@ -189,7 +189,7 @@ async function submit() {
 }
 .login-input:focus { border-color: var(--b3); background: rgba(255,255,255,0.06); }
 .login-input:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
-.login-input[type='password'] { font-family: var(--mono); letter-spacing: 0.15em; }
+.login-input[type='password'] { letter-spacing: 0.15em; }
 .login-btn {
   width: 100%;
   height: 36px;

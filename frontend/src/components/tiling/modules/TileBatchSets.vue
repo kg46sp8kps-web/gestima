@@ -145,7 +145,7 @@ onMounted(load)
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 .srch-bar {
   display: flex;
@@ -156,7 +156,7 @@ onMounted(load)
   flex-shrink: 0;
 }
 .flt-grp { display: flex; gap: 2px; }
-.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); }
+.ptab { padding: 3px 7px; font-size: var(--fsm); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); }
 .ptab:hover { color: var(--t3); }
 .ptab.on { color: var(--t1); background: var(--b1); }
 .srch-count {

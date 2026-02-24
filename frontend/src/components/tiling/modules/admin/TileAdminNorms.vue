@@ -5,6 +5,8 @@ import * as adminApi from '@/api/admin'
 import type { MaterialNorm } from '@/types/admin-user'
 import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 const ui = useUiStore()
@@ -77,7 +79,8 @@ onMounted(load)
 <template>
   <div class="tab-content">
     <div class="srch-bar">
-      <input
+      <Input
+        bare
         v-model="search"
         class="srch-inp"
         type="text"
@@ -121,46 +124,42 @@ onMounted(load)
           >
             <template v-if="editingId === n.id && editDraft">
               <td>
-                <input
-                  class="ei ei-nm"
+                <InlineInput
+                  :modelValue="editDraft.w_nr"
+                  @update:modelValue="editDraft.w_nr = ($event as string)?.toUpperCase() || null"
                   type="text"
-                  :value="editDraft.w_nr ?? ''"
+                  class="ei-nm"
                   :data-testid="`norm-w-nr-input-${n.id}`"
-                  @input="editDraft.w_nr = ($event.target as HTMLInputElement).value.toUpperCase()"
-                  @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <input
-                  class="ei ei-nm"
+                <InlineInput
+                  :modelValue="editDraft.en_iso"
+                  @update:modelValue="editDraft.en_iso = ($event as string)?.toUpperCase() || null"
                   type="text"
-                  :value="editDraft.en_iso ?? ''"
+                  class="ei-nm"
                   :data-testid="`norm-en-iso-input-${n.id}`"
-                  @input="editDraft.en_iso = ($event.target as HTMLInputElement).value.toUpperCase()"
-                  @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <input
-                  class="ei ei-nm"
+                <InlineInput
+                  :modelValue="editDraft.csn"
+                  @update:modelValue="editDraft.csn = ($event as string)?.toUpperCase() || null"
                   type="text"
-                  :value="editDraft.csn ?? ''"
+                  class="ei-nm"
                   :data-testid="`norm-csn-input-${n.id}`"
-                  @input="editDraft.csn = ($event.target as HTMLInputElement).value.toUpperCase()"
-                  @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <input
-                  class="ei ei-nm"
+                <InlineInput
+                  :modelValue="editDraft.aisi"
+                  @update:modelValue="editDraft.aisi = ($event as string)?.toUpperCase() || null"
                   type="text"
-                  :value="editDraft.aisi ?? ''"
+                  class="ei-nm"
                   :data-testid="`norm-aisi-input-${n.id}`"
-                  @input="editDraft.aisi = ($event.target as HTMLInputElement).value.toUpperCase()"
-                  @keydown="onKeydown"
                   @click.stop
                 />
               </td>
@@ -220,7 +219,7 @@ onMounted(load)
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .ot tbody tr.row-clickable { cursor: pointer; }
 .ot tbody tr.row-clickable:hover td { background: var(--b1); }
@@ -231,11 +230,6 @@ onMounted(load)
 /* Inline edit */
 .row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
 .row-editing:hover td { background: var(--raised); }
-.ei {
-  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
-  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
-.ei-nm { font-family: var(--mono); width: 100%; }
+/* visual styles come from InlineInput component */
+.ei-nm { width: 100%; }
 </style>

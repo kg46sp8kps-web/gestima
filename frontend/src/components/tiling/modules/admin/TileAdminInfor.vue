@@ -255,12 +255,8 @@ onMounted(loadSync)
             class="upload-zone"
             :data-testid="`import-drop-${activeTab}`"
           >
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              class="upload-input"
-              @change="onFileSelected"
-            />
+            <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
+            <input type="file" accept=".csv,.xlsx,.xls" class="upload-input" @change="onFileSelected" /> <!-- intentional: programmatic trigger via label -->
             <span class="upload-hint">
               {{ imp.file ? imp.file.name : 'Klikněte pro výběr souboru (.csv, .xlsx)' }}
             </span>
@@ -344,7 +340,7 @@ onMounted(loadSync)
   background: rgba(255,255,255,0.01);
 }
 .ptab {
-  padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4);
+  padding: 3px 7px; font-size: var(--fsm); font-weight: 500; color: var(--t4);
   background: transparent; border: none; border-radius: var(--rs);
   cursor: pointer; font-family: var(--font);
 }
@@ -358,7 +354,7 @@ onMounted(loadSync)
 }
 .sync-running {
   display: flex; align-items: center; gap: 5px;
-  font-size: var(--fsl); color: var(--t2); font-weight: 500;
+  font-size: var(--fsm); color: var(--t2); font-weight: 500;
 }
 .section-label {
   padding: 4px var(--pad) 3px; font-size: var(--fsm); font-weight: 600; color: var(--t4);
@@ -382,7 +378,7 @@ onMounted(loadSync)
 }
 .upload-zone:hover { background: var(--b1); }
 .upload-input { display: none; }
-.upload-hint { font-size: var(--fsl); color: var(--t3); }
+.upload-hint { font-size: var(--fsm); color: var(--t3); }
 
 .preview-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -390,11 +386,11 @@ onMounted(loadSync)
 }
 .preview-counts { display: flex; gap: 10px; align-items: center; }
 .preview-actions { display: flex; gap: 6px; align-items: center; }
-.cnt { font-size: var(--fsl); font-weight: 600; }
+.cnt { font-size: var(--fsm); font-weight: 600; }
 .cnt.ok { color: var(--ok); }
 .import-error {
   padding: 8px; background: var(--red-10); color: var(--red);
-  border-radius: var(--rs); font-size: var(--fsl);
+  border-radius: var(--rs); font-size: var(--fsm);
 }
 .result-panel {
   display: flex; flex-direction: column; align-items: center; gap: 16px;
@@ -408,7 +404,7 @@ onMounted(loadSync)
 .result-icon.err { background: var(--red-10); color: var(--red); }
 .result-stats { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .err-list { display: flex; flex-direction: column; gap: 3px; width: 100%; max-width: 400px; }
-.err-item { font-size: var(--fsl); color: var(--t3); padding: 2px 6px; background: var(--b1); border-radius: var(--rs); }
+.err-item { font-size: var(--fsm); color: var(--t3); padding: 2px 6px; background: var(--b1); border-radius: var(--rs); }
 
 /* Tables */
 
@@ -419,7 +415,7 @@ onMounted(loadSync)
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .badge {
   display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px;
   font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2);

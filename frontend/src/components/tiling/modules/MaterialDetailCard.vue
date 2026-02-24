@@ -140,7 +140,7 @@ watch(
   color: var(--t4);
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Info bar ─── */
 .det-bar {
@@ -171,5 +171,5 @@ watch(
 .rib-i { display: flex; align-items: baseline; gap: 4px; }
 .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
-.rib-v.m { font-family: var(--mono); }
+.rib-v.m { }
 </style>

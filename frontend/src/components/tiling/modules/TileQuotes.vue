@@ -39,6 +39,13 @@ const counts = computed(() => ({
   REJECTED: items.value.filter(q => q.status === 'REJECTED').length,
 }))
 
+function statusDotClass(status: string): string {
+  if (status === 'APPROVED') return 'badge-dot-ok'
+  if (status === 'REJECTED') return 'badge-dot-error'
+  if (status === 'SENT') return 'badge-dot-neutral'
+  return 'badge-dot-neutral'
+}
+
 async function load() {
   loading.value = true
   error.value = false
@@ -110,7 +117,8 @@ onMounted(load)
               <td class="t4">{{ q.quote_number }}</td>
               <td class="title-cell">{{ q.title }}</td>
               <td>
-                <span :class="['status-badge', `s-${q.status.toLowerCase()}`]">
+                <span class="badge">
+                  <span :class="['badge-dot', statusDotClass(q.status)]" />
                   {{ STATUS_LABELS[q.status] }}
                 </span>
               </td>
@@ -149,7 +157,7 @@ onMounted(load)
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Status filter tabs ─── */
 .tab-bar {
@@ -160,7 +168,7 @@ onMounted(load)
   flex-shrink: 0;
   overflow-x: auto;
 }
-.ptab { padding: 3px 7px; font-size: var(--fsx); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.ptab { padding: 3px 7px; font-size: var(--fsm); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 .ptab:hover { color: var(--t3); }
 .ptab.on { color: var(--t1); background: var(--b1); }
 .tab-count {
@@ -187,20 +195,5 @@ onMounted(load)
   white-space: nowrap;
 }
 
-/* ─── Status badge ─── */
-.status-badge {
-  display: inline-block;
-  font-size: var(--fss);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 1px 5px;
-  border-radius: var(--rs);
-  background: var(--b1);
-  color: var(--t4);
-}
-.status-badge.s-draft    { background: var(--b1);       color: var(--t3); }
-.status-badge.s-sent     { background: var(--b2);       color: var(--t2); }
-.status-badge.s-approved { background: var(--green-10); color: var(--green); }
-.status-badge.s-rejected { background: rgba(255,255,255,0.04); color: var(--err); }
+/* Status badges use global .badge + .badge-dot-* from design-system.css */
 </style>

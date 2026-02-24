@@ -9,6 +9,8 @@ import type { Operation, CuttingMode } from '@/types/operation'
 import type { WorkCenter } from '@/types/work-center'
 import { formatDuration } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
+import InlineSelect from '@/components/ui/InlineSelect.vue'
 
 interface Props {
   leafId: string
@@ -17,8 +19,8 @@ interface Props {
 
 interface OpDraft {
   name: string
-  setup_time_min: number
-  operation_time_min: number
+  setup_time_min: number | null
+  operation_time_min: number | null
   work_center_id: number | null
   cutting_mode: CuttingMode
 }
@@ -71,8 +73,8 @@ function resetDraft(op: Operation) {
 async function saveOp(op: Operation) {
   const draft = drafts[op.id]
   if (!draft || !part.value) return
-  const setup = isNaN(draft.setup_time_min) ? 0 : draft.setup_time_min
-  const optime = isNaN(draft.operation_time_min) ? 0 : draft.operation_time_min
+  const setup = draft.setup_time_min == null || isNaN(draft.setup_time_min) ? 0 : draft.setup_time_min
+  const optime = draft.operation_time_min == null || isNaN(draft.operation_time_min) ? 0 : draft.operation_time_min
   const changed =
     draft.name !== op.name ||
     setup !== op.setup_time_min ||
@@ -92,17 +94,15 @@ async function saveOp(op: Operation) {
   })
 }
 
-function onWcChange(op: Operation, e: Event) {
-  const val = (e.target as HTMLSelectElement).value
+function onWcChange(op: Operation, val: string) {
   const dr = drafts[op.id]
   if (dr) dr.work_center_id = val ? Number(val) : null
   saveOp(op)
 }
 
-function onModeChange(op: Operation, e: Event) {
-  const val = (e.target as HTMLSelectElement).value as CuttingMode
+function onModeChange(op: Operation, val: string) {
   const dr = drafts[op.id]
-  if (dr) dr.cutting_mode = val
+  if (dr) dr.cutting_mode = val as CuttingMode
   saveOp(op)
 }
 
@@ -202,70 +202,80 @@ onMounted(async () => {
             >
               <td class="t4">{{ op.seq }}</td>
               <td>
-                <input
-                  class="gi gi-text"
+                <InlineInput
+                  ghost
+                  class="gi-text"
                   type="text"
-                  :value="d(op.id).name"
+                  :modelValue="d(op.id).name"
                   placeholder="Název…"
                   :data-testid="`op-name-${op.id}`"
-                  @input="d(op.id).name = ($event.target as HTMLInputElement).value"
+                  @update:modelValue="d(op.id).name = ($event as string) ?? ''"
                   @blur="saveOp(op)"
                   @keydown.enter.prevent="($event.target as HTMLElement).blur()"
                   @keydown.escape="onEscape($event, op)"
                 />
               </td>
               <td>
-                <select
-                  class="gi gi-sel"
-                  :value="d(op.id).work_center_id ?? ''"
+                <InlineSelect
+                  ghost
+                  class="gi-sel"
+                  :modelValue="d(op.id).work_center_id !== null ? String(d(op.id).work_center_id) : ''"
                   :data-testid="`op-wc-${op.id}`"
-                  @change="onWcChange(op, $event)"
+                  @update:modelValue="onWcChange(op, $event)"
                   @keydown.escape="onEscape($event, op)"
                 >
                   <option value="">—</option>
-                  <option v-for="wc in workCenters" :key="wc.id" :value="wc.id">{{ wc.name }}</option>
-                </select>
+                  <option v-for="wc in workCenters" :key="wc.id" :value="String(wc.id)">{{ wc.name }}</option>
+                </InlineSelect>
               </td>
               <td class="r">
-                <input
-                  v-model.number="d(op.id).setup_time_min"
-                  class="gi gi-num"
+                <InlineInput
+                  ghost
+                  numeric
+                  class="gi-num"
                   type="number"
                   step="1"
                   min="0"
+                  :modelValue="d(op.id).setup_time_min"
                   :data-testid="`op-setup-${op.id}`"
+                  @update:modelValue="(v) => { const dr = drafts[op.id]; if (dr) dr.setup_time_min = typeof v === 'number' ? v : null }"
                   @blur="saveOp(op)"
                   @keydown.enter.prevent="($event.target as HTMLElement).blur()"
                   @keydown.escape="onEscape($event, op)"
                 />
               </td>
               <td class="r">
-                <input
-                  v-model.number="d(op.id).operation_time_min"
-                  class="gi gi-num"
+                <InlineInput
+                  ghost
+                  numeric
+                  class="gi-num"
                   type="number"
                   step="1"
                   min="0"
+                  :modelValue="d(op.id).operation_time_min"
                   :data-testid="`op-optime-${op.id}`"
+                  @update:modelValue="(v) => { const dr = drafts[op.id]; if (dr) dr.operation_time_min = typeof v === 'number' ? v : null }"
                   @blur="saveOp(op)"
                   @keydown.enter.prevent="($event.target as HTMLElement).blur()"
                   @keydown.escape="onEscape($event, op)"
                 />
               </td>
               <td class="r">
-                <select
+                <InlineSelect
                   v-if="!op.is_coop"
-                  class="gi gi-sel-sm"
-                  :value="d(op.id).cutting_mode"
+                  ghost
+                  small
+                  class="gi-sel-sm"
+                  :modelValue="d(op.id).cutting_mode"
                   :data-testid="`op-mode-${op.id}`"
-                  @change="onModeChange(op, $event)"
+                  @update:modelValue="onModeChange(op, $event)"
                   @keydown.escape="onEscape($event, op)"
                 >
                   <option value="low">LOW</option>
                   <option value="mid">MID</option>
                   <option value="high">HIGH</option>
-                </select>
-                <span v-else class="cm-badge coop">COOP</span>
+                </InlineSelect>
+                <span v-else class="badge coop-badge">COOP</span>
               </td>
             </tr>
           </tbody>
@@ -294,7 +304,7 @@ onMounted(async () => {
   color: var(--t4);
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Summary ribbon ─── */
 .rib {
@@ -316,28 +326,11 @@ onMounted(async () => {
 .r { text-align: right; }
 .op-row:hover td { background: rgba(255,255,255,0.015); }
 
-/* ─── Ghost inputs — zero layout shift ─── */
-.gi {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  color: var(--t2);
-  font-size: var(--fs);
-  font-family: var(--font);
-  padding: 0;
-  margin: 0;
-  line-height: inherit;
-  outline: none;
-  transition: border-bottom-color 120ms var(--ease), color 100ms var(--ease);
-}
-.gi::placeholder { color: var(--t4); }
-.gi:hover { border-bottom-color: var(--b2); }
-.gi:focus { border-bottom-color: var(--b3); color: var(--t1); }
-
+/* ─── Ghost input/select size overrides — base styles in InlineInput/InlineSelect ─── */
 .gi-text { width: 100%; }
 
 .gi-num {
-  font-family: var(--mono);
+ 
   font-size: var(--fsm);
   color: var(--t3);
   width: 54px;
@@ -349,34 +342,13 @@ onMounted(async () => {
 .gi-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .gi-num[type=number] { -moz-appearance: textfield; }
 
-.gi-sel {
-  cursor: pointer;
-  color: var(--t4);
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
-}
+/* gi-sel: WC select width override */
+.gi-sel { width: 100%; }
 .gi-sel:focus { color: var(--t2); }
 
-.gi-sel-sm {
-  cursor: pointer;
-  font-size: var(--fss);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--t3);
-  width: 44px;
-  appearance: none;
-  -webkit-appearance: none;
-}
-.gi-sel-sm:focus { color: var(--t2); }
+/* gi-sel-sm: mode select size override */
+.gi-sel-sm { width: 44px; }
 
-/* ─── Cutting mode badge (coop only) ─── */
-.cm-badge {
-  font-size: var(--fss);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 1px 4px;
-  border-radius: var(--rs);
-}
-.coop { background: var(--b1); color: var(--t3); }
+/* coop-badge: COOP indicator — extends global .badge */
+.coop-badge { color: var(--t3); }
 </style>

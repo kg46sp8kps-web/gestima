@@ -225,7 +225,7 @@ function onFocus() {
   background: var(--t4);
 }
 .mod-label {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;

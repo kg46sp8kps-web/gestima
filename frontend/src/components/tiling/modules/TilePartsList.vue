@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { Search, RefreshCw } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useCatalogStore } from '@/stores/catalog'
 import { useUiStore } from '@/stores/ui'
@@ -8,6 +9,7 @@ import type { ContextGroup } from '@/types/workspace'
 import type { Part, PartStatus } from '@/types/part'
 import type { MaterialItem } from '@/types/material-item'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
 
 type TypeFilter = 'all' | 'parts' | 'materials'
 
@@ -50,6 +52,8 @@ function onSearchInput() {
     }
   }, 300)
 }
+
+watch(searchVal, onSearchInput)
 
 const filteredParts = computed(() => {
   const q = searchVal.value.toLowerCase().trim()
@@ -122,16 +126,13 @@ watch(
     <!-- Search + actions -->
     <div class="srch-w">
       <div class="srch-wrap">
-        <svg class="srch-ico" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.5" />
-          <path d="M10 10L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-        </svg>
-        <input
+        <Search class="srch-ico" :size="11" aria-hidden="true" />
+        <Input
           v-model="searchVal"
+          bare
           class="srch"
           placeholder="Hledat..."
-          data-testid="parts-search"
-          @input="onSearchInput"
+          testid="parts-search"
         />
         <button
           v-if="searchVal"
@@ -141,9 +142,7 @@ watch(
         >×</button>
       </div>
       <button class="icon-btn icon-btn-sm" title="Obnovit" data-testid="parts-refresh" @click="parts.fetchAll(); fetchMaterials()">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M2.5 8a5.5 5.5 0 1 0 1-3.18M2.5 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <RefreshCw :size="16" />
       </button>
     </div>
 
@@ -211,7 +210,7 @@ watch(
         >
           <span class="pn">{{ m.material_number }}</span>
           <span class="pm">{{ m.name }}</span>
-          <span class="mat-shape-badge">{{ SHAPE_LABELS[m.shape] ?? m.shape }}</span>
+          <span class="badge">{{ SHAPE_LABELS[m.shape] ?? m.shape }}</span>
         </li>
       </template>
     </ul>
@@ -250,21 +249,8 @@ watch(
   color: var(--t4);
   pointer-events: none;
 }
-.srch {
-  width: 100%;
-  height: 28px;
-  padding: 0 20px 0 24px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: var(--fs);
-  font-family: var(--font);
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.srch::placeholder { color: var(--t4); }
-.srch:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
+/* .srch layout: visual styles come from Input component's .input-ctrl */
+.srch { width: 100%; padding-left: 24px; }
 /* search clear — positioned inside search wrap */
 .srch-clr {
   position: absolute;
@@ -288,7 +274,7 @@ watch(
 }
 .ptab {
   padding: 3px 7px;
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   font-weight: 500;
   color: var(--t4);
   background: transparent;
@@ -308,7 +294,7 @@ watch(
   color: var(--t4);
   padding: 1px 4px;
   background: var(--b1);
-  border-radius: 2px;
+  border-radius: var(--rs);
 }
 
 /* ─── States ─── */
@@ -387,16 +373,7 @@ watch(
 .pd.e  { background: var(--err); }
 .pd.o  { background: var(--t4); }
 
-/* Material row badge */
-.mat-shape-badge {
-  font-size: var(--fsm);
-  padding: 1px 5px;
-  border-radius: var(--rs);
-  background: var(--b1);
-  color: var(--t3);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+/* Material shape badge uses global .badge from design-system.css */
 
 
 </style>

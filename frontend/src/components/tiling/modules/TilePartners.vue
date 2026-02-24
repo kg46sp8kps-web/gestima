@@ -4,6 +4,7 @@ import * as partnersApi from '@/api/partners'
 import type { Partner } from '@/types/partner'
 import type { ContextGroup } from '@/types/workspace'
 import Spinner from '@/components/ui/Spinner.vue'
+import Input from '@/components/ui/Input.vue'
 
 interface Props {
   leafId: string
@@ -61,12 +62,13 @@ onMounted(load)
     <template v-else>
       <!-- Search toolbar -->
       <div class="srch-bar">
-        <input
+        <Input
           v-model="searchQuery"
-          class="srch-inp"
+          bare
           type="text"
           placeholder="Hledat partnera…"
-          data-testid="partner-search-input"
+          testid="partner-search-input"
+          class="srch-inp"
         />
         <span class="srch-count">{{ filtered.length }} / {{ items.length }}</span>
       </div>
@@ -102,9 +104,13 @@ onMounted(load)
               </td>
               <td class="t4">{{ p.city ?? '—' }}</td>
               <td class="t4">{{ p.ico ?? '—' }}</td>
-              <td>
-                <span v-if="p.is_customer" class="type-badge cust" title="Zákazník">Z</span>
-                <span v-if="p.is_supplier" class="type-badge supp" title="Dodavatel">D</span>
+              <td class="type-cell">
+                <span v-if="p.is_customer" class="badge" title="Zákazník">
+                  <span class="badge-dot badge-dot-ok" />Z
+                </span>
+                <span v-if="p.is_supplier" class="badge" title="Dodavatel">
+                  <span class="badge-dot badge-dot-neutral" />D
+                </span>
               </td>
             </tr>
           </tbody>
@@ -139,7 +145,7 @@ onMounted(load)
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Search bar ─── */
 .srch-bar {
@@ -150,20 +156,8 @@ onMounted(load)
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
-.srch-inp {
-  flex: 1;
-  height: 28px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
-  font-size: var(--fs);
-  padding: 3px 6px;
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.srch-inp::placeholder { color: var(--t4); }
-.srch-inp:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
+/* .srch-inp layout: visual styles come from Input component's .input-ctrl */
+.srch-inp { flex: 1; }
 .srch-count {
   font-size: var(--fsm);
   color: var(--t4);
@@ -185,18 +179,6 @@ onMounted(load)
 .firm-name { font-weight: 500; color: var(--t1); }
 .firm-sub { font-size: var(--fsm); margin-top: 1px; }
 
-/* ─── Type badges ─── */
-.type-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: var(--rs);
-  font-size: var(--fss);
-  font-weight: 700;
-  margin-right: 2px;
-}
-.type-badge.cust { background: var(--green-10); color: var(--green); }
-.type-badge.supp { background: var(--b2); color: var(--t3); }
+/* Type badges use global .badge + .badge-dot-* from design-system.css */
+.type-cell { display: flex; gap: 3px; }
 </style>

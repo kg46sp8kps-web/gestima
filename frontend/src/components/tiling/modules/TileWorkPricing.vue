@@ -14,6 +14,7 @@ import type { Batch } from '@/types/batch'
 import type { ContextGroup } from '@/types/workspace'
 import { formatCurrency, formatNumber } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 interface Props {
@@ -36,8 +37,8 @@ const batches = ref<Batch[]>([])
 const loading = ref(false)
 const error = ref(false)
 const expandedSetId = ref<number | null>(null)
-const newQtyBySet = reactive<Record<number, string>>({})
-const newLooseQty = ref('')
+const newQtyBySet = reactive<Record<number, string | null>>({})
+const newLooseQty = ref<string | null>('')
 const submitting = reactive<Record<string, boolean>>({})
 
 // Computed
@@ -221,14 +222,14 @@ async function deleteSet(set: BatchSet) {
 
 async function addBatch(setId: number) {
   const qty = parseInt(newQtyBySet[setId] ?? '', 10)
-  if (!qty || qty <= 0) { ui.showError('Zadejte platné množství'); return }
+  if (!qty || qty <= 0 || isNaN(qty)) { ui.showError('Zadejte platné množství'); return }
   const key = `add-${setId}`
   if (submitting[key]) return
   submitting[key] = true
   try {
     const newBatch = await batchSetsApi.addBatch(setId, qty)
     batches.value = [...batches.value, newBatch]
-    newQtyBySet[setId] = ''
+    newQtyBySet[setId] = null
     const setItem = batchSets.value.find(s => s.id === setId)
     if (setItem) setItem.batch_count = (setItem.batch_count ?? 0) + 1
     ui.showSuccess(`Dávka ${qty} ks přidána`)
@@ -266,15 +267,15 @@ async function removeBatch(setId: number, batch: Batch) {
 
 async function createLooseBatch() {
   if (!part.value) return
-  const qty = parseInt(newLooseQty.value, 10)
-  if (!qty || qty <= 0) { ui.showError('Zadejte platné množství'); return }
+  const qty = parseInt(newLooseQty.value ?? '', 10)
+  if (!qty || qty <= 0 || isNaN(qty)) { ui.showError('Zadejte platné množství'); return }
   const key = 'new-loose'
   if (submitting[key]) return
   submitting[key] = true
   try {
     const newBatch = await batchesApi.create({ part_id: part.value.id, quantity: qty })
     batches.value = [...batches.value, newBatch]
-    newLooseQty.value = ''
+    newLooseQty.value = null
     ui.showSuccess(`Dávka ${qty} ks vytvořena`)
   } catch {
     ui.showError('Nepodařilo se vytvořit dávku')
@@ -398,7 +399,7 @@ function toggleExpand(setId: number) {
               :size="ICON_SIZE_SM"
               class="chevron"
             />
-            <span class="set-num mono">{{ set.set_number }}</span>
+            <span class="set-num">{{ set.set_number }}</span>
             <span class="set-name">{{ set.name }}</span>
             <span :class="['status-pill', set.status]">
               {{ set.status === 'frozen' ? 'ZAM' : 'DRAFT' }}
@@ -406,13 +407,14 @@ function toggleExpand(setId: number) {
             <span class="set-cnt">{{ set.batch_count }} ks</span>
             <!-- Add batch inline (draft only) -->
             <div v-if="set.status !== 'frozen'" class="hdr-add" @click.stop>
-              <input
-                v-model="newQtyBySet[set.id]"
+              <InlineInput
                 type="number"
                 min="1"
                 placeholder="qty"
                 class="qty-input"
+                :modelValue="newQtyBySet[set.id] ?? null"
                 :data-testid="`add-qty-${set.id}`"
+                @update:modelValue="newQtyBySet[set.id] = $event != null ? String($event) : null"
                 @keydown.enter.prevent="addBatch(set.id)"
               />
               <button
@@ -485,12 +487,12 @@ function toggleExpand(setId: number) {
                   :key="b.id"
                   :data-testid="`batch-row-${b.id}`"
                 >
-                  <td class="r mono">{{ formatNumber(b.quantity, 0) }}</td>
-                  <td class="r"><span class="pct-badge mat">{{ pct(b.material_percent) }}</span></td>
-                  <td class="r"><span class="pct-badge mach">{{ pct(b.machining_percent) }}</span></td>
-                  <td class="r"><span class="pct-badge setup">{{ pct(b.setup_percent) }}</span></td>
-                  <td class="r mono">{{ formatCurrency(b.unit_cost) }}</td>
-                  <td class="r"><span class="price-val mono">{{ formatCurrency(b.unit_price) }}</span></td>
+                  <td class="r">{{ formatNumber(b.quantity, 0) }}</td>
+                  <td class="r"><span class="badge pct-mat">{{ pct(b.material_percent) }}</span></td>
+                  <td class="r"><span class="badge pct-mach">{{ pct(b.machining_percent) }}</span></td>
+                  <td class="r"><span class="badge pct-setup">{{ pct(b.setup_percent) }}</span></td>
+                  <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
+                  <td class="r"><span class="price-val">{{ formatCurrency(b.unit_price) }}</span></td>
                   <td>
                     <button
                       v-if="set.status !== 'frozen'"
@@ -516,13 +518,14 @@ function toggleExpand(setId: number) {
         <div class="section-hdr">
           <span class="section-title">Volné dávky</span>
           <div class="hdr-add">
-            <input
-              v-model="newLooseQty"
+            <InlineInput
               type="number"
               min="1"
               placeholder="qty"
               class="qty-input"
+              :modelValue="newLooseQty"
               data-testid="new-loose-qty"
+              @update:modelValue="newLooseQty = $event != null ? String($event) : null"
               @keydown.enter.prevent="createLooseBatch"
             />
             <button
@@ -562,12 +565,12 @@ function toggleExpand(setId: number) {
               :key="b.id"
               :data-testid="`loose-row-${b.id}`"
             >
-              <td class="r mono">{{ formatNumber(b.quantity, 0) }}</td>
-              <td class="r"><span class="pct-badge mat">{{ pct(b.material_percent) }}</span></td>
-              <td class="r"><span class="pct-badge mach">{{ pct(b.machining_percent) }}</span></td>
-              <td class="r"><span class="pct-badge setup">{{ pct(b.setup_percent) }}</span></td>
-              <td class="r mono">{{ formatCurrency(b.unit_cost) }}</td>
-              <td class="r"><span class="price-val mono">{{ formatCurrency(b.unit_price) }}</span></td>
+              <td class="r">{{ formatNumber(b.quantity, 0) }}</td>
+              <td class="r"><span class="badge pct-mat">{{ pct(b.material_percent) }}</span></td>
+              <td class="r"><span class="badge pct-mach">{{ pct(b.machining_percent) }}</span></td>
+              <td class="r"><span class="badge pct-setup">{{ pct(b.setup_percent) }}</span></td>
+              <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
+              <td class="r"><span class="price-val">{{ formatCurrency(b.unit_price) }}</span></td>
             </tr>
           </tbody>
         </table>
@@ -602,7 +605,7 @@ function toggleExpand(setId: number) {
   background: var(--b2);
 }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Header toolbar ─── */
 .hdr {
@@ -646,7 +649,7 @@ function toggleExpand(setId: number) {
 .set-hdr:hover { background: rgba(255,255,255,0.025); }
 
 .chevron { color: var(--t4); flex-shrink: 0; }
-.set-num { font-size: var(--fsm); color: var(--t4); font-family: var(--mono); }
+.set-num { font-size: var(--fsm); color: var(--t4); }
 .set-name { font-size: var(--fs); color: var(--t2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .set-cnt { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
 
@@ -677,22 +680,16 @@ function toggleExpand(setId: number) {
   align-items: center;
   gap: 2px;
 }
+/* qty-input: size + mono override on top of InlineInput .ii base styles */
 .qty-input {
   width: 44px;
   height: 22px;
   padding: 1px 4px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  color: var(--t2);
   font-size: var(--fsm);
-  font-family: var(--mono);
+ 
   text-align: right;
-  outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.qty-input::placeholder { color: var(--t4); font-family: var(--font); }
-.qty-input:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
+.qty-input::placeholder { font-family: var(--font); }
 /* Remove browser spinner arrows */
 .qty-input::-webkit-outer-spin-button,
 .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -711,7 +708,7 @@ function toggleExpand(setId: number) {
   background: rgba(255,255,255,0.015);
 }
 .section-title {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -719,21 +716,14 @@ function toggleExpand(setId: number) {
   flex: 1;
 }
 
-/* ─── Percent badges ─── */
-.pct-badge {
-  display: inline-block;
-  font-size: var(--fsm);
-  padding: 1px 4px;
-  border-radius: var(--rs);
-  background: var(--b1);
-}
-.pct-badge.mat  { color: var(--chart-material); }
-.pct-badge.mach { color: var(--chart-machining); }
-.pct-badge.setup { color: var(--chart-setup); }
+/* pct-*: percent cost breakdown badges — extend global .badge with chart colors */
+.pct-mat  { color: var(--chart-material); }
+.pct-mach { color: var(--chart-machining); }
+.pct-setup { color: var(--chart-setup); }
 
 /* ─── Price value ─── */
 .price-val { font-weight: 600; color: var(--green); }
 
 /* ─── Mono ─── */
-.mono { font-family: var(--mono); }
+.mono { }
 </style>

@@ -90,12 +90,12 @@ fi
 
 # ── ERROR 6: Legacy/non-v2 token names ──
 if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.css ]]; then
-  LEGACY=$(grep -n 'var(--text-primary)\|var(--text-body)\|var(--text-secondary)\|var(--text-muted)\|var(--text-disabled)\|var(--text-tertiary)\|var(--text-base)\|var(--text-sm)\|var(--text-xs)\|var(--text-lg)\|var(--text-2xs)\|var(--bg-surface)\|var(--bg-raised)\|var(--bg-base)\|var(--bg-input)\|var(--bg-overlay)\|var(--bg-elevated)\|var(--bg-subtle)\|var(--bg-deepest)\|var(--border-default)\|var(--border-subtle)\|var(--border-strong)\|var(--font-semibold)\|var(--font-medium)\|var(--font-bold)\|var(--font-mono)\|var(--font-sans)\|var(--brand)\|var(--brand-hover)\|var(--brand-text)\|var(--brand-subtle)\|var(--brand-muted)\|var(--space-\|var(--radius-\|var(--shadow-\|var(--transition-\|var(--duration-\|var(--palette-\|var(--color-primary)\|var(--color-danger)\|var(--color-success)\|var(--color-warning)\|var(--status-ok)\|var(--status-error)\|var(--status-warn)\|var(--hover)\|var(--active)\|var(--selected)\|var(--focus-ring)\|var(--focus-bg)' "$FILE" 2>/dev/null | head -8)
+  LEGACY=$(grep -n 'var(--fsl)\|var(--fsx)\|var(--mono)\|var(--text-primary)\|var(--text-body)\|var(--text-secondary)\|var(--text-muted)\|var(--text-disabled)\|var(--text-tertiary)\|var(--text-base)\|var(--text-sm)\|var(--text-xs)\|var(--text-lg)\|var(--text-2xs)\|var(--bg-surface)\|var(--bg-raised)\|var(--bg-base)\|var(--bg-input)\|var(--bg-overlay)\|var(--bg-elevated)\|var(--bg-subtle)\|var(--bg-deepest)\|var(--border-default)\|var(--border-subtle)\|var(--border-strong)\|var(--font-semibold)\|var(--font-medium)\|var(--font-bold)\|var(--font-mono)\|var(--font-sans)\|var(--brand)\|var(--brand-hover)\|var(--brand-text)\|var(--brand-subtle)\|var(--brand-muted)\|var(--space-\|var(--radius-\|var(--shadow-\|var(--transition-\|var(--duration-\|var(--palette-\|var(--color-primary)\|var(--color-danger)\|var(--color-success)\|var(--color-warning)\|var(--status-ok)\|var(--status-error)\|var(--status-warn)\|var(--hover)\|var(--active)\|var(--selected)\|var(--focus-ring)\|var(--focus-bg)' "$FILE" 2>/dev/null | head -8)
   if [ -n "$LEGACY" ]; then
     ERRORS="${ERRORS}\n  [V2] Legacy token found. Use v2 tokens:\n"
     ERRORS="${ERRORS}    Text: --t1 --t2 --t3 --t4 | Surfaces: --base --ground --surface --raised\n"
     ERRORS="${ERRORS}    Borders: --b1 --b2 --b3 | Status: --ok --warn --err | Brand: --red --green\n"
-    ERRORS="${ERRORS}    Font: --font --mono --fs --fsl | Spacing: --pad --r --rs | Motion: --ease\n"
+    ERRORS="${ERRORS}    Font: --font --fs --fsm --fss --fsh | Spacing: --pad --r --rs | Motion: --ease\n"
     ERRORS="${ERRORS}    Weights: literal 400/500/600/700 | Sizes: literal px values\n"
     ERRORS="${ERRORS}  Found:\n${LEGACY}\n"
   fi
@@ -110,13 +110,13 @@ if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.ts ]]; then
 fi
 
 # ── ERROR 8: Hardcoded font-size values ──
-# Tokenized values: 9px 10px 10.5px 11px 12px 12.5px 13px 14px
-# Intentional literals (OK): 8px 8.5px 15px 16px 20px 24px 28px 48px
+# Tokenized values: 9px 10px 12px 12.5px 13px 14px
+# Intentional literals (OK): 8px 8.5px 10.5px 11px 15px 16px 20px 24px 28px 48px
 if [[ "$FILE" == *.vue ]] || [[ "$FILE" == *.css ]]; then
-  HARDCODED_FONT=$(grep -n 'font-size:\s*\(9px\|10px\|10\.5px\|11px\|12px\|12\.5px\|13px\|14px\)' "$FILE" 2>/dev/null \
+  HARDCODED_FONT=$(grep -n 'font-size:\s*\(9px\|10px\|12px\|12\.5px\|13px\|14px\)' "$FILE" 2>/dev/null \
     | grep -v 'var(--' | grep -v '/\*')
   if [ -n "$HARDCODED_FONT" ]; then
-    ERRORS="${ERRORS}\n  [FONT] Hardcoded font-size. Use token: --fsm(10px) --fsx(10.5px) --fss(9px) --fsh(14px) --fs(12px) --fsl(11px):\n${HARDCODED_FONT}\n"
+    ERRORS="${ERRORS}\n  [FONT] Hardcoded font-size. Use token: --fsm(10px) --fss(9px) --fsh(14px) --fs(12px):\n${HARDCODED_FONT}\n"
   fi
 fi
 

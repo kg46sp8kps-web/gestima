@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ChevronDown } from 'lucide-vue-next'
+
 interface SelectOption {
   value: string | number | null
   label: string
@@ -55,9 +57,7 @@ function onChange(e: Event) {
           {{ opt.label }}
         </option>
       </select>
-      <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
+      <ChevronDown class="select-arrow" :size="12" />
     </div>
     <p v-if="error" class="select-hint select-hint-error">{{ error }}</p>
   </div>
@@ -71,7 +71,7 @@ function onChange(e: Event) {
 }
 
 .select-label {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   font-weight: 500;
   color: var(--t3);
   text-transform: uppercase;
@@ -129,6 +129,6 @@ function onChange(e: Event) {
 .select-error .select-ctrl { border-color: var(--err); }
 .select-disabled .select-ctrl { opacity: 0.5; cursor: not-allowed; }
 
-.select-hint { font-size: var(--fsl); color: var(--t4); }
+.select-hint { font-size: var(--fsm); color: var(--t4); }
 .select-hint-error { color: var(--err); }
 </style>

@@ -6,6 +6,8 @@ import type { WorkCenter } from '@/types/work-center'
 import { formatNumber } from '@/utils/formatters'
 import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
+import InlineSelect from '@/components/ui/InlineSelect.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 interface WcDraft {
@@ -116,12 +118,8 @@ onMounted(load)
   <div class="tab-content">
     <div class="srch-bar">
       <label class="toggle-label">
-        <input
-          v-model="showInactive"
-          type="checkbox"
-          data-testid="wc-show-inactive"
-          class="toggle-cb"
-        />
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
+        <input v-model="showInactive" type="checkbox" data-testid="wc-show-inactive" class="toggle-cb" /> <!-- intentional: checkbox, no UI component available -->
         Zobrazit neaktivní
       </label>
       <span class="srch-count">{{ displayed.length }} / {{ centers.length }}</span>
@@ -175,10 +173,10 @@ onMounted(load)
               <td class="r t4">{{ c.axes ?? '—' }}</td>
               <td>
                 <span v-if="c.is_active" class="badge">
-                  <span class="badge-dot ok" />Aktiv.
+                  <span class="badge-dot-ok" />Aktiv.
                 </span>
                 <span v-else class="badge">
-                  <span class="badge-dot neutral" />Neakt.
+                  <span class="badge-dot-neutral" />Neakt.
                 </span>
               </td>
               <td class="action-cell t4">upravit</td>
@@ -188,19 +186,20 @@ onMounted(load)
             <template v-else-if="editDraft">
               <td class="t3">{{ editDraft.work_center_number }}</td>
               <td>
-                <input
-                  v-model="editDraft.name"
+                <InlineInput
+                  :modelValue="editDraft.name"
+                  @update:modelValue="editDraft.name = ($event as string) ?? ''"
                   type="text"
-                  class="ei ei-wide"
+                  class="ei-wide"
                   :data-testid="`wc-edit-name-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <select
-                  v-model="editDraft.work_center_type"
-                  class="ei-sel"
+                <InlineSelect
+                  :modelValue="editDraft.work_center_type"
+                  @update:modelValue="editDraft.work_center_type = $event"
                   :data-testid="`wc-edit-type-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
@@ -210,78 +209,90 @@ onMounted(load)
                     :key="opt.value"
                     :value="opt.value"
                   >{{ opt.label }}</option>
-                </select>
+                </InlineSelect>
               </td>
               <td class="rates-cell">
-                <input
-                  class="ei ei-sm"
+                <InlineInput
+                  numeric
                   type="number"
-                  v-model.number="editDraft.hourly_rate_amortization"
+                  :modelValue="editDraft.hourly_rate_amortization"
+                  @update:modelValue="editDraft.hourly_rate_amortization = $event as number | null"
                   placeholder="Amor"
+                  class="ei-sm"
                   :data-testid="`wc-rate-amor-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
-                <input
-                  class="ei ei-sm"
+                <InlineInput
+                  numeric
                   type="number"
-                  v-model.number="editDraft.hourly_rate_labor"
+                  :modelValue="editDraft.hourly_rate_labor"
+                  @update:modelValue="editDraft.hourly_rate_labor = $event as number | null"
                   placeholder="Práce"
+                  class="ei-sm"
                   :data-testid="`wc-rate-labor-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
-                <input
-                  class="ei ei-sm"
+                <InlineInput
+                  numeric
                   type="number"
-                  v-model.number="editDraft.hourly_rate_tools"
+                  :modelValue="editDraft.hourly_rate_tools"
+                  @update:modelValue="editDraft.hourly_rate_tools = $event as number | null"
                   placeholder="Nář."
+                  class="ei-sm"
                   :data-testid="`wc-rate-tools-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
-                <input
-                  class="ei ei-sm"
+                <InlineInput
+                  numeric
                   type="number"
-                  v-model.number="editDraft.hourly_rate_overhead"
+                  :modelValue="editDraft.hourly_rate_overhead"
+                  @update:modelValue="editDraft.hourly_rate_overhead = $event as number | null"
                   placeholder="Rež."
+                  class="ei-sm"
                   :data-testid="`wc-rate-overhead-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <input
-                  v-model.number="editDraft.max_workpiece_diameter"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.max_workpiece_diameter"
+                  @update:modelValue="editDraft.max_workpiece_diameter = $event as number | null"
                   type="number"
-                  class="ei ei-num"
+                  class="ei-num"
                   :data-testid="`wc-edit-diameter-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <input
-                  v-model.number="editDraft.axes"
+                <InlineInput
+                  numeric
+                  :modelValue="editDraft.axes"
+                  @update:modelValue="editDraft.axes = $event as number | null"
                   type="number"
                   step="1"
-                  class="ei ei-num"
+                  class="ei-num"
                   :data-testid="`wc-edit-axes-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 />
               </td>
               <td>
-                <select
-                  v-model="editDraft.is_active"
-                  class="ei-sel"
+                <InlineSelect
+                  :modelValue="String(editDraft.is_active)"
+                  @update:modelValue="editDraft.is_active = $event === 'true'"
                   :data-testid="`wc-edit-status-${c.id}`"
                   @keydown="onKeydown"
                   @click.stop
                 >
-                  <option :value="true">Aktivní</option>
-                  <option :value="false">Neaktivní</option>
-                </select>
+                  <option value="true">Aktivní</option>
+                  <option value="false">Neaktivní</option>
+                </InlineSelect>
               </td>
               <td class="act-cell">
                 <button
@@ -317,7 +328,7 @@ onMounted(load)
 }
 .toggle-label {
   display: flex; align-items: center; gap: 5px;
-  font-size: var(--fsl); color: var(--t3); cursor: pointer; user-select: none;
+  font-size: var(--fsm); color: var(--t3); cursor: pointer; user-select: none;
 }
 .toggle-cb { accent-color: var(--t1); cursor: pointer; }
 .srch-count { font-size: var(--fsm); color: var(--t4); white-space: nowrap; margin-left: auto; }
@@ -327,40 +338,22 @@ onMounted(load)
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .ot tbody tr.inactive td { opacity: 0.45; }
 
 .t3 { color: var(--t3); }
 .t4 { color: var(--t4); }
 .r { text-align: right; }
-.badge {
-  display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px;
-  font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2);
-}
-.badge-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-.badge-dot.ok { background: var(--ok); }
-.badge-dot.neutral { background: var(--t4); }
 
 /* Inline editing */
 .row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
 .row-editing:hover td { background: var(--raised); }
 .row-clickable { cursor: pointer; }
 .action-cell { font-size: var(--fsm); color: var(--t4); white-space: nowrap; }
-.ei {
-  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
-  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
-.ei-num { font-family: var(--mono); width: 56px; text-align: right; }
-.ei-sm { font-family: var(--mono); width: 48px; }
+/* visual styles come from InlineInput/InlineSelect components */
+.ei-num { width: 56px; text-align: right; }
+.ei-sm { width: 48px; }
 .ei-wide { width: 100%; }
-.ei-sel {
-  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
-  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none; cursor: pointer;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei-sel:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .rates-cell { display: flex; gap: 2px; flex-wrap: wrap; }
 </style>

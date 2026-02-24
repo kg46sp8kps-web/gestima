@@ -5,6 +5,8 @@ import { useUiStore } from '@/stores/ui'
 import * as adminApi from '@/api/admin'
 import type { AdminUser } from '@/types/admin-user'
 import Spinner from '@/components/ui/Spinner.vue'
+import InlineInput from '@/components/ui/InlineInput.vue'
+import InlineSelect from '@/components/ui/InlineSelect.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 const ui = useUiStore()
@@ -101,27 +103,29 @@ onMounted(load)
             </td>
             <td>
               <template v-if="editingId === u.id && editDraft">
-                <select
+                <InlineSelect
                   v-model="editDraft.role"
-                  class="ei-sel"
                   :data-testid="`user-role-select-${u.id}`"
                   @click.stop
                 >
                   <option value="admin">admin</option>
                   <option value="operator">operator</option>
                   <option value="viewer">viewer</option>
-                </select>
+                </InlineSelect>
               </template>
               <template v-else>
-                <span :class="['role-badge', `role-${u.role}`]">{{ u.role }}</span>
+                <span class="badge">
+                  <span :class="['badge-dot', u.role === 'admin' ? 'badge-dot-brand' : 'badge-dot-neutral']" />
+                  {{ u.role }}
+                </span>
               </template>
             </td>
             <td class="t4">
               <template v-if="editingId === u.id && editDraft">
-                <input
+                <InlineInput
                   v-model="editDraft.email"
                   type="text"
-                  class="ei ei-wide"
+                  style="width: 100%"
                   :data-testid="`user-email-input-${u.id}`"
                   @click.stop
                 />
@@ -132,22 +136,22 @@ onMounted(load)
             </td>
             <td>
               <template v-if="editingId === u.id && editDraft">
-                <select
-                  v-model="editDraft.is_active"
-                  class="ei-sel"
+                <InlineSelect
+                  :modelValue="String(editDraft.is_active)"
                   :data-testid="`user-status-select-${u.id}`"
+                  @update:modelValue="editDraft.is_active = $event === 'true'"
                   @click.stop
                 >
-                  <option :value="true">Aktivní</option>
-                  <option :value="false">Neaktivní</option>
-                </select>
+                  <option value="true">Aktivní</option>
+                  <option value="false">Neaktivní</option>
+                </InlineSelect>
               </template>
               <template v-else>
                 <span v-if="u.is_active" class="badge">
-                  <span class="badge-dot ok" />Aktivní
+                  <span class="badge-dot badge-dot-ok" />Aktivní
                 </span>
                 <span v-else class="badge">
-                  <span class="badge-dot neutral" />Neaktivní
+                  <span class="badge-dot badge-dot-neutral" />Neaktivní
                 </span>
               </template>
             </td>
@@ -189,41 +193,16 @@ onMounted(load)
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .ot-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .ot tbody tr.row-clickable { cursor: pointer; }
 .ot tbody tr.row-clickable:hover td { background: var(--b1); }
 .t4 { color: var(--t4); }
 .user-name { font-weight: 500; color: var(--t1); }
 .user-sub { font-size: var(--fsm); margin-top: 1px; }
-.role-badge {
-  display: inline-block; font-size: var(--fss); font-weight: 600;
-  padding: 1px 5px; border-radius: 99px; background: var(--b2); color: var(--t3);
-  text-transform: uppercase; letter-spacing: 0.04em;
-}
-.role-badge.role-admin { background: var(--red-10); color: var(--red); }
-.badge {
-  display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px;
-  font-size: var(--fsm); font-weight: 500; border-radius: 99px; background: var(--b1); color: var(--t2);
-}
-.badge-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-.badge-dot.ok { background: var(--ok); }
-.badge-dot.neutral { background: var(--t4); }
+/* Role/status badges use global .badge + .badge-dot-* from design-system.css */
 
-/* Inline edit */
+/* Inline edit — visual styles come from InlineInput/InlineSelect components */
 .row-editing td { background: var(--raised); border-bottom-color: var(--b3); }
 .row-editing:hover td { background: var(--raised); }
-.ei {
-  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
-  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
-.ei-wide { width: 100%; }
-.ei-sel {
-  background: rgba(255,255,255,0.04); border: 1px solid var(--b2); border-radius: var(--rs);
-  color: var(--t2); font-size: var(--fs); padding: 2px 4px; outline: none; cursor: pointer;
-  transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
-}
-.ei-sel:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 </style>

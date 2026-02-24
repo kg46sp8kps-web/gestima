@@ -418,7 +418,7 @@ const downloadUrl = computed(() =>
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── File selector ─── */
 .file-list {
@@ -529,7 +529,7 @@ const downloadUrl = computed(() =>
   font-size: var(--fsm);
   color: var(--t3);
   padding: 0 3px;
-  font-family: var(--mono);
+ 
   white-space: nowrap;
 }
 
@@ -537,7 +537,7 @@ const downloadUrl = computed(() =>
   font-size: var(--fsm);
   color: var(--t3);
   padding: 0 3px;
-  font-family: var(--mono);
+ 
   white-space: nowrap;
   min-width: 34px;
   text-align: center;

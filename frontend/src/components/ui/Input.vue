@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false })
+
 interface Props {
   modelValue: string | number | null
   label?: string
@@ -6,7 +8,6 @@ interface Props {
   placeholder?: string
   error?: string
   hint?: string
-  mono?: boolean
   disabled?: boolean
   required?: boolean
   autofocus?: boolean
@@ -14,15 +15,16 @@ interface Props {
   max?: number
   step?: number
   testid?: string
+  bare?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   type: 'text',
-  mono: false,
   disabled: false,
   required: false,
   autofocus: false,
   testid: 'input',
+  bare: false,
 })
 
 const emit = defineEmits<{
@@ -43,7 +45,32 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="input-field" :class="{ 'input-error': error, 'input-disabled': disabled }">
+  <!-- bare mode: just the input, no wrapper — for toolbar search bars -->
+  <input
+    v-if="bare"
+    v-bind="$attrs"
+    :value="modelValue ?? ''"
+    :type="type"
+    :placeholder="placeholder"
+    :disabled="disabled"
+    :autofocus="autofocus"
+    :min="min"
+    :max="max"
+    :step="step"
+    :class="['input-ctrl', {}]"
+    :data-testid="testid"
+    v-select-on-focus
+    @input="onInput"
+    @keydown="onKeydown"
+    @blur="$emit('blur', $event)"
+  />
+  <!-- full mode: with label, error, hint wrapper -->
+  <div
+    v-else
+    v-bind="$attrs"
+    class="input-field"
+    :class="{ 'input-error': error, 'input-disabled': disabled }"
+  >
     <label v-if="label" class="input-label">
       {{ label }}<span v-if="required" class="input-required">*</span>
     </label>
@@ -56,7 +83,7 @@ function onKeydown(e: KeyboardEvent) {
       :min="min"
       :max="max"
       :step="step"
-      :class="['input-ctrl', { 'input-mono': mono }]"
+      :class="['input-ctrl', {}]"
       :data-testid="testid"
       v-select-on-focus
       @input="onInput"
@@ -76,7 +103,7 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 .input-label {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   font-weight: 500;
   color: var(--t3);
   text-transform: uppercase;
@@ -113,10 +140,6 @@ function onKeydown(e: KeyboardEvent) {
   outline-offset: 2px;
 }
 
-.input-mono .input-ctrl,
-.input-mono {
-  font-family: var(--mono);
-}
 
 .input-error .input-ctrl {
   border-color: var(--warn);
@@ -131,7 +154,7 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 .input-hint {
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   color: var(--t4);
 }
 .input-hint-error {

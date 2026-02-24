@@ -62,6 +62,6 @@ const part = computed(() => parts.getFocusedPart(props.ctx))
   color: var(--t4);
 }
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
-.mod-label { font-size: var(--fsl); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .mod-hint { font-size: var(--fsm); opacity: 0.6; }
 </style>

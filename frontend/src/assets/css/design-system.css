@@ -47,11 +47,8 @@
 
   /* ─── Typography ─── */
   --font: 'DM Sans', -apple-system, sans-serif;
-  --mono: 'JetBrains Mono', monospace;
   --fs:  12px;    /* standard body, table cells, module picker items */
-  --fsl: 11px;    /* panel headers, DataTable th */
-  --fsx: 10.5px;  /* tabs, action buttons, status bar, login labels */
-  --fsm: 10px;    /* table th (uppercase), ribbon labels, badges, KPI labels */
+  --fsm: 10px;    /* labels, badges, tabs, buttons, panel headers, KPI */
   --fss: 9px;     /* KPI units, shortcut keys, meta text, avatar */
   --fsh: 14px;    /* pricing values, section headers, modal titles */
 
@@ -139,7 +136,7 @@ body {
   border-radius: var(--rs);
   color: var(--red);
   font-family: var(--font);
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   font-weight: 500;
   cursor: pointer;
   transition: all 100ms var(--ease);
@@ -170,7 +167,7 @@ body {
   border-radius: var(--rs);
   color: var(--t2);
   font-family: var(--font);
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   font-weight: 500;
   cursor: pointer;
   transition: all 100ms var(--ease);
@@ -201,7 +198,7 @@ body {
   border-radius: var(--rs);
   color: var(--err);
   font-family: var(--font);
-  font-size: var(--fsx);
+  font-size: var(--fsm);
   font-weight: 500;
   cursor: pointer;
   transition: all 100ms var(--ease);
@@ -264,7 +261,7 @@ body {
   background: var(--b1);
   border: 1px solid var(--b2);
   border-radius: 99px;
-  font-size: var(--fsl);
+  font-size: var(--fsm);
   font-weight: 500;
   color: var(--t2);
   white-space: nowrap;

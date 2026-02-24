@@ -14,7 +14,9 @@
 | Component | Purpose | Key Props |
 |---|---|---|
 | **Button.vue** | Multi-variant button | `variant` (primary/secondary/danger/ghost), `size`, `loading`, `disabled` |
-| **Input.vue** | Text/number/password input with validation | `modelValue`, `label`, `type`, `error`, `hint`, `mono` |
+| **Input.vue** | Text/number/password input with validation | `modelValue`, `label`, `type`, `error`, `hint`, `bare` (toolbar search mode — no wrapper) |
+| **InlineInput.vue** | Compact input for table-cell inline editing | `modelValue`, `numeric` (emits number\|null), `ghost` (transparent border-bottom style) |
+| **InlineSelect.vue** | Compact select for table-cell inline editing | `modelValue`, `ghost`, `small`, always emits string — use String()/Number() for conversions |
 | **Select.vue** | Native select dropdown | `modelValue`, `options` ({value,label}[]), `placeholder`, `error` |
 | **Textarea.vue** | Multi-line text input (ghost style) | `modelValue`, `label`, `placeholder`, `error`, `hint`, `rows`, `disabled`, `required` |
 | **Modal.vue** | Dialog modal (Teleport) | `modelValue`, `title`, `size` (sm/md/lg/xl), slots: header/default/footer |
@@ -79,8 +81,8 @@
 /* Borders */  --b1  --b2  --b3
 /* Status */   --ok  --warn  --err
 /* Linking */  --la  --lb
-/* Font */     --font ('DM Sans')  --mono ('JetBrains Mono')
-/* Size */     --fs (12px)  --fsl (11px)
+/* Font */     --font ('DM Sans')
+/* Size */     --fs (12px)  --fsm (10px)  --fss (9px)  --fsh (14px)
 /* Spacing */  --gap (3px)  --pad (8px)  --r (7px)  --rs (4px)
 /* Motion */   --ease  --spring
 
@@ -97,8 +99,8 @@
 - Font-size — tokenizované: viz tabulka výše. Literály OK: `8px`, `8.5px`, `15px`, `16px`, `20px`, `24px`, `28px`, `48px` (one-off layout hodnoty)
 - Spacing: `2px`, `4px`, `6px`, `8px`, `12px`, `16px`, `20px`, `24px`
 - Shadows: `0 4px 12px rgba(0,0,0,0.5)`
-- Transitions: `all 100ms var(--ease)`, `all 150ms var(--ease)`
-- Radius (mimo --r/--rs): `8px`, `12px`, `99px`
+- Transitions: **VŽDY** `NNNms var(--ease)` — např. `120ms var(--ease)`, `150ms var(--ease)`. NIKDY `0.Xs` formát.
+- Radius allowlist: `var(--rs)` (4px), `var(--r)` (7px), `8px`, `12px`, `99px`. NIKDY `2px` nebo `3px`.
 - Focus: `rgba(255,255,255,0.5)` (outline), `rgba(255,255,255,0.03)` (bg)
 
 **Pokud potřebuješ token který není v seznamu — ZEPTEJ SE, nevymýšlej.**
@@ -152,16 +154,15 @@ Katalog obsahuje: Typography, Tables (.ot/.bt), Badges, Buttons, Inputs, Panel a
 5. **Button varianty:** `.btn-primary`, `.btn-secondary`, `.btn-destructive` (všechny ghost/transparent)
 6. **Focus:** vždy viditelný — `:focus-visible { outline: 2px solid rgba(255,255,255,0.5) }` (BÍLÝ, nikdy modrý)
 7. **`@container` queries** — nikdy `@media` v komponentách
-8. **Font scale — VŽDY používej tokeny:**
+8. **Font scale — VŽDY používej tokeny (4 velikosti):**
    ```
-   --fs  (12px)   standard body, table cells, module picker items
-   --fsl (11px)   panel headers, DataTable th
-   --fsx (10.5px) tabs, action buttons, status bar, login labels
-   --fsm (10px)   table th (uppercase), ribbon labels, badges, KPI labels
-   --fss (9px)    KPI units, shortcut keys, meta text, avatar
    --fsh (14px)   pricing values, section headers, modal titles
+   --fs  (12px)   standard body, table cells, module picker items
+   --fsm (10px)   labels, badges, tabs, buttons, panel headers, KPI
+   --fss (9px)    KPI units, shortcut keys, meta text, avatar
    ```
    NIKDY hardcoded px pro tyto velikosti — hook [ERROR 8] zastaví commit.
+   Pouze jeden font: `--font` ('DM Sans'). Žádný `--mono`.
 
 ---
 
@@ -216,7 +217,7 @@ try {
 | **Edit mode** | `var(--raised)` + `var(--b3)`. NE červený border. |
 | **Toasts** | Monochrome body + colored left border (`.toast-ok/error/warn`). |
 | **Status colors** | POUZE v: badge dots, toast left borders, chart segments. Nikdy jako button/badge background. |
-| **Numbers & prices** | `font-family: var(--mono);` + `.col-num` nebo `.col-currency` (right-align, nowrap). |
+| **Numbers & prices** | `.col-num` nebo `.col-currency` (right-align, nowrap). Jediný font: `--font`. |
 | **Layout** | `@container` queries, NE `@media`. Fluid heights, NE fixed px heights. |
 
 ---
