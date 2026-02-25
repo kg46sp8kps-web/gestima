@@ -36,6 +36,7 @@ const addSelectedPart = ref<Part | null>(null)
 const addQuantity = ref<number | null>(1)
 const addSaving = ref(false)
 const partComboRef = ref<InstanceType<typeof PartCombobox> | null>(null)
+const selectedItemId = ref<number | null>(null)
 
 const STATUS_LABELS: Record<string, string> = {
   draft:    'Rozpracovaná',
@@ -154,10 +155,10 @@ async function onAddItem() {
   }
 }
 
-async function onRemoveItem(itemId: number, partNumber: string | null) {
+async function onRemoveItem(itemId: number, label: string | null) {
   const confirmed = await dialog.confirm({
     title: 'Odebrat položku?',
-    message: `Odeberete díl ${partNumber ?? itemId} z nabídky.`,
+    message: `Odeberete díl ${label ?? itemId} z nabídky.`,
     confirmLabel: 'Odebrat',
     dangerous: true,
   })
@@ -170,6 +171,17 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
   } catch {
     ui.showError('Chyba při odebírání položky')
   }
+}
+
+function handleRowKeydown(item: { id: number; article_number: string | null; part_number: string | null }, e: KeyboardEvent, isDraft: boolean) {
+  if (isDraft && e.ctrlKey && e.key === 'd') {
+    e.preventDefault()
+    onRemoveItem(item.id, item.article_number ?? item.part_number)
+  }
+}
+
+function selectItem(id: number) {
+  selectedItemId.value = id
 }
 </script>
 
@@ -258,51 +270,55 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
           <table class="ot">
             <thead>
               <tr>
-                <th style="width:80px">Č. dílu</th>
+                <th style="width:80px">Č. artiklu</th>
                 <th>Název</th>
                 <th style="width:70px">Výkres</th>
-                <th class="col-num" style="width:44px">Mn.</th>
+                <th class="col-num" style="width:64px">Mn.</th>
                 <th class="col-currency" style="width:80px">J. cena</th>
                 <th class="col-currency" style="width:84px">Celkem</th>
-                <th style="width:44px"></th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="item in quote.items"
                 :key="item.id"
+                class="qitem-row"
+                tabindex="0"
+                :class="{ act: selectedItemId === item.id }"
                 :data-testid="`quote-item-row-${item.id}`"
+                @click="selectItem(item.id)"
+                @focusin="selectItem(item.id)"
+                @keydown="handleRowKeydown(item, $event, quote.status === 'draft')"
               >
-                <td class="t4">{{ item.part_number ?? '—' }}</td>
+                <td class="t4">{{ item.article_number ?? '—' }}</td>
                 <td class="title-cell">{{ item.part_name ?? '—' }}</td>
                 <td class="t4">{{ item.drawing_number ?? '—' }}</td>
                 <td class="col-num">{{ item.quantity }}</td>
-                <td class="col-currency">
-                  {{ formatCurrency(item.unit_price) }}
+                <td class="col-currency">{{ formatCurrency(item.unit_price) }}</td>
+                <td class="col-currency">{{ formatCurrency(item.line_total) }}</td>
+                <td class="act-cell">
                   <TriangleAlertIcon
                     v-if="item.batch_approx"
                     class="approx-warn"
-                    :size="9"
+                    :size="ICON_SIZE_SM"
                     title="Neexistuje přesná dávka — cena z nejbližší nižší"
                   />
-                </td>
-                <td class="col-currency">{{ formatCurrency(item.line_total) }}</td>
-                <td class="act-cell">
                   <button
                     v-if="item.part_id"
                     class="icon-btn"
                     title="Otevřít díl"
                     :data-testid="`quote-item-link-${item.id}`"
-                    @click="openPartDetail"
+                    @click.stop="openPartDetail"
                   >
                     <ExternalLinkIcon :size="ICON_SIZE_SM" />
                   </button>
                   <button
                     v-if="quote.status === 'draft'"
                     class="icon-btn icon-btn-danger"
-                    title="Odebrat položku"
+                    title="Odebrat položku (Ctrl+D)"
                     :data-testid="`quote-item-delete-${item.id}`"
-                    @click="onRemoveItem(item.id, item.part_number)"
+                    @click.stop="onRemoveItem(item.id, item.article_number ?? item.part_number)"
                   >
                     <Trash2Icon :size="ICON_SIZE_SM" />
                   </button>
@@ -316,6 +332,7 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
                     ref="partComboRef"
                     v-model="addSelectedPart"
                     data-testid="add-item-part-combo"
+                    @enter="onAddItem"
                   />
                 </td>
                 <td class="col-num">
@@ -461,7 +478,12 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
 .ot-wrap { flex: 1; overflow-y: auto; min-height: 0; }
 .t4 { color: var(--t4); }
 .title-cell { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.act-cell { display: flex; gap: 2px; align-items: center; }
+.act-cell { text-align: right; white-space: nowrap; }
+
+/* ─── Item rows ─── */
+.qitem-row { cursor: default; }
+.qitem-row:hover { background: rgba(255, 255, 255, 0.025); }
+.qitem-row.act { background: rgba(255, 255, 255, 0.035); }
 
 /* ─── Add item row ─── */
 .add-row td { background: var(--ground); border-top: 1px solid var(--b1); }
@@ -469,7 +491,7 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
 .add-input { width: 100%; height: 22px; }
 .add-qty { text-align: right; }
 .add-hint { font-size: var(--fss); padding-left: 4px; }
-.approx-warn { color: var(--warn); vertical-align: middle; margin-left: 3px; cursor: default; }
+.approx-warn { color: var(--warn); vertical-align: middle; cursor: default; }
 
 /* ─── Price summary ─── */
 .price-summary {

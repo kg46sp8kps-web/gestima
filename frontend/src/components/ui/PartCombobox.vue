@@ -12,6 +12,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:modelValue': [value: Part | null]
   'select': [part: Part]
+  'enter': []
 }>()
 
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -119,11 +120,17 @@ function onKeydown(e: KeyboardEvent) {
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
     activeIdx.value = Math.max(activeIdx.value - 1, -1)
-  } else if (e.key === 'Enter' && isOpen.value && activeIdx.value >= 0) {
-    e.preventDefault()
-    e.stopPropagation()
-    const part = filtered.value[activeIdx.value]
-    if (part) select(part)
+  } else if (e.key === 'Enter') {
+    if (isOpen.value && activeIdx.value >= 0) {
+      e.preventDefault()
+      e.stopPropagation()
+      const part = filtered.value[activeIdx.value]
+      if (part) select(part)
+    } else if (!isOpen.value) {
+      // Dropdown closed → propagate Enter to parent (confirm add-row)
+      e.preventDefault()
+      emit('enter')
+    }
   } else if (e.key === 'Escape') {
     e.preventDefault()
     if (props.modelValue) {

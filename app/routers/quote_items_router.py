@@ -104,6 +104,7 @@ async def create_quote_item(
         quote_id=quote.id,
         part_id=data.part_id,
         part_number=part.part_number,
+        article_number=part.article_number,
         part_name=part.name,
         drawing_number=part.drawing_number,
         quantity=data.quantity,

@@ -53,6 +53,11 @@ function onInput(e: Event) {
 .ii:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
 .ii:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
 
+/* ─── Remove number spinners (forbidden per design rules) ─── */
+.ii::-webkit-outer-spin-button,
+.ii::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.ii[type=number] { -moz-appearance: textfield; }
+
 /* ─── Ghost (.gi pattern) ─── */
 .ii-ghost {
   background: transparent;

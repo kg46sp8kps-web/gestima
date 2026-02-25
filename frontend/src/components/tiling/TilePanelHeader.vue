@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onUnmounted } from 'vue'
-import { Maximize2Icon, Minimize2Icon, XIcon } from 'lucide-vue-next'
+import { Maximize2Icon, Minimize2Icon, XIcon, PanelTopIcon, PanelLeftIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useQuoteLayoutStore } from '@/stores/quoteLayout'
 import { MODULE_REGISTRY } from '@/types/workspace'
 import type { LeafNode, ContextGroup } from '@/types/workspace'
 import { ICON_SIZE_SM } from '@/config/design'
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 }>()
 
 const ws = useWorkspaceStore()
+const quoteLayout = useQuoteLayoutStore()
 const moduleDef = computed(() => MODULE_REGISTRY[props.node.module])
 
 // ─── Ctx group picker ───
@@ -156,6 +158,18 @@ function onDragEnd() {
     </div>
 
     <div class="phf" />
+
+    <!-- Quotes: layout toggle -->
+    <button
+      v-if="node.module === 'quotes'"
+      class="pc"
+      :title="quoteLayout.getMode(node.id) === 'vertical' ? 'Přepnout na horizontální' : 'Přepnout na vertikální'"
+      data-testid="quote-layout-toggle"
+      @click.stop="quoteLayout.toggle(node.id)"
+    >
+      <PanelTopIcon v-if="quoteLayout.getMode(node.id) === 'vertical'" :size="ICON_SIZE_SM - 2" />
+      <PanelLeftIcon v-else :size="ICON_SIZE_SM - 2" />
+    </button>
 
     <!-- Controls -->
     <button

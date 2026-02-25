@@ -16,6 +16,7 @@ export interface QuoteItem {
   quote_id: number
   part_id: number | null
   part_number: string | null
+  article_number: string | null
   part_name: string | null
   drawing_number: string | null
   quantity: number

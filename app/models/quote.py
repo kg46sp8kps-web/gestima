@@ -82,6 +82,7 @@ class QuoteItem(Base, AuditMixin):
 
     # Denormalized fields (for snapshot integrity)
     part_number = Column(String(8), nullable=True, index=True)
+    article_number = Column(String(50), nullable=True)
     part_name = Column(String(200), nullable=True)
     drawing_number = Column(String(50), nullable=True)
 
@@ -109,6 +110,7 @@ class QuoteItem(Base, AuditMixin):
 class QuoteItemBase(BaseModel):
     part_id: Optional[int] = Field(None, description="ID dílu")
     part_number: Optional[str] = Field(None, max_length=8, description="Číslo dílu (denormalizováno)")
+    article_number: Optional[str] = Field(None, max_length=50, description="Artikl číslo dodavatele (denormalizováno)")
     part_name: Optional[str] = Field(None, max_length=200, description="Název dílu (denormalizováno)")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu (denormalizováno)")
     quantity: int = Field(1, gt=0, description="Množství")
