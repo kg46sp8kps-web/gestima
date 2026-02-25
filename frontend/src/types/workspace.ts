@@ -17,7 +17,6 @@ export type ModuleId =
   | 'partners'
   | 'quotes'
   | 'production'
-  | 'accounting'
   | 'files'
   | 'admin'
   | 'materials'
@@ -57,12 +56,11 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    isSub: true, usesCtx: true },
   'work-drawing':  { id: 'work-drawing',  label: 'Výkres',       isSub: true, usesCtx: true },
   'work-materials':{ id: 'work-materials',label: 'Materiály',    isSub: true, usesCtx: true },
-  'time-vision':   { id: 'time-vision',   label: 'TimeVision',   shortcut: '⌘6' },
+  'time-vision':   { id: 'time-vision',   label: 'TimeVision',   shortcut: '⌘6', usesCtx: true },
   'batch-sets':    { id: 'batch-sets',    label: 'Dávkové sady', shortcut: '⌘7' },
   'partners':      { id: 'partners',      label: 'Partneři',     shortcut: '⌘8' },
   'quotes':        { id: 'quotes',        label: 'Nabídky',      shortcut: '⌘9' },
   'production':    { id: 'production',    label: 'Výroba',       shortcut: '⌘0' },
-  'accounting':    { id: 'accounting',    label: 'Účetnictví' },
   'files':         { id: 'files',         label: 'Soubory' },
   'admin':         { id: 'admin',         label: 'Administrace' },
   'materials':     { id: 'materials',     label: 'Polotovary' },

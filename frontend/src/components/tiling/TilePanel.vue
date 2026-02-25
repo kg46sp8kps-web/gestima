@@ -42,7 +42,6 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
   'time-vision':    defineAsyncComponent(() => import('@/components/tiling/modules/TileTimeVision.vue')),
   'batch-sets':     defineAsyncComponent(() => import('@/components/tiling/modules/TileBatchSets.vue')),
   'production':     defineAsyncComponent(() => import('@/components/tiling/modules/TileProduction.vue')),
-  'accounting':     defineAsyncComponent(() => import('@/components/tiling/modules/TileAccounting.vue')),
   'files':          defineAsyncComponent(() => import('@/components/tiling/modules/TileFiles.vue')),
   'admin':          defineAsyncComponent(() => import('@/components/tiling/modules/TileAdmin.vue')),
   'materials':      defineAsyncComponent(() => import('@/components/tiling/modules/TileMaterials.vue')),

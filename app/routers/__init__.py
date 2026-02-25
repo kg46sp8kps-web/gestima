@@ -22,7 +22,6 @@ from . import (
     infor_router,  # Infor CloudSuite Industrial integration
     infor_import_router,  # Infor Jobs import (Parts, Operations, ProductionRecords)
     cutting_conditions_router,  # Cutting conditions catalog (v1.28.0)
-    accounting_router,  # CsiXls accounting integration
     time_vision_router,  # TimeVision AI estimation
     technology_builder_router,  # Technology Builder (Phase 1)
     files_router,  # Centralized File Manager (ADR-044)

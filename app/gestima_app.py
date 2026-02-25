@@ -40,7 +40,6 @@ from app.routers import (
     infor_router,  # Infor CloudSuite Industrial integration
     infor_import_router,  # Infor Jobs import (Parts, Operations, ProductionRecords)
     cutting_conditions_router,  # Cutting conditions catalog (v1.28.0)
-    accounting_router,  # CsiXls accounting integration
     time_vision_router,  # TimeVision AI estimation
     technology_builder_router,  # Technology Builder (Phase 1)
     files_router,  # Centralized File Manager (ADR-044)
@@ -233,7 +232,6 @@ app.include_router(module_defaults_router.router, prefix="/api", tags=["Module D
 app.include_router(infor_router.router, tags=["Infor Integration"])  # Infor CloudSuite Industrial (prefix in router)
 app.include_router(infor_import_router.router, tags=["Infor Import"])  # Infor Jobs import (prefix in router)
 app.include_router(cutting_conditions_router.router, tags=["Cutting Conditions"])  # v1.28.0
-app.include_router(accounting_router.router, tags=["Accounting"])  # CsiXls integration
 app.include_router(time_vision_router.router, tags=["TimeVision"])  # TimeVision AI estimation (prefix in router)
 app.include_router(technology_builder_router.router, tags=["Technology Builder"])  # Technology Builder (Phase 1)
 app.include_router(files_router.router, tags=["Files"])  # Centralized File Manager (ADR-044, prefix in router)
