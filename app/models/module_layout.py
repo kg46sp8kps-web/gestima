@@ -55,6 +55,7 @@ class ModuleLayoutCreate(ModuleLayoutBase):
 
 class ModuleLayoutUpdate(BaseModel):
     """Update module layout (all fields optional)"""
+    version: int = Field(..., description="Optimistic locking version")
     layout_name: Optional[str] = Field(None, max_length=200, description="New layout name")
     config: Optional[Dict[str, Any]] = Field(None, description="Updated config")
     is_default: Optional[bool] = Field(None, description="Set as default layout")

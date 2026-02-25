@@ -215,8 +215,12 @@ async def update_module_layout(
         if not layout:
             raise HTTPException(status_code=404, detail="Module layout not found")
 
+        if layout.version != data.version:
+            logger.warning(f"Version conflict updating module layout {id}: expected {data.version}, got {layout.version}")
+            raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
+
         # Apply updates
-        update_data = data.model_dump(exclude_unset=True)
+        update_data = data.model_dump(exclude={'version'}, exclude_unset=True)
 
         # Validate config if provided
         if "config" in update_data:

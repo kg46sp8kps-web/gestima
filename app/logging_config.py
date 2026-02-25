@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, Dict
 import json
@@ -62,7 +63,11 @@ def setup_logging(debug: bool = False) -> None:
         log_dir = Path(__file__).parent.parent / "logs"
         log_dir.mkdir(exist_ok=True)
 
-        file_handler = logging.FileHandler(log_dir / "gestima.log")
+        file_handler = RotatingFileHandler(
+            log_dir / "gestima.log",
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=7,
+        )
         file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(JSONFormatter())
         root_logger.addHandler(file_handler)

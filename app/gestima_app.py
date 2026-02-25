@@ -165,6 +165,8 @@ app = FastAPI(
     description="Kalkulátor nákladů CNC obrábění",
     version=settings.VERSION,
     lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
 )
 
 # Security headers middleware (MUSÍ být před CORS)

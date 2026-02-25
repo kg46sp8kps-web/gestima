@@ -7,6 +7,7 @@ Lookup by module_type (string), not by ID.
 import logging
 from typing import Optional
 
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,7 +53,10 @@ class ModuleDefaultsService:
         if not defaults:
             raise ValueError(f"Module defaults pro '{module_type}' nenalezeny")
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        if defaults.version != data.version:
+            raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku a zkuste znovu.")
+
+        for field, value in data.model_dump(exclude={'version'}, exclude_unset=True).items():
             setattr(defaults, field, value)
 
         set_audit(defaults, username, is_update=True)

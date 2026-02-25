@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { SaveIcon, SettingsIcon, PlusIcon, ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAuthStore } from '@/stores/auth'
@@ -44,10 +44,16 @@ function updateClock() {
   clock.value = now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
 }
 
+let clockInterval: ReturnType<typeof setInterval>
+
 onMounted(() => {
   updateClock()
-  setInterval(updateClock, 30_000)
+  clockInterval = setInterval(updateClock, 30_000)
   ws.fetchLayouts()
+})
+
+onUnmounted(() => {
+  clearInterval(clockInterval)
 })
 </script>
 

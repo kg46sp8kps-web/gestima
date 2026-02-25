@@ -53,6 +53,7 @@ class ModuleDefaultsCreate(ModuleDefaultsBase):
 
 class ModuleDefaultsUpdate(BaseModel):
     """Update module defaults (all fields optional)"""
+    version: int = Field(..., description="Optimistic locking version")
     default_width: Optional[int] = Field(None, gt=200, le=3000, description="Default width in pixels")
     default_height: Optional[int] = Field(None, gt=200, le=3000, description="Default height in pixels")
     settings: Optional[Dict[str, Any]] = Field(None, description="Additional settings as JSON")

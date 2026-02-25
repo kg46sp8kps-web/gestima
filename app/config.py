@@ -31,7 +31,7 @@ class Settings(BaseSettings):
         return v
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1080  # 18 hours
-    SECURE_COOKIE: bool = False  # True pro HTTPS (produkce)
+    SECURE_COOKIE: bool = True  # False pouze pro lokální HTTP development
 
     # CORS - seznam povolených originů oddělených čárkou
     # Prázdný string = žádný CORS (same-origin only)

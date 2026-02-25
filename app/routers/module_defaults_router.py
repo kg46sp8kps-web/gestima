@@ -52,6 +52,8 @@ async def update_module_defaults(
     service = ModuleDefaultsService(db)
     try:
         return await service.update(module_type, data, current_user.username)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

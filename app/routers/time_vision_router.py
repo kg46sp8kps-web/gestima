@@ -47,7 +47,7 @@ def _resolve_pdf_path(record_pdf_path: str, filename: str) -> Path:
 
 
 @router.get("/model-info", response_model=dict)
-async def get_model_info():
+async def get_model_info(current_user: User = Depends(get_current_user)):
     """Return currently configured OpenAI model info."""
     return {
         "model": OPENAI_MODEL,
@@ -192,7 +192,7 @@ async def list_drawings(db: AsyncSession = Depends(get_db), current_user: User =
 
 
 @router.get("/drawings/{filename}/pdf")
-async def serve_drawing_pdf(filename: str):
+async def serve_drawing_pdf(filename: str, current_user: User = Depends(get_current_user)):
     """Serve a PDF drawing file for preview."""
     # Security: prevent path traversal
     if ".." in filename or "/" in filename:
@@ -1157,7 +1157,7 @@ class FeatureTypesCatalogResponse(BaseModel):
 
 
 @router.get("/feature-types", response_model=FeatureTypesCatalogResponse)
-async def get_feature_types():
+async def get_feature_types(current_user: User = Depends(get_current_user)):
     """Return feature types catalog for frontend.
 
     Returns all feature types with metadata (labels, descriptions, examples).
