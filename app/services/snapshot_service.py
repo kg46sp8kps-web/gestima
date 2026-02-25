@@ -40,7 +40,7 @@ async def create_batch_snapshot(
     try:
         if not hasattr(batch, 'part') or not batch.part:
             from sqlalchemy import select
-            from app.models.material import MaterialItem
+            from app.models.material import MaterialItem, MaterialPriceCategory
             from app.models.material_input import MaterialInput
             stmt = select(Batch).where(Batch.id == batch.id).options(
                 selectinload(Batch.part)
@@ -50,6 +50,11 @@ async def create_batch_snapshot(
                 selectinload(Batch.part)
                 .selectinload(Part.material_inputs)
                 .selectinload(MaterialInput.price_category)
+                .selectinload(MaterialPriceCategory.tiers),
+                selectinload(Batch.part)
+                .selectinload(Part.material_inputs)
+                .selectinload(MaterialInput.price_category)
+                .selectinload(MaterialPriceCategory.material_group),
             )
             result = await db.execute(stmt)
             loaded_batch = result.scalar_one_or_none()
@@ -70,17 +75,18 @@ async def create_batch_snapshot(
     material_group = material_item.group if material_item and hasattr(material_item, 'group') else None
 
     # ADR-014: Získat price_per_kg který byl použit pro výpočet batche
-    material_price_per_kg = None
-    if material_input:  # Check material_input instead of material_item (ADR-024)
+    # Preferujeme batch.material_price_per_kg nastavený v recalculate_batch_costs() (ADR-016).
+    # Fallback: spočítáme ho on-the-fly (pro batche zmrazené bez předchozího recalculate).
+    material_price_per_kg = batch.material_price_per_kg
+    if material_price_per_kg is None and material_input:
         try:
-            from app.services.price_calculator import calculate_stock_cost_from_part
-            # Vypočítat stock cost s quantity batche pro získání správného tier price
-            stock_cost = await calculate_stock_cost_from_part(part, batch.quantity, db)
-            material_price_per_kg = stock_cost.price_per_kg
+            from app.services.price_calculator import calculate_stock_cost_from_material_input
+            mat_cost = await calculate_stock_cost_from_material_input(
+                material_input, batch.quantity, db
+            )
+            material_price_per_kg = mat_cost.price_per_kg or None
         except Exception as e:
             logger.warning(f"Failed to calculate price_per_kg for snapshot: {e}", exc_info=True)
-            # Fallback: použít průměr z tiers nebo None
-            material_price_per_kg = None
 
     # Sbírat varování o podezřelých hodnotách (neblokovat freeze)
     # Kontrolujeme jen finální výsledky (costs), ne intermediate hodnoty

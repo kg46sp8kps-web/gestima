@@ -60,6 +60,7 @@ async def sample_materials(db_session):
     price_category = MaterialPriceCategory(
         code="SNAPSHOT-TEST",
         name="Snapshot test category",
+        material_group_id=group.id,
         created_by="test"
     )
     db_session.add(price_category)

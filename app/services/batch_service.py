@@ -2,7 +2,6 @@
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,13 +10,8 @@ from app.models.batch import Batch
 from app.models.part import Part
 from app.models.operation import Operation
 from app.models.material_input import MaterialInput  # ADR-024
-# Machine model removed - replaced by WorkCenter (ADR-021)
-from app.models.material import MaterialItem, MaterialGroup, MaterialPriceCategory
-from app.services.price_calculator import (
-    calculate_stock_cost_from_part,
-    calculate_batch_prices,  # Legacy
-    calculate_part_price,     # New (ADR-016)
-)
+from app.models.material import MaterialItem, MaterialPriceCategory
+from app.services.price_calculator import calculate_part_price
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +22,9 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
 
     Postup:
     1. Načte Part (s material_inputs → price_category, material_item - ADR-024)
-    2. Vypočítá material cost (calculate_stock_cost_from_part)
-    3. Načte Operations pro part
-    4. Načte Machines pro operations
-    5. Vypočítá machining/setup/coop costs (calculate_batch_prices)
-    6. Updatne batch fields
+    2. Načte Operations pro part
+    3. Vypočítá ceny přes calculate_part_price() (ADR-016)
+    4. Updatne batch fields + material weight snapshot
 
     Args:
         batch: Batch instance (může být nový nebo existující)
@@ -66,41 +58,7 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
         if not part:
             raise ValueError(f"Part {batch.part_id} not found")
 
-        # ADR-024: Check material_inputs instead of deprecated Part.price_category/material_item
-        # CRITICAL: Filter out soft-deleted material_inputs (data integrity fix)
-        active_material_inputs = [mi for mi in part.material_inputs if not mi.deleted_at]
-        if not active_material_inputs:
-            logger.warning(
-                f"Part {part.id} has no active material_inputs, setting material_cost=0"
-            )
-            batch.material_cost = 0.0
-            batch.material_weight_kg = None
-            batch.material_price_per_kg = None
-            material_cost = 0.0
-        else:
-            # 2. Vypočítat weight snapshot (s dynamic price tiers - ADR-014)
-            # POUZE pro weight snapshot — material_cost je přepsán níže přes calculate_part_price()
-            material_calc = await calculate_stock_cost_from_part(
-                part, batch.quantity, db
-            )
-
-            # ADR-017: Hybrid material snapshot (fast lookup + audit trail)
-            total_weight = material_calc.weight_kg * batch.quantity
-            batch.material_weight_kg = round(total_weight, 3)
-            batch.material_price_per_kg = material_calc.price_per_kg
-
-            # Rozšířit snapshot_data o material detail (pro audit trail)
-            if not batch.snapshot_data:
-                batch.snapshot_data = {}
-            batch.snapshot_data["material"] = {
-                "weight_per_piece_kg": material_calc.weight_kg,
-                "total_weight_kg": total_weight,
-                "density": material_calc.density,
-                "price_per_kg": material_calc.price_per_kg,
-                "tier_calculation_timestamp": datetime.now().isoformat(),
-            }
-
-        # 3. Načíst Operations pro unit_time_min výpočet (kalkulace už má operace)
+        # 2. Načíst Operations pro unit_time_min výpočet (kalkulace už má operace)
         operations_stmt = (
             select(Operation)
             .where(Operation.part_id == part.id, Operation.deleted_at.is_(None))
@@ -134,6 +92,21 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
         # Celkem
         batch.unit_cost = breakdown.cost_per_piece
         batch.total_cost = breakdown.total_cost
+
+        # Material weight/price snapshot (z ADR-016 kalkulace — konzistentní s material_cost)
+        total_weight_kg = breakdown.material_weight_kg * batch.quantity
+        batch.material_weight_kg = round(total_weight_kg, 3) if breakdown.material_weight_kg else None
+        batch.material_price_per_kg = breakdown.material_price_per_kg or None
+
+        # Snapshot materiálu pro audit trail (u nefrozen batchí)
+        if not batch.snapshot_data:
+            batch.snapshot_data = {}
+        batch.snapshot_data["material"] = {
+            "weight_per_piece_kg": breakdown.material_weight_kg,
+            "total_weight_kg": round(total_weight_kg, 3) if breakdown.material_weight_kg else 0,
+            "price_per_kg": breakdown.material_price_per_kg,
+            "tier_calculation_timestamp": datetime.now().isoformat(),
+        }
 
         # unit_time_min = součet operation_time_min (bez setup, bez coop)
         batch.unit_time_min = sum(

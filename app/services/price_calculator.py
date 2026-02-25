@@ -421,6 +421,8 @@ class PriceBreakdown:
     material_cost_raw: float = 0.0
     stock_coefficient: float = 1.0
     material_cost: float = 0.0
+    material_weight_kg: float = 0.0     # za 1 kus (bez stock_coefficient)
+    material_price_per_kg: float = 0.0  # cena kg primárního materiálu
 
     # === CELKEM ===
     total_cost: float = 0.0
@@ -637,9 +639,11 @@ async def calculate_part_price(
 
     # === 5. MATERIÁL (s koeficientem + scrap) ===
     # ADR-024: Use new MaterialInput-based calculation
-    material_cost_per_piece = await calculate_part_material_cost(part, quantity, db)
-    result.material_cost_raw = material_cost_per_piece  # Za 1 kus
+    material_calc = await calculate_part_material_cost(part, quantity, db)
+    result.material_cost_raw = material_calc.cost  # Za 1 kus
     result.material_cost = result.material_cost_raw * result.stock_coefficient * quantity * scrap_factor
+    result.material_weight_kg = material_calc.weight_kg        # za 1 kus
+    result.material_price_per_kg = material_calc.price_per_kg  # primární materiál
 
     # === 6. CELKEM ===
     result.total_cost = result.work_with_margin + result.coop_cost + result.material_cost
@@ -823,21 +827,23 @@ async def calculate_part_material_cost(
     part,
     quantity: int = 1,
     db: AsyncSession = None
-) -> float:
+) -> MaterialCost:
     """
-    Součet ceny všech MaterialInputs pro Part (ADR-024).
+    Součet ceny a hmotnosti všech MaterialInputs pro Part (ADR-024).
 
     Args:
         part: Part instance (s eager-loaded material_inputs)
-        quantity: Množství kusů
+        quantity: Množství kusů (pro výběr price tier)
         db: AsyncSession
 
     Returns:
-        float: Celková cena materiálu za 1 kus dílu
+        MaterialCost: cost + weight_kg (za 1 kus dílu), price_per_kg (primárního materiálu)
     """
+    result = MaterialCost()
+
     if db is None:
         logger.error("DB session required for material cost calculation")
-        return 0.0
+        return result
 
     # Načíst material_inputs pokud nejsou eager loaded
     if not hasattr(part, 'material_inputs'):
@@ -851,8 +857,7 @@ async def calculate_part_material_cost(
         loaded = await db.execute(stmt)
         part = loaded.scalar_one()
 
-    total_cost = 0.0
-
+    is_first = True
     for material_input in part.material_inputs:
         if material_input.deleted_at:  # Skip soft-deleted
             continue
@@ -862,6 +867,12 @@ async def calculate_part_material_cost(
             quantity,
             db
         )
-        total_cost += mat_cost.cost
+        result.cost += mat_cost.cost
+        result.weight_kg += mat_cost.weight_kg
+        if is_first:
+            result.price_per_kg = mat_cost.price_per_kg
+            is_first = False
 
-    return round(total_cost, 2)
+    result.cost = round(result.cost, 2)
+    result.weight_kg = round(result.weight_kg, 3)
+    return result
