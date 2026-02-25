@@ -15,7 +15,12 @@ export const usePartsStore = defineStore('parts', () => {
   const search = ref('')
   const statusFilter = ref<PartStatus | ''>('')
 
+  const loaded = ref(false)
+  const loadingMore = ref(false)
+
   const hasParts = computed(() => items.value.length > 0)
+  const initialLoading = computed(() => loading.value && items.value.length === 0)
+  const hasMore = computed(() => items.value.length < total.value)
 
   function getFocusedPart(ctx: ContextGroup): Part | null {
     const catalog = useCatalogStore()
@@ -36,22 +41,46 @@ export const usePartsStore = defineStore('parts', () => {
     catalog.focusItem({ type: 'part', number: partNumber }, ctx)
   }
 
-  async function fetchAll(params?: PartListParams) {
+  async function fetchParts(reset = false) {
+    if (loaded.value && !reset) return
     loading.value = true
+    if (reset) { items.value = []; loaded.value = false }
     try {
       const result = await partsApi.getAll({
-        limit: 500,
+        skip: 0, limit: 200,
         search: search.value || undefined,
         status: statusFilter.value || undefined,
-        ...params,
       })
       items.value = result.parts
       total.value = result.total
+      loaded.value = true
     } catch {
       ui.showError('Chyba při načítání dílů')
     } finally {
       loading.value = false
     }
+  }
+
+  async function loadMoreParts() {
+    if (loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+    try {
+      const result = await partsApi.getAll({
+        skip: items.value.length, limit: 50,
+        search: search.value || undefined,
+        status: statusFilter.value || undefined,
+      })
+      items.value.push(...result.parts)
+    } catch {
+      ui.showError('Chyba při načítání dílů')
+    } finally {
+      loadingMore.value = false
+    }
+  }
+
+  // backward compat alias — jiné moduly mohou volat fetchAll
+  async function fetchAll(_params?: PartListParams) {
+    await fetchParts(true)
   }
 
   async function refreshPart(partNumber: string): Promise<void> {
@@ -118,13 +147,19 @@ export const usePartsStore = defineStore('parts', () => {
     items,
     total,
     loading,
+    loadingMore,
+    loaded,
     search,
     statusFilter,
     hasParts,
+    initialLoading,
+    hasMore,
     getFocusedPart,
     getFocusedPartNumber,
     focusPart,
     fetchAll,
+    fetchParts,
+    loadMoreParts,
     refreshPart,
     createPart,
     updatePart,

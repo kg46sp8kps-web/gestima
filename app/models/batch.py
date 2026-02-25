@@ -164,6 +164,12 @@ class BatchResponse(BaseModel):
 
     @computed_field
     @property
+    def unit_cost_net(self) -> float:
+        """Náklady na kus BEZ režie a marže (čisté výrobní náklady)"""
+        return round(self.machining_cost + self.setup_cost + self.coop_cost + self.material_cost, 4)
+
+    @computed_field
+    @property
     def unit_price(self) -> float:
-        """Alias pro unit_cost (pro kompatibilitu s frontendem)"""
+        """Prodejní cena na kus vč. režie a marže (= unit_cost)"""
         return self.unit_cost

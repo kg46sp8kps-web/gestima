@@ -13,6 +13,7 @@ export interface Batch {
   margin_cost: number
   coop_cost: number
   unit_cost: number
+  unit_cost_net: number
   total_cost: number
   material_percent: number
   machining_percent: number

@@ -43,6 +43,17 @@ function pct(val: number): string {
 function coeff(val: number): string {
   return '×' + formatNumber(val, 2)
 }
+
+function perPiece(val: number): string {
+  if (!data.value || data.value.quantity <= 0) return '—'
+  return formatCurrency(val / data.value.quantity)
+}
+
+// val je již per-piece — dávka = val × qty
+function batchFromPiece(val: number): string {
+  if (!data.value) return '—'
+  return formatCurrency(val * data.value.quantity)
+}
 </script>
 
 <template>
@@ -63,125 +74,133 @@ function coeff(val: number): string {
       <span>Chyba při načítání kalkulace</span>
     </div>
 
-    <!-- Data -->
-    <template v-else-if="data">
-      <!-- ── STROJNÍ NÁKLADY ─────────────────────────── -->
-      <div class="bd-section-hdr">Strojní náklady</div>
-      <table class="bd-tbl">
-        <tbody>
-          <tr>
-            <td class="bd-lbl">Čas seřízení</td>
-            <td class="bd-val">{{ formatNumber(data.machine_setup_time_min, 1) }} min</td>
-          </tr>
-          <tr>
-            <td class="bd-lbl">Náklady seřízení</td>
-            <td class="bd-val">{{ formatCurrency(data.machine_setup_cost) }}</td>
-          </tr>
-          <tr>
-            <td class="bd-lbl">Čas operace</td>
-            <td class="bd-val">{{ formatNumber(data.machine_operation_time_min, 1) }} min</td>
-          </tr>
-          <tr>
-            <td class="bd-lbl">Náklady operace</td>
-            <td class="bd-val">{{ formatCurrency(data.machine_operation_cost) }}</td>
-          </tr>
-          <tr class="bd-sub">
-            <td class="bd-lbl bd-indent">Odpisy</td>
-            <td class="bd-val">{{ formatCurrency(data.machine_amortization) }}</td>
-          </tr>
-          <tr class="bd-sub">
-            <td class="bd-lbl bd-indent">Mzdy</td>
-            <td class="bd-val">{{ formatCurrency(data.machine_labor) }}</td>
-          </tr>
-          <tr class="bd-sub">
-            <td class="bd-lbl bd-indent">Nástroje</td>
-            <td class="bd-val">{{ formatCurrency(data.machine_tools) }}</td>
-          </tr>
-          <tr class="bd-sub">
-            <td class="bd-lbl bd-indent">Provozní režie</td>
-            <td class="bd-val">{{ formatCurrency(data.machine_overhead) }}</td>
-          </tr>
-          <tr class="bd-total">
-            <td class="bd-lbl">Strojní celkem</td>
-            <td class="bd-val bd-emph">{{ formatCurrency(data.machine_total) }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Data — single CSS grid pro zarovnání všech sloupců -->
+    <div v-else-if="data" class="bd-grid">
+
+      <!-- Záhlaví sloupců -->
+      <div class="g-full" />
+      <div class="bd-col-h">/ ks</div>
+      <div class="bd-col-h">dávka {{ quantity }} ks</div>
+
+      <!-- ── SEŘÍZENÍ ───────────────────────────────── -->
+      <div class="bd-sec g-full">Seřízení</div>
+
+      <div class="bd-lbl">Čas</div>
+      <div class="bd-shared">{{ formatNumber(data.machine_setup_time_min, 1) }} min</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Odpisy</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.setup_amortization) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.setup_amortization) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Mzdy</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.setup_labor) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.setup_labor) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Provozní režie</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.setup_overhead) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.setup_overhead) }}</div>
+
+      <div class="bd-lbl bd-tot">Seřízení celkem</div>
+      <div class="bd-val bd-emph bd-tot">{{ perPiece(data.machine_setup_cost) }}</div>
+      <div class="bd-val bd-emph bd-tot">{{ formatCurrency(data.machine_setup_cost) }}</div>
+
+      <!-- ── VÝROBA ──────────────────────────────────── -->
+      <div class="bd-sec g-full">Výroba</div>
+
+      <div class="bd-lbl">Čas</div>
+      <div class="bd-shared">{{ formatNumber(data.machine_operation_time_min, 1) }} min</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Odpisy</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.operation_amortization) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.operation_amortization) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Mzdy</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.operation_labor) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.operation_labor) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Nástroje</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.operation_tools) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.operation_tools) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Provozní režie</div>
+      <div class="bd-val bd-sm">{{ perPiece(data.operation_overhead) }}</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.operation_overhead) }}</div>
+
+      <div class="bd-lbl bd-tot">Výroba celkem</div>
+      <div class="bd-val bd-emph bd-tot">{{ perPiece(data.machine_operation_cost) }}</div>
+      <div class="bd-val bd-emph bd-tot">{{ formatCurrency(data.machine_operation_cost) }}</div>
 
       <!-- ── ZMETKOVITOST (pouze pokud > 0) ──────────── -->
       <template v-if="data.scrap_rate_percent > 0">
-        <div class="bd-section-hdr">Zmetkovitost</div>
-        <table class="bd-tbl">
-          <tbody>
-            <tr>
-              <td class="bd-lbl">Procento zmetků</td>
-              <td class="bd-val">{{ pct(data.scrap_rate_percent) }}</td>
-            </tr>
-            <tr>
-              <td class="bd-lbl">Strojní po odpadu</td>
-              <td class="bd-val">{{ formatCurrency(data.machine_total) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="bd-sec g-full">Zmetkovitost</div>
+
+        <div class="bd-lbl">Procento zmetků</div>
+        <div class="bd-shared">{{ pct(data.scrap_rate_percent) }}</div>
+
+        <div class="bd-lbl">Strojní po odpadu</div>
+        <div class="bd-val">{{ perPiece(data.machine_total) }}</div>
+        <div class="bd-val">{{ formatCurrency(data.machine_total) }}</div>
       </template>
 
       <!-- ── REŽIE + MARŽE ────────────────────────────── -->
-      <div class="bd-section-hdr">Režie + Marže</div>
-      <table class="bd-tbl">
-        <tbody>
-          <tr>
-            <td class="bd-lbl">Přirážka režie ({{ coeff(data.overhead_coefficient) }})</td>
-            <td class="bd-val bd-plus">+{{ formatCurrency(data.overhead_markup) }}</td>
-          </tr>
-          <tr>
-            <td class="bd-lbl">Přirážka marže ({{ coeff(data.margin_coefficient) }})</td>
-            <td class="bd-val bd-plus">+{{ formatCurrency(data.margin_markup) }}</td>
-          </tr>
-          <tr class="bd-total">
-            <td class="bd-lbl">Stroje s marží</td>
-            <td class="bd-val bd-emph">{{ formatCurrency(data.work_with_margin) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="bd-sec g-full">Režie + Marže</div>
+
+      <div class="bd-lbl">Přirážka režie ({{ coeff(data.overhead_coefficient) }})</div>
+      <div class="bd-val bd-plus">+{{ perPiece(data.overhead_markup) }}</div>
+      <div class="bd-val bd-plus">+{{ formatCurrency(data.overhead_markup) }}</div>
+
+      <div class="bd-lbl">Přirážka marže ({{ coeff(data.margin_coefficient) }})</div>
+      <div class="bd-val bd-plus">+{{ perPiece(data.margin_markup) }}</div>
+      <div class="bd-val bd-plus">+{{ formatCurrency(data.margin_markup) }}</div>
+
+      <div class="bd-lbl bd-tot">Stroje s marží</div>
+      <div class="bd-val bd-emph bd-tot">{{ perPiece(data.work_with_margin) }}</div>
+      <div class="bd-val bd-emph bd-tot">{{ formatCurrency(data.work_with_margin) }}</div>
 
       <!-- ── KOOPERACE ─────────────────────────────────── -->
-      <div class="bd-section-hdr">Kooperace ({{ coeff(data.coop_coefficient) }})</div>
-      <table class="bd-tbl">
-        <tbody>
-          <tr>
-            <td class="bd-lbl">Kooperace celkem</td>
-            <td class="bd-val">{{ formatCurrency(data.coop_cost) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="bd-sec g-full">Kooperace</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Cena raw</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.coop_cost_raw) }}</div>
+      <div class="bd-val bd-sm">{{ batchFromPiece(data.coop_cost_raw) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Koef. kooperace ({{ coeff(data.coop_coefficient) }})</div>
+      <div class="bd-shared bd-sm" />
+
+      <div class="bd-lbl bd-tot">Kooperace celkem</div>
+      <div class="bd-val bd-emph bd-tot">{{ perPiece(data.coop_cost) }}</div>
+      <div class="bd-val bd-emph bd-tot">{{ formatCurrency(data.coop_cost) }}</div>
 
       <!-- ── MATERIÁL ──────────────────────────────────── -->
-      <div class="bd-section-hdr">Materiál ({{ coeff(data.stock_coefficient) }})</div>
-      <table class="bd-tbl">
-        <tbody>
-          <tr>
-            <td class="bd-lbl">Materiál za 1 ks (raw)</td>
-            <td class="bd-val">{{ formatCurrency(data.material_cost_raw) }}</td>
-          </tr>
-          <tr>
-            <td class="bd-lbl">Materiál celkem</td>
-            <td class="bd-val">{{ formatCurrency(data.material_cost) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="bd-sec g-full">Materiál</div>
+
+      <template v-if="data.material_weight_kg > 0">
+        <div class="bd-lbl">Hmotnost / ks</div>
+        <div class="bd-shared">{{ formatNumber(data.material_weight_kg, 4) }} kg</div>
+      </template>
+
+      <template v-if="data.material_price_per_kg > 0">
+        <div class="bd-lbl">Cena materiálu</div>
+        <div class="bd-shared">{{ formatCurrency(data.material_price_per_kg) }} / kg</div>
+      </template>
+
+      <div class="bd-lbl bd-indent bd-sm">Cena raw</div>
+      <div class="bd-val bd-sm">{{ formatCurrency(data.material_cost_raw) }}</div>
+      <div class="bd-val bd-sm">{{ batchFromPiece(data.material_cost_raw) }}</div>
+
+      <div class="bd-lbl bd-indent bd-sm">Koef. skladu ({{ coeff(data.stock_coefficient) }})</div>
+      <div class="bd-shared bd-sm" />
+
+      <div class="bd-lbl bd-tot">Materiál celkem</div>
+      <div class="bd-val bd-emph bd-tot">{{ perPiece(data.material_cost) }}</div>
+      <div class="bd-val bd-emph bd-tot">{{ formatCurrency(data.material_cost) }}</div>
 
       <!-- ══ CELKEM ════════════════════════════════════ -->
-      <div class="bd-grand">
-        <div class="bd-grand-row">
-          <span class="bd-grand-lbl">Za kus</span>
-          <span class="bd-grand-val">{{ formatCurrency(data.cost_per_piece) }}</span>
-        </div>
-        <div class="bd-grand-row">
-          <span class="bd-grand-lbl">Dávka {{ quantity }} ks</span>
-          <span class="bd-grand-total">{{ formatCurrency(data.total_cost) }}</span>
-        </div>
-      </div>
-    </template>
+      <div class="bd-lbl bd-grand-lbl">Náklady celkem</div>
+      <div class="bd-val bd-grand-val">{{ formatCurrency(data.cost_per_piece) }}</div>
+      <div class="bd-val bd-grand-total">{{ formatCurrency(data.total_cost) }}</div>
+
+    </div>
   </Modal>
 </template>
 
@@ -198,41 +217,59 @@ function coeff(val: number): string {
   font-size: var(--fs);
 }
 
-/* ─── Section header ─── */
-.bd-section-hdr {
+/* ─── Grid ─── */
+.bd-grid {
+  display: grid;
+  grid-template-columns: 1fr 128px 128px;
+  column-gap: 20px;
+  align-items: baseline;
+  row-gap: 5px;
+}
+
+/* Span all 3 columns */
+.g-full { grid-column: 1 / 4; }
+
+/* Shared value spanning columns 2-3 (e.g. time, rate) */
+.bd-shared {
+  grid-column: 2 / 4;
+  font-size: var(--fs);
+  color: var(--t4);
+  text-align: center;
+}
+
+/* ─── Column headers ─── */
+.bd-col-h {
+  font-size: var(--fsm);
+  color: var(--t4);
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 6px;
+}
+
+/* ─── Section headers ─── */
+.bd-sec {
   font-size: var(--fsm);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--t4);
-  padding: 10px 0 4px;
+  padding: 14px 0 4px;
   border-bottom: 1px solid var(--b1);
-  margin-bottom: 2px;
+  margin-top: 2px;
 }
 
-/* ─── Table ─── */
-.bd-tbl {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 2px;
-}
-
-.bd-tbl td {
-  padding: 3px 0;
-  vertical-align: middle;
-}
-
+/* ─── Labels ─── */
 .bd-lbl {
   font-size: var(--fs);
   color: var(--t3);
-  width: 60%;
 }
-
 .bd-indent {
   padding-left: 16px;
   color: var(--t4);
 }
 
+/* ─── Values ─── */
 .bd-val {
   font-size: var(--fs);
   color: var(--t2);
@@ -240,40 +277,26 @@ function coeff(val: number): string {
   white-space: nowrap;
 }
 
-.bd-sub .bd-lbl,
-.bd-sub .bd-val {
-  font-size: var(--fsm);
-}
+/* Sub rows — smaller */
+.bd-sm { font-size: var(--fsm); }
 
-.bd-plus {
-  color: var(--t3);
-}
+.bd-plus { color: var(--t3); }
+.bd-emph { font-weight: 600; color: var(--t1); }
 
-.bd-total td {
+/* ─── Total rows — border top on all 3 cells ─── */
+.bd-tot {
   border-top: 1px solid var(--b1);
-  padding-top: 5px;
+  padding-top: 6px;
   margin-top: 3px;
 }
 
-.bd-emph {
-  font-weight: 600;
-  color: var(--t1);
-}
-
 /* ─── Grand total ─── */
-.bd-grand {
+.bd-grand-lbl,
+.bd-grand-val,
+.bd-grand-total {
   border-top: 2px solid var(--b2);
-  margin-top: 8px;
-  padding-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.bd-grand-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  padding-top: 12px;
+  margin-top: 6px;
 }
 
 .bd-grand-lbl {
@@ -285,11 +308,15 @@ function coeff(val: number): string {
   font-size: var(--fs);
   font-weight: 600;
   color: var(--t1);
+  text-align: right;
+  white-space: nowrap;
 }
 
 .bd-grand-total {
   font-size: var(--fsh);
   font-weight: 700;
   color: var(--green);
+  text-align: right;
+  white-space: nowrap;
 }
 </style>

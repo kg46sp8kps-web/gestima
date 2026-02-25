@@ -402,8 +402,21 @@ class PriceBreakdown:
     # Setup vs Operace
     machine_setup_time_min: float = 0.0
     machine_setup_cost: float = 0.0
+    machine_setup_rate: float = 0.0      # Kč/hod — efektivní průměr přes pracoviště
     machine_operation_time_min: float = 0.0
     machine_operation_cost: float = 0.0
+    machine_operation_rate: float = 0.0  # Kč/hod/ks — efektivní průměr přes pracoviště
+
+    # Rozpad seřízení (pro modal — bez nástrojů)
+    setup_amortization: float = 0.0
+    setup_labor: float = 0.0
+    setup_overhead: float = 0.0
+
+    # Rozpad výroby (pro modal — s nástroji)
+    operation_amortization: float = 0.0
+    operation_labor: float = 0.0
+    operation_tools: float = 0.0
+    operation_overhead: float = 0.0
 
     # === REŽIE + MARŽE (pouze na stroje) ===
     overhead_coefficient: float = 1.0
@@ -512,7 +525,14 @@ async def calculate_part_price(
         'amortization': 0.0,
         'labor': 0.0,
         'tools': 0.0,
-        'overhead': 0.0
+        'overhead': 0.0,
+        'setup_amortization': 0.0,
+        'setup_labor': 0.0,
+        'setup_overhead': 0.0,
+        'operation_amortization': 0.0,
+        'operation_labor': 0.0,
+        'operation_tools': 0.0,
+        'operation_overhead': 0.0,
     }
 
     # Načíst operace (pokud nejsou eager loaded)
@@ -613,15 +633,34 @@ async def calculate_part_price(
         machine_breakdown['tools'] += eff_op_hours * quantity * work_center.hourly_rate_tools  # POUZE operace!
         machine_breakdown['overhead'] += (eff_setup_hours + eff_op_hours * quantity) * work_center.hourly_rate_overhead
 
+        # Split breakdown: seřízení vs výroba (pro modal)
+        machine_breakdown['setup_amortization'] += eff_setup_hours * work_center.hourly_rate_amortization
+        machine_breakdown['setup_labor'] += eff_setup_hours * work_center.hourly_rate_labor
+        machine_breakdown['setup_overhead'] += eff_setup_hours * work_center.hourly_rate_overhead
+        machine_breakdown['operation_amortization'] += eff_op_hours * quantity * work_center.hourly_rate_amortization
+        machine_breakdown['operation_labor'] += eff_op_hours * quantity * ko * work_center.hourly_rate_labor
+        machine_breakdown['operation_tools'] += eff_op_hours * quantity * work_center.hourly_rate_tools
+        machine_breakdown['operation_overhead'] += eff_op_hours * quantity * work_center.hourly_rate_overhead
+
     result.machine_setup_time_min = total_setup_time
     result.machine_setup_cost = setup_cost
+    result.machine_setup_rate = setup_cost / (total_setup_time / 60) if total_setup_time > 0 else 0.0
     result.machine_operation_time_min = total_operation_time
     result.machine_operation_cost = operation_cost
+    result.machine_operation_rate = (operation_cost / quantity / (total_operation_time / 60)) if (total_operation_time > 0 and quantity > 0) else 0.0
 
     result.machine_amortization = machine_breakdown['amortization']
     result.machine_labor = machine_breakdown['labor']
     result.machine_tools = machine_breakdown['tools']
     result.machine_overhead = machine_breakdown['overhead']
+
+    result.setup_amortization = machine_breakdown['setup_amortization']
+    result.setup_labor = machine_breakdown['setup_labor']
+    result.setup_overhead = machine_breakdown['setup_overhead']
+    result.operation_amortization = machine_breakdown['operation_amortization']
+    result.operation_labor = machine_breakdown['operation_labor']
+    result.operation_tools = machine_breakdown['operation_tools']
+    result.operation_overhead = machine_breakdown['operation_overhead']
 
     # === SCRAP RATE (zmetkovitost — PŘED overhead a margin) ===
     result.scrap_rate_percent = getattr(part, 'scrap_rate_percent', 0.0) or 0.0

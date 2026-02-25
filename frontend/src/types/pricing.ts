@@ -7,8 +7,19 @@ export interface PriceBreakdown {
   machine_total: number
   machine_setup_time_min: number
   machine_setup_cost: number
+  machine_setup_rate: number
   machine_operation_time_min: number
   machine_operation_cost: number
+  machine_operation_rate: number
+
+  // Rozpad seřízení vs výroba
+  setup_amortization: number
+  setup_labor: number
+  setup_overhead: number
+  operation_amortization: number
+  operation_labor: number
+  operation_tools: number
+  operation_overhead: number
 
   // Režie + Marže
   overhead_coefficient: number
@@ -29,6 +40,8 @@ export interface PriceBreakdown {
   material_cost_raw: number
   stock_coefficient: number
   material_cost: number
+  material_weight_kg: number
+  material_price_per_kg: number
 
   // Celkem
   total_cost: number

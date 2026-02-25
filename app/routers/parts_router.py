@@ -582,8 +582,19 @@ class PriceBreakdownResponse(BaseModel):
     machine_total: float
     machine_setup_time_min: float
     machine_setup_cost: float
+    machine_setup_rate: float
     machine_operation_time_min: float
     machine_operation_cost: float
+    machine_operation_rate: float
+
+    # Rozpad seřízení vs výroba
+    setup_amortization: float
+    setup_labor: float
+    setup_overhead: float
+    operation_amortization: float
+    operation_labor: float
+    operation_tools: float
+    operation_overhead: float
 
     # Režie + Marže
     overhead_coefficient: float
@@ -604,6 +615,8 @@ class PriceBreakdownResponse(BaseModel):
     material_cost_raw: float
     stock_coefficient: float
     material_cost: float
+    material_weight_kg: float
+    material_price_per_kg: float
 
     # Celkem
     total_cost: float
@@ -622,8 +635,17 @@ class PriceBreakdownResponse(BaseModel):
             machine_total=breakdown.machine_total,
             machine_setup_time_min=breakdown.machine_setup_time_min,
             machine_setup_cost=breakdown.machine_setup_cost,
+            machine_setup_rate=breakdown.machine_setup_rate,
             machine_operation_time_min=breakdown.machine_operation_time_min,
             machine_operation_cost=breakdown.machine_operation_cost,
+            machine_operation_rate=breakdown.machine_operation_rate,
+            setup_amortization=breakdown.setup_amortization,
+            setup_labor=breakdown.setup_labor,
+            setup_overhead=breakdown.setup_overhead,
+            operation_amortization=breakdown.operation_amortization,
+            operation_labor=breakdown.operation_labor,
+            operation_tools=breakdown.operation_tools,
+            operation_overhead=breakdown.operation_overhead,
             overhead_coefficient=breakdown.overhead_coefficient,
             work_with_overhead=breakdown.work_with_overhead,
             overhead_markup=breakdown.overhead_markup,
@@ -638,6 +660,8 @@ class PriceBreakdownResponse(BaseModel):
             material_cost_raw=breakdown.material_cost_raw,
             stock_coefficient=breakdown.stock_coefficient,
             material_cost=breakdown.material_cost,
+            material_weight_kg=breakdown.material_weight_kg,
+            material_price_per_kg=breakdown.material_price_per_kg,
             total_cost=breakdown.total_cost,
             quantity=breakdown.quantity,
             cost_per_piece=breakdown.cost_per_piece,
