@@ -174,6 +174,7 @@ async def create_quote(
         discount_percent=data.discount_percent,
         tax_percent=data.tax_percent,
         notes=data.notes,
+        delivery_terms=data.delivery_terms,
     )
 
     set_audit(quote, current_user.username)
@@ -227,6 +228,8 @@ async def update_quote(
         quote.tax_percent = data.tax_percent
     if data.notes is not None:
         quote.notes = data.notes
+    if data.delivery_terms is not None:
+        quote.delivery_terms = data.delivery_terms
 
     # Recalculate totals
     await QuoteService.recalculate_quote_totals(quote, db)

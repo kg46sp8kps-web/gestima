@@ -1,199 +1,141 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import * as quotesApi from '@/api/quotes'
-import type { QuoteListItem } from '@/types/quote'
+import { ref } from 'vue'
 import type { ContextGroup } from '@/types/workspace'
-import { formatCurrency, formatDate } from '@/utils/formatters'
-import Spinner from '@/components/ui/Spinner.vue'
+import type { QuoteDetail } from '@/types/quote'
+import QuoteListPanel from './quotes/QuoteListPanel.vue'
+import QuoteDetailPanel from './quotes/QuoteDetailPanel.vue'
+import QuoteNewDialog from './quotes/QuoteNewDialog.vue'
 
 interface Props {
   leafId: string
   ctx: ContextGroup
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-const items = ref<QuoteListItem[]>([])
-const loading = ref(false)
-const error = ref(false)
-const statusFilter = ref<'all' | 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED'>('all')
+const selectedQuoteNumber = ref<string | null>(null)
+const showNewDialog = ref(false)
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT:    'Rozpracovaná',
-  SENT:     'Odeslaná',
-  APPROVED: 'Schválená',
-  REJECTED: 'Zamítnutá',
-}
+// Split panel resize
+const listWidth = ref(40) // percent
+const isDragging = ref(false)
+let startX = 0
+let startWidth = 0
 
-const filtered = computed(() =>
-  statusFilter.value === 'all'
-    ? items.value
-    : items.value.filter(q => q.status === statusFilter.value),
-)
+function startResize(e: MouseEvent) {
+  isDragging.value = true
+  startX = e.clientX
+  startWidth = listWidth.value
 
-const counts = computed(() => ({
-  all:      items.value.length,
-  DRAFT:    items.value.filter(q => q.status === 'DRAFT').length,
-  SENT:     items.value.filter(q => q.status === 'SENT').length,
-  APPROVED: items.value.filter(q => q.status === 'APPROVED').length,
-  REJECTED: items.value.filter(q => q.status === 'REJECTED').length,
-}))
-
-function statusDotClass(status: string): string {
-  if (status === 'APPROVED') return 'badge-dot-ok'
-  if (status === 'REJECTED') return 'badge-dot-error'
-  if (status === 'SENT') return 'badge-dot-neutral'
-  return 'badge-dot-neutral'
-}
-
-async function load() {
-  loading.value = true
-  error.value = false
-  try {
-    items.value = await quotesApi.getAll()
-  } catch {
-    error.value = true
-  } finally {
-    loading.value = false
+  function onMove(ev: MouseEvent) {
+    const root = document.querySelector('.wquo-root') as HTMLElement | null
+    if (!root) return
+    const totalWidth = root.offsetWidth
+    if (totalWidth === 0) return
+    const delta = ((ev.clientX - startX) / totalWidth) * 100
+    listWidth.value = Math.min(75, Math.max(20, startWidth + delta))
   }
+
+  function onUp() {
+    isDragging.value = false
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
 }
 
-onMounted(load)
+const listRef = ref<InstanceType<typeof QuoteListPanel> | null>(null)
+
+function onQuoteCreated(quote: QuoteDetail) {
+  selectedQuoteNumber.value = quote.quote_number
+  listRef.value?.load()
+}
+
+function onDetailReload() {
+  listRef.value?.load()
+}
 </script>
 
 <template>
-  <div class="wquo">
-    <!-- Loading -->
-    <div v-if="loading" class="mod-placeholder">
-      <Spinner size="sm" />
+  <div class="wquo-root">
+    <!-- List panel -->
+    <div
+      class="wquo-list-wrap"
+      :style="selectedQuoteNumber ? { width: `${listWidth}%` } : { flex: '1' }"
+    >
+      <QuoteListPanel
+        ref="listRef"
+        :selected-quote-number="selectedQuoteNumber"
+        @select="selectedQuoteNumber = $event"
+        @new-quote="showNewDialog = true"
+      />
     </div>
 
-    <!-- Error -->
-    <div v-else-if="error" class="mod-placeholder">
-      <div class="mod-dot err" />
-      <span class="mod-label">Chyba při načítání</span>
+    <!-- Resize handle (only when detail is open) -->
+    <div
+      v-if="selectedQuoteNumber"
+      :class="['resize-handle', { dragging: isDragging }]"
+      @mousedown.prevent="startResize"
+    />
+
+    <!-- Detail panel -->
+    <div v-if="selectedQuoteNumber" class="wquo-detail-wrap">
+      <QuoteDetailPanel
+        :quote-number="selectedQuoteNumber"
+        :leaf-id="props.leafId"
+        :ctx="props.ctx"
+        @reload="onDetailReload"
+      />
     </div>
 
-    <!-- Data (incl. empty) -->
-    <template v-else>
-      <!-- Status filter tabs -->
-      <div class="tab-bar">
-        <button
-          v-for="s in (['all', 'DRAFT', 'SENT', 'APPROVED', 'REJECTED'] as const)"
-          :key="s"
-          :class="['ptab', { on: statusFilter === s }]"
-          :data-testid="`quote-filter-${s}`"
-          @click="statusFilter = s"
-        >
-          {{ s === 'all' ? 'Vše' : STATUS_LABELS[s] }}
-          <span class="tab-count">{{ counts[s] }}</span>
-        </button>
-      </div>
-
-      <!-- Empty state -->
-      <div v-if="!filtered.length" class="mod-placeholder">
-        <div class="mod-dot" />
-        <span class="mod-label">Žádné nabídky</span>
-      </div>
-
-      <!-- Table -->
-      <div v-else class="ot-wrap">
-        <table class="ot">
-          <thead>
-            <tr>
-              <th style="width:82px">Číslo</th>
-              <th>Název</th>
-              <th style="width:88px">Status</th>
-              <th class="r" style="width:90px">Celkem</th>
-              <th style="width:88px">Termín</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="q in filtered"
-              :key="q.id"
-              :data-testid="`quote-row-${q.id}`"
-            >
-              <td class="t4">{{ q.quote_number }}</td>
-              <td class="title-cell">{{ q.title }}</td>
-              <td>
-                <span class="badge">
-                  <span :class="['badge-dot', statusDotClass(q.status)]" />
-                  {{ STATUS_LABELS[q.status] }}
-                </span>
-              </td>
-              <td class="r">{{ formatCurrency(q.total) }}</td>
-              <td class="t4">{{ formatDate(q.offer_deadline) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </template>
+    <!-- New quote dialog -->
+    <QuoteNewDialog
+      v-model="showNewDialog"
+      @created="onQuoteCreated"
+    />
   </div>
 </template>
 
 <style scoped>
-.wquo {
+.wquo-root {
   display: flex;
-  flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
+  position: relative;
 }
 
-/* ─── Placeholder ─── */
-.mod-placeholder {
-  flex: 1;
+.wquo-list-wrap {
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--t4);
+  flex-shrink: 0;
 }
-.mod-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+
+.wquo-detail-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--b1);
+}
+
+/* ─── Resize handle ─── */
+.resize-handle {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 120ms var(--ease);
+  position: relative;
+  z-index: 1;
+}
+.resize-handle:hover,
+.resize-handle.dragging {
   background: var(--b2);
 }
-.mod-dot.err { background: var(--err); }
-.mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-
-/* ─── Status filter tabs ─── */
-.tab-bar {
-  display: flex;
-  gap: 1px;
-  padding: 4px var(--pad);
-  border-bottom: 1px solid var(--b1);
-  flex-shrink: 0;
-  overflow-x: auto;
-}
-.ptab { padding: 3px 7px; font-size: var(--fsm); font-weight: 500; color: var(--t4); background: transparent; border: none; border-radius: var(--rs); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-.ptab:hover { color: var(--t3); }
-.ptab.on { color: var(--t1); background: var(--b1); }
-.tab-count {
-  font-size: var(--fss);
-  color: var(--t4);
-}
-.ptab.on .tab-count { color: var(--t3); }
-
-/* ─── Table wrapper ─── */
-.ot-wrap {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-}
-
-/* ─── Table ─── */
-
-.t4 { color: var(--t4); }
-.title-cell {
-  max-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Status badges use global .badge + .badge-dot-* from design-system.css */
 </style>

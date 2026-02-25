@@ -62,6 +62,7 @@ class Quote(Base, AuditMixin):
 
     # Notes
     notes = Column(Text, nullable=True)
+    delivery_terms = Column(String(200), nullable=True)
 
     # Relationships
     partner = relationship("Partner", back_populates="quotes")
@@ -156,6 +157,7 @@ class QuoteBase(BaseModel):
     tax_amount: float = Field(0.0, ge=0.0, description="DPH částka")
     total: float = Field(0.0, ge=0.0, description="Celkem")
     notes: Optional[str] = Field(None, description="Poznámky")
+    delivery_terms: Optional[str] = Field(None, max_length=200, description="Dodací podmínky")
 
 
 class QuoteCreate(BaseModel):
@@ -170,6 +172,7 @@ class QuoteCreate(BaseModel):
     discount_percent: float = Field(0.0, ge=0.0, le=100.0, description="Sleva %")
     tax_percent: float = Field(21.0, ge=0.0, le=100.0, description="DPH %")
     notes: Optional[str] = Field(None, description="Poznámky")
+    delivery_terms: Optional[str] = Field(None, max_length=200, description="Dodací podmínky")
 
 
 class QuoteUpdate(BaseModel):
@@ -183,6 +186,7 @@ class QuoteUpdate(BaseModel):
     discount_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="Sleva %")
     tax_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="DPH %")
     notes: Optional[str] = Field(None, description="Poznámky")
+    delivery_terms: Optional[str] = Field(None, max_length=200, description="Dodací podmínky")
     version: int = Field(..., description="Optimistic locking")
 
 

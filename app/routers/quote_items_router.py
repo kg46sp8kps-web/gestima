@@ -96,8 +96,8 @@ async def create_quote_item(
     if not part or part.deleted_at:
         raise HTTPException(status_code=404, detail="Part not found")
 
-    # Auto-load pricing from frozen batch_set
-    unit_price = await QuoteService.get_latest_frozen_batch_price(data.part_id, db)
+    # Auto-load pricing from frozen batch_set (quantity-aware step pricing)
+    unit_price = await QuoteService.get_latest_frozen_batch_price(data.part_id, data.quantity, db)
 
     # Create item
     item = QuoteItem(
@@ -105,6 +105,7 @@ async def create_quote_item(
         part_id=data.part_id,
         part_number=part.part_number,
         part_name=part.name,
+        drawing_number=part.drawing_number,
         quantity=data.quantity,
         unit_price=unit_price,
         notes=data.notes,

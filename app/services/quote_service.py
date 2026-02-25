@@ -31,20 +31,21 @@ class QuoteService:
     """Business logic for quotes"""
 
     @staticmethod
-    async def get_latest_frozen_batch_price(part_id: int, db: AsyncSession) -> float:
+    async def get_latest_frozen_batch_price(part_id: int, quantity: int, db: AsyncSession) -> float:
         """
-        Get unit price from latest frozen batch_set for a part.
+        Get unit price from latest frozen batch_set for a part, matched by quantity.
 
-        Logic:
-        1. Find frozen batch_set for part (status='frozen')
-        2. Order by updated_at DESC
-        3. Return unit_price_frozen from first batch in set
+        Matching logic (step pricing):
+        1. Find latest frozen batch_set for part
+        2. Within that set, try EXACT quantity match
+        3. If no exact match → nearest LOWER batch (highest qty < requested)
+        4. If no lower batch → smallest available batch (most conservative price)
 
         Returns:
             Unit price (float)
 
         Raises:
-            HTTPException 400: If no frozen batch_set found (must freeze batch first)
+            HTTPException 400: If no frozen batch_set or no batches found
         """
         # Find latest frozen batch_set
         result = await db.execute(
@@ -63,30 +64,52 @@ class QuoteService:
             logger.warning(f"No frozen batch_set found for part_id={part_id}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Část nemá zmrazenou kalkulaci. Nejdříve zmrazte batch pro přidání do nabídky."
+                detail="Část nemá zmrazenou kalkulaci. Nejdříve zmrazte batch pro přidání do nabídky."
             )
 
-        # Get first batch from the set
+        # Get all batches from set ordered by quantity
         result = await db.execute(
             select(Batch)
             .where(
                 Batch.batch_set_id == batch_set.id,
                 Batch.deleted_at.is_(None)
             )
-            .limit(1)
+            .order_by(Batch.quantity.asc())
         )
-        batch = result.scalar_one_or_none()
+        batches = result.scalars().all()
 
-        if not batch:
+        if not batches:
             logger.warning(f"No batches found in batch_set {batch_set.set_number}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Sada kalkulací {batch_set.set_number} neobsahuje žádné batche."
             )
 
-        # Return frozen price or fallback to unit_cost
-        price = batch.unit_price_frozen if batch.unit_price_frozen else batch.unit_cost
-        logger.debug(f"Auto-loaded price for part_id={part_id}: {price}")
+        # 1. Exact match
+        exact = next((b for b in batches if b.quantity == quantity), None)
+        if exact:
+            price = exact.unit_price_frozen if exact.unit_price_frozen else exact.unit_cost
+            logger.debug(f"Exact batch match for part_id={part_id} qty={quantity}: {price}")
+            return float(price)
+
+        # 2. Nearest lower batch (highest quantity below requested)
+        lower = [b for b in batches if b.quantity < quantity]
+        if lower:
+            best = max(lower, key=lambda b: b.quantity)
+            price = best.unit_price_frozen if best.unit_price_frozen else best.unit_cost
+            logger.debug(
+                f"Nearest lower batch for part_id={part_id} qty={quantity} "
+                f"→ batch qty={best.quantity}: {price}"
+            )
+            return float(price)
+
+        # 3. No lower batch — use smallest available (conservative / highest unit price)
+        smallest = batches[0]
+        price = smallest.unit_price_frozen if smallest.unit_price_frozen else smallest.unit_cost
+        logger.debug(
+            f"No lower batch for part_id={part_id} qty={quantity} "
+            f"→ smallest batch qty={smallest.quantity}: {price}"
+        )
         return float(price)
 
     @staticmethod

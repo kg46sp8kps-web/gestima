@@ -35,6 +35,8 @@ async def create_batch_snapshot(
         Dict[str, Any]: Snapshot data (JSON structure)
     """
     # Načíst part s material_item, group a price_category (pokud nejsou eager loaded)
+    from app.services.price_calculator import get_config_coefficient
+
     try:
         if not hasattr(batch, 'part') or not batch.part:
             from sqlalchemy import select
@@ -113,6 +115,8 @@ async def create_batch_snapshot(
             "material_cost": batch.material_cost,
             "machining_cost": batch.machining_cost,
             "setup_cost": batch.setup_cost,
+            "overhead_cost": batch.overhead_cost,
+            "margin_cost": batch.margin_cost,
             "coop_cost": batch.coop_cost,
             "unit_cost": batch.unit_cost,
             "total_cost": batch.total_cost,
@@ -122,6 +126,10 @@ async def create_batch_snapshot(
             "quantity": batch.quantity,
             "material_code": material_group.code if material_group else None,
             "material_price_per_kg": material_price_per_kg,  # ADR-014: Dynamic tier price
+            "overhead_coefficient": await get_config_coefficient(db, "overhead_coefficient", 1.20),
+            "margin_coefficient": await get_config_coefficient(db, "margin_coefficient", 1.25),
+            "stock_coefficient": await get_config_coefficient(db, "stock_coefficient", 1.15),
+            "coop_coefficient": await get_config_coefficient(db, "coop_coefficient", 1.10),
         },
         "warnings": warnings  # Uložit varování do snapshotu (pro UI)
     }

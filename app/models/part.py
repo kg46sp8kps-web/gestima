@@ -38,6 +38,9 @@ class Part(Base, AuditMixin):
     # Will be removed after migration to drawings table
     drawing_path = Column(String(500), nullable=True)
 
+    # Výrobní korekce
+    scrap_rate_percent = Column(Float, default=0.0, nullable=False)       # Zmetkovitost v % (default 0)
+
     # Měrné jednotky (ADR-050 — Migration a0b1c2d3e4f5)
     uom = Column(String(4), nullable=False, default='ks')                 # Vždy ks pro díly
     unit_weight = Column(Float, nullable=True)                            # kg/ks (pro Infor UnitWeight, expedici)
@@ -72,6 +75,7 @@ class PartBase(BaseModel):
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu")
     status: PartStatus = Field(PartStatus.ACTIVE, description="Status dílu (default: active)")
     source: PartSource = Field(PartSource.MANUAL, description="Původ dílu (manual, infor_import, quote_request)")
+    scrap_rate_percent: float = Field(0.0, ge=0, le=100, description="Zmetkovitost v % (0–100)")
     # UOM (ADR-050)
     uom: str = Field('ks', max_length=4, description="Měrná jednotka (vždy ks pro díly)")
     unit_weight: Optional[float] = Field(None, gt=0, description="Hmotnost na kus v kg (pro Infor UnitWeight)")
@@ -93,6 +97,7 @@ class PartUpdate(BaseModel):
     customer_revision: Optional[str] = Field(None, max_length=50)
     drawing_number: Optional[str] = Field(None, max_length=50)
     status: Optional[PartStatus] = None
+    scrap_rate_percent: Optional[float] = Field(None, ge=0, le=100)
     unit_weight: Optional[float] = Field(None, gt=0, description="Hmotnost na kus v kg (pro Infor UnitWeight)")
     version: int  # Optimistic locking (ADR-008)
 

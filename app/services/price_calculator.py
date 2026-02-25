@@ -428,6 +428,7 @@ class PriceBreakdown:
     # === METADATA ===
     quantity: int = 1
     cost_per_piece: float = 0.0
+    scrap_rate_percent: float = 0.0
 
     # === COMPUTED PROPERTIES ===
     @property
@@ -565,10 +566,8 @@ async def calculate_part_price(
             )
             continue
 
-        # Defensive checks - work center rates
-        if (work_center.hourly_rate_setup is None or
-            work_center.hourly_rate_operation is None or
-            work_center.hourly_rate_amortization is None or
+        # Defensive checks - work center rates (pouze komponenty, computed props jsou redundantní)
+        if (work_center.hourly_rate_amortization is None or
             work_center.hourly_rate_labor is None or
             work_center.hourly_rate_tools is None or
             work_center.hourly_rate_overhead is None):
@@ -577,28 +576,41 @@ async def calculate_part_price(
             )
             continue
 
-        # Setup (BEZ nástrojů) - jednou pro celý batch
-        setup_hours = op.setup_time_min / 60
-        op_setup_cost = setup_hours * work_center.hourly_rate_setup
+        # Koeficienty (NULL-safe fallback na 100%)
+        ko = (op.manning_coefficient or 100.0) / 100.0          # Mzdová složka × ko
+        ke = (op.machine_utilization_coefficient or 100.0) / 100.0  # Strojní čas ÷ ke
+
+        # Seřízení: ke ani ko neplatí — operátor musí být plně přítomen, manuální práce
+        eff_setup_hours = op.setup_time_min / 60
+        op_setup_cost = eff_setup_hours * (
+            work_center.hourly_rate_amortization
+            + work_center.hourly_rate_labor        # Plná mzda — operátor musí být přítomen
+            + work_center.hourly_rate_overhead
+        )
         setup_cost += op_setup_cost
         total_setup_time += op.setup_time_min
 
-        # Operace (S nástroji) - × quantity
-        op_hours = op.operation_time_min / 60
-        op_operation_cost = op_hours * work_center.hourly_rate_operation * quantity
+        # Operace: ke prodlužuje strojní čas, ko snižuje mzdovou složku
+        # (operátor obsluhuje více strojů → je přítomen jen část doby chodu)
+        eff_op_hours = (op.operation_time_min / max(ke, 0.01)) / 60
+        op_operation_cost = quantity * (
+            eff_op_hours * (work_center.hourly_rate_amortization + work_center.hourly_rate_tools + work_center.hourly_rate_overhead)
+            + eff_op_hours * ko * work_center.hourly_rate_labor
+        )
         operation_cost += op_operation_cost
         total_operation_time += op.operation_time_min
 
         machine_cost += op_setup_cost + op_operation_cost
 
-        # Rozpad do komponent
-        total_hours = setup_hours + (op_hours * quantity)
-        machine_breakdown['amortization'] += total_hours * work_center.hourly_rate_amortization
-        machine_breakdown['labor'] += total_hours * work_center.hourly_rate_labor
-        machine_breakdown['tools'] += (op_hours * quantity) * work_center.hourly_rate_tools  # POUZE operace!
-        machine_breakdown['overhead'] += total_hours * work_center.hourly_rate_overhead
+        # Rozpad do komponent (součet = machine_cost matematicky ověřeno)
+        machine_breakdown['amortization'] += (eff_setup_hours + eff_op_hours * quantity) * work_center.hourly_rate_amortization
+        machine_breakdown['labor'] += (
+            eff_setup_hours * work_center.hourly_rate_labor                    # setup: plná mzda
+            + eff_op_hours * quantity * ko * work_center.hourly_rate_labor     # operace: × ko
+        )
+        machine_breakdown['tools'] += eff_op_hours * quantity * work_center.hourly_rate_tools  # POUZE operace!
+        machine_breakdown['overhead'] += (eff_setup_hours + eff_op_hours * quantity) * work_center.hourly_rate_overhead
 
-    result.machine_total = machine_cost
     result.machine_setup_time_min = total_setup_time
     result.machine_setup_cost = setup_cost
     result.machine_operation_time_min = total_operation_time
@@ -609,6 +621,11 @@ async def calculate_part_price(
     result.machine_tools = machine_breakdown['tools']
     result.machine_overhead = machine_breakdown['overhead']
 
+    # === SCRAP RATE (zmetkovitost — PŘED overhead a margin) ===
+    result.scrap_rate_percent = getattr(part, 'scrap_rate_percent', 0.0) or 0.0
+    scrap_factor = 1.0 + result.scrap_rate_percent / 100.0
+    result.machine_total = machine_cost * scrap_factor
+
     # === 2. REŽIE (administrativní - pouze na stroje) ===
     result.work_with_overhead = result.machine_total * result.overhead_coefficient
 
@@ -618,11 +635,11 @@ async def calculate_part_price(
     # === 4. KOOPERACE (s koeficientem) ===
     result.coop_cost = result.coop_cost_raw * result.coop_coefficient * quantity
 
-    # === 5. MATERIÁL (s koeficientem) ===
+    # === 5. MATERIÁL (s koeficientem + scrap) ===
     # ADR-024: Use new MaterialInput-based calculation
     material_cost_per_piece = await calculate_part_material_cost(part, quantity, db)
     result.material_cost_raw = material_cost_per_piece  # Za 1 kus
-    result.material_cost = result.material_cost_raw * result.stock_coefficient * quantity
+    result.material_cost = result.material_cost_raw * result.stock_coefficient * quantity * scrap_factor
 
     # === 6. CELKEM ===
     result.total_cost = result.work_with_margin + result.coop_cost + result.material_cost

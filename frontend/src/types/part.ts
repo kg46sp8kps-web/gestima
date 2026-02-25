@@ -12,6 +12,7 @@ export interface Part {
   status: PartStatus
   source: PartSource
   file_id: number | null
+  scrap_rate_percent: number   // Zmetkovitost v % (default 0)
   // UOM (ADR-050)
   uom: 'ks'                    // vždy ks pro díly
   unit_weight: number | null   // kg/ks (pro Infor, expedici)
@@ -36,6 +37,7 @@ export interface PartUpdate {
   customer_revision?: string
   drawing_number?: string
   status?: PartStatus
+  scrap_rate_percent?: number
   unit_weight?: number | null
   version: number
 }

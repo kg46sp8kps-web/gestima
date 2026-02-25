@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import type { Part, PartCreate, PartUpdate, PartListResponse, PartListParams } from '@/types/part'
+import type { PriceBreakdown } from '@/types/pricing'
 
 export async function getAll(params?: PartListParams): Promise<PartListResponse> {
   const clean: Record<string, string | number | boolean> = {}
@@ -34,5 +35,10 @@ export async function remove(partNumber: string): Promise<void> {
 
 export async function duplicate(partNumber: string): Promise<Part> {
   const { data } = await apiClient.post<Part>(`/parts/${partNumber}/duplicate`)
+  return data
+}
+
+export async function getPricing(partNumber: string, quantity: number): Promise<PriceBreakdown> {
+  const { data } = await apiClient.get<PriceBreakdown>(`/parts/${partNumber}/pricing`, { params: { quantity } })
   return data
 }

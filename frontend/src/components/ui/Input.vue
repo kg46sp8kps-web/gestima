@@ -4,7 +4,7 @@ defineOptions({ inheritAttrs: false })
 interface Props {
   modelValue: string | number | null
   label?: string
-  type?: 'text' | 'number' | 'password' | 'email' | 'search'
+  type?: 'text' | 'number' | 'password' | 'email' | 'search' | 'date'
   placeholder?: string
   error?: string
   hint?: string

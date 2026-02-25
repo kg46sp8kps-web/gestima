@@ -204,6 +204,229 @@ async def test_recalculate_batch_no_material(db_session):
 
 
 @pytest.mark.asyncio
+async def test_recalculate_batch_manning_coefficient(db_session):
+    """Test that manning_coefficient=50% reduces labor portion of machining costs by 50%"""
+
+    part = Part(part_number="10000060", name="Test manning", created_by="test")
+    db_session.add(part)
+    await db_session.flush()
+
+    # hourly_rate_amortization=300, labor=600, tools=200, overhead=100
+    work_center = WorkCenter(
+        work_center_number="80000002",
+        name="Test centrum manning",
+        work_center_type=WorkCenterType.CNC_LATHE,
+        hourly_rate_amortization=300.0,
+        hourly_rate_labor=600.0,
+        hourly_rate_tools=200.0,
+        hourly_rate_overhead=100.0,
+        created_by="test"
+    )
+    db_session.add(work_center)
+    await db_session.flush()
+
+    operation = Operation(
+        part_id=part.id, seq=10, name="OP10",
+        type="turning",
+        work_center_id=work_center.id,
+        operation_time_min=10.0, setup_time_min=30.0,
+        manning_coefficient=50.0,           # ko=0.5 → labor složka na 50%
+        machine_utilization_coefficient=100.0,
+        is_coop=False,
+        created_by="test"
+    )
+    db_session.add(operation)
+    await db_session.flush()
+
+    batch = Batch(batch_number="3000005", part_id=part.id, quantity=10, created_by="test")
+    db_session.add(batch)
+    await db_session.flush()
+
+    await recalculate_batch_costs(batch, db_session)
+
+    # ko=0.5, ke=1.0, qty=10, op_time=10min, setup=30min
+    # Seřízení: ko NEPLATÍ — operátor musí být plně přítomen
+    # op_setup_cost = 0.5*(300+600+100) = 0.5*1000 = 500 Kč → per piece = 50 Kč (stejné jako základní test)
+    # Operace: ko platí — snižuje mzdovou složku
+    # eff_op_hours = 10/60
+    # op_operation_cost = 10*(10/60*(300+200+100) + 10/60*0.5*600) = 10*(100+50) = 1500 Kč → per piece = 150 Kč
+    assert batch.setup_cost == pytest.approx(50.0, abs=0.1), \
+        f"Setup cost with 50% manning should be 50 Kč (ko neovlivňuje seřízení), got {batch.setup_cost}"
+    assert batch.machining_cost == pytest.approx(150.0, abs=0.1), \
+        f"Machining cost with 50% manning should be 150 Kč, got {batch.machining_cost}"
+
+
+@pytest.mark.asyncio
+async def test_recalculate_batch_utilization_coefficient(db_session):
+    """Test that machine_utilization_coefficient=80% increases effective operation time (÷0.8)"""
+
+    part = Part(part_number="10000061", name="Test utilization", created_by="test")
+    db_session.add(part)
+    await db_session.flush()
+
+    work_center = WorkCenter(
+        work_center_number="80000003",
+        name="Test centrum utilization",
+        work_center_type=WorkCenterType.CNC_LATHE,
+        hourly_rate_amortization=300.0,
+        hourly_rate_labor=600.0,
+        hourly_rate_tools=200.0,
+        hourly_rate_overhead=100.0,
+        created_by="test"
+    )
+    db_session.add(work_center)
+    await db_session.flush()
+
+    operation = Operation(
+        part_id=part.id, seq=10, name="OP10",
+        type="turning",
+        work_center_id=work_center.id,
+        operation_time_min=10.0, setup_time_min=30.0,
+        manning_coefficient=100.0,
+        machine_utilization_coefficient=80.0,   # ke=0.8 → eff_op_hours = 10/0.8/60
+        is_coop=False,
+        created_by="test"
+    )
+    db_session.add(operation)
+    await db_session.flush()
+
+    batch = Batch(batch_number="3000006", part_id=part.id, quantity=10, created_by="test")
+    db_session.add(batch)
+    await db_session.flush()
+
+    await recalculate_batch_costs(batch, db_session)
+
+    # ko=1.0, ke=0.8, qty=10, op_time=10min, setup=30min
+    # eff_setup_hours = 0.5 (ke neovlivňuje setup)
+    # op_setup_cost = 0.5*(300+100) + 0.5*1.0*600 = 200+300 = 500 Kč
+    # eff_op_hours = (10/0.8)/60 = 12.5/60
+    # op_operation_cost = 10*(12.5/60*(300+200+100) + 12.5/60*1.0*600) = 10*(125+125) = 2500 Kč
+    # setup per piece = 500/10 = 50 Kč (stejné jako základní test)
+    # machining per piece = 2500/10 = 250 Kč (vyšší kvůli ke=0.8)
+    assert batch.setup_cost == pytest.approx(50.0, abs=0.1), \
+        f"Setup cost should be 50 Kč (ke neovlivňuje setup), got {batch.setup_cost}"
+    assert batch.machining_cost == pytest.approx(250.0, abs=0.1), \
+        f"Machining cost with 80% utilization should be 250 Kč, got {batch.machining_cost}"
+
+
+@pytest.mark.asyncio
+async def test_recalculate_batch_scrap_rate(db_session):
+    """Test that scrap_rate_percent=10% increases material and machine costs by ×1.1 before overhead/margin"""
+
+    # Materiál (stejné jako basic test)
+    group = MaterialGroup(
+        code="OCEL-S",
+        name="Ocel scrap test",
+        density=7.85,
+        created_by="test"
+    )
+    db_session.add(group)
+    await db_session.flush()
+
+    category = MaterialPriceCategory(
+        code="OCEL-S-KRUH",
+        name="Ocel scrap kruhová",
+        material_group_id=group.id,
+        created_by="test"
+    )
+    db_session.add(category)
+    await db_session.flush()
+
+    tier = MaterialPriceTier(
+        price_category_id=category.id,
+        min_weight=0,
+        max_weight=None,
+        price_per_kg=50.0,
+        created_by="test"
+    )
+    db_session.add(tier)
+    await db_session.flush()
+
+    material_item = MaterialItem(
+        material_number="2000005",
+        code="11523S",
+        name="11523S",
+        shape=StockShape.ROUND_BAR,
+        diameter=30.0,
+        material_group_id=group.id,
+        price_category_id=category.id,
+        created_by="test"
+    )
+    db_session.add(material_item)
+    await db_session.flush()
+
+    # Part s 10% zmetkovitostí
+    from app.models.part import Part as PartModel
+    part = PartModel(
+        part_number="10000062",
+        name="Test scrap",
+        scrap_rate_percent=10.0,
+        created_by="test"
+    )
+    db_session.add(part)
+    await db_session.flush()
+
+    from app.models.material_input import MaterialInput
+    material_input = MaterialInput(
+        part_id=part.id, seq=1,
+        price_category_id=category.id,
+        material_item_id=material_item.id,
+        stock_shape=StockShape.ROUND_BAR,
+        stock_diameter=30.0, stock_length=100.0,
+        quantity=1, created_by="test"
+    )
+    db_session.add(material_input)
+    await db_session.flush()
+
+    work_center = WorkCenter(
+        work_center_number="80000004",
+        name="Test centrum scrap",
+        work_center_type=WorkCenterType.CNC_LATHE,
+        hourly_rate_amortization=300.0,
+        hourly_rate_labor=600.0,
+        hourly_rate_tools=200.0,
+        hourly_rate_overhead=100.0,
+        created_by="test"
+    )
+    db_session.add(work_center)
+    await db_session.flush()
+
+    operation = Operation(
+        part_id=part.id, seq=10, name="OP10",
+        type="turning",
+        work_center_id=work_center.id,
+        operation_time_min=10.0, setup_time_min=30.0,
+        manning_coefficient=100.0,
+        machine_utilization_coefficient=100.0,
+        is_coop=False,
+        created_by="test"
+    )
+    db_session.add(operation)
+    await db_session.flush()
+
+    batch = Batch(batch_number="3000007", part_id=part.id, quantity=10, created_by="test")
+    db_session.add(batch)
+    await db_session.flush()
+
+    await recalculate_batch_costs(batch, db_session)
+
+    # scrap_factor=1.1, ko=1.0, ke=1.0, qty=10
+    # machine_cost (before scrap) = 500 + 2000 = 2500 Kč
+    # machine_total (after scrap) = 2500 * 1.1 = 2750 Kč
+    # material per piece (before scrap) = 27.745 * 1.15 ≈ 31.9 Kč
+    # material per piece (after scrap) = 31.9 * 1.1 ≈ 35.1 Kč
+    # machining_cost per piece = 2000/10 = 200 Kč (store ze machine_operation_cost, před scrapem)
+    # unit_cost zahrnuje scrap efekt přes overhead/margin
+    assert batch.machining_cost == pytest.approx(200.0, abs=0.5), \
+        f"Machining cost should be 200 Kč (scrap neovlivňuje machine_operation_cost), got {batch.machining_cost}"
+    assert batch.material_cost == pytest.approx(35.1, abs=0.5), \
+        f"Material cost with 10% scrap should be ~35.1 Kč, got {batch.material_cost}"
+    # unit_cost musí být vyšší než základní test (~406.9 Kč)
+    assert batch.unit_cost > 406.9, \
+        f"Unit cost with scrap should exceed base unit cost (~406.9 Kč), got {batch.unit_cost}"
+
+
+@pytest.mark.asyncio
 async def test_recalculate_batch_with_coop(db_session):
     """Test batch recalculation with cooperation operation"""
 

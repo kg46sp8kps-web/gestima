@@ -609,6 +609,7 @@ class PriceBreakdownResponse(BaseModel):
     total_cost: float
     quantity: int
     cost_per_piece: float
+    scrap_rate_percent: float
 
     @classmethod
     def from_breakdown(cls, breakdown: PriceBreakdown):
@@ -639,7 +640,8 @@ class PriceBreakdownResponse(BaseModel):
             material_cost=breakdown.material_cost,
             total_cost=breakdown.total_cost,
             quantity=breakdown.quantity,
-            cost_per_piece=breakdown.cost_per_piece
+            cost_per_piece=breakdown.cost_per_piece,
+            scrap_rate_percent=breakdown.scrap_rate_percent
         )
 
 

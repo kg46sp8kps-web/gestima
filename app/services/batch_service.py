@@ -78,12 +78,11 @@ async def recalculate_batch_costs(batch: Batch, db: AsyncSession) -> Batch:
             batch.material_price_per_kg = None
             material_cost = 0.0
         else:
-            # 2. Vypočítat material cost (s dynamic price tiers - ADR-014)
+            # 2. Vypočítat weight snapshot (s dynamic price tiers - ADR-014)
+            # POUZE pro weight snapshot — material_cost je přepsán níže přes calculate_part_price()
             material_calc = await calculate_stock_cost_from_part(
                 part, batch.quantity, db
             )
-            material_cost = material_calc.cost  # Za 1 kus
-            batch.material_cost = material_cost
 
             # ADR-017: Hybrid material snapshot (fast lookup + audit trail)
             total_weight = material_calc.weight_kg * batch.quantity

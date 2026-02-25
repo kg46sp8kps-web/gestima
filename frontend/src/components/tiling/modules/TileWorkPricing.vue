@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch, nextTick } from 'vue'
-import { Plus, RefreshCw, Lock, Copy, Trash2, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { Plus, RefreshCw, Lock, Copy, Trash2, ChevronDown, ChevronRight, BarChart2 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
+import BatchBreakdownModal from '@/components/tiling/modules/BatchBreakdownModal.vue'
 import { usePartsStore } from '@/stores/parts'
 import { useOperationsStore } from '@/stores/operations'
 import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
@@ -40,6 +41,18 @@ const expandedSetId = ref<number | null>(null)
 const newQtyBySet = reactive<Record<number, string | null>>({})
 const newLooseQty = ref<string | null>('')
 const submitting = reactive<Record<string, boolean>>({})
+
+// Breakdown modal state
+const breakdownOpen = ref(false)
+const breakdownPartNumber = ref('')
+const breakdownQuantity = ref(1)
+
+function openBreakdown(b: Batch) {
+  if (!part.value) return
+  breakdownPartNumber.value = part.value.part_number
+  breakdownQuantity.value = b.quantity
+  breakdownOpen.value = true
+}
 
 // Computed
 const batchesBySetId = computed(() => {
@@ -479,6 +492,7 @@ function toggleExpand(setId: number) {
                   <th class="r" style="width:94px">Náklady / ks</th>
                   <th class="r" style="width:94px">Cena / ks</th>
                   <th style="width:28px"></th>
+                  <th style="width:28px"></th>
                 </tr>
               </thead>
               <tbody>
@@ -493,6 +507,16 @@ function toggleExpand(setId: number) {
                   <td class="r"><span class="badge pct-setup">{{ pct(b.setup_percent) }}</span></td>
                   <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
                   <td class="r"><span class="price-val">{{ formatCurrency(b.unit_price) }}</span></td>
+                  <td>
+                    <button
+                      class="icon-btn"
+                      title="Rozpad ceny"
+                      :data-testid="`breakdown-btn-${b.id}`"
+                      @click="openBreakdown(b)"
+                    >
+                      <BarChart2 :size="ICON_SIZE_SM" />
+                    </button>
+                  </td>
                   <td>
                     <button
                       v-if="set.status !== 'frozen'"
@@ -557,6 +581,7 @@ function toggleExpand(setId: number) {
               <th class="r" style="width:64px">Sér. %</th>
               <th class="r" style="width:94px">Náklady / ks</th>
               <th class="r" style="width:94px">Cena / ks</th>
+              <th style="width:28px"></th>
             </tr>
           </thead>
           <tbody>
@@ -571,11 +596,28 @@ function toggleExpand(setId: number) {
               <td class="r"><span class="badge pct-setup">{{ pct(b.setup_percent) }}</span></td>
               <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
               <td class="r"><span class="price-val">{{ formatCurrency(b.unit_price) }}</span></td>
+              <td>
+                <button
+                  class="icon-btn"
+                  title="Rozpad ceny"
+                  :data-testid="`breakdown-btn-${b.id}`"
+                  @click="openBreakdown(b)"
+                >
+                  <BarChart2 :size="ICON_SIZE_SM" />
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </template>
+
+    <!-- Breakdown modal -->
+    <BatchBreakdownModal
+      v-model="breakdownOpen"
+      :part-number="breakdownPartNumber"
+      :quantity="breakdownQuantity"
+    />
   </div>
 </template>
 
