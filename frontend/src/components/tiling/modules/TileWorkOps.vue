@@ -144,32 +144,56 @@ function koTime(draft: OpDraft): number {
   return keTime(draft) * (draft.ko / 100)
 }
 
-function fmtHint(n: number): string {
-  return Math.round(n).toLocaleString('cs')
+function fmtMmSs(minutes: number): string {
+  const totalSeconds = Math.round(minutes * 60)
+  const mm = Math.floor(totalSeconds / 60)
+  const ss = totalSeconds % 60
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
+}
+
+const PRODUCTION_TYPES = new Set(['CNC_LATHE', 'CNC_MILL_3AX', 'CNC_MILL_4AX', 'CNC_MILL_5AX'])
+
+const wcMap = computed(() => {
+  const m: Record<number, WorkCenter> = {}
+  for (const wc of workCenters.value) m[wc.id] = wc
+  return m
+})
+
+function isProductionWc(wcId: number | null): boolean {
+  if (wcId == null) return false
+  const wc = wcMap.value[wcId]
+  return wc != null && PRODUCTION_TYPES.has(wc.work_center_type)
 }
 
 const totalSetup = computed(() =>
-  operations.value.reduce((s, o) => s + (drafts[o.id]?.setup_time_min ?? o.setup_time_min), 0),
+  operations.value.reduce((s, o) => {
+    const wcId = drafts[o.id]?.work_center_id ?? o.work_center_id
+    return isProductionWc(wcId) ? s + (drafts[o.id]?.setup_time_min ?? o.setup_time_min) : s
+  }, 0),
 )
 
 const totalStrojni = computed(() =>
-  operations.value.reduce(
-    (s, o) => s + (drafts[o.id]?.operation_time_min ?? o.operation_time_min),
-    0,
-  ),
+  operations.value.reduce((s, o) => {
+    const wcId = drafts[o.id]?.work_center_id ?? o.work_center_id
+    return isProductionWc(wcId)
+      ? s + (drafts[o.id]?.operation_time_min ?? o.operation_time_min)
+      : s
+  }, 0),
 )
 
 const totalKe = computed(() =>
   operations.value.reduce((s, o) => {
     const dr = drafts[o.id]
-    return dr ? s + keTime(dr) : s
+    const wcId = dr?.work_center_id ?? o.work_center_id
+    return dr && isProductionWc(wcId) ? s + keTime(dr) : s
   }, 0),
 )
 
 const totalKo = computed(() =>
   operations.value.reduce((s, o) => {
     const dr = drafts[o.id]
-    return dr ? s + koTime(dr) : s
+    const wcId = dr?.work_center_id ?? o.work_center_id
+    return dr && isProductionWc(wcId) ? s + koTime(dr) : s
   }, 0),
 )
 
@@ -319,6 +343,7 @@ onMounted(async () => {
                 :class="{ act: activeOpId === op.id }"
                 :data-testid="`op-row-${op.id}`"
                 @focusin="onFocusRow(op.id)"
+                @click="onFocusRow(op.id)"
               >
                 <td class="seq-cell td-icon">
                   <button
@@ -397,7 +422,7 @@ onMounted(async () => {
                       @keydown.enter.prevent="focusKo(op.id)"
                       @keydown.escape="onEscape($event, op)"
                     />
-                    <span class="coef-hint ke-hint">{{ fmtHint(keTime(d(op.id))) }}</span>
+                    <span class="coef-hint ke-hint">{{ fmtMmSs(keTime(d(op.id))) }}</span>
                   </div>
                 </td>
 
@@ -419,7 +444,7 @@ onMounted(async () => {
                       @keydown.enter.prevent="onEnterLastField(op)"
                       @keydown.escape="onEscape($event, op)"
                     />
-                    <span class="coef-hint ko-hint">{{ fmtHint(koTime(d(op.id))) }}</span>
+                    <span class="coef-hint ko-hint">{{ fmtMmSs(koTime(d(op.id))) }}</span>
                   </div>
                 </td>
 
@@ -478,21 +503,23 @@ onMounted(async () => {
       <div class="sum-bar">
         <div class="sum-kpi">
           <span class="sum-label">Σ Seřízení</span>
-          <div><span class="sum-val">{{ Math.round(totalSetup) }}</span><span class="sum-unit">min</span></div>
+          <div><span class="sum-val">{{ fmtMmSs(totalSetup) }}</span></div>
+          <span class="sum-formula">jen lathe + mill</span>
         </div>
         <div class="sum-kpi">
           <span class="sum-label">Σ Strojní čas</span>
-          <div><span class="sum-val">{{ Math.round(totalStrojni) }}</span><span class="sum-unit">min</span></div>
+          <div><span class="sum-val">{{ fmtMmSs(totalStrojni) }}</span></div>
+          <span class="sum-formula">jen lathe + mill</span>
         </div>
         <div class="sum-kpi">
           <span class="sum-label">Σ Čas stroje</span>
-          <div><span class="sum-val">{{ Math.round(totalKe) }}</span><span class="sum-unit">min</span></div>
-          <span class="sum-formula sum-formula-ke">Σ (strojní ÷ Ke)</span>
+          <div><span class="sum-val">{{ fmtMmSs(totalKe) }}</span></div>
+          <span class="sum-formula sum-formula-ke">Σ (strojní ÷ Ke) · jen CNC</span>
         </div>
         <div class="sum-kpi">
           <span class="sum-label">Σ Čas obsluhy</span>
-          <div><span class="sum-val">{{ Math.round(totalKo) }}</span><span class="sum-unit">min</span></div>
-          <span class="sum-formula sum-formula-ko">Σ (čas stroje × Ko)</span>
+          <div><span class="sum-val">{{ fmtMmSs(totalKo) }}</span></div>
+          <span class="sum-formula sum-formula-ko">Σ (čas stroje × Ko) · jen CNC</span>
         </div>
       </div>
 

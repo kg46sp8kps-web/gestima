@@ -2,8 +2,8 @@
 import { ref, watch } from 'vue'
 import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon, TriangleAlertIcon } from 'lucide-vue-next'
 import * as quotesApi from '@/api/quotes'
-import * as partsApi from '@/api/parts'
 import type { QuoteDetail } from '@/types/quote'
+import type { Part } from '@/types/part'
 import type { ContextGroup } from '@/types/workspace'
 import { useUiStore } from '@/stores/ui'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -11,6 +11,7 @@ import { useDialog } from '@/composables/useDialog'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
 import InlineInput from '@/components/ui/InlineInput.vue'
+import PartCombobox from '@/components/ui/PartCombobox.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
 interface Props {
@@ -31,9 +32,10 @@ const loading = ref(false)
 const error = ref(false)
 
 // Add item inline form
-const addPartNumber = ref('')
+const addSelectedPart = ref<Part | null>(null)
 const addQuantity = ref<number | null>(1)
 const addSaving = ref(false)
+const partComboRef = ref<InstanceType<typeof PartCombobox> | null>(null)
 
 const STATUS_LABELS: Record<string, string> = {
   draft:    'Rozpracovaná',
@@ -130,23 +132,23 @@ function openPartDetail() {
 }
 
 async function onAddItem() {
-  const pn = addPartNumber.value.trim()
-  if (!pn) { ui.showError('Zadejte číslo dílu'); return }
+  if (!addSelectedPart.value) { ui.showError('Vyberte díl ze seznamu'); return }
   const qty = addQuantity.value ?? 0
   if (qty < 1) { ui.showError('Množství musí být ≥ 1'); return }
 
   addSaving.value = true
   try {
-    // Lookup part by part_number to get its id
-    const part = await partsApi.getByNumber(pn)
-    await quotesApi.addItem(props.quoteNumber, part.id, qty)
-    ui.showSuccess(`Díl ${pn} přidán`)
-    addPartNumber.value = ''
+    await quotesApi.addItem(props.quoteNumber, addSelectedPart.value.id, qty)
+    const label = addSelectedPart.value.article_number ?? addSelectedPart.value.part_number
+    ui.showSuccess(`Díl ${label} přidán`)
+    addSelectedPart.value = null
     addQuantity.value = 1
     await load()
     emit('reload')
+    // Vrátit focus na combobox pro další přidání
+    partComboRef.value?.focus()
   } catch {
-    ui.showError(`Díl "${pn}" nenalezen nebo chyba při přidávání`)
+    ui.showError('Chyba při přidávání položky')
   } finally {
     addSaving.value = false
   }
@@ -310,12 +312,10 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
               <!-- Add item row — DRAFT only -->
               <tr v-if="quote.status === 'draft'" class="add-row">
                 <td colspan="3">
-                  <InlineInput
-                    v-model="addPartNumber"
-                    class="add-input"
-                    placeholder="Číslo dílu (10XXXXXX)"
-                    data-testid="add-item-part-number"
-                    @keydown.enter="onAddItem"
+                  <PartCombobox
+                    ref="partComboRef"
+                    v-model="addSelectedPart"
+                    data-testid="add-item-part-combo"
                   />
                 </td>
                 <td class="col-num">
@@ -329,12 +329,14 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
                     @keydown.enter="onAddItem"
                   />
                 </td>
-                <td colspan="2" class="t4 add-hint">cena z frozen batch</td>
+                <td colspan="2" class="t4 add-hint">
+                  {{ addSelectedPart ? (addSelectedPart.name ?? '—') : 'hledej article / název' }}
+                </td>
                 <td class="act-cell">
                   <button
                     class="icon-btn icon-btn-brand"
                     title="Přidat díl"
-                    :disabled="addSaving"
+                    :disabled="addSaving || !addSelectedPart"
                     data-testid="add-item-confirm"
                     @click="onAddItem"
                   >
