@@ -305,21 +305,6 @@ onMounted(async () => {
 
     <template v-else>
 
-      <!-- Shortcut bar -->
-      <div class="sc-bar">
-        <span class="kbd">Tab</span><span class="sc-l">= další pole</span>
-        <div class="sc-div" />
-        <span class="kbd">↓</span><span class="sc-l">= dropdown WC</span>
-        <div class="sc-div" />
-        <span class="kbd">↵</span><span class="sc-l">= uloží + nový řádek</span>
-        <div class="sc-div" />
-        <span class="kbd">Ctrl+D</span><span class="sc-l">= smazat řádek</span>
-        <div class="sc-div" />
-        <span class="kbd">▶</span><span class="sc-l">= detail</span>
-        <div class="sc-div" />
-        <span class="kbd">Esc</span><span class="sc-l">= zahodit</span>
-      </div>
-
       <!-- Tabulka -->
       <div class="tbl-wrap" @keydown.ctrl.d.prevent="handleCtrlD">
         <table class="ops">
@@ -503,23 +488,19 @@ onMounted(async () => {
       <div class="sum-bar">
         <div class="sum-kpi">
           <span class="sum-label">Σ Seřízení</span>
-          <div><span class="sum-val">{{ fmtMmSs(totalSetup) }}</span></div>
-          <span class="sum-formula">jen lathe + mill</span>
+          <span class="sum-val">{{ fmtMmSs(totalSetup) }}</span>
         </div>
         <div class="sum-kpi">
           <span class="sum-label">Σ Strojní čas</span>
-          <div><span class="sum-val">{{ fmtMmSs(totalStrojni) }}</span></div>
-          <span class="sum-formula">jen lathe + mill</span>
+          <span class="sum-val">{{ fmtMmSs(totalStrojni) }}</span>
         </div>
         <div class="sum-kpi">
           <span class="sum-label">Σ Čas stroje</span>
-          <div><span class="sum-val">{{ fmtMmSs(totalKe) }}</span></div>
-          <span class="sum-formula sum-formula-ke">Σ (strojní ÷ Ke) · jen CNC</span>
+          <span class="sum-val ke-hint">{{ fmtMmSs(totalKe) }}</span>
         </div>
         <div class="sum-kpi">
           <span class="sum-label">Σ Čas obsluhy</span>
-          <div><span class="sum-val">{{ fmtMmSs(totalKo) }}</span></div>
-          <span class="sum-formula sum-formula-ko">Σ (čas stroje × Ko) · jen CNC</span>
+          <span class="sum-val ko-hint">{{ fmtMmSs(totalKo) }}</span>
         </div>
       </div>
 
@@ -533,8 +514,6 @@ onMounted(async () => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 6px var(--pad) var(--pad);
-  gap: 6px;
 }
 
 /* ─── Placeholder ─── */
@@ -550,18 +529,6 @@ onMounted(async () => {
 .mod-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--b2); }
 .mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
-/* ─── Shortcut bar ─── */
-.sc-bar {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  padding: 5px 10px;
-  background: var(--surface);
-  border: 1px solid var(--b2);
-  border-radius: var(--r);
-  flex-shrink: 0;
-}
 .kbd {
   display: inline-flex;
   align-items: center;
@@ -575,14 +542,8 @@ onMounted(async () => {
   line-height: 1.5;
   white-space: nowrap;
 }
-.sc-l { font-size: var(--fss); color: var(--t4); }
-.sc-div { width: 1px; height: 10px; background: var(--b2); flex-shrink: 0; }
-
 /* ─── Table wrapper ─── */
 .tbl-wrap {
-  background: var(--surface);
-  border: 1px solid var(--b2);
-  border-radius: var(--r);
   overflow: visible;
   flex: 1;
   min-height: 0;
@@ -590,7 +551,7 @@ onMounted(async () => {
 
 /* ─── Table ─── */
 .ops { width: 100%; border-collapse: collapse; }
-.ops thead { background: rgba(255, 255, 255, 0.02); }
+.ops thead { background: rgba(255, 255, 255, 0.025); border-bottom: 1px solid var(--b2); }
 .ops th {
   padding: 5px 8px;
   font-family: var(--font);
@@ -767,17 +728,16 @@ input::selection { background: transparent; }
   grid-template-columns: repeat(4, 1fr);
   gap: 1px;
   background: var(--b2);
-  border: 1px solid var(--b2);
-  border-radius: var(--r);
+  border-top: 1px solid var(--b2);
   overflow: hidden;
   flex-shrink: 0;
 }
 .sum-kpi {
   background: var(--raised);
-  padding: 10px 14px;
+  padding: 6px 14px;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: baseline;
+  gap: 8px;
 }
 .sum-label {
   font-size: var(--fsm);
@@ -788,13 +748,11 @@ input::selection { background: transparent; }
 }
 .sum-val {
   font-family: var(--font);
-  font-size: var(--fsh);
+  font-size: var(--fs);
   color: var(--t1);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-.sum-unit { font-size: var(--fss); color: var(--t4); margin-left: 3px; }
-.sum-formula { font-size: var(--fss); font-family: var(--font); margin-top: 1px; }
-.sum-formula-ke { color: rgba(96, 165, 250, 0.55); }
-.sum-formula-ko { color: rgba(167, 139, 250, 0.5); }
+.sum-val.ke-hint { color: var(--chart-material); }
+.sum-val.ko-hint { color: var(--chart-machining); }
 </style>
