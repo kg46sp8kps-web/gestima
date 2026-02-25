@@ -66,14 +66,10 @@ onUnmounted(() => {
 
     <!-- Header -->
     <header class="hdr">
-      <div class="hlogo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5" />
-          <path d="M2 12l10 5 10-5" />
-        </svg>
+      <div class="hlogo-wrap">
+        <img src="/logo.png" class="hlogo-img" alt="logo" />
+        <div class="logo"><em>GESTI</em><span>MA</span></div>
       </div>
-      <div class="logo"><em>G</em><span>ESTIMA</span></div>
       <span class="logo-div" />
 
       <!-- Layout chips from backend -->
@@ -232,14 +228,16 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.hlogo {
-  width: 21px; height: 21px; border-radius: 50%;
-  background: var(--red-dim); border: 1px solid rgba(229,57,53,0.25);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 6px rgba(229,57,53,0.2));
+.hlogo-wrap {
+  display: flex; align-items: center; gap: 7px; flex-shrink: 0;
 }
-.hlogo svg { width: 11px; height: 11px; stroke: var(--red); }
+.hlogo-img {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  user-select: none;
+}
 
 .logo {
   font-size: var(--fs); font-weight: 700;

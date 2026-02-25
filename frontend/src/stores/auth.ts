@@ -18,13 +18,13 @@ export const useAuthStore = defineStore('auth', () => {
     user.value?.role === 'admin' || user.value?.role === 'operator',
   )
 
+  /** Returns true on success — caller is responsible for navigation */
   async function login(username: string, password: string): Promise<boolean> {
     loading.value = true
     try {
       // Server sets HttpOnly cookie; we call getMe() for full user data
       await authApi.login(username, password)
       user.value = await authApi.getMe()
-      await router.push('/')
       return true
     } catch {
       ui.showError('Neplatné přihlašovací údaje.')

@@ -1,231 +1,320 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePrefetch } from '@/composables/usePrefetch'
 
 const auth = useAuthStore()
+const router = useRouter()
+const { prefetchAll } = usePrefetch()
 
 const username = ref('')
 const password = ref('')
+const booting = ref(false)
 
 async function submit() {
   if (!username.value || !password.value) return
-  await auth.login(username.value, password.value)
+
+  // Form zmizí okamžitě — progress bar pokryje vše
+  booting.value = true
+
+  const ok = await auth.login(username.value, password.value)
+  if (!ok) {
+    // Chyba přihlášení — form se vrátí zpět
+    booting.value = false
+    return
+  }
+
+  await Promise.all([
+    prefetchAll(),
+    new Promise(r => setTimeout(r, 1400)),
+  ])
+  await router.push('/')
 }
 </script>
 
 <template>
-  <div class="login-root">
-    <div class="login-bg-grid" />
-    <div class="login-vig" />
-    <div class="login-glow" />
+  <div class="lr">
+    <div class="bg-grid" />
+    <div class="bg-vig" />
+    <div class="bg-glow" />
+    <div :class="['laser', { replay: booting }]" />
 
-    <div class="login-card">
-      <div class="login-logo-wrap">
-        <div class="login-logo-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-        </div>
-        <div class="login-logo-text">
-          <em>G</em><span>ESTIMA</span>
-        </div>
-        <div class="login-sub">CNC Cost Intelligence</div>
+    <!-- Jediný centrovaný blok — logo zůstane vždy na místě -->
+    <div class="lc">
+
+      <!-- Logo sekce — statická, nikdy se nehýbe -->
+      <div class="lmark">
+        <img src="/logo.png" alt="Logo" />
+      </div>
+      <div class="llogo"><em>GESTI</em><span>MA</span></div>
+      <div class="lsub">Kalkulace CNC výroby</div>
+
+      <!-- Swap zóna — form nebo progress bar -->
+      <div class="lswap">
+        <Transition name="swap">
+          <form v-if="!booting" key="form" class="lform" @submit.prevent="submit">
+            <input
+              v-model="username"
+              type="text"
+              class="linput"
+              placeholder="Uživatelské jméno"
+              autocomplete="username"
+              data-testid="login-username"
+              required
+              :disabled="auth.loading"
+            />
+            <input
+              v-model="password"
+              type="password"
+              class="linput"
+              placeholder="Heslo"
+              autocomplete="current-password"
+              data-testid="login-password"
+              required
+              :disabled="auth.loading"
+            />
+            <button
+              type="submit"
+              class="lbtn"
+              :disabled="!username || !password"
+              data-testid="login-submit"
+            >
+              Přihlásit se
+            </button>
+          </form>
+
+          <div v-else key="prog" class="lprog">
+            <div class="lpbar" />
+          </div>
+        </Transition>
       </div>
 
-      <form @submit.prevent="submit">
-        <div class="login-field">
-          <label class="login-label" for="login-user">Uživatelské jméno</label>
-          <input
-            id="login-user"
-            v-model="username"
-            type="text"
-            class="login-input"
-            placeholder="admin"
-            autocomplete="username"
-            data-testid="login-username"
-            required
-          />
-        </div>
-        <div class="login-field">
-          <label class="login-label" for="login-pass">Heslo</label>
-          <input
-            id="login-pass"
-            v-model="password"
-            type="password"
-            class="login-input"
-            placeholder="••••••••"
-            autocomplete="current-password"
-            data-testid="login-password"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          class="login-btn"
-          :disabled="auth.loading || !username || !password"
-          data-testid="login-submit"
-        >
-          {{ auth.loading ? 'Přihlašování…' : 'Přihlásit se' }}
-        </button>
-      </form>
-
-      <div class="login-footer">Gestima v3 · {{ new Date().getFullYear() }}</div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-root {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--base);
-  overflow: hidden;
+/* ── ROOT ── */
+.lr {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--base); overflow: hidden;
 }
-.login-bg-grid {
-  position: absolute;
-  inset: -200px;
+
+/* ── BACKGROUND ── */
+.bg-grid {
+  position: absolute; inset: -200px;
   background-image:
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
   background-size: 60px 60px;
-  animation: drift 30s linear infinite;
-  opacity: 0.7;
+  animation: drift 30s linear infinite, fadeIn 1s 0.1s var(--ease) forwards;
+  opacity: 0;
 }
-.login-vig {
-  position: absolute;
-  inset: 0;
+.bg-vig {
+  position: absolute; inset: 0;
   background: radial-gradient(circle, transparent 20%, var(--base) 70%);
 }
-.login-glow {
-  position: absolute;
-  width: 500px;
-  height: 350px;
-  top: 40%;
-  left: 50%;
+.bg-glow {
+  position: absolute; width: 500px; height: 350px;
+  top: 40%; left: 50%;
   transform: translate(-50%, -50%);
   background: radial-gradient(ellipse, var(--red-dim) 0%, transparent 70%);
-  animation: breatheSlow 4s cubic-bezier(0.45,0,0.55,1) infinite alternate;
+  opacity: 0;
+  animation: breatheSlow 4s cubic-bezier(0.45,0,0.55,1) infinite alternate,
+             fadeIn 1.2s 0.2s var(--ease) forwards;
 }
-.login-card {
+
+/* ── LASER ── */
+.laser {
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 20%, var(--red) 50%, transparent 80%);
+  box-shadow: 0 0 20px var(--red), 0 0 60px var(--red-glow);
+  animation: laserSweep 1.2s 0.15s var(--ease) both;
+  pointer-events: none;
+}
+.laser.replay { animation: laserSweep 1.2s var(--ease) both; }
+
+/* ── CENTER COLUMN — nikdy se nepohne ── */
+.lc {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: 100%; max-width: 300px;
+}
+
+/* Logo sekce */
+.lmark {
+  width: 64px; height: 64px; border-radius: 50%;
+  filter: drop-shadow(0 0 20px rgba(229,57,53,0.4)) drop-shadow(0 0 40px rgba(229,57,53,0.15));
+  flex-shrink: 0;
+  opacity: 0; animation: fadeUp 0.5s 0.3s var(--ease) forwards;
+}
+.lmark img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
+
+.llogo {
+  font-size: 28px; font-weight: 700; letter-spacing: 0.14em;
+  opacity: 0; animation: fadeUp 0.5s 0.4s var(--ease) forwards;
+}
+.llogo em { color: var(--red); font-style: normal; }
+.llogo span { color: var(--t1); }
+
+.lsub {
+  font-size: var(--fsm); color: var(--t3);
+  letter-spacing: 0.3em; text-transform: uppercase;
+  opacity: 0; animation: fadeUp 0.4s 0.5s var(--ease) forwards;
+}
+
+/* ── SWAP ZÓNA ── */
+.lswap {
   position: relative;
-  z-index: 1;
-  width: 320px;
-  background: var(--surface);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid var(--b2);
-  border-radius: 12px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
-  padding: 32px 28px 28px;
-  animation: fadeUp 0.5s 0.2s var(--ease) both;
-}
-.login-logo-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 28px;
-}
-.login-logo-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 1px solid rgba(229,57,53,0.3);
-  background: var(--red-dim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 4px;
-  filter: drop-shadow(0 0 16px rgba(229,57,53,0.3));
-}
-.login-logo-mark svg {
-  width: 22px;
-  height: 22px;
-  stroke: var(--red);
-}
-.login-logo-text {
- 
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-.login-logo-text em { color: var(--red); font-style: normal; }
-.login-logo-text span { color: var(--t1); }
-.login-sub {
-  font-size: var(--fsm);
-  color: var(--t4);
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-}
-.login-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-.login-label {
-  font-size: var(--fsm);
-  font-weight: 500;
-  color: var(--t3);
-  letter-spacing: 0.04em;
-}
-.login-input {
   width: 100%;
-  padding: 8px 10px;
+  /* Pevná výška = výška formuláře — aby logo neskakovalo */
+  height: 148px;
+  margin-top: 6px;
+  opacity: 0; animation: fadeIn 0.4s 0.6s var(--ease) forwards;
+}
+
+/* Form a progress bar jsou absolutní uvnitř swap zóny */
+.lform {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.lprog {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── INPUTS ── */
+.linput {
+  width: 100%;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t1);
   font-size: var(--fs);
-  font-family: inherit;
+  font-family: var(--font);
+  font-weight: 420;
+  letter-spacing: 0;
+  padding: 9px 12px;
   outline: none;
-  height: 34px;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease);
 }
-.login-input:focus { border-color: var(--b3); background: rgba(255,255,255,0.06); }
-.login-input:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
-.login-input[type='password'] { letter-spacing: 0.15em; }
-.login-btn {
-  width: 100%;
-  height: 36px;
-  margin-top: 20px;
-  background: var(--red);
-  border: none;
+.linput::placeholder { color: var(--t4); font-weight: 400; }
+.linput:focus { border-color: var(--red); background: rgba(255,255,255,0.06); outline: none; }
+.linput:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Autofill override */
+.linput:-webkit-autofill,
+.linput:-webkit-autofill:hover,
+.linput:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--ground) inset;
+  -webkit-text-fill-color: var(--t1);
+  caret-color: var(--t1);
+  transition: background-color 5000s;
+}
+
+/* ── BUTTON ── */
+.lbtn {
+  width: 100%; margin-top: 4px;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t1);
-  font-size: var(--fs);
-  font-weight: 600;
-  font-family: inherit;
+  font-size: var(--fs); font-weight: 500; font-family: var(--font);
   cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: background 0.12s, box-shadow 0.12s, transform 0.08s;
-  box-shadow: 0 4px 16px rgba(229,57,53,0.3);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  position: relative; overflow: hidden;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease);
 }
-.login-btn:hover:not(:disabled) { background: var(--red); filter: brightness(1.1); box-shadow: 0 4px 20px rgba(229,57,53,0.45); }
-.login-btn:active:not(:disabled) { transform: scale(0.99); }
-.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.login-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
-.login-footer {
-  margin-top: 16px;
-  text-align: center;
-  font-size: var(--fsm);
-  color: var(--t4);
+.lbtn::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0;
+  width: 100%; height: 2px; background: var(--red);
+  transform: scaleX(0); transform-origin: center;
+  transition: transform 200ms var(--ease);
 }
+.lbtn:hover:not(:disabled) { border-color: var(--red); background: var(--red-10); }
+.lbtn:hover:not(:disabled)::after { transform: scaleX(1); }
+.lbtn:active:not(:disabled) { transform: scale(0.99); }
+.lbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── PROGRESS BAR ── */
+.lpbar-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.lprog {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.lpbar {
+  width: 120px; height: 1px;
+  background: var(--b1); border-radius: 99px; overflow: hidden;
+  position: relative;
+}
+.lpbar::after {
+  content: '';
+  position: absolute; inset-block: 0; left: 0;
+  width: 0; background: var(--red);
+  animation: fill 1.2s 0.1s var(--ease) forwards;
+}
+
+/* ── SWAP PŘECHOD ── */
+/* Form odchází: fade dolů + blur */
+.swap-leave-active {
+  transition:
+    opacity 550ms var(--ease),
+    transform 550ms var(--ease),
+    filter 550ms var(--ease);
+}
+.swap-leave-to {
+  opacity: 0;
+  transform: translateY(14px);
+  filter: blur(8px);
+}
+
+/* Progress nastupuje: fade nahoru + blur, zpožděný o 250ms aby se překryl s odchodem */
+.swap-enter-active {
+  transition:
+    opacity 650ms 250ms var(--ease),
+    transform 650ms 250ms var(--ease),
+    filter 650ms 250ms var(--ease);
+}
+.swap-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+  filter: blur(8px);
+}
+
+/* ── KEYFRAMES ── */
 @keyframes drift {
-  from { transform: translate(0, 0); }
-  to   { transform: translate(60px, 60px); }
+  from { transform: translate(0,0); }
+  to   { transform: translate(60px,60px); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 @keyframes breatheSlow {
-  from { opacity: 0.5; transform: translate(-50%,-50%) scale(1); }
-  to   { opacity: 1;   transform: translate(-50%,-50%) scale(1.08); }
+  from { opacity: 0.25; transform: translate(-50%,-50%) scale(0.97); }
+  to   { opacity: 0.55; transform: translate(-50%,-50%) scale(1.04); }
+}
+@keyframes laserSweep {
+  0%   { transform: translateY(-100vh); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
 }
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fill {
+  0%   { width: 0; }
+  60%  { width: 75%; }
+  100% { width: 100%; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
