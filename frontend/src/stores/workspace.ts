@@ -18,6 +18,23 @@ function syncIdCounter(tree: TileNode): void {
   }
 }
 
+/** Maps removed module IDs to their replacement — applied when loading layouts from DB. */
+const LEGACY_MODULE_REMAP: Record<string, ModuleId> = {
+  'work-detail': 'parts-list',
+}
+
+function migrateTree(tree: TileNode): TileNode {
+  if (tree.type === 'leaf') {
+    const remapped = LEGACY_MODULE_REMAP[tree.module]
+    return remapped ? { ...tree, module: remapped } : tree
+  }
+  const c0 = migrateTree(tree.children[0])
+  const c1 = migrateTree(tree.children[1])
+  return c0 === tree.children[0] && c1 === tree.children[1]
+    ? tree
+    : { ...tree, children: [c0, c1] }
+}
+
 function makeLeaf(module: ModuleId, ctx: ContextGroup = 'ca'): LeafNode {
   return { type: 'leaf', id: nid(), module, ctx }
 }
@@ -31,35 +48,24 @@ function makeSplit(
 }
 
 const PRESETS: Record<LayoutPreset, () => TileNode> = {
-  std: () => makeSplit('horizontal', 0.22,
+  // Standard: single catalog tile (list + detail internal split)
+  std: () => makeLeaf('parts-list', 'ca'),
+  // Compare: two contexts side by side, each with own list+detail
+  cmp: () => makeSplit('vertical', 0.5,
     makeLeaf('parts-list', 'ca'),
-    makeLeaf('work-detail', 'ca'),
+    makeLeaf('parts-list', 'cb'),
   ),
-  cmp: () => makeSplit('horizontal', 0.16,
+  // Horizontal: catalog on left, operations on right
+  hor: () => makeSplit('vertical', 0.45,
+    makeLeaf('parts-list', 'ca'),
+    makeLeaf('work-ops', 'ca'),
+  ),
+  // Quad: catalog left, ops + pricing + drawing on right
+  qd: () => makeSplit('vertical', 0.35,
     makeLeaf('parts-list', 'ca'),
     makeSplit('horizontal', 0.5,
-      makeLeaf('work-detail', 'ca'),
-      makeSplit('horizontal', 0.5,
-        makeLeaf('work-detail', 'cb'),
-        makeLeaf('parts-list', 'cb'),
-      ),
-    ),
-  ),
-  hor: () => makeSplit('horizontal', 0.22,
-    makeLeaf('parts-list', 'ca'),
-    makeSplit('vertical', 0.5,
-      makeLeaf('work-detail', 'ca'),
       makeLeaf('work-ops', 'ca'),
-    ),
-  ),
-  qd: () => makeSplit('horizontal', 0.18,
-    makeLeaf('parts-list', 'ca'),
-    makeSplit('horizontal', 0.5,
-      makeSplit('vertical', 0.5,
-        makeLeaf('work-detail', 'ca'),
-        makeLeaf('work-ops', 'ca'),
-      ),
-      makeSplit('vertical', 0.5,
+      makeSplit('horizontal', 0.5,
         makeLeaf('work-pricing', 'ca'),
         makeLeaf('work-drawing', 'ca'),
       ),
@@ -167,8 +173,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (currentLayoutId.value === null) {
         const def = layouts.find(l => l.is_default) ?? layouts[0]
         if (def) {
-          tree.value = def.tree_json
-          syncIdCounter(def.tree_json)
+          const migrated = migrateTree(def.tree_json)
+          tree.value = migrated
+          syncIdCounter(migrated)
           currentLayoutId.value = def.id
         }
       }
@@ -180,8 +187,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function loadLayout(id: number) {
     const layout = savedLayouts.value.find(l => l.id === id)
     if (!layout) return
-    tree.value = layout.tree_json
-    syncIdCounter(layout.tree_json)
+    const migrated = migrateTree(layout.tree_json)
+    tree.value = migrated
+    syncIdCounter(migrated)
     currentLayoutId.value = id
     focusedLeafId.value = null
   }

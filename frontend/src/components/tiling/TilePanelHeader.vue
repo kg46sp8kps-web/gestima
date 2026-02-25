@@ -2,7 +2,7 @@
 import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { Maximize2Icon, Minimize2Icon, XIcon, PanelTopIcon, PanelLeftIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { useQuoteLayoutStore } from '@/stores/quoteLayout'
+import { useSplitLayoutStore } from '@/stores/splitLayout'
 import { MODULE_REGISTRY } from '@/types/workspace'
 import type { LeafNode, ContextGroup } from '@/types/workspace'
 import { ICON_SIZE_SM } from '@/config/design'
@@ -21,8 +21,9 @@ const emit = defineEmits<{
 }>()
 
 const ws = useWorkspaceStore()
-const quoteLayout = useQuoteLayoutStore()
-const moduleDef = computed(() => MODULE_REGISTRY[props.node.module])
+const splitLayout = useSplitLayoutStore()
+const moduleDef = computed(() => MODULE_REGISTRY[props.node.module] ?? { id: props.node.module, label: props.node.module, usesCtx: false, hasSplitLayout: false })
+const splitMode = computed(() => splitLayout.getMode(props.node.id, props.node.module))
 
 // ─── Ctx group picker ───
 const pickerOpen = ref(false)
@@ -159,15 +160,15 @@ function onDragEnd() {
 
     <div class="phf" />
 
-    <!-- Quotes: layout toggle -->
+    <!-- Split layout toggle (quotes, parts-list) -->
     <button
-      v-if="node.module === 'quotes'"
+      v-if="moduleDef.hasSplitLayout"
       class="pc"
-      :title="quoteLayout.getMode(node.id) === 'vertical' ? 'Přepnout na horizontální' : 'Přepnout na vertikální'"
-      data-testid="quote-layout-toggle"
-      @click.stop="quoteLayout.toggle(node.id)"
+      :title="splitMode === 'vertical' ? 'Přepnout na horizontální' : 'Přepnout na vertikální'"
+      data-testid="split-layout-toggle"
+      @click.stop="splitLayout.toggle(node.id, node.module)"
     >
-      <PanelTopIcon v-if="quoteLayout.getMode(node.id) === 'vertical'" :size="ICON_SIZE_SM - 2" />
+      <PanelTopIcon v-if="splitMode === 'vertical'" :size="ICON_SIZE_SM - 2" />
       <PanelLeftIcon v-else :size="ICON_SIZE_SM - 2" />
     </button>
 

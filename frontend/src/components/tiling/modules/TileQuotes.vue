@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { ContextGroup } from '@/types/workspace'
-import type { QuoteDetail } from '@/types/quote'
-import { useQuoteLayoutStore } from '@/stores/quoteLayout'
+import type { QuoteDetail, QuoteListItem } from '@/types/quote'
+import { useSplitLayoutStore } from '@/stores/splitLayout'
+import { useSplitResize } from '@/composables/useSplitResize'
 import QuoteListPanel from './quotes/QuoteListPanel.vue'
 import QuoteDetailPanel from './quotes/QuoteDetailPanel.vue'
 import QuoteNewDialog from './quotes/QuoteNewDialog.vue'
@@ -14,47 +15,27 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const layoutStore = useQuoteLayoutStore()
-const layoutMode = computed(() => layoutStore.getMode(props.leafId))
+const splitLayout = useSplitLayoutStore()
+const layoutMode = computed(() => splitLayout.getMode(props.leafId, 'quotes'))
 
-onUnmounted(() => layoutStore.cleanup(props.leafId))
+onUnmounted(() => splitLayout.cleanup(props.leafId))
 
 const selectedQuoteNumber = ref<string | null>(null)
 const showNewDialog = ref(false)
 
-// Split panel resize — works for both axes
-const splitPct = ref(40) // percent
-const isDragging = ref(false)
-
-// Reset split when layout changes
-watch(layoutMode, () => { splitPct.value = 40 })
-
-function startResize(e: MouseEvent) {
-  isDragging.value = true
-  const startPct = splitPct.value
-  const startPos = layoutMode.value === 'vertical' ? e.clientX : e.clientY
-
-  function onMove(ev: MouseEvent) {
-    const root = document.querySelector('.wquo-root') as HTMLElement | null
-    if (!root) return
-    const total = layoutMode.value === 'vertical' ? root.offsetWidth : root.offsetHeight
-    if (total === 0) return
-    const pos = layoutMode.value === 'vertical' ? ev.clientX : ev.clientY
-    const delta = ((pos - startPos) / total) * 100
-    splitPct.value = Math.min(75, Math.max(20, startPct + delta))
-  }
-
-  function onUp() {
-    isDragging.value = false
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onUp)
-  }
-
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onUp)
-}
+// ── Resize ──
+const containerRef = ref<HTMLElement | null>(null)
+const { splitPct, isDragging, startResize } = useSplitResize(layoutMode, containerRef)
 
 const listRef = ref<InstanceType<typeof QuoteListPanel> | null>(null)
+
+onMounted(() => listRef.value?.load())
+
+function onListLoaded(items: QuoteListItem[]) {
+  if (!selectedQuoteNumber.value && items[0]) {
+    selectedQuoteNumber.value = items[0].quote_number
+  }
+}
 
 function onQuoteCreated(quote: QuoteDetail) {
   selectedQuoteNumber.value = quote.quote_number
@@ -67,7 +48,7 @@ function onDetailReload() {
 </script>
 
 <template>
-  <div class="wquo-root" :class="layoutMode">
+  <div ref="containerRef" class="wquo-root" :class="layoutMode">
     <!-- List panel -->
     <div
       class="wquo-list-wrap"
@@ -81,6 +62,7 @@ function onDetailReload() {
         ref="listRef"
         :selected-quote-number="selectedQuoteNumber"
         @select="selectedQuoteNumber = $event"
+        @loaded="onListLoaded"
         @new-quote="showNewDialog = true"
       />
     </div>

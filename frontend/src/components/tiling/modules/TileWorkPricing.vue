@@ -91,9 +91,6 @@ watch(opsKey, async (newKey, oldKey) => {
   }
 })
 
-const defaultBatch = computed(
-  () => batches.value.find(b => b.is_default) ?? batches.value[0] ?? null,
-)
 
 const isBusy = computed(() => Object.values(submitting).some(v => v))
 
@@ -355,8 +352,12 @@ function toggleExpand(setId: number) {
 
     <!-- Data view -->
     <template v-else>
-      <!-- Header toolbar -->
-      <div class="hdr">
+      <!-- Header ribbon -->
+      <div class="rib">
+        <span class="rib-l">Sad</span>
+        <span class="rib-v">{{ batchSets.length }}</span>
+        <div class="rib-gap" />
+        <Spinner v-if="isBusy" size="sm" inline />
         <Button
           variant="secondary"
           :disabled="!!submitting['create-set']"
@@ -366,30 +367,6 @@ function toggleExpand(setId: number) {
           <Plus :size="ICON_SIZE_SM" />
           Nová sada
         </Button>
-        <div class="hdr-gap" />
-        <Spinner v-if="isBusy" size="sm" inline />
-      </div>
-
-      <!-- Summary ribbon (default batch) -->
-      <div v-if="defaultBatch" class="rib">
-        <div class="rib-r">
-          <div class="rib-i">
-            <span class="rib-l">Dávek</span>
-            <span class="rib-v">{{ batches.length }}</span>
-          </div>
-          <div class="rib-i">
-            <span class="rib-l">Výchozí qty</span>
-            <span class="rib-v">{{ formatNumber(defaultBatch.quantity, 0) }} ks</span>
-          </div>
-          <div class="rib-i">
-            <span class="rib-l">Náklady / ks</span>
-            <span class="rib-v">{{ formatCurrency(defaultBatch.unit_cost) }}</span>
-          </div>
-          <div class="rib-i">
-            <span class="rib-l">Cena / ks</span>
-            <span class="rib-v green">{{ formatCurrency(defaultBatch.unit_price) }}</span>
-          </div>
-        </div>
       </div>
 
       <!-- Empty state -->
@@ -487,8 +464,8 @@ function toggleExpand(setId: number) {
                 <tr>
                   <th class="r" style="width:68px">Qty (ks)</th>
                   <th class="r" style="width:64px">Mat. %</th>
+                  <th class="r" style="width:64px">Seř. %</th>
                   <th class="r" style="width:64px">Stroj. %</th>
-                  <th class="r" style="width:64px">Sér. %</th>
                   <th class="r" style="width:94px">Náklady / ks</th>
                   <th class="r" style="width:94px">Cena / ks</th>
                   <th style="width:28px"></th>
@@ -503,10 +480,10 @@ function toggleExpand(setId: number) {
                 >
                   <td class="r">{{ formatNumber(b.quantity, 0) }}</td>
                   <td class="r"><span class="badge pct-mat">{{ pct(b.material_percent) }}</span></td>
-                  <td class="r"><span class="badge pct-mach">{{ pct(b.machining_percent) }}</span></td>
                   <td class="r"><span class="badge pct-setup">{{ pct(b.setup_percent) }}</span></td>
-                  <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
-                  <td class="r"><span class="price-val">{{ formatCurrency(b.unit_price) }}</span></td>
+                  <td class="r"><span class="badge pct-mach">{{ pct(b.machining_percent) }}</span></td>
+                  <td class="r">{{ formatCurrency(b.unit_cost_net) }}</td>
+                  <td class="r"><span class="price-val">{{ formatCurrency(b.unit_cost) }}</span></td>
                   <td>
                     <button
                       class="icon-btn"
@@ -577,8 +554,8 @@ function toggleExpand(setId: number) {
             <tr>
               <th class="r" style="width:68px">Qty (ks)</th>
               <th class="r" style="width:64px">Mat. %</th>
+              <th class="r" style="width:64px">Seř. %</th>
               <th class="r" style="width:64px">Stroj. %</th>
-              <th class="r" style="width:64px">Sér. %</th>
               <th class="r" style="width:94px">Náklady / ks</th>
               <th class="r" style="width:94px">Cena / ks</th>
               <th style="width:28px"></th>
@@ -592,10 +569,10 @@ function toggleExpand(setId: number) {
             >
               <td class="r">{{ formatNumber(b.quantity, 0) }}</td>
               <td class="r"><span class="badge pct-mat">{{ pct(b.material_percent) }}</span></td>
-              <td class="r"><span class="badge pct-mach">{{ pct(b.machining_percent) }}</span></td>
               <td class="r"><span class="badge pct-setup">{{ pct(b.setup_percent) }}</span></td>
-              <td class="r">{{ formatCurrency(b.unit_cost) }}</td>
-              <td class="r"><span class="price-val">{{ formatCurrency(b.unit_price) }}</span></td>
+              <td class="r"><span class="badge pct-mach">{{ pct(b.machining_percent) }}</span></td>
+              <td class="r">{{ formatCurrency(b.unit_cost_net) }}</td>
+              <td class="r"><span class="price-val">{{ formatCurrency(b.unit_cost) }}</span></td>
               <td>
                 <button
                   class="icon-btn"
@@ -649,29 +626,18 @@ function toggleExpand(setId: number) {
 .mod-dot.err { background: var(--err); }
 .mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
-/* ─── Header toolbar ─── */
-.hdr {
+/* ─── Header ribbon ─── */
+.rib {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px var(--pad);
-  border-bottom: 1px solid var(--b1);
-  flex-shrink: 0;
-}
-.hdr-gap { flex: 1; }
-
-/* ─── Ribbon ─── */
-.rib {
   padding: 5px var(--pad);
-  background: rgba(255,255,255,0.02);
   border-bottom: 1px solid var(--b1);
   flex-shrink: 0;
 }
-.rib-r { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.rib-i { display: flex; align-items: baseline; gap: 4px; }
+.rib-gap { flex: 1; }
 .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; }
 .rib-v { font-size: var(--fs); color: var(--t1); font-weight: 500; }
-.rib-v.green { color: var(--green); }
 
 /* ─── Batch sets ─── */
 .sets-wrap { flex-shrink: 0; }

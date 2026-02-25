@@ -7,7 +7,6 @@ export interface CatalogFocusItem {
 
 export type ModuleId =
   | 'parts-list'
-  | 'work-detail'
   | 'work-ops'
   | 'work-pricing'
   | 'work-drawing'
@@ -46,12 +45,12 @@ export interface ModuleDefinition {
   label: string
   shortcut?: string
   isSub?: boolean
-  usesCtx?: boolean  // true = module reads focusedPart(ctx), shows ctx picker
+  usesCtx?: boolean       // true = module reads focusedPart(ctx), shows ctx picker
+  hasSplitLayout?: boolean // true = shows vertical/horizontal layout toggle in header
 }
 
 export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
-  'parts-list':    { id: 'parts-list',    label: 'Položky',      usesCtx: true },
-  'work-detail':   { id: 'work-detail',   label: 'Detail položky', usesCtx: true },
+  'parts-list':    { id: 'parts-list',    label: 'Položky',      usesCtx: true, hasSplitLayout: true },
   'work-ops':      { id: 'work-ops',      label: 'Operace',      isSub: true, usesCtx: true },
   'work-pricing':  { id: 'work-pricing',  label: 'Kalkulace',    isSub: true, usesCtx: true },
   'work-drawing':  { id: 'work-drawing',  label: 'Výkres',       isSub: true, usesCtx: true },
@@ -59,7 +58,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   'time-vision':   { id: 'time-vision',   label: 'TimeVision',   shortcut: '⌘6' },
   'batch-sets':    { id: 'batch-sets',    label: 'Dávkové sady', shortcut: '⌘7' },
   'partners':      { id: 'partners',      label: 'Partneři',     shortcut: '⌘8' },
-  'quotes':        { id: 'quotes',        label: 'Nabídky',      shortcut: '⌘9' },
+  'quotes':        { id: 'quotes',        label: 'Nabídky',      shortcut: '⌘9', hasSplitLayout: true },
   'production':    { id: 'production',    label: 'Výroba',       shortcut: '⌘0' },
   'files':         { id: 'files',         label: 'Soubory' },
   'admin':         { id: 'admin',         label: 'Administrace' },

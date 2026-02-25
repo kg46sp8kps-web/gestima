@@ -20,12 +20,12 @@ const part = computed(() => parts.getFocusedPart(props.ctx))
 </script>
 
 <template>
-  <div class="wdet">
+  <div class="idet">
     <!-- ── Empty state ── -->
     <div v-if="!catalogItem" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Vyberte položku ze seznamu</span>
-      <span class="mod-hint">Klikněte na díl nebo polotovar v panelu Položky</span>
+      <span class="mod-hint">Klikněte na díl nebo polotovar vlevo</span>
     </div>
 
     <!-- ── Material detail ── -->
@@ -45,7 +45,7 @@ const part = computed(() => parts.getFocusedPart(props.ctx))
 </template>
 
 <style scoped>
-.wdet {
+.idet {
   display: flex;
   flex-direction: column;
   height: 100%;

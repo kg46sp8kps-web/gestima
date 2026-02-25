@@ -31,8 +31,7 @@ const dropZonesActive = computed(() =>
 
 // Map module IDs to async components
 const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncComponent>>> = {
-  'parts-list':     defineAsyncComponent(() => import('@/components/tiling/modules/TilePartsList.vue')),
-  'work-detail':    defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDetail.vue')),
+  'parts-list':     defineAsyncComponent(() => import('@/components/tiling/modules/TileCatalog.vue')),
   'work-ops':       defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkOps.vue')),
   'work-materials': defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkMaterials.vue')),
   'work-pricing':   defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkPricing.vue')),
@@ -75,7 +74,7 @@ function onFocus() {
   <div
     :class="[
       'pnl',
-      MODULE_REGISTRY[node.module].usesCtx ? node.ctx : null,
+      MODULE_REGISTRY[node.module]?.usesCtx ? node.ctx : null,
       { instant: isInstant, focused: isFocused, dragging: isDragging, max: maximized }
     ]"
     @mousedown="onFocus"

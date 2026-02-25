@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { BotIcon, PlusIcon } from 'lucide-vue-next'
 import * as quotesApi from '@/api/quotes'
 import type { QuoteListItem } from '@/types/quote'
@@ -12,6 +12,7 @@ import { ICON_SIZE_SM } from '@/config/design'
 const emit = defineEmits<{
   select: [quoteNumber: string | null]
   'new-quote': []
+  loaded: [items: QuoteListItem[]]
 }>()
 
 interface Props {
@@ -76,6 +77,7 @@ async function load() {
   error.value = false
   try {
     items.value = await quotesApi.getAll()
+    emit('loaded', items.value)
   } catch {
     error.value = true
   } finally {
@@ -84,8 +86,6 @@ async function load() {
 }
 
 defineExpose({ load })
-
-onMounted(load)
 </script>
 
 <template>
