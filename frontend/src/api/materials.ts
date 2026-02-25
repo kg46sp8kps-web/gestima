@@ -1,6 +1,6 @@
-import { apiClient } from './client'
+import { apiClient, adminClient } from './client'
 import type { MaterialItemDetail, MaterialItemListResponse } from '@/types/material-item'
-import type { MaterialGroup, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryUpdate } from '@/types/admin-user'
+import type { MaterialGroup, MaterialGroupUpdate, MaterialPriceCategory, MaterialPriceCategoryUpdate, MaterialPriceTier, MaterialPriceTierCreate, MaterialPriceTierUpdate } from '@/types/admin-user'
 
 export interface MaterialItemUomUpdate {
   uom: string
@@ -42,4 +42,23 @@ export async function getPriceCategories(): Promise<MaterialPriceCategory[]> {
 export async function updatePriceCategory(id: number, payload: MaterialPriceCategoryUpdate): Promise<MaterialPriceCategory> {
   const { data } = await apiClient.put<MaterialPriceCategory>(`/materials/price-categories/${id}`, payload)
   return data
+}
+
+export async function getPriceTiers(categoryId: number): Promise<MaterialPriceTier[]> {
+  const { data } = await apiClient.get<MaterialPriceTier[]>('/materials/price-tiers', { params: { category_id: categoryId } })
+  return data
+}
+
+export async function createPriceTier(payload: MaterialPriceTierCreate): Promise<MaterialPriceTier> {
+  const { data } = await adminClient.post<MaterialPriceTier>('/materials/price-tiers', payload)
+  return data
+}
+
+export async function updatePriceTier(id: number, payload: MaterialPriceTierUpdate): Promise<MaterialPriceTier> {
+  const { data } = await adminClient.put<MaterialPriceTier>(`/materials/price-tiers/${id}`, payload)
+  return data
+}
+
+export async function deletePriceTier(id: number): Promise<void> {
+  await adminClient.delete(`/materials/price-tiers/${id}`)
 }

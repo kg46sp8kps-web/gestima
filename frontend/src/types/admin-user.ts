@@ -52,6 +52,7 @@ export interface MaterialPriceCategory {
   material_group_id: number | null
   material_group: MaterialGroup | null
   version: number
+  tiers?: MaterialPriceTier[]
 }
 
 export interface MaterialPriceCategoryUpdate {
@@ -60,6 +61,29 @@ export interface MaterialPriceCategoryUpdate {
   iso_group?: string | null
   cutting_speed_turning?: number | null
   cutting_speed_milling?: number | null
+  version: number
+}
+
+export interface MaterialPriceTier {
+  id: number
+  price_category_id: number
+  min_weight: number
+  max_weight: number | null
+  price_per_kg: number
+  version: number
+}
+
+export interface MaterialPriceTierCreate {
+  price_category_id: number
+  min_weight: number
+  max_weight: number | null
+  price_per_kg: number
+}
+
+export interface MaterialPriceTierUpdate {
+  min_weight?: number
+  max_weight?: number | null
+  price_per_kg?: number
   version: number
 }
 
