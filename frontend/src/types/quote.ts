@@ -21,6 +21,7 @@ export interface QuoteItem {
   quantity: number
   unit_price: number
   line_total: number
+  batch_approx: boolean
   notes: string | null
   version: number
   created_at: string

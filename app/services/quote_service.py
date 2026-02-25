@@ -31,7 +31,7 @@ class QuoteService:
     """Business logic for quotes"""
 
     @staticmethod
-    async def get_latest_frozen_batch_price(part_id: int, quantity: int, db: AsyncSession) -> float:
+    async def get_latest_frozen_batch_price(part_id: int, quantity: int, db: AsyncSession) -> Tuple[float, bool]:
         """
         Get unit price from latest frozen batch_set for a part, matched by quantity.
 
@@ -42,7 +42,9 @@ class QuoteService:
         4. If no lower batch → smallest available batch (most conservative price)
 
         Returns:
-            Unit price (float)
+            Tuple of (unit_price: float, batch_approx: bool)
+            batch_approx=True when price is from nearest-lower or smallest fallback batch
+            (i.e. no exact quantity match exists — shown as UI warning)
 
         Raises:
             HTTPException 400: If no frozen batch_set or no batches found
@@ -85,32 +87,32 @@ class QuoteService:
                 detail=f"Sada kalkulací {batch_set.set_number} neobsahuje žádné batche."
             )
 
-        # 1. Exact match
+        # 1. Exact match → batch_approx=False
         exact = next((b for b in batches if b.quantity == quantity), None)
         if exact:
             price = exact.unit_price_frozen if exact.unit_price_frozen else exact.unit_cost
             logger.debug(f"Exact batch match for part_id={part_id} qty={quantity}: {price}")
-            return float(price)
+            return float(price), False
 
-        # 2. Nearest lower batch (highest quantity below requested)
+        # 2. Nearest lower batch (highest quantity below requested) → batch_approx=True
         lower = [b for b in batches if b.quantity < quantity]
         if lower:
             best = max(lower, key=lambda b: b.quantity)
             price = best.unit_price_frozen if best.unit_price_frozen else best.unit_cost
             logger.debug(
                 f"Nearest lower batch for part_id={part_id} qty={quantity} "
-                f"→ batch qty={best.quantity}: {price}"
+                f"→ batch qty={best.quantity}: {price} [approx]"
             )
-            return float(price)
+            return float(price), True
 
-        # 3. No lower batch — use smallest available (conservative / highest unit price)
+        # 3. No lower batch — use smallest available (conservative / highest unit price) → batch_approx=True
         smallest = batches[0]
         price = smallest.unit_price_frozen if smallest.unit_price_frozen else smallest.unit_cost
         logger.debug(
             f"No lower batch for part_id={part_id} qty={quantity} "
-            f"→ smallest batch qty={smallest.quantity}: {price}"
+            f"→ smallest batch qty={smallest.quantity}: {price} [approx]"
         )
-        return float(price)
+        return float(price), True
 
     @staticmethod
     async def recalculate_item_total(item: QuoteItem) -> QuoteItem:

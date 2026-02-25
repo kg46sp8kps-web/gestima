@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Text, Boolean
 from sqlalchemy.orm import relationship
 
 from app.database import Base, AuditMixin
@@ -89,6 +89,7 @@ class QuoteItem(Base, AuditMixin):
     quantity = Column(Integer, default=1, nullable=False)
     unit_price = Column(Float, default=0.0, nullable=False)
     line_total = Column(Float, default=0.0, nullable=False)  # quantity * unit_price
+    batch_approx = Column(Boolean, default=False, nullable=False, server_default='0')  # True when price from nearest-lower batch
 
     # Notes
     notes = Column(Text, nullable=True)
@@ -111,6 +112,7 @@ class QuoteItemBase(BaseModel):
     part_name: Optional[str] = Field(None, max_length=200, description="Název dílu (denormalizováno)")
     drawing_number: Optional[str] = Field(None, max_length=50, description="Číslo výkresu (denormalizováno)")
     quantity: int = Field(1, gt=0, description="Množství")
+    batch_approx: bool = Field(False, description="True pokud cena pochází z nejbližší nižší dávky (ne přesné shody)")
     unit_price: float = Field(0.0, ge=0.0, description="Jednotková cena")
     line_total: float = Field(0.0, ge=0.0, description="Celkem za řádek")
     notes: Optional[str] = Field(None, description="Poznámky")

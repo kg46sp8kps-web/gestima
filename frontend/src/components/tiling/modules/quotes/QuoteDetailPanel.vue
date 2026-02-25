@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon } from 'lucide-vue-next'
+import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon, TriangleAlertIcon } from 'lucide-vue-next'
 import * as quotesApi from '@/api/quotes'
 import * as partsApi from '@/api/parts'
 import type { QuoteDetail } from '@/types/quote'
@@ -275,7 +275,15 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
                 <td class="title-cell">{{ item.part_name ?? '—' }}</td>
                 <td class="t4">{{ item.drawing_number ?? '—' }}</td>
                 <td class="col-num">{{ item.quantity }}</td>
-                <td class="col-currency">{{ formatCurrency(item.unit_price) }}</td>
+                <td class="col-currency">
+                  {{ formatCurrency(item.unit_price) }}
+                  <TriangleAlertIcon
+                    v-if="item.batch_approx"
+                    class="approx-warn"
+                    :size="9"
+                    title="Neexistuje přesná dávka — cena z nejbližší nižší"
+                  />
+                </td>
                 <td class="col-currency">{{ formatCurrency(item.line_total) }}</td>
                 <td class="act-cell">
                   <button
@@ -459,6 +467,7 @@ async function onRemoveItem(itemId: number, partNumber: string | null) {
 .add-input { width: 100%; height: 22px; }
 .add-qty { text-align: right; }
 .add-hint { font-size: var(--fss); padding-left: 4px; }
+.approx-warn { color: var(--warn); vertical-align: middle; margin-left: 3px; cursor: default; }
 
 /* ─── Price summary ─── */
 .price-summary {

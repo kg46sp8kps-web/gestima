@@ -90,17 +90,20 @@ async def test_quote_item_auto_pricing(
     db_session.add(batch)
     await db_session.commit()
 
-    # Auto-load price — exact match (qty=100 exists)
-    price = await QuoteService.get_latest_frozen_batch_price(test_part.id, 100, db_session)
+    # Auto-load price — exact match (qty=100 exists) → batch_approx=False
+    price, approx = await QuoteService.get_latest_frozen_batch_price(test_part.id, 100, db_session)
     assert price == 75.0
+    assert approx is False
 
-    # Nearest lower batch (qty=200 requested, only qty=100 available → use it)
-    price_lower = await QuoteService.get_latest_frozen_batch_price(test_part.id, 200, db_session)
+    # Nearest lower batch (qty=200 requested, only qty=100 available → use it) → batch_approx=True
+    price_lower, approx_lower = await QuoteService.get_latest_frozen_batch_price(test_part.id, 200, db_session)
     assert price_lower == 75.0
+    assert approx_lower is True
 
-    # No lower batch (qty=50 requested, only qty=100 available → use smallest)
-    price_smallest = await QuoteService.get_latest_frozen_batch_price(test_part.id, 50, db_session)
+    # No lower batch (qty=50 requested, only qty=100 available → use smallest) → batch_approx=True
+    price_smallest, approx_smallest = await QuoteService.get_latest_frozen_batch_price(test_part.id, 50, db_session)
     assert price_smallest == 75.0
+    assert approx_smallest is True
 
 
 @pytest.mark.asyncio
