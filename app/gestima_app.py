@@ -209,17 +209,16 @@ if frontend_dist.exists():
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Vrátí logo.png jako favicon"""
-    from fastapi.responses import FileResponse
-    return FileResponse("app/static/img/logo.png")
+    logo_path = Path(__file__).parent.parent / "frontend" / "dist" / "logo.png"
+    return FileResponse(str(logo_path), media_type="image/png")
 
 @app.get("/logo.png", include_in_schema=False)
 async def logo():
-    from fastapi.responses import FileResponse
-    return FileResponse("app/static/img/logo.png", media_type="image/png")
+    logo_path = Path(__file__).parent.parent / "frontend" / "dist" / "logo.png"
+    return FileResponse(str(logo_path), media_type="image/png")
 
 @app.get("/manifest.json", include_in_schema=False)
 async def manifest():
-    from fastapi.responses import FileResponse
     frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
     return FileResponse(str(frontend_dist / "manifest.json"))
 
