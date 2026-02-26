@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>KOVO RYBKA — Další 3 návrhy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #d0d2d6;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 52px;
+    }
+
+    .label {
+      width: 210mm;
+      font-size: 11pt;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: -40px;
+    }
+    .label span { font-weight: 400; color: #9ca3af; font-size: 9pt; margin-left: 8px; }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      box-shadow: 0 6px 40px rgba(0,0,0,0.14);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ─── shared table parts ─── */
+    .tr-part td { padding: 10px 8px 0; vertical-align: top; }
+    .tr-batch td { padding: 2px 8px; font-size: 8pt; color: #4b5563; vertical-align: middle; }
+    .tr-batch-last td { padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+    .p-idx { font-size: 8pt; color: #d1d5db; font-weight: 700; text-align: right; }
+    .p-name { font-size: 9pt; font-weight: 700; }
+    .p-meta { font-size: 6.5pt; color: #9ca3af; font-family: 'Consolas', monospace; margin-top: 1px; }
+    .p-meta span { margin-right: 8px; }
+    .p-note { font-size: 7.5pt; color: #6b7280; font-style: italic; margin-top: 3px; }
+    .b-qty { text-align: right; }
+    .b-unit { text-align: right; }
+    .b-total { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .approx {
+      display: inline-flex; font-size: 6pt; font-weight: 700; letter-spacing: 0.4px;
+      color: #b45309; background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 3px; padding: 1px 4px; vertical-align: middle; margin-left: 4px;
+    }
+
+    /* shared totals */
+    .tot-wrap { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+    .tot-box { min-width: 205px; }
+    .trow { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; }
+    .trow .tl { font-size: 7.5pt; color: #9ca3af; }
+    .trow .tv { font-size: 8pt; font-variant-numeric: tabular-nums; }
+    .trow.disc .tv { color: #15803d; }
+    .tsep { height: 1px; background: #f0f0f0; margin: 3px 0; }
+
+    .pay-l { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 4px; }
+    .pay-t { font-size: 8pt; color: #4b5563; line-height: 1.65; }
+
+    .notes-bar { padding: 9px 0; }
+    .notes-bar .nl { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 3px; }
+    .notes-bar .nv { font-size: 7pt; color: #9ca3af; line-height: 1.5; }
+
+    .sig-l { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 20px; }
+    .sig-line { border-top: 1px solid #d1d5db; padding-top: 4px; font-size: 7pt; color: #9ca3af; }
+    .val-note { text-align: center; font-size: 6.5pt; color: #9ca3af; line-height: 1.65; }
+
+    /* status pills */
+    .spill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; border-radius: 20px; font-size: 6pt;
+      font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .spill.sent { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .sdot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+
+
+    /* ════════════════════════════════════════════
+       VARIANTA 4 — ČERVENÝ HEADER BANNER
+       Plný červený pruh přes celou šířku, bílý text.
+       Zákazník v čisté bílé zóně pod ním.
+    ════════════════════════════════════════════ */
+
+    .v4-header {
+      background: #c0392b;
+      padding: 22px 36px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .v4-logo {
+      width: 48px; height: 48px; object-fit: contain;
+      /* logo je červeno-černé, na červeném bg necháme jen bílé světlo */
+      filter: brightness(0) invert(1);
+      opacity: 0.9;
+    }
+
+    .v4-co-name { font-size: 14pt; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .v4-co-sub  { font-size: 6.5pt; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+    .v4-co-info { font-size: 7.5pt; color: rgba(255,255,255,0.65); margin-top: 4px; line-height: 1.5; }
+
+    .v4-doc { text-align: right; }
+    .v4-doc-type { font-size: 6.5pt; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.55); }
+    .v4-doc-num { font-size: 22pt; font-weight: 900; color: #fff; letter-spacing: -0.5px; line-height: 1; margin-top: 1px; }
+    .v4-doc-date { font-size: 7.5pt; color: rgba(255,255,255,0.55); margin-top: 2px; }
+    .v4-spill {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 5px;
+      padding: 2px 9px; border-radius: 20px; font-size: 6pt; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.30);
+    }
+
+    .v4-parties {
+      display: grid; grid-template-columns: 1fr auto;
+      padding: 14px 36px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .v4-pl { font-size: 6pt; text-transform: uppercase; letter-spacing: 1px; color: #c0392b; font-weight: 700; margin-bottom: 3px; }
+    .v4-pname { font-size: 10pt; font-weight: 700; color: #111; margin-bottom: 2px; }
+    .v4-pinfo { font-size: 7.5pt; color: #6b7280; line-height: 1.6; }
+    .v4-pids { display: flex; gap: 16px; margin-top: 4px; }
+    .v4-pid .pl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; }
+    .v4-pid .pv { font-size: 7.5pt; font-weight: 600; color: #111; }
+    .v4-deliv { padding-left: 24px; border-left: 1px solid #f0f0f0; min-width: 148px; }
+
+    .v4-meta {
+      display: flex; gap: 0;
+      border-bottom: 1px solid #f0f0f0;
+      background: #fafafa;
+    }
+    .v4-mc { padding: 8px 20px; border-right: 1px solid #f0f0f0; flex-shrink: 0; }
+    .v4-mc:last-child { border-right: none; flex: 1; }
+    .v4-ml { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 2px; }
+    .v4-mv { font-size: 8pt; font-weight: 600; color: #111; }
+    .v4-mv.alert { color: #c0392b; }
+    .v4-mv.muted { font-weight: 400; color: #6b7280; }
+
+    .v4-subj {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 36px 7px; border-bottom: 1.5px solid #111;
+    }
+    .v4-subj .sl { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.9px; color: #9ca3af; white-space: nowrap; }
+    .v4-subj .sv { font-size: 8.5pt; font-weight: 500; color: #111; }
+
+    .v4-table { padding: 14px 36px 0; flex: 1; }
+    .v4-table table { width: 100%; border-collapse: collapse; }
+    .v4-table thead th {
+      font-size: 6.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #9ca3af; padding: 0 8px 7px; text-align: left; border-bottom: 1px solid #111;
+    }
+    .v4-table thead th.r { text-align: right; }
+    .v4-totals { padding: 16px 36px 14px; }
+    .v4-grand {
+      display: flex; justify-content: space-between; align-items: baseline;
+      border-top: 2px solid #c0392b; padding-top: 9px; margin-top: 5px; gap: 16px;
+    }
+    .v4-grand .tl { font-size: 9pt; font-weight: 700; color: #c0392b; }
+    .v4-grand .tv { font-size: 15pt; font-weight: 900; color: #c0392b; font-variant-numeric: tabular-nums; }
+    .v4-notes { margin: 0 36px; border-top: 1px solid #f0f0f0; }
+    .v4-footer {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      padding: 14px 36px; border-top: 1px solid #f0f0f0; gap: 20px; align-items: end;
+    }
+    .v4-bot { height: 3px; background: #c0392b; }
+
+
+    /* ════════════════════════════════════════════
+       VARIANTA 5 — DVOUPŮLKA
+       Header přesně na půl: firma vlevo, zákazník+doc vpravo.
+       Symetrický, korporátní, formální.
+    ════════════════════════════════════════════ */
+
+    .v5-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 90px;
+    }
+
+    .v5-left {
+      background: #111;
+      padding: 20px 24px 20px 36px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .v5-logo { width: 46px; height: 46px; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.85; }
+
+    .v5-co-name { font-size: 13pt; font-weight: 800; color: #fff; letter-spacing: -0.3px; line-height: 1.1; }
+    .v5-co-sub  { font-size: 6.5pt; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.7px; margin-top: 2px; }
+    .v5-co-info { font-size: 7pt; color: rgba(255,255,255,0.5); margin-top: 4px; line-height: 1.55; }
+
+    .v5-right {
+      background: #f7f7f7;
+      padding: 20px 36px 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #111;
+    }
+
+    .v5-cust-block { }
+    .v5-cl { font-size: 6pt; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 3px; }
+    .v5-cn { font-size: 10pt; font-weight: 700; color: #111; margin-bottom: 2px; }
+    .v5-ci { font-size: 7.5pt; color: #6b7280; line-height: 1.6; }
+    .v5-cids { display: flex; gap: 14px; margin-top: 4px; }
+    .v5-cid .pl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; }
+    .v5-cid .pv { font-size: 7.5pt; font-weight: 600; color: #111; }
+
+    .v5-doc-block { text-align: right; padding-left: 20px; border-left: 1px solid #e0e0e0; }
+    .v5-doc-type { font-size: 6.5pt; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; }
+    .v5-doc-num  { font-size: 20pt; font-weight: 900; color: #111; letter-spacing: -0.5px; line-height: 1; }
+    .v5-doc-date { font-size: 7.5pt; color: #9ca3af; margin-top: 2px; }
+
+    .v5-meta {
+      display: flex; border-bottom: 1px solid #f0f0f0;
+    }
+    .v5-mc { padding: 8px 20px; border-right: 1px solid #f0f0f0; flex-shrink: 0; }
+    .v5-mc:last-child { border-right: none; flex: 1; }
+    .v5-ml { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 2px; }
+    .v5-mv { font-size: 8pt; font-weight: 600; color: #111; }
+    .v5-mv.alert { color: #c0392b; }
+    .v5-mv.muted { font-weight: 400; color: #6b7280; }
+
+    .v5-subj {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 36px 7px; border-bottom: 1.5px solid #111;
+    }
+    .v5-subj .sl { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.9px; color: #9ca3af; white-space: nowrap; }
+    .v5-subj .sv { font-size: 8.5pt; font-weight: 500; color: #111; }
+
+    .v5-table { padding: 14px 36px 0; flex: 1; }
+    .v5-table table { width: 100%; border-collapse: collapse; }
+    .v5-table thead th {
+      font-size: 6.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #9ca3af; padding: 0 8px 7px; text-align: left; border-bottom: 1px solid #111;
+    }
+    .v5-table thead th.r { text-align: right; }
+    .v5-totals { padding: 16px 36px 14px; }
+    .v5-grand {
+      display: flex; justify-content: space-between; align-items: baseline;
+      border-top: 2px solid #111; padding-top: 9px; margin-top: 5px; gap: 16px;
+    }
+    .v5-grand .tl { font-size: 9pt; font-weight: 700; color: #111; }
+    .v5-grand .tv { font-size: 15pt; font-weight: 900; color: #111; font-variant-numeric: tabular-nums; }
+    .v5-notes { margin: 0 36px; border-top: 1px solid #f0f0f0; }
+    .v5-footer {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      padding: 14px 36px; border-top: 1px solid #f0f0f0; gap: 20px; align-items: end;
+    }
+    .v5-bot { height: 2px; background: #111; }
+
+
+    /* ════════════════════════════════════════════
+       VARIANTA 6 — PROUŽKY V TABULCE + ŠEDÝ AKCENTOVÝ PRUH
+       Střídavé šedé řádky v tabulce.
+       Header minimalistický. Celkem v tmavém boxu se zaoblenými rohy.
+    ════════════════════════════════════════════ */
+
+    .v6-top { height: 3px; background: #111; }
+
+    .v6-header {
+      display: grid; grid-template-columns: auto 1fr auto;
+      align-items: center; gap: 14px;
+      padding: 18px 36px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .v6-logo { width: 44px; height: 44px; object-fit: contain; }
+    .v6-co-name { font-size: 13pt; font-weight: 800; color: #111; letter-spacing: -0.3px; }
+    .v6-co-sub  { font-size: 6.5pt; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.7px; margin-top: 1px; }
+    .v6-co-info { font-size: 7.5pt; color: #6b7280; margin-top: 3px; line-height: 1.5; }
+    .v6-doc { text-align: right; padding-left: 20px; border-left: 1px solid #f0f0f0; }
+    .v6-doc-type { font-size: 6.5pt; text-transform: uppercase; letter-spacing: 1.2px; color: #9ca3af; font-weight: 600; }
+    .v6-doc-num  { font-size: 18pt; font-weight: 900; color: #111; letter-spacing: -0.5px; line-height: 1.1; margin-top: 1px; }
+    .v6-doc-date { font-size: 7.5pt; color: #9ca3af; margin-top: 2px; }
+
+    /* šedý accent pruh pro zákazníka */
+    .v6-parties {
+      background: #f5f5f5;
+      display: grid; grid-template-columns: 1fr auto;
+      padding: 12px 36px;
+      border-bottom: 1px solid #ebebeb;
+    }
+    .v6-pl { font-size: 6pt; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 3px; }
+    .v6-pn { font-size: 10pt; font-weight: 700; color: #111; margin-bottom: 1px; }
+    .v6-pi { font-size: 7.5pt; color: #6b7280; line-height: 1.6; }
+    .v6-pids { display: flex; gap: 14px; margin-top: 4px; }
+    .v6-pid .pl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; }
+    .v6-pid .pv { font-size: 7.5pt; font-weight: 600; color: #111; }
+    .v6-del { padding-left: 24px; border-left: 1px solid #ddd; min-width: 148px; }
+
+    .v6-meta {
+      display: flex; border-bottom: 1px solid #f0f0f0;
+    }
+    .v6-mc { padding: 8px 20px; border-right: 1px solid #f0f0f0; flex-shrink: 0; }
+    .v6-mc:last-child { border-right: none; flex: 1; }
+    .v6-ml { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 2px; }
+    .v6-mv { font-size: 8pt; font-weight: 600; color: #111; }
+    .v6-mv.alert { color: #c0392b; }
+    .v6-mv.muted { font-weight: 400; color: #6b7280; }
+
+    .v6-subj {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 36px 7px; border-bottom: 1.5px solid #111;
+    }
+    .v6-subj .sl { font-size: 6pt; text-transform: uppercase; letter-spacing: 0.9px; color: #9ca3af; white-space: nowrap; }
+    .v6-subj .sv { font-size: 8.5pt; font-weight: 500; color: #111; }
+
+    .v6-table { padding: 14px 36px 0; flex: 1; }
+    .v6-table table { width: 100%; border-collapse: collapse; }
+    .v6-table thead th {
+      font-size: 6.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #fff; background: #111;
+      padding: 7px 8px; text-align: left;
+    }
+    .v6-table thead th.r { text-align: right; }
+
+    /* alternating part rows */
+    .v6-tr-part-a td { background: #fff; padding: 10px 8px 0; vertical-align: top; }
+    .v6-tr-part-b td { background: #fafafa; padding: 10px 8px 0; vertical-align: top; }
+    .v6-tr-batch-a td { background: #fff; padding: 2px 8px; font-size: 8pt; color: #4b5563; }
+    .v6-tr-batch-b td { background: #fafafa; padding: 2px 8px; font-size: 8pt; color: #4b5563; }
+    .v6-last-a td { background: #fff; padding-bottom: 10px; }
+    .v6-last-b td { background: #fafafa; padding-bottom: 10px; border-bottom: 1px solid #e8e8e8; }
+
+    .v6-totals { padding: 16px 36px 14px; }
+    .v6-grand-box {
+      background: #111; border-radius: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 18px; margin-top: 7px; gap: 16px;
+    }
+    .v6-grand-box .tl { font-size: 8.5pt; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .v6-grand-box .tv { font-size: 15pt; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
+    .v6-notes { margin: 0 36px; border-top: 1px solid #f0f0f0; }
+    .v6-footer {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      padding: 14px 36px; border-top: 1px solid #f0f0f0; gap: 20px; align-items: end;
+    }
+    .v6-bot { height: 2px; background: #111; }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     VARIANTA 4 — ČERVENÝ HEADER
+══════════════════════════════════ -->
+<div class="label">Varianta 4 <span>— Červený header banner, červené "celkem"</span></div>
+<div class="page">
+
+  <div class="v4-header">
+    <img class="v4-logo" src="frontend/public/logo.png" alt="KOVO RYBKA">
+    <div>
+      <div class="v4-co-name">KOVO RYBKA s.r.o.</div>
+      <div class="v4-co-sub">Přesné obrábění kovů &amp; zámečnictví</div>
+      <div class="v4-co-info">Ústecká 383, 561 17 Dlouhá Třebová &nbsp;·&nbsp; +420 770 153 453 &nbsp;·&nbsp; info@kovorybka.cz &nbsp;·&nbsp; IČO 25959646 &nbsp;·&nbsp; DIČ CZ25959646</div>
+    </div>
+    <div class="v4-doc">
+      <div class="v4-doc-type">Cenová nabídka</div>
+      <div class="v4-doc-num">50240001</div>
+      <div class="v4-doc-date">25. 2. 2026</div>
+      <div><span class="v4-spill"><span class="sdot"></span>Odesláno</span></div>
+    </div>
+  </div>
+
+  <div class="v4-parties">
+    <div>
+      <div class="v4-pl">Zákazník</div>
+      <div class="v4-pname">VZOROVÝ ZÁKAZNÍK a.s.</div>
+      <div class="v4-pinfo">Ing. Jan Novák &nbsp;·&nbsp; +420 604 123 456 &nbsp;·&nbsp; novak@vzorovy.cz &nbsp;·&nbsp; Průmyslová 15, 500 02 Hradec Králové</div>
+      <div class="v4-pids">
+        <div class="v4-pid"><div class="pl">IČO</div><div class="pv">12345678</div></div>
+        <div class="v4-pid"><div class="pl">DIČ</div><div class="pv">CZ12345678</div></div>
+      </div>
+    </div>
+    <div class="v4-deliv">
+      <div class="v4-pl">Místo dodání</div>
+      <div class="v4-pinfo">Hala B, brána č. 3<br>Průmyslová 15, 500 02 Hradec Králové</div>
+      <div class="v4-pids">
+        <div class="v4-pid"><div class="pl">Podmínky</div><div class="pv">EXW Dlouhá Třebová</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v4-meta">
+    <div class="v4-mc"><div class="v4-ml">Poptávka zákazníka</div><div class="v4-mv">RFQ-2026-0041</div></div>
+    <div class="v4-mc"><div class="v4-ml">Datum poptávky</div><div class="v4-mv">18. 2. 2026</div></div>
+    <div class="v4-mc"><div class="v4-ml">Deadline</div><div class="v4-mv alert">28. 2. 2026</div></div>
+    <div class="v4-mc"><div class="v4-ml">Platnost do</div><div class="v4-mv">31. 3. 2026</div></div>
+    <div class="v4-mc" style="flex:1"><div class="v4-ml">Dodání</div><div class="v4-mv muted">Do 21 dní od potvrzení</div></div>
+  </div>
+
+  <div class="v4-subj">
+    <span class="sl">Předmět</span>
+    <span class="sv">Výroba přesných dílů — projekt HK-2026</span>
+  </div>
+
+  <div class="v4-table">
+    <table>
+      <thead><tr>
+        <th style="width:22px;text-align:right">#</th>
+        <th style="padding-left:8px">Díl — název, číslo, artikl, výkres</th>
+        <th class="r" style="width:68px">Množství</th>
+        <th class="r" style="width:84px">Cena / ks</th>
+        <th class="r" style="width:92px">Celkem bez DPH</th>
+      </tr></thead>
+      <tbody>
+        <tr class="tr-part"><td class="p-idx">1</td><td><div class="p-name" style="color:#111">Hřídel přírubová Ø32</div><div class="p-meta"><span>10240001</span><span>ABC-4521</span><span>VYK-0041A</span><span>rev. B</span></div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">10 ks</td><td class="b-unit">1 248,00 Kč</td><td class="b-total">12 480,00 Kč</td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">50 ks</td><td class="b-unit">1 100,00 Kč</td><td class="b-total">55 000,00 Kč</td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">100 ks</td><td class="b-unit">980,00 Kč</td><td class="b-total">98 000,00 Kč</td></tr>
+
+        <tr class="tr-part"><td class="p-idx">2</td><td><div class="p-name" style="color:#111">Pouzdro ložiskové <span class="approx">APPROX</span></div><div class="p-meta"><span>10240002</span><span>XYZ-0089</span><span>VYK-0042</span><span>rev. A</span></div><div class="p-note">Cena bez materiálu — materiál dodá zákazník</div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">50 ks</td><td class="b-unit">876,50 Kč</td><td class="b-total">43 825,00 Kč</td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">200 ks</td><td class="b-unit">710,00 Kč</td><td class="b-total">142 000,00 Kč</td></tr>
+
+        <tr class="tr-part"><td class="p-idx">3</td><td><div class="p-name" style="color:#111">Kryt převodovky — levý</div><div class="p-meta"><span>10240003</span><span>KR-2201</span><span>VYK-0043B</span><span>rev. C</span></div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">25 ks</td><td class="b-unit">3 560,00 Kč</td><td class="b-total">89 000,00 Kč</td></tr>
+
+        <tr class="tr-part"><td class="p-idx">4</td><td><div class="p-name" style="color:#111">Příruby spojovací M42</div><div class="p-meta"><span>10240004</span><span>FL-0044</span><span>VYK-0044</span><span>rev. A</span></div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">100 ks</td><td class="b-unit">510,00 Kč</td><td class="b-total">51 000,00 Kč</td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">200 ks</td><td class="b-unit">445,00 Kč</td><td class="b-total">89 000,00 Kč</td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">500 ks</td><td class="b-unit">390,00 Kč</td><td class="b-total">195 000,00 Kč</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="v4-totals">
+    <div class="tot-wrap">
+      <div><div class="pay-l">Platební podmínky</div><div class="pay-t">Splatnost 30 dní · Záloha 30 % · Bankovní spojení na vyžádání</div></div>
+      <div class="tot-box">
+        <div class="trow"><span class="tl">Mezisoučet</span><span class="tv">234 305,00 Kč</span></div>
+        <div class="trow disc"><span class="tl">Sleva 5 %</span><span class="tv">− 11 715,25 Kč</span></div>
+        <div class="tsep"></div>
+        <div class="trow"><span class="tl">Základ DPH</span><span class="tv">222 589,75 Kč</span></div>
+        <div class="trow"><span class="tl">DPH 21 %</span><span class="tv">46 743,85 Kč</span></div>
+        <div class="v4-grand"><span class="tl">Celkem k úhradě</span><span class="tv">269 333,60 Kč</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v4-notes"><div class="notes-bar"><div class="nl">Poznámky</div><div class="nv">Nabídka platí za podmínek nezměněné dokumentace a materiálových cen. Ceny jsou bez DPH.</div></div></div>
+  <div class="v4-footer">
+    <div><div class="sig-l">Vystavil za dodavatele</div><div class="sig-line">Ladislav Rybka, jednatel</div></div>
+    <div class="val-note">Nabídka platná do <strong>31. 3. 2026</strong>.<br>Potvrzením zákazník přijímá podmínky nabídky.</div>
+    <div style="text-align:right"><div class="sig-l">Přijato zákazníkem</div><div class="sig-line" style="text-align:right">Dne: _______________</div></div>
+  </div>
+  <div class="v4-bot"></div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     VARIANTA 5 — DVOUPŮLKA
+══════════════════════════════════ -->
+<div class="label">Varianta 5 <span>— Tmavá levá půlka + světlá pravá půlka v headeru</span></div>
+<div class="page">
+
+  <div class="v5-header">
+    <div class="v5-left">
+      <img class="v5-logo" src="frontend/public/logo.png" alt="KOVO RYBKA">
+      <div>
+        <div class="v5-co-name">KOVO RYBKA s.r.o.</div>
+        <div class="v5-co-sub">Přesné obrábění kovů &amp; zámečnictví</div>
+        <div class="v5-co-info">Ústecká 383, 561 17 Dlouhá Třebová<br>+420 770 153 453 · info@kovorybka.cz<br>IČO 25959646 · DIČ CZ25959646</div>
+      </div>
+    </div>
+    <div class="v5-right">
+      <div class="v5-cust-block">
+        <div class="v5-cl">Zákazník</div>
+        <div class="v5-cn">VZOROVÝ ZÁKAZNÍK a.s.</div>
+        <div class="v5-ci">Ing. Jan Novák · novak@vzorovy.cz<br>Průmyslová 15, 500 02 Hradec Králové</div>
+        <div class="v5-cids">
+          <div class="v5-cid"><div class="pl">IČO</div><div class="pv">12345678</div></div>
+          <div class="v5-cid"><div class="pl">DIČ</div><div class="pv">CZ12345678</div></div>
+        </div>
+      </div>
+      <div class="v5-doc-block">
+        <div class="v5-doc-type">Cenová nabídka</div>
+        <div class="v5-doc-num">50240001</div>
+        <div class="v5-doc-date">25. 2. 2026</div>
+        <div style="margin-top:5px"><span class="spill sent"><span class="sdot"></span>Odesláno</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v5-meta">
+    <div class="v5-mc"><div class="v5-ml">Místo dodání</div><div class="v5-mv">Hala B, Průmyslová 15, Hradec Králové</div></div>
+    <div class="v5-mc"><div class="v5-ml">Poptávka</div><div class="v5-mv">RFQ-2026-0041 · 18. 2. 2026</div></div>
+    <div class="v5-mc"><div class="v5-ml">Deadline</div><div class="v5-mv alert">28. 2. 2026</div></div>
+    <div class="v5-mc"><div class="v5-ml">Platnost / dodání</div><div class="v5-mv muted">do 31. 3. 2026 · EXW · 21 dní</div></div>
+  </div>
+
+  <div class="v5-subj"><span class="sl">Předmět</span><span class="sv">Výroba přesných dílů — projekt HK-2026</span></div>
+
+  <div class="v5-table">
+    <table>
+      <thead><tr>
+        <th style="width:22px;text-align:right">#</th>
+        <th style="padding-left:8px">Díl — název, číslo, artikl, výkres</th>
+        <th class="r" style="width:68px">Množství</th>
+        <th class="r" style="width:84px">Cena / ks</th>
+        <th class="r" style="width:92px">Celkem bez DPH</th>
+      </tr></thead>
+      <tbody>
+        <tr class="tr-part"><td class="p-idx">1</td><td><div class="p-name" style="color:#111">Hřídel přírubová Ø32</div><div class="p-meta"><span>10240001</span><span>ABC-4521</span><span>VYK-0041A</span><span>rev. B</span></div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">10 ks</td><td class="b-unit">1 248,00 Kč</td><td class="b-total">12 480,00 Kč</td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">50 ks</td><td class="b-unit">1 100,00 Kč</td><td class="b-total">55 000,00 Kč</td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">100 ks</td><td class="b-unit">980,00 Kč</td><td class="b-total">98 000,00 Kč</td></tr>
+
+        <tr class="tr-part"><td class="p-idx">2</td><td><div class="p-name" style="color:#111">Pouzdro ložiskové <span class="approx">APPROX</span></div><div class="p-meta"><span>10240002</span><span>XYZ-0089</span><span>VYK-0042</span><span>rev. A</span></div><div class="p-note">Cena bez materiálu — materiál dodá zákazník</div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">50 ks</td><td class="b-unit">876,50 Kč</td><td class="b-total">43 825,00 Kč</td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">200 ks</td><td class="b-unit">710,00 Kč</td><td class="b-total">142 000,00 Kč</td></tr>
+
+        <tr class="tr-part"><td class="p-idx">3</td><td><div class="p-name" style="color:#111">Kryt převodovky — levý</div><div class="p-meta"><span>10240003</span><span>KR-2201</span><span>VYK-0043B</span><span>rev. C</span></div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">25 ks</td><td class="b-unit">3 560,00 Kč</td><td class="b-total">89 000,00 Kč</td></tr>
+
+        <tr class="tr-part"><td class="p-idx">4</td><td><div class="p-name" style="color:#111">Příruby spojovací M42</div><div class="p-meta"><span>10240004</span><span>FL-0044</span><span>VYK-0044</span><span>rev. A</span></div></td><td colspan="3"></td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">100 ks</td><td class="b-unit">510,00 Kč</td><td class="b-total">51 000,00 Kč</td></tr>
+        <tr class="tr-batch"><td></td><td></td><td class="b-qty">200 ks</td><td class="b-unit">445,00 Kč</td><td class="b-total">89 000,00 Kč</td></tr>
+        <tr class="tr-batch tr-batch-last"><td></td><td></td><td class="b-qty">500 ks</td><td class="b-unit">390,00 Kč</td><td class="b-total">195 000,00 Kč</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="v5-totals">
+    <div class="tot-wrap">
+      <div><div class="pay-l">Platební podmínky</div><div class="pay-t">Splatnost 30 dní · Záloha 30 % · Bankovní spojení na vyžádání</div></div>
+      <div class="tot-box">
+        <div class="trow"><span class="tl">Mezisoučet</span><span class="tv">234 305,00 Kč</span></div>
+        <div class="trow disc"><span class="tl">Sleva 5 %</span><span class="tv">− 11 715,25 Kč</span></div>
+        <div class="tsep"></div>
+        <div class="trow"><span class="tl">Základ DPH</span><span class="tv">222 589,75 Kč</span></div>
+        <div class="trow"><span class="tl">DPH 21 %</span><span class="tv">46 743,85 Kč</span></div>
+        <div class="v5-grand"><span class="tl">Celkem k úhradě</span><span class="tv">269 333,60 Kč</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v5-notes"><div class="notes-bar"><div class="nl">Poznámky</div><div class="nv">Nabídka platí za podmínek nezměněné dokumentace a materiálových cen. Ceny jsou bez DPH.</div></div></div>
+  <div class="v5-footer">
+    <div><div class="sig-l">Vystavil za dodavatele</div><div class="sig-line">Ladislav Rybka, jednatel</div></div>
+    <div class="val-note">Nabídka platná do <strong>31. 3. 2026</strong>.<br>Potvrzením zákazník přijímá podmínky nabídky.</div>
+    <div style="text-align:right"><div class="sig-l">Přijato zákazníkem</div><div class="sig-line" style="text-align:right">Dne: _______________</div></div>
+  </div>
+  <div class="v5-bot"></div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     VARIANTA 6 — ŠEDÉ PRUHY V TABULCE
+══════════════════════════════════ -->
+<div class="label">Varianta 6 <span>— Střídavé pruhy v tabulce, tmavý header tabulky, zaoblený "celkem" box</span></div>
+<div class="page">
+
+  <div class="v6-top"></div>
+
+  <div class="v6-header">
+    <img class="v6-logo" src="frontend/public/logo.png" alt="KOVO RYBKA">
+    <div>
+      <div class="v6-co-name">KOVO RYBKA s.r.o.</div>
+      <div class="v6-co-sub">Přesné obrábění kovů &amp; zámečnictví</div>
+      <div class="v6-co-info">Ústecká 383, 561 17 Dlouhá Třebová &nbsp;·&nbsp; +420 770 153 453 &nbsp;·&nbsp; info@kovorybka.cz &nbsp;·&nbsp; IČO 25959646 &nbsp;·&nbsp; DIČ CZ25959646</div>
+    </div>
+    <div class="v6-doc">
+      <div class="v6-doc-type">Cenová nabídka</div>
+      <div class="v6-doc-num">50240001</div>
+      <div class="v6-doc-date">25. 2. 2026</div>
+      <div style="margin-top:4px"><span class="spill sent"><span class="sdot"></span>Odesláno</span></div>
+    </div>
+  </div>
+
+  <div class="v6-parties">
+    <div>
+      <div class="v6-pl">Zákazník</div>
+      <div class="v6-pn">VZOROVÝ ZÁKAZNÍK a.s.</div>
+      <div class="v6-pi">Ing. Jan Novák &nbsp;·&nbsp; +420 604 123 456 &nbsp;·&nbsp; novak@vzorovy.cz &nbsp;·&nbsp; Průmyslová 15, 500 02 Hradec Králové</div>
+      <div class="v6-pids">
+        <div class="v6-pid"><div class="pl">IČO</div><div class="pv">12345678</div></div>
+        <div class="v6-pid"><div class="pl">DIČ</div><div class="pv">CZ12345678</div></div>
+      </div>
+    </div>
+    <div class="v6-del">
+      <div class="v6-pl">Místo dodání</div>
+      <div class="v6-pi">Hala B, brána č. 3<br>Průmyslová 15, 500 02 Hradec Králové</div>
+      <div class="v6-pids"><div class="v6-pid"><div class="pl">Podmínky</div><div class="pv">EXW Dlouhá Třebová</div></div></div>
+    </div>
+  </div>
+
+  <div class="v6-meta">
+    <div class="v6-mc"><div class="v6-ml">Poptávka zákazníka</div><div class="v6-mv">RFQ-2026-0041</div></div>
+    <div class="v6-mc"><div class="v6-ml">Datum poptávky</div><div class="v6-mv">18. 2. 2026</div></div>
+    <div class="v6-mc"><div class="v6-ml">Deadline</div><div class="v6-mv alert">28. 2. 2026</div></div>
+    <div class="v6-mc"><div class="v6-ml">Platnost do</div><div class="v6-mv">31. 3. 2026</div></div>
+    <div class="v6-mc" style="flex:1"><div class="v6-ml">Dodání</div><div class="v6-mv muted">Do 21 dní od potvrzení</div></div>
+  </div>
+
+  <div class="v6-subj"><span class="sl">Předmět</span><span class="sv">Výroba přesných dílů — projekt HK-2026</span></div>
+
+  <div class="v6-table">
+    <table>
+      <thead><tr>
+        <th style="width:22px;text-align:right">#</th>
+        <th style="padding-left:8px">Díl — název, číslo, artikl, výkres</th>
+        <th class="r" style="width:68px">Množství</th>
+        <th class="r" style="width:84px">Cena / ks</th>
+        <th class="r" style="width:92px">Celkem bez DPH</th>
+      </tr></thead>
+      <tbody>
+        <!-- BÍLÁ skupina -->
+        <tr class="v6-tr-part-a"><td class="p-idx">1</td><td><div class="p-name" style="color:#111">Hřídel přírubová Ø32</div><div class="p-meta"><span>10240001</span><span>ABC-4521</span><span>VYK-0041A</span><span>rev. B</span></div></td><td colspan="3"></td></tr>
+        <tr class="v6-tr-batch-a"><td></td><td></td><td class="b-qty">10 ks</td><td class="b-unit">1 248,00 Kč</td><td class="b-total">12 480,00 Kč</td></tr>
+        <tr class="v6-tr-batch-a"><td></td><td></td><td class="b-qty">50 ks</td><td class="b-unit">1 100,00 Kč</td><td class="b-total">55 000,00 Kč</td></tr>
+        <tr class="v6-tr-batch-a v6-last-a"><td></td><td></td><td class="b-qty">100 ks</td><td class="b-unit">980,00 Kč</td><td class="b-total">98 000,00 Kč</td></tr>
+
+        <!-- ŠEDÁ skupina -->
+        <tr class="v6-tr-part-b"><td class="p-idx">2</td><td><div class="p-name" style="color:#111">Pouzdro ložiskové <span class="approx">APPROX</span></div><div class="p-meta"><span>10240002</span><span>XYZ-0089</span><span>VYK-0042</span><span>rev. A</span></div><div class="p-note">Cena bez materiálu — materiál dodá zákazník</div></td><td colspan="3"></td></tr>
+        <tr class="v6-tr-batch-b"><td></td><td></td><td class="b-qty">50 ks</td><td class="b-unit">876,50 Kč</td><td class="b-total">43 825,00 Kč</td></tr>
+        <tr class="v6-tr-batch-b v6-last-b"><td></td><td></td><td class="b-qty">200 ks</td><td class="b-unit">710,00 Kč</td><td class="b-total">142 000,00 Kč</td></tr>
+
+        <!-- BÍLÁ skupina -->
+        <tr class="v6-tr-part-a"><td class="p-idx">3</td><td><div class="p-name" style="color:#111">Kryt převodovky — levý</div><div class="p-meta"><span>10240003</span><span>KR-2201</span><span>VYK-0043B</span><span>rev. C</span></div></td><td colspan="3"></td></tr>
+        <tr class="v6-tr-batch-a v6-last-a"><td></td><td></td><td class="b-qty">25 ks</td><td class="b-unit">3 560,00 Kč</td><td class="b-total">89 000,00 Kč</td></tr>
+
+        <!-- ŠEDÁ skupina -->
+        <tr class="v6-tr-part-b"><td class="p-idx">4</td><td><div class="p-name" style="color:#111">Příruby spojovací M42</div><div class="p-meta"><span>10240004</span><span>FL-0044</span><span>VYK-0044</span><span>rev. A</span></div></td><td colspan="3"></td></tr>
+        <tr class="v6-tr-batch-b"><td></td><td></td><td class="b-qty">100 ks</td><td class="b-unit">510,00 Kč</td><td class="b-total">51 000,00 Kč</td></tr>
+        <tr class="v6-tr-batch-b"><td></td><td></td><td class="b-qty">200 ks</td><td class="b-unit">445,00 Kč</td><td class="b-total">89 000,00 Kč</td></tr>
+        <tr class="v6-tr-batch-b v6-last-b"><td></td><td></td><td class="b-qty">500 ks</td><td class="b-unit">390,00 Kč</td><td class="b-total">195 000,00 Kč</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="v6-totals">
+    <div class="tot-wrap">
+      <div><div class="pay-l">Platební podmínky</div><div class="pay-t">Splatnost 30 dní · Záloha 30 % · Bankovní spojení na vyžádání</div></div>
+      <div class="tot-box">
+        <div class="trow"><span class="tl">Mezisoučet</span><span class="tv">234 305,00 Kč</span></div>
+        <div class="trow disc"><span class="tl">Sleva 5 %</span><span class="tv">− 11 715,25 Kč</span></div>
+        <div class="tsep"></div>
+        <div class="trow"><span class="tl">Základ DPH</span><span class="tv">222 589,75 Kč</span></div>
+        <div class="trow"><span class="tl">DPH 21 %</span><span class="tv">46 743,85 Kč</span></div>
+        <div class="v6-grand-box"><span class="tl">Celkem k úhradě</span><span class="tv">269 333,60 Kč</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v6-notes"><div class="notes-bar"><div class="nl">Poznámky</div><div class="nv">Nabídka platí za podmínek nezměněné dokumentace a materiálových cen. Ceny jsou bez DPH.</div></div></div>
+  <div class="v6-footer">
+    <div><div class="sig-l">Vystavil za dodavatele</div><div class="sig-line">Ladislav Rybka, jednatel</div></div>
+    <div class="val-note">Nabídka platná do <strong>31. 3. 2026</strong>.<br>Potvrzením zákazník přijímá podmínky nabídky.</div>
+    <div style="text-align:right"><div class="sig-l">Přijato zákazníkem</div><div class="sig-line" style="text-align:right">Dne: _______________</div></div>
+  </div>
+  <div class="v6-bot"></div>
+</div>
+
+</body>
+</html>
