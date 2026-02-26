@@ -217,6 +217,16 @@ async def logo():
     logo_path = Path(__file__).parent.parent / "frontend" / "dist" / "logo.png"
     return FileResponse(str(logo_path), media_type="image/png")
 
+@app.get("/logo-192.png", include_in_schema=False)
+async def logo_192():
+    logo_path = Path(__file__).parent.parent / "frontend" / "dist" / "logo-192.png"
+    return FileResponse(str(logo_path), media_type="image/png")
+
+@app.get("/logo-512.png", include_in_schema=False)
+async def logo_512():
+    logo_path = Path(__file__).parent.parent / "frontend" / "dist" / "logo-512.png"
+    return FileResponse(str(logo_path), media_type="image/png")
+
 @app.get("/manifest.json", include_in_schema=False)
 async def manifest():
     frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
