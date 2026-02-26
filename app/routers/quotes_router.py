@@ -412,6 +412,53 @@ async def clone_quote(
 
 
 # =============================================================================
+# PDF Download
+# =============================================================================
+
+
+@router.get("/{quote_number}/pdf")
+async def download_quote_pdf(
+    quote_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate and return PDF for a quote."""
+    from fastapi.responses import Response
+    from sqlalchemy.orm import selectinload
+    from app.services.pdf_service import generate_quote_pdf
+
+    result = await db.execute(
+        select(Quote)
+        .options(selectinload(Quote.items))
+        .where(
+            Quote.quote_number == quote_number,
+            Quote.deleted_at.is_(None),
+        )
+    )
+    quote = result.scalar_one_or_none()
+
+    if not quote:
+        raise HTTPException(status_code=404, detail="Nabídka nenalezena")
+
+    partner = None
+    if quote.partner_id:
+        partner = await db.get(Partner, quote.partner_id)
+
+    try:
+        pdf_bytes = await generate_quote_pdf(quote, partner, quote.items)
+    except Exception as e:
+        logger.error("PDF generation failed for %s: %s", quote_number, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Generování PDF selhalo")
+
+    filename = f"nabidka-{quote_number}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# =============================================================================
 # AI Quote Request Parsing V2 (with drawings + technology)
 # =============================================================================
 

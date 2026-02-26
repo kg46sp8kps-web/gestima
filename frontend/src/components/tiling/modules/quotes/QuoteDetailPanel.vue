@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon, TriangleAlertIcon } from 'lucide-vue-next'
+import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon, TriangleAlertIcon, FileDownIcon } from 'lucide-vue-next'
 import * as quotesApi from '@/api/quotes'
 import type { QuoteDetail } from '@/types/quote'
 import type { Part } from '@/types/part'
@@ -37,6 +37,7 @@ const addQuantity = ref<number | null>(1)
 const addSaving = ref(false)
 const partComboRef = ref<InstanceType<typeof PartCombobox> | null>(null)
 const selectedItemId = ref<number | null>(null)
+const pdfLoading = ref(false)
 
 const STATUS_LABELS: Record<string, string> = {
   draft:    'Rozpracovaná',
@@ -183,6 +184,17 @@ function handleRowKeydown(item: { id: number; article_number: string | null; par
 function selectItem(id: number) {
   selectedItemId.value = id
 }
+
+async function onDownloadPdf() {
+  pdfLoading.value = true
+  try {
+    await quotesApi.downloadPdf(props.quoteNumber)
+  } catch {
+    ui.showError('Chyba při generování PDF')
+  } finally {
+    pdfLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -223,6 +235,15 @@ function selectItem(id: number) {
           <template v-else>
             <button class="btn-secondary" data-testid="quote-clone-btn" @click="onClone">Klonovat</button>
           </template>
+          <button
+            class="btn-secondary"
+            :disabled="pdfLoading"
+            data-testid="quote-pdf-btn"
+            @click="onDownloadPdf"
+          >
+            <FileDownIcon :size="ICON_SIZE_SM" />
+            PDF
+          </button>
         </div>
       </div>
 

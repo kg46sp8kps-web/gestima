@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>KOVO RYBKA — Cenová nabídka {{ quote.quote_number }}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A4; margin: 0; }
+
+    :root {
+      --m:   40px;
+      --red: #C0392B;
+      --g1:  #111827;
+      --g2:  #374151;
+      --g3:  #6b7280;
+      --g4:  #9ca3af;
+      --g5:  #f9fafb;
+      --ln:  #e5e7eb;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 9pt;
+      color: var(--g1);
+      background: #fff;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ══════════════════════════════════════
+       HEADER
+    ══════════════════════════════════════ */
+    .doc-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 20px;
+      padding: 28px var(--m) 26px;
+      border-bottom: 1px solid var(--ln);
+    }
+
+    .logo { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+
+    .co-name { font-size: 12pt; font-weight: 700; color: var(--g1); letter-spacing: -0.3px; }
+    .co-info  { font-size: 7pt; color: var(--g4); margin-top: 4px; line-height: 1.75; }
+
+    .doc-id { text-align: right; }
+    .doc-type   { font-size: 6pt; text-transform: uppercase; letter-spacing: 1.5px; color: var(--g4); font-weight: 600; }
+    .doc-number { font-size: 22pt; font-weight: 800; color: var(--g1); letter-spacing: -1px; line-height: 1.1; margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .doc-meta-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 6px; }
+    .doc-date { font-size: 7pt; color: var(--g4); }
+
+    /* ══════════════════════════════════════
+       ZÁKAZNÍK + DODÁNÍ
+    ══════════════════════════════════════ */
+    .parties-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      padding: 18px var(--m);
+      border-bottom: 1px solid var(--ln);
+    }
+
+    .party-label { font-size: 6pt; text-transform: uppercase; letter-spacing: 1.2px; color: var(--g4); font-weight: 500; margin-bottom: 5px; }
+    .party-name  { font-size: 10pt; font-weight: 700; color: var(--g1); }
+    .party-info  { font-size: 7.5pt; color: var(--g3); line-height: 1.65; margin-top: 3px; }
+    .party-ids   { display: flex; gap: 20px; margin-top: 7px; }
+    .pid .pl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.8px; color: var(--g4); }
+    .pid .pv { font-size: 7.5pt; font-weight: 600; color: var(--g1); margin-top: 1px; }
+
+    .delivery-col { padding-left: 32px; border-left: 1px solid var(--ln); min-width: 210px; }
+
+    /* ══════════════════════════════════════
+       META STRIP
+    ══════════════════════════════════════ */
+    .meta-strip { display: flex; border-bottom: 1px solid var(--ln); background: var(--g5); }
+
+    .mc { padding: 8px 16px; border-right: 1px solid var(--ln); flex-shrink: 0; }
+    .mc:first-child { padding-left: var(--m); }
+    .mc:last-child  { border-right: none; flex: 1; padding-right: var(--m); }
+    .mc-l { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.9px; color: var(--g4); font-weight: 500; margin-bottom: 3px; }
+    .mc-v { font-size: 7.5pt; font-weight: 600; color: var(--g1); }
+    .mc-v.alert { color: var(--red); }
+
+    /* ══════════════════════════════════════
+       TABULKA
+    ══════════════════════════════════════ */
+    .items-wrap { flex: 1; }
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      font-size: 6pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px;
+      color: var(--g4); background: transparent;
+      padding: 11px 8px 10px; text-align: left;
+      border-bottom: 1.5px solid var(--red);
+      white-space: nowrap;
+    }
+    thead th:first-child { padding-left: var(--m); }
+    thead th:last-child  { padding-right: var(--m); text-align: right; }
+    thead th.r { text-align: right; }
+
+    .tr-part td { padding: 12px 8px 4px; vertical-align: top; }
+    .tr-part td:first-child { padding-left: var(--m); }
+    .tr-part td:last-child  { padding-right: var(--m); }
+
+    .tr-batch td { padding: 4px 8px; font-size: 8pt; color: var(--g3); vertical-align: middle; }
+    .tr-batch td:first-child { padding-left: var(--m); }
+    .tr-batch td:last-child  { padding-right: var(--m); }
+    .tr-batch-last td { padding-bottom: 12px; }
+
+    .group-a td { background: #fff; }
+    .group-a.tr-batch-last td { border-bottom: 1px solid #f0f0f0; }
+    .group-b td { background: #fafafa; }
+    .group-b.tr-batch-last td { border-bottom: 1px solid #e8e8e8; }
+
+    .p-idx    { width: 22px; text-align: right; font-size: 7.5pt; font-weight: 600; color: var(--g4); }
+    .p-artikl { font-size: 10pt; font-weight: 700; color: var(--g1); font-family: 'SF Mono', 'Consolas', 'Courier New', monospace; letter-spacing: 0.3px; }
+    .p-name   { font-size: 7.5pt; color: var(--g3); margin-top: 2px; }
+    .p-meta   { font-size: 6pt; color: var(--g4); font-family: 'SF Mono', 'Consolas', 'Courier New', monospace; margin-top: 3px; letter-spacing: 0.2px; }
+    .p-meta span { margin-right: 10px; }
+    .p-note   { font-size: 7.5pt; color: var(--g3); font-style: italic; margin-top: 4px; }
+
+    td.b-qty  { text-align: right; width: 68px; white-space: nowrap; font-weight: 600; color: var(--g2); padding-right: 28px; }
+    td.b-unit { text-align: right; width: 120px; white-space: nowrap; font-size: 9.5pt; font-weight: 700; color: var(--g1); letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+
+    .table-legend {
+      display: flex; gap: 18px; align-items: center;
+      padding: 8px var(--m) 0;
+      font-size: 6.5pt; color: var(--g4);
+    }
+
+    /* ══════════════════════════════════════
+       POZNÁMKY + FOOTER
+    ══════════════════════════════════════ */
+    .notes-section { padding: 12px var(--m) 10px; border-top: 1px solid var(--ln); }
+    .notes-section .nl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.9px; color: var(--g4); font-weight: 600; margin-bottom: 4px; }
+    .notes-section .nv { font-size: 7pt; color: var(--g4); line-height: 1.7; }
+
+    .doc-footer {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
+      padding: 16px var(--m) 20px;
+      border-top: 1px solid var(--ln);
+      align-items: end;
+    }
+
+    .sig-l    { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.9px; color: var(--g4); font-weight: 600; margin-bottom: 24px; }
+    .sig-line { border-top: 1px solid var(--ln); padding-top: 5px; font-size: 7.5pt; font-weight: 500; color: var(--g2); }
+    .val-note { text-align: center; font-size: 6.5pt; color: var(--g4); line-height: 1.75; }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- ══ HEADER ══ -->
+    <div class="doc-header">
+      {% if logo_data_uri %}
+      <img class="logo" src="{{ logo_data_uri }}" alt="KOVO RYBKA">
+      {% else %}
+      <div style="width:48px;height:48px;"></div>
+      {% endif %}
+      <div>
+        <div class="co-name">KOVO RYBKA s.r.o.</div>
+        <div class="co-info">Přesné obrábění kovů &amp; zámečnictví &nbsp;·&nbsp; Ústecká 383, 561 17 Dlouhá Třebová</div>
+        <div class="co-info">+420 770 153 453 &nbsp;·&nbsp; info@kovorybka.cz &nbsp;·&nbsp; IČO 25959646 &nbsp;·&nbsp; DIČ CZ25959646</div>
+      </div>
+      <div class="doc-id">
+        <div class="doc-type">Cenová nabídka</div>
+        <div class="doc-number">{{ quote.quote_number }}</div>
+        <div class="doc-meta-row">
+          <span class="doc-date">{{ generated_at }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ZÁKAZNÍK + DODÁNÍ ══ -->
+    <div class="parties-bar">
+      <div>
+        <div class="party-label">Zákazník</div>
+        {% if partner %}
+        <div class="party-name">{{ partner.company_name }}</div>
+        <div class="party-info">
+          {%- set info_parts = [] -%}
+          {%- if partner.contact_person %}{% set _ = info_parts.append(partner.contact_person) %}{% endif -%}
+          {%- if partner.phone %}{% set _ = info_parts.append(partner.phone) %}{% endif -%}
+          {%- if partner.email %}{% set _ = info_parts.append(partner.email) %}{% endif -%}
+          {%- set addr = [] -%}
+          {%- if partner.street %}{% set _ = addr.append(partner.street) %}{% endif -%}
+          {%- if partner.postal_code or partner.city %}{% set _ = addr.append(((partner.postal_code or '') + ' ' + (partner.city or '')) | trim) %}{% endif -%}
+          {%- if addr %}{% set _ = info_parts.append(addr | join(', ')) %}{% endif -%}
+          {{ info_parts | join(' &nbsp;·&nbsp; ') }}
+        </div>
+        {% if partner.ico or partner.dic %}
+        <div class="party-ids">
+          {% if partner.ico %}<div class="pid"><div class="pl">IČO</div><div class="pv">{{ partner.ico }}</div></div>{% endif %}
+          {% if partner.dic %}<div class="pid"><div class="pl">DIČ</div><div class="pv">{{ partner.dic }}</div></div>{% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="party-name" style="color:var(--g4)">—</div>
+        {% endif %}
+      </div>
+      {% if quote.delivery_terms %}
+      <div class="delivery-col">
+        <div class="party-label">Dodací podmínky</div>
+        <div class="party-name" style="font-size:9pt">{{ quote.delivery_terms }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ══ META ══ -->
+    <div class="meta-strip">
+      <div class="mc">
+        <div class="mc-l">Datum poptávky</div>
+        <div class="mc-v">{{ quote.request_date | datecz if quote.request_date else '—' }}</div>
+      </div>
+      <div class="mc">
+        <div class="mc-l">Deadline nabídky</div>
+        <div class="mc-v{% if quote.offer_deadline %} alert{% endif %}">{{ quote.offer_deadline | datecz if quote.offer_deadline else '—' }}</div>
+      </div>
+      <div class="mc">
+        <div class="mc-l">Nabídka platná do</div>
+        <div class="mc-v">{{ quote.valid_until | datecz if quote.valid_until else '—' }}</div>
+      </div>
+      {% if quote.customer_request_number %}
+      <div class="mc">
+        <div class="mc-l">Číslo poptávky</div>
+        <div class="mc-v">{{ quote.customer_request_number }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ══ TABULKA ══ -->
+    <div class="items-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22px; text-align:right">#</th>
+            <th>Artikl&nbsp;/&nbsp;Díl</th>
+            <th class="r" style="width:68px; padding-right:28px">Množství</th>
+            <th class="r" style="width:120px">Cena&nbsp;/&nbsp;ks</th>
+          </tr>
+        </thead>
+        {% for group in groups %}
+        {% set row_class = 'group-a' if loop.index is odd else 'group-b' %}
+        <tr class="tr-part {{ row_class }}">
+          <td class="p-idx">{{ group.idx }}</td>
+          <td>
+            <div class="p-artikl">{{ group.article_number or group.part_number or '—' }}</div>
+            {% if group.part_name %}<div class="p-name">{{ group.part_name }}</div>{% endif %}
+            <div class="p-meta">
+              {% if group.part_number %}<span>č. {{ group.part_number }}</span>{% endif %}
+              {% if group.drawing_number %}<span>výkres {{ group.drawing_number }}</span>{% endif %}
+            </div>
+            {% if group.notes %}<div class="p-note">{{ group.notes }}</div>{% endif %}
+          </td>
+          <td colspan="2"></td>
+        </tr>
+        {% for batch in group.batches %}
+        <tr class="tr-batch {{ row_class }}{% if loop.last %} tr-batch-last{% endif %}">
+          <td colspan="2"></td>
+          <td class="b-qty">{{ batch.quantity }}&nbsp;ks</td>
+          <td class="b-unit">{{ batch.unit_price | czk }}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+      </table>
+
+    </div>
+
+    <!-- ══ POZNÁMKY ══ -->
+    <div class="notes-section">
+      <div class="nl">Poznámky</div>
+      {% if quote.notes %}
+      <div class="nv">{{ quote.notes }}</div>
+      {% endif %}
+      <div class="nv"{% if quote.notes %} style="margin-top:4px"{% endif %}>Všechny ceny jsou uvedeny bez DPH. Splatnost: 30 dní od vystavení faktury. Záloha: 30 % při potvrzení objednávky. Bankovní spojení sdělíme na vyžádání.</div>
+      <div class="nv" style="margin-top:4px">Nabídka platí za podmínek nezměněné výkresové dokumentace a materiálových cen k datu vystavení. Vyhrazujeme si právo na úpravu cen při výrazné změně cen vstupního materiálu.</div>
+    </div>
+
+    <!-- ══ FOOTER ══ -->
+    <div class="doc-footer">
+      <div>
+        <div class="sig-l">Vystavil za dodavatele</div>
+        <div class="sig-line">Ladislav Rybka, jednatel</div>
+      </div>
+      <div class="val-note">
+        {% if quote.valid_until %}Nabídka platná do <strong>{{ quote.valid_until | datecz }}</strong>.<br>{% endif %}
+        Potvrzením objednávky zákazník přijímá podmínky uvedené v nabídce.
+      </div>
+      <div style="text-align:right">
+        <div class="sig-l">Přijato zákazníkem — razítko a podpis</div>
+        <div class="sig-line" style="text-align:right">Dne: _______________</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

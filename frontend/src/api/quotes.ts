@@ -82,3 +82,17 @@ export async function addItem(
 export async function removeItem(itemId: number): Promise<void> {
   await apiClient.delete(`/quote_items/${itemId}`)
 }
+
+export async function downloadPdf(quoteNumber: string): Promise<void> {
+  const response = await apiClient.get(`/quotes/${quoteNumber}/pdf`, {
+    responseType: 'blob',
+  })
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `nabidka-${quoteNumber}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
