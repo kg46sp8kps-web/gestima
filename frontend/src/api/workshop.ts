@@ -3,11 +3,20 @@
 import { apiClient } from './client'
 import type {
   WorkshopJob,
+  WorkshopQueueItem,
   WorkshopOperation,
   WorkshopMaterial,
   WorkshopTransaction,
   WorkshopTransactionCreate,
 } from '@/types/workshop'
+
+/** Načte frontu práce pro pracoviště — flat seznam operací (bez deduplikace) */
+export async function getWcQueue(wc?: string, limit = 200): Promise<WorkshopQueueItem[]> {
+  const params: Record<string, string | number> = { limit }
+  if (wc) params.wc = wc
+  const res = await apiClient.get<WorkshopQueueItem[]>('/workshop/queue', { params })
+  return res.data
+}
 
 /** Načte otevřené výrobní zakázky z Inforu (Type=J, JobStat=R) */
 export async function getOpenJobs(wc?: string, limit = 500): Promise<WorkshopJob[]> {

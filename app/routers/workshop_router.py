@@ -48,6 +48,31 @@ def get_infor_client() -> InforAPIClient:
     )
 
 
+@router.get("/queue", response_model=List[dict])
+async def get_wc_queue(
+    wc: Optional[str] = Query(None, description="Filtr pracoviště (WC kód z Inforu)"),
+    limit: int = Query(200, ge=1, le=1000),
+    current_user: User = Depends(get_current_user),
+    client: InforAPIClient = Depends(get_infor_client),
+):
+    """
+    Vrátí frontu práce pro pracoviště — flat seznam operací (Type=J, JobStat=R/F).
+
+    Každý řádek = jedna operace (bez deduplikace, na rozdíl od /jobs).
+    Seřazeno dle plánovaného začátku operace (OpDatumSt ASC z JbrDetails).
+    """
+    try:
+        queue = await workshop_service.fetch_wc_queue(
+            infor_client=client,
+            wc=wc,
+            record_cap=limit,
+        )
+        return queue
+    except Exception as exc:
+        logger.error(f"fetch_wc_queue failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
+
+
 @router.get("/jobs", response_model=List[dict])
 async def get_open_jobs(
     wc: Optional[str] = Query(None, description="Filtr pracoviště (WC kód z Inforu)"),

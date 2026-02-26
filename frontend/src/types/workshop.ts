@@ -16,6 +16,23 @@ export type WorkshopTransType =
   | 'setup_end'    // Ukončit seřízení s hodinami (@TTransType='2')
 export type WorkshopTxStatus = 'pending' | 'posting' | 'posted' | 'failed'
 
+/** Fronta práce — flat položka operace z SLJobRoutes (job + op kontext, bez deduplikace) */
+export interface WorkshopQueueItem {
+  Job: string
+  Suffix: string
+  OperNum: string
+  Wc: string
+  DerJobItem: string | null
+  JobDescription: string | null
+  JobQtyReleased: number | null
+  QtyComplete: number | null
+  QtyScrapped: number | null
+  JshSetupHrs: number | null
+  DerRunMchHrs: number | null
+  OpDatumSt: string | null   // Plánovaný začátek operace (z IteCzTsdJbrDetails)
+  OpDatumSp: string | null   // Plánovaný konec operace (z IteCzTsdJbrDetails)
+}
+
 /** Zakázka/operace z Inforu (SLJobRoutes — deduplikováno Python-side) */
 export interface WorkshopJob {
   Job: string
@@ -45,6 +62,8 @@ export interface WorkshopOperation {
   ScrapQty: number | null
   SetupHrs: number | null   // Plánované hodiny seřízení
   RunHrs: number | null     // Plánované hodiny výroby (na kus)
+  OpDatumSt: string | null  // Plánovaný začátek operace (z IteCzTsdJbrDetails)
+  OpDatumSp: string | null  // Plánovaný konec operace (z IteCzTsdJbrDetails)
 }
 
 /** Materiál k operaci zakázky (IteCzTsdSLJobMatls) */

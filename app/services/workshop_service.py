@@ -78,11 +78,122 @@ _NUMERIC_MATERIAL_FIELDS = [
 # IDO a SP pro zápis transakcí
 # Potvrzeno IL bytecode analýzou InduStream.Forms.Std.dll (2026-02-26)
 _WRITE_IDO = "IteCzTsdStd"
-_WRITE_SP_SFC34 = "IteCzTsdUpdateDcSfc34Sp"       # 20 params — OdvodKusu
+_WRITE_SP_SFC34 = "IteCzTsdUpdateDcSfc34Sp"         # 20 params — OdvodKusu
 _WRITE_SP_WRAPPER = "IteCzTsdUpdateDcSfcWrapperSp"  # 25 params — Start/Stop
+_WRITE_SP_MCHTRX = "IteCzTsdUpdateMchtrxSp"         # 9 params — strojová transakce (souběžně se WrapperSp)
 
 # Trans typy co jdou přes WrapperSp (Start akce)
 _WRAPPER_TRANS_TYPES = {"setup_start", "setup_end", "start"}
+
+
+async def fetch_wc_queue(
+    infor_client,
+    wc: Optional[str] = None,
+    record_cap: int = 200,
+) -> List[Dict[str, Any]]:
+    """
+    Načte frontu práce pro pracoviště — flat seznam operací (bez deduplikace).
+
+    Na rozdíl od fetch_open_jobs() každý řádek = jedna operace (1:1 s SLJobRoutes).
+    Sekundární JbrDetails query přidá OpDatumSt/OpDatumSp.
+
+    Filter:
+      - Type = 'J' → výrobní zakázky
+      - JobStat = 'R' OR 'F' → aktivní
+      - Volitelně dle wc → filtr pracoviště
+
+    Vrací pole s klíči: Job, Suffix, OperNum, Wc, DerJobItem, JobDescription,
+    JobQtyReleased, QtyComplete, QtyScrapped, JshSetupHrs, DerRunMchHrs,
+    OpDatumSt, OpDatumSp
+    """
+    filter_parts = ["Type = 'J'", "(JobStat = 'R' OR JobStat = 'F')"]
+    if wc:
+        safe_wc = wc.strip().replace("'", "''")
+        filter_parts.append(f"Wc = '{safe_wc}'")
+
+    infor_filter = " AND ".join(filter_parts)
+
+    result = await infor_client.load_collection(
+        ido_name="SLJobRoutes",
+        properties=_JOB_ROUTE_PROPS,
+        filter=infor_filter,
+        order_by="Job ASC, OperNum ASC",
+        record_cap=record_cap,
+    )
+
+    rows = result.get("data", [])
+
+    # Strip whitespace
+    str_fields = ["Job", "Suffix", "Type", "Wc", "OperNum", "DerJobItem", "JobStat", "JobDescription"]
+    for row in rows:
+        for field in str_fields:
+            if isinstance(row.get(field), str):
+                row[field] = row[field].strip()
+
+    # Parsuj čísla z Infor string formátu "4.00000000" na float
+    for row in rows:
+        for field in _NUMERIC_JOB_FIELDS:
+            val = row.get(field)
+            if isinstance(val, str) and val.strip():
+                try:
+                    row[field] = round(float(val), 4)
+                except (ValueError, TypeError):
+                    row[field] = None
+
+    # Sekundární query: plánované datumy z IteCzTsdJbrDetails (non-fatal)
+    date_map: dict = {}
+    try:
+        jbr_filter_parts = []
+        if wc:
+            safe_wc = wc.strip().replace("'", "''")
+            jbr_filter_parts.append(f"Wc = '{safe_wc}'")
+        jbr_filter = " AND ".join(jbr_filter_parts) if jbr_filter_parts else ""
+
+        dates_kwargs: Dict[str, Any] = dict(
+            ido_name="IteCzTsdJbrDetails",
+            properties=["Job", "Suffix", "OperNum", "OpDatumSt", "OpDatumSp"],
+            order_by="OpDatumSt ASC",
+            record_cap=record_cap,
+        )
+        if jbr_filter:
+            dates_kwargs["filter"] = jbr_filter
+
+        dates_result = await infor_client.load_collection(**dates_kwargs)
+        for drow in dates_result.get("data", []):
+            job_key = (drow.get("Job") or "").strip()
+            suffix_key = (drow.get("Suffix") or "").strip()
+            op_key = (drow.get("OperNum") or "").strip()
+            date_map[(job_key, suffix_key, op_key)] = {
+                "OpDatumSt": (drow.get("OpDatumSt") or "").strip() or None,
+                "OpDatumSp": (drow.get("OpDatumSp") or "").strip() or None,
+            }
+    except Exception as date_exc:
+        logger.debug(f"JbrDetails date fetch for queue failed (non-fatal): {date_exc}")
+
+    # Složit výsledek — jeden dict na řádek SLJobRoutes
+    queue: List[Dict[str, Any]] = []
+    for row in rows:
+        job_key = row.get("Job") or ""
+        suffix_key = row.get("Suffix") or ""
+        op_key = row.get("OperNum") or ""
+        dates = date_map.get((job_key, suffix_key, op_key), {})
+        queue.append({
+            "Job": row.get("Job"),
+            "Suffix": row.get("Suffix"),
+            "OperNum": row.get("OperNum"),
+            "Wc": row.get("Wc"),
+            "DerJobItem": row.get("DerJobItem"),
+            "JobDescription": row.get("JobDescription"),
+            "JobQtyReleased": row.get("JobQtyReleased"),
+            "QtyComplete": row.get("QtyComplete"),
+            "QtyScrapped": row.get("QtyScrapped"),
+            "JshSetupHrs": row.get("JshSetupHrs"),
+            "DerRunMchHrs": row.get("DerRunMchHrs"),
+            "OpDatumSt": dates.get("OpDatumSt"),
+            "OpDatumSp": dates.get("OpDatumSp"),
+        })
+
+    return queue
 
 
 async def fetch_open_jobs(
@@ -186,6 +297,27 @@ async def fetch_job_operations(
 
     rows = result.get("data", [])
 
+    # Sekundární query: plánované datumy z IteCzTsdJbrDetails (OpDatumSt/OpDatumSp)
+    # IDO JbrDetails je primárně fronta práce, ale filter Job+Suffix funguje pro konkrétní zakázku.
+    # Non-fatal — pokud IDO není k dispozici nebo filtr selže, datumy jsou None.
+    date_map: dict = {}
+    try:
+        dates_result = await infor_client.load_collection(
+            ido_name="IteCzTsdJbrDetails",
+            properties=["Job", "Suffix", "OperNum", "OpDatumSt", "OpDatumSp"],
+            filter=f"Job = '{safe_job}' AND Suffix = '{safe_suffix}'",
+            order_by="OperNum ASC",
+            record_cap=100,
+        )
+        for drow in dates_result.get("data", []):
+            op_key = (drow.get("OperNum") or "").strip()
+            date_map[op_key] = {
+                "OpDatumSt": (drow.get("OpDatumSt") or "").strip() or None,
+                "OpDatumSp": (drow.get("OpDatumSp") or "").strip() or None,
+            }
+    except Exception as date_exc:
+        logger.debug(f"JbrDetails date fetch failed (non-fatal, job={job}): {date_exc}")
+
     # Strip whitespace + remap pole na WorkshopOperation interface + parsuj čísla
     operations = []
     for row in rows:
@@ -221,16 +353,20 @@ async def fetch_job_operations(
                 except (ValueError, TypeError):
                     pass
 
+        oper_num_key = (row.get("OperNum") or "").strip()
+        oper_dates = date_map.get(oper_num_key, {})
         operations.append({
             "Job": (row.get("Job") or "").strip(),
             "Suffix": (row.get("Suffix") or "").strip(),
-            "OperNum": (row.get("OperNum") or "").strip(),
+            "OperNum": oper_num_key,
             "Wc": (row.get("Wc") or "").strip(),
             "QtyReleased": qty_released,
             "QtyComplete": qty_complete,
             "ScrapQty": scrap_qty,
             "SetupHrs": setup_hrs,
             "RunHrs": run_hrs,
+            "OpDatumSt": oper_dates.get("OpDatumSt"),   # Plánovaný začátek operace
+            "OpDatumSp": oper_dates.get("OpDatumSp"),   # Plánovaný konec operace
         })
 
     return operations
@@ -255,28 +391,38 @@ async def fetch_job_materials(
     safe_oper = oper_num.strip().replace("'", "''")
 
     try:
+        # Správné field names potvrzeny IL bytecode analýzou (2026-02-26):
+        # IteCzTsdSLJobMatls IDO používá interně CLM SP → pole jsou Item + DerItemDescription
+        # (NE Material + Desc, to jsou pole starého standardního SLJobMatl IDO)
         result = await infor_client.load_collection(
             ido_name="IteCzTsdSLJobMatls",
-            properties=["Material", "Desc", "TotCons", "Qty", "BatchCons"],
+            properties=["Item", "DerItemDescription", "TotCons", "Qty", "BatchCons"],
             filter=f"Job = '{safe_job}' AND Suffix = '{safe_suffix}' AND OperNum = '{safe_oper}'",
             record_cap=50,
         )
         rows = result.get("data", [])
 
-        # Strip whitespace v string polích + parsuj čísla
+        # Remapuj Infor field names na WorkshopMaterial interface + strip + parsuj čísla
+        materials = []
         for row in rows:
-            for field in ["Material", "Desc"]:
-                if isinstance(row.get(field), str):
-                    row[field] = row[field].strip()
+            item = (row.get("Item") or "").strip()
+            desc = (row.get("DerItemDescription") or "").strip() or None
+            mat: dict = {
+                "Material": item,
+                "Desc": desc,
+            }
             for field in _NUMERIC_MATERIAL_FIELDS:
                 val = row.get(field)
                 if isinstance(val, str) and val.strip():
                     try:
-                        row[field] = round(float(val), 4)
+                        mat[field] = round(float(val), 4)
                     except (ValueError, TypeError):
-                        row[field] = None
+                        mat[field] = None
+                else:
+                    mat[field] = val if isinstance(val, (int, float)) else None
+            materials.append(mat)
 
-        return rows
+        return materials
 
     except Exception as exc:
         # IteCzTsdSLJobMatls nemusí být nakonfigurováno na všech instancích
@@ -419,6 +565,23 @@ async def post_transaction_to_infor(
         tx.error_msg = None
         logger.info(f"Transaction {tx_id} posted to Infor successfully")
 
+        # WrapperSp Start akce → souběžně MchtrxSp pro sledování strojových časů (non-fatal)
+        if trans_type_val in _WRAPPER_TRANS_TYPES:
+            try:
+                mch_params = _build_mchtrx_params(tx, emp_num)
+                mch_resp = await infor_client.invoke_method_positional(
+                    ido_name=_WRITE_IDO,
+                    method_name=_WRITE_SP_MCHTRX,
+                    positional_values=mch_params,
+                )
+                mch_infobar = (mch_resp.get("ReturnValue") or "").strip()
+                if mch_infobar and mch_infobar not in ("0", "null", "NULL", "0.00"):
+                    logger.warning(f"MchtrxSp warning (non-fatal, tx={tx_id}): {mch_infobar}")
+                else:
+                    logger.info(f"MchtrxSp OK (tx={tx_id})")
+            except Exception as mch_exc:
+                logger.warning(f"MchtrxSp failed (non-fatal, tx={tx_id}): {mch_exc}")
+
     except Exception as exc:
         # Chyba — uložit zprávu, ponechat status=failed
         tx.status = WorkshopTxStatus.FAILED
@@ -500,7 +663,7 @@ def _build_wrapper_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
     20:  IdMachine (prázdné — Gestima nezná ID stroje)
     21:  ResId (prázdné)
     22:  (flag "0")
-    23:  Mode (totéž co SourceModul)
+    23:  Mode ("T" = TSD terminal mode — NIKDY source_modul, to způsobí infobar=16!)
     24:  Infobar (OUTPUT — vstup prázdný)
     """
     trans_type_val = tx.trans_type.value if hasattr(tx.trans_type, "value") else str(tx.trans_type)
@@ -537,8 +700,40 @@ def _build_wrapper_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
         "",                                    # 20: IdMachine (Gestima nezná)
         "",                                    # 21: ResId
         "0",                                   # 22: (flag)
-        source_modul,                          # 23: Mode (stejný jako SourceModul)
+        "T",                                   # 23: Mode ("T" = TSD terminal mode — NIKDY source_modul, to způsobí infobar=16!)
         "",                                    # 24: Infobar (OUTPUT)
+    ]
+
+
+def _build_mchtrx_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
+    """
+    Sestaví 9 pozičních parametrů pro IteCzTsdUpdateMchtrxSp.
+
+    Voláno SOUBĚŽNĚ s WrapperSp pro Start akce (setup_start, setup_end, start).
+    Sleduje strojové časy — nezávislé na labor transakci z WrapperSp.
+    Chyba je pouze WARNING — neblokuje hlavní transakci.
+
+    Pořadí (index 0–8, potvrzeno IL bytecode InduStream.Forms.Std.dll):
+     0:  EmpNum
+     1:  TransType ("H" = hours/machine tracking)
+     2:  JobNum
+     3:  JobSuffix
+     4:  OperNum
+     5:  Wc (pracoviště)
+     6:  Stroj (ID stroje — "" = Gestima nezná)
+     7:  OldEmpNum ("" = single operator, bez multi-VP)
+     8:  Infobar (OUTPUT — vstup prázdný)
+    """
+    return [
+        emp_num,                    # 0: EmpNum
+        "H",                        # 1: TransType ("H" = machine hours tracking)
+        tx.infor_job,               # 2: JobNum
+        tx.infor_suffix or "0",    # 3: JobSuffix
+        tx.oper_num,                # 4: OperNum
+        tx.wc or "",                # 5: Wc
+        "",                         # 6: Stroj (Gestima nezná ID stroje)
+        "",                         # 7: OldEmpNum (single operator)
+        "",                         # 8: Infobar (OUTPUT)
     ]
 
 

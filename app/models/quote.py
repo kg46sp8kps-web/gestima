@@ -181,6 +181,7 @@ class QuoteCreate(BaseModel):
 
 class QuoteUpdate(BaseModel):
     """Update quote - only allowed in DRAFT status"""
+    partner_id: Optional[int] = Field(None, description="ID partnera (zákazníka)")
     title: Optional[str] = Field(None, max_length=200, description="Název nabídky")
     description: Optional[str] = Field(None, description="Popis")
     customer_request_number: Optional[str] = Field(None, max_length=50, description="Číslo poptávky zákazníka")

@@ -6,6 +6,7 @@ import * as workshopApi from '@/api/workshop'
 import { useUiStore } from './ui'
 import type {
   WorkshopJob,
+  WorkshopQueueItem,
   WorkshopOperation,
   WorkshopMaterial,
   WorkshopTransaction,
@@ -18,16 +19,27 @@ export const useWorkshopStore = defineStore('workshop', () => {
   const ui = useUiStore()
 
   // === State ===
-  const jobs = ref<WorkshopJob[]>([])
+  // Fronta práce (nový model — flat seznam operací)
+  const queueItems = ref<WorkshopQueueItem[]>([])
+  const activeQueueItem = ref<WorkshopQueueItem | null>(null)
+  const loadingQueue = ref(false)
+
+  // Odvozené z výběru v queue (udržovány pro zpětnou kompatibilitu komponent)
   const activeJob = ref<WorkshopJob | null>(null)
-  const operations = ref<WorkshopOperation[]>([])
   const activeOperation = ref<WorkshopOperation | null>(null)
   const materials = ref<WorkshopMaterial[]>([])
+  const loadingMaterials = ref(false)
+
+  // Zachováno pro WorkshopTransactionForm
   const transactions = ref<WorkshopTransaction[]>([])
+
+  // Zachováno pro kompatibilitu (WorkshopJobList není součástí nového layoutu)
+  const jobs = ref<WorkshopJob[]>([])
+  const operations = ref<WorkshopOperation[]>([])
   const loadingJobs = ref(false)
   const loadingOperations = ref(false)
-  const loadingMaterials = ref(false)
   const wcFilter = ref<string>('')
+
   // Pracovní mód: 'setup' = seřizuji, 'production' = vyrábím
   const workMode = ref<'setup' | 'production'>('production')
 
@@ -39,9 +51,9 @@ export const useWorkshopStore = defineStore('workshop', () => {
     operNum: null,
     mode: null,
   })
-  const startingTimer = ref(false)  // loading state pro START tlačítko
+  const startingTimer = ref(false)
   let _timerInterval: ReturnType<typeof setInterval> | null = null
-  const timerElapsed = ref(0) // sekundy
+  const timerElapsed = ref(0)
 
   // === Computed ===
   const filteredJobs = computed(() => {
@@ -49,7 +61,60 @@ export const useWorkshopStore = defineStore('workshop', () => {
     return jobs.value.filter((j) => j.Wc === wcFilter.value)
   })
 
-  // === Actions ===
+  // === Actions — Fronta práce ===
+
+  async function fetchQueue(wc?: string) {
+    loadingQueue.value = true
+    try {
+      queueItems.value = await workshopApi.getWcQueue(wc)
+    } catch {
+      ui.showError('Nepodařilo se načíst frontu práce z Inforu')
+    } finally {
+      loadingQueue.value = false
+    }
+  }
+
+  async function selectQueueItem(item: WorkshopQueueItem) {
+    activeQueueItem.value = item
+    materials.value = []
+
+    // Derive WorkshopJob from queue item (pro zpětnou kompatibilitu komponent)
+    activeJob.value = {
+      Job: item.Job,
+      Suffix: item.Suffix,
+      Type: 'J',
+      Wc: item.Wc,
+      OperNum: item.OperNum,
+      DerJobItem: item.DerJobItem ?? '',
+      JobDescription: item.JobDescription,
+      JobStat: 'R',
+      JobQtyReleased: item.JobQtyReleased,
+      QtyComplete: item.QtyComplete,
+      QtyScrapped: item.QtyScrapped,
+      JshSetupHrs: item.JshSetupHrs,
+      DerRunMchHrs: item.DerRunMchHrs,
+    }
+
+    // Derive WorkshopOperation from queue item (pro zpětnou kompatibilitu komponent)
+    activeOperation.value = {
+      Job: item.Job,
+      Suffix: item.Suffix,
+      OperNum: item.OperNum,
+      Wc: item.Wc,
+      QtyReleased: item.JobQtyReleased,
+      QtyComplete: item.QtyComplete,
+      ScrapQty: item.QtyScrapped,
+      SetupHrs: item.JshSetupHrs,
+      RunHrs: item.DerRunMchHrs,
+      OpDatumSt: item.OpDatumSt,
+      OpDatumSp: item.OpDatumSp,
+    }
+
+    // Načti materiály pro tuto operaci
+    await fetchMaterials(item.Job, item.OperNum, item.Suffix)
+  }
+
+  // === Actions — původní (kompatibilita) ===
 
   async function fetchJobs(wc?: string) {
     loadingJobs.value = true
@@ -84,7 +149,6 @@ export const useWorkshopStore = defineStore('workshop', () => {
   async function selectOperation(oper: WorkshopOperation) {
     activeOperation.value = oper
     materials.value = []
-    // Automaticky načti materiály pro vybranou operaci
     await fetchMaterials(oper.Job, oper.OperNum, oper.Suffix)
   }
 
@@ -93,7 +157,6 @@ export const useWorkshopStore = defineStore('workshop', () => {
     try {
       materials.value = await workshopApi.getOperationMaterials(job, oper, suffix)
     } catch {
-      // Materiály nejsou kritické — tiše ignoruj chybu
       materials.value = []
     } finally {
       loadingMaterials.value = false
@@ -138,10 +201,6 @@ export const useWorkshopStore = defineStore('workshop', () => {
 
   // === Časovač ===
 
-  /**
-   * Okamžitě odešle transakci do Inforu (bez toast).
-   * Vrátí výsledek — volající rozhoduje o error handling.
-   */
   async function _postSilent(txId: number): Promise<WorkshopTransaction | null> {
     try {
       const updated = await workshopApi.postTransaction(txId)
@@ -156,12 +215,7 @@ export const useWorkshopStore = defineStore('workshop', () => {
   /**
    * Zahájení práce — vytvoří transakci START/SETUP_START a OKAMŽITĚ ji odešle do Inforu.
    *
-   * State machine:
-   *   setup mode  → TransType='1' (ZahajitNastaveni)
-   *   production  → TransType='3' (ZahajitPraci)
-   *
    * Teprve po úspěšném postu do Inforu spustí lokální JS časovač.
-   * Pokud post selže, časovač se nespustí a zobrazí se chyba.
    */
   async function startTimer(job: WorkshopJob, oper: WorkshopOperation): Promise<boolean> {
     if (timer.value.running) return false
@@ -172,7 +226,6 @@ export const useWorkshopStore = defineStore('workshop', () => {
 
     startingTimer.value = true
     try {
-      // 1. Ulož transakci lokálně (pending)
       const tx = await createTransaction({
         infor_job: job.Job,
         infor_suffix: job.Suffix ?? '0',
@@ -183,21 +236,13 @@ export const useWorkshopStore = defineStore('workshop', () => {
       })
       if (!tx) return false
 
-      // 2. Okamžitě odešli do Inforu
       const posted = await _postSilent(tx.id)
       if (!posted || posted.status === 'failed') {
         ui.showError(`START selhal: ${posted?.error_msg ?? 'Nepodařilo se odeslat do Inforu'}`)
         return false
       }
 
-      // 3. Infor potvrdil — spusť lokální časovač
-      timer.value = {
-        running: true,
-        startedAt,
-        job: job.Job,
-        operNum: oper.OperNum,
-        mode,
-      }
+      timer.value = { running: true, startedAt, job: job.Job, operNum: oper.OperNum, mode }
       timerElapsed.value = 0
       _timerInterval = setInterval(() => {
         timerElapsed.value++
@@ -213,13 +258,13 @@ export const useWorkshopStore = defineStore('workshop', () => {
   /**
    * Ukončení práce — vytvoří transakci STOP/SETUP_END a odešle ji do Inforu.
    *
-   * State machine:
-   *   setup mode  → TransType='2' (UkoncitNastaveni)
-   *   production  → TransType='4' (UkoncitPraci)
-   *
-   * Mode je zachycen z timer.value.mode (nastaven při startu).
+   * opts: volitelné kusy/zmetky/dokončení pro production stop (ignorovány pro setup_end).
    */
-  async function stopTimer(): Promise<WorkshopTransaction | null> {
+  async function stopTimer(opts?: {
+    qty_completed?: number | null
+    qty_scrapped?: number | null
+    oper_complete?: boolean
+  }): Promise<WorkshopTransaction | null> {
     if (!timer.value.running || !timer.value.startedAt) return null
 
     const finishedAt = new Date()
@@ -229,7 +274,6 @@ export const useWorkshopStore = defineStore('workshop', () => {
     const operNum = timer.value.operNum!
     const transType: WorkshopTransType = mode === 'setup' ? 'setup_end' : 'stop'
 
-    // Zastav interval
     if (_timerInterval) {
       clearInterval(_timerInterval)
       _timerInterval = null
@@ -248,10 +292,12 @@ export const useWorkshopStore = defineStore('workshop', () => {
       actual_hours: Math.round(actualHours * 10000) / 10000,
       started_at: startedAt.toISOString(),
       finished_at: finishedAt.toISOString(),
+      qty_completed: opts?.qty_completed ?? null,
+      qty_scrapped: opts?.qty_scrapped ?? null,
+      oper_complete: opts?.oper_complete ?? false,
     })
     if (!tx) return null
 
-    // Odešli do Inforu
     const posted = await _postSilent(tx.id)
     if (posted?.status === 'posted') {
       ui.showSuccess(mode === 'setup' ? 'Seřízení ukončeno a odesláno' : 'Čas uložen a odeslán do Inforu')
@@ -263,6 +309,7 @@ export const useWorkshopStore = defineStore('workshop', () => {
   }
 
   function resetState() {
+    activeQueueItem.value = null
     activeJob.value = null
     activeOperation.value = null
     operations.value = []
@@ -276,24 +323,32 @@ export const useWorkshopStore = defineStore('workshop', () => {
   }
 
   return {
-    // State
-    jobs,
+    // State — fronta práce
+    queueItems,
+    activeQueueItem,
+    loadingQueue,
+    // State — odvozené + sdílené
     activeJob,
-    operations,
     activeOperation,
     materials,
     transactions,
-    loadingJobs,
-    loadingOperations,
     loadingMaterials,
-    wcFilter,
     workMode,
     timer,
     timerElapsed,
     startingTimer,
+    // State — kompatibilita
+    jobs,
+    operations,
+    loadingJobs,
+    loadingOperations,
+    wcFilter,
     // Computed
     filteredJobs,
-    // Actions
+    // Actions — fronta
+    fetchQueue,
+    selectQueueItem,
+    // Actions — data
     fetchJobs,
     selectJob,
     fetchOperations,
@@ -302,6 +357,7 @@ export const useWorkshopStore = defineStore('workshop', () => {
     createTransaction,
     postTransaction,
     fetchMyTransactions,
+    // Actions — časovač
     startTimer,
     stopTimer,
     resetState,

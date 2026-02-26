@@ -15,6 +15,7 @@ interface QuoteCreatePayload {
 }
 
 interface QuoteUpdatePayload {
+  partner_id?: number
   title?: string
   description?: string
   customer_request_number?: string

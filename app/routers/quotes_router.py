@@ -25,6 +25,7 @@ from app.models.quote import (
     QuoteWithItemsResponse, QuoteListResponse, QuoteItem
 )
 from app.models.partner import Partner
+from app.models.part import Part
 from app.models.enums import QuoteStatus
 from app.schemas.quote_request import QuoteFromRequestCreate, QuoteCreationResult, QuoteRequestReviewV2
 from app.services.number_generator import NumberGenerator
@@ -146,9 +147,27 @@ async def get_quote(
     # Filter soft-deleted items in Python (L-2) — selectinload loads all, we filter here
     active_items = [i for i in quote.items if i.deleted_at is None]
 
+    # Backfill article_number z aktuálního dílu kde chybí na položce
+    missing_ids = list({i.part_id for i in active_items if i.part_id and not i.article_number})
+    if missing_ids:
+        parts_res = await db.execute(
+            select(Part.id, Part.article_number)
+            .where(Part.id.in_(missing_ids), Part.deleted_at.is_(None))
+        )
+        part_articles: dict[int, str | None] = {row[0]: row[1] for row in parts_res.fetchall()}
+    else:
+        part_articles = {}
+
+    # Build item responses s fallback article_number
+    def _item_resp(item: QuoteItem) -> QuoteItemResponse:
+        r = QuoteItemResponse.model_validate(item)
+        if not r.article_number and item.part_id and item.part_id in part_articles:
+            r.article_number = part_articles[item.part_id]
+        return r
+
     # Build response with filtered items and partner_name
     response = QuoteWithItemsResponse.model_validate(quote)
-    response.items = [QuoteItemResponse.model_validate(i) for i in active_items]
+    response.items = [_item_resp(i) for i in active_items]
     response.partner_name = partner.company_name if partner else None
     return response
 
@@ -230,6 +249,16 @@ async def update_quote(
         raise HTTPException(status_code=409, detail="Version conflict")
 
     # Update fields
+    if data.partner_id is not None:
+        if data.partner_id == 0:
+            quote.partner_id = None
+        else:
+            partner = await db.get(Partner, data.partner_id)
+            if not partner or partner.deleted_at:
+                raise HTTPException(status_code=404, detail="Partner not found")
+            if not partner.is_customer:
+                raise HTTPException(status_code=400, detail="Partner must be a customer")
+            quote.partner_id = data.partner_id
     if data.title is not None:
         quote.title = data.title
     if data.description is not None:

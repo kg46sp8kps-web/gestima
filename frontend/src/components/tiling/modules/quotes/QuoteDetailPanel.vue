@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon, TriangleAlertIcon, FileDownIcon } from 'lucide-vue-next'
+import { ref, watch, computed, reactive } from 'vue'
+import { ExternalLinkIcon, Trash2Icon, PlusIcon, CheckIcon, TriangleAlertIcon, FileDownIcon, PencilIcon, XIcon } from 'lucide-vue-next'
 import * as quotesApi from '@/api/quotes'
+import * as partnersApi from '@/api/partners'
 import type { QuoteDetail } from '@/types/quote'
 import type { Part } from '@/types/part'
+import type { Partner } from '@/types/partner'
 import type { ContextGroup } from '@/types/workspace'
 import { useUiStore } from '@/stores/ui'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -11,6 +13,7 @@ import { useDialog } from '@/composables/useDialog'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
 import InlineInput from '@/components/ui/InlineInput.vue'
+import Select from '@/components/ui/Select.vue'
 import PartCombobox from '@/components/ui/PartCombobox.vue'
 import { ICON_SIZE_SM } from '@/config/design'
 
@@ -30,6 +33,78 @@ const dialog = useDialog()
 const quote = ref<QuoteDetail | null>(null)
 const loading = ref(false)
 const error = ref(false)
+
+// ─── Header edit mode ───
+const editMode = ref(false)
+const editSaving = ref(false)
+const customers = ref<Partner[]>([])
+
+const editForm = reactive({
+  partner_id: null as number | null,
+  title: '',
+  customer_request_number: '',
+  request_date: '',
+  offer_deadline: '',
+  valid_until: '',
+  delivery_terms: '',
+  notes: '',
+})
+
+const customerOptions = computed(() => [
+  { value: null, label: '— bez zákazníka —' },
+  ...customers.value.map(p => ({ value: p.id, label: p.company_name })),
+])
+
+function isoToDateInput(iso: string | null): string {
+  if (!iso) return ''
+  return iso.slice(0, 10)
+}
+
+function startEdit() {
+  if (!quote.value) return
+  editForm.partner_id = quote.value.partner_id
+  editForm.title = quote.value.title ?? ''
+  editForm.customer_request_number = quote.value.customer_request_number ?? ''
+  editForm.request_date = isoToDateInput(quote.value.request_date)
+  editForm.offer_deadline = isoToDateInput(quote.value.offer_deadline)
+  editForm.valid_until = isoToDateInput(quote.value.valid_until)
+  editForm.delivery_terms = quote.value.delivery_terms ?? ''
+  editForm.notes = quote.value.notes ?? ''
+  editMode.value = true
+  if (!customers.value.length) {
+    partnersApi.getAll('customer').then(list => { customers.value = list })
+  }
+}
+
+function cancelEdit() {
+  editMode.value = false
+}
+
+async function saveEdit() {
+  if (!quote.value) return
+  editSaving.value = true
+  try {
+    await quotesApi.update(props.quoteNumber, {
+      partner_id: editForm.partner_id ?? 0,
+      title: editForm.title || undefined,
+      customer_request_number: editForm.customer_request_number || undefined,
+      request_date: editForm.request_date || undefined,
+      offer_deadline: editForm.offer_deadline || undefined,
+      valid_until: editForm.valid_until || undefined,
+      delivery_terms: editForm.delivery_terms || undefined,
+      notes: editForm.notes || undefined,
+      version: quote.value.version,
+    })
+    editMode.value = false
+    ui.showSuccess('Hlavička uložena')
+    await load()
+    emit('reload')
+  } catch {
+    ui.showError('Chyba při ukládání hlavičky')
+  } finally {
+    editSaving.value = false
+  }
+}
 
 // Add item inline form
 const addSelectedPart = ref<Part | null>(null)
@@ -202,6 +277,20 @@ function selectItem(id: number) {
   selectedItemId.value = id
 }
 
+// Seskupení položek podle dílu (part_id), dávky seřazeny vzestupně podle množství
+const groupedItems = computed(() => {
+  const items = quote.value?.items ?? []
+  const groups = new Map<string, typeof items>()
+  for (const item of items) {
+    const key = item.part_id != null ? `part_${item.part_id}` : `item_${item.id}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(item)
+  }
+  return [...groups.values()].map(group =>
+    [...group].sort((a, b) => a.quantity - b.quantity)
+  )
+})
+
 async function onDownloadPdf() {
   pdfLoading.value = true
   try {
@@ -241,8 +330,19 @@ async function onDownloadPdf() {
         </div>
         <div class="detail-actions">
           <template v-if="quote.status === 'draft'">
-            <button class="btn-primary" data-testid="quote-send-btn" @click="onSend">Odeslat</button>
-            <button class="btn-destructive" data-testid="quote-delete-btn" @click="onDelete">Smazat</button>
+            <template v-if="!editMode">
+              <button class="btn-primary" data-testid="quote-send-btn" @click="onSend">Odeslat</button>
+              <button class="btn-secondary" data-testid="quote-edit-btn" @click="startEdit">
+                <PencilIcon :size="ICON_SIZE_SM" /> Upravit
+              </button>
+              <button class="btn-destructive" data-testid="quote-delete-btn" @click="onDelete">Smazat</button>
+            </template>
+            <template v-else>
+              <button class="btn-primary" :disabled="editSaving" data-testid="quote-save-btn" @click="saveEdit">Uložit</button>
+              <button class="btn-secondary" :disabled="editSaving" data-testid="quote-cancel-edit-btn" @click="cancelEdit">
+                <XIcon :size="ICON_SIZE_SM" /> Zrušit
+              </button>
+            </template>
           </template>
           <template v-else-if="quote.status === 'sent'">
             <button class="btn-primary" data-testid="quote-approve-btn" @click="onApprove">Schválit</button>
@@ -269,31 +369,86 @@ async function onDownloadPdf() {
         <div class="meta-grid">
           <div class="meta-row">
             <span class="meta-label">Zákazník</span>
-            <span class="meta-value">{{ quote.partner_name ?? '—' }}</span>
+            <Select
+              v-if="editMode"
+              :options="customerOptions"
+              :model-value="editForm.partner_id"
+              placeholder="— vyberte zákazníka —"
+              data-testid="quote-edit-partner"
+              @update:model-value="v => editForm.partner_id = v ? Number(v) : null"
+            />
+            <span v-else class="meta-value">{{ quote.partner_name ?? '—' }}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Číslo poptávky</span>
-            <span class="meta-value">{{ quote.customer_request_number ?? '—' }}</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.customer_request_number"
+              placeholder="číslo poptávky"
+              data-testid="quote-edit-req-num"
+            />
+            <span v-else class="meta-value">{{ quote.customer_request_number ?? '—' }}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Datum poptávky</span>
-            <span class="meta-value">{{ formatDate(quote.request_date) }}</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.request_date"
+              type="date"
+              data-testid="quote-edit-req-date"
+            />
+            <span v-else class="meta-value">{{ formatDate(quote.request_date) }}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Termín odevzdání</span>
-            <span class="meta-value">{{ formatDate(quote.offer_deadline) }}</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.offer_deadline"
+              type="date"
+              data-testid="quote-edit-deadline"
+            />
+            <span v-else class="meta-value">{{ formatDate(quote.offer_deadline) }}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Platnost</span>
-            <span class="meta-value">{{ formatDate(quote.valid_until) }}</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.valid_until"
+              type="date"
+              data-testid="quote-edit-valid"
+            />
+            <span v-else class="meta-value">{{ formatDate(quote.valid_until) }}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Dodací podmínky</span>
-            <span class="meta-value">{{ quote.delivery_terms ?? '—' }}</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.delivery_terms"
+              placeholder="dodací podmínky"
+              data-testid="quote-edit-delivery"
+            />
+            <span v-else class="meta-value">{{ quote.delivery_terms ?? '—' }}</span>
           </div>
-          <div v-if="quote.notes" class="meta-row meta-row-full">
+          <div class="meta-row meta-row-full">
+            <span class="meta-label">Název nabídky</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.title"
+              placeholder="název nabídky"
+              data-testid="quote-edit-title"
+            />
+            <span v-else class="meta-value">{{ quote.title || '—' }}</span>
+          </div>
+          <div class="meta-row meta-row-full">
             <span class="meta-label">Poznámky</span>
-            <span class="meta-value">{{ quote.notes }}</span>
+            <InlineInput
+              v-if="editMode"
+              v-model="editForm.notes"
+              placeholder="poznámky"
+              data-testid="quote-edit-notes"
+            />
+            <span v-else-if="quote.notes" class="meta-value">{{ quote.notes }}</span>
+            <span v-else-if="!quote.notes && !editMode" class="meta-value t4">—</span>
           </div>
         </div>
       </div>
@@ -318,50 +473,58 @@ async function onDownloadPdf() {
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="item in quote.items"
-                :key="item.id"
-                class="qitem-row"
-                tabindex="0"
-                :class="{ act: selectedItemId === item.id }"
-                :data-testid="`quote-item-row-${item.id}`"
-                @click="selectItem(item.id)"
-                @focusin="selectItem(item.id)"
-                @keydown="handleRowKeydown(item, $event, quote.status === 'draft')"
-              >
-                <td class="t4">{{ item.article_number ?? '—' }}</td>
-                <td class="title-cell">{{ item.part_name ?? '—' }}</td>
-                <td class="t4">{{ item.drawing_number ?? '—' }}</td>
-                <td class="col-num">{{ item.quantity }}</td>
-                <td class="col-currency">{{ formatCurrency(item.unit_price) }}</td>
-                <td class="col-currency">{{ formatCurrency(item.line_total) }}</td>
-                <td class="act-cell">
-                  <TriangleAlertIcon
-                    v-if="item.batch_approx"
-                    class="approx-warn"
-                    :size="ICON_SIZE_SM"
-                    title="Neexistuje přesná dávka — cena z nejbližší nižší"
-                  />
-                  <button
-                    v-if="item.part_id"
-                    class="icon-btn"
-                    title="Otevřít díl"
-                    :data-testid="`quote-item-link-${item.id}`"
-                    @click.stop="openPartDetail"
-                  >
-                    <ExternalLinkIcon :size="ICON_SIZE_SM" />
-                  </button>
-                  <button
-                    v-if="quote.status === 'draft'"
-                    class="icon-btn icon-btn-danger"
-                    title="Odebrat položku (Ctrl+D)"
-                    :data-testid="`quote-item-delete-${item.id}`"
-                    @click.stop="onRemoveItem(item.id, item.article_number ?? item.part_number)"
-                  >
-                    <Trash2Icon :size="ICON_SIZE_SM" />
-                  </button>
-                </td>
-              </tr>
+              <template v-for="(group, gi) in groupedItems" :key="gi">
+                <tr
+                  v-for="(item, ii) in group"
+                  :key="item.id"
+                  class="qitem-row"
+                  tabindex="0"
+                  :class="{
+                    act: selectedItemId === item.id,
+                    'group-first': ii === 0,
+                    'group-cont': ii > 0,
+                  }"
+                  :data-testid="`quote-item-row-${item.id}`"
+                  @click="selectItem(item.id)"
+                  @focusin="selectItem(item.id)"
+                  @keydown="handleRowKeydown(item, $event, quote.status === 'draft')"
+                >
+                  <!-- Identifikační buňky — jen na prvním řádku skupiny -->
+                  <td class="t4">{{ ii === 0 ? (item.article_number ?? '—') : '' }}</td>
+                  <td class="title-cell">{{ ii === 0 ? (item.part_name ?? '—') : '' }}</td>
+                  <td class="t4">{{ ii === 0 ? (item.drawing_number ?? '—') : '' }}</td>
+                  <!-- Cenové buňky — každý řádek -->
+                  <td class="col-num">{{ item.quantity }}</td>
+                  <td class="col-currency">{{ formatCurrency(item.unit_price) }}</td>
+                  <td class="col-currency">{{ formatCurrency(item.line_total) }}</td>
+                  <td class="act-cell">
+                    <TriangleAlertIcon
+                      v-if="item.batch_approx"
+                      class="approx-warn"
+                      :size="ICON_SIZE_SM"
+                      title="Neexistuje přesná dávka — cena z nejbližší nižší"
+                    />
+                    <button
+                      v-if="item.part_id && ii === 0"
+                      class="icon-btn"
+                      title="Otevřít díl"
+                      :data-testid="`quote-item-link-${item.id}`"
+                      @click.stop="openPartDetail"
+                    >
+                      <ExternalLinkIcon :size="ICON_SIZE_SM" />
+                    </button>
+                    <button
+                      v-if="quote.status === 'draft'"
+                      class="icon-btn icon-btn-danger"
+                      title="Odebrat položku (Ctrl+D)"
+                      :data-testid="`quote-item-delete-${item.id}`"
+                      @click.stop="onRemoveItem(item.id, item.article_number ?? item.part_number)"
+                    >
+                      <Trash2Icon :size="ICON_SIZE_SM" />
+                    </button>
+                  </td>
+                </tr>
+              </template>
 
               <!-- Add item row — DRAFT only -->
               <tr v-if="quote.status === 'draft'" class="add-row">
@@ -405,7 +568,7 @@ async function onDownloadPdf() {
         </div>
 
         <!-- Empty + add hint -->
-        <div v-if="!quote.items.length && quote.status !== 'draft'" class="items-empty">
+        <div v-if="!groupedItems.length && quote.status !== 'draft'" class="items-empty">
           <span class="t4">Žádné položky</span>
         </div>
       </div>
@@ -522,6 +685,13 @@ async function onDownloadPdf() {
 .qitem-row { cursor: default; }
 .qitem-row:hover { background: rgba(255, 255, 255, 0.025); }
 .qitem-row.act { background: rgba(255, 255, 255, 0.035); }
+
+/* Skupinové řádky — první řádek skupiny má horní border pro vizuální separaci */
+.qitem-row.group-first:not(:first-child) td { border-top: 1px solid var(--b1); }
+/* Pokračující řádky skupiny — jemnější indent pro dávky */
+.qitem-row.group-cont .col-num,
+.qitem-row.group-cont .col-currency { color: var(--t2); }
+.qitem-row.group-cont td:first-child { border-left: 2px solid var(--b2); }
 
 /* ─── Add item row ─── */
 .add-row td { background: var(--ground); border-top: 1px solid var(--b1); }

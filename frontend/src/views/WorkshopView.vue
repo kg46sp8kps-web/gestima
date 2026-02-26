@@ -25,24 +25,21 @@
       </div>
     </header>
 
-    <!-- Hlavní obsah — 3 panely -->
+    <!-- Hlavní obsah — 2 panely: fronta (60%) + operace+odvod (40%) -->
     <div class="workshop-view__body">
-      <!-- Panel 1: Seznam zakázek -->
-      <section class="workshop-panel workshop-panel--jobs">
-        <div class="workshop-panel__title">Zakázky</div>
-        <WorkshopJobList />
+      <!-- Panel 1: Fronta operací (60%) -->
+      <section class="workshop-panel workshop-panel--queue">
+        <WorkshopQueueTable />
       </section>
 
-      <!-- Panel 2: Operace + časovač -->
-      <section class="workshop-panel workshop-panel--opers">
-        <div class="workshop-panel__title">Operace</div>
-        <WorkshopOperationPanel />
-      </section>
-
-      <!-- Panel 3: Formulář odvodu -->
-      <section class="workshop-panel workshop-panel--form">
-        <div class="workshop-panel__title">Odvod</div>
-        <WorkshopTransactionForm />
+      <!-- Panel 2: Operace + odvod (40%) — stacked vertikálně -->
+      <section class="workshop-panel workshop-panel--right">
+        <div class="rp-top">
+          <WorkshopOperationPanel />
+        </div>
+        <div class="rp-bottom">
+          <WorkshopTransactionForm />
+        </div>
       </section>
     </div>
 
@@ -50,7 +47,7 @@
     <footer v-if="store.timer.running" class="workshop-view__timer-bar">
       <span class="timer-bar__dot" />
       <span class="timer-bar__text">
-        Časovač běží — {{ store.activeJob?.Job }} / Op {{ store.timer.operNum }}
+        Časovač běží — {{ store.timer.job }} / Op {{ store.timer.operNum }}
         — {{ formattedTimerTime }}
       </span>
     </footer>
@@ -62,7 +59,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ClipboardList, LogOut } from 'lucide-vue-next'
 import { useWorkshopStore } from '@/stores/workshop'
 import { useAuthStore } from '@/stores/auth'
-import WorkshopJobList from '@/components/modules/workshop/WorkshopJobList.vue'
+import WorkshopQueueTable from '@/components/modules/workshop/WorkshopQueueTable.vue'
 import WorkshopOperationPanel from '@/components/modules/workshop/WorkshopOperationPanel.vue'
 import WorkshopTransactionForm from '@/components/modules/workshop/WorkshopTransactionForm.vue'
 import { ICON_SIZE } from '@/config/design'
@@ -84,7 +81,7 @@ const formattedTimerTime = computed(() => {
 })
 
 onMounted(() => {
-  store.fetchJobs()
+  store.fetchQueue()
   store.fetchMyTransactions()
 })
 </script>
@@ -147,20 +144,20 @@ onMounted(() => {
   padding: 8px 12px;
 }
 
-/* Hlavní obsah — 3 panely vedle sebe */
+/* Hlavní obsah — 2 panely: 60% fronta | 40% pravý panel */
 .workshop-view__body {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 3fr 2fr;
   flex: 1;
   overflow: hidden;
   gap: 0;
 }
 
-/* Na menším iPadu (portrait) — stack pod sebou */
-@container (max-width: 900px) {
+/* Na úzkém iPadu (portrait) — stack pod sebou */
+@container (max-width: 800px) {
   .workshop-view__body {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: 1fr 1fr;
     overflow-y: auto;
   }
 }
@@ -177,16 +174,24 @@ onMounted(() => {
   border-right: none;
 }
 
-.workshop-panel__title {
-  font-size: var(--fsm);
-  font-weight: 600;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 8px var(--pad);
-  background: var(--ground);
+/* Pravý panel — vertikálně split na OperationPanel (horní) a TransactionForm (dolní) */
+.workshop-panel--right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rp-top {
+  flex: 3;
+  overflow: hidden;
   border-bottom: 1px solid var(--b2);
-  flex-shrink: 0;
+  min-height: 0;
+}
+
+.rp-bottom {
+  flex: 2;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Timer bar */

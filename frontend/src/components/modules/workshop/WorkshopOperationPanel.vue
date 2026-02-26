@@ -1,8 +1,8 @@
 <template>
   <div class="oper-panel" data-testid="workshop-operation-panel">
-    <!-- Žádná zakázka vybrána -->
-    <div v-if="!store.activeJob" class="oper-panel__empty">
-      <span>Vyberte zakázku ze seznamu</span>
+    <!-- Žádná operace vybrána -->
+    <div v-if="!store.activeQueueItem" class="oper-panel__empty">
+      <span>Vyberte operaci z fronty</span>
     </div>
 
     <template v-else>
@@ -31,44 +31,15 @@
       <!-- Hlavička zakázky -->
       <div class="oper-panel__job-header">
         <div class="oper-panel__job-title">
-          <span class="oper-panel__job-num">{{ store.activeJob.Job }}</span>
-          <span class="oper-panel__job-item">{{ store.activeJob.DerJobItem }}</span>
+          <span class="oper-panel__job-num">{{ store.activeQueueItem.Job }}</span>
+          <span class="oper-panel__job-oper">Op {{ store.activeQueueItem.OperNum }}</span>
+          <span class="oper-panel__job-item">{{ store.activeQueueItem.DerJobItem }}</span>
         </div>
-        <span class="oper-panel__job-desc">{{ store.activeJob.JobDescription }}</span>
+        <span class="oper-panel__job-desc">{{ store.activeQueueItem.JobDescription }}</span>
       </div>
 
-      <!-- Loading operací -->
-      <div v-if="store.loadingOperations" class="oper-panel__loading">
-        <Spinner text="Načítám operace…" />
-      </div>
-
-      <!-- Operace -->
-      <div v-else class="oper-panel__opers">
-        <button
-          v-for="oper in store.operations"
-          :key="oper.OperNum"
-          class="oper-btn"
-          :class="{ 'oper-btn--active': isActiveOper(oper) }"
-          :data-testid="`oper-btn-${oper.OperNum}`"
-          @click="store.selectOperation(oper)"
-        >
-          <span class="oper-btn__num">Op {{ oper.OperNum }}</span>
-          <span class="oper-btn__wc">{{ oper.Wc }}</span>
-          <span v-if="oper.QtyComplete != null" class="oper-btn__qty">
-            {{ Math.round(oper.QtyComplete) }}/{{ oper.QtyReleased != null ? Math.round(oper.QtyReleased) : '?' }} ks
-          </span>
-          <!-- Plánované hodiny dle módu -->
-          <span v-if="store.workMode === 'setup' && oper.SetupHrs" class="oper-btn__hrs">
-            {{ oper.SetupHrs }} hod seř.
-          </span>
-          <span v-else-if="store.workMode === 'production' && oper.RunHrs" class="oper-btn__hrs">
-            {{ oper.RunHrs }} hod/ks
-          </span>
-        </button>
-      </div>
-
-      <!-- Materiály k vybrané operaci -->
-      <div v-if="store.activeOperation" class="oper-panel__materials">
+      <!-- Materiály k operaci -->
+      <div class="oper-panel__materials">
         <div class="oper-panel__materials-header">
           <span>Materiály</span>
           <Spinner v-if="store.loadingMaterials" size="sm" inline />
@@ -90,17 +61,16 @@
         </div>
       </div>
 
-      <!-- Časovač (zobrazí se jen když je operace vybrána) -->
-      <div v-if="store.activeOperation" class="oper-panel__timer">
+      <!-- Časovač -->
+      <div class="oper-panel__timer">
         <div class="timer-display" :class="{ 'timer-display--running': store.timer.running }">
           <span class="timer-display__time">{{ formattedTime }}</span>
           <span class="timer-display__label">{{ store.timer.running ? 'Probíhá' : 'Připraveno' }}</span>
         </div>
 
-        <!-- START / STOP tlačítka -->
-        <div class="timer-buttons">
+        <!-- START (timer neběží) -->
+        <div v-if="!store.timer.running" class="timer-buttons">
           <button
-            v-if="!store.timer.running"
             class="timer-btn timer-btn--start"
             :disabled="store.startingTimer"
             data-testid="timer-start"
@@ -110,20 +80,92 @@
             <Play v-else :size="ICON_SIZE_LG" />
             <span>{{ store.startingTimer ? 'Odesílám…' : 'START' }}</span>
           </button>
-          <button
-            v-else
-            class="timer-btn timer-btn--stop"
-            data-testid="timer-stop"
-            @click="onStopTimer"
-          >
-            <Square :size="ICON_SIZE_LG" />
-            <span>STOP</span>
-          </button>
         </div>
+
+        <!-- STOP sekce (timer běží) -->
+        <template v-else>
+          <!-- Seřízení: přímý stop bez formuláře -->
+          <div v-if="store.timer.mode === 'setup'" class="timer-buttons">
+            <button
+              class="timer-btn timer-btn--stop"
+              data-testid="timer-stop"
+              @click="onSetupStop"
+            >
+              <Square :size="ICON_SIZE_LG" />
+              <span>Ukončit seřízení</span>
+            </button>
+          </div>
+
+          <!-- Výroba: STOP tlačítko → inline formulář s kusy -->
+          <template v-else>
+            <!-- Trigger STOP -->
+            <div v-if="!showStopForm" class="timer-buttons">
+              <button
+                class="timer-btn timer-btn--stop"
+                data-testid="timer-stop"
+                @click="showStopForm = true"
+              >
+                <Square :size="ICON_SIZE_LG" />
+                <span>STOP</span>
+              </button>
+            </div>
+
+            <!-- Inline formulář pro zadání kusů při STOP -->
+            <div v-else class="timer-stop-form" data-testid="timer-stop-form">
+              <Input
+                :model-value="stopForm.qty_completed != null ? String(stopForm.qty_completed) : null"
+                type="number"
+                label="Hotové kusy"
+                placeholder="0"
+                :min="0"
+                :step="1"
+                testid="stop-qty-completed"
+                class="timer-stop-form__input--large"
+                @update:model-value="stopForm.qty_completed = $event != null ? Number($event) : null"
+              />
+              <Input
+                :model-value="stopForm.qty_scrapped != null ? String(stopForm.qty_scrapped) : null"
+                type="number"
+                label="Zmetky"
+                placeholder="0"
+                :min="0"
+                :step="1"
+                testid="stop-qty-scrapped"
+                @update:model-value="stopForm.qty_scrapped = $event != null ? Number($event) : null"
+              />
+              <label class="flag-check" data-testid="stop-oper-complete">
+                <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
+                <input
+                  v-model="stopForm.oper_complete"
+                  type="checkbox"
+                  class="flag-check__input"
+                />
+                <span class="flag-check__label">Operace dokončena</span>
+              </label>
+              <div class="timer-stop-form__actions">
+                <button
+                  class="timer-btn timer-btn--stop timer-stop-form__confirm"
+                  data-testid="timer-stop-confirm"
+                  @click="onProductionStop"
+                >
+                  <Square :size="20" />
+                  <span>Potvrdit STOP</span>
+                </button>
+                <button
+                  class="btn-secondary timer-stop-form__cancel"
+                  data-testid="timer-stop-cancel"
+                  @click="cancelStopForm"
+                >
+                  Zrušit
+                </button>
+              </div>
+            </div>
+          </template>
+        </template>
 
         <!-- Info o aktivním timeru (jiná zakázka) -->
         <div
-          v-if="store.timer.running && store.timer.job !== store.activeJob?.Job"
+          v-if="store.timer.running && store.timer.job !== store.activeQueueItem?.Job"
           class="timer-warn"
         >
           Časovač běží pro jinou zakázku: {{ store.timer.job }} / Op {{ store.timer.operNum }}
@@ -134,21 +176,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Play, Square, Wrench, Cog, Loader } from 'lucide-vue-next'
 import { useWorkshopStore } from '@/stores/workshop'
 import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
-import type { WorkshopOperation } from '@/types/workshop'
+import Input from '@/components/ui/Input.vue'
 
 const ICON_SIZE_LG = 28
 
 const store = useWorkshopStore()
 const ui = useUiStore()
-
-function isActiveOper(oper: WorkshopOperation) {
-  return store.activeOperation?.OperNum === oper.OperNum
-}
 
 const formattedTime = computed(() => {
   const s = store.timerElapsed
@@ -162,6 +200,19 @@ const formattedTime = computed(() => {
   ].join(':')
 })
 
+// Inline STOP formulář pro výrobní mód
+const showStopForm = ref(false)
+const stopForm = ref({
+  qty_completed: null as number | null,
+  qty_scrapped: null as number | null,
+  oper_complete: false,
+})
+
+function cancelStopForm() {
+  showStopForm.value = false
+  stopForm.value = { qty_completed: null, qty_scrapped: null, oper_complete: false }
+}
+
 async function onStartTimer() {
   if (!store.activeJob || !store.activeOperation) return
   if (store.timer.running) {
@@ -171,8 +222,18 @@ async function onStartTimer() {
   await store.startTimer(store.activeJob, store.activeOperation)
 }
 
-async function onStopTimer() {
+async function onSetupStop() {
   await store.stopTimer()
+}
+
+async function onProductionStop() {
+  showStopForm.value = false
+  await store.stopTimer({
+    qty_completed: stopForm.value.qty_completed,
+    qty_scrapped: stopForm.value.qty_scrapped,
+    oper_complete: stopForm.value.oper_complete,
+  })
+  stopForm.value = { qty_completed: null, qty_scrapped: null, oper_complete: false }
 }
 </script>
 
@@ -191,13 +252,6 @@ async function onStopTimer() {
   flex: 1;
   color: var(--t3);
   font-size: var(--fs);
-}
-
-.oper-panel__loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
 }
 
 /* Seřizuji / Vyrábím toggle */
@@ -260,12 +314,19 @@ async function onStopTimer() {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .oper-panel__job-num {
   font-size: var(--fsh);
   font-weight: 700;
   color: var(--t1);
+}
+
+.oper-panel__job-oper {
+  font-size: var(--fs);
+  font-weight: 500;
+  color: var(--red);
 }
 
 .oper-panel__job-item {
@@ -278,73 +339,10 @@ async function onStopTimer() {
   color: var(--t3);
 }
 
-/* Operace */
-.oper-panel__opers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap);
-  padding: var(--pad);
-  flex-shrink: 0;
-}
-
-/* Velká touch tlačítka pro operace */
-.oper-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-width: 100px;
-  min-height: 80px;
-  padding: 12px;
-  background: var(--surface);
-  border: 2px solid var(--b2);
-  border-radius: var(--r);
-  cursor: pointer;
-  transition: background 120ms var(--ease), border-color 120ms var(--ease);
-  font-family: var(--font);
-}
-
-.oper-btn:hover {
-  background: var(--raised);
-  border-color: var(--b3);
-}
-
-.oper-btn--active {
-  background: var(--raised);
-  border-color: var(--red);
-}
-
-.oper-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
-}
-
-.oper-btn__num {
-  font-size: var(--fsh);
-  font-weight: 700;
-  color: var(--t1);
-}
-
-.oper-btn__wc {
-  font-size: var(--fsm);
-  color: var(--t3);
-}
-
-.oper-btn__qty {
-  font-size: var(--fss);
-  color: var(--t3);
-}
-
-.oper-btn__hrs {
-  font-size: var(--fss);
-  color: var(--warn);
-}
-
 /* Materiály */
 .oper-panel__materials {
   padding: var(--pad);
-  border-top: 1px solid var(--b2);
+  border-bottom: 1px solid var(--b2);
   flex-shrink: 0;
 }
 
@@ -401,7 +399,6 @@ async function onStopTimer() {
 /* Časovač */
 .oper-panel__timer {
   padding: var(--pad);
-  border-top: 1px solid var(--b2);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -442,7 +439,7 @@ async function onStopTimer() {
   gap: var(--pad);
 }
 
-/* Velká tlačítka pro START/STOP */
+/* Velká tlačítka START/STOP */
 .timer-btn {
   display: flex;
   align-items: center;
@@ -479,6 +476,11 @@ async function onStopTimer() {
   color: var(--base);
 }
 
+.timer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .timer-btn__spin {
   animation: spin 1s linear infinite;
 }
@@ -486,6 +488,67 @@ async function onStopTimer() {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+/* Inline STOP formulář */
+.timer-stop-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--ground);
+  border-radius: var(--r);
+  border: 1px solid var(--b3);
+}
+
+.timer-stop-form__input--large :deep(.input-ctrl) {
+  min-height: 52px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 12px;
+}
+
+.flag-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  cursor: pointer;
+}
+
+.flag-check__input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--red);
+  cursor: pointer;
+}
+
+.flag-check__label {
+  font-size: var(--fs);
+  color: var(--t2);
+}
+
+.timer-stop-form__actions {
+  display: flex;
+  gap: var(--pad);
+}
+
+.timer-stop-form__confirm {
+  flex: 2;
+  min-height: 52px;
+  font-size: var(--fs);
+  letter-spacing: 0.5px;
+}
+
+.timer-stop-form__cancel {
+  flex: 1;
+  min-height: 52px;
+  padding: 8px 12px;
+  font-size: var(--fs);
 }
 
 .timer-warn {

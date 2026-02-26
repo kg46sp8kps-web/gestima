@@ -215,7 +215,13 @@ async def favicon():
 @app.get("/logo.png", include_in_schema=False)
 async def logo():
     from fastapi.responses import FileResponse
-    return FileResponse("app/static/img/logo.png")
+    return FileResponse("app/static/img/logo.png", media_type="image/png")
+
+@app.get("/manifest.json", include_in_schema=False)
+async def manifest():
+    from fastapi.responses import FileResponse
+    frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+    return FileResponse(str(frontend_dist / "manifest.json"))
 
 app.include_router(auth_router.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
