@@ -6,15 +6,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /*
-    ═══════════════════════════════════════════════════
-      KOVO RYBKA — Document Base v3.0
-      Filozofie: bílý papír + Inter + jedna červená linka.
-      Wow = confidence, ne dekorace.
-      --m: 40px  (velkorysý okraj, jako drahý papír)
-    ═══════════════════════════════════════════════════
-    */
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     @page { size: A4; margin: 0; }
 
@@ -35,10 +26,45 @@
       color: var(--g1);
       background: #c4c7cc;
       display: flex;
-      justify-content: center;
-      padding: 40px 16px;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
     }
 
+    /* ══════════════════════════════════════
+       PŘEPÍNAČ JAZYKA
+    ══════════════════════════════════════ */
+    .lang-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .lang-buttons {
+      display: inline-flex;
+      background: rgba(0,0,0,0.18);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .lb {
+      padding: 5px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .lb.active { background: #fff; color: #111; }
+    .lb:hover:not(.active) { color: rgba(255,255,255,0.85); }
+
+    /* ══════════════════════════════════════
+       STRÁNKA A4
+    ══════════════════════════════════════ */
     .page {
       width: 210mm;
       min-height: 297mm;
@@ -48,11 +74,8 @@
       flex-direction: column;
     }
 
-    .doc-top    { display: none; }
-    .doc-bottom { display: none; }
-
     /* ══════════════════════════════════════
-       HEADER — bílý, typografický, bez dekorace
+       HEADER
     ══════════════════════════════════════ */
     .doc-header {
       display: grid;
@@ -74,16 +97,6 @@
     .doc-meta-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 6px; }
     .doc-date { font-size: 7pt; color: var(--g4); }
 
-    .doc-status {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 2px 8px; border-radius: 20px;
-      font-size: 5.5pt; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
-    }
-    .doc-status.sent     { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-    .doc-status.draft    { background: var(--g5); color: var(--g4); border: 1px solid var(--ln); }
-    .doc-status.approved { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-    .sdot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
-
     /* ══════════════════════════════════════
        ZÁKAZNÍK + DODÁNÍ
     ══════════════════════════════════════ */
@@ -101,20 +114,12 @@
     .pid .pl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.8px; color: var(--g4); }
     .pid .pv { font-size: 7.5pt; font-weight: 600; color: var(--g1); margin-top: 1px; }
 
-    .delivery-col {
-      padding-left: 32px;
-      border-left: 1px solid var(--ln);
-      min-width: 210px;
-    }
+    .delivery-col { padding-left: 32px; border-left: 1px solid var(--ln); min-width: 210px; }
 
     /* ══════════════════════════════════════
        META STRIP
     ══════════════════════════════════════ */
-    .meta-strip {
-      display: flex;
-      border-bottom: 1px solid var(--ln);
-      background: var(--g5);
-    }
+    .meta-strip { display: flex; border-bottom: 1px solid var(--ln); background: var(--g5); }
 
     .mc { padding: 8px 16px; border-right: 1px solid var(--ln); flex-shrink: 0; }
     .mc:first-child { padding-left: var(--m); }
@@ -122,24 +127,17 @@
     .mc-l { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.9px; color: var(--g4); font-weight: 500; margin-bottom: 3px; }
     .mc-v { font-size: 7.5pt; font-weight: 600; color: var(--g1); }
     .mc-v.alert { color: var(--red); }
-    .mc-v.muted { font-weight: 400; color: var(--g3); }
 
     /* ══════════════════════════════════════
-       TABULKA DÍLŮ
+       TABULKA
     ══════════════════════════════════════ */
     .items-wrap { flex: 1; }
     table { width: 100%; border-collapse: collapse; }
 
-    /* Hlavička — červená linka pod ní je DRUHÝ a POSLEDNÍ červený prvek */
     thead th {
-      font-size: 6pt;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.9px;
-      color: var(--g4);
-      background: transparent;
-      padding: 11px 8px 10px;
-      text-align: left;
+      font-size: 6pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px;
+      color: var(--g4); background: transparent;
+      padding: 11px 8px 10px; text-align: left;
       border-bottom: 1.5px solid var(--red);
       white-space: nowrap;
     }
@@ -147,24 +145,20 @@
     thead th:last-child  { padding-right: var(--m); text-align: right; }
     thead th.r { text-align: right; }
 
-    /* Řádek dílu */
     .tr-part td { padding: 12px 8px 4px; vertical-align: top; }
     .tr-part td:first-child { padding-left: var(--m); }
     .tr-part td:last-child  { padding-right: var(--m); }
 
-    /* Řádek dávky */
     .tr-batch td { padding: 4px 8px; font-size: 8pt; color: var(--g3); vertical-align: middle; }
     .tr-batch td:first-child { padding-left: var(--m); }
     .tr-batch td:last-child  { padding-right: var(--m); }
     .tr-batch-last td { padding-bottom: 12px; }
 
-    /* Alternating — bílá / velmi světlá šedá */
     .group-a td { background: #fff; }
     .group-a.tr-batch-last td { border-bottom: 1px solid #f0f0f0; }
     .group-b td { background: #fafafa; }
     .group-b.tr-batch-last td { border-bottom: 1px solid #e8e8e8; }
 
-    /* Obsah buněk — artikl je primární identifikátor */
     .p-idx    { width: 22px; text-align: right; font-size: 7.5pt; font-weight: 600; color: var(--g4); }
     .p-artikl { font-size: 10pt; font-weight: 700; color: var(--g1); font-family: 'SF Mono', 'Consolas', 'Courier New', monospace; letter-spacing: 0.3px; }
     .p-name   { font-size: 7.5pt; color: var(--g3); margin-top: 2px; }
@@ -173,14 +167,7 @@
     .p-note   { font-size: 7.5pt; color: var(--g3); font-style: italic; margin-top: 4px; }
 
     td.b-qty  { text-align: right; width: 68px; white-space: nowrap; font-weight: 600; color: var(--g2); padding-right: 28px; }
-    td.b-unit {
-      text-align: right; width: 120px;
-      white-space: nowrap;
-      font-size: 9.5pt; font-weight: 700;
-      color: var(--g1);
-      letter-spacing: -0.2px;
-      font-variant-numeric: tabular-nums;
-    }
+    td.b-unit { text-align: right; width: 120px; white-space: nowrap; font-size: 9.5pt; font-weight: 700; color: var(--g1); letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
 
     .approx {
       display: inline-flex; font-size: 5.5pt; font-weight: 600; letter-spacing: 0.3px;
@@ -188,7 +175,6 @@
       border-radius: 3px; padding: 1px 4px; vertical-align: middle; margin-left: 4px;
     }
 
-    /* Legenda */
     .table-legend {
       display: flex; gap: 18px; align-items: center;
       padding: 8px var(--m) 0;
@@ -196,18 +182,12 @@
     }
 
     /* ══════════════════════════════════════
-       POZNÁMKY
+       POZNÁMKY + FOOTER
     ══════════════════════════════════════ */
-    .notes-section {
-      padding: 12px var(--m) 10px;
-      border-top: 1px solid var(--ln);
-    }
+    .notes-section { padding: 12px var(--m) 10px; border-top: 1px solid var(--ln); }
     .notes-section .nl { font-size: 5.5pt; text-transform: uppercase; letter-spacing: 0.9px; color: var(--g4); font-weight: 600; margin-bottom: 4px; }
     .notes-section .nv { font-size: 7pt; color: var(--g4); line-height: 1.7; }
 
-    /* ══════════════════════════════════════
-       FOOTER
-    ══════════════════════════════════════ */
     .doc-footer {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
       padding: 16px var(--m) 20px;
@@ -220,69 +200,79 @@
     .val-note { text-align: center; font-size: 6.5pt; color: var(--g4); line-height: 1.75; }
 
     @media print {
-      body { background: none; padding: 0; }
+      .lang-bar { display: none; }
+      body { background: none; padding: 0; align-items: flex-start; }
       .page { box-shadow: none; }
     }
   </style>
 </head>
 <body>
-<div class="page">
 
-  <!-- ══ HEADER ══ -->
-  <div class="doc-header">
-    <img class="logo" src="frontend/public/logo.png" alt="KOVO RYBKA">
-    <div>
-      <div class="co-name">KOVO RYBKA s.r.o.</div>
-      <div class="co-info">Přesné obrábění kovů &amp; zámečnictví &nbsp;·&nbsp; Ústecká 383, 561 17 Dlouhá Třebová</div>
-      <div class="co-info">+420 770 153 453 &nbsp;·&nbsp; info@kovorybka.cz &nbsp;·&nbsp; IČO 25959646 &nbsp;·&nbsp; DIČ CZ25959646</div>
+  <!-- ══ PŘEPÍNAČ JAZYKA ══ -->
+  <div class="lang-bar">
+    <div class="lang-buttons">
+      <button class="lb active" id="lb-cs" onclick="setLang('cs')">CZ</button>
+      <button class="lb" id="lb-en" onclick="setLang('en')">EN</button>
+      <button class="lb" id="lb-de" onclick="setLang('de')">DE</button>
     </div>
-    <div class="doc-id">
-      <div class="doc-type">Cenová nabídka</div>
-      <div class="doc-number">50240001</div>
-      <div class="doc-meta-row">
-        <span class="doc-date">25. 2. 2026</span>
+  </div>
+
+  <div class="page">
+
+    <!-- ══ HEADER ══ -->
+    <div class="doc-header">
+      <img class="logo" src="frontend/public/logo.png" alt="KOVO RYBKA">
+      <div>
+        <div class="co-name">KOVO RYBKA s.r.o.</div>
+        <div class="co-info"><span data-i18n="co.tag">Přesné obrábění kovů &amp; zámečnictví</span> &nbsp;·&nbsp; Ústecká 383, 561 17 Dlouhá Třebová</div>
+        <div class="co-info">+420 770 153 453 &nbsp;·&nbsp; info@kovorybka.cz &nbsp;·&nbsp; IČO 25959646 &nbsp;·&nbsp; DIČ CZ25959646</div>
+      </div>
+      <div class="doc-id">
+        <div class="doc-type" data-i18n="doc.type">Cenová nabídka</div>
+        <div class="doc-number">50240001</div>
+        <div class="doc-meta-row">
+          <span class="doc-date">25. 2. 2026</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ══ ZÁKAZNÍK + DODÁNÍ ══ -->
-  <div class="parties-bar">
-    <div>
-      <div class="party-label">Zákazník</div>
-      <div class="party-name">VZOROVÝ ZÁKAZNÍK a.s.</div>
-      <div class="party-info">Ing. Jan Novák &nbsp;·&nbsp; +420 604 123 456 &nbsp;·&nbsp; novak@vzorovy.cz &nbsp;·&nbsp; Průmyslová 15, 500 02 Hradec Králové</div>
-      <div class="party-ids">
-        <div class="pid"><div class="pl">IČO</div><div class="pv">12345678</div></div>
-        <div class="pid"><div class="pl">DIČ</div><div class="pv">CZ12345678</div></div>
+    <!-- ══ ZÁKAZNÍK + DODÁNÍ ══ -->
+    <div class="parties-bar">
+      <div>
+        <div class="party-label" data-i18n="customer.label">Zákazník</div>
+        <div class="party-name">VZOROVÝ ZÁKAZNÍK a.s.</div>
+        <div class="party-info">Ing. Jan Novák &nbsp;·&nbsp; +420 604 123 456 &nbsp;·&nbsp; novak@vzorovy.cz &nbsp;·&nbsp; Průmyslová 15, 500 02 Hradec Králové</div>
+        <div class="party-ids">
+          <div class="pid"><div class="pl" data-i18n="pid.ico">IČO</div><div class="pv">12345678</div></div>
+          <div class="pid"><div class="pl" data-i18n="pid.dic">DIČ</div><div class="pv">CZ12345678</div></div>
+        </div>
+      </div>
+      <div class="delivery-col">
+        <div class="party-label" data-i18n="delivery.label">Místo dodání</div>
+        <div class="party-name" style="font-size:9pt">Hala B, brána č. 3 &nbsp;·&nbsp; Průmyslová 15, 500 02 Hradec Králové</div>
+        <div class="party-info" style="margin-top:3px" data-i18n="delivery.terms">EXW Dlouhá Třebová &nbsp;·&nbsp; dodání do 21 dní od potvrzení</div>
       </div>
     </div>
-    <div class="delivery-col">
-      <div class="party-label">Místo dodání</div>
-      <div class="party-name" style="font-size:9pt">Hala B, brána č. 3 &nbsp;·&nbsp; Průmyslová 15, 500 02 Hradec Králové</div>
-      <div class="party-info" style="margin-top:3px">EXW Dlouhá Třebová &nbsp;·&nbsp; dodání do 21 dní od potvrzení</div>
+
+    <!-- ══ META ══ -->
+    <div class="meta-strip">
+      <div class="mc"><div class="mc-l" data-i18n="meta.inquiry-date">Datum poptávky</div><div class="mc-v">18. 2. 2026</div></div>
+      <div class="mc"><div class="mc-l" data-i18n="meta.deadline">Deadline nabídky</div><div class="mc-v alert">28. 2. 2026</div></div>
+      <div class="mc"><div class="mc-l" data-i18n="meta.valid">Nabídka platná do</div><div class="mc-v">31. 3. 2026</div></div>
+      <div class="mc"><div class="mc-l" data-i18n="meta.rfq-no">Číslo poptávky</div><div class="mc-v">RFQ-2026-0041</div></div>
     </div>
-  </div>
 
-  <!-- ══ META ══ -->
-  <div class="meta-strip">
-    <div class="mc"><div class="mc-l">Datum poptávky</div><div class="mc-v">18. 2. 2026</div></div>
-    <div class="mc"><div class="mc-l">Deadline nabídky</div><div class="mc-v alert">28. 2. 2026</div></div>
-    <div class="mc"><div class="mc-l">Nabídka platná do</div><div class="mc-v">31. 3. 2026</div></div>
-    <div class="mc"><div class="mc-l">Číslo poptávky</div><div class="mc-v">RFQ-2026-0041</div></div>
-  </div>
-
-  <!-- ══ TABULKA ══ -->
-  <div class="items-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:22px; text-align:right">#</th>
-          <th>Artikl &nbsp;/&nbsp; Díl</th>
-          <th class="r" style="width:68px; padding-right:28px">Množství</th>
-          <th class="r" style="width:120px">Cena / ks</th>
-        </tr>
-      </thead>
-      <!-- ─── Díl 1 — 3 dávky ─── -->
+    <!-- ══ TABULKA ══ -->
+    <div class="items-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22px; text-align:right">#</th>
+            <th data-i18n="th.part">Artikl&nbsp;/&nbsp;Díl</th>
+            <th class="r" style="width:68px; padding-right:28px" data-i18n="th.qty">Množství</th>
+            <th class="r" style="width:120px" data-i18n="th.price">Cena&nbsp;/&nbsp;ks</th>
+          </tr>
+        </thead>
         <tr class="tr-part group-a">
           <td class="p-idx">1</td>
           <td><div class="p-artikl">ABC-4521</div><div class="p-name">Hřídel přírubová Ø32</div><div class="p-meta"><span>č. 10240001</span><span>výkres VYK-0041A</span><span>rev. B</span></div></td>
@@ -292,21 +282,19 @@
         <tr class="tr-batch group-a"><td colspan="2"></td><td class="b-qty">50 ks</td><td class="b-unit">1 100,00 Kč</td></tr>
         <tr class="tr-batch tr-batch-last group-a"><td colspan="2"></td><td class="b-qty">100 ks</td><td class="b-unit">980,00 Kč</td></tr>
 
-        <!-- ─── Díl 2 — 2 dávky + poznámka ─── -->
         <tr class="tr-part group-b">
           <td class="p-idx">2</td>
           <td>
             <div class="p-artikl">XYZ-0089 <span class="approx">APPROX</span></div>
             <div class="p-name">Pouzdro ložiskové</div>
             <div class="p-meta"><span>č. 10240002</span><span>výkres VYK-0042</span><span>rev. A</span></div>
-            <div class="p-note">Cena bez materiálu — materiál dodá zákazník</div>
+            <div class="p-note" data-i18n="note.no-material">Cena bez materiálu — materiál dodá zákazník</div>
           </td>
           <td colspan="2"></td>
         </tr>
         <tr class="tr-batch group-b"><td colspan="2"></td><td class="b-qty">50 ks</td><td class="b-unit">876,50 Kč</td></tr>
         <tr class="tr-batch tr-batch-last group-b"><td colspan="2"></td><td class="b-qty">200 ks</td><td class="b-unit">710,00 Kč</td></tr>
 
-        <!-- ─── Díl 3 — 1 dávka ─── -->
         <tr class="tr-part group-a">
           <td class="p-idx">3</td>
           <td><div class="p-artikl">KR-2201</div><div class="p-name">Kryt převodovky — levý</div><div class="p-meta"><span>č. 10240003</span><span>výkres VYK-0043B</span><span>rev. C</span></div></td>
@@ -314,51 +302,146 @@
         </tr>
         <tr class="tr-batch tr-batch-last group-a"><td colspan="2"></td><td class="b-qty">25 ks</td><td class="b-unit">3 560,00 Kč</td></tr>
 
-        <!-- ─── Díl 4 — 3 dávky + poznámka ─── -->
         <tr class="tr-part group-b">
           <td class="p-idx">4</td>
           <td>
             <div class="p-artikl">FL-0044</div>
             <div class="p-name">Příruby spojovací M42</div>
             <div class="p-meta"><span>č. 10240004</span><span>výkres VYK-0044</span><span>rev. A</span></div>
-            <div class="p-note">Cena platí při dodání materiálu zákazníkem min. 5 dní před zahájením výroby</div>
+            <div class="p-note" data-i18n="note.material-lead">Cena platí při dodání materiálu zákazníkem min. 5 dní před zahájením výroby</div>
           </td>
           <td colspan="2"></td>
         </tr>
         <tr class="tr-batch group-b"><td colspan="2"></td><td class="b-qty">100 ks</td><td class="b-unit">510,00 Kč</td></tr>
         <tr class="tr-batch group-b"><td colspan="2"></td><td class="b-qty">200 ks</td><td class="b-unit">445,00 Kč</td></tr>
         <tr class="tr-batch tr-batch-last group-b"><td colspan="2"></td><td class="b-qty">500 ks</td><td class="b-unit">390,00 Kč</td></tr>
-    </table>
+      </table>
 
-    <div class="table-legend">
-      <span style="display:inline-flex;align-items:center;gap:4px"><span class="approx">APPROX</span> orientační cena — upřesnění při objednávce</span>
+      <div class="table-legend">
+        <span style="display:inline-flex;align-items:center;gap:4px"><span class="approx">APPROX</span> <span data-i18n="approx.hint">orientační cena — upřesnění při objednávce</span></span>
+      </div>
     </div>
+
+    <!-- ══ POZNÁMKY ══ -->
+    <div class="notes-section">
+      <div class="nl" data-i18n="notes.title">Poznámky</div>
+      <div class="nv" data-i18n="notes.vat">Všechny ceny jsou uvedeny bez DPH. Splatnost: 30 dní od vystavení faktury. Záloha: 30 % při potvrzení objednávky. Bankovní spojení sdělíme na vyžádání.</div>
+      <div class="nv" style="margin-top:4px" data-i18n="notes.validity">Nabídka platí za podmínek nezměněné výkresové dokumentace a materiálových cen k datu vystavení. Vyhrazujeme si právo na úpravu cen při výrazné změně cen vstupního materiálu.</div>
+    </div>
+
+    <!-- ══ FOOTER ══ -->
+    <div class="doc-footer">
+      <div>
+        <div class="sig-l" data-i18n="sig.supplier">Vystavil za dodavatele</div>
+        <div class="sig-line">Ladislav Rybka, jednatel</div>
+      </div>
+      <div class="val-note">
+        <span data-i18n="val.valid-until">Nabídka platná do</span> <strong>31. 3. 2026</strong>.<br>
+        <span data-i18n="val.terms">Potvrzením objednávky zákazník přijímá podmínky uvedené v nabídce.</span>
+      </div>
+      <div style="text-align:right">
+        <div class="sig-l" data-i18n="sig.customer">Přijato zákazníkem — razítko a podpis</div>
+        <div class="sig-line" style="text-align:right"><span data-i18n="sig.date">Dne:</span> _______________</div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ══ POZNÁMKY ══ -->
-  <div class="notes-section">
-    <div class="nl">Poznámky</div>
-    <div class="nv">Všechny ceny jsou uvedeny bez DPH. Splatnost: 30 dní od vystavení faktury. Záloha: 30 % při potvrzení objednávky. Bankovní spojení sdělíme na vyžádání.</div>
-    <div class="nv" style="margin-top:4px">Nabídka platí za podmínek nezměněné výkresové dokumentace a materiálových cen k datu vystavení. Vyhrazujeme si právo na úpravu cen při výrazné změně cen vstupního materiálu.</div>
-  </div>
+  <script>
+    const T = {
+      cs: {
+        'doc.type':          'Cenová nabídka',
+        'co.tag':            'Přesné obrábění kovů \u0026 zámečnictví',
+        'customer.label':    'Zákazník',
+        'delivery.label':    'Místo dodání',
+        'delivery.terms':    'EXW Dlouhá Třebová \u00a0·\u00a0 dodání do 21 dní od potvrzení',
+        'pid.ico':           'IČO',
+        'pid.dic':           'DIČ',
+        'meta.inquiry-date': 'Datum poptávky',
+        'meta.deadline':     'Deadline nabídky',
+        'meta.valid':        'Nabídka platná do',
+        'meta.rfq-no':       'Číslo poptávky',
+        'th.part':           'Artikl\u00a0/\u00a0Díl',
+        'th.qty':            'Množství',
+        'th.price':          'Cena\u00a0/\u00a0ks',
+        'note.no-material':  'Cena bez materiálu — materiál dodá zákazník',
+        'note.material-lead':'Cena platí při dodání materiálu zákazníkem min. 5 dní před zahájením výroby',
+        'approx.hint':       'orientační cena — upřesnění při objednávce',
+        'notes.title':       'Poznámky',
+        'notes.vat':         'Všechny ceny jsou uvedeny bez DPH. Splatnost: 30 dní od vystavení faktury. Záloha: 30 % při potvrzení objednávky. Bankovní spojení sdělíme na vyžádání.',
+        'notes.validity':    'Nabídka platí za podmínek nezměněné výkresové dokumentace a materiálových cen k datu vystavení. Vyhrazujeme si právo na úpravu cen při výrazné změně cen vstupního materiálu.',
+        'sig.supplier':      'Vystavil za dodavatele',
+        'sig.customer':      'Přijato zákazníkem — razítko a podpis',
+        'sig.date':          'Dne:',
+        'val.valid-until':   'Nabídka platná do',
+        'val.terms':         'Potvrzením objednávky zákazník přijímá podmínky uvedené v nabídce.',
+      },
+      en: {
+        'doc.type':          'Price Quotation',
+        'co.tag':            'Precision Machining \u0026 Metalwork',
+        'customer.label':    'Customer',
+        'delivery.label':    'Delivery Address',
+        'delivery.terms':    'EXW Dlouhá Třebová \u00a0·\u00a0 delivery within 21 days of confirmation',
+        'pid.ico':           'Reg. No.',
+        'pid.dic':           'VAT No.',
+        'meta.inquiry-date': 'Inquiry Date',
+        'meta.deadline':     'Offer Deadline',
+        'meta.valid':        'Valid Until',
+        'meta.rfq-no':       'Inquiry No.',
+        'th.part':           'Article\u00a0/\u00a0Part',
+        'th.qty':            'Qty',
+        'th.price':          'Price\u00a0/\u00a0pc',
+        'note.no-material':  'Price excl. material — material to be supplied by customer',
+        'note.material-lead':'Price valid if material delivered by customer min. 5 days before production start',
+        'approx.hint':       'indicative price — to be confirmed on order',
+        'notes.title':       'Notes',
+        'notes.vat':         'All prices are quoted exclusive of VAT. Payment terms: 30 days from invoice date. Advance payment: 30% upon order confirmation. Bank details available on request.',
+        'notes.validity':    'Quotation is valid subject to unchanged drawing documentation and material prices at the date of issue. We reserve the right to adjust prices in case of significant changes in raw material costs.',
+        'sig.supplier':      'Issued by supplier',
+        'sig.customer':      'Accepted by customer — stamp \u0026 signature',
+        'sig.date':          'Date:',
+        'val.valid-until':   'Quotation valid until',
+        'val.terms':         'By confirming the order, the customer accepts the terms stated in this quotation.',
+      },
+      de: {
+        'doc.type':          'Preisangebot',
+        'co.tag':            'Präzisionsbearbeitung \u0026 Schlosserei',
+        'customer.label':    'Kunde',
+        'delivery.label':    'Lieferadresse',
+        'delivery.terms':    'EXW Dlouhá Třebová \u00a0·\u00a0 Lieferung innerhalb 21 Tagen nach Bestätigung',
+        'pid.ico':           'Reg.-Nr.',
+        'pid.dic':           'USt.-IdNr.',
+        'meta.inquiry-date': 'Anfragedatum',
+        'meta.deadline':     'Angebotsfrist',
+        'meta.valid':        'Gültig bis',
+        'meta.rfq-no':       'Anfrage-Nr.',
+        'th.part':           'Artikel\u00a0/\u00a0Teil',
+        'th.qty':            'Menge',
+        'th.price':          'Preis\u00a0/\u00a0Stk',
+        'note.no-material':  'Preis ohne Material — Material wird vom Kunden beigestellt',
+        'note.material-lead':'Preis gilt bei Materiallieferung durch den Kunden min. 5 Tage vor Produktionsbeginn',
+        'approx.hint':       'Richtpreis — Bestätigung bei Bestellung',
+        'notes.title':       'Hinweise',
+        'notes.vat':         'Alle Preise verstehen sich ohne MwSt. Zahlungsziel: 30 Tage ab Rechnungsdatum. Anzahlung: 30 % bei Auftragsbestätigung. Bankverbindung auf Anfrage.',
+        'notes.validity':    'Das Angebot gilt unter der Voraussetzung unveränderter Zeichnungsunterlagen und Materialpreise zum Ausstellungsdatum. Wir behalten uns das Recht vor, die Preise bei wesentlichen Änderungen der Rohstoffkosten anzupassen.',
+        'sig.supplier':      'Ausgestellt vom Lieferanten',
+        'sig.customer':      'Vom Kunden akzeptiert — Stempel \u0026 Unterschrift',
+        'sig.date':          'Datum:',
+        'val.valid-until':   'Angebot gültig bis',
+        'val.terms':         'Mit Auftragsbestätigung akzeptiert der Kunde die in diesem Angebot genannten Bedingungen.',
+      },
+    };
 
-  <!-- ══ FOOTER ══ -->
-  <div class="doc-footer">
-    <div>
-      <div class="sig-l">Vystavil za dodavatele</div>
-      <div class="sig-line">Ladislav Rybka, jednatel</div>
-    </div>
-    <div class="val-note">
-      Nabídka platná do <strong>31. 3. 2026</strong>.<br>
-      Potvrzením objednávky zákazník přijímá podmínky uvedené v nabídce.
-    </div>
-    <div style="text-align:right">
-      <div class="sig-l">Přijato zákazníkem — razítko a podpis</div>
-      <div class="sig-line" style="text-align:right">Dne: _______________</div>
-    </div>
-  </div>
+    function setLang(lang) {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (T[lang][key] !== undefined) el.textContent = T[lang][key];
+      });
+      document.querySelectorAll('.lb').forEach(b => b.classList.remove('active'));
+      document.getElementById('lb-' + lang).classList.add('active');
+      document.documentElement.lang = lang;
+    }
+  </script>
 
-
-</div>
 </body>
 </html>
