@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
-import { PlusIcon, XIcon, CheckIcon, Link2OffIcon, ChevronDownIcon } from 'lucide-vue-next'
+import { PlusIcon, XIcon, CheckIcon, Link2OffIcon, ChevronDownIcon, Trash2Icon } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useUiStore } from '@/stores/ui'
+import { useDialog } from '@/composables/useDialog'
 import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
 import * as materialInputsApi from '@/api/material-inputs'
 import * as operationsApi from '@/api/operations'
@@ -28,6 +29,7 @@ interface Props {
 const props = defineProps<Props>()
 const parts = usePartsStore()
 const ui = useUiStore()
+const dialog = useDialog()
 const typeGuard = useItemTypeGuard(['part'])
 
 const part = computed(() => parts.getFocusedPart(props.ctx))
@@ -383,6 +385,25 @@ async function confirmCreate() {
   }
 }
 
+async function removeMaterial(m: MaterialInput) {
+  const confirmed = await dialog.confirm({
+    title: 'Odstranit materiál?',
+    message: `Materiál "${m.material_item?.name ?? m.price_category?.name ?? m.id}" bude odstraněn z dílu.`,
+    confirmLabel: 'Odstranit',
+    dangerous: true,
+  })
+  if (!confirmed) return
+  try {
+    await materialInputsApi.remove(m.id)
+    items.value = items.value.filter(x => x.id !== m.id)
+    if (part.value) _cache.set(part.value.id, [...items.value])
+    if (expandedId.value === m.id) expandedId.value = null
+    ui.showSuccess('Materiál odstraněn')
+  } catch {
+    ui.showError('Chyba při odstraňování materiálu')
+  }
+}
+
 watch(
   part,
   async (p) => {
@@ -554,7 +575,7 @@ watch(
               <th>Operace</th>
               <th class="r" style="width:80px">Hmotnost</th>
               <th class="r" style="width:100px">Cena / ks</th>
-              <th style="width:28px"></th>
+              <th style="width:56px"></th>
             </tr>
           </thead>
           <tbody v-for="m in items" :key="m.id">
@@ -613,7 +634,15 @@ watch(
               <td class="r">
                 <span class="badge price-val">{{ formatCurrency(m.cost_per_piece) }}</span>
               </td>
-              <td>
+              <td class="act-cell">
+                <button
+                  class="icon-btn icon-btn-danger"
+                  :data-testid="`delete-mat-${m.id}`"
+                  title="Odstranit materiál"
+                  @click="removeMaterial(m)"
+                >
+                  <Trash2Icon :size="ICON_SIZE_SM" />
+                </button>
                 <button
                   class="icon-btn"
                   :class="{ 'icon-btn-brand': expandedId === m.id }"
@@ -823,6 +852,9 @@ watch(
   overflow-x: hidden;
   min-height: 0;
 }
+
+/* ─── Action cell ─── */
+.act-cell { text-align: right; white-space: nowrap; }
 
 /* ─── Table rows ─── */
 .mat-row:hover td { background: rgba(255,255,255,0.025); }

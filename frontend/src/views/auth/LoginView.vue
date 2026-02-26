@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePrefetch } from '@/composables/usePrefetch'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const { prefetchAll } = usePrefetch()
 
 const username = ref('')
@@ -25,11 +26,19 @@ async function submit() {
     return
   }
 
+  const redirectTo = (route.query.redirect as string) || '/'
+
+  // Dílna nemá prefetch — přejdi rovnou bez čekání
+  if (redirectTo.startsWith('/dilna')) {
+    await router.push(redirectTo)
+    return
+  }
+
   await Promise.all([
     prefetchAll(),
     new Promise(r => setTimeout(r, 1400)),
   ])
-  await router.push('/')
+  await router.push(redirectTo)
 }
 </script>
 

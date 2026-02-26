@@ -210,6 +210,7 @@ class QuoteResponse(QuoteBase):
 class QuoteWithItemsResponse(QuoteResponse):
     """Quote with nested items for detail view"""
     items: List[QuoteItemResponse] = []
+    partner_name: Optional[str] = None  # M-10: denormalizovaný název zákazníka
 
 
 class QuoteListResponse(BaseModel):

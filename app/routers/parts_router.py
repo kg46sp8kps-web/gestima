@@ -67,7 +67,7 @@ async def copy_part_relations(
     # Copy material inputs if requested
     if copy_material:
         result = await db.execute(
-            select(MaterialInput).where(MaterialInput.part_id == source_part.id)
+            select(MaterialInput).where(MaterialInput.part_id == source_part.id, MaterialInput.deleted_at.is_(None))
         )
         source_material_inputs = result.scalars().all()
 
@@ -92,7 +92,7 @@ async def copy_part_relations(
     # Copy operations if requested
     if copy_operations:
         result = await db.execute(
-            select(Operation).where(Operation.part_id == source_part.id).order_by(Operation.seq)
+            select(Operation).where(Operation.part_id == source_part.id, Operation.deleted_at.is_(None)).order_by(Operation.seq)
         )
         source_operations = result.scalars().all()
 
@@ -127,7 +127,7 @@ async def copy_part_relations(
     # Copy batches if requested
     if copy_batches:
         result = await db.execute(
-            select(Batch).where(Batch.part_id == source_part.id)
+            select(Batch).where(Batch.part_id == source_part.id, Batch.deleted_at.is_(None))
         )
         source_batches = result.scalars().all()
 
@@ -318,7 +318,7 @@ async def update_part(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
 ):
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    result = await db.execute(select(Part).where(Part.part_number == part_number, Part.deleted_at.is_(None)))
     part = result.scalar_one_or_none()
     if not part:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
@@ -348,7 +348,7 @@ async def duplicate_part(
     """Duplikovat díl s novým part_number (generuje nové 8-digit číslo dle ADR-017 v2.0)"""
     from app.services.number_generator import NumberGenerator, NumberGenerationError
 
-    result = await db.execute(select(Part).where(Part.part_number == part_number))
+    result = await db.execute(select(Part).where(Part.part_number == part_number, Part.deleted_at.is_(None)))
     original = result.scalar_one_or_none()
     if not original:
         raise HTTPException(status_code=404, detail="Díl nenalezen")
@@ -479,7 +479,7 @@ async def get_part_full(
             selectinload(Part.material_inputs).joinedload(MaterialInput.material_item).joinedload(MaterialItem.group),
             selectinload(Part.material_inputs).joinedload(MaterialInput.price_category).joinedload(MaterialPriceCategory.material_group),
         )
-        .where(Part.part_number == part_number)
+        .where(Part.part_number == part_number, Part.deleted_at.is_(None))
     )
     part = result.scalar_one_or_none()
     if not part:

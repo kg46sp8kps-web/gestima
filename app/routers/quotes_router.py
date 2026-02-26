@@ -121,11 +121,13 @@ async def get_quote(
     current_user: User = Depends(get_current_user)
 ):
     """Get single quote by quote_number (with items)"""
-    from sqlalchemy.orm import selectinload
+    from app.models.quote import QuoteItemResponse
+    from sqlalchemy.orm import selectinload as _si
 
+    # Eager-load items (prevents MissingGreenlet in Pydantic model_validate)
     result = await db.execute(
         select(Quote)
-        .options(selectinload(Quote.items))  # Eager load items
+        .options(_si(Quote.items))
         .where(
             Quote.quote_number == quote_number,
             Quote.deleted_at.is_(None)
@@ -136,7 +138,19 @@ async def get_quote(
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
 
-    return QuoteWithItemsResponse.model_validate(quote)
+    # Load partner for partner_name (M-10)
+    partner = None
+    if quote.partner_id:
+        partner = await db.get(Partner, quote.partner_id)
+
+    # Filter soft-deleted items in Python (L-2) — selectinload loads all, we filter here
+    active_items = [i for i in quote.items if i.deleted_at is None]
+
+    # Build response with filtered items and partner_name
+    response = QuoteWithItemsResponse.model_validate(quote)
+    response.items = [QuoteItemResponse.model_validate(i) for i in active_items]
+    response.partner_name = partner.company_name if partner else None
+    return response
 
 
 @router.post("/", response_model=QuoteResponse)
@@ -220,6 +234,12 @@ async def update_quote(
         quote.title = data.title
     if data.description is not None:
         quote.description = data.description
+    if data.customer_request_number is not None:
+        quote.customer_request_number = data.customer_request_number
+    if data.request_date is not None:
+        quote.request_date = data.request_date
+    if data.offer_deadline is not None:
+        quote.offer_deadline = data.offer_deadline
     if data.valid_until is not None:
         quote.valid_until = data.valid_until
     if data.discount_percent is not None:

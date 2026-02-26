@@ -21,6 +21,7 @@ from sqlalchemy import text
 from app.routers import (
     auth_router,
     parts_router,
+    workshop_router,  # Gestima Dílna — iPad terminál
     operations_router,
     features_router,
     batches_router,
@@ -211,6 +212,11 @@ async def favicon():
     from fastapi.responses import FileResponse
     return FileResponse("app/static/img/logo.png")
 
+@app.get("/logo.png", include_in_schema=False)
+async def logo():
+    from fastapi.responses import FileResponse
+    return FileResponse("app/static/img/logo.png")
+
 app.include_router(auth_router.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(parts_router.router, prefix="/api/parts", tags=["Parts"])
 app.include_router(drawings_router.router, tags=["Drawings"])  # Multiple drawings support (prefix in router)
@@ -239,6 +245,7 @@ app.include_router(production_records_router.router, prefix="/api/production-rec
 app.include_router(drawing_import_router.router, tags=["Drawing Import"])  # Drawing import from share (ADR-044, prefix in router)
 app.include_router(ft_debug_router.router, tags=["FT Debug"])  # FT Debug panel (prefix in router)
 app.include_router(user_layouts_router.router, prefix="/api", tags=["User Layouts"])  # Per-user workspace layouts
+app.include_router(workshop_router.router, prefix="/api/workshop", tags=["Workshop"])  # Gestima Dílna
 
 # Import infor_sync_router
 from app.routers import infor_sync_router

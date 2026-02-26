@@ -359,6 +359,157 @@ class InforAPIClient:
                 logger.error(f"InvokeMethod error: {e}")
                 raise
 
+    async def post_method(
+        self,
+        ido_name: str,
+        method_name: str,
+        parameters: Optional[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Volání IDO business metody přes HTTP POST (pro stored procedure writes).
+
+        Použij místo invoke_method() pokud metoda mutuje data v Inforu
+        (např. IteCzTsdUpdateDcJmcSp).
+
+        Args:
+            ido_name: Název IDO (např. "IteCzTsdStd")
+            method_name: Název metody (např. "IteCzTsdUpdateDcJmcSp")
+            parameters: Parametry metody jako slovník
+
+        Returns:
+            Dict s výsledkem metody
+        """
+        token = await self.get_token()
+        body = {"Parameters": parameters or {}}
+
+        logger.debug(f"POST InvokeMethod: {ido_name}.{method_name}({parameters})")
+
+        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/json/method/{ido_name}/{method_name}",
+                    json=body,
+                    headers={
+                        "Authorization": token,
+                        "Content-Type": "application/json"
+                    },
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                return response.json()
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"POST InvokeMethod failed: {e.response.status_code} - {e.response.text}")
+                raise
+            except Exception as e:
+                logger.error(f"POST InvokeMethod error: {e}")
+                raise
+
+    async def invoke_method_positional(
+        self,
+        ido_name: str,
+        method_name: str,
+        positional_values: List[str],
+    ) -> Dict[str, Any]:
+        """
+        Volání IDO metody přes GET s pozičními parametry v ?parms=v1,v2,...
+
+        Infor REST API požaduje parametry jako JEDEN parms query param s hodnotami
+        oddělenými čárkou (pozičně odpovídají @parametrům SP v jejich pořadí).
+
+        Zjištěno z WSDL: UriTemplate = /json/method/{ido}/{method}?parms={parms}
+
+        Args:
+            ido_name: Název IDO (např. "IteCzTsdStd")
+            method_name: Název metody (např. "IteCzTsdUpdateDcSfc34Sp")
+            positional_values: Hodnoty parametrů v pořadí jak SP je očekává
+
+        Returns:
+            Dict s výsledkem {"Message": ..., "MessageCode": ..., "ReturnValue": ...}
+        """
+        token = await self.get_token()
+        parms = ",".join(str(v) for v in positional_values)
+
+        logger.debug(f"InvokeMethod positional: {ido_name}.{method_name}(parms={parms[:100]})")
+
+        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
+            try:
+                response = await client.get(
+                    f"{self.base_url}/json/method/{ido_name}/{method_name}",
+                    params={"parms": parms},
+                    headers={"Authorization": token},
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                return response.json()
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"InvokeMethod positional failed: {e.response.status_code} - {e.response.text}")
+                raise
+            except Exception as e:
+                logger.error(f"InvokeMethod positional error: {e}")
+                raise
+
+    async def additem(
+        self,
+        ido_name: str,
+        properties: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """
+        Vloží nový záznam do IDO přes AddItem endpoint.
+
+        Ověřeno na SLJobTrans: POST /json/{ido}/additem s
+        {"Properties": [{"Name": k, "Value": v}...]}
+
+        Args:
+            ido_name: Název IDO (např. "SLJobTrans")
+            properties: Dict s hodnotami polí pro nový záznam
+
+        Returns:
+            Dict s výsledkem {"Message": ..., "MessageCode": ..., "UpdatedItems": ...}
+
+        Raises:
+            Exception při selhání (MessageCode != 200)
+        """
+        token = await self.get_token()
+        body = {
+            "Properties": [
+                {"Name": k, "Value": v}
+                for k, v in properties.items()
+            ]
+        }
+
+        logger.debug(f"AddItem: {ido_name} with {list(properties.keys())}")
+
+        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/json/{ido_name}/additem",
+                    json=body,
+                    headers={
+                        "Authorization": token,
+                        "Content-Type": "application/json"
+                    },
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                if data.get("MessageCode") not in (0, 200):
+                    msg = data.get("Message", "Unknown error")
+                    logger.error(f"AddItem {ido_name} failed: [{data.get('MessageCode')}] {msg}")
+                    raise ValueError(f"Infor AddItem failed: {msg}")
+
+                logger.info(f"AddItem {ido_name} succeeded")
+                return data
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"AddItem HTTP failed: {e.response.status_code} - {e.response.text}")
+                raise
+            except Exception as e:
+                logger.error(f"AddItem error: {e}")
+                raise
+
     async def get_configurations(self) -> List[str]:
         """
         Získat seznam dostupných konfigurací.

@@ -15,6 +15,11 @@ const router = createRouter({
       component: () => import('@/views/WorkspaceView.vue'),
     },
     {
+      path: '/dilna',
+      name: 'dilna',
+      component: () => import('@/views/WorkshopView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },
@@ -38,7 +43,7 @@ router.beforeEach(async (to) => {
   }
 
   if (!to.meta.public && !auth.isLoggedIn) {
-    return { name: 'login' }
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
 
   if (to.name === 'login' && auth.isLoggedIn) {

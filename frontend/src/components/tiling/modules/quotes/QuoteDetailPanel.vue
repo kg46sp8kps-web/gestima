@@ -119,6 +119,23 @@ async function onReject() {
   }
 }
 
+async function onDelete() {
+  const confirmed = await dialog.confirm({
+    title: 'Smazat nabídku?',
+    message: 'Rozpracovaná nabídka bude trvale smazána.',
+    confirmLabel: 'Smazat',
+    dangerous: true,
+  })
+  if (!confirmed) return
+  try {
+    await quotesApi.deleteQuote(props.quoteNumber)
+    ui.showSuccess('Nabídka smazána')
+    emit('reload')
+  } catch {
+    ui.showError('Chyba při mazání nabídky')
+  }
+}
+
 async function onClone() {
   try {
     const cloned = await quotesApi.cloneQuote(props.quoteNumber)
@@ -225,7 +242,7 @@ async function onDownloadPdf() {
         <div class="detail-actions">
           <template v-if="quote.status === 'draft'">
             <button class="btn-primary" data-testid="quote-send-btn" @click="onSend">Odeslat</button>
-            <button class="btn-destructive" data-testid="quote-delete-btn" @click="onReject">Smazat</button>
+            <button class="btn-destructive" data-testid="quote-delete-btn" @click="onDelete">Smazat</button>
           </template>
           <template v-else-if="quote.status === 'sent'">
             <button class="btn-primary" data-testid="quote-approve-btn" @click="onApprove">Schválit</button>
@@ -252,7 +269,7 @@ async function onDownloadPdf() {
         <div class="meta-grid">
           <div class="meta-row">
             <span class="meta-label">Zákazník</span>
-            <span class="meta-value">{{ quote.partner_id ?? '—' }}</span>
+            <span class="meta-value">{{ quote.partner_name ?? '—' }}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">Číslo poptávky</span>

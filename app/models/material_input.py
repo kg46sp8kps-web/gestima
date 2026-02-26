@@ -68,7 +68,7 @@ class MaterialInput(Base, AuditMixin):
     # ─────────────────────────────────────────────────────────────
     price_category_id = Column(
         Integer,
-        ForeignKey("material_price_categories.id", ondelete="SET NULL"),
+        ForeignKey("material_price_categories.id", ondelete="RESTRICT"),
         nullable=False,
         index=True
     )

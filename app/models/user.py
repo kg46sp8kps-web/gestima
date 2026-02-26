@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Enum as SAEnum
 
 from app.database import Base, AuditMixin
 from app.models.enums import UserRole
@@ -16,8 +16,9 @@ class User(Base, AuditMixin):
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=True, index=True)  # Optional
     hashed_password = Column(String(200), nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.OPERATOR, nullable=False)
+    role = Column(SAEnum(UserRole), default=UserRole.OPERATOR, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    infor_emp_num = Column(String(20), nullable=True)  # Infor employee number pro dílnu
 
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version
@@ -38,6 +39,7 @@ class UserUpdate(BaseModel):
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=1, max_length=100)
+    infor_emp_num: Optional[str] = Field(None, max_length=20)
     version: int
 
 
@@ -50,6 +52,7 @@ class UserResponse(UserBase):
 
     id: int
     is_active: bool
+    infor_emp_num: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

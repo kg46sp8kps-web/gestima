@@ -3,6 +3,7 @@
 from . import (
     auth_router,
     parts_router,
+    workshop_router,  # Gestima Dílna — iPad terminál
     drawings_router,  # Multiple drawings per part support
     operations_router,
     features_router,

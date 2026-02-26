@@ -16,6 +16,10 @@ export async function update(materialId: number, payload: MaterialInputUpdate): 
   return data
 }
 
+export async function remove(materialId: number): Promise<void> {
+  await apiClient.delete(`/material-inputs/${materialId}`)
+}
+
 export async function linkOperation(materialId: number, operationId: number): Promise<void> {
   await apiClient.post(`/material-inputs/${materialId}/link-operation/${operationId}`, {})
 }

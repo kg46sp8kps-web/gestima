@@ -223,9 +223,9 @@ async def calculate_stock_cost_from_part(
             volume_mm3 = area * stock_length
 
     elif stock_shape == StockShape.PLATE:
-        # Plech: šířka × výška × délka
-        if stock_width > 0 and stock_height > 0 and stock_length > 0:
-            volume_mm3 = stock_width * stock_height * stock_length
+        # Plech: šířka × výška × tloušťka stěny (H-1 fix: stock_wall_thickness, ne stock_length)
+        if stock_width > 0 and stock_height > 0 and stock_wall_thickness > 0:
+            volume_mm3 = stock_width * stock_height * stock_wall_thickness
 
     elif stock_shape == StockShape.TUBE:
         # Trubka: π × (r_outer² - r_inner²) × délka
@@ -245,18 +245,40 @@ async def calculate_stock_cost_from_part(
             r = stock_diameter / 2
             volume_mm3 = math.pi * r**2 * stock_length
 
-    # Převod na hmotnost (Migration 2026-01-26: material_group.density místo group.density)
-    volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
+    # === Priority výpočtu váhy (ADR-050, M-11 fix) ===
+    # Priority 1: Katalogový faktor (conv_uom + conv_factor nastaven na MaterialItem)
+    material_item = material_input.material_item
+    weight_kg = 0.0
+    weight_source = "volume"
 
-    # Defensive check: density should never be None
-    if material_group.density is None:
-        logger.error(
-            f"MaterialGroup {material_group.id} has NULL density! "
-            f"This violates NOT NULL constraint. Using 0."
-        )
-        weight_kg = 0.0
-    else:
-        weight_kg = volume_dm3 * material_group.density
+    if material_item and material_item.conv_uom and material_item.conv_factor:
+        try:
+            if stock_shape in _PROFILE_SHAPES and stock_length > 0:
+                weight_kg = unit_converter.to_base_uom(
+                    stock_length, material_item.conv_uom, material_item.conv_factor
+                )
+            elif stock_shape in (StockShape.CASTING, StockShape.FORGING):
+                weight_kg = material_item.conv_factor  # kg/ks
+            if weight_kg > 0:
+                weight_source = "catalog"
+        except ValueError as e:
+            logger.warning(
+                f"Catalog weight calc failed for material_item {material_item.id}: {e}. Fallback to volume."
+            )
+            weight_kg = 0.0
+
+    if weight_source == "volume":
+        # Priority 2: Výpočet z objemu (fallback)
+        volume_dm3 = volume_mm3 / 1_000_000  # mm³ → dm³
+        # Defensive check: density should never be None
+        if material_group.density is None:
+            logger.error(
+                f"MaterialGroup {material_group.id} has NULL density! "
+                f"This violates NOT NULL constraint. Using 0."
+            )
+            weight_kg = 0.0
+        else:
+            weight_kg = volume_dm3 * material_group.density
 
     # ADR-014: Dynamický výběr ceny podle quantity
     total_weight = weight_kg * quantity
@@ -272,11 +294,12 @@ async def calculate_stock_cost_from_part(
     # Cena za 1 kus
     cost = weight_kg * price_per_kg
 
-    result.volume_mm3 = round(volume_mm3, 0)
+    result.volume_mm3 = round(volume_mm3 if weight_source == "volume" else 0.0, 0)
     result.weight_kg = round(weight_kg, 3)
     result.price_per_kg = price_per_kg  # Pro snapshot (ADR-012)
     result.density = material_group.density
     result.cost = round(cost, 2)
+    result.weight_source = weight_source  # ADR-050
 
     return result
 
@@ -793,9 +816,9 @@ async def calculate_stock_cost_from_material_input(
             volume_mm3 = area * stock_length
 
     elif stock_shape == StockShape.PLATE:
-        # Plech: šířka × výška × délka
-        if stock_width > 0 and stock_height > 0 and stock_length > 0:
-            volume_mm3 = stock_width * stock_height * stock_length
+        # Plech: šířka × výška × tloušťka stěny (H-1 fix: stock_wall_thickness, ne stock_length)
+        if stock_width > 0 and stock_height > 0 and stock_wall_thickness > 0:
+            volume_mm3 = stock_width * stock_height * stock_wall_thickness
 
     elif stock_shape == StockShape.TUBE:
         # Trubka: π × (r_outer² - r_inner²) × délka

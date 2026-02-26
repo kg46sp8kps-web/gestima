@@ -197,9 +197,19 @@ async def update_quote_item(
     if item.version != data.version:
         raise HTTPException(status_code=409, detail="Version conflict")
 
-    # Update fields (unit_price is read-only from frozen batch)
+    # Update fields
     if data.quantity is not None:
         item.quantity = data.quantity
+        # H-2 fix: re-fetch unit_price pro nové množství ze zamrzeného batche
+        if item.part_id:
+            try:
+                new_unit_price, new_approx = await QuoteService.get_latest_frozen_batch_price(
+                    item.part_id, item.quantity, db
+                )
+                item.unit_price = new_unit_price
+                item.batch_approx = new_approx
+            except Exception:
+                pass  # Ponechat původní cenu pokud batch nenalezen
     if data.notes is not None:
         item.notes = data.notes
 

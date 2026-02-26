@@ -159,3 +159,27 @@ class QuoteStatus(str, Enum):
     SENT = "sent"            # Sent to customer (read-only, snapshot created)
     APPROVED = "approved"    # Customer accepted
     REJECTED = "rejected"    # Customer declined
+
+
+class WorkshopTransType(str, Enum):
+    """Typ dílnické transakce — mapování na Infor @TTransType:
+      setup_start → '1' (ZahajitNastaveni — start seřízení)
+      setup_end   → '2' (UkoncitNastaveni — ukončit seřízení)
+      start       → '3' (ZahajitPraci — start výroby)
+      qty_complete, stop, time, scrap → '4' (UkoncitPraci — odvod/ukončení)
+    """
+    QTY_COMPLETE = "qty_complete"  # Odvod hotových kusů (@TTransType='4')
+    SCRAP = "scrap"                # Zmetkové kusy (@TTransType='4')
+    TIME = "time"                  # Odpracovaný čas — manuální (@TTransType='4')
+    START = "start"                # Start výroby — posílá se OKAMŽITĚ (@TTransType='3')
+    STOP = "stop"                  # Stop výroby s hodinami (@TTransType='4')
+    SETUP_START = "setup_start"    # Start seřízení — posílá se OKAMŽITĚ (@TTransType='1')
+    SETUP_END = "setup_end"        # Ukončení seřízení s hodinami (@TTransType='2')
+
+
+class WorkshopTxStatus(str, Enum):
+    """Status transakce vůči Inforu"""
+    PENDING = "pending"    # Čeká na odeslání do Inforu
+    POSTING = "posting"    # Odesílání probíhá
+    POSTED = "posted"      # Odesláno úspěšně
+    FAILED = "failed"      # Chyba při odesílání

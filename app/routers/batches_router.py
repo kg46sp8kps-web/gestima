@@ -13,7 +13,7 @@ from app.database import get_db
 from app.db_helpers import set_audit, safe_commit, soft_delete
 from app.dependencies import get_current_user, require_role
 from app.models import User, UserRole
-from app.models.batch import Batch, BatchCreate, BatchResponse
+from app.models.batch import Batch, BatchCreate, BatchUpdate, BatchResponse
 from app.models.part import Part
 from app.models.material import MaterialItem
 from app.models.material_input import MaterialInput  # ADR-024
@@ -49,7 +49,7 @@ async def get_batch(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number, Batch.deleted_at.is_(None)))
     batch = result.scalar_one_or_none()
     if not batch:
         raise HTTPException(status_code=404, detail="Dávka nenalezena")
@@ -108,7 +108,7 @@ async def delete_batch(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.ADMIN]))
 ):
-    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number, Batch.deleted_at.is_(None)))
     batch = result.scalar_one_or_none()
     if not batch:
         raise HTTPException(status_code=404, detail="Dávka nenalezena")
@@ -142,7 +142,7 @@ async def freeze_batch(
     Zmrazený batch nelze editovat.
     """
     # Načíst batch s part + material_inputs + material_item + group + price_category (eager loading)
-    stmt = select(Batch).where(Batch.batch_number == batch_number).options(
+    stmt = select(Batch).where(Batch.batch_number == batch_number, Batch.deleted_at.is_(None)).options(
         selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.material_item).selectinload(MaterialItem.group),
         selectinload(Batch.part).selectinload(Part.material_inputs).selectinload(MaterialInput.material_item).selectinload(MaterialItem.price_category)
     )
@@ -191,7 +191,7 @@ async def clone_batch(
     """
     from app.services.number_generator import NumberGenerator, NumberGenerationError
 
-    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number, Batch.deleted_at.is_(None)))
     original = result.scalar_one_or_none()
 
     if not original:
@@ -217,9 +217,13 @@ async def clone_batch(
         material_cost=original.material_cost,
         machining_cost=original.machining_cost,
         setup_cost=original.setup_cost,
+        overhead_cost=original.overhead_cost,
+        margin_cost=original.margin_cost,
         coop_cost=original.coop_cost,
         unit_cost=original.unit_cost,
         total_cost=original.total_cost,
+        material_weight_kg=original.material_weight_kg,
+        material_price_per_kg=original.material_price_per_kg,
         # Freeze fields zůstanou default (False, None)
     )
 
@@ -251,7 +255,7 @@ async def recalculate_batch(
 
     Zamrznutý batch nelze přepočítat (409 Conflict).
     """
-    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number))
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number, Batch.deleted_at.is_(None)))
     batch = result.scalar_one_or_none()
 
     if not batch:
@@ -277,6 +281,43 @@ async def recalculate_batch(
         f"Recalculated batch {batch_number}: unit_cost={batch.unit_cost} Kč",
         extra={"batch_number": batch_number, "user": current_user.username}
     )
+    return batch
+
+
+@router.put("/{batch_number}", response_model=BatchResponse)
+async def update_batch(
+    batch_number: str,
+    data: BatchUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OPERATOR]))
+):
+    """
+    Aktualizuje batch (quantity, is_default).
+
+    Nepřepočítává náklady — pro přepočet použij /recalculate.
+    Zamrznutý batch nelze editovat (409 Conflict).
+    """
+    result = await db.execute(select(Batch).where(Batch.batch_number == batch_number, Batch.deleted_at.is_(None)))
+    batch = result.scalar_one_or_none()
+
+    if not batch:
+        raise HTTPException(status_code=404, detail="Dávka nenalezena")
+
+    if batch.is_frozen:
+        raise HTTPException(status_code=409, detail="Zamrznutý batch nelze editovat (použij Clone)")
+
+    # Optimistic locking (ADR-008)
+    if batch.version != data.version:
+        raise HTTPException(status_code=409, detail="Data byla změněna jiným uživatelem. Obnovte stránku.")
+
+    if data.quantity is not None:
+        batch.quantity = data.quantity
+    if data.is_default is not None:
+        batch.is_default = data.is_default
+
+    set_audit(batch, current_user.username, is_update=True)
+    batch = await safe_commit(db, batch, "aktualizace dávky")
+    logger.info(f"Updated batch {batch_number} by {current_user.username}")
     return batch
 
 

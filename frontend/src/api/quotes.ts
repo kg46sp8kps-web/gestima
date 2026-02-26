@@ -70,6 +70,10 @@ export async function cloneQuote(quoteNumber: string): Promise<QuoteDetail> {
   return data
 }
 
+export async function deleteQuote(quoteNumber: string): Promise<void> {
+  await apiClient.delete(`/quotes/${quoteNumber}`)
+}
+
 export async function addItem(
   quoteNumber: string,
   partId: number,

@@ -51,7 +51,9 @@ export interface QuoteDetail {
   tax_amount: number
   total: number
   notes: string | null
+  snapshot_data: Record<string, unknown> | null
   items: QuoteItem[]
+  partner_name: string | null
   version: number
   created_at: string
   updated_at: string

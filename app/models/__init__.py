@@ -1,6 +1,6 @@
 """GESTIMA - Modely"""
 
-from app.models.enums import StockType, StockShape, CuttingMode, FeatureType, UserRole, WorkCenterType, QuoteStatus
+from app.models.enums import StockType, StockShape, CuttingMode, FeatureType, UserRole, WorkCenterType, QuoteStatus, WorkshopTransType, WorkshopTxStatus
 from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse, PasswordChange
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
@@ -114,6 +114,11 @@ from app.models.sync_state import (
     SyncStatusResponse,
     SyncTriggerResponse,
 )
+from app.models.workshop_transaction import (
+    WorkshopTransaction,
+    WorkshopTransactionCreate,
+    WorkshopTransactionResponse,
+)
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
@@ -145,4 +150,6 @@ __all__ = [
     "ProductionRecord", "ProductionRecordCreate", "ProductionRecordUpdate", "ProductionRecordResponse",
     "SyncState", "SyncLog", "SyncStateRead", "SyncStateUpdate", "SyncLogRead",
     "SyncStatusResponse", "SyncTriggerResponse",
+    "WorkshopTransType", "WorkshopTxStatus",
+    "WorkshopTransaction", "WorkshopTransactionCreate", "WorkshopTransactionResponse",
 ]
