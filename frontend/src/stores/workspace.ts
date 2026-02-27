@@ -21,6 +21,7 @@ function syncIdCounter(tree: TileNode): void {
 /** Maps removed module IDs to their replacement — applied when loading layouts from DB. */
 const LEGACY_MODULE_REMAP: Record<string, ModuleId> = {
   'work-detail': 'parts-list',
+  'work-materials': 'work-ops',
 }
 
 function migrateTree(tree: TileNode): TileNode {

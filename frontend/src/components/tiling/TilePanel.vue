@@ -33,9 +33,9 @@ const dropZonesActive = computed(() =>
 const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncComponent>>> = {
   'parts-list':     defineAsyncComponent(() => import('@/components/tiling/modules/TileCatalog.vue')),
   'work-ops':       defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkOps.vue')),
-  'work-materials': defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkMaterials.vue')),
   'work-pricing':   defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkPricing.vue')),
   'work-drawing':   defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDrawing.vue')),
+  'work-docs':      defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDocs.vue')),
   'partners':       defineAsyncComponent(() => import('@/components/tiling/modules/TilePartners.vue')),
   'quotes':         defineAsyncComponent(() => import('@/components/tiling/modules/TileQuotes.vue')),
   'time-vision':    defineAsyncComponent(() => import('@/components/tiling/modules/TileTimeVision.vue')),
