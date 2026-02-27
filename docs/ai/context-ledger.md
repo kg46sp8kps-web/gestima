@@ -5,7 +5,7 @@ Aktualizuj po každém netriviálním tasku.
 
 ## Aktivní cíl
 
-- Zpevnit dilensky terminal proti chybnemu vykazovani: blokace hotovych operaci, skryti dokoncenych operaci z fronty a korektni zobrazeni vice planovanych radku stejne operace.
+- Zpevnit dilensky terminal proti chybnemu vykazovani: blokace hotovych operaci, skryti dokoncenych operaci z fronty a striktni zdroj fronty/operaci pouze z rozvrhu (`IteCzTsdJbrDetails`) bez fallbacku na `SLJobRoutes`.
 
 ## Poslední rozhodnutí
 
@@ -133,6 +133,10 @@ Aktualizuj po každém netriviálním tasku.
 - Decision: Queue table row key byl rozšířen (`Job/Suffix/Oper/OpDatumSt/StateAsd/index`) a aktivni radek se urcuje referencne.
 - Why: Infor muze vratit vice planovanych radku pro stejnou operaci (napr. setup/production bloky); puvodni key je kolaboval do jednoho vizualniho radku.
 
+- Date: 2026-02-27
+- Decision: Fallback na `SLJobRoutes` byl odstraněn jak ve fronte (`fetch_wc_queue`), tak v detailu operací (`fetch_job_operations`); při nedostupném `IteCzTsdJbrDetails` endpoint vrací chybu.
+- Why: Fallback vracel operace mimo skutečný rozvrh (včetně dokončených), což je business-kriticky nebezpečné; preferována je fail-fast strategie před tichou nekonzistencí dat.
+
 ## Otevřené body
 
 - Ověřit na reálném TEST Inforu, že `Mchtrx(H/J)` se skutečně propisuje do strojního běhu pro konkrétní WC/stroj (včetně varianty s `TMach`).
@@ -143,10 +147,12 @@ Aktualizuj po každém netriviálním tasku.
 - Dopsat integracni testy pro SSH drawing import (status/preview/execute) se stub serverem.
 - Otestovat na TEST Inforu edge-case: preodvod na pile u operace, ktera neni prvni (musi byt tvrde zablokovan backendem).
 - Zvážit parametrizaci policy dle WC/operace do admin konfigurace (misto hardcoded prefixu `PS/PILA/SAW`).
+- Ověřit na TEST Inforu konkrétní případ `21VP06/077`, že operace 5 na `PSv/PSV` po nasazení strict source zmizí z fronty i detailu operací.
 
 ## Další krok
 
 - Provest E2E TEST scenar na dilne: overit, ze dokoncene operace nejsou ve fronte, ze post do dokoncene operace je blokovan, a rozhodnout UX policy pro dvojite radky stejne operace (ponechat oba vs. sloucit do jednoho summary radku).
+- Provest rychly smoke test workshop endpointu proti TEST Inforu: `/workshop/queue` a `/workshop/operations` musi vratit pouze JBR rozvrh a pri vypadku JBR selhat s 502 (bez fallback dat).
 
 - Date: 2026-02-27
 - Decision: V technologickém tile byly odstraněny placeholder texty z inputů (parse input a časy operací) a potvrzeno, že `OperationCombobox` placeholder atribut nepoužívá.
