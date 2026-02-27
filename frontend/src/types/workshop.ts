@@ -22,6 +22,8 @@ export interface WorkshopQueueItem {
   Suffix: string
   OperNum: string
   Wc: string
+  State?: string | null
+  StateAsd?: string | null
   DerJobItem: string | null
   JobDescription: string | null
   JobQtyReleased: number | null
@@ -80,6 +82,7 @@ export interface WorkshopTransaction {
   id: number
   infor_job: string
   infor_suffix: string | null
+  infor_item: string | null
   oper_num: string
   wc: string | null
   trans_type: WorkshopTransType
@@ -105,6 +108,7 @@ export interface WorkshopTransaction {
 export interface WorkshopTransactionCreate {
   infor_job: string
   infor_suffix: string
+  infor_item?: string | null
   oper_num: string
   wc?: string | null
   trans_type: WorkshopTransType
@@ -124,6 +128,9 @@ export interface WorkshopTimer {
   running: boolean
   startedAt: Date | null
   job: string | null
+  suffix: string | null
   operNum: string | null
+  inforItem: string | null
+  wc: string | null
   mode: 'setup' | 'production' | null  // Mód zachycený při startu (pro správný stop TransType)
 }

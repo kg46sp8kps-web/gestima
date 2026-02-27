@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { ChevronLeftIcon, ChevronRightIcon, ZoomInIcon, ZoomOutIcon, ScanIcon, DownloadIcon } from 'lucide-vue-next'
 import { usePartsStore } from '@/stores/parts'
 import { useItemTypeGuard } from '@/composables/useItemTypeGuard'
@@ -9,13 +9,11 @@ import type { FileWithLinks } from '@/types/file-record'
 import type { ContextGroup } from '@/types/workspace'
 import Spinner from '@/components/ui/Spinner.vue'
 import { ICON_SIZE_SM } from '@/config/design'
-// ?url tells Vite to resolve this to a URL string at build time — no code loaded yet
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 // ── Module-level caches (survive unmount/remount) ──────────────────────────
 const _fileCache = new Map<number, FileWithLinks[]>()
 const _fetchedFor = new Map<string, number>()
-// PDF documents are expensive to load — cache by file ID across mounts
 const _docCache = new Map<number, PDFDocumentProxy>()
 
 interface Props {
@@ -48,7 +46,6 @@ const pdfError = ref(false)
 const currentPage = ref(1)
 const totalPages = ref(0)
 
-// Zoom: 'fit' = přizpůsobit panelu, number = absolutní měřítko (0.25–4.0)
 const zoom = ref<number | 'fit'>('fit')
 const displayZoom = ref('Fit')
 
@@ -56,12 +53,18 @@ const ZOOM_STEP = 0.25
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 4.0
 
-// Non-reactive — no need for Vue tracking on these
 let _pdfDoc: PDFDocumentProxy | null = null
 let _renderTask: RenderTask | null = null
 let _lastFitScale = 1.0
 let _resizeObserver: ResizeObserver | null = null
 let _resizeTimer: ReturnType<typeof setTimeout> | null = null
+let _vpResizeTimer: ReturnType<typeof setTimeout> | null = null
+// Size at which canvas was last rendered — used for smooth CSS scale during resize
+let _renderedW = 0
+let _renderedH = 0
+
+// CSS transform applied during resize for smooth visual feedback
+const canvasTransform = ref('')
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -111,7 +114,10 @@ async function renderPage(doc: PDFDocumentProxy, pageNum: number) {
   const h = containerRef.value.clientHeight
   if (!w || !h) return
 
-  const dpr = window.devicePixelRatio || 1
+  // Multiply DPR by visualViewport.scale so pinch-zoom on iPad re-renders
+  // at the correct physical resolution instead of CSS-scaling the canvas.
+  const vpScale = window.visualViewport?.scale ?? 1
+  const dpr = (window.devicePixelRatio || 1) * vpScale
   const vp = page.getViewport({ scale: 1 })
 
   let scale: number
@@ -126,21 +132,39 @@ async function renderPage(doc: PDFDocumentProxy, pageNum: number) {
   }
 
   const scaledVp = page.getViewport({ scale })
+  const pw = Math.round(scaledVp.width)
+  const ph = Math.round(scaledVp.height)
+  const cssW = Math.round(scaledVp.width / dpr)
+  const cssH = Math.round(scaledVp.height / dpr)
 
-  const canvas = canvasRef.value
-  canvas.width = Math.round(scaledVp.width)
-  canvas.height = Math.round(scaledVp.height)
-  canvas.style.width = `${Math.round(scaledVp.width / dpr)}px`
-  canvas.style.height = `${Math.round(scaledVp.height / dpr)}px`
+  // Render to offscreen canvas first — no blank frame on visible canvas
+  const offscreen = document.createElement('canvas')
+  offscreen.width = pw
+  offscreen.height = ph
 
-  // pdfjs-dist v5: pass canvas element directly (canvasContext is deprecated)
-  _renderTask = page.render({ canvas, viewport: scaledVp })
+  _renderTask = page.render({ canvas: offscreen, viewport: scaledVp })
   try {
     await _renderTask.promise
   } catch {
     // RenderingCancelledException on rapid changes — expected, ignore
+    _renderTask = null
+    return
   }
   _renderTask = null
+
+  // Atomically swap to visible canvas — one frame, no blink
+  const canvas = canvasRef.value
+  if (!canvas) return
+  canvas.width = pw
+  canvas.height = ph
+  canvas.style.width = `${cssW}px`
+  canvas.style.height = `${cssH}px`
+  canvas.getContext('2d')?.drawImage(offscreen, 0, 0)
+
+  // Reset smooth-resize transform and record rendered container size
+  canvasTransform.value = ''
+  _renderedW = w
+  _renderedH = h
 }
 
 async function loadPdf(fileId: number) {
@@ -152,7 +176,6 @@ async function loadPdf(fileId: number) {
   zoom.value = 'fit'
 
   try {
-    // Lazy-load pdfjs-dist — only executed on first PDF open
     const pdfjsLib = await import('pdfjs-dist')
     pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
@@ -164,7 +187,7 @@ async function loadPdf(fileId: number) {
     _pdfDoc = doc
     totalPages.value = doc.numPages
     pdfLoading.value = false
-    await nextTick() // ensure canvas is in DOM before rendering
+    await nextTick()
     await renderPage(doc, 1)
   } catch {
     pdfError.value = true
@@ -192,38 +215,57 @@ function fitPage() {
   if (_pdfDoc) renderPage(_pdfDoc, currentPage.value)
 }
 
-// Load PDF when selected file changes
 watch(selectedFile, (f) => {
   if (f?.mime_type === 'application/pdf') loadPdf(f.id)
 })
 
-// Re-render when page changes
 watch(currentPage, (p) => {
   if (_pdfDoc) renderPage(_pdfDoc, p)
 })
 
-// ResizeObserver — set up when container mounts, re-render on panel resize
+// Panel resize → smooth CSS scale during drag, re-render after stop
 watch(containerRef, (el) => {
-  if (_resizeObserver) {
-    _resizeObserver.disconnect()
-    _resizeObserver = null
-  }
+  if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null }
   if (!el) return
-  _resizeObserver = new ResizeObserver(() => {
+  _resizeObserver = new ResizeObserver((entries) => {
+    const rect = entries[0]?.contentRect
+    if (!rect) return
+    const { width: newW, height: newH } = rect
+
+    // During resize: scale existing canvas instantly (smooth, no blink)
+    if (zoom.value === 'fit' && _renderedW > 0 && _renderedH > 0) {
+      const s = Math.min(newW / _renderedW, newH / _renderedH)
+      canvasTransform.value = `scale(${s.toFixed(4)})`
+    }
+
+    // After resize stops: re-render at correct resolution
     if (_resizeTimer) clearTimeout(_resizeTimer)
     _resizeTimer = setTimeout(() => {
       if (_pdfDoc) renderPage(_pdfDoc, currentPage.value)
     }, 200)
   })
   _resizeObserver.observe(el)
-  // Container just appeared (file selector switch) — render if doc already loaded
   if (_pdfDoc) renderPage(_pdfDoc, currentPage.value)
+})
+
+// iPad pinch zoom → re-render with new vpScale so canvas has enough pixels
+function onVisualViewportResize() {
+  if (_vpResizeTimer) clearTimeout(_vpResizeTimer)
+  _vpResizeTimer = setTimeout(() => {
+    if (_pdfDoc) renderPage(_pdfDoc, currentPage.value)
+  }, 150)
+}
+
+onMounted(() => {
+  window.visualViewport?.addEventListener('resize', onVisualViewportResize)
 })
 
 onUnmounted(() => {
   if (_renderTask) _renderTask.cancel()
   if (_resizeObserver) _resizeObserver.disconnect()
   if (_resizeTimer) clearTimeout(_resizeTimer)
+  if (_vpResizeTimer) clearTimeout(_vpResizeTimer)
+  window.visualViewport?.removeEventListener('resize', onVisualViewportResize)
 })
 
 const downloadUrl = computed(() =>
@@ -233,38 +275,31 @@ const downloadUrl = computed(() =>
 
 <template>
   <div :class="['wdrw', { refetching: isRefetching }]">
-    <!-- Unsupported item type -->
     <div v-if="!typeGuard.isSupported(props.ctx)" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Nedostupné pro {{ typeGuard.focusedTypeName(props.ctx) }}</span>
     </div>
 
-    <!-- No part selected -->
     <div v-else-if="!part" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Vyberte díl ze seznamu</span>
     </div>
 
-    <!-- Loading files -->
     <div v-else-if="loading && !files.length" class="mod-placeholder">
       <Spinner size="sm" />
     </div>
 
-    <!-- Error loading files -->
     <div v-else-if="error" class="mod-placeholder">
       <div class="mod-dot err" />
       <span class="mod-label">Chyba při načítání</span>
     </div>
 
-    <!-- No files -->
     <div v-else-if="!files.length" class="mod-placeholder">
       <div class="mod-dot" />
       <span class="mod-label">Díl nemá žádné soubory</span>
     </div>
 
-    <!-- Data -->
     <template v-else>
-      <!-- File selector — shown when part has multiple files -->
       <div v-if="files.length > 1" class="file-list">
         <button
           v-for="f in files"
@@ -279,35 +314,28 @@ const downloadUrl = computed(() =>
         </button>
       </div>
 
-      <!-- PDF canvas viewer -->
       <div
         v-if="selectedFile?.mime_type === 'application/pdf'"
         class="pdf-wrap"
       >
-        <!-- Loading spinner -->
         <div v-if="pdfLoading" class="mod-placeholder">
           <Spinner size="sm" />
         </div>
 
-        <!-- Error state -->
         <div v-else-if="pdfError" class="mod-placeholder">
           <div class="mod-dot err" />
           <span class="mod-label">Chyba při načítání PDF</span>
         </div>
 
-        <!-- Canvas area — flex:1, centers the canvas, ref for ResizeObserver -->
-        <!-- overflow:auto enables scrolling when zoomed in beyond fit -->
         <div ref="containerRef" :class="['pdf-canvas-wrap', { scrollable: !isFit }]">
-          <!-- Canvas — always in DOM so ref is stable; hidden during load -->
           <canvas
             ref="canvasRef"
             :class="['pdf-canvas', { hidden: pdfLoading || pdfError }]"
+            :style="canvasTransform ? { transform: canvasTransform } : undefined"
           />
         </div>
 
-        <!-- Permanent bottom bar: page nav | zoom controls | download -->
         <div v-if="!pdfLoading && !pdfError && totalPages > 0" class="pdf-bar">
-          <!-- Page navigation -->
           <button
             class="pdf-nav-btn"
             :disabled="currentPage <= 1"
@@ -328,10 +356,8 @@ const downloadUrl = computed(() =>
             <ChevronRightIcon :size="ICON_SIZE_SM - 2" />
           </button>
 
-          <!-- Separator -->
           <span class="pdf-sep" />
 
-          <!-- Zoom controls -->
           <button
             class="pdf-nav-btn"
             :disabled="zoom !== 'fit' && (zoom as number) <= ZOOM_MIN"
@@ -360,7 +386,6 @@ const downloadUrl = computed(() =>
             <ScanIcon :size="ICON_SIZE_SM - 2" />
           </button>
 
-          <!-- Fill + download -->
           <span class="pdf-fill" />
           <a
             v-if="downloadUrl"
@@ -376,7 +401,6 @@ const downloadUrl = computed(() =>
         </div>
       </div>
 
-      <!-- Non-PDF: info card + download -->
       <div v-else-if="selectedFile" class="mod-placeholder">
         <div class="mod-dot" />
         <div class="file-info-name">{{ selectedFile.original_filename }}</div>
@@ -406,7 +430,6 @@ const downloadUrl = computed(() =>
 }
 .wdrw.refetching { opacity: 0.4; }
 
-/* ─── Placeholder ─── */
 .mod-placeholder {
   flex: 1;
   display: flex;
@@ -420,7 +443,6 @@ const downloadUrl = computed(() =>
 .mod-dot.err { background: var(--err); }
 .mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
-/* ─── File selector ─── */
 .file-list {
   display: flex;
   flex-direction: column;
@@ -449,7 +471,6 @@ const downloadUrl = computed(() =>
 .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-size { font-size: var(--fsm); color: var(--t4); flex-shrink: 0; }
 
-/* ─── PDF canvas container ─── */
 .pdf-wrap {
   flex: 1;
   min-height: 0;
@@ -458,7 +479,6 @@ const downloadUrl = computed(() =>
   overflow: hidden;
 }
 
-/* Canvas area — fills remaining space */
 .pdf-canvas-wrap {
   flex: 1;
   min-height: 0;
@@ -469,7 +489,6 @@ const downloadUrl = computed(() =>
   background: var(--ground);
 }
 
-/* When zoomed in, allow scrolling */
 .pdf-canvas-wrap.scrollable {
   overflow: auto;
   align-items: flex-start;
@@ -478,13 +497,11 @@ const downloadUrl = computed(() =>
 
 .pdf-canvas {
   display: block;
-  /* Crisp edges for technical drawings */
-  image-rendering: crisp-edges;
-  image-rendering: -webkit-optimize-contrast;
+  /* No image-rendering override — browser antialiasing works correctly
+     with DPR-aware canvas sizing. crisp-edges caused blurry CSS scaling on iPad. */
 }
 .pdf-canvas.hidden { visibility: hidden; }
 
-/* ─── Permanent bottom bar ─── */
 .pdf-bar {
   flex-shrink: 0;
   display: flex;
@@ -529,7 +546,6 @@ const downloadUrl = computed(() =>
   font-size: var(--fsm);
   color: var(--t3);
   padding: 0 3px;
- 
   white-space: nowrap;
 }
 
@@ -537,7 +553,6 @@ const downloadUrl = computed(() =>
   font-size: var(--fsm);
   color: var(--t3);
   padding: 0 3px;
- 
   white-space: nowrap;
   min-width: 34px;
   text-align: center;
@@ -559,7 +574,6 @@ const downloadUrl = computed(() =>
 .pdf-dl:hover { color: var(--t1); border-color: var(--b3); background: var(--b1); }
 .pdf-dl:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
 
-/* ─── Non-PDF fallback ─── */
 .file-info-name { font-size: var(--fs); color: var(--t1); font-weight: 500; }
 .file-info-meta { font-size: var(--fsm); color: var(--t4); }
 .dl-link {

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import * as partnersApi from '@/api/partners'
-import type { Partner } from '@/types/partner'
+import { usePartnersStore } from '@/stores/partners'
 import type { ContextGroup } from '@/types/workspace'
 import Spinner from '@/components/ui/Spinner.vue'
 import Input from '@/components/ui/Input.vue'
@@ -13,15 +12,13 @@ interface Props {
 
 defineProps<Props>()
 
-const items = ref<Partner[]>([])
-const loading = ref(false)
-const error = ref(false)
+const store = usePartnersStore()
 const searchQuery = ref('')
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return items.value
-  return items.value.filter(p =>
+  if (!q) return store.items
+  return store.items.filter(p =>
     p.company_name.toLowerCase().includes(q) ||
     p.partner_number.includes(q) ||
     (p.ico ?? '').includes(q) ||
@@ -30,32 +27,14 @@ const filtered = computed(() => {
   )
 })
 
-async function load() {
-  loading.value = true
-  error.value = false
-  try {
-    items.value = await partnersApi.getAll()
-  } catch {
-    error.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(load)
+onMounted(() => store.fetchIfNeeded())
 </script>
 
 <template>
   <div class="wpar">
     <!-- Loading -->
-    <div v-if="loading" class="mod-placeholder">
+    <div v-if="store.loading" class="mod-placeholder">
       <Spinner size="sm" />
-    </div>
-
-    <!-- Error -->
-    <div v-else-if="error" class="mod-placeholder">
-      <div class="mod-dot err" />
-      <span class="mod-label">Chyba při načítání</span>
     </div>
 
     <!-- Data (incl. empty) -->
@@ -70,7 +49,7 @@ onMounted(load)
           testid="partner-search-input"
           class="srch-inp"
         />
-        <span class="srch-count">{{ filtered.length }} / {{ items.length }}</span>
+        <span class="srch-count">{{ filtered.length }} / {{ store.items.length }}</span>
       </div>
 
       <!-- Empty state -->
@@ -144,7 +123,7 @@ onMounted(load)
   border-radius: 50%;
   background: var(--b2);
 }
-.mod-dot.err { background: var(--err); }
+
 .mod-label { font-size: var(--fsm); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── Search bar ─── */

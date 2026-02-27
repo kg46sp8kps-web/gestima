@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestima — Operace UI v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Design System v6.0 ─── */
+    :root {
+      --red: #E53935;
+      --red-10: rgba(229,57,53,0.10);
+      --red-15: rgba(229,57,53,0.15);
+      --green: #22c55e;
+      --base: #08080a;
+      --ground: #0e0e10;
+      --surface: rgba(18,18,20,0.88);
+      --raised: rgba(26,26,28,0.92);
+      --t1: #ededf0;
+      --t2: #cdcdd0;
+      --t3: #8e8e96;
+      --t4: #5c5c64;
+      --b1: rgba(255,255,255,0.06);
+      --b2: rgba(255,255,255,0.10);
+      --b3: rgba(255,255,255,0.15);
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --ok-10: rgba(52,211,153,0.10);
+      --ok-20: rgba(52,211,153,0.20);
+      --warn-10: rgba(251,191,36,0.10);
+      --warn-20: rgba(251,191,36,0.20);
+      --err-10: rgba(248,113,113,0.10);
+      --err-20: rgba(248,113,113,0.20);
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'SF Mono', monospace;
+      --fs:  12px;
+      --fsm: 10px;
+      --fss: 9px;
+      --fsh: 14px;
+      --pad: 8px;
+      --r: 7px;
+      --rs: 4px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--base); }
+    body {
+      font-family: var(--font);
+      background: var(--base);
+      color: var(--t2);
+      font-size: var(--fs);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Navigation ─── */
+    .nav {
+      display: flex;
+      gap: 2px;
+      padding: 10px 20px 0;
+      background: var(--ground);
+      border-bottom: 1px solid var(--b2);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-tab {
+      padding: 6px 16px 8px;
+      font-size: var(--fsm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--t4);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 100ms;
+      font-family: var(--font);
+    }
+    .nav-tab:hover { color: var(--t2); }
+    .nav-tab.act { color: var(--t1); border-bottom-color: var(--red); }
+    .nav-note { margin-left: auto; display: flex; align-items: center; padding-bottom: 10px; }
+    .nav-note span { font-size: var(--fss); color: var(--t4); }
+
+    .variant { display: none; padding: 28px 20px 60px; }
+    .variant.act { display: block; }
+    .vwrap { max-width: 860px; margin: 0 auto; }
+
+    /* ─── Variant header ─── */
+    .vh { margin-bottom: 16px; }
+    .vh-tag { font-size: var(--fss); color: var(--t4); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+    .vh-title { font-size: 17px; color: var(--t1); font-weight: 600; margin-bottom: 3px; }
+    .vh-sub { font-size: var(--fs); color: var(--t3); line-height: 1.5; }
+
+    /* ─── KPI Ribbon ─── */
+    .rib {
+      display: flex; align-items: center; justify-content: flex-end; gap: 20px;
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-bottom: none;
+      border-radius: var(--r) var(--r) 0 0;
+    }
+    .rib-i { display: flex; align-items: baseline; gap: 6px; }
+    .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .rib-v { font-size: var(--fsh); color: var(--t1); font-weight: 500; }
+    .rib-u { font-size: var(--fss); color: var(--t4); }
+
+    /* ─── Table shell ─── */
+    .ot-wrap {
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-radius: 0 0 var(--r) var(--r);
+      overflow: hidden;
+    }
+    .ot { width: 100%; border-collapse: collapse; }
+    .ot thead { background: rgba(255,255,255,0.02); }
+    .ot th {
+      padding: 5px 10px;
+      font-size: var(--fss);
+      font-weight: 600;
+      color: var(--t4);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      text-align: left;
+      border-bottom: 1px solid var(--b2);
+      white-space: nowrap;
+    }
+    .ot th.r { text-align: right; }
+    .ot th.c { text-align: center; }
+    .ot td {
+      padding: 0 10px;
+      height: 34px;
+      font-size: var(--fs);
+      color: var(--t2);
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle;
+    }
+    .ot td.r { text-align: right; }
+    .ot td.c { text-align: center; }
+    .ot tbody tr:last-child td { border-bottom: none; }
+
+    /* ─── Mode cycling badge ─── */
+    .mode-badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px;
+      border-radius: var(--rs);
+      border: 1px solid transparent;
+      font-size: var(--fss);
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 70ms var(--ease);
+      user-select: none;
+    }
+    .mode-badge.low  { color: var(--ok);   background: var(--ok-10);   border-color: var(--ok-20);  }
+    .mode-badge.mid  { color: var(--warn);  background: var(--warn-10); border-color: var(--warn-20);}
+    .mode-badge.high { color: var(--err);   background: var(--err-10);  border-color: var(--err-20); }
+    .mode-badge:hover { filter: brightness(1.15); }
+
+    /* ─── WC Chip ─── */
+    .wc-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px 2px 7px;
+      background: var(--b1);
+      border: 1px solid var(--b2);
+      border-radius: 20px;
+      font-size: var(--fsm);
+      color: var(--t3);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 80ms, border-color 80ms, color 80ms;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wc-chip:hover { background: var(--b2); border-color: var(--b3); color: var(--t2); }
+    .wc-caret { font-size: 7px; color: var(--t4); flex-shrink: 0; }
+
+    /* ─── Chevron (future collapse) ─── */
+    .chev {
+      width: 18px; height: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 8px;
+      color: var(--t4);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: color 80ms, background 80ms, transform 120ms var(--ease);
+      flex-shrink: 0;
+    }
+    .chev:hover { background: var(--b2); color: var(--t3); }
+    .chev.open { transform: rotate(90deg); color: var(--t3); }
+
+    /* ─── Action buttons (row hover) ─── */
+    .row-acts {
+      display: flex; align-items: center; gap: 2px;
+      opacity: 0;
+      transition: opacity 70ms;
+    }
+    tr:hover .row-acts { opacity: 1; }
+    .icon-btn {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid transparent; border-radius: var(--rs);
+      color: var(--t4); cursor: pointer; font-size: 11px; line-height: 1;
+      transition: background 70ms, color 70ms, border-color 70ms;
+    }
+    .icon-btn:hover { background: var(--b2); border-color: var(--b2); color: var(--t2); }
+    .icon-btn.del:hover { color: var(--err); background: var(--err-10); border-color: var(--err-20); }
+
+    /* ─── Add row ─── */
+    .add-row {
+      width: 100%; padding: 6px 12px;
+      background: none; border: none; border-top: 1px dashed rgba(255,255,255,0.06);
+      color: var(--t4); font-family: var(--font); font-size: var(--fsm); font-weight: 600;
+      cursor: pointer; text-align: left; letter-spacing: 0.03em;
+      display: flex; align-items: center; gap: 7px;
+      transition: background 80ms, color 80ms;
+    }
+    .add-row:hover { background: var(--b1); color: var(--t2); }
+    .add-row .plus { font-size: 14px; line-height: 1; color: var(--t3); }
+
+    /* ─── Kbd ─── */
+    .kbd {
+      display: inline-flex; align-items: center;
+      padding: 1px 5px;
+      background: var(--raised); border: 1px solid var(--b3); border-radius: 3px;
+      font-size: var(--fss); color: var(--t4); font-family: var(--mono); line-height: 1.5;
+    }
+
+    /* ─── Notes ─── */
+    .notes {
+      margin-top: 12px; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--b2);
+      border-left: 3px solid var(--t4); border-radius: var(--rs);
+    }
+    .notes-title { font-size: var(--fsm); color: var(--t3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .notes ul { list-style: none; }
+    .notes li { font-size: var(--fs); color: var(--t3); padding-left: 12px; position: relative; line-height: 1.9; }
+    .notes li::before { content: '·'; position: absolute; left: 0; color: var(--t4); }
+
+    /* ─── Vdiv ─── */
+    .vdiv { width: 1px; height: 12px; background: var(--b2); flex-shrink: 0; }
+
+    /* ─── Save / cancel ─── */
+    .btn-s {
+      padding: 3px 10px; background: none; border: 1px solid var(--b3); border-radius: var(--rs);
+      color: var(--t2); font-family: var(--font); font-size: var(--fsm); font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+      transition: background 80ms, color 80ms;
+    }
+    .btn-s:hover { background: var(--b2); color: var(--t1); }
+    .btn-x {
+      padding: 3px 8px; background: none; border: 1px solid transparent; border-radius: var(--rs);
+      color: var(--t4); font-family: var(--font); font-size: var(--fsm); cursor: pointer;
+      transition: color 80ms;
+    }
+    .btn-x:hover { color: var(--t2); }
+
+    /* ─── Sc bar ─── */
+    .sc-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 5px 10px; background: var(--surface); border: 1px solid var(--b2);
+      border-radius: var(--r); margin-bottom: 8px;
+    }
+    .sc-l { font-size: var(--fss); color: var(--t4); }
+
+    /* ═══════════════════════════════════════════
+       VARIANT E — Underline Fields
+       ─ všechna pole mají subtilní underline
+       ─ aktivní řádek = levý červený proužek
+       ─ WC = chip · mode = cycling badge
+       ═══════════════════════════════════════════ */
+
+    /* Underline input */
+    .ue {
+      background: none;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: var(--t2);
+      font-family: var(--font);
+      font-size: var(--fs);
+      width: 100%;
+      outline: none;
+      padding: 0 0 1px;
+      transition: border-color 100ms, color 100ms;
+      border-radius: 0;
+    }
+    .ue::placeholder { color: var(--t4); }
+    .ue.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 11px; }
+    /* hover row reveals underlines */
+    .e-row:hover .ue { border-bottom-color: var(--b2); }
+    .ue:focus { border-bottom-color: rgba(255,255,255,0.3); color: var(--t1); }
+
+    /* Active row state */
+    .e-row.e-act td { background: rgba(255,255,255,0.025) !important; }
+    .e-row.e-act td:nth-child(2) { box-shadow: inset 3px 0 0 var(--red); }
+
+    /* ═══════════════════════════════════════════
+       VARIANT F — Tinted Cells
+       ─ editable buňky = stálý subtilní bg
+       ─ focus = border + brightening
+       ─ přehledné sloupce, větší kontrast
+       ─ name = full width, wc = chip,
+         times = monospace blocks
+       ═══════════════════════════════════════════ */
+
+    /* Tinted wrapper in cell */
+    .tc {
+      background: rgba(255,255,255,0.04);
+      border-radius: 4px;
+      display: flex; align-items: center;
+      padding: 0 2px;
+      transition: background 80ms;
+    }
+    tr:hover .tc { background: rgba(255,255,255,0.055); }
+
+    .fi {
+      background: none; border: none;
+      color: var(--t2); font-family: var(--font); font-size: var(--fs);
+      width: 100%; padding: 3px 5px; outline: none;
+      transition: color 80ms;
+    }
+    .fi::placeholder { color: var(--t4); }
+    .fi:focus { color: var(--t1); }
+    .fi:focus + .tc { background: rgba(255,255,255,0.07); }
+    /* can't use + above since input is inside tc — use :focus-within */
+    .tc:focus-within { background: rgba(255,255,255,0.07); outline: 1px solid rgba(255,255,255,0.18); outline-offset: 0; }
+
+    .fi-num { text-align: right; font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+    /* F row active */
+    .f-row.f-act td { background: rgba(255,255,255,0.02) !important; }
+    .f-row.f-act td:nth-child(2) { box-shadow: inset 3px 0 0 var(--red); }
+
+    /* ═══════════════════════════════════════════
+       VARIANT G — Structured (s collapsible ukázkou)
+       ─ dvě vizuální zóny: identity | data
+       ─ identity = chevron + seq + name (bold)
+       ─ data = WC chip + časy jako pills
+       ─ ukázka expandovaného detailu
+       ═══════════════════════════════════════════ */
+
+    .g-row { cursor: default; transition: background 60ms; }
+    .g-row td { padding: 0 8px; height: 36px; }
+    .g-row:hover td { background: var(--b1) !important; }
+    .g-row.g-act td { background: rgba(255,255,255,0.03) !important; }
+    .g-row.g-act .g-left { box-shadow: inset 3px 0 0 var(--red); }
+
+    /* Identity zone */
+    .g-id { display: flex; align-items: center; gap: 6px; }
+    .g-seq { font-size: var(--fsm); color: var(--t4); font-weight: 600; min-width: 16px; text-align: center; }
+    .g-seq.red { color: var(--red); }
+    .g-name-wrap { flex: 1; min-width: 0; }
+
+    /* G name input — reveals border only on row hover */
+    .gi {
+      background: none; border: none;
+      border-bottom: 1px solid transparent;
+      color: var(--t2); font-family: var(--font); font-size: var(--fs); font-weight: 500;
+      width: 100%; padding: 1px 0 2px; outline: none;
+      transition: border-color 100ms, color 100ms;
+    }
+    .gi::placeholder { color: var(--t4); }
+    .g-row:hover .gi { border-bottom-color: var(--b2); }
+    .gi:focus { border-bottom-color: rgba(255,255,255,0.28); color: var(--t1); }
+
+    /* Data zone — pill inputs */
+    .pill-input {
+      background: var(--b1);
+      border: 1px solid var(--b2);
+      border-radius: 20px;
+      color: var(--t2);
+      font-family: var(--mono); font-size: 11px;
+      padding: 2px 9px;
+      outline: none;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      width: 58px;
+      transition: border-color 100ms, background 100ms, color 100ms;
+    }
+    .pill-input::placeholder { color: var(--t4); font-family: var(--font); font-size: var(--fss); }
+    .pill-input:hover { border-color: var(--b3); background: var(--b2); }
+    .pill-input:focus { border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.07); color: var(--t1); }
+
+    /* Collapsed detail row */
+    .g-detail {
+      background: var(--raised);
+      border-bottom: 1px solid var(--b2);
+    }
+    .g-detail td { padding: 10px 14px !important; height: auto !important; background: var(--raised) !important; }
+    .g-detail-inner { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+
+    /* Feature items in detail */
+    .feat-list { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 200px; }
+    .feat-header { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 4px; }
+    .feat-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px;
+      background: var(--surface); border: 1px solid var(--b2); border-radius: var(--rs);
+      font-size: var(--fsm); color: var(--t3);
+    }
+    .feat-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--t4); flex-shrink: 0; }
+    .feat-name { flex: 1; }
+    .feat-val { color: var(--t2); font-family: var(--mono); font-size: var(--fss); }
+
+    .detail-meta { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
+    .meta-row { display: flex; align-items: center; gap: 8px; }
+    .meta-label { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.06em; width: 72px; }
+    .meta-val { font-size: var(--fsm); color: var(--t2); }
+
+    /* ─── WC typeahead popup (demo, all variants) ─── */
+    .wc-popup {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 180px;
+      background: var(--raised);
+      border: 1px solid var(--b3);
+      border-radius: var(--r);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 200;
+      padding: 4px;
+      display: none;
+    }
+    .wc-popup.open { display: block; }
+    .wc-popup-search {
+      width: 100%; background: var(--surface); border: 1px solid var(--b2); border-radius: var(--rs);
+      padding: 4px 8px; font-family: var(--font); font-size: var(--fs); color: var(--t1);
+      outline: none; margin-bottom: 4px;
+    }
+    .wc-popup-search:focus { border-color: var(--b3); }
+    .wc-opt {
+      padding: 5px 8px; font-size: var(--fs); color: var(--t2); border-radius: var(--rs);
+      cursor: pointer; transition: background 60ms, color 60ms;
+    }
+    .wc-opt:hover { background: var(--b2); color: var(--t1); }
+    .wc-opt.sel { background: var(--b1); color: var(--t1); }
+
+    .rel { position: relative; }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="nav-tab act" onclick="showTab('e',this)">E — Underline</button>
+    <button class="nav-tab" onclick="showTab('f',this)">F — Tinted Cells</button>
+    <button class="nav-tab" onclick="showTab('g',this)">G — Structured + Detail</button>
+    <div class="nav-note"><span>A-style · WC chip · mode badge · chevron (future)</span></div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       E — UNDERLINE FIELDS
+       Nejčistší vizuál. Pole neviditelná v klidu,
+       underline se ukáže při hover na řádek.
+       Focus = světlý underline. Row accent = levý proužek.
+       WC = chip. Mode = cycling badge. Časy = mono.
+       ══════════════════════════════════════════════════ -->
+  <div id="variant-e" class="variant act">
+    <div class="vwrap">
+      <div class="vh">
+        <div class="vh-tag">Varianta E</div>
+        <div class="vh-title">Underline Fields</div>
+        <div class="vh-sub">V klidu = čistá tabulka. Hover na řádek = podtržení polí. Focus = světlý accent. WC jako chip, mode jako badge (klik = cykluje LOW→MID→HIGH).</div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="ot-wrap">
+        <table class="ot">
+          <thead>
+            <tr>
+              <th style="width:20px"></th>
+              <th style="width:24px">#</th>
+              <th>Název</th>
+              <th style="width:140px">Pracoviště</th>
+              <th class="r" style="width:74px">Seř. (min)</th>
+              <th class="r" style="width:74px">Výr. (min)</th>
+              <th class="c" style="width:56px">Mode</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- Row 1 — normal -->
+            <tr class="e-row">
+              <td><span class="chev">▶</span></td>
+              <td style="color:var(--t4);font-size:var(--fsm);font-weight:600">1</td>
+              <td><input class="ue" value="Hrubování" placeholder="Název operace…"></td>
+              <td>
+                <div class="rel">
+                  <div class="wc-chip" onclick="toggleWC(this)">
+                    <span>CNC Fanuc 30i</span>
+                    <span class="wc-caret">▾</span>
+                  </div>
+                  <div class="wc-popup">
+                    <input class="wc-popup-search" placeholder="Hledat…">
+                    <div class="wc-opt sel">CNC Fanuc 30i</div>
+                    <div class="wc-opt">Frézka DMU 60</div>
+                    <div class="wc-opt">Bruska BRH 20</div>
+                    <div class="wc-opt">Soustruh SBL 500</div>
+                  </div>
+                </div>
+              </td>
+              <td class="r"><input class="ue num" value="30" type="number" style="width:48px"></td>
+              <td class="r"><input class="ue num" value="120" type="number" style="width:48px"></td>
+              <td class="c"><span class="mode-badge low" onclick="cycleBadge(this)">LOW</span></td>
+              <td class="r"><div class="row-acts"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- Row 2 — active (focused) -->
+            <tr class="e-row e-act">
+              <td><span class="chev">▶</span></td>
+              <td style="color:var(--red);font-size:var(--fsm);font-weight:600">2</td>
+              <td><input class="ue" value="Dokončování kontur" placeholder="Název operace…" style="color:var(--t1);border-bottom-color:rgba(255,255,255,0.28)"></td>
+              <td>
+                <div class="rel">
+                  <div class="wc-chip">
+                    <span>Frézka DMU 60</span>
+                    <span class="wc-caret">▾</span>
+                  </div>
+                </div>
+              </td>
+              <td class="r"><input class="ue num" value="45" type="number" style="width:48px;color:var(--t1);border-bottom-color:rgba(255,255,255,0.28)"></td>
+              <td class="r"><input class="ue num" value="360" type="number" style="width:48px"></td>
+              <td class="c"><span class="mode-badge mid" onclick="cycleBadge(this)">MID</span></td>
+              <td class="r"><div class="row-acts" style="opacity:1"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- Row 3 — normal -->
+            <tr class="e-row">
+              <td><span class="chev">▶</span></td>
+              <td style="color:var(--t4);font-size:var(--fsm);font-weight:600">3</td>
+              <td><input class="ue" value="Broušení ploch" placeholder="Název operace…"></td>
+              <td>
+                <div class="rel">
+                  <div class="wc-chip" onclick="toggleWC(this)">
+                    <span>Bruska BRH 20</span>
+                    <span class="wc-caret">▾</span>
+                  </div>
+                </div>
+              </td>
+              <td class="r"><input class="ue num" value="60" type="number" style="width:48px"></td>
+              <td class="r"><input class="ue num" value="390" type="number" style="width:48px"></td>
+              <td class="c"><span class="mode-badge high" onclick="cycleBadge(this)">HIGH</span></td>
+              <td class="r"><div class="row-acts"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- Add row -->
+            <tr><td colspan="8" style="padding:0">
+              <button class="add-row">
+                <span class="plus">+</span> Přidat operaci
+                <span class="kbd" style="margin-left:auto">N</span>
+              </button>
+            </td></tr>
+          </tbody>
+        </table>
+      </div><!-- ot-wrap -->
+
+      <div class="notes">
+        <div class="notes-title">Logika</div>
+        <ul>
+          <li>V klidu = čistá tabulka, žádný vizuální šum</li>
+          <li>Hover na řádek = podtržení polí signalizuje "editovatelné"</li>
+          <li>Klik / Tab na pole = plný focus s accent underline + světlý text</li>
+          <li>WC chip: klik = popup typeahead (ne nativní select)</li>
+          <li>Mode badge: klik cykluje LOW → MID → HIGH, auto-uloží</li>
+          <li>Tab průchod: Název → WC → Seřízení → Výroba → Mode → další řádek</li>
+          <li>Chevron ▶ vlevo = připraveno pro collapsible detail (neaktivní)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       F — TINTED CELLS
+       Editable buňky mají stálý subtilní bg tint.
+       Jasný signál "sem se píše" bez inputů.
+       Focus = outline + brightening.
+       ══════════════════════════════════════════════════ -->
+  <div id="variant-f" class="variant">
+    <div class="vwrap">
+      <div class="vh">
+        <div class="vh-tag">Varianta F</div>
+        <div class="vh-title">Tinted Cells</div>
+        <div class="vh-sub">Každá editovatelná buňka má stálý subtilní tint — vidíš co je editable bez hoveru. Focus = outline highlight. WC chip, mode badge, monospace časy.</div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="ot-wrap">
+        <table class="ot">
+          <thead>
+            <tr>
+              <th style="width:20px"></th>
+              <th style="width:24px">#</th>
+              <th>Název</th>
+              <th style="width:148px">Pracoviště</th>
+              <th class="r" style="width:80px">Seřízení</th>
+              <th class="r" style="width:80px">Výroba</th>
+              <th class="c" style="width:56px">Mode</th>
+              <th style="width:52px"></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- Row 1 -->
+            <tr class="f-row">
+              <td><span class="chev">▶</span></td>
+              <td style="color:var(--t4);font-size:var(--fsm);font-weight:600">1</td>
+              <td style="padding-left:6px;padding-right:6px">
+                <div class="tc"><input class="fi" value="Hrubování" placeholder="Název…"></div>
+              </td>
+              <td style="padding:0 6px">
+                <div class="rel">
+                  <div class="wc-chip" onclick="toggleWC(this)">
+                    <span>CNC Fanuc 30i</span><span class="wc-caret">▾</span>
+                  </div>
+                  <div class="wc-popup">
+                    <input class="wc-popup-search" placeholder="Hledat pracoviště…">
+                    <div class="wc-opt sel">CNC Fanuc 30i</div>
+                    <div class="wc-opt">Frézka DMU 60</div>
+                    <div class="wc-opt">Bruska BRH 20</div>
+                  </div>
+                </div>
+              </td>
+              <td class="r" style="padding:0 6px">
+                <div class="tc" style="justify-content:flex-end">
+                  <input class="fi fi-num" value="30" type="number" style="width:52px">
+                </div>
+              </td>
+              <td class="r" style="padding:0 6px">
+                <div class="tc" style="justify-content:flex-end">
+                  <input class="fi fi-num" value="120" type="number" style="width:52px">
+                </div>
+              </td>
+              <td class="c"><span class="mode-badge low" onclick="cycleBadge(this)">LOW</span></td>
+              <td class="r"><div class="row-acts"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- Row 2 — active -->
+            <tr class="f-row f-act">
+              <td><span class="chev">▶</span></td>
+              <td style="color:var(--red);font-size:var(--fsm);font-weight:600">2</td>
+              <td style="padding-left:6px;padding-right:6px;box-shadow:inset 3px 0 0 var(--red)">
+                <div class="tc" style="outline:1px solid rgba(255,255,255,0.2);outline-offset:0">
+                  <input class="fi" value="Dokončování kontur" style="color:var(--t1)">
+                </div>
+              </td>
+              <td style="padding:0 6px">
+                <div class="wc-chip">
+                  <span>Frézka DMU 60</span><span class="wc-caret">▾</span>
+                </div>
+              </td>
+              <td class="r" style="padding:0 6px">
+                <div class="tc" style="justify-content:flex-end">
+                  <input class="fi fi-num" value="45" type="number" style="width:52px">
+                </div>
+              </td>
+              <td class="r" style="padding:0 6px">
+                <div class="tc" style="justify-content:flex-end">
+                  <input class="fi fi-num" value="360" type="number" style="width:52px">
+                </div>
+              </td>
+              <td class="c"><span class="mode-badge mid" onclick="cycleBadge(this)">MID</span></td>
+              <td class="r"><div class="row-acts" style="opacity:1"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- Row 3 -->
+            <tr class="f-row">
+              <td><span class="chev">▶</span></td>
+              <td style="color:var(--t4);font-size:var(--fsm);font-weight:600">3</td>
+              <td style="padding-left:6px;padding-right:6px">
+                <div class="tc"><input class="fi" value="Broušení ploch" placeholder="Název…"></div>
+              </td>
+              <td style="padding:0 6px">
+                <div class="wc-chip" onclick="toggleWC(this)">
+                  <span>Bruska BRH 20</span><span class="wc-caret">▾</span>
+                </div>
+              </td>
+              <td class="r" style="padding:0 6px">
+                <div class="tc" style="justify-content:flex-end">
+                  <input class="fi fi-num" value="60" type="number" style="width:52px">
+                </div>
+              </td>
+              <td class="r" style="padding:0 6px">
+                <div class="tc" style="justify-content:flex-end">
+                  <input class="fi fi-num" value="390" type="number" style="width:52px">
+                </div>
+              </td>
+              <td class="c"><span class="mode-badge high" onclick="cycleBadge(this)">HIGH</span></td>
+              <td class="r"><div class="row-acts"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <tr><td colspan="8" style="padding:0">
+              <button class="add-row">
+                <span class="plus">+</span> Přidat operaci
+                <span class="kbd" style="margin-left:auto">N</span>
+              </button>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Logika</div>
+        <ul>
+          <li>Editovatelné buňky vždy viditelně odlišeny (tint bg) — žádné překvapení</li>
+          <li>Jde o zlatou střední cestu mezi ghost (neviditelné) a form (těžké)</li>
+          <li>Focus-within = outline highlight na celé buňce, text → --t1</li>
+          <li>Levý červený proužek = signalizuje aktivní řádek (edituji tento)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       G — STRUCTURED + COLLAPSIBLE DETAIL UKÁZKA
+       Silná vizuální identita řádku: levá zóna = ID,
+       pravá zóna = data. Pill inputy pro časy.
+       UKÁZKA rozevřeného detailu (prvky operace).
+       ══════════════════════════════════════════════════ -->
+  <div id="variant-g" class="variant">
+    <div class="vwrap">
+      <div class="vh">
+        <div class="vh-tag">Varianta G</div>
+        <div class="vh-title">Structured + Detail preview</div>
+        <div class="vh-sub">Silná hierarchie: levá zóna = identita (chevron + seq + název), pravá zóna = data (WC chip + pill časy + mode). Ukázka jak bude vypadat collapsible detail s prvky.</div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="ot-wrap">
+        <table class="ot" style="table-layout:fixed">
+          <colgroup>
+            <col style="width:32px">  <!-- chevron + seq -->
+            <col>                      <!-- název -->
+            <col style="width:148px"> <!-- WC -->
+            <col style="width:84px">  <!-- seřízení -->
+            <col style="width:84px">  <!-- výroba -->
+            <col style="width:56px">  <!-- mode -->
+            <col style="width:52px">  <!-- actions -->
+          </colgroup>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Název operace</th>
+              <th>Pracoviště</th>
+              <th class="r">Seřízení</th>
+              <th class="r">Výroba</th>
+              <th class="c">Mode</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- Row 1 — normal closed -->
+            <tr class="g-row" onclick="activateG(this,1)">
+              <td class="g-left" style="padding:0 4px">
+                <div style="display:flex;align-items:center;gap:3px">
+                  <span class="chev" id="chev-g1" onclick="toggleG(event,'g1')">▶</span>
+                  <span class="g-seq">1</span>
+                </div>
+              </td>
+              <td><div class="g-id"><div class="g-name-wrap"><input class="gi" value="Hrubování"></div></div></td>
+              <td>
+                <div class="rel">
+                  <div class="wc-chip" onclick="toggleWC(this)">
+                    <span>CNC Fanuc 30i</span><span class="wc-caret">▾</span>
+                  </div>
+                  <div class="wc-popup">
+                    <input class="wc-popup-search" placeholder="Hledat…">
+                    <div class="wc-opt sel">CNC Fanuc 30i</div>
+                    <div class="wc-opt">Frézka DMU 60</div>
+                    <div class="wc-opt">Bruska BRH 20</div>
+                  </div>
+                </div>
+              </td>
+              <td class="r"><input class="pill-input" value="30" type="number" placeholder="min"></td>
+              <td class="r"><input class="pill-input" value="120" type="number" placeholder="min"></td>
+              <td class="c"><span class="mode-badge low" onclick="cycleBadge(this)">LOW</span></td>
+              <td class="r"><div class="row-acts"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- Row 2 — active + OPEN detail -->
+            <tr class="g-row g-act" onclick="activateG(this,2)">
+              <td class="g-left" style="padding:0 4px">
+                <div style="display:flex;align-items:center;gap:3px">
+                  <span class="chev open" id="chev-g2" onclick="toggleG(event,'g2')">▶</span>
+                  <span class="g-seq red">2</span>
+                </div>
+              </td>
+              <td><div class="g-id"><div class="g-name-wrap">
+                <input class="gi" value="Dokončování kontur" style="color:var(--t1);border-bottom-color:rgba(255,255,255,0.28)">
+              </div></div></td>
+              <td>
+                <div class="wc-chip">
+                  <span>Frézka DMU 60</span><span class="wc-caret">▾</span>
+                </div>
+              </td>
+              <td class="r"><input class="pill-input" value="45" type="number" placeholder="min" style="border-color:rgba(255,255,255,0.22)"></td>
+              <td class="r"><input class="pill-input" value="360" type="number" placeholder="min"></td>
+              <td class="c"><span class="mode-badge mid" onclick="cycleBadge(this)">MID</span></td>
+              <td class="r"><div class="row-acts" style="opacity:1"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <!-- EXPANDOVANÝ DETAIL — budoucí collapsible -->
+            <tr class="g-detail" id="g-detail-g2">
+              <td colspan="7">
+                <div class="g-detail-inner">
+
+                  <!-- Prvky operace -->
+                  <div class="feat-list">
+                    <div class="feat-header">Prvky operace (Geometrie)</div>
+                    <div class="feat-item">
+                      <span class="feat-dot" style="background:var(--t3)"></span>
+                      <span class="feat-name">Kapsa 1 — pravoúhlá</span>
+                      <span class="feat-val">80×40×12 mm</span>
+                    </div>
+                    <div class="feat-item">
+                      <span class="feat-dot" style="background:var(--t3)"></span>
+                      <span class="feat-name">Otvor M8</span>
+                      <span class="feat-val">×4 průchozí</span>
+                    </div>
+                    <div class="feat-item" style="border-style:dashed;color:var(--t4);cursor:pointer">
+                      <span class="feat-dot" style="background:var(--t4)"></span>
+                      <span class="feat-name" style="color:var(--t4)">+ Přidat prvek</span>
+                    </div>
+                  </div>
+
+                  <!-- Meta info -->
+                  <div class="detail-meta">
+                    <div class="feat-header">Detaily</div>
+                    <div class="meta-row">
+                      <span class="meta-label">Nástroj</span>
+                      <span class="meta-val">Fréza R8</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Kooperace</span>
+                      <span class="meta-val" style="color:var(--t4)">Ne</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Poznámka</span>
+                      <span class="meta-val" style="color:var(--t4); font-style:italic">prázdná</span>
+                    </div>
+                  </div>
+
+                  <!-- Note -->
+                  <div style="align-self:flex-start;padding:6px 10px;background:var(--surface);border:1px solid var(--b2);border-left:2px solid var(--t4);border-radius:var(--rs);font-size:var(--fss);color:var(--t4);max-width:200px;line-height:1.6">
+                    Toto je ukázka budoucího detailu. V produkci sem přijdou prvky, parametry nástroje, kooperace a poznámky.
+                  </div>
+
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3 -->
+            <tr class="g-row" onclick="activateG(this,3)">
+              <td class="g-left" style="padding:0 4px">
+                <div style="display:flex;align-items:center;gap:3px">
+                  <span class="chev" id="chev-g3" onclick="toggleG(event,'g3')">▶</span>
+                  <span class="g-seq">3</span>
+                </div>
+              </td>
+              <td><div class="g-id"><div class="g-name-wrap"><input class="gi" value="Broušení ploch"></div></div></td>
+              <td>
+                <div class="wc-chip" onclick="toggleWC(this)">
+                  <span>Bruska BRH 20</span><span class="wc-caret">▾</span>
+                </div>
+              </td>
+              <td class="r"><input class="pill-input" value="60" type="number" placeholder="min"></td>
+              <td class="r"><input class="pill-input" value="390" type="number" placeholder="min"></td>
+              <td class="c"><span class="mode-badge high" onclick="cycleBadge(this)">HIGH</span></td>
+              <td class="r"><div class="row-acts"><button class="icon-btn del">×</button></div></td>
+            </tr>
+
+            <tr><td colspan="7" style="padding:0">
+              <button class="add-row">
+                <span class="plus">+</span> Přidat operaci
+                <span class="kbd" style="margin-left:auto">N</span>
+              </button>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Architektura</div>
+        <ul>
+          <li>Chevron ▶ vlevo je plně funkční — rozbalí detailní řádek (viz operace 2)</li>
+          <li>Pill inputy pro časy — kompaktní, vizuálně odlišné od textového pole</li>
+          <li>WC chip zachovává přehlednost sloupce bez vizuálního šumu selectu</li>
+          <li>Hlavní řádek = vždy editovatelný (WC + časy) bez nutnosti expand</li>
+          <li>Detailní řádek = prvky, parametry, kooperace — přijde v další iteraci</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    /* ─── Tab nav ─── */
+    function showTab(id, btn) {
+      document.querySelectorAll('.variant').forEach(el => el.classList.remove('act'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('act'));
+      document.getElementById('variant-' + id).classList.add('act');
+      btn.classList.add('act');
+    }
+
+    /* ─── Mode badge cycle ─── */
+    const modes = ['low','mid','high'];
+    const modeLabels = { low: 'LOW', mid: 'MID', high: 'HIGH' };
+    function cycleBadge(el) {
+      const cur = modes.find(m => el.classList.contains(m)) || 'low';
+      const next = modes[(modes.indexOf(cur) + 1) % modes.length];
+      el.classList.remove(...modes);
+      el.classList.add(next);
+      el.textContent = modeLabels[next];
+    }
+
+    /* ─── WC chip popup ─── */
+    function toggleWC(chip) {
+      const popup = chip.nextElementSibling;
+      if (!popup || !popup.classList.contains('wc-popup')) return;
+      const isOpen = popup.classList.contains('open');
+      document.querySelectorAll('.wc-popup.open').forEach(p => p.classList.remove('open'));
+      if (!isOpen) {
+        popup.classList.add('open');
+        const inp = popup.querySelector('.wc-popup-search');
+        if (inp) setTimeout(() => inp.focus(), 10);
+      }
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.wc-chip') && !e.target.closest('.wc-popup')) {
+        document.querySelectorAll('.wc-popup.open').forEach(p => p.classList.remove('open'));
+      }
+    });
+    document.querySelectorAll('.wc-opt').forEach(opt => {
+      opt.addEventListener('click', function() {
+        const popup = this.closest('.wc-popup');
+        const chip = popup.previousElementSibling;
+        const chipText = chip.querySelector('span:first-child');
+        if (chipText) chipText.textContent = this.textContent;
+        popup.querySelectorAll('.wc-opt').forEach(o => o.classList.remove('sel'));
+        this.classList.add('sel');
+        popup.classList.remove('open');
+      });
+    });
+
+    /* ─── G variant row activate ─── */
+    function activateG(tr, num) {
+      const tbody = tr.closest('tbody');
+      tbody.querySelectorAll('.g-row').forEach(r => r.classList.remove('g-act'));
+      tr.classList.add('g-act');
+      const seq = tr.querySelector('.g-seq');
+      tbody.querySelectorAll('.g-seq').forEach(s => s.classList.remove('red'));
+      if (seq) seq.classList.add('red');
+    }
+
+    /* ─── G collapsible detail ─── */
+    function toggleG(e, id) {
+      e.stopPropagation();
+      const chev = document.getElementById('chev-' + id);
+      const detail = document.getElementById('g-detail-' + id);
+      if (!detail) return;
+      const isOpen = chev.classList.contains('open');
+      chev.classList.toggle('open', !isOpen);
+      detail.style.display = isOpen ? 'none' : '';
+    }
+    /* Init: only g2 open */
+    document.querySelectorAll('[id^="g-detail-"]').forEach(d => {
+      if (d.id !== 'g-detail-g2') d.style.display = 'none';
+    });
+
+    /* ─── Row active on input focus (E + F) ─── */
+    document.querySelectorAll('.e-row input, .e-row .wc-chip').forEach(el => {
+      el.addEventListener('focus', function() {
+        const row = this.closest('.e-row');
+        document.querySelectorAll('.e-row').forEach(r => r.classList.remove('e-act'));
+        document.querySelectorAll('.e-row .g-seq, .e-row td[style*="red"]').forEach(s => {});
+        if (row) row.classList.add('e-act');
+      });
+    });
+    document.querySelectorAll('.f-row input, .f-row .wc-chip').forEach(el => {
+      el.addEventListener('focus', function() {
+        const row = this.closest('.f-row');
+        document.querySelectorAll('.f-row').forEach(r => r.classList.remove('f-act'));
+        if (row) row.classList.add('f-act');
+      });
+    });
+  </script>
+</body>
+</html>

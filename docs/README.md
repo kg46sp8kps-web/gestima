@@ -19,8 +19,8 @@
 
 ## Agenti a pravidla
 
-- **AI development rules:** root `CLAUDE.md` (vždy načten)
-- **Frontend rules:** `frontend/CLAUDE.md` (auto-načten při FE práci)
-- **Backend rules:** `app/CLAUDE.md` (auto-načten při BE práci)
-- **Cartman orchestrátor:** `.claude/agents/cartman.md`
-- **Specialist agenti:** `.claude/agents/` (frontend, backend, auditor, qa)
+- **AI development rules:** root `AGENTS.md` (aktivní source of truth)
+- **Frontend rules:** `frontend/AGENTS.md`
+- **Backend rules:** `app/AGENTS.md`
+- **Workflow:** `ai/workflow.md`
+- **Specialist role profily:** `ai/agents/` (orchestrator, frontend, backend, auditor, qa)

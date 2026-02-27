@@ -27,6 +27,21 @@ export default defineConfigWithVueTs(
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
 
+  // Legacy E2E suite uses conditional flows and explicit waits.
+  // Keep signal clean for application lint while we migrate tests incrementally.
+  {
+    name: 'app/e2e-transitional-rules',
+    files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
+    rules: {
+      'playwright/no-wait-for-timeout': 'off',
+      'playwright/no-wait-for-selector': 'off',
+      'playwright/no-conditional-in-test': 'off',
+      'playwright/no-conditional-expect': 'off',
+      'playwright/expect-expect': 'off',
+      'playwright/no-force-option': 'off',
+    },
+  },
+
   {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],

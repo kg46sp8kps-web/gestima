@@ -43,11 +43,12 @@ class InforAPIClient:
         password: str = "",
         verify_ssl: bool = False  # Default False pro self-signed certs
     ):
-        # ⚠️ WARNING: Production config - import operations are READ-ONLY
+        # 🚫 HARD BLOCK: Live konfig je zakázán — Gestima používá výhradně TEST
         if config.upper() in ["LIVE", "PROD", "PRODUCTION", "SL"]:
-            logger.warning(
-                f"Using production config '{config}' - "
-                "all import operations must be READ-ONLY to prevent data corruption"
+            raise ValueError(
+                f"ZAKÁZANÝ INFOR CONFIG '{config}'. "
+                "Gestima používá výhradně INFOR_CONFIG=TEST. "
+                "Live zápisy přes Gestima jsou zakázány."
             )
 
         self.base_url = base_url.rstrip("/")
@@ -508,6 +509,47 @@ class InforAPIClient:
                 raise
             except Exception as e:
                 logger.error(f"AddItem error: {e}")
+                raise
+
+    async def execute_update_request(
+        self,
+        request_body: Dict[str, Any],
+        response_mode: str = "summary",
+    ) -> Dict[str, Any]:
+        """
+        Spustí UpdateCollection request přes /json/updaterequest.
+
+        Poznámka:
+        - Na některých instalacích (IIS verb filtering) nemusí fungovat PUT /updateitem.
+          Tento endpoint je stabilní fallback pro update existujících záznamů.
+        - request_body má tvar UpdateCollectionRequest (IDOName, Changes, ...).
+        """
+        token = await self.get_token()
+
+        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/json/updaterequest",
+                    params={"response": response_mode},
+                    json=request_body,
+                    headers={
+                        "Authorization": token,
+                        "Content-Type": "application/json",
+                        "accept": "application/json",
+                    },
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                logger.error(
+                    "ExecuteUpdateRequest failed: %s - %s",
+                    e.response.status_code,
+                    e.response.text,
+                )
+                raise
+            except Exception as e:
+                logger.error(f"ExecuteUpdateRequest error: {e}")
                 raise
 
     async def get_configurations(self) -> List[str]:

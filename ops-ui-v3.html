@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestima — Operace UI v3 Bombastic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red: #E53935;
+      --red-10: rgba(229,57,53,0.10);
+      --red-18: rgba(229,57,53,0.18);
+      --red-glow: 0 0 0 1px rgba(229,57,53,0.25), inset 4px 0 0 var(--red);
+      --base: #08080a;
+      --ground: #0e0e10;
+      --surface: rgba(18,18,20,0.95);
+      --raised: rgba(26,26,28,0.98);
+      --t1: #ededf0;
+      --t2: #cdcdd0;
+      --t3: #8e8e96;
+      --t4: #5c5c64;
+      --b1: rgba(255,255,255,0.05);
+      --b2: rgba(255,255,255,0.09);
+      --b3: rgba(255,255,255,0.15);
+      --ok: #34d399;      --ok-10: rgba(52,211,153,0.10);   --ok-20: rgba(52,211,153,0.20);
+      --warn: #fbbf24;   --warn-10: rgba(251,191,36,0.10);  --warn-20: rgba(251,191,36,0.20);
+      --err: #f87171;    --err-10: rgba(248,113,113,0.10);  --err-20: rgba(248,113,113,0.20);
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --fs: 12px; --fsm: 10px; --fss: 9px; --fsh: 14px;
+      --r: 7px; --rs: 4px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --spring: cubic-bezier(0.34,1.56,0.64,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--base); }
+    body { font-family: var(--font); background: var(--base); color: var(--t2); font-size: var(--fs); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    /* ─── NAV ─── */
+    .nav {
+      display: flex; align-items: stretch;
+      padding: 0 20px;
+      background: var(--ground);
+      border-bottom: 1px solid var(--b2);
+      position: sticky; top: 0; z-index: 200;
+    }
+    .nav-tab {
+      padding: 10px 18px;
+      font-size: var(--fsm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--t4); background: none; border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; transition: color 100ms; font-family: var(--font);
+    }
+    .nav-tab:hover { color: var(--t2); }
+    .nav-tab.act { color: var(--t1); border-bottom-color: var(--red); }
+    .nav-badge {
+      margin-left: auto; display: flex; align-items: center;
+      font-size: var(--fss); color: var(--t4);
+      gap: 6px;
+    }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+
+    .variant { display: none; padding: 32px 20px 80px; }
+    .variant.act { display: block; }
+    .vwrap { max-width: 900px; margin: 0 auto; }
+
+    /* ─── SHARED ─── */
+    .rib {
+      display: flex; align-items: center; justify-content: flex-end; gap: 24px;
+      padding: 7px 14px;
+      background: var(--surface); border: 1px solid var(--b2);
+      border-bottom: none; border-radius: var(--r) var(--r) 0 0;
+    }
+    .rib-i { display: flex; align-items: baseline; gap: 5px; }
+    .rib-l { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }
+    .rib-v { font-size: var(--fsh); color: var(--t1); font-weight: 600; font-family: var(--mono); }
+    .rib-u { font-size: var(--fss); color: var(--t4); }
+
+    .mode-badge {
+      display: inline-flex; align-items: center; padding: 2px 8px;
+      border-radius: var(--rs); border: 1px solid transparent;
+      font-size: var(--fss); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      cursor: pointer; transition: filter 80ms; user-select: none;
+    }
+    .mode-badge.low  { color: var(--ok);  background: var(--ok-10);  border-color: var(--ok-20); }
+    .mode-badge.mid  { color: var(--warn); background: var(--warn-10); border-color: var(--warn-20); }
+    .mode-badge.high { color: var(--err); background: var(--err-10); border-color: var(--err-20); }
+    .mode-badge:hover { filter: brightness(1.2); }
+
+    .wc-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 1px 7px 1px 6px;
+      background: var(--b1); border: 1px solid var(--b2); border-radius: 20px;
+      font-size: var(--fss); color: var(--t3); cursor: pointer; white-space: nowrap;
+      transition: background 80ms, border-color 80ms, color 80ms;
+    }
+    .wc-chip:hover { background: var(--b2); border-color: var(--b3); color: var(--t2); }
+    .wc-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .wc-caret { font-size: 7px; color: var(--t4); }
+
+    .chev {
+      width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 8px; color: var(--t4); border-radius: 3px; cursor: pointer; flex-shrink: 0;
+      transition: color 80ms, background 80ms, transform 120ms var(--ease);
+    }
+    .chev:hover { background: var(--b2); color: var(--t3); }
+    .chev.open { transform: rotate(90deg); color: var(--t3); }
+
+    .kbd {
+      display: inline-flex; align-items: center; padding: 1px 5px;
+      background: var(--raised); border: 1px solid var(--b3); border-radius: 3px;
+      font-size: var(--fss); color: var(--t4); font-family: var(--mono); line-height: 1.5;
+    }
+
+    .add-row {
+      width: 100%; padding: 7px 14px; background: none; border: none;
+      border-top: 1px dashed rgba(255,255,255,0.06);
+      color: var(--t4); font-family: var(--font); font-size: var(--fsm); font-weight: 600;
+      cursor: pointer; text-align: left; letter-spacing: 0.03em;
+      display: flex; align-items: center; gap: 7px;
+      transition: background 80ms, color 80ms;
+    }
+    .add-row:hover { background: var(--b1); color: var(--t2); }
+
+    .notes {
+      margin-top: 12px; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--b2);
+      border-left: 3px solid var(--red); border-radius: var(--rs);
+    }
+    .notes-title { font-size: var(--fsm); color: var(--t3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+    .notes ul { list-style: none; }
+    .notes li { font-size: var(--fs); color: var(--t3); padding-left: 12px; position: relative; line-height: 1.9; }
+    .notes li::before { content: '·'; position: absolute; left: 0; color: var(--t4); }
+
+    .vh { margin-bottom: 20px; }
+    .vh-tag { font-size: var(--fss); color: var(--t4); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+    .vh-title { font-size: 20px; color: var(--t1); font-weight: 600; margin-bottom: 4px; }
+    .vh-sub { font-size: var(--fs); color: var(--t3); line-height: 1.6; }
+
+    .icon-btn {
+      width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid transparent; border-radius: var(--rs);
+      color: var(--t4); cursor: pointer; font-size: 11px; line-height: 1;
+      transition: background 70ms, color 70ms, border-color 70ms;
+    }
+    .icon-btn:hover { background: var(--b2); border-color: var(--b2); color: var(--t2); }
+    .icon-btn.del:hover { color: var(--err); background: var(--err-10); border-color: var(--err-20); }
+
+
+    /* ═══════════════════════════════════════════════════
+       H — STUDIO ROW (THE BOMBASTIC ONE)
+       ───────────────────────────────────────────────────
+       - Vysoké řádky (46px) s dvouřádkovou identitou
+       - Název = hero (--fsh, bold), WC = pod názvem
+       - Časy = velká mono čísla s popiskem
+       - Mode = barevný pruh pravé buňky (full-height)
+       - Na spodku každého řádku = vizuální time bar
+         (poměr seřízení : výroba)
+       - Active = lifted background + červený glow
+       ═══════════════════════════════════════════════════ */
+
+    .h-wrap {
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-radius: 0 0 var(--r) var(--r);
+      overflow: hidden;
+    }
+
+    /* Table header */
+    .h-head {
+      display: grid;
+      grid-template-columns: 52px 1fr 152px 86px 86px 66px 40px;
+      padding: 0 0 0 0;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--b2);
+    }
+    .h-th {
+      padding: 5px 12px;
+      font-size: var(--fss); font-weight: 600; color: var(--t4);
+      text-transform: uppercase; letter-spacing: 0.07em; white-space: nowrap;
+    }
+    .h-th.r { text-align: right; }
+    .h-th.c { text-align: center; }
+
+    /* Row */
+    .h-row {
+      display: grid;
+      grid-template-columns: 52px 1fr 152px 86px 86px 66px 40px;
+      align-items: stretch;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      position: relative;
+      cursor: default;
+      transition: background 70ms var(--ease);
+    }
+    .h-row:last-child { border-bottom: none; }
+    .h-row:hover { background: rgba(255,255,255,0.025); }
+    .h-row.h-act { background: rgba(255,255,255,0.035); box-shadow: var(--red-glow); z-index: 1; }
+
+    /* Time proportion bar — bottom of each row */
+    .h-row::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 52px; right: 152px;
+      height: 2px;
+      background: linear-gradient(to right, rgba(251,191,36,0.35) var(--setup-pct, 20%), rgba(52,211,153,0.2) var(--setup-pct, 20%));
+      pointer-events: none;
+    }
+    .h-row:hover::after { opacity: 0.7; }
+
+    /* Cell base */
+    .hc {
+      padding: 10px 12px;
+      display: flex; align-items: center;
+      border-right: 1px solid rgba(255,255,255,0.025);
+      min-width: 0;
+    }
+    .hc:last-child { border-right: none; }
+
+    /* Left: chevron + seq */
+    .hc-left {
+      flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      padding: 8px 6px;
+    }
+    .h-seq {
+      font-family: var(--mono); font-size: 18px; font-weight: 500;
+      color: var(--t4); line-height: 1; letter-spacing: -0.03em;
+    }
+    .h-row.h-act .h-seq { color: var(--red); }
+
+    /* Identity: name + WC */
+    .hc-identity { flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; }
+
+    .h-name-input {
+      background: none; border: none;
+      font-family: var(--font); font-size: var(--fsh); font-weight: 500;
+      color: var(--t2); width: 100%; outline: none;
+      border-bottom: 1px solid transparent;
+      padding: 0 0 1px; transition: color 80ms, border-color 80ms;
+    }
+    .h-name-input::placeholder { color: var(--t4); font-weight: 400; }
+    .h-row:hover .h-name-input { border-bottom-color: rgba(255,255,255,0.08); }
+    .h-name-input:focus { color: var(--t1); border-bottom-color: rgba(255,255,255,0.28); }
+
+    /* WC below name */
+    .h-wc-row { display: flex; align-items: center; gap: 5px; }
+
+    /* Time cell */
+    .hc-time { flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; }
+    .h-time-lbl { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .h-time-input {
+      background: none; border: none;
+      font-family: var(--mono); font-size: var(--fsh); font-weight: 400;
+      color: var(--t1); text-align: right;
+      width: 58px; outline: none; padding: 0;
+      border-bottom: 1px solid transparent;
+      transition: color 80ms, border-color 80ms;
+      font-variant-numeric: tabular-nums;
+    }
+    .h-row:hover .h-time-input { border-bottom-color: rgba(255,255,255,0.08); }
+    .h-time-input:focus { border-bottom-color: rgba(255,255,255,0.28); }
+
+    /* Mode cell — colored bg */
+    .hc-mode {
+      justify-content: center; flex-direction: column; align-items: center; gap: 4px;
+      padding: 8px 6px;
+    }
+    .hc-mode.low  { background: var(--ok-10); }
+    .hc-mode.mid  { background: var(--warn-10); }
+    .hc-mode.high { background: var(--err-10); }
+
+    /* Actions */
+    .hc-acts {
+      justify-content: center; padding: 0 6px;
+      opacity: 0; transition: opacity 70ms;
+    }
+    .h-row:hover .hc-acts { opacity: 1; }
+
+    /* WC popup */
+    .rel { position: relative; }
+    .wc-popup {
+      position: absolute; top: calc(100% + 4px); left: 0; min-width: 190px;
+      background: var(--raised); border: 1px solid var(--b3); border-radius: var(--r);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.6); z-index: 300; padding: 4px; display: none;
+    }
+    .wc-popup.open { display: block; }
+    .wc-search {
+      width: 100%; background: var(--surface); border: 1px solid var(--b2); border-radius: var(--rs);
+      padding: 5px 8px; font-family: var(--font); font-size: var(--fs); color: var(--t1);
+      outline: none; margin-bottom: 4px;
+    }
+    .wc-search:focus { border-color: var(--b3); }
+    .wc-opt { padding: 5px 8px; font-size: var(--fs); color: var(--t2); border-radius: var(--rs); cursor: pointer; transition: background 60ms; }
+    .wc-opt:hover { background: var(--b2); color: var(--t1); }
+    .wc-opt.sel { color: var(--t1); background: var(--b1); }
+
+    /* ─── Detail expand (collapsible) ─── */
+    .h-detail {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      background: var(--raised);
+    }
+    .h-detail-inner {
+      padding: 12px 14px 14px 64px;
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       I — MINIMAL MONO (druhý bombastic)
+       ───────────────────────────────────────────────────
+       Čistě typografický. Jako kód.
+       Každý řádek je jeden "příkaz". Monospaced.
+       Barvy jsou data, ne dekorace.
+       ═══════════════════════════════════════════════════ */
+
+    .i-wrap {
+      background: var(--surface); border: 1px solid var(--b2);
+      border-radius: 0 0 var(--r) var(--r); overflow: hidden;
+      font-family: var(--mono);
+    }
+
+    .i-head {
+      display: grid;
+      grid-template-columns: 36px 24px 1fr 130px 64px 64px 54px 36px;
+      padding: 5px 0; background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid var(--b2);
+    }
+    .i-th {
+      padding: 0 10px;
+      font-size: var(--fss); font-weight: 400; color: var(--t4);
+      text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap;
+    }
+    .i-th.r { text-align: right; }
+
+    .i-row {
+      display: grid;
+      grid-template-columns: 36px 24px 1fr 130px 64px 64px 54px 36px;
+      align-items: center;
+      height: 36px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      cursor: default;
+      transition: background 60ms;
+      position: relative;
+    }
+    .i-row:last-child { border-bottom: none; }
+    .i-row:hover { background: rgba(255,255,255,0.025); }
+    .i-row.i-act { background: rgba(255,255,255,0.04); }
+    .i-row.i-act::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--red);
+    }
+
+    .ic { padding: 0 10px; display: flex; align-items: center; }
+    .ic.r { justify-content: flex-end; }
+    .ic.c { justify-content: center; }
+
+    .i-seq {
+      font-size: var(--fsm); color: var(--t4); font-family: var(--mono);
+      font-weight: 400; letter-spacing: 0.05em;
+    }
+    .i-row.i-act .i-seq { color: var(--red); }
+
+    /* Mono input */
+    .mi {
+      background: none; border: none; outline: none;
+      font-family: var(--mono); font-size: var(--fsm); color: var(--t2);
+      width: 100%; padding: 0;
+      transition: color 80ms;
+    }
+    .mi::placeholder { color: var(--t4); font-size: var(--fss); }
+    .mi:focus { color: var(--t1); }
+    .mi.r { text-align: right; }
+    .mi.name-mi { font-family: var(--font); font-size: var(--fs); font-weight: 500; color: var(--t2); }
+    .mi.name-mi:focus { color: var(--t1); }
+
+    /* Mode inline text */
+    .i-mode { font-size: var(--fss); font-weight: 700; letter-spacing: 0.08em; cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background 60ms; }
+    .i-mode.low  { color: var(--ok); }
+    .i-mode.mid  { color: var(--warn); }
+    .i-mode.high { color: var(--err); }
+    .i-mode:hover { background: var(--b1); }
+
+    /* Focus underline on i-row */
+    .i-row.i-act .mi { border-bottom: 1px solid rgba(255,255,255,0.15); }
+    .i-row .mi { border-bottom: 1px solid transparent; transition: border-color 80ms; }
+    .i-row:hover .mi { border-bottom-color: rgba(255,255,255,0.06); }
+    .mi:focus { border-bottom-color: rgba(255,255,255,0.28) !important; }
+
+    /* cursor line */
+    .i-cursor {
+      position: absolute; right: 36px; top: 50%; transform: translateY(-50%);
+      display: flex; align-items: center; gap: 8px;
+      opacity: 0; transition: opacity 60ms;
+    }
+    .i-row.i-act .i-cursor { opacity: 1; }
+    .i-save {
+      padding: 2px 8px; font-size: var(--fss); font-weight: 600; letter-spacing: 0.04em;
+      background: none; border: 1px solid var(--b3); border-radius: var(--rs);
+      color: var(--t3); cursor: pointer; font-family: var(--mono);
+      transition: color 80ms, background 80ms;
+    }
+    .i-save:hover { color: var(--t1); background: var(--b2); }
+
+    /* ─── hint bar ─── */
+    .hint-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 5px 12px; background: rgba(255,255,255,0.02);
+      border: 1px solid var(--b2); border-top: none;
+      border-radius: 0 0 var(--r) var(--r);
+      font-size: var(--fss); color: var(--t4);
+    }
+    .vdiv { width: 1px; height: 10px; background: var(--b2); }
+
+    /* sc bar */
+    .sc-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 5px 10px; background: var(--surface); border: 1px solid var(--b2);
+      border-radius: var(--r); margin-bottom: 8px;
+    }
+    .sc-l { font-size: var(--fss); color: var(--t4); }
+
+    /* detail expand shared */
+    .feat-list { display: flex; flex-direction: column; gap: 3px; min-width: 200px; flex: 1; }
+    .feat-head { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 4px; }
+    .feat-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px; background: var(--surface); border: 1px solid var(--b2); border-radius: var(--rs);
+      font-size: var(--fsm); color: var(--t3);
+    }
+    .feat-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--t4); flex-shrink: 0; }
+    .feat-val { margin-left: auto; font-family: var(--mono); font-size: var(--fss); color: var(--t2); }
+    .feat-add { border-style: dashed; color: var(--t4); cursor: pointer; }
+    .feat-add:hover { background: var(--b1); color: var(--t2); }
+  </style>
+</head>
+<body>
+
+  <div class="nav">
+    <button class="nav-tab act" onclick="showTab('h',this)">H — Studio Row</button>
+    <button class="nav-tab" onclick="showTab('i',this)">I — Mono Terminal</button>
+    <div class="nav-badge"><div class="dot"></div><span>bombastic edition</span></div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       H — STUDIO ROW
+       Inspirace: DAW, timeline, data studio.
+       Vysoké řádky. Vizualizace poměru časů (time bar).
+       Mode = barevná buňka. Časy = velká mono čísla.
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="variant-h" class="variant act">
+    <div class="vwrap">
+      <div class="vh">
+        <div class="vh-tag">Varianta H</div>
+        <div class="vh-title">Studio Row</div>
+        <div class="vh-sub">
+          Každý řádek je vizuální jednotka. Název jako hero text, WC jako chip pod ním.
+          Časy = velká mono čísla. Mode = barevná zona. Tenký bar na spodku = poměr seřízení&thinsp;:&thinsp;výroba.
+          Chevron = budoucí collapsible (operace 2 je rozevřená).
+        </div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="h-wrap">
+        <!-- Header -->
+        <div class="h-head">
+          <div class="h-th" style="text-align:center">#</div>
+          <div class="h-th">Název · Pracoviště</div>
+          <div class="h-th" style="padding-left:14px">Pracoviště</div>
+          <div class="h-th r">Seřízení</div>
+          <div class="h-th r">Výroba</div>
+          <div class="h-th c">Mode</div>
+          <div class="h-th"></div>
+        </div>
+
+        <!-- ── ROW 1 ── -->
+        <div class="h-row" style="--setup-pct:20%" onclick="activateH(this,1)">
+          <div class="hc hc-left">
+            <span class="chev" onclick="toggleDetail(event,'hd1')">▶</span>
+            <span class="h-seq">01</span>
+          </div>
+          <div class="hc hc-identity">
+            <input class="h-name-input" value="Hrubování" placeholder="Název operace…">
+            <div class="h-wc-row">
+              <div class="rel">
+                <div class="wc-chip" onclick="openWC(this)">
+                  <span class="wc-dot" style="background:#60a5fa"></span>
+                  <span>CNC Fanuc 30i</span>
+                  <span class="wc-caret">▾</span>
+                </div>
+                <div class="wc-popup">
+                  <input class="wc-search" placeholder="Hledat pracoviště…">
+                  <div class="wc-opt sel">CNC Fanuc 30i</div>
+                  <div class="wc-opt">Frézka DMU 60</div>
+                  <div class="wc-opt">Bruska BRH 20</div>
+                  <div class="wc-opt">Soustruh SBL 500</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- WC hidden column (placeholder for grid alignment) -->
+          <div class="hc" style="display:none"></div>
+          <div class="hc hc-time">
+            <span class="h-time-lbl">min</span>
+            <input class="h-time-input" value="30" type="number">
+          </div>
+          <div class="hc hc-time">
+            <span class="h-time-lbl">min</span>
+            <input class="h-time-input" value="120" type="number">
+          </div>
+          <div class="hc hc-mode low">
+            <span class="mode-badge low" onclick="cycleBadge(this)">LOW</span>
+          </div>
+          <div class="hc hc-acts"><button class="icon-btn del">×</button></div>
+        </div>
+
+        <!-- Detail 1 — hidden -->
+        <div class="h-detail" id="hd1" style="display:none">
+          <div class="h-detail-inner">
+            <div class="feat-list">
+              <div class="feat-head">Prvky operace</div>
+              <div class="feat-item"><span class="feat-dot"></span><span>Kapsa 1</span><span class="feat-val">80×40×12</span></div>
+              <div class="feat-item feat-add"><span class="feat-dot" style="background:transparent;border:1px solid var(--t4)"></span><span>+ Přidat prvek</span></div>
+            </div>
+            <div style="font-size:var(--fss);color:var(--t4);align-self:center;font-style:italic">Kooperace: Ne &nbsp;·&nbsp; Nástroj: —</div>
+          </div>
+        </div>
+
+        <!-- ── ROW 2 — active + open ── -->
+        <div class="h-row h-act" style="--setup-pct:11%" onclick="activateH(this,2)">
+          <div class="hc hc-left">
+            <span class="chev open" onclick="toggleDetail(event,'hd2')">▶</span>
+            <span class="h-seq">02</span>
+          </div>
+          <div class="hc hc-identity">
+            <input class="h-name-input" value="Dokončování kontur" placeholder="Název operace…" style="color:var(--t1);border-bottom-color:rgba(255,255,255,0.2)">
+            <div class="h-wc-row">
+              <div class="rel">
+                <div class="wc-chip" onclick="openWC(this)">
+                  <span class="wc-dot" style="background:#a78bfa"></span>
+                  <span>Frézka DMU 60</span>
+                  <span class="wc-caret">▾</span>
+                </div>
+                <div class="wc-popup">
+                  <input class="wc-search" placeholder="Hledat pracoviště…">
+                  <div class="wc-opt">CNC Fanuc 30i</div>
+                  <div class="wc-opt sel">Frézka DMU 60</div>
+                  <div class="wc-opt">Bruska BRH 20</div>
+                  <div class="wc-opt">Soustruh SBL 500</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hc" style="display:none"></div>
+          <div class="hc hc-time">
+            <span class="h-time-lbl">min</span>
+            <input class="h-time-input" value="45" type="number" style="border-bottom-color:rgba(255,255,255,0.2)">
+          </div>
+          <div class="hc hc-time">
+            <span class="h-time-lbl">min</span>
+            <input class="h-time-input" value="360" type="number">
+          </div>
+          <div class="hc hc-mode mid">
+            <span class="mode-badge mid" onclick="cycleBadge(this)">MID</span>
+          </div>
+          <div class="hc hc-acts" style="opacity:1"><button class="icon-btn del">×</button></div>
+        </div>
+
+        <!-- Detail 2 — open -->
+        <div class="h-detail" id="hd2">
+          <div class="h-detail-inner">
+            <div class="feat-list">
+              <div class="feat-head">Prvky operace</div>
+              <div class="feat-item"><span class="feat-dot" style="background:#a78bfa"></span><span>Kapsa 2 — radiusová</span><span class="feat-val">120×60×18</span></div>
+              <div class="feat-item"><span class="feat-dot" style="background:#a78bfa"></span><span>Drážka T8</span><span class="feat-val">×2, hloubka 5</span></div>
+              <div class="feat-item feat-add"><span class="feat-dot" style="background:transparent;border:1px solid var(--t4)"></span><span>+ Přidat prvek</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:var(--fsm);color:var(--t4)">
+              <div>Kooperace: <span style="color:var(--t3)">Ne</span></div>
+              <div>Nástroj: <span style="color:var(--t3)">Fréza R8</span></div>
+              <div>Poznámka: <span style="color:var(--t4);font-style:italic">prázdná</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ROW 3 ── -->
+        <div class="h-row" style="--setup-pct:13%" onclick="activateH(this,3)">
+          <div class="hc hc-left">
+            <span class="chev" onclick="toggleDetail(event,'hd3')">▶</span>
+            <span class="h-seq">03</span>
+          </div>
+          <div class="hc hc-identity">
+            <input class="h-name-input" value="Broušení ploch" placeholder="Název operace…">
+            <div class="h-wc-row">
+              <div class="rel">
+                <div class="wc-chip" onclick="openWC(this)">
+                  <span class="wc-dot" style="background:#f59e0b"></span>
+                  <span>Bruska BRH 20</span>
+                  <span class="wc-caret">▾</span>
+                </div>
+                <div class="wc-popup">
+                  <input class="wc-search" placeholder="Hledat pracoviště…">
+                  <div class="wc-opt">CNC Fanuc 30i</div>
+                  <div class="wc-opt">Frézka DMU 60</div>
+                  <div class="wc-opt sel">Bruska BRH 20</div>
+                  <div class="wc-opt">Soustruh SBL 500</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hc" style="display:none"></div>
+          <div class="hc hc-time">
+            <span class="h-time-lbl">min</span>
+            <input class="h-time-input" value="60" type="number">
+          </div>
+          <div class="hc hc-time">
+            <span class="h-time-lbl">min</span>
+            <input class="h-time-input" value="390" type="number">
+          </div>
+          <div class="hc hc-mode high">
+            <span class="mode-badge high" onclick="cycleBadge(this)">HIGH</span>
+          </div>
+          <div class="hc hc-acts"><button class="icon-btn del">×</button></div>
+        </div>
+
+        <div class="h-detail" id="hd3" style="display:none">
+          <div class="h-detail-inner">
+            <div class="feat-list">
+              <div class="feat-head">Prvky operace</div>
+              <div class="feat-item feat-add"><span class="feat-dot" style="background:transparent;border:1px solid var(--t4)"></span><span>+ Přidat prvek</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add -->
+        <button class="add-row">
+          <span style="font-size:15px;line-height:1;color:var(--t3)">+</span> Přidat operaci
+          <span class="kbd" style="margin-left:auto">N</span>
+        </button>
+      </div><!-- h-wrap -->
+
+      <div class="notes" style="border-left-color:var(--red)">
+        <div class="notes-title">Co je nového</div>
+        <ul>
+          <li>Dvouřádková identita: název (velký) + WC chip pod ním — vše v jedné buňce</li>
+          <li>Barevný puntík na WC chipu = vizuální kódování pracoviště (pro rychlou orientaci)</li>
+          <li>Tenký <span style="color:var(--warn)">žlutý</span>/<span style="color:var(--ok)">zelený</span> bar na spodku = poměr seřízení : výroba</li>
+          <li>Mode buňka má celý barevný bg — čtivé na první pohled bez čtení textu</li>
+          <li>Čísla řádků: velká, mono, muted — seq number jako vizuální kotva</li>
+          <li>Chevron klikatelný → operace 2 má rozevřený detail s prvky</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       I — MONO TERMINAL
+       Inspirace: kódové editory, terminály, dat. gridy.
+       Vše monospaced. Řádky jako kódové záznamy.
+       Minimální dekorace, maximální čitelnost.
+       Barvy = čistě sémantické (mode, status).
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="variant-i" class="variant">
+    <div class="vwrap">
+      <div class="vh">
+        <div class="vh-tag">Varianta I</div>
+        <div class="vh-title">Mono Terminal</div>
+        <div class="vh-sub">
+          Inspirace terminálem a kódovým editorem. Monospaced fonty, přesná typografická mřížka, nulová dekorace. Barvy = čistě sémantické.
+          Název je jedinou sans-serif výjimkou (pro čitelnost).
+        </div>
+      </div>
+
+      <div class="sc-bar">
+        <span class="kbd">Tab</span><span class="sc-l">= pole</span>
+        <div style="width:1px;height:10px;background:var(--b2)"></div>
+        <span class="kbd">↑</span><span class="kbd">↓</span><span class="sc-l">= řádek</span>
+        <div style="width:1px;height:10px;background:var(--b2)"></div>
+        <span class="kbd">↵</span><span class="sc-l">= uloží + další</span>
+        <div style="width:1px;height:10px;background:var(--b2)"></div>
+        <span class="kbd">N</span><span class="sc-l">= nová operace</span>
+        <div style="width:1px;height:10px;background:var(--b2)"></div>
+        <span class="kbd">Esc</span><span class="sc-l">= zahodit</span>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span><span class="rib-u">h</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="i-wrap">
+        <!-- Header -->
+        <div class="i-head">
+          <div class="i-th"></div>
+          <div class="i-th">#</div>
+          <div class="i-th">NÁZEV</div>
+          <div class="i-th">PRACOVIŠTĚ</div>
+          <div class="i-th r">SEŘÍZ</div>
+          <div class="i-th r">VÝROBA</div>
+          <div class="i-th" style="text-align:center">MODE</div>
+          <div class="i-th"></div>
+        </div>
+
+        <!-- Row 1 -->
+        <div class="i-row" onclick="activateI(this)">
+          <div class="ic c"><span class="chev" style="font-size:7px" onclick="toggleDetail(event,'id1')">▶</span></div>
+          <div class="ic"><span class="i-seq">01</span></div>
+          <div class="ic"><input class="mi name-mi" value="Hrubování" placeholder="název…"></div>
+          <div class="ic">
+            <div class="rel">
+              <div class="wc-chip" onclick="openWC(this)" style="border-radius:var(--rs);font-size:var(--fss)">
+                <span class="wc-dot" style="background:#60a5fa"></span>
+                <span>CNC Fanuc 30i</span><span class="wc-caret">▾</span>
+              </div>
+              <div class="wc-popup">
+                <input class="wc-search" placeholder="Hledat…">
+                <div class="wc-opt sel">CNC Fanuc 30i</div>
+                <div class="wc-opt">Frézka DMU 60</div>
+                <div class="wc-opt">Bruska BRH 20</div>
+              </div>
+            </div>
+          </div>
+          <div class="ic r"><input class="mi r" value="30" type="number" style="width:44px"></div>
+          <div class="ic r"><input class="mi r" value="120" type="number" style="width:44px"></div>
+          <div class="ic c"><span class="i-mode low" onclick="cycleBadge(this)">LOW</span></div>
+          <div class="ic c"><button class="icon-btn del" style="opacity:0;transition:opacity 70ms" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">×</button></div>
+        </div>
+        <div class="h-detail" id="id1" style="display:none;font-size:var(--fss);color:var(--t4);padding:6px 14px 6px 84px">Prvky: kapsa 1 (80×40×12) &nbsp;·&nbsp; Nástroj: — &nbsp;·&nbsp; Kooperace: Ne</div>
+
+        <!-- Row 2 — active -->
+        <div class="i-row i-act" onclick="activateI(this)">
+          <div class="ic c"><span class="chev" style="font-size:7px" onclick="toggleDetail(event,'id2')">▶</span></div>
+          <div class="ic"><span class="i-seq">02</span></div>
+          <div class="ic"><input class="mi name-mi" value="Dokončování kontur" placeholder="název…" style="color:var(--t1)"></div>
+          <div class="ic">
+            <div class="rel">
+              <div class="wc-chip" onclick="openWC(this)" style="border-radius:var(--rs);font-size:var(--fss)">
+                <span class="wc-dot" style="background:#a78bfa"></span>
+                <span>Frézka DMU 60</span><span class="wc-caret">▾</span>
+              </div>
+              <div class="wc-popup">
+                <input class="wc-search" placeholder="Hledat…">
+                <div class="wc-opt">CNC Fanuc 30i</div>
+                <div class="wc-opt sel">Frézka DMU 60</div>
+                <div class="wc-opt">Bruska BRH 20</div>
+              </div>
+            </div>
+          </div>
+          <div class="ic r"><input class="mi r" value="45" type="number" style="width:44px;color:var(--t1)"></div>
+          <div class="ic r"><input class="mi r" value="360" type="number" style="width:44px;color:var(--t1)"></div>
+          <div class="ic c"><span class="i-mode mid" onclick="cycleBadge(this)">MID</span></div>
+          <div class="ic c">
+            <div class="i-cursor">
+              <button class="i-save">↵ uložit</button>
+            </div>
+          </div>
+        </div>
+        <div class="h-detail" id="id2" style="display:none;font-size:var(--fss);color:var(--t4);padding:6px 14px 6px 84px">Prvky: kapsa 2 (120×60×18), drážka T8 ×2 &nbsp;·&nbsp; Nástroj: Fréza R8</div>
+
+        <!-- Row 3 -->
+        <div class="i-row" onclick="activateI(this)">
+          <div class="ic c"><span class="chev" style="font-size:7px" onclick="toggleDetail(event,'id3')">▶</span></div>
+          <div class="ic"><span class="i-seq">03</span></div>
+          <div class="ic"><input class="mi name-mi" value="Broušení ploch" placeholder="název…"></div>
+          <div class="ic">
+            <div class="rel">
+              <div class="wc-chip" onclick="openWC(this)" style="border-radius:var(--rs);font-size:var(--fss)">
+                <span class="wc-dot" style="background:#f59e0b"></span>
+                <span>Bruska BRH 20</span><span class="wc-caret">▾</span>
+              </div>
+              <div class="wc-popup">
+                <input class="wc-search" placeholder="Hledat…">
+                <div class="wc-opt">CNC Fanuc 30i</div>
+                <div class="wc-opt">Frézka DMU 60</div>
+                <div class="wc-opt sel">Bruska BRH 20</div>
+              </div>
+            </div>
+          </div>
+          <div class="ic r"><input class="mi r" value="60" type="number" style="width:44px"></div>
+          <div class="ic r"><input class="mi r" value="390" type="number" style="width:44px"></div>
+          <div class="ic c"><span class="i-mode high" onclick="cycleBadge(this)">HIGH</span></div>
+          <div class="ic c"><button class="icon-btn del" style="opacity:0;transition:opacity 70ms" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">×</button></div>
+        </div>
+        <div class="h-detail" id="id3" style="display:none;font-size:var(--fss);color:var(--t4);padding:6px 14px 6px 84px">Prvky: žádné &nbsp;·&nbsp; Kooperace: Ne</div>
+
+        <!-- Add -->
+        <button class="add-row" style="font-family:var(--mono);letter-spacing:0.05em">
+          <span style="color:var(--t3)">+</span> nová operace
+          <span class="kbd" style="margin-left:auto">N</span>
+        </button>
+      </div><!-- i-wrap -->
+
+      <div class="hint-bar">
+        <span>Aktivní: řádek 2 / 3</span>
+        <div class="vdiv"></div>
+        <span class="kbd">Tab</span> <span>= další pole</span>
+        <div class="vdiv"></div>
+        <span style="color:var(--ok)">●</span><span>Uloženo automaticky</span>
+      </div>
+
+      <div class="notes" style="border-left-color:var(--t4)">
+        <div class="notes-title">Co je nového</div>
+        <ul>
+          <li>Monospaced grid — přesné zarovnání čísel, terminálová čitelnost</li>
+          <li>Řádky jako záznamy — zero dekorace, data mluví sama za sebe</li>
+          <li>Barevný puntík na WC chipu = pracoviště vizuálně rozlišená bez čtení</li>
+          <li>Uložit = jen "↵ uložit" inline — nevyrušuje tok, není modální</li>
+          <li>Chevron + jednořádkový detail — extra kompaktní summary pod řádkem</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    function showTab(id, btn) {
+      document.querySelectorAll('.variant').forEach(el => el.classList.remove('act'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('act'));
+      document.getElementById('variant-' + id).classList.add('act');
+      btn.classList.add('act');
+    }
+
+    /* Mode cycling */
+    const modes = ['low','mid','high'];
+    const modeLabel = { low:'LOW', mid:'MID', high:'HIGH' };
+    function cycleBadge(el) {
+      const cur = modes.find(m => el.classList.contains(m)) || 'low';
+      const next = modes[(modes.indexOf(cur)+1) % 3];
+      el.classList.remove(...modes);
+      el.classList.add(next);
+      el.textContent = modeLabel[next];
+      // update parent cell bg for H variant
+      const cell = el.closest('.hc-mode');
+      if (cell) { cell.classList.remove(...modes); cell.classList.add(next); }
+    }
+
+    /* WC popup */
+    function openWC(chip) {
+      const popup = chip.nextElementSibling;
+      if (!popup) return;
+      const isOpen = popup.classList.contains('open');
+      document.querySelectorAll('.wc-popup.open').forEach(p => p.classList.remove('open'));
+      if (!isOpen) {
+        popup.classList.add('open');
+        const s = popup.querySelector('.wc-search');
+        if (s) setTimeout(() => s.focus(), 10);
+      }
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.wc-chip') && !e.target.closest('.wc-popup'))
+        document.querySelectorAll('.wc-popup.open').forEach(p => p.classList.remove('open'));
+    });
+    document.querySelectorAll('.wc-opt').forEach(opt => {
+      opt.addEventListener('click', function() {
+        const popup = this.closest('.wc-popup');
+        const chip = popup.previousElementSibling;
+        const span = chip.querySelector('span:not(.wc-dot):not(.wc-caret)');
+        if (span) span.textContent = this.textContent;
+        popup.querySelectorAll('.wc-opt').forEach(o => o.classList.remove('sel'));
+        this.classList.add('sel');
+        popup.classList.remove('open');
+      });
+    });
+
+    /* H row activate */
+    function activateH(row, num) {
+      document.querySelectorAll('.h-row').forEach(r => r.classList.remove('h-act'));
+      row.classList.add('h-act');
+    }
+
+    /* I row activate */
+    function activateI(row) {
+      document.querySelectorAll('.i-row').forEach(r => r.classList.remove('i-act'));
+      row.classList.add('i-act');
+    }
+
+    /* Toggle detail */
+    function toggleDetail(e, id) {
+      e.stopPropagation();
+      const detail = document.getElementById(id);
+      if (!detail) return;
+      const chev = e.currentTarget;
+      const isOpen = chev.classList.contains('open');
+      chev.classList.toggle('open', !isOpen);
+      detail.style.display = isOpen ? 'none' : '';
+    }
+
+    /* Focus → activate row */
+    document.querySelectorAll('.h-row input').forEach(inp => {
+      inp.addEventListener('focus', function() {
+        const row = this.closest('.h-row');
+        if (row) activateH(row, 0);
+      });
+    });
+    document.querySelectorAll('.i-row input').forEach(inp => {
+      inp.addEventListener('focus', function() {
+        const row = this.closest('.i-row');
+        if (row) activateI(row);
+      });
+    });
+  </script>
+</body>
+</html>

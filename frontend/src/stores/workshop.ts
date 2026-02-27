@@ -48,7 +48,10 @@ export const useWorkshopStore = defineStore('workshop', () => {
     running: false,
     startedAt: null,
     job: null,
+    suffix: null,
     operNum: null,
+    inforItem: null,
+    wc: null,
     mode: null,
   })
   const startingTimer = ref(false)
@@ -199,6 +202,10 @@ export const useWorkshopStore = defineStore('workshop', () => {
     }
   }
 
+  function setWorkMode(mode: 'setup' | 'production') {
+    workMode.value = mode
+  }
+
   // === Časovač ===
 
   async function _postSilent(txId: number): Promise<WorkshopTransaction | null> {
@@ -229,6 +236,7 @@ export const useWorkshopStore = defineStore('workshop', () => {
       const tx = await createTransaction({
         infor_job: job.Job,
         infor_suffix: job.Suffix ?? '0',
+        infor_item: job.DerJobItem ?? null,
         oper_num: oper.OperNum,
         wc: oper.Wc ?? null,
         trans_type: transType,
@@ -242,7 +250,16 @@ export const useWorkshopStore = defineStore('workshop', () => {
         return false
       }
 
-      timer.value = { running: true, startedAt, job: job.Job, operNum: oper.OperNum, mode }
+      timer.value = {
+        running: true,
+        startedAt,
+        job: job.Job,
+        suffix: job.Suffix ?? '0',
+        operNum: oper.OperNum,
+        inforItem: job.DerJobItem ?? null,
+        wc: oper.Wc ?? null,
+        mode,
+      }
       timerElapsed.value = 0
       _timerInterval = setInterval(() => {
         timerElapsed.value++
@@ -271,23 +288,36 @@ export const useWorkshopStore = defineStore('workshop', () => {
     const startedAt = timer.value.startedAt
     const mode = timer.value.mode ?? 'production'
     const jobNum = timer.value.job!
+    const suffix = timer.value.suffix ?? '0'
     const operNum = timer.value.operNum!
+    const inforItem = timer.value.inforItem
+    const wc = timer.value.wc
     const transType: WorkshopTransType = mode === 'setup' ? 'setup_end' : 'stop'
 
     if (_timerInterval) {
       clearInterval(_timerInterval)
       _timerInterval = null
     }
-    timer.value = { running: false, startedAt: null, job: null, operNum: null, mode: null }
+    timer.value = {
+      running: false,
+      startedAt: null,
+      job: null,
+      suffix: null,
+      operNum: null,
+      inforItem: null,
+      wc: null,
+      mode: null,
+    }
     timerElapsed.value = 0
 
     const actualHours = (finishedAt.getTime() - startedAt.getTime()) / 3_600_000
 
     const tx = await createTransaction({
       infor_job: jobNum,
-      infor_suffix: activeJob.value?.Suffix ?? '0',
+      infor_suffix: suffix,
+      infor_item: inforItem,
       oper_num: operNum,
-      wc: activeOperation.value?.Wc ?? null,
+      wc,
       trans_type: transType,
       actual_hours: Math.round(actualHours * 10000) / 10000,
       started_at: startedAt.toISOString(),
@@ -318,7 +348,16 @@ export const useWorkshopStore = defineStore('workshop', () => {
       clearInterval(_timerInterval)
       _timerInterval = null
     }
-    timer.value = { running: false, startedAt: null, job: null, operNum: null, mode: null }
+    timer.value = {
+      running: false,
+      startedAt: null,
+      job: null,
+      suffix: null,
+      operNum: null,
+      inforItem: null,
+      wc: null,
+      mode: null,
+    }
     timerElapsed.value = 0
   }
 
@@ -357,6 +396,7 @@ export const useWorkshopStore = defineStore('workshop', () => {
     createTransaction,
     postTransaction,
     fetchMyTransactions,
+    setWorkMode,
     // Actions — časovač
     startTimer,
     stopTimer,

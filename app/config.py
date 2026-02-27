@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     INFOR_SYNC_ENABLED: bool = False
     INFOR_SYNC_INTERVAL_SECONDS: int = 30
     INFOR_SYNC_INITIAL_LOOKBACK_DAYS: int = 7
+    INFOR_SYNC_INITIAL_DATE: str = ""  # Pevné datum prvního syncu, např. "2013-01-01". Přepisuje LOOKBACK_DAYS.
 
     # CsiXls Accounting API
     CSIXLS_API_URL: str = ""  # CsiXls API base URL
@@ -77,8 +78,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "100/minute"  # Obecné API
     RATE_LIMIT_AUTH: str = "10/minute"  # Login/register (přísnější)
 
-    # Drawing Import from Network Share
-    DRAWINGS_SHARE_PATH: str = ""  # SMB share path, e.g. "/Volumes/Dokumenty/TPV-dokumentace/Výkresy"
+    # Drawing import source:
+    # - local path: "/Volumes/Dokumenty/TPV-dokumentace/Vykresy"
+    # - SSH source: "ssh://user@host:22/absolute/path"
+    DRAWINGS_SHARE_PATH: str = ""
 
 
 settings = Settings()

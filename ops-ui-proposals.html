@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestima — Operace UI Návrhy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Design System v6.0 tokens ─── */
+    :root {
+      --red: #E53935;
+      --red-glow: rgba(229,57,53,0.15);
+      --red-dim: rgba(229,57,53,0.08);
+      --red-10: rgba(229,57,53,0.10);
+      --green: #22c55e;
+      --green-10: rgba(34,197,94,0.10);
+      --base: #08080a;
+      --ground: #0e0e10;
+      --surface: rgba(18,18,20,0.88);
+      --raised: rgba(26,26,28,0.92);
+      --glass: rgba(20,20,22,0.65);
+      --t1: #ededf0;
+      --t2: #cdcdd0;
+      --t3: #8e8e96;
+      --t4: #5c5c64;
+      --b1: rgba(255,255,255,0.06);
+      --b2: rgba(255,255,255,0.10);
+      --b3: rgba(255,255,255,0.15);
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --fs:  12px;
+      --fsm: 10px;
+      --fss: 9px;
+      --fsh: 14px;
+      --gap: 3px;
+      --pad: 8px;
+      --r: 7px;
+      --rs: 4px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --spring: cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: var(--base); }
+    body {
+      font-family: var(--font);
+      background: var(--base);
+      color: var(--t2);
+      font-size: var(--fs);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Nav ─── */
+    .nav {
+      display: flex;
+      gap: 2px;
+      padding: 10px 20px 0;
+      border-bottom: 1px solid var(--b2);
+      background: var(--ground);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-bottom: 10px;
+    }
+    .nav-meta-text { font-size: var(--fss); color: var(--t4); }
+
+    .nav-tab {
+      padding: 6px 14px 8px;
+      font-size: var(--fsm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--t4);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: color 100ms var(--ease);
+      font-family: var(--font);
+    }
+    .nav-tab:hover { color: var(--t2); }
+    .nav-tab.active { color: var(--t1); border-bottom-color: var(--red); }
+
+    .variant { display: none; padding: 24px 20px 48px; }
+    .variant.active { display: block; }
+
+    .v-container { max-width: 820px; margin: 0 auto; }
+
+    /* ─── Variant header ─── */
+    .v-header { margin-bottom: 14px; }
+    .v-label { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 4px; }
+    .v-title { font-size: 18px; color: var(--t1); font-weight: 600; margin-bottom: 4px; }
+    .v-desc { font-size: var(--fs); color: var(--t3); }
+
+    /* ─── KPI Ribbon ─── */
+    .rib {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 20px;
+      padding: 6px var(--pad);
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-bottom: none;
+      border-radius: var(--r) var(--r) 0 0;
+    }
+    .rib-i { display: flex; align-items: baseline; gap: 6px; }
+    .rib-l { font-size: var(--fsm); color: var(--t4); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .rib-v { font-size: var(--fsh); color: var(--t1); font-weight: 500; }
+
+    /* ─── Operations table ─── */
+    .ot-wrap {
+      border: 1px solid var(--b2);
+      border-radius: 0 0 var(--r) var(--r);
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .ot { width: 100%; border-collapse: collapse; }
+    .ot thead { background: rgba(255,255,255,0.025); }
+    .ot th {
+      padding: 5px var(--pad);
+      font-size: var(--fsm);
+      font-weight: 600;
+      color: var(--t4);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: left;
+      border-bottom: 1px solid var(--b2);
+      white-space: nowrap;
+    }
+    .ot th.r { text-align: right; }
+    .ot th.c { text-align: center; }
+    .ot td {
+      padding: 5px var(--pad);
+      font-size: var(--fs);
+      color: var(--t2);
+      border-bottom: 1px solid rgba(255,255,255,0.025);
+      vertical-align: middle;
+    }
+    .ot td.r { text-align: right; color: var(--t1); font-variant-numeric: tabular-nums; }
+    .ot td.c { text-align: center; }
+    .ot tbody tr:last-child td { border-bottom: none; }
+    .ot tbody tr { transition: background 60ms var(--ease); }
+    .ot tbody tr:hover td { background: var(--b1); }
+
+    /* ─── Kbd ─── */
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 5px;
+      background: var(--raised);
+      border: 1px solid var(--b3);
+      border-radius: 3px;
+      font-size: var(--fss);
+      color: var(--t4);
+      font-family: 'SF Mono', 'JetBrains Mono', monospace;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+
+    /* ─── Badges ─── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      background: var(--b1);
+      border: 1px solid var(--b2);
+      border-radius: var(--rs);
+      font-size: var(--fss);
+      color: var(--t3);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Mode buttons ─── */
+    .mode-grp {
+      display: inline-flex;
+      border: 1px solid var(--b2);
+      border-radius: var(--rs);
+      overflow: hidden;
+      background: rgba(0,0,0,0.2);
+    }
+    .mode-btn {
+      padding: 2px 7px;
+      font-size: var(--fss);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--t4);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background 80ms, color 80ms;
+      font-family: var(--font);
+    }
+    .mode-btn + .mode-btn { border-left: 1px solid var(--b2); }
+    .mode-btn:hover { background: var(--b2); color: var(--t2); }
+    .mode-btn.on { background: var(--b2); }
+    .mode-btn.on.low  { color: var(--ok); }
+    .mode-btn.on.mid  { color: var(--warn); }
+    .mode-btn.on.high { color: var(--err); }
+
+    /* ─── Icon buttons ─── */
+    .icon-btn {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: var(--rs);
+      color: var(--t4);
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      transition: background 80ms, color 80ms, border-color 80ms;
+    }
+    .icon-btn:hover { background: var(--b2); border-color: var(--b2); color: var(--t2); }
+    .icon-btn.danger:hover { color: var(--err); border-color: rgba(248,113,113,0.2); background: rgba(248,113,113,0.08); }
+
+    /* ─── Form inputs ─── */
+    .fi {
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-radius: var(--rs);
+      color: var(--t1);
+      font-family: var(--font);
+      font-size: var(--fs);
+      padding: 4px 7px;
+      outline: none;
+      transition: border-color 100ms, background 100ms;
+      width: 100%;
+    }
+    .fi:focus { border-color: var(--b3); background: rgba(255,255,255,0.04); }
+    .fi.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .fi.w48  { width: 48px; }
+    .fi.w70  { width: 70px; }
+    .fi.w120 { width: 120px; }
+    .fi.w160 { width: 160px; }
+    .fi.w200 { width: 200px; }
+
+    /* ─── Add row ─── */
+    .add-row {
+      width: 100%;
+      padding: 5px 12px;
+      background: none;
+      border: none;
+      border-top: 1px dashed rgba(255,255,255,0.07);
+      color: var(--t4);
+      font-family: var(--font);
+      font-size: var(--fsm);
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 80ms, color 80ms;
+      letter-spacing: 0.03em;
+    }
+    .add-row:hover { background: var(--b1); color: var(--t2); }
+    .add-row .plus { font-size: 15px; line-height: 1; color: var(--t3); }
+
+    /* ─── Btn save/cancel ─── */
+    .btn-save {
+      padding: 4px 12px;
+      background: none;
+      border: 1px solid var(--b3);
+      border-radius: var(--rs);
+      color: var(--t2);
+      font-family: var(--font);
+      font-size: var(--fsm);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: background 80ms, border-color 80ms, color 80ms;
+    }
+    .btn-save:hover { background: var(--b2); border-color: var(--b3); color: var(--t1); }
+    .btn-cancel {
+      padding: 4px 10px;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: var(--rs);
+      color: var(--t4);
+      font-family: var(--font);
+      font-size: var(--fsm);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: color 80ms;
+    }
+    .btn-cancel:hover { color: var(--t2); }
+
+    /* ─── Notes ─── */
+    .notes {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-left: 3px solid var(--t4);
+      border-radius: var(--rs);
+    }
+    .notes-title { font-size: var(--fsm); color: var(--t3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .notes ul { list-style: none; }
+    .notes li {
+      font-size: var(--fs);
+      color: var(--t3);
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.8;
+    }
+    .notes li::before { content: '·'; position: absolute; left: 0; color: var(--t4); }
+
+    /* ─── Divider ─── */
+    .vdiv { width: 1px; height: 12px; background: var(--b2); flex-shrink: 0; }
+
+    /* ─── Shortcut bar ─── */
+    .sc-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-radius: var(--r);
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .sc-item { display: flex; align-items: center; gap: 4px; }
+    .sc-label { font-size: var(--fss); color: var(--t4); }
+
+    /* ======================================================
+       VARIANT A — Spreadsheet Grid
+       ====================================================== */
+    .a-cell-active {
+      outline: 1.5px solid rgba(255,255,255,0.28) !important;
+      outline-offset: -1px;
+      background: rgba(255,255,255,0.04) !important;
+      border-radius: 2px;
+    }
+    .gi {
+      background: none;
+      border: none;
+      color: var(--t2);
+      font-family: var(--font);
+      font-size: var(--fs);
+      width: 100%;
+      outline: none;
+      padding: 1px 0;
+    }
+    .gi::placeholder { color: var(--t4); }
+    .gi.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .gi-select {
+      background: none;
+      border: none;
+      color: var(--t2);
+      font-family: var(--font);
+      font-size: var(--fs);
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      padding: 0;
+      -webkit-appearance: none;
+    }
+    /* Active row highlight in A */
+    .a-row-active td { background: rgba(255,255,255,0.03) !important; }
+
+    /* ======================================================
+       VARIANT B — Row Expand
+       ====================================================== */
+    .b-row-sel td { background: rgba(255,255,255,0.04) !important; }
+    .b-row-sel td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+
+    .b-expand {
+      background: var(--raised);
+      border-bottom: 1px solid var(--b2);
+    }
+    .b-expand td { padding: 10px 12px !important; background: var(--raised) !important; }
+    .b-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+    .b-field { display: flex; flex-direction: column; gap: 4px; }
+    .b-label { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .b-actions { display: flex; gap: 4px; margin-left: auto; }
+
+    /* ======================================================
+       VARIANT C — Flow Mode
+       ====================================================== */
+    .c-row { cursor: pointer; }
+    .c-row-active td { background: rgba(255,255,255,0.04) !important; }
+    .c-row-active td:first-child { box-shadow: inset 2px 0 0 var(--red); }
+    .c-row-passive td { opacity: 0.7; }
+    .c-row-passive:hover td { opacity: 1; }
+
+    .cinput {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--b2);
+      border-radius: 3px;
+      color: var(--t1);
+      font-family: var(--font);
+      font-size: var(--fs);
+      padding: 2px 5px;
+      outline: none;
+      width: 100%;
+      transition: border-color 80ms, background 80ms;
+    }
+    .cinput:focus { border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.07); }
+    .cinput.num { text-align: right; font-variant-numeric: tabular-nums; width: 56px; display: block; margin-left: auto; }
+    .csel {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--b2);
+      border-radius: 3px;
+      color: var(--t1);
+      font-family: var(--font);
+      font-size: var(--fs);
+      padding: 2px 5px;
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+    }
+    .csel:focus { border-color: rgba(255,255,255,0.28); }
+    .c-hint {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px;
+      background: var(--raised);
+      border: 1px solid var(--b2);
+      border-top: none;
+      border-radius: 0 0 var(--r) var(--r);
+      font-size: var(--fss);
+      color: var(--t4);
+    }
+
+    /* ======================================================
+       VARIANT D — Cards
+       ====================================================== */
+    .cards { display: flex; flex-direction: column; gap: 2px; }
+
+    .op-card {
+      display: grid;
+      grid-template-columns: 28px minmax(0,1fr) 120px 80px 80px 54px 48px;
+      align-items: center;
+      padding: 7px 10px;
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-radius: var(--rs);
+      cursor: pointer;
+      transition: background 70ms var(--ease), border-color 70ms;
+      gap: 0 4px;
+    }
+    .op-card:hover { background: var(--raised); border-color: var(--b3); }
+    .op-card.act {
+      background: var(--raised);
+      border-color: rgba(255,255,255,0.16);
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .d-seq { font-size: var(--fsm); color: var(--t4); font-weight: 600; }
+    .d-seq.red { color: var(--red); }
+    .d-name { font-size: var(--fs); color: var(--t1); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .d-wc { font-size: var(--fsm); color: var(--t4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .d-time { text-align: right; }
+    .d-time-val { font-size: var(--fs); color: var(--t2); font-variant-numeric: tabular-nums; }
+    .d-time-lbl { font-size: var(--fss); color: var(--t4); }
+    .d-mode { text-align: center; }
+    .d-acts { display: flex; gap: 2px; justify-content: flex-end; opacity: 0; transition: opacity 70ms; }
+    .op-card:hover .d-acts, .op-card.act .d-acts { opacity: 1; }
+
+    .card-detail {
+      display: none;
+      background: var(--raised);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-top: 1px solid var(--b2);
+      border-radius: 0 0 var(--rs) var(--rs);
+      padding: 10px 12px;
+    }
+    .card-detail.open { display: block; }
+    .d-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+    .d-field { display: flex; flex-direction: column; gap: 4px; }
+    .d-label { font-size: var(--fss); color: var(--t4); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .d-acts-row { display: flex; gap: 4px; margin-left: auto; align-items: flex-end; }
+
+    /* ─── Page title ─── */
+    .page-title {
+      font-size: var(--fss);
+      color: var(--t4);
+      padding: 8px 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ground);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .page-title span { color: var(--t3); }
+  </style>
+</head>
+<body>
+  <div class="page-title">Gestima &rsaquo; <span>Operace UI — 4 návrhy</span></div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="nav-tab active" onclick="show('a',this)">A — Spreadsheet</button>
+    <button class="nav-tab" onclick="show('b',this)">B — Row Expand</button>
+    <button class="nav-tab" onclick="show('c',this)">C — Flow Mode</button>
+    <button class="nav-tab" onclick="show('d',this)">D — Cards</button>
+    <div class="nav-meta">
+      <span class="nav-meta-text">design-system v6.0 · DM Sans · dark only</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       VARIANT A — Spreadsheet Grid
+       Nejblíže současnému stavu, ale s jasnou
+       keyboard navigací po buňkách (Excel-style).
+       ══════════════════════════════════════════════ -->
+  <div id="variant-a" class="variant active">
+    <div class="v-container">
+      <div class="v-header">
+        <div class="v-label">Varianta A</div>
+        <div class="v-title">Spreadsheet Grid</div>
+        <div class="v-desc">Buňky navigovatelné šipkami. Enter/F2 = edituj buňku. Tab = přejdi dál a ulož. Esc = zrušit. Mode = tlačítka místo dropdownu.</div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="ot-wrap">
+        <table class="ot" id="a-table">
+          <thead>
+            <tr>
+              <th style="width:28px">#</th>
+              <th>Název</th>
+              <th style="width:120px">Pracoviště</th>
+              <th class="r" style="width:70px">Seř. (min)</th>
+              <th class="r" style="width:70px">Výr. (min)</th>
+              <th class="c" style="width:88px">Mode</th>
+              <th style="width:28px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--t4)">1</td>
+              <td>Hrubování</td>
+              <td style="color:var(--t3)">CNC Fanuc 30i</td>
+              <td class="r">30</td>
+              <td class="r">120</td>
+              <td class="c">
+                <div class="mode-grp">
+                  <button class="mode-btn low on">LOW</button>
+                  <button class="mode-btn mid">MID</button>
+                  <button class="mode-btn high">HI</button>
+                </div>
+              </td>
+              <td><button class="icon-btn danger">×</button></td>
+            </tr>
+            <!-- Row 2 — active cell: Název -->
+            <tr class="a-row-active">
+              <td style="color:var(--t4)">2</td>
+              <td class="a-cell-active">
+                <input class="gi" value="Dokončování kontur" style="width:100%">
+              </td>
+              <td style="color:var(--t3)">Frézka DMU 60</td>
+              <td class="r">45</td>
+              <td class="r">360</td>
+              <td class="c">
+                <div class="mode-grp">
+                  <button class="mode-btn low">LOW</button>
+                  <button class="mode-btn mid on">MID</button>
+                  <button class="mode-btn high">HI</button>
+                </div>
+              </td>
+              <td><button class="icon-btn danger">×</button></td>
+            </tr>
+            <tr>
+              <td style="color:var(--t4)">3</td>
+              <td>Broušení ploch</td>
+              <td style="color:var(--t3)">Bruska BRH 20</td>
+              <td class="r">60</td>
+              <td class="r">390</td>
+              <td class="c">
+                <div class="mode-grp">
+                  <button class="mode-btn low">LOW</button>
+                  <button class="mode-btn mid">MID</button>
+                  <button class="mode-btn high on">HI</button>
+                </div>
+              </td>
+              <td><button class="icon-btn danger">×</button></td>
+            </tr>
+            <tr>
+              <td colspan="7" style="padding:0">
+                <button class="add-row">
+                  <span class="plus">+</span> Přidat operaci
+                  <span class="kbd" style="margin-left:auto">↵ Enter na prázdném řádku</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Navigace</div>
+        <ul>
+          <li>↑ ↓ ← → — pohyb po buňkách &nbsp;·&nbsp; Enter nebo F2 = začni editaci</li>
+          <li>Tab = ulož buňku + přejdi na další &nbsp;·&nbsp; Shift+Tab = zpět</li>
+          <li>Esc = zahoď změnu, vrať původní hodnotu</li>
+          <li>Pracoviště: Enter otevře typeahead popup (ne nativní select)</li>
+          <li>LOW / MID / HI jsou tlačítka — kliknutí nebo klávesy 1/2/3 na aktivní buňce</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       VARIANT B — Row Expand
+       Tabulka = přehled. Enter = rozbalí editaci
+       přímo pod vybraný řádek.
+       ══════════════════════════════════════════════ -->
+  <div id="variant-b" class="variant">
+    <div class="v-container">
+      <div class="v-header">
+        <div class="v-label">Varianta B</div>
+        <div class="v-title">Row Expand (Master–Detail v tabulce)</div>
+        <div class="v-desc">Tabulka je vždy čitelná. Enter nebo klik na řádek rozevře editaci přímo pod ním. Tab projede pole. Enter = ulož + zavři. Esc = zahoď.</div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="ot-wrap">
+        <table class="ot">
+          <thead>
+            <tr>
+              <th style="width:28px">#</th>
+              <th>Název</th>
+              <th style="width:120px">Pracoviště</th>
+              <th class="r" style="width:70px">Seřízení</th>
+              <th class="r" style="width:70px">Výroba</th>
+              <th class="c" style="width:60px">Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1 — normal -->
+            <tr style="cursor:pointer" onclick="toggleB(this)">
+              <td style="color:var(--t4)">1</td>
+              <td>Hrubování</td>
+              <td style="color:var(--t3)">CNC Fanuc 30i</td>
+              <td class="r">0:30</td>
+              <td class="r">2:00</td>
+              <td class="c"><span class="badge" style="color:var(--ok)">LOW</span></td>
+            </tr>
+
+            <!-- Row 2 — selected -->
+            <tr class="b-row-sel" style="cursor:pointer" onclick="toggleB(this)" id="b-row2">
+              <td style="color:var(--red)">2</td>
+              <td style="color:var(--t1); font-weight:500">Dokončování kontur</td>
+              <td style="color:var(--t3)">Frézka DMU 60</td>
+              <td class="r">0:45</td>
+              <td class="r">6:00</td>
+              <td class="c"><span class="badge" style="color:var(--warn)">MID</span></td>
+            </tr>
+
+            <!-- Expanded form -->
+            <tr class="b-expand" id="b-form2">
+              <td colspan="6">
+                <div class="b-form">
+                  <div class="b-field">
+                    <label class="b-label">Název</label>
+                    <input class="fi w200" value="Dokončování kontur">
+                  </div>
+                  <div class="b-field">
+                    <label class="b-label">Pracoviště</label>
+                    <input class="fi w120" value="Frézka DMU 60">
+                  </div>
+                  <div class="b-field">
+                    <label class="b-label">Seřízení</label>
+                    <input class="fi num w70" value="45" type="number">
+                  </div>
+                  <div class="b-field">
+                    <label class="b-label">Výroba</label>
+                    <input class="fi num w70" value="360" type="number">
+                  </div>
+                  <div class="b-field">
+                    <label class="b-label">Mode</label>
+                    <div class="mode-grp">
+                      <button class="mode-btn low">LOW</button>
+                      <button class="mode-btn mid on">MID</button>
+                      <button class="mode-btn high">HIGH</button>
+                    </div>
+                  </div>
+                  <div class="b-actions">
+                    <button class="btn-save">Uložit <span class="kbd">↵</span></button>
+                    <button class="btn-cancel">Zrušit <span class="kbd">Esc</span></button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3 -->
+            <tr style="cursor:pointer" onclick="toggleB(this)">
+              <td style="color:var(--t4)">3</td>
+              <td>Broušení ploch</td>
+              <td style="color:var(--t3)">Bruska BRH 20</td>
+              <td class="r">1:00</td>
+              <td class="r">6:30</td>
+              <td class="c"><span class="badge" style="color:var(--err)">HIGH</span></td>
+            </tr>
+
+            <tr>
+              <td colspan="6" style="padding:0">
+                <button class="add-row">
+                  <span class="plus">+</span> Přidat operaci
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Přehled + detail</div>
+        <ul>
+          <li>Tabulka je vždy celá viditelná — kdykoliv víš kde jsi</li>
+          <li>Klik nebo Enter na řádek = rozevře editaci pod ním (jen jeden najednou)</li>
+          <li>Tab / Shift+Tab projede všechna pole v rozvinuté sekci</li>
+          <li>Enter = uložit a zavřít &nbsp;·&nbsp; Esc = zahodit &nbsp;·&nbsp; klik mimo = zavřít</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       VARIANT C — Flow Mode
+       Jeden aktivní řádek. Tab projede pole.
+       ↓ / Enter = přejdi na další řádek.
+       ══════════════════════════════════════════════ -->
+  <div id="variant-c" class="variant">
+    <div class="v-container">
+      <div class="v-header">
+        <div class="v-label">Varianta C</div>
+        <div class="v-title">Flow Mode (Aktivní řádek)</div>
+        <div class="v-desc">Vždy jeden aktivní řádek s inputy. Ostatní jsou read-only. Tab jede polem po poli. ↓ nebo Enter z posledního pole = uloží + přejde na další. Nový řádek se vytvoří automaticky.</div>
+      </div>
+
+      <div class="sc-bar">
+        <div class="sc-item"><span class="kbd">Tab</span><span class="sc-label">= další pole</span></div>
+        <div class="vdiv"></div>
+        <div class="sc-item"><span class="kbd">↑</span><span class="kbd">↓</span><span class="sc-label">= přejít na řádek</span></div>
+        <div class="vdiv"></div>
+        <div class="sc-item"><span class="kbd">↵</span><span class="sc-label">= uloží + další řádek</span></div>
+        <div class="vdiv"></div>
+        <div class="sc-item"><span class="kbd">Esc</span><span class="sc-label">= zahodit</span></div>
+        <div class="vdiv"></div>
+        <div class="sc-item"><span class="kbd">N</span><span class="sc-label">= nová operace</span></div>
+      </div>
+
+      <div class="rib">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="ot-wrap">
+        <table class="ot">
+          <thead>
+            <tr>
+              <th style="width:28px">#</th>
+              <th>Název</th>
+              <th style="width:130px">Pracoviště</th>
+              <th class="r" style="width:66px">Seř.</th>
+              <th class="r" style="width:66px">Výr.</th>
+              <th class="c" style="width:76px">Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1 — passive -->
+            <tr class="c-row c-row-passive" onclick="activateC(this)">
+              <td style="color:var(--t4)">1</td>
+              <td>Hrubování</td>
+              <td style="color:var(--t3)">CNC Fanuc 30i</td>
+              <td class="r">30</td>
+              <td class="r">120</td>
+              <td class="c"><span class="badge" style="color:var(--ok)">LOW</span></td>
+            </tr>
+
+            <!-- Row 2 — ACTIVE -->
+            <tr class="c-row c-row-active" onclick="activateC(this)">
+              <td style="color:var(--red); font-weight:600">2</td>
+              <td><input class="cinput" value="Dokončování kontur"></td>
+              <td>
+                <select class="csel">
+                  <option selected>Frézka DMU 60</option>
+                  <option>CNC Fanuc 30i</option>
+                  <option>Bruska BRH 20</option>
+                  <option>—</option>
+                </select>
+              </td>
+              <td class="r"><input class="cinput num" value="45" type="number"></td>
+              <td class="r"><input class="cinput num" value="360" type="number"></td>
+              <td class="c">
+                <div class="mode-grp">
+                  <button class="mode-btn low">L</button>
+                  <button class="mode-btn mid on">M</button>
+                  <button class="mode-btn high">H</button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3 — passive -->
+            <tr class="c-row c-row-passive" onclick="activateC(this)">
+              <td style="color:var(--t4)">3</td>
+              <td>Broušení ploch</td>
+              <td style="color:var(--t3)">Bruska BRH 20</td>
+              <td class="r">60</td>
+              <td class="r">390</td>
+              <td class="c"><span class="badge" style="color:var(--err)">HIGH</span></td>
+            </tr>
+
+            <tr>
+              <td colspan="6" style="padding:0">
+                <button class="add-row">
+                  <span class="plus">+</span> Přidat operaci
+                  <span class="kbd" style="margin-left:auto">N nebo ↵ z posledního pole</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="c-hint">
+          <span>Aktivní řádek 2 z 3</span>
+          <div class="vdiv"></div>
+          <span class="kbd">Tab</span>
+          <span>přechod na další pole, automaticky uloží</span>
+          <div class="vdiv"></div>
+          <span style="color:var(--ok)">●</span>
+          <span>Uloženo</span>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Flow logika</div>
+        <ul>
+          <li>Aktivní řádek = viditelné inputy. Ostatní = čitelný přehled.</li>
+          <li>Tab projede: Název → Pracoviště → Seřízení → Výroba → Mode (loop)</li>
+          <li>↓ nebo Enter z posledního pole = uloží a aktivuje další řádek</li>
+          <li>Enter z posledního řádku = vytvoří nový prázdný řádek a přejde na něj</li>
+          <li>Esc = zahodit změny a deaktivovat řádek</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       VARIANT D — Cards
+       Každá operace = karta. J/K navigace.
+       E = edit, A = přidat, D = delete.
+       ══════════════════════════════════════════════ -->
+  <div id="variant-d" class="variant">
+    <div class="v-container">
+      <div class="v-header">
+        <div class="v-label">Varianta D</div>
+        <div class="v-title">Compact Cards (Vim-style)</div>
+        <div class="v-desc">Každá operace je vizuální karta. Klávesy J/K navigují mezi nimi. E = editovat, A = přidat, D = smazat. Aktivní karta se rozevře. Ostatní jsou přehledné.</div>
+      </div>
+
+      <div class="sc-bar">
+        <div class="sc-item"><span class="kbd">J</span><span class="sc-label">= dolů</span></div>
+        <div class="sc-item"><span class="kbd">K</span><span class="sc-label">= nahoru</span></div>
+        <div class="vdiv"></div>
+        <div class="sc-item"><span class="kbd">E</span><span class="sc-label">= editovat</span></div>
+        <div class="sc-item"><span class="kbd">A</span><span class="sc-label">= přidat</span></div>
+        <div class="sc-item"><span class="kbd">D</span><span class="sc-label">= smazat</span></div>
+        <div class="vdiv"></div>
+        <div class="sc-item"><span class="kbd">↵</span><span class="sc-label">= uložit</span></div>
+        <div class="sc-item"><span class="kbd">Esc</span><span class="sc-label">= zavřít</span></div>
+      </div>
+
+      <!-- KPI -->
+      <div style="display:flex;gap:20px;padding:7px 10px;background:var(--surface);border:1px solid var(--b2);border-radius:var(--r);margin-bottom:6px;align-items:center">
+        <div class="rib-i"><span class="rib-l">Seřízení</span><span class="rib-v">2:15</span></div>
+        <div class="rib-i"><span class="rib-l">Výroba</span><span class="rib-v">14:30</span></div>
+        <div class="rib-i"><span class="rib-l">Operací</span><span class="rib-v">3</span></div>
+      </div>
+
+      <div class="cards">
+        <!-- Card 1 -->
+        <div class="op-card" onclick="activateD(this,1)">
+          <div class="d-seq">1</div>
+          <div class="d-name">Hrubování</div>
+          <div class="d-wc">CNC Fanuc 30i</div>
+          <div class="d-time">
+            <div class="d-time-lbl">Seřízení</div>
+            <div class="d-time-val">30 min</div>
+          </div>
+          <div class="d-time">
+            <div class="d-time-lbl">Výroba</div>
+            <div class="d-time-val">120 min</div>
+          </div>
+          <div class="d-mode"><span class="badge" style="color:var(--ok)">LOW</span></div>
+          <div class="d-acts">
+            <button class="icon-btn" title="Editovat">✎</button>
+            <button class="icon-btn danger" title="Smazat">×</button>
+          </div>
+        </div>
+
+        <!-- Card 2 — Active -->
+        <div class="op-card act" onclick="activateD(this,2)" id="d-card2">
+          <div class="d-seq red">2</div>
+          <div class="d-name">Dokončování kontur</div>
+          <div class="d-wc">Frézka DMU 60</div>
+          <div class="d-time">
+            <div class="d-time-lbl">Seřízení</div>
+            <div class="d-time-val">45 min</div>
+          </div>
+          <div class="d-time">
+            <div class="d-time-lbl">Výroba</div>
+            <div class="d-time-val">360 min</div>
+          </div>
+          <div class="d-mode"><span class="badge" style="color:var(--warn)">MID</span></div>
+          <div class="d-acts">
+            <button class="icon-btn" style="background:var(--b2);border-color:var(--b3)" title="Editovat">✎</button>
+            <button class="icon-btn danger" title="Smazat">×</button>
+          </div>
+        </div>
+
+        <!-- Card 2 detail (expanded) -->
+        <div class="card-detail open" id="d-detail2">
+          <div class="d-form">
+            <div class="d-field">
+              <label class="d-label">Název</label>
+              <input class="fi w200" value="Dokončování kontur">
+            </div>
+            <div class="d-field">
+              <label class="d-label">Pracoviště</label>
+              <input class="fi w120" value="Frézka DMU 60">
+            </div>
+            <div class="d-field">
+              <label class="d-label">Seřízení (min)</label>
+              <input class="fi num w70" value="45" type="number">
+            </div>
+            <div class="d-field">
+              <label class="d-label">Výroba (min)</label>
+              <input class="fi num w70" value="360" type="number">
+            </div>
+            <div class="d-field">
+              <label class="d-label">Mode</label>
+              <div class="mode-grp">
+                <button class="mode-btn low">LOW</button>
+                <button class="mode-btn mid on">MID</button>
+                <button class="mode-btn high">HIGH</button>
+              </div>
+            </div>
+            <div class="d-acts-row">
+              <button class="btn-save">Uložit <span class="kbd">↵</span></button>
+              <button class="btn-cancel">Esc</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="op-card" onclick="activateD(this,3)">
+          <div class="d-seq">3</div>
+          <div class="d-name">Broušení ploch</div>
+          <div class="d-wc">Bruska BRH 20</div>
+          <div class="d-time">
+            <div class="d-time-lbl">Seřízení</div>
+            <div class="d-time-val">60 min</div>
+          </div>
+          <div class="d-time">
+            <div class="d-time-lbl">Výroba</div>
+            <div class="d-time-val">390 min</div>
+          </div>
+          <div class="d-mode"><span class="badge" style="color:var(--err)">HIGH</span></div>
+          <div class="d-acts">
+            <button class="icon-btn" title="Editovat">✎</button>
+            <button class="icon-btn danger" title="Smazat">×</button>
+          </div>
+        </div>
+
+        <button class="add-row" style="border-radius:var(--rs); border:1px dashed rgba(255,255,255,0.07); margin-top:2px">
+          <span class="plus">+</span> Přidat operaci
+          <span class="kbd" style="margin-left:auto">A</span>
+        </button>
+      </div>
+
+      <div class="notes">
+        <div class="notes-title">Klávesy</div>
+        <ul>
+          <li>J / K — pohyb mezi kartami (vim-style, bez myši)</li>
+          <li>E — otevře editaci, Tab projede pole, Enter = uložit</li>
+          <li>A — přidá novou operaci za aktuální a přejde na ni</li>
+          <li>D — smazat (s konfirmací) &nbsp;·&nbsp; Esc — zavřít editaci</li>
+          <li>Přehled je vždy viditelný — expanduje jen aktivní karta</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ─── Tab navigation ─── */
+    function show(id, btn) {
+      document.querySelectorAll('.variant').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById('variant-' + id).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    /* ─── Mode buttons (global) ─── */
+    document.addEventListener('click', function(e) {
+      if (!e.target.classList.contains('mode-btn')) return;
+      const grp = e.target.closest('.mode-grp');
+      if (!grp) return;
+      grp.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('on'));
+      e.target.classList.add('on');
+      e.stopPropagation();
+    });
+
+    /* ─── Variant B: toggle expand ─── */
+    function toggleB(tr) {
+      // simple demo — always show the expand for row 2
+    }
+
+    /* ─── Variant C: click row to activate ─── */
+    function activateC(tr) {
+      // demo only — highlight clicked row
+      tr.closest('tbody').querySelectorAll('tr').forEach(r => {
+        r.classList.remove('c-row-active');
+        r.classList.add('c-row-passive');
+      });
+      tr.classList.add('c-row-active');
+      tr.classList.remove('c-row-passive');
+    }
+
+    /* ─── Variant D: click card ─── */
+    function activateD(card, num) {
+      document.querySelectorAll('.op-card').forEach(c => c.classList.remove('act'));
+      document.querySelectorAll('.card-detail').forEach(d => d.classList.remove('open'));
+      card.classList.add('act');
+      const det = document.getElementById('d-detail' + num);
+      if (det) det.classList.add('open');
+    }
+  </script>
+</body>
+</html>

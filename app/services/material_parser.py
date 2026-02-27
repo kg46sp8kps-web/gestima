@@ -98,7 +98,7 @@ class MaterialParserService:
         # 1. TRUBKA: D20x2 nebo Ø20x2 (průměr x tloušťka stěny)
         {
             "name": "tube",
-            "regex": r"[DdØø]\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)",
+            "regex": r"[DdØø]\s*(\d+(?:\.\d+)?)\s*[xX×/]\s*(\d+(?:\.\d+)?)",
             "shape": StockShape.TUBE,
             "extract": lambda m: {
                 "diameter": float(m.group(1)),
@@ -137,7 +137,7 @@ class MaterialParserService:
         # MUSÍ být AŽ za trubkou (jinak by D20x2 matchlo jako profil!)
         {
             "name": "square_or_flat_bar",
-            "regex": r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)",
+            "regex": r"(\d+(?:\.\d+)?)\s*[xX×/]\s*(\d+(?:\.\d+)?)",
             "shape": None,  # Určí se podle hodnot
             "extract": lambda m: {
                 "width": float(m.group(1)),
@@ -173,11 +173,14 @@ class MaterialParserService:
         # Ocel (42CrMo4, 16MnCr5, 34CrNiMo6) - složený pattern, safe
         r"\d{2}[A-Z][a-z]+\d{1,2}": "ocel",
 
-        # Hliník (EN AW-xxxx) - specifický formát, safe
-        r"EN\s*AW[- ]?\d{4}": "hlinik",
+        # Hliník (EN AW-xxxx nebo AW-xxxx nebo AW xxxx) - EN je volitelné
+        # Matchuje: "EN AW-6082", "AW 6082", "AW-6060", "AW6082"
+        r"(?:EN\s*)?AW[- ]?\d{4}": "hlinik",
 
-        # Hliník (6xxx, 7xxx série) - KRITICKÉ: \b aby nematchlo uvnitř 17240!
-        r"\b[67]\d{3}\b": "hlinik",
+        # Hliník samostatná čísla (2xxx, 5xxx, 6xxx, 7xxx série)
+        # KRITICKÉ: \b aby nematchlo uvnitř 17240!
+        # 2xxx = Al-Cu (Duralumin), 5xxx = Al-Mg, 6xxx = Al-Mg-Si, 7xxx = Al-Zn
+        r"\b[2567]\d{3}\b": "hlinik",
 
         # Mosaz (CuZnxx) - písmena na začátku, safe
         r"CuZn\d{2}": "mosaz",
@@ -199,6 +202,31 @@ class MaterialParserService:
 
     # ========== MAIN PARSING METHOD ==========
 
+    def _normalize_input(self, text: str) -> str:
+        """
+        Normalizuje vstup před parsováním:
+        - Česká desetinná čárka → tečka: "1,4301" → "1.4301", "D20,5" → "D20.5"
+        - Čárka jako oddělovač dimenzí → x: "20,30" → "20x30"
+        - Lomítko jako oddělovač dimenzí → x: "20/30" → "20x30"
+
+        Heuristika čárky:
+          - Obě strany jsou 2+ číslic celého čísla → oddělovač dimenzí (→ x)
+          - Jinak → desetinná čárka (→ .)
+
+        Pozn.: Mezera jako oddělovač dimenzí NENÍ podporována — "6060 200" by bylo
+        nejednoznačné (materiál AW6060 + délka 200 vs rozměr 6060×200).
+        """
+        # 1. Lomítko jako oddělovač dimenzí: "20/30" → "20x30"
+        normalized = re.sub(r'(\d)\s*/\s*(\d)', r'\1x\2', text.strip())
+
+        # 2. Čárka — rozlišení: oddělovač dimenzí vs desetinná čárka
+        #    "20,30" (obě strany 2+ číslic celého čísla) → oddělovač dimenzí → "20x30"
+        normalized = re.sub(r'\b(\d{2,}),(\d{2,})\b', r'\1x\2', normalized)
+        #    zbývající čárka mezi číslicemi → desetinná tečka: "1,4301" → "1.4301"
+        normalized = re.sub(r'(\d),(\d)', r'\1.\2', normalized)
+
+        return normalized
+
     async def parse(self, description: str) -> ParseResult:
         """
         Hlavní parsing funkce.
@@ -215,8 +243,8 @@ class MaterialParserService:
             matched_pattern="none"
         )
 
-        # Normalize input (trim whitespace)
-        normalized = description.strip()
+        # Normalize input: česká desetinná čárka, lomítko/mezera jako oddělovač dimenzí
+        normalized = self._normalize_input(description)
 
         # 1. Detect shape + dimensions
         shape_match = self._extract_shape(normalized)
@@ -240,22 +268,42 @@ class MaterialParserService:
             # 2a. Find MaterialGroup v DB (via MaterialNorm)
             group = await self._find_material_group(material_match["norm"])
             if group:
-                # Also fetch the MaterialNorm to get W.Nr.
+                norm_upper = material_match["norm"].upper()
+                # Also fetch the MaterialNorm to get W.Nr. — 3 úrovně shody
+                # 1. Exact match
                 material_norm_result = await self.db.execute(
                     select(MaterialNorm)
                     .where(
                         MaterialNorm.material_group_id == group.id,
                         or_(
-                            MaterialNorm.w_nr == material_match["norm"].upper(),
-                            MaterialNorm.en_iso == material_match["norm"].upper(),
-                            MaterialNorm.csn == material_match["norm"].upper(),
-                            MaterialNorm.aisi == material_match["norm"].upper()
+                            MaterialNorm.w_nr == norm_upper,
+                            MaterialNorm.en_iso == norm_upper,
+                            MaterialNorm.csn == norm_upper,
+                            MaterialNorm.aisi == norm_upper
                         ),
                         MaterialNorm.deleted_at.is_(None)
                     )
                     .limit(1)
                 )
                 material_norm = material_norm_result.scalar_one_or_none()
+
+                # 2. Contains match (pro "5083" matchující "AW 5083")
+                if not material_norm and len(norm_upper) >= 3:
+                    material_norm_result2 = await self.db.execute(
+                        select(MaterialNorm)
+                        .where(
+                            MaterialNorm.material_group_id == group.id,
+                            or_(
+                                MaterialNorm.w_nr.like(f'%{norm_upper}%'),
+                                MaterialNorm.en_iso.like(f'%{norm_upper}%'),
+                                MaterialNorm.csn.like(f'%{norm_upper}%'),
+                                MaterialNorm.aisi.like(f'%{norm_upper}%')
+                            ),
+                            MaterialNorm.deleted_at.is_(None)
+                        )
+                        .limit(1)
+                    )
+                    material_norm = material_norm_result2.scalar_one_or_none()
 
                 # Use W.Nr. from database if found, otherwise keep raw input
                 if material_norm and material_norm.w_nr:
@@ -446,15 +494,22 @@ class MaterialParserService:
 
         # Try to find these codes in MaterialNorm DB
         for code in potential_codes:
+            code_upper = code.upper()
             result = await self.db.execute(
                 select(MaterialNorm)
                 .where(
                     or_(
-                        MaterialNorm.w_nr == code,
-                        MaterialNorm.en_iso == code,
-                        MaterialNorm.csn == code,
-                        MaterialNorm.aisi == code
-                    )
+                        MaterialNorm.w_nr == code_upper,
+                        MaterialNorm.en_iso == code_upper,
+                        MaterialNorm.csn == code_upper,
+                        MaterialNorm.aisi == code_upper,
+                        # Contains match pro kódy uložené ve formátu "AW 6082" apod.
+                        MaterialNorm.w_nr.like(f'%{code_upper}%'),
+                        MaterialNorm.en_iso.like(f'%{code_upper}%'),
+                        MaterialNorm.csn.like(f'%{code_upper}%'),
+                        MaterialNorm.aisi.like(f'%{code_upper}%'),
+                    ),
+                    MaterialNorm.deleted_at.is_(None)
                 )
                 .limit(1)
             )
@@ -462,10 +517,10 @@ class MaterialParserService:
 
             if norm:
                 logger.debug(f"_extract_material: DB match found for '{code}' → MaterialNorm ID {norm.id}")
-                # Return with category from MaterialGroup
-                # (category is not needed anymore, _find_material_group will handle it)
+                # Vrátíme kanonický kód z DB (w_nr nebo en_iso) — umožní přesný match v _find_material_group
+                canonical = norm.w_nr or norm.en_iso or norm.csn or code
                 return {
-                    "norm": code,
+                    "norm": canonical,
                     "category": "unknown"  # Will be resolved via _find_material_group
                 }
 
@@ -604,6 +659,25 @@ class MaterialParserService:
                         MaterialNorm.en_iso.like(f'{norm_upper}%'),
                         MaterialNorm.csn.like(f'{norm_upper}%'),
                         MaterialNorm.aisi.like(f'{norm_upper}%')
+                    ),
+                    MaterialNorm.deleted_at.is_(None)
+                )
+                .limit(1)
+            )
+
+            material_norm = result.scalar_one_or_none()
+
+        # 3. Fallback: contains match (e.g. "6082" matchuje "AW 6082")
+        # Pouze pro kódy délky >= 3 (aby se zabránilo false positive krátkých čísel)
+        if not material_norm and len(norm_upper) >= 3:
+            result = await self.db.execute(
+                select(MaterialNorm)
+                .where(
+                    or_(
+                        MaterialNorm.w_nr.like(f'%{norm_upper}%'),
+                        MaterialNorm.en_iso.like(f'%{norm_upper}%'),
+                        MaterialNorm.csn.like(f'%{norm_upper}%'),
+                        MaterialNorm.aisi.like(f'%{norm_upper}%')
                     ),
                     MaterialNorm.deleted_at.is_(None)
                 )

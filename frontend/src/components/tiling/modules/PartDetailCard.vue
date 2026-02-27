@@ -94,11 +94,11 @@ function reset() {
 
 // ─── Quick links ───
 const QUICK_LINKS: Array<{ label: string; module: ModuleId }> = [
-  { label: 'Operace',  module: 'work-ops' },
+  { label: 'Technologie', module: 'work-ops' },
   { label: 'Kalkulace', module: 'work-pricing' },
-  { label: 'Materiály', module: 'work-materials' },
-  { label: 'Výkres',   module: 'work-drawing' },
+  { label: 'Výkres', module: 'work-drawing' },
   { label: '3D Model', module: 'work-3d' },
+  { label: 'Dokumenty', module: 'work-docs' },
 ]
 
 function openModule(moduleId: ModuleId) {

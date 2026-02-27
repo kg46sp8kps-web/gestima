@@ -66,7 +66,7 @@ python gestima.py create-admin  # Default: admin / asdfghjkl
 |-----------|-----------|
 | **Deployment Guide (Dev/Prod setup)** | [DEPLOYMENT.md](DEPLOYMENT.md) 🚀 |
 | **Quick Start (5 min)** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| **AI pravidla + P0/P1/P2 status** | [CLAUDE.md](CLAUDE.md) ⭐ |
+| **AI pravidla + workflow** | [AGENTS.md](AGENTS.md) ⭐ |
 | **Kompletní specifikace** | [docs/GESTIMA_1.0_SPEC.md](docs/GESTIMA_1.0_SPEC.md) |
 | **Historie změn** | [CHANGELOG.md](CHANGELOG.md) 📋 |
 | **Architektonická rozhodnutí** | [docs/ADR/](docs/ADR/) |
@@ -127,7 +127,10 @@ GESTIMA/
 │   ├── audit-p2b.md            # Post-implementation audit
 │   ├── ADR/                    # Architecture Decision Records
 │   └── archive/                # Zastaralé dokumenty
-├── CLAUDE.md                   # ⭐ AI pravidla + P0/P1/P2 status
+├── AGENTS.md                   # ⭐ Aktivní AI pravidla (Codex)
+├── ai/                         # AI role profily + workflow
+│   ├── agents/                 # Orchestrator, backend, frontend, qa, auditor
+│   └── workflow.md             # Standardní pracovní postup
 ├── CHANGELOG.md                # 📋 Historie změn
 ├── README.md                   # 📘 Tento soubor
 ├── gestima.py                  # CLI helper
@@ -169,7 +172,7 @@ python3 gestima.py test --pdb         # Debug mode
 ## 🔗 Dokumentace
 
 **Povinná četba PŘED implementací:**
-1. [CLAUDE.md](CLAUDE.md) - Pravidla + Production requirements
+1. [AGENTS.md](AGENTS.md) - Aktivní AI pravidla + komunikační kontrakt
 2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Quick start (5 min)
 3. [docs/NEXT-STEPS.md](docs/NEXT-STEPS.md) - Plánované úkoly (P2 Fáze C)
 
@@ -202,6 +205,16 @@ Vytvoř `.env` (nepovinné):
 DEBUG=True
 DATABASE_URL=sqlite+aiosqlite:///gestima.db
 PORT=8000
+DRAWINGS_SHARE_PATH=/Volumes/Dokumenty/TPV-dokumentace/Vykresy
+```
+
+Import výkresů ze serveru podporuje i SSH režim bez mountování síťové jednotky:
+```
+DRAWINGS_SHARE_PATH=ssh://user@host:22/absolute/path
+```
+Příklad:
+```
+DRAWINGS_SHARE_PATH=ssh://gestima@192.168.1.135:22/home/gestima/uploads/vykresy
 ```
 
 ## 🎓 Principy

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestima — Operace · Finální preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Design System v6.0 ─── */
+    :root {
+      --red: #E53935;
+      --red-10: rgba(229,57,53,0.10);
+      --red-20: rgba(229,57,53,0.20);
+      --base:    #08080a;
+      --ground:  #0e0e10;
+      --surface: rgba(18,18,20,0.95);
+      --raised:  rgba(26,26,28,0.98);
+      --t1: #ededf0;  --t2: #cdcdd0;  --t3: #8e8e96;  --t4: #5c5c64;
+      --b1: rgba(255,255,255,0.05);
+      --b2: rgba(255,255,255,0.09);
+      --b3: rgba(255,255,255,0.16);
+      --ok:   #34d399;
+      --warn: #fbbf24;
+      --err:  #f87171;
+      --font: 'DM Sans', -apple-system, sans-serif;
+      /* ── Font scale (SSoT) — jediný font: --font (DM Sans) ── */
+      --fs:  12px;   /* td obsah, inputy, tělo tabulky  */
+      --fsm: 10px;   /* th, štítky, badge, tlačítka     */
+      --fss: 9px;    /* meta, jednotky, computed hints   */
+      --fsh: 14px;   /* suma hodnoty, sekce headers      */
+      /* ─────────────────────────────────────────── */
+      --r: 7px;  --rs: 4px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--base); }
+    body {
+      font-family: var(--font);
+      font-size: var(--fs);       /* 12px — base */
+      background: var(--base);
+      color: var(--t2);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ─── Invisible selection — hodnota se přepíše psaním bez viditelného highlight ─── */
+    input::selection { background: transparent; }
+
+    /* ─── Remove number spinners (no arrows) ─── */
+    input[type="number"] { -moz-appearance: textfield; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    /* ─── Page ─── */
+    .page { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+
+    /* ─── Breadcrumb ─── */
+    .bc { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+    .bc span { font-size: var(--fsm); color: var(--t4); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .bc-sep { font-weight: 400 !important; }
+    .bc-cur { color: var(--t3) !important; }
+
+    /* ─── Shortcut bar ─── */
+    .sc-bar {
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+      padding: 5px 10px;
+      background: var(--surface); border: 1px solid var(--b2); border-radius: var(--r);
+      margin-bottom: 8px;
+    }
+    .kbd {
+      display: inline-flex; align-items: center; padding: 1px 5px;
+      background: var(--raised); border: 1px solid var(--b3); border-radius: var(--rs);
+      font-size: var(--fss); color: var(--t4); font-family: var(--font); line-height: 1.5;
+      white-space: nowrap;
+    }
+    .sc-l { font-size: var(--fss); color: var(--t4); }
+    .sc-div { width: 1px; height: 10px; background: var(--b2); flex-shrink: 0; }
+
+    /* ─── Table shell ─── */
+    .tbl-wrap {
+      background: var(--surface);
+      border: 1px solid var(--b2);
+      border-radius: var(--r);
+      overflow: visible; /* dropdown musí přetéct */
+    }
+
+    /* ─── Table ─── */
+    .ops { width: 100%; border-collapse: collapse; }
+
+    /* THEAD — --fsm (10px), uppercase */
+    .ops thead { background: rgba(255,255,255,0.02); }
+    .ops th {
+      padding: 5px 8px;
+      font-family: var(--font);
+      font-size: var(--fsm);      /* 10px — správná velikost pro th */
+      font-weight: 400;
+      color: var(--t4);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-align: left;
+      border-bottom: 1px solid var(--b2);
+      white-space: nowrap;
+    }
+    .ops th.r { text-align: right; }
+
+    /* ─── Op row ─── */
+    .op-row {
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: background 60ms var(--ease);
+    }
+    .op-row:hover { background: rgba(255,255,255,0.025); }
+    .op-row.act   { background: rgba(255,255,255,0.035); }
+    .op-row.act .seq-cell { box-shadow: inset 3px 0 0 var(--red); }
+
+    .op-row td {
+      padding: 4px 8px;
+      font-size: var(--fs);       /* 12px — správná velikost pro td */
+      color: var(--t2);
+      vertical-align: middle;
+      border: none;
+    }
+    .op-row td.r { text-align: right; }
+    .op-row td.td-icon { padding: 0 4px; text-align: center; }
+
+    /* Seq number */
+    .seq-num {
+      font-family: var(--font);
+      font-size: var(--fsm);
+      color: var(--t4);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .op-row.act .seq-num { color: var(--red); }
+
+    /* ─── Inputy — --font (DM Sans), --fs (12px) ─── */
+    .inp {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: var(--rs);
+      color: var(--t2);
+      font-family: var(--font);
+      font-size: var(--fs);
+      padding: 3px 6px;
+      outline: none;
+      width: 100%;
+      transition: border-color 80ms var(--ease), background 80ms var(--ease), color 80ms var(--ease);
+    }
+    .inp::placeholder { color: var(--t4); font-size: var(--fss); }
+    .inp:focus {
+      border-color: rgba(255,255,255,0.26);
+      background: rgba(255,255,255,0.08);
+      color: var(--t1);
+    }
+    .inp.num {
+      text-align: right;
+      width: 52px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── WC input ─── */
+    .wc-inp {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: var(--rs);
+      color: var(--t2);
+      font-family: var(--font);
+      font-size: var(--fs);
+      padding: 3px 7px;
+      outline: none;
+      width: 100%;
+      transition: border-color 80ms var(--ease), background 80ms var(--ease), color 80ms var(--ease);
+    }
+    .wc-inp::placeholder { color: var(--t4); font-size: var(--fsm); }
+    .wc-inp:focus {
+      border-color: rgba(255,255,255,0.26);
+      background: rgba(255,255,255,0.08);
+      color: var(--t1);
+    }
+
+    /* ─── Ke / Ko buňka — HORIZONTÁLNÍ (nenarušuje výšku řádku) ─── */
+    .coef-cell {
+      display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+    }
+    /* Computed hint — inline, barevný, výraznější */
+    .coef-hint {
+      font-family: var(--font);
+      font-size: var(--fsm);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      min-width: 28px;
+      text-align: right;
+    }
+    [data-ke-result] { color: #60a5fa; }   /* modrá — čas stroje */
+    [data-ko-result] { color: #a78bfa; }   /* violet — čas obsluhy */
+
+    /* ─── WC dropdown ─── */
+    .wc-wrap { position: relative; }
+    .wc-dd {
+      display: none; position: absolute;
+      top: calc(100% + 4px); left: 0; min-width: 210px;
+      background: var(--raised); border: 1px solid var(--b3); border-radius: var(--r);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 500; padding: 4px;
+    }
+    .wc-dd.open { display: block; }
+    .wc-opt {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 8px;
+      font-family: var(--font);
+      font-size: var(--fs);
+      color: var(--t2); border-radius: var(--rs);
+      cursor: pointer; transition: background 50ms var(--ease), color 50ms var(--ease);
+    }
+    .wc-opt:hover, .wc-opt.hi { background: var(--b2); color: var(--t1); }
+    .wc-opt.sel { color: var(--t1); }
+    .wc-dot { width: 6px; height: 6px; border-radius: 99px; flex-shrink: 0; }
+    .wc-dd-empty {
+      padding: 8px 10px;
+      font-size: var(--fsm);
+      color: var(--t4); font-style: italic;
+    }
+
+    /* ─── Chevron ─── */
+    .chev {
+      width: 16px; height: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 8px; color: var(--t4); border-radius: var(--rs); cursor: pointer;
+      transition: color 80ms var(--ease), background 80ms var(--ease), transform 120ms var(--ease);
+    }
+    .chev:hover { background: var(--b2); color: var(--t3); }
+    .chev.open { transform: rotate(90deg); color: var(--t3); }
+
+    /* ─── Delete button ─── */
+    .del-btn {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid transparent; border-radius: var(--rs);
+      color: var(--t4); cursor: pointer; font-size: 13px; line-height: 1;
+      opacity: 0; transition: opacity 70ms var(--ease), background 70ms var(--ease), color 70ms var(--ease), border-color 70ms var(--ease);
+    }
+    .op-row:hover .del-btn, .op-row.act .del-btn { opacity: 1; }
+    .del-btn:hover { color: var(--err); background: var(--err-10); border-color: rgba(248,113,113,0.25); }
+
+    /* ─── Add row ─── */
+    .add-tr td { padding: 0 !important; border-top: 1px dashed rgba(255,255,255,0.06); }
+    .add-btn {
+      width: 100%; padding: 6px 12px;
+      background: none; border: none;
+      color: var(--t4); font-family: var(--font); font-size: var(--fsm); font-weight: 600;
+      cursor: pointer; text-align: left; letter-spacing: 0.03em;
+      display: flex; align-items: center; gap: 7px;
+      transition: background 80ms, color 80ms;
+    }
+    .add-btn:hover { background: var(--b1); color: var(--t2); }
+
+    /* ═══════════════════════════════════════════
+       COLLAPSIBLE DETAIL
+       ═══════════════════════════════════════════ */
+    .detail-tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .detail-tr td { padding: 0 !important; background: var(--raised) !important; }
+    .detail-inner {
+      padding: 12px 10px 14px 50px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+
+    /* Section */
+    .ds-head {
+      font-family: var(--font);
+      font-size: var(--fsm);      /* 10px */
+      font-weight: 400; color: var(--t4);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 6px; padding-bottom: 4px;
+      border-bottom: 1px solid var(--b2);
+    }
+    .ds-list { display: flex; flex-direction: column; gap: 2px; }
+    .ds-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 4px 7px;
+      background: var(--surface); border: 1px solid var(--b2); border-radius: var(--rs);
+      font-size: var(--fs);       /* 12px */
+      color: var(--t3);
+    }
+    .ds-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--t4); flex-shrink: 0; }
+    .ds-name { flex: 1; }
+    .ds-meta { font-family: var(--font); font-size: var(--fss); color: var(--t4); margin-left: auto; }
+    .ds-add {
+      display: flex; align-items: center; gap: 7px; padding: 3px 7px;
+      color: var(--t4); font-size: var(--fsm);
+      border: 1px dashed rgba(255,255,255,0.07); border-radius: var(--rs);
+      cursor: pointer; transition: background 70ms, color 70ms;
+    }
+    .ds-add:hover { background: var(--b1); color: var(--t2); }
+
+    .ds-kv { display: flex; flex-direction: column; gap: 3px; }
+    .ds-kv-row { display: flex; align-items: baseline; gap: 8px; }
+    .ds-k { font-family: var(--font); font-size: var(--fsm); color: var(--t4); min-width: 26px; }
+    .ds-v { font-family: var(--font); font-size: var(--fs); color: var(--t2); }
+    .ds-unit { font-size: var(--fss); color: var(--t4); }
+
+    .ds-steps { display: flex; flex-direction: column; gap: 2px; }
+    .ds-step {
+      display: flex; align-items: flex-start; gap: 7px; padding: 3px 7px;
+      background: var(--surface); border: 1px solid var(--b2); border-radius: var(--rs);
+      font-size: var(--fs); color: var(--t3);
+    }
+    .ds-step-n { font-family: var(--font); font-size: var(--fss); color: var(--t4); min-width: 14px; }
+
+    /* ═══════════════════════════════════════════
+       SUMMARY BAR
+       ═══════════════════════════════════════════ */
+    .sum-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1px; background: var(--b2);
+      border: 1px solid var(--b2); border-radius: var(--r);
+      overflow: hidden; margin-top: 1px;
+    }
+    .sum-kpi { background: var(--raised); padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
+    .sum-label {
+      font-size: var(--fsm);      /* 10px */
+      color: var(--t4); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
+    }
+    .sum-val {
+      font-family: var(--font);
+      font-size: var(--fsh);      /* 14px — suma je důležitá hodnota */
+      color: var(--t1); font-weight: 500;
+    }
+    .sum-unit { font-size: var(--fss); color: var(--t4); margin-left: 3px; }
+    .sum-formula {
+      font-size: var(--fss);      /* 9px — meta/hint */
+      color: var(--t4); font-family: var(--font); margin-top: 1px;
+    }
+    .sum-formula.ke { color: rgba(96,165,250,0.55); }
+    .sum-formula.ko { color: rgba(167,139,250,0.50); }
+
+    /* ─── WC dot colors (chart colors ze DS) ─── */
+    .d-cnc    { background: #60a5fa; }
+    .d-frezka { background: #a78bfa; }
+    .d-bruska { background: #f59e0b; }
+    .d-soustru{ background: #34d399; }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Breadcrumb -->
+  <div class="bc">
+    <span>Hřídel pohonu XR-40</span>
+    <span class="bc-sep">›</span>
+    <span class="bc-cur">Operace</span>
+  </div>
+
+  <!-- Shortcut bar -->
+  <div class="sc-bar">
+    <span class="kbd">Tab</span><span class="sc-l">= další pole</span>
+    <div class="sc-div"></div>
+    <span class="kbd">↓</span><span class="sc-l">= dropdown WC</span>
+    <div class="sc-div"></div>
+    <span class="kbd">↵</span><span class="sc-l">= uloží + nový řádek</span>
+    <div class="sc-div"></div>
+    <span class="kbd">Ctrl+D</span><span class="sc-l">= smazat řádek</span>
+    <div class="sc-div"></div>
+    <span class="kbd">▶</span><span class="sc-l">= detail operace</span>
+    <div class="sc-div"></div>
+    <span class="kbd">Esc</span><span class="sc-l">= zavřít / zahodit</span>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table class="ops">
+      <thead>
+        <tr>
+          <th style="width:22px"></th>
+          <th style="width:28px">#</th>
+          <th style="width:160px">Pracoviště</th>
+          <th class="r" style="width:80px">Seřízení</th>
+          <th class="r" style="width:84px">Strojní čas</th>
+          <th class="r" style="width:96px">
+            Ke %
+            <span style="font-size:var(--fss);color:var(--t4);margin-left:3px;letter-spacing:0">· čas stroje</span>
+          </th>
+          <th class="r" style="width:96px">
+            Ko %
+            <span style="font-size:var(--fss);color:var(--t4);margin-left:3px;letter-spacing:0">· obsluha</span>
+          </th>
+          <th style="width:26px"></th>
+        </tr>
+      </thead>
+      <tbody id="ops-body">
+
+        <!-- ══ ROW 1 ══ -->
+        <tr class="op-row" data-id="1">
+          <td class="seq-cell td-icon">
+            <span class="chev" data-detail="d1">▶</span>
+          </td>
+          <td><span class="seq-num">01</span></td>
+          <td>
+            <div class="wc-wrap">
+              <input class="wc-inp" value="CNC Fanuc 30i" autocomplete="off" data-wc>
+              <div class="wc-dd"></div>
+            </div>
+          </td>
+          <td class="r">
+            <input class="inp num" value="30" type="number" min="0" data-field="serizeni">
+          </td>
+          <td class="r">
+            <input class="inp num" value="120" type="number" min="0" data-field="strojni">
+          </td>
+          <td class="r">
+            <div class="coef-cell">
+              <input class="inp num" value="80" type="number" min="1" max="200" data-field="ke" style="width:42px">
+              <span class="coef-hint" data-ke-result>150</span>
+            </div>
+          </td>
+          <td class="r">
+            <div class="coef-cell">
+              <input class="inp num" value="60" type="number" min="0" max="100" data-field="ko" style="width:42px">
+              <span class="coef-hint" data-ko-result>90</span>
+            </div>
+          </td>
+          <td class="td-icon">
+            <button class="del-btn" title="Smazat (Ctrl+D)">×</button>
+          </td>
+        </tr>
+        <tr class="detail-tr" id="d1" style="display:none"><td colspan="8">
+          <div class="detail-inner">
+            <div class="detail-section">
+              <div class="ds-head">Navázaný materiál</div>
+              <div class="ds-list">
+                <div class="ds-item"><span class="ds-dot d-cnc"></span><span class="ds-name">Ocel 11 523 · tyč</span><span class="ds-meta">⌀50×120</span></div>
+                <div class="ds-add"><span>+</span> Přidat materiál</div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Nástroje</div>
+              <div class="ds-list">
+                <div class="ds-item"><span class="ds-dot"></span><span class="ds-name">Vrták ⌀10.5</span><span class="ds-meta">T01</span></div>
+                <div class="ds-add"><span>+</span> Přidat nástroj</div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Řezné podmínky</div>
+              <div class="ds-kv">
+                <div class="ds-kv-row"><span class="ds-k">vc</span><span class="ds-v">90</span><span class="ds-unit">m/min</span></div>
+                <div class="ds-kv-row"><span class="ds-k">n</span><span class="ds-v">2 865</span><span class="ds-unit">ot/min</span></div>
+                <div class="ds-kv-row"><span class="ds-k">f</span><span class="ds-v">0.20</span><span class="ds-unit">mm</span></div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Kroky operace</div>
+              <div class="ds-steps">
+                <div class="ds-step"><span class="ds-step-n">1.</span><span>Navrtání středícího důlku</span></div>
+                <div class="ds-step"><span class="ds-step-n">2.</span><span>Vrtání otvoru ⌀10.5</span></div>
+                <div class="ds-add"><span>+</span> Přidat krok</div>
+              </div>
+            </div>
+          </div>
+        </td></tr>
+
+        <!-- ══ ROW 2 — aktivní, detail otevřený ══ -->
+        <tr class="op-row act" data-id="2">
+          <td class="seq-cell td-icon">
+            <span class="chev open" data-detail="d2">▶</span>
+          </td>
+          <td><span class="seq-num">02</span></td>
+          <td>
+            <div class="wc-wrap">
+              <input class="wc-inp" value="Frézka DMU 60" autocomplete="off" data-wc style="border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.07);color:var(--t1)">
+              <div class="wc-dd"></div>
+            </div>
+          </td>
+          <td class="r">
+            <input class="inp num" value="45" type="number" min="0" data-field="serizeni">
+          </td>
+          <td class="r">
+            <input class="inp num" value="360" type="number" min="0" data-field="strojni">
+          </td>
+          <td class="r">
+            <div class="coef-cell">
+              <input class="inp num" value="85" type="number" min="1" max="200" data-field="ke" style="width:42px">
+              <span class="coef-hint" data-ke-result>424</span>
+            </div>
+          </td>
+          <td class="r">
+            <div class="coef-cell">
+              <input class="inp num" value="50" type="number" min="0" max="100" data-field="ko" style="width:42px">
+              <span class="coef-hint" data-ko-result>212</span>
+            </div>
+          </td>
+          <td class="td-icon">
+            <button class="del-btn" style="opacity:1" title="Smazat (Ctrl+D)">×</button>
+          </td>
+        </tr>
+        <tr class="detail-tr" id="d2"><td colspan="8">
+          <div class="detail-inner">
+            <div class="detail-section">
+              <div class="ds-head">Navázaný materiál</div>
+              <div class="ds-list">
+                <div class="ds-item"><span class="ds-dot d-frezka"></span><span class="ds-name">Ocel 11 SMn30 · tyč</span><span class="ds-meta">⌀50×120</span></div>
+                <div class="ds-item"><span class="ds-dot d-frezka"></span><span class="ds-name">Plát Al 7075</span><span class="ds-meta">50×80×6</span></div>
+                <div class="ds-add"><span>+</span> Přidat materiál</div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Nástroje</div>
+              <div class="ds-list">
+                <div class="ds-item"><span class="ds-dot"></span><span class="ds-name">Fréza R8 ⌀16</span><span class="ds-meta">T01</span></div>
+                <div class="ds-item"><span class="ds-dot"></span><span class="ds-name">Vrták ⌀6.5</span><span class="ds-meta">T02</span></div>
+                <div class="ds-add"><span>+</span> Přidat nástroj</div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Řezné podmínky</div>
+              <div class="ds-kv">
+                <div class="ds-kv-row"><span class="ds-k">vc</span><span class="ds-v">120</span><span class="ds-unit">m/min</span></div>
+                <div class="ds-kv-row"><span class="ds-k">fz</span><span class="ds-v">0.15</span><span class="ds-unit">mm/z</span></div>
+                <div class="ds-kv-row"><span class="ds-k">ap</span><span class="ds-v">2.0</span><span class="ds-unit">mm</span></div>
+                <div class="ds-kv-row"><span class="ds-k">ae</span><span class="ds-v">12.0</span><span class="ds-unit">mm</span></div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Kroky operace</div>
+              <div class="ds-steps">
+                <div class="ds-step"><span class="ds-step-n">1.</span><span>Hrubování kontur (R8)</span></div>
+                <div class="ds-step"><span class="ds-step-n">2.</span><span>Dofrézování na čisto</span></div>
+                <div class="ds-step"><span class="ds-step-n">3.</span><span>Kontrola rozměrů</span></div>
+                <div class="ds-add"><span>+</span> Přidat krok</div>
+              </div>
+            </div>
+          </div>
+        </td></tr>
+
+        <!-- ══ ROW 3 ══ -->
+        <tr class="op-row" data-id="3">
+          <td class="seq-cell td-icon">
+            <span class="chev" data-detail="d3">▶</span>
+          </td>
+          <td><span class="seq-num">03</span></td>
+          <td>
+            <div class="wc-wrap">
+              <input class="wc-inp" value="Bruska BRH 20" autocomplete="off" data-wc>
+              <div class="wc-dd"></div>
+            </div>
+          </td>
+          <td class="r">
+            <input class="inp num" value="60" type="number" min="0" data-field="serizeni">
+          </td>
+          <td class="r">
+            <input class="inp num" value="390" type="number" min="0" data-field="strojni">
+          </td>
+          <td class="r">
+            <div class="coef-cell">
+              <input class="inp num" value="90" type="number" min="1" max="200" data-field="ke" style="width:42px">
+              <span class="coef-hint" data-ke-result>433</span>
+            </div>
+          </td>
+          <td class="r">
+            <div class="coef-cell">
+              <input class="inp num" value="70" type="number" min="0" max="100" data-field="ko" style="width:42px">
+              <span class="coef-hint" data-ko-result>303</span>
+            </div>
+          </td>
+          <td class="td-icon">
+            <button class="del-btn" title="Smazat (Ctrl+D)">×</button>
+          </td>
+        </tr>
+        <tr class="detail-tr" id="d3" style="display:none"><td colspan="8">
+          <div class="detail-inner">
+            <div class="detail-section">
+              <div class="ds-head">Navázaný materiál</div>
+              <div class="ds-list"><div class="ds-add"><span>+</span> Přidat materiál</div></div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Nástroje</div>
+              <div class="ds-list"><div class="ds-add"><span>+</span> Přidat nástroj</div></div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Řezné podmínky</div>
+              <div class="ds-kv" style="color:var(--t4);font-size:var(--fsm)">Nevyplněno</div>
+            </div>
+            <div class="detail-section">
+              <div class="ds-head">Kroky operace</div>
+              <div class="ds-steps"><div class="ds-add"><span>+</span> Přidat krok</div></div>
+            </div>
+          </div>
+        </td></tr>
+
+        <!-- Add row -->
+        <tr class="add-tr"><td colspan="8">
+          <button class="add-btn">
+            <span style="font-size:14px;line-height:1;color:var(--t3)">+</span>
+            Přidat operaci
+            <span class="kbd" style="margin-left:auto">↵ z posledního pole</span>
+          </button>
+        </td></tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="sum-bar">
+    <div class="sum-kpi">
+      <span class="sum-label">Σ Seřízení</span>
+      <div><span class="sum-val" id="s-serizeni">135</span><span class="sum-unit">min</span></div>
+    </div>
+    <div class="sum-kpi">
+      <span class="sum-label">Σ Strojní čas</span>
+      <div><span class="sum-val" id="s-strojni">870</span><span class="sum-unit">min</span></div>
+    </div>
+    <div class="sum-kpi">
+      <span class="sum-label">Σ Čas stroje</span>
+      <div><span class="sum-val" id="s-ke">1 007</span><span class="sum-unit">min</span></div>
+      <span class="sum-formula ke">Σ (strojní ÷ Ke)</span>
+    </div>
+    <div class="sum-kpi">
+      <span class="sum-label">Σ Čas obsluhy</span>
+      <div><span class="sum-val" id="s-ko">525</span><span class="sum-unit">min</span></div>
+      <span class="sum-formula ko">Σ (čas stroje × Ko)</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ═══════════════════════════════
+     Work centers
+     ═══════════════════════════════ */
+  const WC_LIST = [
+    { name: 'CNC Fanuc 30i',    cls: 'd-cnc'    },
+    { name: 'Frézka DMU 60',    cls: 'd-frezka' },
+    { name: 'Bruska BRH 20',    cls: 'd-bruska' },
+    { name: 'Soustruh SBL 500', cls: 'd-soustru'},
+    { name: 'Laser Trumpf',     cls: ''          },
+    { name: 'Svařovna TIG',     cls: ''          },
+  ];
+
+  /* ═══════════════════════════════
+     WC Combobox
+     ═══════════════════════════════ */
+  class WCCombo {
+    constructor(inp, dd) {
+      this.inp = inp; this.dd = dd; this.idx = -1;
+      this.filtered = [...WC_LIST];
+      inp.addEventListener('input',   () => this.onInput());
+      inp.addEventListener('keydown', (e) => this.onKey(e));
+      inp.addEventListener('focus',   () => this.open());
+      inp.addEventListener('blur',    () => setTimeout(() => this.close(), 150));
+      this.render();
+    }
+    onInput() {
+      const q = this.inp.value.trim().toLowerCase();
+      this.filtered = WC_LIST.filter(w => w.name.toLowerCase().includes(q));
+      this.idx = -1; this.render(); this.dd.classList.add('open');
+    }
+    onKey(e) {
+      const isOpen = this.dd.classList.contains('open');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!isOpen) { this.open(); return; }
+        this.idx = Math.min(this.idx + 1, this.filtered.length - 1);
+        this.highlight();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.idx = Math.max(this.idx - 1, -1); this.highlight();
+      } else if (e.key === 'Enter' && isOpen && this.idx >= 0 && this.filtered[this.idx]) {
+        e.preventDefault(); e.stopPropagation();
+        this.select(this.filtered[this.idx]);
+      } else if (e.key === 'Escape') {
+        this.close();
+      }
+    }
+    render() {
+      this.dd.innerHTML = '';
+      if (!this.filtered.length) {
+        this.dd.innerHTML = '<div class="wc-dd-empty">Žádné pracoviště</div>'; return;
+      }
+      this.filtered.forEach((wc, i) => {
+        const el = document.createElement('div');
+        el.className = 'wc-opt' + (wc.name === this.inp.value ? ' sel' : '');
+        el.innerHTML = `<span class="wc-dot ${wc.cls}"></span>${wc.name}`;
+        el.addEventListener('mousedown', (e) => { e.preventDefault(); this.select(wc); });
+        el.addEventListener('mouseover', () => { this.idx = i; this.highlight(); });
+        this.dd.appendChild(el);
+      });
+    }
+    highlight() {
+      this.dd.querySelectorAll('.wc-opt').forEach((el, i) => el.classList.toggle('hi', i === this.idx));
+    }
+    select(wc) {
+      this.inp.value = wc.name; this.close();
+      /* Tab na další input v řádku */
+      const row = this.inp.closest('.op-row');
+      if (row) {
+        const inputs = [...row.querySelectorAll('input')];
+        const ci = inputs.indexOf(this.inp);
+        if (inputs[ci + 1]) inputs[ci + 1].focus();
+      }
+    }
+    open() {
+      const q = this.inp.value.trim().toLowerCase();
+      this.filtered = WC_LIST.filter(w => w.name.toLowerCase().includes(q));
+      this.render(); this.dd.classList.add('open');
+    }
+    close() { this.dd.classList.remove('open'); this.idx = -1; }
+  }
+
+  /* Init combos */
+  document.querySelectorAll('[data-wc]').forEach(inp => {
+    new WCCombo(inp, inp.nextElementSibling);
+  });
+
+  /* ═══════════════════════════════
+     Row activation
+     ═══════════════════════════════ */
+  function activateRow(row) {
+    document.querySelectorAll('.op-row').forEach(r => r.classList.remove('act'));
+    row.classList.add('act');
+  }
+  document.querySelectorAll('.op-row').forEach(row => {
+    row.addEventListener('focusin', () => activateRow(row));
+  });
+
+  /* ═══════════════════════════════
+     Chevron — collapsible detail
+     ═══════════════════════════════ */
+  document.querySelectorAll('.chev[data-detail]').forEach(chev => {
+    chev.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const detail = document.getElementById(this.dataset.detail);
+      if (!detail) return;
+      const open = this.classList.toggle('open');
+      detail.style.display = open ? '' : 'none';
+    });
+  });
+
+  /* ═══════════════════════════════
+     Enter — uloží + přejde / nový řádek
+     ═══════════════════════════════ */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const inp = e.target;
+    if (!inp.matches('input')) return;
+    const row = inp.closest('.op-row');
+    if (!row) return;
+    e.preventDefault();
+    const inputs = [...row.querySelectorAll('input')];
+    const ci = inputs.indexOf(inp);
+    if (ci < inputs.length - 1) {
+      inputs[ci + 1].focus();
+    } else {
+      addRow();
+    }
+  });
+
+  /* ═══════════════════════════════
+     Ctrl+D — smazat řádek
+     ═══════════════════════════════ */
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.key !== 'd') return;
+    e.preventDefault();
+    const active = document.querySelector('.op-row.act');
+    if (!active || !confirm('Smazat tuto operaci?')) return;
+    const did = active.querySelector('[data-detail]')?.dataset.detail;
+    if (did) document.getElementById(did)?.remove();
+    active.remove();
+    recalc(); reseq();
+  });
+
+  /* Delete buttons */
+  document.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const row = this.closest('.op-row');
+      if (!row || !confirm('Smazat operaci?')) return;
+      const did = row.querySelector('[data-detail]')?.dataset.detail;
+      if (did) document.getElementById(did)?.remove();
+      row.remove(); recalc(); reseq();
+    });
+  });
+
+  /* ═══════════════════════════════
+     Recalc — per-row hints + sumy
+     ═══════════════════════════════ */
+  function fmt(n) { return Math.round(n).toLocaleString('cs'); }
+
+  function recalcRow(row) {
+    const g  = f => parseFloat(row.querySelector(`[data-field="${f}"]`)?.value) || 0;
+    const s  = g('strojni');
+    const ke = g('ke') / 100;
+    const ko = g('ko') / 100;
+    const keResult = ke > 0 ? s / ke : 0;
+    const koResult = keResult * ko;
+
+    const keHint = row.querySelector('[data-ke-result]');
+    const koHint = row.querySelector('[data-ko-result]');
+    if (keHint) keHint.textContent = fmt(keResult);
+    if (koHint) koHint.textContent = fmt(koResult);
+
+    return { serizeni: g('serizeni'), strojni: s, ke: keResult, ko: koResult };
+  }
+
+  function recalc() {
+    let totS = 0, totM = 0, totKe = 0, totKo = 0;
+    document.querySelectorAll('.op-row').forEach(row => {
+      const r = recalcRow(row);
+      totS  += r.serizeni;
+      totM  += r.strojni;
+      totKe += r.ke;
+      totKo += r.ko;
+    });
+    document.getElementById('s-serizeni').textContent = fmt(totS);
+    document.getElementById('s-strojni').textContent  = fmt(totM);
+    document.getElementById('s-ke').textContent       = fmt(totKe);
+    document.getElementById('s-ko').textContent       = fmt(totKo);
+  }
+
+  /* ═══════════════════════════════
+     Add row
+     ═══════════════════════════════ */
+  let rowCnt = 3;
+  function addRow() {
+    rowCnt++;
+    const did = `d${rowCnt}`;
+    const body = document.getElementById('ops-body');
+    const addTr = body.querySelector('.add-tr');
+    const seq = String(body.querySelectorAll('.op-row').length + 1).padStart(2,'0');
+
+    const tr = document.createElement('tr');
+    tr.className = 'op-row'; tr.dataset.id = rowCnt;
+    tr.innerHTML = `
+      <td class="seq-cell td-icon">
+        <span class="chev" data-detail="${did}">▶</span>
+      </td>
+      <td><span class="seq-num">${seq}</span></td>
+      <td>
+        <div class="wc-wrap">
+          <input class="wc-inp" value="" placeholder="Pracoviště…" autocomplete="off" data-wc>
+          <div class="wc-dd"></div>
+        </div>
+      </td>
+      <td class="r">
+        <input class="inp num" value="" type="number" min="0" placeholder="0" data-field="serizeni">
+      </td>
+      <td class="r">
+        <input class="inp num" value="" type="number" min="0" placeholder="0" data-field="strojni">
+      </td>
+      <td class="r">
+        <div class="coef-cell">
+          <input class="inp num" value="100" type="number" min="1" max="200" data-field="ke" style="width:42px">
+          <span class="coef-hint" data-ke-result>0</span>
+        </div>
+      </td>
+      <td class="r">
+        <div class="coef-cell">
+          <input class="inp num" value="100" type="number" min="0" max="100" data-field="ko" style="width:42px">
+          <span class="coef-hint" data-ko-result>0</span>
+        </div>
+      </td>
+      <td class="td-icon">
+        <button class="del-btn" title="Smazat (Ctrl+D)">×</button>
+      </td>`;
+
+    const detTr = document.createElement('tr');
+    detTr.className = 'detail-tr'; detTr.id = did; detTr.style.display = 'none';
+    detTr.innerHTML = `<td colspan="8"><div class="detail-inner">
+      <div class="detail-section"><div class="ds-head">Navázaný materiál</div><div class="ds-list"><div class="ds-add"><span>+</span> Přidat materiál</div></div></div>
+      <div class="detail-section"><div class="ds-head">Nástroje</div><div class="ds-list"><div class="ds-add"><span>+</span> Přidat nástroj</div></div></div>
+      <div class="detail-section"><div class="ds-head">Řezné podmínky</div><div class="ds-kv" style="color:var(--t4);font-size:var(--fsm)">Nevyplněno</div></div>
+      <div class="detail-section"><div class="ds-head">Kroky operace</div><div class="ds-steps"><div class="ds-add"><span>+</span> Přidat krok</div></div></div>
+    </div></td>`;
+
+    body.insertBefore(tr, addTr);
+    body.insertBefore(detTr, addTr);
+
+    /* Init WC combo */
+    const wcInp = tr.querySelector('[data-wc]');
+    new WCCombo(wcInp, wcInp.nextElementSibling);
+
+    /* Chevron */
+    tr.querySelector('.chev').addEventListener('click', function(e) {
+      e.stopPropagation();
+      const open = this.classList.toggle('open');
+      detTr.style.display = open ? '' : 'none';
+    });
+
+    /* Delete */
+    tr.querySelector('.del-btn').addEventListener('click', function() {
+      if (!confirm('Smazat operaci?')) return;
+      detTr.remove(); tr.remove(); recalc(); reseq();
+    });
+
+    tr.addEventListener('focusin', () => activateRow(tr));
+    tr.querySelectorAll('input').forEach(i => i.addEventListener('input', recalc));
+
+    activateRow(tr);
+    wcInp.focus();
+    recalc(); reseq();
+  }
+
+  document.querySelector('.add-btn').addEventListener('click', addRow);
+
+  /* Re-sequence */
+  function reseq() {
+    document.querySelectorAll('.op-row').forEach((row, i) => {
+      const n = row.querySelector('.seq-num');
+      if (n) n.textContent = String(i + 1).padStart(2, '0');
+    });
+  }
+
+  /* Live recalc on all existing inputs */
+  document.querySelectorAll('.op-row input').forEach(i => i.addEventListener('input', recalc));
+
+  /* Select-all on focus — přepíše okamžitě psaním, setTimeout přežije mouseup */
+  document.addEventListener('focusin', e => {
+    if (e.target.matches('input')) {
+      const inp = e.target;
+      setTimeout(() => inp.select(), 0);
+    }
+  });
+
+  /* Close WC dropdown on outside click */
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.wc-wrap'))
+      document.querySelectorAll('.wc-dd.open').forEach(d => d.classList.remove('open'));
+  });
+
+  recalc();
+</script>
+</body>
+</html>

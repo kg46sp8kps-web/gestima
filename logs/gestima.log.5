@@ -1,0 +1,459 @@
+{"timestamp": "2026-02-26T21:01:29.861246", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:29.861779", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:29.866874", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10899456", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:29.867268", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:29.872418", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35743545 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:29.872814", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:29.877008", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Soft deleted batch set 1 with 0 batches"}
+{"timestamp": "2026-02-26T21:01:29.877365", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1 \"HTTP/1.1 204 No Content\""}
+{"timestamp": "2026-02-26T21:01:29.879717", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 404 Not Found\""}
+{"timestamp": "2026-02-26T21:01:30.683725", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: operator"}
+{"timestamp": "2026-02-26T21:01:30.683991", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: operator"}
+{"timestamp": "2026-02-26T21:01:30.684451", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:30.933089", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:30.933288", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:30.933783", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:30.940016", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10338501", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:30.940451", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:30.947414", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35611590 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:30.947852", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:30.949425", "level": "WARNING", "logger": "app.dependencies", "message": "User operator (role: UserRole.OPERATOR) attempted unauthorized access (required: >=admin)"}
+{"timestamp": "2026-02-26T21:01:30.949742", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1 \"HTTP/1.1 403 Forbidden\""}
+{"timestamp": "2026-02-26T21:01:31.762760", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:31.762995", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:31.763488", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.768478", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10191210", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.768927", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.774531", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35346118 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.774948", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.787958", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.789920", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:31.790496", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.797197", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.798164", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:31.798607", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.806226", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.807298", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:31.807744", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.811778", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:31.818336", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.819794", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.821745", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:31.826544", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:31.827088", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:32.630275", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:32.630487", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:32.630971", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:32.636068", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10105655", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:32.636498", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:32.641353", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35812676 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:32.641734", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:32.646864", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 400 Bad Request\""}
+{"timestamp": "2026-02-26T21:01:33.446433", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:33.446631", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:33.447069", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.452464", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10131511", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.452900", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.457768", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35311626 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.458160", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.469729", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.471521", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:33.471967", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.479822", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.480788", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:33.481195", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.487601", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.488537", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:33.488965", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.492168", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.497871", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.499277", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.501161", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:33.505732", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:33.506307", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:33.510428", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 409 Conflict\""}
+{"timestamp": "2026-02-26T21:01:34.316528", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:34.316735", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:34.317172", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.323952", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10798293", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.324690", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.335865", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35094792 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.336984", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.387390", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.396359", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:34.399380", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.439557", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.446909", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:34.450066", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.470209", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.478380", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:34.480407", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.488235", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:34.508956", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.525726", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.542421", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:34.553217", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Recalculated batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:34.554241", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/recalculate \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.455458", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:35.455875", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:35.456361", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.461528", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10981313", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.461940", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.467287", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35349333 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.467738", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.479009", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.480712", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:35.481148", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.487472", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.488641", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:35.489128", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.495473", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.496427", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:35.496850", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.500051", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.506846", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.508184", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.509973", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:35.514877", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:35.515471", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:35.518405", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/recalculate \"HTTP/1.1 409 Conflict\""}
+{"timestamp": "2026-02-26T21:01:36.320899", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:36.321100", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:36.321539", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.326782", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10084262", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:36.327215", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.332297", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35742132 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:36.332674", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.345601", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:36.347580", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:36.348049", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.354460", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:36.355413", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:36.355837", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.362120", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:36.363052", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:36.363488", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.366778", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.374834", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Cloned batch set 1 -> 2 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:36.375251", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/clone \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:36.377742", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/2 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.167083", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:37.167283", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:37.167720", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.172812", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10588505", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.173207", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.178175", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35803042 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.178594", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.191726", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.193535", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:37.194003", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.200592", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.201570", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:37.201973", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.208197", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.209224", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:37.209644", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.212923", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.218883", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.220229", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.222372", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:37.227535", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:37.228068", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:37.235972", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Cloned batch set 1 -> 2 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:37.236369", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/clone \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:38.199050", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:38.199310", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:38.200389", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:38.207509", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10273232", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:38.208700", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:38.217703", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35256719 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:38.218146", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:38.232601", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=50, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:38.235804", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=50, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:38.236391", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=50 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.040108", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:39.040312", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:39.040788", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.046013", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10585276", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.046465", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.052099", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35400459 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.052540", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.064441", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.066115", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:39.066559", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.073036", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.074028", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:39.074448", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.081201", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.082184", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:39.082608", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.086186", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.093296", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.094632", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.096610", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.101159", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:39.101683", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.103492", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=200 \"HTTP/1.1 409 Conflict\""}
+{"timestamp": "2026-02-26T21:01:39.914221", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:39.914424", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:39.914887", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.919903", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10157625", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.920286", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.925304", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35159942 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:39.925733", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:39.927995", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=0 \"HTTP/1.1 422 Unprocessable Entity\""}
+{"timestamp": "2026-02-26T21:01:40.721579", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:40.721782", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:40.722278", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.727467", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10216433", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:40.727885", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.734157", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35934802 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:40.734572", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.746228", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:40.747908", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:40.748352", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.754857", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:40.755823", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:40.756242", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.762513", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:40.763461", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:40.763866", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.767069", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:40.770910", "level": "INFO", "logger": "app.db_helpers", "message": "Soft deleted Batch"}
+{"timestamp": "2026-02-26T21:01:40.771015", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Removed batch 1 from set 1"}
+{"timestamp": "2026-02-26T21:01:40.771333", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1/batches/1 \"HTTP/1.1 204 No Content\""}
+{"timestamp": "2026-02-26T21:01:40.774204", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.576323", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:41.576696", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:41.577203", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.583784", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10513522", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.584223", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.589252", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35460328 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.589630", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.600970", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.603620", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:41.604159", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.610819", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.611789", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:41.612220", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.619071", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.620116", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:41.620569", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.624035", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.630852", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.632175", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.634079", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:41.638698", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:41.639252", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:41.641052", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1/batches/1 \"HTTP/1.1 409 Conflict\""}
+{"timestamp": "2026-02-26T21:01:42.444138", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:42.444340", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:42.444828", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:42.449891", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10442414", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:42.450334", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:42.455780", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35144125 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:42.456186", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:42.459808", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1/batches/999999 \"HTTP/1.1 404 Not Found\""}
+{"timestamp": "2026-02-26T21:01:43.010534", "level": "WARNING", "logger": "app.dependencies", "message": "No access_token cookie found"}
+{"timestamp": "2026-02-26T21:01:43.011023", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 401 Unauthorized\""}
+{"timestamp": "2026-02-26T21:01:43.806242", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: operator"}
+{"timestamp": "2026-02-26T21:01:43.806450", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: operator"}
+{"timestamp": "2026-02-26T21:01:43.806885", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:44.056173", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:44.056375", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:44.056818", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:44.063911", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10978414", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:44.064323", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:44.070308", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35534450 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:44.070748", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:44.870970", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: operator"}
+{"timestamp": "2026-02-26T21:01:44.871173", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: operator"}
+{"timestamp": "2026-02-26T21:01:44.871622", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.126747", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:45.126966", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:45.127462", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.134316", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10005678", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.134872", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.146468", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35462385 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.147258", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.172872", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=1, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.178459", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=1, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:45.179223", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.191134", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=10, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.192574", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=10, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:45.193175", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=10 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.200065", "level": "INFO", "logger": "app.services.batch_service", "message": "Recalculated batch costs: quantity=100, unit_cost=0.0 Kč, total_cost=0.0 Kč", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.201339", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Added batch to set 1: quantity=100, unit_cost=0.0"}
+{"timestamp": "2026-02-26T21:01:45.201810", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/batches?quantity=100 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.205262", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/pricing/batch-sets/1 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:45.211524", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.212958", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 2 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.215007", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 3 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:45.220122", "level": "INFO", "logger": "app.services.batch_set_service", "message": "Frozen batch set 1 with 3 batches"}
+{"timestamp": "2026-02-26T21:01:45.220710", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets/1/freeze \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:46.036594", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:46.037262", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:46.038918", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:46.065137", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10562777", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:46.066424", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:46.081845", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35118074 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:46.082912", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:46.098304", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Soft deleted batch set 1 with 0 batches"}
+{"timestamp": "2026-02-26T21:01:46.098832", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1 \"HTTP/1.1 204 No Content\""}
+{"timestamp": "2026-02-26T21:01:46.103647", "level": "INFO", "logger": "httpx", "message": "HTTP Request: PUT http://test/api/pricing/batch-sets/1 \"HTTP/1.1 410 Gone\""}
+{"timestamp": "2026-02-26T21:01:47.280248", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:47.280867", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:47.281451", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:47.287668", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10533257", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:47.288335", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:47.297947", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35504521 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:47.298707", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:47.307805", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Soft deleted batch set 1 with 0 batches"}
+{"timestamp": "2026-02-26T21:01:47.308524", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1 \"HTTP/1.1 204 No Content\""}
+{"timestamp": "2026-02-26T21:01:47.313605", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/pricing/batch-sets/1 \"HTTP/1.1 410 Gone\""}
+{"timestamp": "2026-02-26T21:01:48.129993", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:48.130193", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:48.130652", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:48.135880", "level": "INFO", "logger": "app.routers.parts_router", "message": "Created part: 10417168", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:48.136277", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/parts/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:48.143275", "level": "INFO", "logger": "app.routers.pricing_router", "message": "Created batch set: 35816933 for part 1", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:48.143714", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/pricing/batch-sets \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:48.416795", "level": "INFO", "logger": "app.services.quote_service", "message": "Created snapshot for quote 50114884"}
+{"timestamp": "2026-02-26T21:01:48.416886", "level": "INFO", "logger": "app.services.quote_service", "message": "Quote 50114884 transitioned to SENT by test_user"}
+{"timestamp": "2026-02-26T21:01:48.542646", "level": "INFO", "logger": "app.services.quote_service", "message": "Created snapshot for quote 50609079"}
+{"timestamp": "2026-02-26T21:01:48.542746", "level": "INFO", "logger": "app.services.quote_service", "message": "Quote 50609079 transitioned to SENT by test_user"}
+{"timestamp": "2026-02-26T21:01:48.542896", "level": "INFO", "logger": "app.services.quote_service", "message": "Quote 50609079 approved by test_user"}
+{"timestamp": "2026-02-26T21:01:48.601391", "level": "INFO", "logger": "app.services.quote_service", "message": "Created snapshot for quote 50349869"}
+{"timestamp": "2026-02-26T21:01:48.601512", "level": "INFO", "logger": "app.services.quote_service", "message": "Quote 50349869 transitioned to SENT by test_user"}
+{"timestamp": "2026-02-26T21:01:48.601576", "level": "INFO", "logger": "app.services.quote_service", "message": "Quote 50349869 rejected by test_user"}
+{"timestamp": "2026-02-26T21:01:48.682941", "level": "INFO", "logger": "app.services.quote_service", "message": "Cloned quote 50853770 → 50411820"}
+{"timestamp": "2026-02-26T21:01:49.348623", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/api/data/materials \"HTTP/1.1 404 Not Found\""}
+{"timestamp": "2026-02-26T21:01:49.353371", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.356400", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.359015", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.362369", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.365526", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.369644", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.372130", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.374373", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:49.378490", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:50.718643", "level": "INFO", "logger": "app.database", "message": "✅ WAL mode enabled"}
+{"timestamp": "2026-02-26T21:01:50.726240", "level": "INFO", "logger": "app.database", "message": "✅ Database tables created/verified"}
+{"timestamp": "2026-02-26T21:01:50.726645", "level": "INFO", "logger": "app.database", "message": "🔄 Using Alembic migrations"}
+{"timestamp": "2026-02-26T21:01:51.435979", "level": "INFO", "logger": "app.database", "message": "✅ DB already at head, no migrations needed"}
+{"timestamp": "2026-02-26T21:01:51.436913", "level": "INFO", "logger": "app.database", "message": "✅ Seed 'price categories' successful"}
+{"timestamp": "2026-02-26T21:01:51.439499", "level": "INFO", "logger": "app.database", "message": "✅ Seed 'material groups' successful"}
+{"timestamp": "2026-02-26T21:01:51.439563", "level": "INFO", "logger": "app.database", "message": "✅ Seed 'material norms' successful"}
+{"timestamp": "2026-02-26T21:01:51.441590", "level": "WARNING", "logger": "test", "message": "⚠️ Seed 'test_seed' failed (non-critical): Test seed failure"}
+{"timestamp": "2026-02-26T21:01:51.498867", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 demo parts with ADR-017 compliant numbers: ['10013294', '10353252', '10379534']"}
+{"timestamp": "2026-02-26T21:01:51.502723", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 MaterialInputs for demo parts"}
+{"timestamp": "2026-02-26T21:01:51.556700", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 demo parts with ADR-017 compliant numbers: ['10746878', '10327728', '10218231']"}
+{"timestamp": "2026-02-26T21:01:51.560130", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 MaterialInputs for demo parts"}
+{"timestamp": "2026-02-26T21:01:51.613866", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 demo parts with ADR-017 compliant numbers: ['10294035', '10927498', '10822354']"}
+{"timestamp": "2026-02-26T21:01:51.617524", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 MaterialInputs for demo parts"}
+{"timestamp": "2026-02-26T21:01:51.674667", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 demo parts with ADR-017 compliant numbers: ['10942376', '10552682', '10387968']"}
+{"timestamp": "2026-02-26T21:01:51.677872", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 MaterialInputs for demo parts"}
+{"timestamp": "2026-02-26T21:01:51.734675", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 demo parts with ADR-017 compliant numbers: ['10680826', '10484959', '10662027']"}
+{"timestamp": "2026-02-26T21:01:51.737720", "level": "INFO", "logger": "app.seed_data", "message": "✅ Created 3 MaterialInputs for demo parts"}
+{"timestamp": "2026-02-26T21:01:52.057574", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.128179", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.263009", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.266866", "level": "INFO", "logger": "app.routers.batches_router", "message": "Cloned batch 3000001 -> 30722132: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.572583", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.574265", "level": "INFO", "logger": "app.routers.batches_router", "message": "Soft deleted frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.646151", "level": "INFO", "logger": "app.db_helpers", "message": "Soft deleted Batch"}
+{"timestamp": "2026-02-26T21:01:52.646286", "level": "INFO", "logger": "app.routers.batches_router", "message": "Deleted batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.718571", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.789811", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:52.792687", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.862319", "level": "WARNING", "logger": "app.services.snapshot_service", "message": "Freezing batch 1 with suspicious values", "part_id": 1}
+{"timestamp": "2026-02-26T21:01:52.865486", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.934833", "level": "INFO", "logger": "app.routers.batches_router", "message": "Frozen batch: quantity=10"}
+{"timestamp": "2026-02-26T21:01:52.999387", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "PDF rendered to image: tmp8r3q_pzv.pdf (17 bytes b64)"}
+{"timestamp": "2026-02-26T21:01:52.999466", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "Using COMPACT prompts for fine-tuned model"}
+{"timestamp": "2026-02-26T21:01:52.999562", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "OpenAI response (attempt 1, detail=high, 1086 chars): {\n                    \"part_type\": \"ROT\",\n                    \"complexity\": \"medium\",\n                    \"material_detected\": \"C45\",\n                    \"max_diameter_mm\": 80.0,\n                    \"..."}
+{"timestamp": "2026-02-26T21:01:52.999648", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "OpenAI tokens: prompt=500, completion=300, total=800"}
+{"timestamp": "2026-02-26T21:01:52.999695", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "OpenAI estimation: ROT, C45, 35.5 min (confidence: medium)"}
+{"timestamp": "2026-02-26T21:01:53.002832", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "PDF rendered to image: tmp3mo3aw8w.pdf (17 bytes b64)"}
+{"timestamp": "2026-02-26T21:01:53.002898", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "Using COMPACT prompts for fine-tuned model"}
+{"timestamp": "2026-02-26T21:01:53.002990", "level": "INFO", "logger": "app.services.openai_vision_service", "message": "OpenAI response (attempt 1, detail=high, 30 chars): This is not valid JSON {broken..."}
+{"timestamp": "2026-02-26T21:01:53.003055", "level": "ERROR", "logger": "app.services.openai_vision_service", "message": "Failed to parse OpenAI JSON response: Expecting value: line 1 column 1 (char 0)\nRaw: This is not valid JSON {broken"}
+{"timestamp": "2026-02-26T21:01:54.357381", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:54.357624", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:54.358134", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:54.362847", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:55.157425", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:55.157849", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:55.158793", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:55.168797", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: API Test CNC (80000001)"}
+{"timestamp": "2026-02-26T21:01:55.169406", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:55.960843", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:55.961048", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:55.961522", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:55.966946", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Specific Number CNC (80999999)"}
+{"timestamp": "2026-02-26T21:01:55.967370", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:56.784092", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:56.784300", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:56.784785", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:56.790224", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Get Test CNC (80000001)"}
+{"timestamp": "2026-02-26T21:01:56.790728", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:56.793678", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/80000001 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:57.589484", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:57.589694", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:57.590430", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:57.593879", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/80888888 \"HTTP/1.1 404 Not Found\""}
+{"timestamp": "2026-02-26T21:01:58.402637", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:58.402841", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:58.403288", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:58.409035", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Update Test (80000001)"}
+{"timestamp": "2026-02-26T21:01:58.409479", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:58.413894", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Updated work center: Updated Name (80000001)"}
+{"timestamp": "2026-02-26T21:01:58.414326", "level": "INFO", "logger": "httpx", "message": "HTTP Request: PUT http://test/api/work-centers/80000001 \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:59.200477", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:01:59.200827", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:01:59.201409", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:59.210217", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Version Test (80000001)"}
+{"timestamp": "2026-02-26T21:01:59.211483", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:01:59.218896", "level": "WARNING", "logger": "app.routers.work_centers_router", "message": "Version conflict updating work center 80000001: expected 999, got 0"}
+{"timestamp": "2026-02-26T21:01:59.219725", "level": "INFO", "logger": "httpx", "message": "HTTP Request: PUT http://test/api/work-centers/80000001 \"HTTP/1.1 409 Conflict\""}
+{"timestamp": "2026-02-26T21:02:00.016878", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:02:00.017090", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:02:00.017555", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:00.022357", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Delete Test (80000001)"}
+{"timestamp": "2026-02-26T21:02:00.022719", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:00.025596", "level": "INFO", "logger": "app.db_helpers", "message": "Soft deleted WorkCenter"}
+{"timestamp": "2026-02-26T21:02:00.025704", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Deleted work center: Delete Test (80000001)"}
+{"timestamp": "2026-02-26T21:02:00.026031", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/work-centers/80000001 \"HTTP/1.1 204 No Content\""}
+{"timestamp": "2026-02-26T21:02:00.028293", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/80000001 \"HTTP/1.1 404 Not Found\""}
+{"timestamp": "2026-02-26T21:02:00.806030", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:02:00.806242", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:02:00.806697", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:00.808935", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/types \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:01.598729", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:02:01.599252", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:02:01.599730", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:01.604977", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Search Test Lathe (80000001)"}
+{"timestamp": "2026-02-26T21:02:01.605413", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:01.608409", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Search Test Mill (80000002)"}
+{"timestamp": "2026-02-26T21:02:01.608897", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:01.613683", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/search?search=Lathe \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:02.433126", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:02:02.433330", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:02:02.433767", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:02.438897", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Type Filter Lathe (80000001)"}
+{"timestamp": "2026-02-26T21:02:02.439371", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:02.442283", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Type Filter Mill (80000002)"}
+{"timestamp": "2026-02-26T21:02:02.442694", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:02.445242", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/?work_center_type=CNC_LATHE \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:02.987165", "level": "WARNING", "logger": "app.dependencies", "message": "No access_token cookie found"}
+{"timestamp": "2026-02-26T21:02:02.987889", "level": "INFO", "logger": "httpx", "message": "HTTP Request: GET http://test/api/work-centers/ \"HTTP/1.1 401 Unauthorized\""}
+{"timestamp": "2026-02-26T21:02:03.881929", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: operator"}
+{"timestamp": "2026-02-26T21:02:03.882139", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: operator"}
+{"timestamp": "2026-02-26T21:02:03.882638", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:04.131203", "level": "INFO", "logger": "app.services.auth_service", "message": "User authenticated: admin"}
+{"timestamp": "2026-02-26T21:02:04.131409", "level": "INFO", "logger": "app.routers.auth_router", "message": "User logged in: admin"}
+{"timestamp": "2026-02-26T21:02:04.131848", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/auth/login \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:04.137972", "level": "INFO", "logger": "app.routers.work_centers_router", "message": "Created work center: Admin Only Delete (80000001)"}
+{"timestamp": "2026-02-26T21:02:04.139073", "level": "INFO", "logger": "httpx", "message": "HTTP Request: POST http://test/api/work-centers/ \"HTTP/1.1 200 OK\""}
+{"timestamp": "2026-02-26T21:02:04.141137", "level": "WARNING", "logger": "app.dependencies", "message": "User operator (role: UserRole.OPERATOR) attempted unauthorized access (required: >=admin)"}
+{"timestamp": "2026-02-26T21:02:04.141529", "level": "INFO", "logger": "httpx", "message": "HTTP Request: DELETE http://test/api/work-centers/80000001 \"HTTP/1.1 403 Forbidden\""}

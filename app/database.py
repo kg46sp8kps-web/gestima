@@ -96,22 +96,30 @@ async def init_db():
                 # Use Alembic for migrations
                 logger.info("🔄 Using Alembic migrations")
                 try:
-                    # Auto-backup before migration (safety net)
-                    import shutil
-                    db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
-                    if db_path and os.path.exists(db_path) and os.path.getsize(db_path) > 0:
-                        backup_path = f"{db_path}.pre-migration.bak"
-                        shutil.copy2(db_path, backup_path)
-                        logger.info(f"💾 Pre-migration backup: {backup_path}")
+                    import shutil, subprocess
 
-                    import subprocess
-                    result = subprocess.run(
-                        ["alembic", "upgrade", "head"],
-                        capture_output=True,
-                        text=True,
-                        check=True
+                    # Zjisti jestli jsou čekající migrace
+                    check = subprocess.run(
+                        ["alembic", "current"],
+                        capture_output=True, text=True
                     )
-                    logger.info("✅ Alembic migrations applied")
+                    needs_migration = "(head)" not in check.stdout
+
+                    if needs_migration:
+                        # Backup jen když skutečně běží migrace
+                        db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
+                        if db_path and os.path.exists(db_path) and os.path.getsize(db_path) > 0:
+                            backup_path = f"{db_path}.pre-migration.bak"
+                            shutil.copy2(db_path, backup_path)
+                            logger.info(f"💾 Pre-migration backup: {backup_path}")
+
+                        result = subprocess.run(
+                            ["alembic", "upgrade", "head"],
+                            capture_output=True, text=True, check=True
+                        )
+                        logger.info("✅ Alembic migrations applied")
+                    else:
+                        logger.info("✅ DB already at head, no migrations needed")
                 except Exception as e:
                     logger.warning(f"⚠️ Alembic migration failed (non-critical): {e}")
             else:

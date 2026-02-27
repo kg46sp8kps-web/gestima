@@ -58,8 +58,8 @@ data/archive/
 # Logs
 *.log
 
-# Claude Code memory (lokální learning data)
-.claude/memory/
+# Archived Claude memory (historical)
+claude_bak/.claude/memory/
 
 # Environment variables
 .env

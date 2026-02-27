@@ -46,16 +46,17 @@
         </thead>
         <tbody>
           <tr
-            v-for="item in store.queueItems"
-            :key="`${item.Job}-${item.Suffix}-${item.OperNum}`"
+            v-for="(item, idx) in store.queueItems"
+            :key="`${item.Job}-${item.Suffix}-${item.OperNum}-${item.OpDatumSt ?? ''}-${item.StateAsd ?? ''}-${idx}`"
             class="qt__row"
             :class="{ 'qt__row--active': isActive(item) }"
-            :data-testid="`queue-row-${item.Job}-${item.OperNum}`"
+            :data-testid="`queue-row-${item.Job}-${item.OperNum}-${idx}`"
             @click="store.selectQueueItem(item)"
           >
             <td class="qt__td">
               <span class="qt__job">{{ item.Job }}<span v-if="item.Suffix && item.Suffix !== '0'">/{{ item.Suffix }}</span></span>
               <span class="qt__oper">Op {{ item.OperNum }}</span>
+              <span v-if="item.StateAsd" class="qt__state">{{ item.StateAsd }}</span>
             </td>
             <td class="qt__td qt__td--wc">{{ item.Wc }}</td>
             <td class="qt__td">{{ item.DerJobItem ?? '—' }}</td>
@@ -98,11 +99,7 @@ watch(filterWc, (newVal) => {
 })
 
 function isActive(item: WorkshopQueueItem) {
-  return (
-    store.activeQueueItem?.Job === item.Job &&
-    store.activeQueueItem?.Suffix === item.Suffix &&
-    store.activeQueueItem?.OperNum === item.OperNum
-  )
+  return store.activeQueueItem === item
 }
 
 async function refresh() {
@@ -110,19 +107,31 @@ async function refresh() {
   await store.fetchQueue(wc || undefined)
 }
 
-/** Formátuje datum z Infor (ISO string) na čitelný CZ formát "DD.MM. HH:MM" */
+/** Formátuje datum/čas z Infor na "DD.MM. HH:MM:SS" nebo "HH:MM:SS". */
 function formatInforDate(value: string | null | undefined): string {
   if (!value) return '—'
+  const raw = value.trim()
+  if (!raw) return '—'
+
+  const timeOnlyMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
+  if (timeOnlyMatch) {
+    const hh = (timeOnlyMatch[1] ?? '0').padStart(2, '0')
+    const mm = timeOnlyMatch[2] ?? '00'
+    const ss = (timeOnlyMatch[3] ?? '00').padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
+  }
+
   try {
-    const d = new Date(value)
-    if (isNaN(d.getTime())) return '—'
+    const d = new Date(raw)
+    if (isNaN(d.getTime())) return raw
     const day = d.getDate().toString().padStart(2, '0')
     const mon = (d.getMonth() + 1).toString().padStart(2, '0')
     const hh = d.getHours().toString().padStart(2, '0')
     const mm = d.getMinutes().toString().padStart(2, '0')
-    return `${day}.${mon}. ${hh}:${mm}`
+    const ss = d.getSeconds().toString().padStart(2, '0')
+    return `${day}.${mon}. ${hh}:${mm}:${ss}`
   } catch {
-    return '—'
+    return raw
   }
 }
 
@@ -285,6 +294,16 @@ onMounted(() => {
   color: var(--t3);
   display: block;
   margin-top: 2px;
+}
+
+.qt__state {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--b2);
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--t3);
 }
 
 .qt__qty-sep {

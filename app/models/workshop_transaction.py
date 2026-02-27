@@ -30,6 +30,7 @@ class WorkshopTransaction(Base, AuditMixin):
     # Infor identifikace zakázky
     infor_job = Column(String(30), nullable=False, index=True)    # Číslo zakázky, např. "16VP09/055"
     infor_suffix = Column(String(5), nullable=True, default="0")   # Suffix dávky, default "0"
+    infor_item = Column(String(30), nullable=True)                 # DerJobItem — číslo dílu z Infor (@TItem v DcSfcMchtrxSp)
     oper_num = Column(String(10), nullable=False)                   # Číslo operace, např. "10"
     wc = Column(String(20), nullable=True)                         # Pracoviště (@TWc v SP)
 
@@ -74,6 +75,7 @@ class WorkshopTransactionCreate(BaseModel):
     """Schema pro vytvoření transakce (uložení do bufferu)."""
     infor_job: str = Field(..., min_length=1, max_length=30)
     infor_suffix: str = Field("0", max_length=5)
+    infor_item: Optional[str] = Field(None, max_length=30)
     oper_num: str = Field(..., min_length=1, max_length=10)
     wc: Optional[str] = Field(None, max_length=20)
     trans_type: WorkshopTransType
@@ -95,6 +97,7 @@ class WorkshopTransactionResponse(BaseModel):
     id: int
     infor_job: str
     infor_suffix: Optional[str]
+    infor_item: Optional[str]
     oper_num: str
     wc: Optional[str]
     trans_type: WorkshopTransType

@@ -4,6 +4,7 @@ import { BotIcon, PlusIcon } from 'lucide-vue-next'
 import * as quotesApi from '@/api/quotes'
 import type { QuoteListItem } from '@/types/quote'
 import { useUiStore } from '@/stores/ui'
+import { useQuotesListStore } from '@/stores/quotesList'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import Spinner from '@/components/ui/Spinner.vue'
 import Input from '@/components/ui/Input.vue'
@@ -22,6 +23,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const ui = useUiStore()
+const quotesStore = useQuotesListStore()
 const items = ref<QuoteListItem[]>([])
 const loading = ref(false)
 const error = ref(false)
@@ -72,11 +74,18 @@ function onAiClick() {
   ui.showInfo('AI Import z PDF — brzy dostupný')
 }
 
-async function load() {
+async function load(force = false) {
+  if (quotesStore.loaded && !force) {
+    items.value = quotesStore.items
+    emit('loaded', items.value)
+    return
+  }
   loading.value = true
   error.value = false
   try {
-    items.value = await quotesApi.getAll()
+    const data = await quotesApi.getAll()
+    items.value = data
+    quotesStore.setItems(data)
     emit('loaded', items.value)
   } catch {
     error.value = true

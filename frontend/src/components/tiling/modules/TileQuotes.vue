@@ -39,11 +39,11 @@ function onListLoaded(items: QuoteListItem[]) {
 
 function onQuoteCreated(quote: QuoteDetail) {
   selectedQuoteNumber.value = quote.quote_number
-  listRef.value?.load()
+  listRef.value?.load(true)
 }
 
 function onDetailReload() {
-  listRef.value?.load()
+  listRef.value?.load(true)
 }
 </script>
 

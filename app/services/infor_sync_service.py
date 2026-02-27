@@ -149,9 +149,12 @@ class InforSyncService:
             if step.last_sync_at:
                 since = step.last_sync_at.strftime("%Y-%m-%d %H:%M:%S")
             else:
-                # First sync: lookback
-                lookback_date = start_time - timedelta(days=settings.INFOR_SYNC_INITIAL_LOOKBACK_DAYS)
-                since = lookback_date.strftime("%Y-%m-%d %H:%M:%S")
+                # First sync: fixed date nebo lookback
+                if settings.INFOR_SYNC_INITIAL_DATE:
+                    since = f"{settings.INFOR_SYNC_INITIAL_DATE} 00:00:00"
+                else:
+                    lookback_date = start_time - timedelta(days=settings.INFOR_SYNC_INITIAL_LOOKBACK_DAYS)
+                    since = lookback_date.strftime("%Y-%m-%d %H:%M:%S")
 
             date_filter = f"{step.date_field} >= '{since}'"
             full_filter = f"{step.filter_template} AND {date_filter}" if step.filter_template else date_filter

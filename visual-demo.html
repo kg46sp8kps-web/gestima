@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GESTIMA — Visual Direction Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* ════════════════════════════════════════════════
+   BASE TOKENS (shared foundation)
+   ════════════════════════════════════════════════ */
+:root {
+  --font: 'DM Sans', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+  --spring: cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ════════════════════════════════════════════════
+   THEME: BASELINE (současný stav)
+   ════════════════════════════════════════════════ */
+[data-theme="baseline"] {
+  --red: #E53935;
+  --red-glow: rgba(229,57,53,0.15);
+  --red-dim: rgba(229,57,53,0.08);
+  --red-10: rgba(229,57,53,0.10);
+  --red-20: rgba(229,57,53,0.20);
+  --green: #22c55e;
+  --green-10: rgba(34,197,94,0.10);
+  --base: #08080a;
+  --ground: #0e0e10;
+  --surface: rgba(18,18,20,0.92);
+  --raised: rgba(26,26,28,0.95);
+  --glass: rgba(20,20,22,0.65);
+  --t1: #ededf0;
+  --t2: #cdcdd0;
+  --t3: #8e8e96;
+  --t4: #5c5c64;
+  --b1: rgba(255,255,255,0.06);
+  --b2: rgba(255,255,255,0.10);
+  --b3: rgba(255,255,255,0.15);
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+
+  --hero-size: 28px;
+  --hero-weight: 600;
+  --hero-color: var(--green);
+  --hero-text-shadow: none;
+  --panel-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  --panel-border: 1px solid var(--b2);
+  --item-active-bg: var(--red-10);
+  --item-active-border: var(--red);
+  --item-active-shadow: none;
+  --row-hover-bg: rgba(255,255,255,0.03);
+  --number-glow: none;
+  --orb-opacity: 1;
+  --orb-color-a: rgba(229,57,53,0.12);
+  --orb-color-b: rgba(229,57,53,0.06);
+  --panel-header-border: 1px solid var(--b1);
+  --status-dot-shadow: none;
+}
+
+/* ════════════════════════════════════════════════
+   THEME: NEON EDGE
+   ════════════════════════════════════════════════ */
+[data-theme="neon"] {
+  --red: #FF2222;
+  --red-glow: rgba(255,34,34,0.28);
+  --red-dim: rgba(255,34,34,0.12);
+  --red-10: rgba(255,34,34,0.10);
+  --red-20: rgba(255,34,34,0.22);
+  --green: #00FF88;
+  --green-10: rgba(0,255,136,0.10);
+  --base: #06060a;
+  --ground: #0a0a10;
+  --surface: rgba(14,14,20,0.94);
+  --raised: rgba(20,20,28,0.96);
+  --glass: rgba(16,16,24,0.70);
+  --t1: #f0f0ff;
+  --t2: #d0d0e8;
+  --t3: #8888aa;
+  --t4: #505066;
+  --b1: rgba(255,255,255,0.07);
+  --b2: rgba(255,255,255,0.12);
+  --b3: rgba(255,255,255,0.20);
+  --ok: #00FF88;
+  --warn: #FFD700;
+  --err: #FF4466;
+
+  --hero-size: 28px;
+  --hero-weight: 600;
+  --hero-color: #00FF88;
+  --hero-text-shadow: 0 0 24px rgba(0,255,136,0.5), 0 0 48px rgba(0,255,136,0.2);
+  --panel-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,34,34,0.12);
+  --panel-border: 1px solid rgba(255,34,34,0.20);
+  --item-active-bg: rgba(255,34,34,0.08);
+  --item-active-border: #FF2222;
+  --item-active-shadow: inset 0 0 30px rgba(255,34,34,0.07), 0 0 20px rgba(255,34,34,0.06);
+  --row-hover-bg: rgba(255,255,255,0.04);
+  --number-glow: 0 0 16px rgba(0,255,136,0.35);
+  --orb-opacity: 1;
+  --orb-color-a: rgba(255,34,34,0.18);
+  --orb-color-b: rgba(255,34,34,0.09);
+  --panel-header-border: 1px solid rgba(255,34,34,0.18);
+  --status-dot-shadow: 0 0 8px currentColor;
+}
+
+/* ════════════════════════════════════════════════
+   THEME: CLARITY PREMIUM
+   ════════════════════════════════════════════════ */
+[data-theme="clarity"] {
+  --red: #FF4444;
+  --red-glow: rgba(255,68,68,0.18);
+  --red-dim: rgba(255,68,68,0.09);
+  --red-10: rgba(255,68,68,0.10);
+  --red-20: rgba(255,68,68,0.20);
+  --green: #10b981;
+  --green-10: rgba(16,185,129,0.10);
+  --base: #0a0a0e;
+  --ground: #111118;
+  --surface: rgba(20,20,28,0.96);
+  --raised: rgba(28,28,38,0.98);
+  --glass: rgba(22,22,32,0.70);
+  --t1: #f4f4f8;
+  --t2: #d4d4dc;
+  --t3: #8484a0;
+  --t4: #505068;
+  --b1: rgba(255,255,255,0.05);
+  --b2: rgba(255,255,255,0.09);
+  --b3: rgba(255,255,255,0.14);
+  --ok: #10b981;
+  --warn: #f59e0b;
+  --err: #ef4444;
+
+  --hero-size: 48px;
+  --hero-weight: 700;
+  --hero-color: transparent;
+  --hero-gradient: linear-gradient(135deg, #FF4444 0%, #FF8C00 60%, #FFB347 100%);
+  --hero-text-shadow: none;
+  --panel-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
+  --panel-border: 1px solid rgba(255,255,255,0.08);
+  --item-active-bg: rgba(255,68,68,0.07);
+  --item-active-border: #FF4444;
+  --item-active-shadow: none;
+  --row-hover-bg: rgba(255,255,255,0.035);
+  --number-glow: none;
+  --orb-opacity: 0.7;
+  --orb-color-a: rgba(255,68,68,0.12);
+  --orb-color-b: rgba(255,100,0,0.07);
+  --panel-header-border: 1px solid rgba(255,255,255,0.06);
+  --status-dot-shadow: none;
+}
+
+/* ════════════════════════════════════════════════
+   THEME: MACHINE INTERFACE
+   ════════════════════════════════════════════════ */
+[data-theme="machine"] {
+  --red: #E53935;
+  --red-glow: rgba(229,57,53,0.15);
+  --red-dim: rgba(229,57,53,0.08);
+  --red-10: rgba(229,57,53,0.10);
+  --red-20: rgba(229,57,53,0.20);
+  --green: #22c55e;
+  --green-10: rgba(34,197,94,0.10);
+  --amber: #f59e0b;
+  --amber-10: rgba(245,158,11,0.10);
+  --amber-glow: rgba(245,158,11,0.25);
+  --base: #070809;
+  --ground: #0c0e10;
+  --surface: rgba(16,18,20,0.96);
+  --raised: rgba(22,24,28,0.98);
+  --glass: rgba(18,20,24,0.70);
+  --t1: #e8eaec;
+  --t2: #c0c4cc;
+  --t3: #7a8090;
+  --t4: #484e5a;
+  --b1: rgba(255,255,255,0.05);
+  --b2: rgba(255,255,255,0.09);
+  --b3: rgba(255,255,255,0.14);
+  --ok: #34d399;
+  --warn: #f59e0b;
+  --err: #f87171;
+
+  --hero-size: 28px;
+  --hero-weight: 600;
+  --hero-color: var(--amber);
+  --hero-text-shadow: 0 0 20px rgba(245,158,11,0.3);
+  --panel-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  --panel-border: 1px solid rgba(255,255,255,0.08);
+  --item-active-bg: rgba(245,158,11,0.08);
+  --item-active-border: var(--amber);
+  --item-active-shadow: none;
+  --row-hover-bg: rgba(255,255,255,0.03);
+  --number-glow: none;
+  --orb-opacity: 0.6;
+  --orb-color-a: rgba(245,158,11,0.10);
+  --orb-color-b: rgba(229,57,53,0.06);
+  --panel-header-border: 1px solid rgba(245,158,11,0.15);
+  --status-dot-shadow: none;
+}
+
+/* ════════════════════════════════════════════════
+   THEME: MOTION & LIFE
+   ════════════════════════════════════════════════ */
+[data-theme="motion"] {
+  --red: #E53935;
+  --red-glow: rgba(229,57,53,0.15);
+  --red-dim: rgba(229,57,53,0.08);
+  --red-10: rgba(229,57,53,0.10);
+  --red-20: rgba(229,57,53,0.20);
+  --green: #22c55e;
+  --green-10: rgba(34,197,94,0.10);
+  --base: #08080a;
+  --ground: #0e0e10;
+  --surface: rgba(18,18,20,0.92);
+  --raised: rgba(26,26,28,0.95);
+  --glass: rgba(20,20,22,0.65);
+  --t1: #ededf0;
+  --t2: #cdcdd0;
+  --t3: #8e8e96;
+  --t4: #5c5c64;
+  --b1: rgba(255,255,255,0.06);
+  --b2: rgba(255,255,255,0.10);
+  --b3: rgba(255,255,255,0.15);
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+
+  --hero-size: 28px;
+  --hero-weight: 600;
+  --hero-color: var(--green);
+  --hero-text-shadow: none;
+  --panel-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  --panel-border: 1px solid var(--b2);
+  --item-active-bg: var(--red-10);
+  --item-active-border: var(--red);
+  --item-active-shadow: none;
+  --row-hover-bg: rgba(255,255,255,0.03);
+  --number-glow: none;
+  --orb-opacity: 1;
+  --orb-color-a: rgba(229,57,53,0.12);
+  --orb-color-b: rgba(229,57,53,0.06);
+  --panel-header-border: 1px solid var(--b1);
+  --status-dot-shadow: none;
+}
+
+/* ════════════════════════════════════════════════
+   GLOBAL RESET & BASE
+   ════════════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 420;
+  line-height: 1.5;
+  color: var(--t2);
+  background: var(--base);
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--red-20); color: var(--t1); }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 99px; }
+
+/* ════════════════════════════════════════════════
+   GRAIN TEXTURE
+   ════════════════════════════════════════════════ */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none; opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* ════════════════════════════════════════════════
+   BACKGROUND ORBS + GRID
+   ════════════════════════════════════════════════ */
+.bg-grid {
+  position: fixed; inset: -200px; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 40s linear infinite;
+}
+.bg-orb {
+  position: fixed; z-index: 0; pointer-events: none; border-radius: 50%;
+  filter: blur(90px); opacity: var(--orb-opacity);
+  transition: background 0.6s var(--ease);
+}
+.bg-orb.a {
+  width: 600px; height: 600px; top: -15%; right: -10%;
+  background: radial-gradient(circle, var(--orb-color-a) 0%, transparent 70%);
+  animation: orbFloat 14s ease-in-out infinite alternate;
+}
+.bg-orb.b {
+  width: 450px; height: 450px; bottom: -20%; left: 5%;
+  background: radial-gradient(circle, var(--orb-color-b) 0%, transparent 70%);
+  animation: orbFloat 18s ease-in-out infinite alternate-reverse;
+}
+
+/* ════════════════════════════════════════════════
+   THEME SWITCHER BAR
+   ════════════════════════════════════════════════ */
+.switcher {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  height: 52px;
+  background: rgba(8,8,10,0.9);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(20px);
+  display: flex; align-items: center; padding: 0 24px; gap: 8px;
+}
+
+.switcher-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.theme-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.5);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+}
+
+.theme-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,0.20);
+}
+
+.theme-btn.active {
+  background: rgba(229,57,53,0.15);
+  border-color: rgba(229,57,53,0.4);
+  color: #fff;
+  font-weight: 600;
+}
+
+.theme-desc {
+  margin-left: auto;
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  font-style: italic;
+}
+
+/* ════════════════════════════════════════════════
+   WORKSPACE
+   ════════════════════════════════════════════════ */
+#app {
+  position: fixed; inset: 0; padding-top: 52px;
+  display: flex; flex-direction: column;
+  transition: all 0.4s var(--ease);
+}
+
+.ws-header {
+  height: 38px;
+  background: var(--surface);
+  border-bottom: var(--panel-header-border);
+  display: flex; align-items: center; padding: 0 16px; gap: 12px;
+  flex-shrink: 0; position: relative; z-index: 10;
+  backdrop-filter: blur(16px);
+  transition: all 0.4s var(--ease);
+}
+
+.ws-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--t1);
+}
+.ws-logo span { color: var(--red); transition: color 0.4s; }
+
+.ws-chips {
+  display: flex; gap: 6px; margin-left: 8px;
+}
+.ws-chip {
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--b2);
+  background: var(--b1);
+  font-size: 10px;
+  color: var(--t3);
+  transition: all 0.4s;
+}
+.ws-chip.active {
+  border-color: var(--red-20);
+  background: var(--red-10);
+  color: var(--t2);
+}
+
+.ws-meta {
+  margin-left: auto; display: flex; gap: 16px; align-items: center;
+}
+.ws-meta-item {
+  font-size: 10px; color: var(--t4);
+  display: flex; gap: 4px; align-items: center;
+}
+.ws-meta-item strong {
+  font-family: var(--mono);
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.ws-body {
+  flex: 1; display: flex; overflow: hidden;
+  padding: 8px; gap: 8px; position: relative; z-index: 1;
+}
+
+/* ════════════════════════════════════════════════
+   PANELS
+   ════════════════════════════════════════════════ */
+.panel {
+  background: var(--surface);
+  border: var(--panel-border);
+  border-radius: 9px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(16px) saturate(1.3);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: all 0.4s var(--ease);
+}
+
+.panel-head {
+  height: 32px;
+  display: flex; align-items: center; padding: 0 10px; gap: 8px;
+  border-bottom: var(--panel-header-border);
+  flex-shrink: 0;
+  background: var(--raised);
+  transition: all 0.4s var(--ease);
+}
+
+.panel-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t3);
+  transition: color 0.4s;
+}
+
+.panel-badge {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--t4);
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  border-radius: 99px;
+  padding: 1px 6px;
+  transition: all 0.4s;
+}
+
+.panel-body {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════════════
+   PARTS LIST
+   ════════════════════════════════════════════════ */
+.panel-left { width: 240px; flex-shrink: 0; }
+
+.search-row {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--b1);
+}
+.search-input {
+  width: 100%;
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  border-radius: 6px;
+  padding: 5px 8px 5px 28px;
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--t2);
+  outline: none;
+  transition: all 0.15s var(--ease);
+  position: relative;
+}
+.search-wrap { position: relative; }
+.search-wrap svg {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  color: var(--t4); pointer-events: none;
+}
+.search-input:focus {
+  border-color: var(--b3);
+  background: rgba(255,255,255,0.03);
+}
+
+.parts-list {
+  padding: 4px 0;
+}
+
+.part-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s var(--ease);
+  position: relative;
+}
+.part-item:hover {
+  background: var(--row-hover-bg);
+}
+.part-item.active {
+  background: var(--item-active-bg);
+  border-left-color: var(--item-active-border);
+  box-shadow: var(--item-active-shadow);
+}
+
+/* Scanline hover effect for Neon theme */
+[data-theme="neon"] .part-item:hover::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.012) 2px,
+    rgba(255,255,255,0.012) 4px
+  );
+  pointer-events: none;
+}
+
+.part-status {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  transition: all 0.4s var(--ease);
+  box-shadow: var(--status-dot-shadow);
+}
+.part-status.ok { background: var(--ok); color: var(--ok); }
+.part-status.warn { background: var(--warn); color: var(--warn); }
+.part-status.draft { background: var(--t4); color: var(--t4); }
+
+/* Pulsing dots for Motion theme */
+[data-theme="motion"] .part-status.ok {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+[data-theme="motion"] .part-status.warn {
+  animation: pulseDot 1.5s ease-in-out infinite;
+}
+
+.part-info { flex: 1; min-width: 0; }
+.part-number {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--t1);
+  display: block;
+  transition: color 0.4s;
+}
+.part-name {
+  font-size: 10px;
+  color: var(--t3);
+  display: block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color 0.4s;
+}
+
+.part-price {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--green);
+  text-align: right;
+  flex-shrink: 0;
+  text-shadow: var(--number-glow);
+  transition: all 0.4s var(--ease);
+}
+
+/* Data bars for Motion theme */
+[data-theme="motion"] .part-item {
+  position: relative;
+}
+[data-theme="motion"] .part-item::before {
+  content: '';
+  position: absolute;
+  left: 2px; bottom: 3px;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--green);
+  opacity: 0.25;
+  transition: width 0.6s var(--ease);
+}
+[data-theme="motion"] .part-item.bar-40::before { width: 40%; }
+[data-theme="motion"] .part-item.bar-65::before { width: 65%; }
+[data-theme="motion"] .part-item.bar-100::before { width: calc(100% - 4px); }
+[data-theme="motion"] .part-item.bar-55::before { width: 55%; }
+[data-theme="motion"] .part-item.bar-30::before { width: 30%; }
+
+/* Sparklines for Motion theme */
+.sparkline {
+  display: none;
+  margin-top: 3px;
+}
+[data-theme="motion"] .sparkline {
+  display: flex; gap: 1px; align-items: flex-end; height: 10px;
+}
+.spark-bar {
+  width: 3px; border-radius: 1px;
+  background: var(--green);
+  opacity: 0.4;
+  transition: height 0.3s var(--ease);
+}
+
+/* ════════════════════════════════════════════════
+   PANEL RIGHT (main content)
+   ════════════════════════════════════════════════ */
+.panel-right { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+/* ════════════════════════════════════════════════
+   PRICING SUMMARY (hero panel)
+   ════════════════════════════════════════════════ */
+.pricing-panel { flex-shrink: 0; }
+
+.pricing-hero {
+  padding: 14px 16px 10px;
+  display: flex; align-items: flex-start; gap: 24px;
+  border-bottom: 1px solid var(--b1);
+}
+
+.price-block { display: flex; flex-direction: column; gap: 2px; }
+.price-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t4);
+  transition: color 0.4s;
+}
+.price-value {
+  font-family: var(--mono);
+  font-size: var(--hero-size);
+  font-weight: var(--hero-weight);
+  color: var(--hero-color);
+  text-shadow: var(--hero-text-shadow);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  transition: all 0.4s var(--ease);
+}
+
+/* Gradient text for Clarity theme */
+[data-theme="clarity"] .price-value.main {
+  background: var(--hero-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.price-sub {
+  font-size: 10px;
+  color: var(--t3);
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 1px;
+}
+.price-delta {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.price-delta.up {
+  background: rgba(34,197,94,0.12);
+  color: var(--ok);
+  border: 1px solid rgba(34,197,94,0.2);
+}
+
+.price-divider {
+  width: 1px; background: var(--b2); align-self: stretch;
+  margin: 4px 0;
+}
+
+.price-block-sm .price-label { font-size: 9px; }
+.price-block-sm .price-value { font-size: 15px; font-weight: 600; }
+
+/* Machine theme: amber accent for active price */
+[data-theme="machine"] .price-block-sm.active .price-value {
+  color: var(--amber);
+  text-shadow: 0 0 16px rgba(245,158,11,0.3);
+}
+[data-theme="machine"] .price-block-sm.active .price-label {
+  color: rgba(245,158,11,0.6);
+}
+
+/* Count-up animation for Motion theme */
+[data-theme="motion"] .price-value {
+  animation: countUp 1.2s var(--ease) both;
+}
+
+.pricing-ribbon {
+  display: flex; padding: 6px 16px; gap: 16px;
+  background: var(--b1);
+}
+.rib-item { display: flex; gap: 4px; align-items: baseline; }
+.rib-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t4);
+  font-weight: 600;
+}
+.rib-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--t2);
+}
+
+/* ════════════════════════════════════════════════
+   OPERATIONS TABLE
+   ════════════════════════════════════════════════ */
+.ops-panel { flex: 1; }
+
+.ops-table {
+  width: 100%; border-collapse: collapse; table-layout: fixed;
+}
+.ops-table th {
+  padding: 5px 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t4);
+  text-align: left;
+  border-bottom: 1px solid var(--b2);
+  background: var(--raised);
+  position: sticky; top: 0;
+  transition: all 0.4s var(--ease);
+}
+.ops-table th.right { text-align: right; }
+
+.ops-table td {
+  padding: 7px 10px;
+  font-size: 11.5px;
+  color: var(--t2);
+  border-bottom: 1px solid var(--b1);
+  transition: all 0.15s var(--ease);
+  position: relative;
+}
+.ops-table tr:hover td {
+  background: var(--row-hover-bg);
+}
+
+/* Scanline hover for Neon */
+[data-theme="neon"] .ops-table tr:hover td::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.008) 2px,
+    rgba(255,255,255,0.008) 4px
+  );
+  pointer-events: none;
+}
+
+.ops-table td.mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+.ops-table td.right { text-align: right; }
+.ops-table td.currency {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+  color: var(--t1);
+  text-shadow: var(--number-glow);
+  transition: all 0.4s;
+}
+
+/* Data bar cells for Motion theme */
+[data-theme="motion"] .ops-table td.currency {
+  position: relative;
+}
+[data-theme="motion"] .ops-table td.currency .data-bar {
+  display: block;
+}
+.data-bar {
+  display: none;
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: rgba(34,197,94,0.06);
+  pointer-events: none;
+  transition: width 0.5s var(--ease);
+}
+
+.ops-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-family: var(--mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  color: var(--t3);
+  transition: all 0.4s;
+}
+.ops-badge-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  box-shadow: var(--status-dot-shadow);
+}
+.ops-badge-dot.ok { background: var(--ok); color: var(--ok); }
+.ops-badge-dot.active { background: var(--warn); color: var(--warn); }
+
+/* Machine theme: amber badge for active operations */
+[data-theme="machine"] .ops-badge.running {
+  background: rgba(245,158,11,0.08);
+  border-color: rgba(245,158,11,0.2);
+  color: var(--amber);
+}
+[data-theme="machine"] .ops-badge.running .ops-badge-dot.active {
+  background: var(--amber);
+  animation: pulseDot 1.2s ease-in-out infinite;
+}
+
+.ops-wc {
+  font-size: 10px;
+  color: var(--t3);
+  font-family: var(--mono);
+}
+.ops-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--t2);
+}
+
+/* Neon theme: glowing selected row indicator */
+[data-theme="neon"] .ops-table tr.selected td {
+  background: rgba(255,34,34,0.05);
+}
+[data-theme="neon"] .ops-table tr.selected td:first-child {
+  border-left: 2px solid var(--red);
+}
+
+/* ════════════════════════════════════════════════
+   MACHINE THEME: STATUS BAR AT BOTTOM
+   ════════════════════════════════════════════════ */
+.machine-statusbar {
+  display: none;
+  height: 22px;
+  background: rgba(245,158,11,0.06);
+  border-top: 1px solid rgba(245,158,11,0.12);
+  padding: 0 16px;
+  align-items: center; gap: 16px;
+  flex-shrink: 0;
+}
+[data-theme="machine"] .machine-statusbar { display: flex; }
+
+.sb-item {
+  display: flex; gap: 6px; align-items: center;
+  font-size: 9px;
+  font-family: var(--mono);
+  color: rgba(245,158,11,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sb-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--amber);
+  animation: pulseDot 1.5s ease-in-out infinite;
+}
+.sb-val { color: rgba(245,158,11,0.9); }
+
+/* ════════════════════════════════════════════════
+   CLARITY THEME: FLOATING KPIS
+   ════════════════════════════════════════════════ */
+.clarity-kpis {
+  display: none;
+  padding: 12px 16px; gap: 12px;
+  border-bottom: 1px solid var(--b1);
+}
+[data-theme="clarity"] .clarity-kpis { display: flex; }
+
+.kpi-card {
+  flex: 1;
+  background: var(--raised);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+  transition: all 0.3s var(--ease);
+}
+.kpi-card:hover {
+  border-color: rgba(255,68,68,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.kpi-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+.kpi-value {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -0.02em;
+}
+.kpi-value.accent {
+  background: linear-gradient(135deg, #FF4444, #FF8C00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.kpi-meta {
+  font-size: 9px;
+  color: var(--ok);
+  display: flex; align-items: center; gap: 3px;
+}
+
+/* ════════════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════════════ */
+@keyframes drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(60px, 60px); }
+}
+
+@keyframes orbFloat {
+  from { transform: scale(1) translate(0, 0); }
+  to { transform: scale(1.1) translate(20px, -20px); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+/* Neon: glow pulse on active item */
+[data-theme="neon"] .part-item.active {
+  animation: neonPulse 3s ease-in-out infinite;
+}
+@keyframes neonPulse {
+  0%, 100% { box-shadow: var(--item-active-shadow); }
+  50% { box-shadow: inset 0 0 30px rgba(255,34,34,0.10), 0 0 20px rgba(255,34,34,0.08); }
+}
+
+/* ════════════════════════════════════════════════
+   CLOCK (Machine theme)
+   ════════════════════════════════════════════════ */
+.machine-clock {
+  display: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(245,158,11,0.6);
+  letter-spacing: 0.04em;
+}
+[data-theme="machine"] .machine-clock { display: block; }
+
+[data-theme="machine"] .ws-logo span { color: var(--amber); }
+
+/* Neon: logo glow */
+[data-theme="neon"] .ws-logo span {
+  text-shadow: 0 0 20px rgba(255,34,34,0.6), 0 0 40px rgba(255,34,34,0.3);
+}
+
+/* Clarity: logo gradient */
+[data-theme="clarity"] .ws-logo span {
+  background: linear-gradient(135deg, #FF4444, #FF8C00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ════════════════════════════════════════════════
+   MOTION THEME: TABLE SHIMMER ON LOAD
+   ════════════════════════════════════════════════ */
+[data-theme="motion"] .ops-table tr {
+  animation: fadeRow 0.3s var(--ease) both;
+}
+[data-theme="motion"] .ops-table tr:nth-child(1) { animation-delay: 0.05s; }
+[data-theme="motion"] .ops-table tr:nth-child(2) { animation-delay: 0.10s; }
+[data-theme="motion"] .ops-table tr:nth-child(3) { animation-delay: 0.15s; }
+[data-theme="motion"] .ops-table tr:nth-child(4) { animation-delay: 0.20s; }
+[data-theme="motion"] .ops-table tr:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes fadeRow {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ════════════════════════════════════════════════
+   SHARED UTILITY
+   ════════════════════════════════════════════════ */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.gap-8 { gap: 8px; }
+.ml-auto { margin-left: auto; }
+
+.tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--b2);
+  background: var(--b1);
+  color: var(--t4);
+}
+
+</style>
+</head>
+<body>
+
+<!-- THEME SWITCHER -->
+<div class="switcher">
+  <span class="switcher-label">Visual direction →</span>
+  <button class="theme-btn active" data-t="baseline" onclick="setTheme('baseline', this, 'Současný stav aplikace')">Baseline</button>
+  <button class="theme-btn" data-t="neon" onclick="setTheme('neon', this, 'Živé akcenty · silný glow · scanline efekty · ostrá atmosféra')">Neon Edge</button>
+  <button class="theme-btn" data-t="clarity" onclick="setTheme('clarity', this, 'Velká hero čísla · gradient text · floating cards · premium pocit')">Clarity Premium</button>
+  <button class="theme-btn" data-t="machine" onclick="setTheme('machine', this, 'Amber třetí barva · technický readout · live clock · CNC estetika')">Machine Interface</button>
+  <button class="theme-btn" data-t="motion" onclick="setTheme('motion', this, 'Data bary · sparklines · count-up čísla · staggered fade animace')">Motion &amp; Life</button>
+  <span class="theme-desc" id="desc">Současný stav aplikace</span>
+</div>
+
+<!-- BACKGROUND -->
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+
+<!-- APP -->
+<div id="app" data-theme="baseline">
+
+  <!-- WORKSPACE HEADER -->
+  <div class="ws-header">
+    <div class="ws-logo">GE<span>S</span>TIMA</div>
+    <div class="ws-chips">
+      <span class="ws-chip active">Kalkulace</span>
+      <span class="ws-chip">Nabídky</span>
+      <span class="ws-chip">Materiály</span>
+    </div>
+    <div class="machine-clock" id="clock">00:00:00</div>
+    <div class="ws-meta">
+      <div class="ws-meta-item">Zakázka <strong>ZAK-2024-089</strong></div>
+      <div class="ws-meta-item">Díly <strong>12</strong></div>
+      <div class="ws-meta-item" style="color: var(--ok);">● Online</div>
+    </div>
+  </div>
+
+  <!-- MACHINE STATUS BAR -->
+  <div class="machine-statusbar">
+    <div class="sb-item"><div class="sb-dot"></div> SYS <span class="sb-val">ONLINE</span></div>
+    <div class="sb-item">PROGRAM <span class="sb-val">A-001</span></div>
+    <div class="sb-item">SPINDLE <span class="sb-val">3 200 RPM</span></div>
+    <div class="sb-item">FEED <span class="sb-val">850 mm/min</span></div>
+    <div class="sb-item" style="margin-left:auto;">DB <span class="sb-val">v2.4.1</span></div>
+  </div>
+
+  <!-- WORKSPACE BODY -->
+  <div class="ws-body">
+
+    <!-- PANEL: PARTS LIST -->
+    <div class="panel panel-left">
+      <div class="panel-head">
+        <span class="panel-title">Díly</span>
+        <span class="panel-badge">12</span>
+        <span style="margin-left:auto; font-size:9px; color:var(--t4);">ZAK-089</span>
+      </div>
+      <div class="search-row">
+        <div class="search-wrap">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input class="search-input" placeholder="Hledat díl…">
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="parts-list">
+
+          <div class="part-item active bar-100">
+            <div class="part-status ok"></div>
+            <div class="part-info">
+              <span class="part-number">A-001</span>
+              <span class="part-name">Kryt motoru Fr600</span>
+              <div class="sparkline">
+                <div class="spark-bar" style="height:4px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:8px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:9px"></div>
+                <div class="spark-bar" style="height:10px"></div>
+                <div class="spark-bar" style="height:8px"></div>
+              </div>
+            </div>
+            <div class="part-price">12 450</div>
+          </div>
+
+          <div class="part-item bar-65">
+            <div class="part-status warn"></div>
+            <div class="part-info">
+              <span class="part-number">A-002</span>
+              <span class="part-name">Nosník sestavy</span>
+              <div class="sparkline">
+                <div class="spark-bar" style="height:7px"></div>
+                <div class="spark-bar" style="height:5px"></div>
+                <div class="spark-bar" style="height:8px"></div>
+                <div class="spark-bar" style="height:9px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:7px"></div>
+                <div class="spark-bar" style="height:5px"></div>
+              </div>
+            </div>
+            <div class="part-price">8 200</div>
+          </div>
+
+          <div class="part-item bar-40">
+            <div class="part-status ok"></div>
+            <div class="part-info">
+              <span class="part-number">A-003</span>
+              <span class="part-name">Ložiskový domeček</span>
+              <div class="sparkline">
+                <div class="spark-bar" style="height:5px"></div>
+                <div class="spark-bar" style="height:5px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:7px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:8px"></div>
+                <div class="spark-bar" style="height:7px"></div>
+              </div>
+            </div>
+            <div class="part-price">4 900</div>
+          </div>
+
+          <div class="part-item bar-55">
+            <div class="part-status draft"></div>
+            <div class="part-info">
+              <span class="part-number">A-004</span>
+              <span class="part-name">Víko převodovky</span>
+              <div class="sparkline">
+                <div class="spark-bar" style="height:3px"></div>
+                <div class="spark-bar" style="height:4px"></div>
+                <div class="spark-bar" style="height:4px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:5px"></div>
+                <div class="spark-bar" style="height:7px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+              </div>
+            </div>
+            <div class="part-price">6 750</div>
+          </div>
+
+          <div class="part-item bar-30">
+            <div class="part-status ok"></div>
+            <div class="part-info">
+              <span class="part-number">A-005</span>
+              <span class="part-name">Konzola podpěry</span>
+              <div class="sparkline">
+                <div class="spark-bar" style="height:4px"></div>
+                <div class="spark-bar" style="height:3px"></div>
+                <div class="spark-bar" style="height:5px"></div>
+                <div class="spark-bar" style="height:4px"></div>
+                <div class="spark-bar" style="height:6px"></div>
+                <div class="spark-bar" style="height:5px"></div>
+                <div class="spark-bar" style="height:4px"></div>
+              </div>
+            </div>
+            <div class="part-price">3 600</div>
+          </div>
+
+          <div style="padding: 6px 12px; font-size:9px; color:var(--t4); border-top:1px solid var(--b1); margin-top:4px; font-family:var(--mono);">
+            + 7 dalších dílů…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL RIGHT COLUMN -->
+    <div class="panel-right">
+
+      <!-- PRICING SUMMARY PANEL -->
+      <div class="panel pricing-panel">
+        <div class="panel-head">
+          <span class="panel-title">Cena dílu</span>
+          <span class="panel-badge">A-001</span>
+          <span class="tag" style="margin-left:auto;">1 ks</span>
+        </div>
+
+        <!-- CLARITY: floating KPI cards -->
+        <div class="clarity-kpis">
+          <div class="kpi-card">
+            <div class="kpi-label">Práce</div>
+            <div class="kpi-value accent">8 450</div>
+            <div class="kpi-meta">↑ 68% podíl</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Materiál</div>
+            <div class="kpi-value">3 200</div>
+            <div class="kpi-meta" style="color:var(--t4);">26% podíl</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Kooperace</div>
+            <div class="kpi-value">800</div>
+            <div class="kpi-meta" style="color:var(--t4);">6% podíl</div>
+          </div>
+          <div class="kpi-card" style="flex:1.5">
+            <div class="kpi-label">Celkem</div>
+            <div class="kpi-value accent" style="font-size:24px;">12 450</div>
+            <div class="kpi-meta">↑ +5,2% vs. posl. verze</div>
+          </div>
+        </div>
+
+        <div class="pricing-hero">
+          <div class="price-block">
+            <div class="price-label">Cena celkem</div>
+            <div class="price-value main">12 450,00</div>
+            <div class="price-sub">
+              <span class="price-delta up">↑ +5,2%</span>
+              <span>vs. předchozí verze</span>
+            </div>
+          </div>
+          <div class="price-divider"></div>
+          <div class="price-block price-block-sm">
+            <div class="price-label">Práce</div>
+            <div class="price-value">8 450</div>
+          </div>
+          <div class="price-block price-block-sm active">
+            <div class="price-label">Materiál</div>
+            <div class="price-value">3 200</div>
+          </div>
+          <div class="price-block price-block-sm">
+            <div class="price-label">Koop.</div>
+            <div class="price-value">800</div>
+          </div>
+          <div class="price-divider"></div>
+          <div class="price-block price-block-sm">
+            <div class="price-label">Cena/h</div>
+            <div class="price-value">850</div>
+          </div>
+          <div class="price-block price-block-sm">
+            <div class="price-label">Čas [h]</div>
+            <div class="price-value">9,94</div>
+          </div>
+        </div>
+
+        <div class="pricing-ribbon">
+          <div class="rib-item">
+            <span class="rib-label">Dávka</span>
+            <span class="rib-value">1 ks</span>
+          </div>
+          <div class="rib-item">
+            <span class="rib-label">Seřizování</span>
+            <span class="rib-value">45 min</span>
+          </div>
+          <div class="rib-item">
+            <span class="rib-label">Výroba/ks</span>
+            <span class="rib-value">8,5 h</span>
+          </div>
+          <div class="rib-item" style="margin-left:auto">
+            <span class="rib-label">Marže</span>
+            <span class="rib-value" style="color:var(--ok);">22,5 %</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPERATIONS TABLE PANEL -->
+      <div class="panel ops-panel">
+        <div class="panel-head">
+          <span class="panel-title">Operace</span>
+          <span class="panel-badge">5</span>
+        </div>
+        <div class="panel-body">
+          <table class="ops-table">
+            <thead>
+              <tr>
+                <th style="width:36px">#</th>
+                <th>Název operace</th>
+                <th style="width:80px">Pracoviště</th>
+                <th style="width:70px">Stav</th>
+                <th style="width:70px" class="right">Čas [h]</th>
+                <th style="width:90px" class="right">Cena Kč</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="selected">
+                <td class="mono" style="color:var(--t4)">10</td>
+                <td>Frézování rovinné</td>
+                <td class="ops-wc">FR-600</td>
+                <td>
+                  <span class="ops-badge running">
+                    <span class="ops-badge-dot active"></span>
+                    Aktivní
+                  </span>
+                </td>
+                <td class="ops-time right">3,50</td>
+                <td class="currency">
+                  <span class="data-bar" style="width:85%"></span>
+                  4 200,00
+                </td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--t4)">20</td>
+                <td>Soustružení č. profilu</td>
+                <td class="ops-wc">SOU-500</td>
+                <td>
+                  <span class="ops-badge">
+                    <span class="ops-badge-dot ok"></span>
+                    Hotovo
+                  </span>
+                </td>
+                <td class="ops-time right">2,25</td>
+                <td class="currency">
+                  <span class="data-bar" style="width:55%"></span>
+                  2 800,00
+                </td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--t4)">30</td>
+                <td>Vrtání + závitování</td>
+                <td class="ops-wc">VR-200</td>
+                <td>
+                  <span class="ops-badge">
+                    <span class="ops-badge-dot ok"></span>
+                    Hotovo
+                  </span>
+                </td>
+                <td class="ops-time right">1,50</td>
+                <td class="currency">
+                  <span class="data-bar" style="width:40%"></span>
+                  1 870,00
+                </td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--t4)">40</td>
+                <td>Broušení rovinné Ra 0,8</td>
+                <td class="ops-wc">BRU-300</td>
+                <td>
+                  <span class="ops-badge">
+                    <span class="ops-badge-dot ok"></span>
+                    Hotovo
+                  </span>
+                </td>
+                <td class="ops-time right">1,25</td>
+                <td class="currency">
+                  <span class="data-bar" style="width:30%"></span>
+                  1 580,00
+                </td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--t4)">50</td>
+                <td>Kontrola + dokumentace</td>
+                <td class="ops-wc">KON-01</td>
+                <td>
+                  <span class="ops-badge">
+                    <span class="ops-badge-dot ok"></span>
+                    Hotovo
+                  </span>
+                </td>
+                <td class="ops-time right">1,44</td>
+                <td class="currency">
+                  <span class="data-bar" style="width:20%"></span>
+                  0,00
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /panel-right -->
+  </div><!-- /ws-body -->
+
+</div><!-- /app -->
+
+<script>
+function setTheme(name, btn, desc) {
+  document.getElementById('app').dataset.theme = name;
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('desc').textContent = desc;
+
+  // Re-trigger count-up for motion theme
+  if (name === 'motion') {
+    const values = document.querySelectorAll('.price-value');
+    values.forEach(v => {
+      v.style.animation = 'none';
+      v.offsetHeight; // reflow
+      v.style.animation = '';
+    });
+    // Re-trigger row animations
+    const rows = document.querySelectorAll('.ops-table tr');
+    rows.forEach(r => {
+      r.style.animation = 'none';
+      r.offsetHeight;
+      r.style.animation = '';
+    });
+  }
+}
+
+// Machine theme clock
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>

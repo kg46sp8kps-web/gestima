@@ -12,7 +12,7 @@
           class="mode-btn"
           :class="{ 'mode-btn--active': store.workMode === 'setup' }"
           data-testid="mode-btn-setup"
-          @click="store.workMode = 'setup'"
+          @click="store.setWorkMode('setup')"
         >
           <Wrench :size="16" />
           <span>Seřizuji</span>
@@ -21,7 +21,7 @@
           class="mode-btn"
           :class="{ 'mode-btn--active': store.workMode === 'production' }"
           data-testid="mode-btn-production"
-          @click="store.workMode = 'production'"
+          @click="store.setWorkMode('production')"
         >
           <Cog :size="16" />
           <span>Vyrábím</span>
@@ -36,6 +36,10 @@
           <span class="oper-panel__job-item">{{ store.activeQueueItem.DerJobItem }}</span>
         </div>
         <span class="oper-panel__job-desc">{{ store.activeQueueItem.JobDescription }}</span>
+        <div class="oper-panel__job-plan" data-testid="oper-plan-times">
+          <span>Plán od: {{ formatInforDate(store.activeQueueItem.OpDatumSt) }}</span>
+          <span>Plán do: {{ formatInforDate(store.activeQueueItem.OpDatumSp) }}</span>
+        </div>
       </div>
 
       <!-- Materiály k operaci -->
@@ -103,7 +107,7 @@
               <button
                 class="timer-btn timer-btn--stop"
                 data-testid="timer-stop"
-                @click="showStopForm = true"
+                @click="openStopForm"
               >
                 <Square :size="ICON_SIZE_LG" />
                 <span>STOP</span>
@@ -112,6 +116,24 @@
 
             <!-- Inline formulář pro zadání kusů při STOP -->
             <div v-else class="timer-stop-form" data-testid="timer-stop-form">
+              <div v-if="qtyRemaining !== null" class="stop-qty-hint" data-testid="stop-qty-hint">
+                <span class="stop-qty-hint__label">Zbývá k odvedení</span>
+                <span class="stop-qty-hint__value">{{ qtyRemaining }} ks</span>
+              </div>
+              <div
+                v-if="isSawWorkcenter"
+                class="stop-qty-policy stop-qty-policy--warn"
+                data-testid="stop-qty-policy-saw"
+              >
+                Na pile lze vykázat více kusů. U první operace se po odvodu automaticky navýší VP.
+              </div>
+              <div
+                v-else
+                class="stop-qty-policy"
+                data-testid="stop-qty-policy-standard"
+              >
+                Mimo pilu nelze vykázat více kusů než zbývá na operaci.
+              </div>
               <Input
                 :model-value="stopForm.qty_completed != null ? String(stopForm.qty_completed) : null"
                 type="number"
@@ -207,6 +229,50 @@ const stopForm = ref({
   qty_scrapped: null as number | null,
   oper_complete: false,
 })
+const SAW_WC_PREFIXES = ['PS', 'PILA', 'SAW']
+
+/** Zbývající kusy k odvedení (JobQtyReleased - QtyComplete). Zobrazeno jako nápověda. */
+const qtyRemaining = computed(() => {
+  const item = store.activeQueueItem
+  if (!item) return null
+  const released = item.JobQtyReleased ?? 0
+  const completed = item.QtyComplete ?? 0
+  const scrapped = item.QtyScrapped ?? 0
+  return Math.max(0, Math.round(released - completed - scrapped))
+})
+
+const isSawWorkcenter = computed(() => {
+  const wc = (store.activeQueueItem?.Wc ?? '').trim().toUpperCase()
+  if (!wc) return false
+  return SAW_WC_PREFIXES.some((prefix) => wc.startsWith(prefix))
+})
+
+function formatInforDate(value: string | null | undefined): string {
+  if (!value) return '—'
+  const raw = value.trim()
+  if (!raw) return '—'
+  try {
+    const date = new Date(raw)
+    if (isNaN(date.getTime())) return raw
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const hh = date.getHours().toString().padStart(2, '0')
+    const mm = date.getMinutes().toString().padStart(2, '0')
+    const ss = date.getSeconds().toString().padStart(2, '0')
+    return `${day}.${month}. ${hh}:${mm}:${ss}`
+  } catch {
+    return raw
+  }
+}
+
+function openStopForm() {
+  stopForm.value = {
+    qty_completed: qtyRemaining.value,
+    qty_scrapped: null,
+    oper_complete: false,
+  }
+  showStopForm.value = true
+}
 
 function cancelStopForm() {
   showStopForm.value = false
@@ -227,6 +293,28 @@ async function onSetupStop() {
 }
 
 async function onProductionStop() {
+  const qtyCompleted = stopForm.value.qty_completed ?? 0
+  const qtyScrapped = stopForm.value.qty_scrapped ?? 0
+  const requestedTotal = qtyCompleted + qtyScrapped
+  const remaining = qtyRemaining.value
+
+  if (
+    remaining != null &&
+    requestedTotal > remaining &&
+    !isSawWorkcenter.value
+  ) {
+    ui.showError(`Nelze vykázat více kusů než zbývá (${remaining} ks).`)
+    return
+  }
+
+  if (
+    remaining != null &&
+    requestedTotal > remaining &&
+    isSawWorkcenter.value
+  ) {
+    ui.showWarning('Přeodvod na pile: po odvodu proběhne pokus o navýšení VP.')
+  }
+
   showStopForm.value = false
   await store.stopTimer({
     qty_completed: stopForm.value.qty_completed,
@@ -337,6 +425,14 @@ async function onProductionStop() {
 .oper-panel__job-desc {
   font-size: var(--fsm);
   color: var(--t3);
+}
+
+.oper-panel__job-plan {
+  margin-top: 4px;
+  display: grid;
+  gap: 2px;
+  font-size: var(--fss);
+  color: var(--t2);
 }
 
 /* Materiály */
@@ -499,6 +595,42 @@ async function onProductionStop() {
   background: var(--ground);
   border-radius: var(--r);
   border: 1px solid var(--b3);
+}
+
+.stop-qty-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+}
+
+.stop-qty-hint__label {
+  font-size: var(--fsm);
+  color: var(--t3);
+}
+
+.stop-qty-hint__value {
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.stop-qty-policy {
+  margin-top: 8px;
+  margin-bottom: 2px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--rs);
+  font-size: var(--fss);
+  color: var(--t3);
+}
+
+.stop-qty-policy--warn {
+  border-color: var(--warn);
 }
 
 .timer-stop-form__input--large :deep(.input-ctrl) {
