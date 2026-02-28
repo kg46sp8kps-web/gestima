@@ -32,7 +32,13 @@ function onRowClick(row: WorkshopOrderOverviewRow) {
   if (vpJob) {
     catalog.focusItem({ type: 'vp', number: vpJob }, props.ctx)
   }
-  // Toggle expand for rows with multiple VP candidates
+  // Zavřít všechny ostatní rozevřené řádky
+  for (const key of Object.keys(expandedRows.value)) {
+    if (key !== row.row_id) {
+      expandedRows.value[key] = false
+    }
+  }
+  // Toggle expand pro kliknutý řádek (jen multi-VP)
   if (row.vp_candidates.length > 1) {
     expandedRows.value[row.row_id] = !expandedRows.value[row.row_id]
   }
@@ -68,10 +74,12 @@ const COLUMNS: OrderColumn[] = [
   { id: 'item', label: 'Pol.', defaultVisible: true, minWidth: 50, defaultWidth: 70, align: 'left', sortable: true, mono: true },
   { id: 'description', label: 'Popis', defaultVisible: true, minWidth: 80, defaultWidth: 180, align: 'left', sortable: true, truncate: true },
   { id: 'confirm_date', label: 'Potvrzeno', defaultVisible: true, minWidth: 70, defaultWidth: 88, align: 'left', sortable: true },
-  { id: 'due_date', label: 'Plán do', defaultVisible: true, minWidth: 70, defaultWidth: 88, align: 'left', sortable: true },
+  { id: 'due_date', label: 'Požad.', defaultVisible: true, minWidth: 70, defaultWidth: 88, align: 'left', sortable: true },
   { id: 'promise_date', label: 'Slíbené', defaultVisible: false, minWidth: 70, defaultWidth: 88, align: 'left', sortable: true },
   { id: 'qty_ordered', label: 'Obj.', defaultVisible: true, minWidth: 40, defaultWidth: 55, align: 'right', sortable: true },
   { id: 'qty_shipped', label: 'Exp.', defaultVisible: true, minWidth: 40, defaultWidth: 55, align: 'right', sortable: true },
+  { id: 'qty_on_hand', label: 'Na skl.', defaultVisible: true, minWidth: 40, defaultWidth: 60, align: 'right', sortable: true },
+  { id: 'qty_available', label: 'K disp.', defaultVisible: true, minWidth: 40, defaultWidth: 60, align: 'right', sortable: true },
   { id: 'qty_wip', label: 'WIP', defaultVisible: true, minWidth: 40, defaultWidth: 55, align: 'right', sortable: true },
   { id: 'tier', label: 'Tier', defaultVisible: true, minWidth: 36, defaultWidth: 42, align: 'center', sortable: false },
   { id: 'selected_vp_job', label: 'VP', defaultVisible: true, minWidth: 100, defaultWidth: 140, align: 'left', sortable: true },
@@ -225,6 +233,8 @@ type SortKey =
   | 'promise_date'
   | 'qty_ordered'
   | 'qty_shipped'
+  | 'qty_on_hand'
+  | 'qty_available'
   | 'qty_wip'
   | 'selected_vp_job'
   | 'material_ready'
@@ -286,7 +296,7 @@ const sortedRows = computed(() => {
     let va: string | number | null = null
     let vb: string | number | null = null
 
-    if (key === 'qty_ordered' || key === 'qty_shipped' || key === 'qty_wip') {
+    if (key === 'qty_ordered' || key === 'qty_shipped' || key === 'qty_on_hand' || key === 'qty_available' || key === 'qty_wip') {
       va = a[key] ?? 0
       vb = b[key] ?? 0
       return ((va as number) - (vb as number)) * dir
@@ -308,8 +318,10 @@ const hasRows = computed(() => rows.value.length > 0)
 function selectedVpJob(row: WorkshopOrderOverviewRow): string | null {
   const manual = selectedVpByRow.value[row.row_id]
   if (manual) return manual
+  // Pro multi-VP: první kandidát = nejstarší (Job ASC z backendu)
+  if (row.vp_candidates.length > 0) return row.vp_candidates[0]!.job
   if (row.selected_vp_job) return row.selected_vp_job
-  return row.vp_candidates[0]?.job ?? null
+  return null
 }
 
 function selectedVp(row: WorkshopOrderOverviewRow): WorkshopOrderVpCandidate | null {
@@ -365,6 +377,17 @@ function vpOpCellText(vp: WorkshopOrderVpCandidate, columnIndex: number): string
 }
 
 // ─── Material columns (dynamic, like operations) ────────────────────
+// ─── Computed table width (sum of all column widths) ─────────────────
+const tableMinWidth = computed(() => {
+  let total = 0
+  for (const col of visibleColumns.value) {
+    total += columnWidths.value[col.id] ?? col.defaultWidth
+  }
+  total += operationColumns.value.length * 56  // op-col width
+  total += materialColumns.value.length * 72   // mat-col width
+  return total
+})
+
 const materialColumns = computed(() => {
   const maxCols = sortedRows.value.reduce((acc, row) => Math.max(acc, (row.materials ?? []).length), 0)
   return Array.from({ length: maxCols }, (_, i) => i + 1)
@@ -408,6 +431,8 @@ function cellValue(row: WorkshopOrderOverviewRow, colId: string): string {
     case 'promise_date': return formatDate(row.promise_date)
     case 'qty_ordered': return formatNumber(row.qty_ordered, 0)
     case 'qty_shipped': return formatNumber(row.qty_shipped, 0)
+    case 'qty_on_hand': return formatNumber(row.qty_on_hand, 0)
+    case 'qty_available': return formatNumber(row.qty_available, 0)
     case 'qty_wip': return formatNumber(row.qty_wip, 0)
     case 'material_ready': return row.material_ready ? '\u2713' : '\u2717'
     default: return '\u2014'
@@ -436,11 +461,28 @@ function debouncedFetch() {
 
 watch([dueFrom, dueTo], debouncedFetch)
 
-// ─── Auto-scroll to focused row from cross-tile ─────────────────
+// ─── Auto-scroll + auto-select VP from cross-tile ─────────────────
 const tableWrapRef = ref<HTMLElement | null>(null)
 
 watch(focusedVp, (job) => {
   if (!job) return
+  // Zavřít všechny expandy a otevřít jen ten správný
+  for (const key of Object.keys(expandedRows.value)) {
+    expandedRows.value[key] = false
+  }
+  // Najít řádek, který obsahuje tento VP job v kandidátech
+  for (const row of sortedRows.value) {
+    const vpMatch = row.vp_candidates.find((vp) => vp.job === job)
+    if (vpMatch) {
+      // Vybrat tento VP v řádku
+      selectedVpByRow.value[row.row_id] = job
+      // Rozevřít multi-VP dropdown
+      if (row.vp_candidates.length > 1) {
+        expandedRows.value[row.row_id] = true
+      }
+      break
+    }
+  }
   void nextTick(() => {
     const wrap = tableWrapRef.value
     if (!wrap) return
@@ -556,7 +598,7 @@ onBeforeUnmount(() => {
       Žádné zakázky pro zadaný filtr.
     </div>
     <div v-else ref="tableWrapRef" class="orders-overview__table-wrap">
-      <table class="orders-table">
+      <table class="orders-table" :style="{ minWidth: tableMinWidth + 'px' }">
         <thead>
           <tr>
             <!-- Static columns from config -->
@@ -673,18 +715,24 @@ onBeforeUnmount(() => {
               v-for="vp in (isRowExpanded(row) ? row.vp_candidates : [])"
               :key="`${row.row_id}-vp-${vp.job}`"
               class="vp-sub-row"
-              :class="{ 'vp-sub-row--selected': selectedVpJob(row) === vp.job }"
+              :class="{ 'vp-sub-row--selected': selectedVpJob(row) === vp.job, 'vp-sub-row--focused': focusedVp === vp.job }"
+              :data-vp-job="vp.job"
               @click.stop="onVpSubRowClick(row, vp)"
             >
-              <!-- VP info spanning static columns -->
-              <td :colspan="visibleColumns.length">
-                <div class="vp-sub-cell">
+              <!-- VP sub-row cells aligned with main columns -->
+              <template v-for="col in visibleColumns" :key="`${row.row_id}-vp-${vp.job}-${col.id}`">
+                <td v-if="col.id === 'selected_vp_job'" class="vp-cell">
                   <span class="vp-sub-job mono">{{ vp.job }}<template v-if="vp.suffix && vp.suffix !== '0'">/{{ vp.suffix }}</template></span>
-                  <span v-if="vp.job_stat" class="vp-sub-stat">{{ vp.job_stat }}</span>
-                  <span v-if="vp.qty_released != null" class="vp-sub-qty">{{ vp.qty_released }} ks</span>
-                  <span v-if="vp.due_date" class="vp-sub-date">{{ formatDate(vp.due_date) }}</span>
-                </div>
-              </td>
+                </td>
+                <td v-else-if="col.id === 'qty_wip'" class="r vp-sub-wip">
+                  <span v-if="vp.job_stat" :class="['vp-stat-badge', `vp-stat-badge--${(vp.job_stat ?? '').toLowerCase()}`]">{{ vp.job_stat }}</span>
+                  {{ vp.qty_released != null ? formatNumber(vp.qty_released, 0) : '' }}
+                </td>
+                <td v-else-if="col.id === 'due_date'">
+                  {{ vp.due_date ? formatDate(vp.due_date) : '' }}
+                </td>
+                <td v-else />
+              </template>
               <!-- Operation cells aligned with main row columns -->
               <td
                 v-for="column in operationColumns"
@@ -828,10 +876,8 @@ onBeforeUnmount(() => {
 
 /* ─── Table ─────────────────────────────────────────────────────── */
 .orders-table {
-  width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  min-width: 100%;
 }
 
 .orders-table th {
@@ -870,7 +916,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .orders-table tbody tr:hover {
-  background: var(--surface);
+  background: rgba(255,255,255,0.07);
 }
 
 .r {
@@ -944,42 +990,56 @@ onBeforeUnmount(() => {
   background: rgba(255,255,255,0.02);
 }
 .vp-sub-row:hover {
-  background: rgba(59,130,246,0.06);
+  background: rgba(255,255,255,0.07);
 }
 .vp-sub-row--selected {
-  background: rgba(59,130,246,0.1);
+  box-shadow: inset 3px 0 0 var(--red, #e53935);
 }
-.vp-sub-row--selected:hover {
-  background: rgba(59,130,246,0.14);
-}
-
-.vp-sub-cell {
-  padding: 3px 8px 3px 32px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--fsm);
+.vp-sub-row--focused {
+  box-shadow: inset 3px 0 0 var(--red, #e53935);
 }
 
 .vp-sub-job {
   font-weight: 600;
   color: var(--t1);
+  font-size: var(--fsm);
 }
-.vp-sub-stat {
+
+.vp-sub-wip {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fsm);
+  white-space: nowrap;
+}
+
+.vp-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
   font-size: 10px;
   font-weight: 700;
-  color: var(--t3);
-  padding: 0 3px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  line-height: 1;
+  margin-right: 4px;
+  vertical-align: middle;
 }
-.vp-sub-qty {
-  color: var(--t2);
-  font-variant-numeric: tabular-nums;
+.vp-stat-badge--r {
+  background: color-mix(in srgb, var(--green, #4caf50) 20%, transparent);
+  color: var(--green, #4caf50);
 }
-.vp-sub-date {
-  color: var(--t3);
-  font-variant-numeric: tabular-nums;
+.vp-stat-badge--f {
+  background: color-mix(in srgb, var(--amber, #ff9800) 20%, transparent);
+  color: var(--amber, #ff9800);
+}
+.vp-stat-badge--s {
+  background: color-mix(in srgb, var(--blue, #2196f3) 20%, transparent);
+  color: var(--blue, #2196f3);
+}
+.vp-stat-badge--w {
+  background: color-mix(in srgb, var(--t4) 20%, transparent);
+  color: var(--t4);
 }
 
 /* ─── Operation columns ─────────────────────────────────────────── */
@@ -1074,26 +1134,17 @@ onBeforeUnmount(() => {
   color: var(--t4);
 }
 
-/* ─── Focused row (cross-tile link) ─────────────────────────────── */
-.row-focused td {
-  background: rgba(59,130,246,0.12);
-}
-.orders-table tbody tr.row-focused:hover td {
-  background: rgba(59,130,246,0.18);
+/* ─── Focused row (cross-tile link) — red inset strip like queue ── */
+.orders-table tbody tr.row-focused {
+  box-shadow: inset 3px 0 0 var(--red, #e53935);
 }
 
 /* ─── Hot / urgent rows ─────────────────────────────────────────── */
 .row-hot td {
   background: rgba(229,57,53,0.07);
 }
-.row-hot.row-focused td {
-  background: rgba(229,57,53,0.15);
-}
 .row-urgent td {
   background: rgba(255,193,7,0.07);
-}
-.row-urgent.row-focused td {
-  background: rgba(255,193,7,0.15);
 }
 /* ─── Resize grip ───────────────────────────────────────────────── */
 .resize-grip {

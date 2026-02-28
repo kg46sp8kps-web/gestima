@@ -5,6 +5,12 @@ Aktualizuj po každém netriviálním tasku.
 
 ## Poslední rozhodnutí
 - Date: 2026-02-28
+- Decision: Implementace `jobroutes_j + workshop_jbr` je funkční baseline (testy i BE gate zelené), ale review odhalilo 3 klíčová rizika před produkčním nasazením: (1) fallback `[]` v JBR loaderu neposílá skutečné default props, (2) JBR fallback sety jsou užší než variace ověřené v `_QUEUE_PROP_SETS`, (3) při pádu cached JBR propsetu se nepřepíná na další varianty.
+- Why: Může vzniknout tiché selhání JBR syncu na instancích s odlišným schema mappingem a následně návrat `State/StateAsd` na `None` v DB-first flow.
+- Date: 2026-02-28
+- Decision: Návrh sjednocení `production` + `workshop_routes` do `jobroutes_j` a doplnění `workshop_jbr` syncu je potvrzen jako správný směr, ale s podmínkami: zachovat chování `production` toggle (nechtěně ho globálně nezapnout), přenést watermark (`last_sync_at`) z legacy kroků na nový krok, a pro JBR fallback nepřijmout property set bez stavových polí (`State/StateAsd/LzeDokoncit/PlanFlag`).
+- Why: V kódu existuje reálná duplicitní konfigurace fetchů (`SLJobRoutes`, `Type='J'`) a DB-first čtení dnes vrací `State/StateAsd=None`; bez uvedených podmínek hrozí regrese výkonu, tiché prázdné syncy při `MessageCode=450` a změna dosavadní semantiky sync konfigurace.
+- Date: 2026-02-28
 - Decision: `GET /materials/items` rozšířen o server-side filtrování: `search` (ILIKE code/name/norms), `shape`, `norm_query` (cross-search přes MaterialNorm → W.Nr/ČSN aliasy → ILIKE code/name), rozměrové filtry (diameter, width, thickness, wall_thickness min/max). Frontend materialItems store přepracován na server-side filtry se stale response protection. "Plech" přejmenován na "Deska" v celé Gestimě.
 - Why: Katalog 3000+ polotovarů nelze efektivně prohledávat jen client-side; norma filtr potřebuje cross-lookup přes 4 normové systémy (W.Nr, EN ISO, ČSN, AISI).
 - Date: 2026-02-28

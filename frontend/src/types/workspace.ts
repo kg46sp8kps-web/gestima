@@ -22,6 +22,8 @@ export type ModuleId =
   | 'materials'
   | 'machine-plan-dnd'
   | 'production-planner'
+  | 'vp-list'
+  | 'vp-work-ops'
 
 export type ContextGroup = 'ca' | 'cb' | 'cc' | 'cd'
 
@@ -68,6 +70,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   'materials':     { id: 'materials',     label: 'Polotovary' },
   'machine-plan-dnd': { id: 'machine-plan-dnd', label: 'Plán stroje DnD', usesCtx: true, hasSplitLayout: true },
   'production-planner': { id: 'production-planner', label: 'Plánovač výroby' },
+  'vp-list': { id: 'vp-list', label: 'Výrobní příkazy', usesCtx: true, hasSplitLayout: true },
+  'vp-work-ops': { id: 'vp-work-ops', label: 'Technologie VP', isSub: true, usesCtx: true },
 }
 
 export type LayoutPreset = 'std' | 'cmp' | 'hor' | 'qd'

@@ -69,12 +69,6 @@ class Settings(BaseSettings):
     INFOR_SYNC_INITIAL_LOOKBACK_DAYS: int = 7
     INFOR_SYNC_INITIAL_DATE: str = ""  # Pevné datum prvního syncu, např. "2013-01-01". Přepisuje LOOKBACK_DAYS.
 
-    # Workshop Cache (background refresh — snižuje latenci z 3-8s na <50ms)
-    WORKSHOP_CACHE_ENABLED: bool = True
-    WORKSHOP_CACHE_ORDERS_INTERVAL: int = 120   # sekundy — orders overview refresh
-    WORKSHOP_CACHE_QUEUE_INTERVAL: int = 60     # sekundy — fronta práce refresh
-    WORKSHOP_CACHE_PLAN_INTERVAL: int = 60      # sekundy — machine plan refresh
-
     # CsiXls Accounting API
     CSIXLS_API_URL: str = ""  # CsiXls API base URL
     CSIXLS_API_TOKEN: str = ""  # CsiXls API auth token

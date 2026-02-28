@@ -47,6 +47,8 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
   'materials':      defineAsyncComponent(() => import('@/components/tiling/modules/TileMaterials.vue')),
   'machine-plan-dnd': defineAsyncComponent(() => import('@/components/tiling/modules/TileMachinePlanDnD.vue')),
   'production-planner': defineAsyncComponent(() => import('@/components/tiling/modules/TileProductionPlanner.vue')),
+  'vp-list': defineAsyncComponent(() => import('@/components/tiling/modules/TileVpList.vue')),
+  'vp-work-ops': defineAsyncComponent(() => import('@/components/tiling/modules/TileVpWorkOps.vue')),
 }
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)

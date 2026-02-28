@@ -371,14 +371,12 @@ async def test_fetch_wc_queue_filters_completed_operations():
 
 
 @pytest.mark.asyncio
-async def test_fetch_job_operations_raises_when_jbr_unavailable():
+async def test_fetch_job_operations_raises_when_sljobroutes_unavailable():
     client = AsyncMock()
 
     async def _load_collection(**kwargs):
-        if kwargs["ido_name"] == "IteCzTsdJbrDetails":
-            raise RuntimeError("IDO not available")
         if kwargs["ido_name"] == "SLJobRoutes":
-            raise AssertionError("SLJobRoutes must not be used as fallback for operations")
+            raise RuntimeError("IDO not available")
         raise AssertionError(f"Unexpected IDO: {kwargs['ido_name']}")
 
     client.load_collection.side_effect = _load_collection
@@ -433,19 +431,11 @@ async def test_fetch_wc_queue_switches_to_sljobroutes_on_jbr_detail_only_schema(
 
 
 @pytest.mark.asyncio
-async def test_fetch_job_operations_switches_to_sljobroutes_on_jbr_detail_only_schema():
+async def test_fetch_job_operations_returns_all_including_completed():
+    """fetch_job_operations vrací všechny operace (včetně hotových) ze SLJobRoutes."""
     client = AsyncMock()
 
     async def _load_collection(**kwargs):
-        if kwargs["ido_name"] == "IteCzTsdJbrDetails":
-            if "properties" in kwargs:
-                return {"data": [], "message_code": 450, "message": "Property Job not found"}
-            return {
-                "data": [],
-                "message_code": 0,
-                "message": "Success",
-                "bookmark": "<B><P><p>SessionId</p><p>OperNum</p></P></B>",
-            }
         if kwargs["ido_name"] == "SLJobRoutes":
             return {
                 "data": [
@@ -483,11 +473,13 @@ async def test_fetch_job_operations_switches_to_sljobroutes_on_jbr_detail_only_s
 
     operations = await workshop_service.fetch_job_operations(client, job="22VP10/300", suffix="0")
 
-    assert [op["OperNum"] for op in operations] == ["10"]
+    # Obě operace včetně hotové (OperNum 20 má QtyComplete == QtyReleased)
+    assert [op["OperNum"] for op in operations] == ["10", "20"]
 
 
 @pytest.mark.asyncio
-async def test_fetch_job_operations_filters_completed_and_sorts():
+async def test_fetch_job_operations_sorts_by_date():
+    """fetch_job_operations vrací všechny operace seřazené dle OpDatumSt."""
     client = AsyncMock()
     client.load_collection.return_value = {
         "data": [
@@ -496,34 +488,38 @@ async def test_fetch_job_operations_filters_completed_and_sorts():
                 "Suffix": "0",
                 "OperNum": "20",
                 "Wc": "PS01",
-                "VpMnoz": "150.00000000",
-                "Kusy": "150.00000000",
-                "OpDatumSt": "2026-02-27T08:00:00",
+                "Type": "J",
+                "JobQtyReleased": "150.00000000",
+                "QtyComplete": "150.00000000",
+                "DerStartDate": "2026-02-27T08:00:00",
             },
             {
                 "Job": "22VP10/300",
                 "Suffix": "0",
                 "OperNum": "30",
                 "Wc": "PS01",
-                "VpMnoz": "150.00000000",
-                "Kusy": "120.00000000",
-                "OpDatumSt": "2026-02-27T09:00:00",
+                "Type": "J",
+                "JobQtyReleased": "150.00000000",
+                "QtyComplete": "120.00000000",
+                "DerStartDate": "2026-02-27T09:00:00",
             },
             {
                 "Job": "22VP10/300",
                 "Suffix": "0",
                 "OperNum": "10",
                 "Wc": "PS01",
-                "VpMnoz": "150.00000000",
-                "Kusy": "100.00000000",
-                "OpDatumSt": "2026-02-27T07:00:00",
+                "Type": "J",
+                "JobQtyReleased": "150.00000000",
+                "QtyComplete": "100.00000000",
+                "DerStartDate": "2026-02-27T07:00:00",
             },
         ]
     }
 
     operations = await workshop_service.fetch_job_operations(client, job="22VP10/300", suffix="0")
 
-    assert [op["OperNum"] for op in operations] == ["10", "30"]
+    # Všechny 3 operace (včetně hotové OperNum 20), seřazené dle OpDatumSt
+    assert [op["OperNum"] for op in operations] == ["10", "20", "30"]
 
 
 @pytest.mark.asyncio
@@ -787,18 +783,20 @@ async def test_fetch_job_operations_supports_sort_direction():
                 "Suffix": "0",
                 "OperNum": "10",
                 "Wc": "PS01",
-                "VpMnoz": "150.00000000",
-                "Kusy": "100.00000000",
-                "OpDatumSt": "2026-02-27T07:00:00",
+                "Type": "J",
+                "JobQtyReleased": "150.00000000",
+                "QtyComplete": "100.00000000",
+                "DerStartDate": "2026-02-27T07:00:00",
             },
             {
                 "Job": "22VP10/300",
                 "Suffix": "0",
                 "OperNum": "30",
                 "Wc": "PS01",
-                "VpMnoz": "150.00000000",
-                "Kusy": "120.00000000",
-                "OpDatumSt": "2026-02-27T09:00:00",
+                "Type": "J",
+                "JobQtyReleased": "150.00000000",
+                "QtyComplete": "120.00000000",
+                "DerStartDate": "2026-02-27T09:00:00",
             },
         ]
     }

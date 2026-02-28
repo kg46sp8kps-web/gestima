@@ -21,6 +21,7 @@ import type {
   WorkshopTransType,
   WorkshopOrderOverviewRow,
 } from '@/types/workshop'
+import type { VpListItem } from '@/types/vp'
 
 export const useWorkshopStore = defineStore('workshop', () => {
   const ui = useUiStore()
@@ -43,6 +44,13 @@ export const useWorkshopStore = defineStore('workshop', () => {
   const ordersError = ref<string | null>(null)
   const ordersLastFetched = ref<Date | null>(null)
   const ordersIsRevalidating = ref(false)
+
+  // VP list (SWR — data přežijí tab switch)
+  const vpListItems = ref<VpListItem[]>([])
+  const vpListLoading = ref(false)
+  const vpListError = ref<string | null>(null)
+  const vpListLastFetched = ref<Date | null>(null)
+  const vpListIsRevalidating = ref(false)
 
   // Odvozené z výběru v queue (udržovány pro zpětnou kompatibilitu komponent)
   const activeJob = ref<WorkshopJob | null>(null)
@@ -476,6 +484,54 @@ export const useWorkshopStore = defineStore('workshop', () => {
     await fetchOrders(opts)
   }
 
+  // === Actions — VP List (SWR) ===
+
+  async function fetchVpList(opts?: {
+    stat?: string
+    search?: string
+    wc?: string
+    sort_by?: string
+    sort_dir?: 'asc' | 'desc'
+    limit?: number
+  }) {
+    if (vpListItems.value.length > 0) {
+      vpListIsRevalidating.value = true
+    } else {
+      vpListLoading.value = true
+    }
+    vpListError.value = null
+    try {
+      vpListItems.value = await workshopApi.getVpList({
+        stat: opts?.stat,
+        search: opts?.search,
+        wc: opts?.wc,
+        sort_by: opts?.sort_by,
+        sort_dir: opts?.sort_dir,
+        limit: opts?.limit ?? 500,
+      })
+      vpListLastFetched.value = new Date()
+    } catch (e: unknown) {
+      const detail = (
+        e as { response?: { data?: { detail?: unknown } } }
+      )?.response?.data?.detail
+      vpListError.value = typeof detail === 'string' ? detail : 'Nepodařilo se načíst výrobní příkazy'
+      vpListItems.value = []
+    } finally {
+      vpListLoading.value = false
+      vpListIsRevalidating.value = false
+    }
+  }
+
+  async function fetchVpListIfStale(
+    opts?: { stat?: string; search?: string; wc?: string; sort_by?: string; sort_dir?: 'asc' | 'desc'; limit?: number },
+    staleMs = 60000,
+  ) {
+    if (vpListLastFetched.value && Date.now() - vpListLastFetched.value.getTime() < staleMs) {
+      return
+    }
+    await fetchVpList(opts)
+  }
+
   function resetState() {
     activeQueueItem.value = null
     activeJob.value = null
@@ -515,6 +571,12 @@ export const useWorkshopStore = defineStore('workshop', () => {
     ordersError,
     ordersLastFetched,
     ordersIsRevalidating,
+    // State — VP list (SWR)
+    vpListItems,
+    vpListLoading,
+    vpListError,
+    vpListLastFetched,
+    vpListIsRevalidating,
     // State — odvozené + sdílené
     activeJob,
     activeOperation,
@@ -545,6 +607,9 @@ export const useWorkshopStore = defineStore('workshop', () => {
     // Actions — orders overview
     fetchOrders,
     fetchOrdersIfStale,
+    // Actions — VP list
+    fetchVpList,
+    fetchVpListIfStale,
     // Actions — data
     fetchJobs,
     selectJob,

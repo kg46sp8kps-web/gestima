@@ -32,6 +32,59 @@ VpKey = Tuple[str, str]
 OpKey = Tuple[str, str, str]  # (job, suffix, oper_num)
 
 
+async def _fetch_co_deadlines_from_db(
+    db: AsyncSession, item_codes: List[str]
+) -> Dict[str, Dict[str, Any]]:
+    """CO deadline lookup z lokální tabulky workshop_order_overviews.
+
+    Returns: {ITEM_UPPER: {co_num, co_due_date (date|None), customer_name, ...}}
+    Při více zakázkách na stejný item bere nejbližší DueDate.
+    """
+    from app.models.workshop_order_overview import WorkshopOrderOverview
+
+    if not item_codes:
+        return {}
+
+    result = await db.execute(
+        select(WorkshopOrderOverview).where(
+            WorkshopOrderOverview.deleted_at.is_(None),
+            WorkshopOrderOverview.item.in_(item_codes),
+        ).order_by(WorkshopOrderOverview.due_date.asc())
+    )
+    rows = result.scalars().all()
+    if not rows:
+        return {}
+
+    result_map: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        item = row.item
+        if not item:
+            continue
+        item_upper = item.strip().upper()
+
+        due_date_val = None
+        if row.due_date:
+            try:
+                due_date_val = date.fromisoformat(row.due_date[:10])
+            except (ValueError, TypeError):
+                pass
+
+        existing = result_map.get(item_upper)
+        if existing and existing.get("co_due_date"):
+            if not due_date_val or due_date_val >= existing["co_due_date"]:
+                continue
+
+        result_map[item_upper] = {
+            "co_num": row.co_num,
+            "co_due_date": due_date_val,
+            "customer_name": row.customer_name,
+            "qty_ordered": row.qty_ordered,
+            "qty_shipped": row.qty_shipped,
+        }
+
+    return result_map
+
+
 def _make_key(job: str, suffix: str, oper_num: str) -> OpKey:
     return (job.strip(), (suffix or "0").strip(), oper_num.strip())
 
@@ -113,12 +166,17 @@ async def get_plan(
     Returns:
         {"planned": [...], "unassigned": [...]}
     """
-    # 1. Nacti cerstva Infor data
-    infor_rows = await workshop_service.fetch_machine_plan(
-        infor_client=infor_client,
-        wc=wc,
-        record_cap=record_cap,
+    # 1. DB-first: lokální tabulka workshop_job_routes (< 10ms)
+    infor_rows = await workshop_service.read_machine_plan_from_db(
+        db, wc=wc, record_cap=record_cap,
     )
+    if not infor_rows:
+        # Fallback: live Infor (cold start, sync ještě neproběhl)
+        infor_rows = await workshop_service.fetch_machine_plan(
+            infor_client=infor_client,
+            wc=wc,
+            record_cap=record_cap,
+        )
 
     # 2. Nacti lokalni DnD pozice (pro manual reorder)
     result = await db.execute(
@@ -140,7 +198,11 @@ async def get_plan(
         for row in infor_rows
         if str(row.get("DerJobItem", "")).strip()
     })
-    co_map = await _fetch_co_deadlines(infor_client, item_codes) if item_codes else {}
+    # DB-first CO deadlines z workshop_order_overviews
+    co_map = await _fetch_co_deadlines_from_db(db, item_codes) if item_codes else {}
+    if not co_map and item_codes:
+        # Fallback: live Infor (cold start)
+        co_map = await _fetch_co_deadlines(infor_client, item_codes)
 
     prio_result = await db.execute(
         select(ProductionPriority).where(ProductionPriority.deleted_at.is_(None))

@@ -124,6 +124,8 @@ export interface WorkshopOrderOverviewRow {
   material_ready: boolean
   qty_ordered: number | null
   qty_shipped: number | null
+  qty_on_hand: number | null
+  qty_available: number | null
   qty_wip: number | null
   due_date: string | null
   promise_date: string | null

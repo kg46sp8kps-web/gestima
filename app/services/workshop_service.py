@@ -20,7 +20,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_helpers import safe_commit, set_audit
@@ -1449,89 +1449,45 @@ async def fetch_job_operations(
     sort_by: str = "OpDatumSt",
     sort_dir: str = "asc",
 ) -> List[Dict[str, Any]]:
-    """Načte operace zakázky z JBR; při detail-only JBR schema přepne na SLJobRoutes."""
+    """Načte VŠECHNY operace zakázky přímo ze SLJobRoutes (včetně hotových)."""
     safe_job = job.strip()
     safe_suffix = suffix.strip() or "0"
 
     try:
-        try:
-            rows = await _fetch_queue_from_jbr(
-                infor_client=infor_client,
-                wc=None,
-                record_cap=5000,
-            )
-        except Exception as exc:
-            if "detail-only schema" in str(exc):
-                logger.warning("JBR operations unsupported on this instance, switching to SLJobRoutes compatibility mode")
-                rows = await _fetch_queue_from_sljobroutes(
-                    infor_client=infor_client,
-                    wc=None,
-                    record_cap=5000,
-                )
-            else:
-                raise
+        filter_expr = (
+            f"{_eq_filter('Job', safe_job)} AND "
+            f"{_eq_filter('Suffix', safe_suffix)} AND "
+            f"{_eq_filter('Type', 'J')}"
+        )
+        route_rows = await _load_collection_first(
+            infor_client,
+            ido_name="SLJobRoutes",
+            property_sets=_JOB_ROUTE_PROP_SETS,
+            filter_expr=filter_expr,
+            order_by="OperNum ASC",
+            record_cap=200,
+        )
 
         operations: List[Dict[str, Any]] = []
-        safe_job_upper = safe_job.upper()
-        safe_suffix_norm = _normalize_suffix(safe_suffix)
-        for row in rows:
-            if row["Job"].upper() != safe_job_upper:
-                continue
-            if _normalize_suffix(row.get("Suffix")) != safe_suffix_norm:
+        for row in route_rows:
+            normalized = _normalize_queue_row(row)
+            if not normalized:
                 continue
             operations.append(
                 {
-                    "Job": row["Job"],
-                    "Suffix": row["Suffix"],
-                    "OperNum": row["OperNum"],
-                    "Wc": row.get("Wc") or "",
-                    "QtyReleased": row.get("JobQtyReleased"),
-                    "QtyComplete": row.get("QtyComplete"),
-                    "ScrapQty": row.get("QtyScrapped"),
-                    "SetupHrs": row.get("JshSetupHrs"),
-                    "RunHrs": row.get("DerRunMchHrs"),
-                    "OpDatumSt": row.get("OpDatumSt"),
-                    "OpDatumSp": row.get("OpDatumSp"),
+                    "Job": normalized["Job"],
+                    "Suffix": normalized["Suffix"],
+                    "OperNum": normalized["OperNum"],
+                    "Wc": normalized.get("Wc") or "",
+                    "QtyReleased": normalized.get("JobQtyReleased"),
+                    "QtyComplete": normalized.get("QtyComplete"),
+                    "ScrapQty": normalized.get("QtyScrapped"),
+                    "SetupHrs": normalized.get("JshSetupHrs"),
+                    "RunHrs": normalized.get("DerRunMchHrs"),
+                    "OpDatumSt": normalized.get("OpDatumSt"),
+                    "OpDatumSp": normalized.get("OpDatumSp"),
                 }
             )
-
-        # Fallback pro non-Released VP (F/S/W) — JBR vrací jen Released
-        if not operations:
-            try:
-                filter_expr = (
-                    f"{_eq_filter('Job', safe_job)} AND "
-                    f"{_eq_filter('Suffix', safe_suffix)} AND "
-                    f"{_eq_filter('Type', 'J')}"
-                )
-                route_rows = await _load_collection_first(
-                    infor_client,
-                    ido_name="SLJobRoutes",
-                    property_sets=_JOB_ROUTE_PROP_SETS,
-                    filter_expr=filter_expr,
-                    order_by="OperNum ASC",
-                    record_cap=200,
-                )
-                for row in route_rows:
-                    normalized = _normalize_queue_row(row)
-                    if not normalized:
-                        continue
-                    operations.append(
-                        {
-                            "Job": normalized["Job"],
-                            "Suffix": normalized["Suffix"],
-                            "OperNum": normalized["OperNum"],
-                            "Wc": normalized.get("Wc") or "",
-                            "QtyReleased": normalized.get("JobQtyReleased"),
-                            "QtyComplete": normalized.get("QtyComplete"),
-                            "ScrapQty": normalized.get("QtyScrapped"),
-                            "SetupHrs": normalized.get("JshSetupHrs"),
-                            "RunHrs": normalized.get("DerRunMchHrs"),
-                            "OpDatumSt": normalized.get("OpDatumSt"),
-                            "OpDatumSp": normalized.get("OpDatumSp"),
-                        }
-                    )
-            except Exception as fallback_exc:
-                logger.warning("SLJobRoutes fallback for non-Released job %s failed: %s", safe_job, fallback_exc)
 
         if operations:
             operations = _sort_operations(operations, sort_by=sort_by, sort_dir=sort_dir)
@@ -1972,7 +1928,7 @@ _VIEW_PROPERTIES_CORE = [
     "DueDate", "PromiseDate", "ProjectedDate", "ConfirmedDate",
     "RybDeadLineDate", "RybCoOrderDate",
     "RybCoConfirmationDate", "RybDatumPotvrRadZak", "RybConfirmDate", "RybDatumSlibRadZak",
-    "QtyOrderedConv", "QtyShipped", "QtyOnHand", "QtyWIP",
+    "QtyOrderedConv", "QtyShipped", "QtyOnHand", "QtyAvailable", "QtyWIP",
     "Job", "Suffix", "JobCount",
     "Wc01", "Wc02", "Wc03", "Wc04", "Wc05", "Wc06", "Wc07", "Wc08", "Wc09", "Wc10",
     "Comp01", "Comp02", "Comp03", "Comp04", "Comp05", "Comp06", "Comp07", "Comp08", "Comp09", "Comp10",
@@ -2221,6 +2177,8 @@ async def fetch_orders_overview(
             "material_ready": str(row.get("Ready", "0")).strip() == "1",
             "qty_ordered": _parse_float(row.get("QtyOrderedConv")),
             "qty_shipped": _parse_float(row.get("QtyShipped")),
+            "qty_on_hand": _parse_float(row.get("QtyOnHand")),
+            "qty_available": _parse_float(row.get("QtyAvailable")),
             "qty_wip": _parse_float(row.get("QtyWIP")),
             "due_date": _as_clean_str(row.get("DueDate")),
             "promise_date": _as_clean_str(row.get("PromiseDate")),
@@ -3306,3 +3264,340 @@ def _build_sfc34_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
         "",  # 18 @Stroj
         tx_date,  # 19 @DatumTransakce (empty -> Infor server datetime)
     ]
+
+
+# ============================================================================
+# DB-read funkce — čtení z lokální SQLite DB (< 10ms)
+# ============================================================================
+
+async def read_wc_queue_from_db(
+    db: AsyncSession,
+    wc: Optional[str] = None,
+    job_filter: Optional[str] = None,
+    sort_by: str = "OpDatumSt",
+    sort_dir: str = "asc",
+    limit: int = 200,
+) -> List[Dict[str, Any]]:
+    """Načte frontu z lokální tabulky workshop_job_routes (job_stat='R')."""
+    from app.models.workshop_job_route import WorkshopJobRoute
+
+    query = select(WorkshopJobRoute).where(
+        WorkshopJobRoute.deleted_at.is_(None),
+        WorkshopJobRoute.job_stat == "R",
+    )
+    if wc:
+        query = query.where(WorkshopJobRoute.wc == wc.strip())
+
+    result = await db.execute(query)
+    entries = result.scalars().all()
+
+    rows = [_wjr_to_queue_dict(e) for e in entries]
+    rows = [r for r in rows if not _is_operation_completed_row(r)]
+
+    # Filtr
+    if job_filter:
+        jf = job_filter.strip().upper()
+        rows = [r for r in rows if jf in (r.get("Job", "").upper())]
+
+    rows = sort_queue(rows, sort_by=sort_by, sort_dir=sort_dir)
+    return rows[:limit]
+
+
+async def read_machine_plan_from_db(
+    db: AsyncSession,
+    wc: Optional[str] = None,
+    job_filter: Optional[str] = None,
+    sort_by: str = "OpDatumSt",
+    sort_dir: str = "asc",
+    record_cap: int = 500,
+) -> List[Dict[str, Any]]:
+    """Načte plán stroje z DB: released (R) + backlog (F/S/W)."""
+    from app.models.workshop_job_route import WorkshopJobRoute
+
+    query = select(WorkshopJobRoute).where(
+        WorkshopJobRoute.deleted_at.is_(None),
+        WorkshopJobRoute.job_stat.in_(["R", "F", "S", "W"]),
+    )
+    if wc:
+        query = query.where(WorkshopJobRoute.wc == wc.strip())
+
+    result = await db.execute(query)
+    entries = result.scalars().all()
+
+    rows: List[Dict[str, Any]] = []
+    for e in entries:
+        d = _wjr_to_queue_dict(e)
+        d["JobStat"] = e.job_stat or "R"
+        # Filtr completed operací
+        if _is_operation_completed_row(d):
+            continue
+        rows.append(d)
+
+    if job_filter:
+        jf = job_filter.strip().upper()
+        rows = [r for r in rows if jf in (r.get("Job", "").upper())]
+
+    rows = sort_queue(rows, sort_by=sort_by, sort_dir=sort_dir)
+    return rows[:record_cap]
+
+
+async def read_orders_overview_from_db(
+    db: AsyncSession,
+    customer: Optional[str] = None,
+    due_from: Optional[str] = None,
+    due_to: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 2000,
+) -> List[Dict[str, Any]]:
+    """Načte přehled zakázek z lokální tabulky workshop_order_overviews."""
+    import json as _json
+    from app.models.workshop_order_overview import WorkshopOrderOverview
+
+    query = select(WorkshopOrderOverview).where(
+        WorkshopOrderOverview.deleted_at.is_(None),
+    ).order_by(WorkshopOrderOverview.due_date.asc())
+
+    if customer:
+        query = query.where(WorkshopOrderOverview.customer_code == customer.strip())
+
+    # Filtr podle Potvrzeno, fallback na Požadováno pokud Potvrzeno je NULL
+    # DB datumy: "YYYYMMDD 00:00:00.000", input: "YYYY-MM-DD" → normalizace na YYYYMMDD
+    date_col = func.substr(
+        func.coalesce(WorkshopOrderOverview.confirm_date, WorkshopOrderOverview.due_date),
+        1, 8,
+    )
+    if due_from:
+        query = query.where(date_col >= due_from.replace("-", ""))
+
+    if due_to:
+        query = query.where(date_col <= due_to.replace("-", ""))
+
+    result = await db.execute(query)
+    entries = result.scalars().all()
+
+    out: List[Dict[str, Any]] = []
+    for e in entries:
+        # Parse raw_data JSON blob
+        raw = {}
+        if e.raw_data:
+            try:
+                raw = _json.loads(e.raw_data)
+            except (ValueError, TypeError):
+                pass
+
+        # Build operations/materials z raw_data (Wc01-10, Comp01-10, Wip01-10, Mat01-03, MatComp01-03)
+        operations = _build_view_operations(raw)
+        materials = _build_view_materials(raw)
+
+        row_id = f"{e.co_num}|{e.co_line}|{e.co_release}"
+        row = {
+            "row_id": row_id,
+            "customer_code": e.customer_code,
+            "customer_name": e.customer_name,
+            "delivery_code": e.customer_code,
+            "delivery_name": e.delivery_name,
+            "co_num": e.co_num,
+            "co_line": e.co_line,
+            "co_release": e.co_release,
+            "item": e.item,
+            "description": e.description,
+            "material_ready": e.material_ready or False,
+            "qty_ordered": e.qty_ordered,
+            "qty_shipped": e.qty_shipped,
+            "qty_on_hand": e.qty_on_hand,
+            "qty_available": e.qty_available,
+            "qty_wip": e.qty_wip,
+            "due_date": e.due_date,
+            "promise_date": e.promise_date,
+            "confirm_date": e.confirm_date,
+            "vp_candidates": [],  # VP candidates se naplní z workshop_job_routes
+            "selected_vp_job": e.job if (e.job and operations) else None,
+            "operations": operations,
+            "materials": materials,
+            "record_date": e.record_date,
+        }
+        out.append(row)
+
+    # In-memory search filtr (po DB query)
+    if search:
+        s = search.strip().upper()
+        out = [
+            r for r in out
+            if s in (r.get("co_num") or "").upper()
+            or s in (r.get("item") or "").upper()
+            or s in (r.get("description") or "").upper()
+            or s in (r.get("selected_vp_job") or "").upper()
+        ]
+
+    # VP candidates enrichment z workshop_job_routes
+    await _enrich_orders_with_vp_candidates(db, out)
+
+    return out[:limit]
+
+
+async def _enrich_orders_with_vp_candidates(
+    db: AsyncSession, orders: List[Dict[str, Any]]
+) -> None:
+    """Doplní vp_candidates do orders overview řádků z workshop_job_routes."""
+    from app.models.workshop_job_route import WorkshopJobRoute
+
+    # Sbíráme unikátní item kódy
+    items = {r.get("item") for r in orders if r.get("item")}
+    if not items:
+        return
+
+    result = await db.execute(
+        select(WorkshopJobRoute).where(
+            WorkshopJobRoute.deleted_at.is_(None),
+            WorkshopJobRoute.der_job_item.in_(list(items)),
+            WorkshopJobRoute.job_stat.in_(["R", "F", "S"]),
+        ).order_by(WorkshopJobRoute.job, WorkshopJobRoute.oper_num)
+    )
+    routes = result.scalars().all()
+
+    # Grupování: item → job|suffix → operace
+    item_vp_map: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    for r in routes:
+        item = r.der_job_item
+        if not item:
+            continue
+        vp_key = f"{r.job}|{r.suffix}"
+        if item not in item_vp_map:
+            item_vp_map[item] = {}
+        if vp_key not in item_vp_map[item]:
+            item_vp_map[item][vp_key] = {
+                "job": r.job,
+                "suffix": r.suffix,
+                "job_stat": r.job_stat,
+                "qty_released": r.job_qty_released,
+                "qty_complete": r.qty_complete,
+                "qty_scrapped": r.qty_scrapped,
+                "item": item,
+                "customer_name": None,
+                "due_date": None,
+                "operations": [],
+            }
+        # Přidat operaci
+        if r.oper_num and r.wc:
+            released = r.job_qty_released or 0
+            complete = r.qty_complete or 0
+            if released > 0 and complete >= released:
+                op_status = "done"
+            elif complete > 0:
+                op_status = "in_progress"
+            else:
+                op_status = "idle"
+            item_vp_map[item][vp_key]["operations"].append({
+                "oper_num": r.oper_num,
+                "wc": r.wc,
+                "status": op_status,
+                "state_text": None,
+            })
+
+    # Assign do orders
+    for order in orders:
+        item = order.get("item")
+        if item and item in item_vp_map:
+            order["vp_candidates"] = list(item_vp_map[item].values())
+
+
+async def read_vp_list_from_db(
+    db: AsyncSession,
+    stat: Optional[List[str]] = None,
+    search: Optional[str] = None,
+    wc: Optional[str] = None,
+    sort_by: str = "Job",
+    sort_dir: str = "asc",
+    limit: int = 500,
+) -> List[Dict[str, Any]]:
+    """Deduplikace workshop_job_routes po Job+Suffix → 1 řádek na VP."""
+    from app.models.workshop_job_route import WorkshopJobRoute
+
+    stat_values = set(s.upper() for s in stat) if stat else {"R", "F"}
+
+    query = select(WorkshopJobRoute).where(
+        WorkshopJobRoute.deleted_at.is_(None),
+        WorkshopJobRoute.job_stat.in_(list(stat_values)),
+    )
+    result = await db.execute(query)
+    entries = result.scalars().all()
+
+    vp_map: Dict[str, Dict[str, Any]] = {}
+    for e in entries:
+        job = e.job or ""
+        suffix = e.suffix or "0"
+        key = f"{job}|{suffix}"
+
+        if key not in vp_map:
+            vp_map[key] = {
+                "job": job,
+                "suffix": suffix,
+                "item": e.der_job_item,
+                "description": e.job_description,
+                "job_stat": (e.job_stat or "R").upper(),
+                "qty_released": e.job_qty_released,
+                "qty_complete": e.qty_complete,
+                "qty_scrapped": e.qty_scrapped,
+                "start_date": e.op_datum_st,
+                "end_date": e.op_datum_sp,
+                "oper_count": 1,
+                "_wcs": {(e.wc or "").upper()},
+            }
+        else:
+            entry = vp_map[key]
+            entry["oper_count"] += 1
+            entry["_wcs"].add((e.wc or "").upper())
+            if e.op_datum_st and (not entry["start_date"] or e.op_datum_st < entry["start_date"]):
+                entry["start_date"] = e.op_datum_st
+            if e.op_datum_sp and (not entry["end_date"] or e.op_datum_sp > entry["end_date"]):
+                entry["end_date"] = e.op_datum_sp
+
+    result_list = list(vp_map.values())
+
+    if wc:
+        wc_upper = wc.strip().upper()
+        result_list = [r for r in result_list if wc_upper in r["_wcs"]]
+
+    if search:
+        s = search.strip().upper()
+        result_list = [
+            r for r in result_list
+            if s in (r["job"] or "").upper()
+            or s in (r["item"] or "").upper()
+            or s in (r["description"] or "").upper()
+        ]
+
+    for r in result_list:
+        r.pop("_wcs", None)
+
+    reverse = sort_dir.lower() == "desc"
+
+    def sort_key(r: Dict[str, Any]) -> Any:
+        v = r.get(sort_by.lower()) if sort_by.lower() in r else r.get(sort_by)
+        return v if v is not None else ""
+
+    result_list.sort(key=sort_key, reverse=reverse)
+    return result_list[:limit]
+
+
+def _wjr_to_queue_dict(e) -> Dict[str, Any]:
+    """Konvertuje WorkshopJobRoute ORM objekt na dict ve formátu _normalize_queue_row output."""
+    return {
+        "Job": e.job,
+        "Suffix": e.suffix or "0",
+        "OperNum": e.oper_num,
+        "Wc": e.wc,
+        "State": e.jbr_state,
+        "StateAsd": e.jbr_state_asd,
+        "LzeDokoncit": e.jbr_lze_dokoncit,
+        "PlanFlag": e.jbr_plan_flag,
+        "DerJobItem": e.der_job_item,
+        "JobDescription": e.job_description,
+        "JobQtyReleased": e.job_qty_released,
+        "QtyComplete": e.qty_complete,
+        "QtyScrapped": e.qty_scrapped,
+        "JshSetupHrs": e.jsh_setup_hrs,
+        "DerRunMchHrs": e.der_run_mch_hrs,
+        "OpDatumSt": e.op_datum_st,
+        "OpDatumSp": e.op_datum_sp,
+    }

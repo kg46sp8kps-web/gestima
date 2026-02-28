@@ -239,7 +239,7 @@ async def test_service_double_start():
 
 @pytest.mark.asyncio
 async def test_default_steps_config():
-    """Test that DEFAULT_STEPS has all 6 required steps."""
+    """Test that DEFAULT_STEPS has all required steps."""
     from app.services.infor_sync_service import DEFAULT_STEPS
 
     step_names = [s["step_name"] for s in DEFAULT_STEPS]
@@ -248,8 +248,14 @@ async def test_default_steps_config():
     assert "documents" in step_names
     assert "operations" in step_names
     assert "material_inputs" in step_names
-    assert "production" in step_names
-    assert len(DEFAULT_STEPS) == 6
+    assert "jobroutes_j" in step_names
+    assert "workshop_orders" in step_names
+    assert "workshop_jbr" in step_names
+    assert len(DEFAULT_STEPS) == 8
+
+    # jobroutes_j replaces old production + workshop_routes
+    assert "production" not in step_names
+    assert "workshop_routes" not in step_names
 
     # Verify all steps have required fields
     for step in DEFAULT_STEPS:

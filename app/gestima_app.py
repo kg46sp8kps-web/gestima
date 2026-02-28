@@ -137,26 +137,19 @@ async def lifespan(app: FastAPI):
     # TODO: implement FileService.cleanup_expired_temp_files() if needed
     logger.debug("Startup cleanup: FileService cleanup not yet implemented")
 
-    # Start Infor Sync Service (if enabled)
-    if settings.INFOR_SYNC_ENABLED and settings.INFOR_API_URL:
+    # Start Infor Sync Service
+    # Spouští se vždy když je INFOR_API_URL nastavena — workshop sync stepy
+    # jsou enabled=True a zajistí DB-backed data pro workshop endpointy.
+    # Ostatní stepy (parts, operations, ...) jsou enabled=False dokud je admin nepovolí.
+    if settings.INFOR_API_URL:
         from app.services.infor_sync_service import infor_sync_service
         await infor_sync_service.start()
-
-    # Start Workshop Cache Service (background refresh pro snížení latence)
-    if settings.WORKSHOP_CACHE_ENABLED and settings.INFOR_API_URL:
-        from app.services.workshop_cache_service import workshop_cache
-        await workshop_cache.start()
 
     yield
 
     # Shutdown
     _shutdown_in_progress = True
     logger.info("⏳ Graceful shutdown started...")
-
-    # Stop Workshop Cache Service
-    from app.services.workshop_cache_service import workshop_cache
-    if workshop_cache.running:
-        await workshop_cache.stop()
 
     # Stop Infor Sync Service
     from app.services.infor_sync_service import infor_sync_service
