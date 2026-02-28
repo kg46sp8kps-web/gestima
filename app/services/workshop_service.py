@@ -671,7 +671,7 @@ def _coitem_sort_key(row: Dict[str, Any]) -> tuple:
     )
 
 
-def _sort_queue(
+def sort_queue(
     rows: Sequence[Dict[str, Any]],
     sort_by: str,
     sort_dir: str,
@@ -1249,7 +1249,7 @@ async def fetch_wc_queue(
     if safe_job_filter:
         queue = [row for row in queue if safe_job_filter in (row.get("Job", "").upper())]
 
-    queue = _sort_queue(queue, sort_by=sort_by, sort_dir=sort_dir)
+    queue = sort_queue(queue, sort_by=sort_by, sort_dir=sort_dir)
     return queue[:record_cap]
 
 
@@ -1352,7 +1352,7 @@ async def fetch_machine_plan(
         if safe_job_filter:
             backlog = [r for r in backlog if safe_job_filter in (r.get("Job", "").upper())]
 
-        backlog = _sort_queue(backlog, sort_by=sort_by, sort_dir=sort_dir)
+        backlog = sort_queue(backlog, sort_by=sort_by, sort_dir=sort_dir)
         backlog = backlog[:record_cap]
     except Exception as exc:
         logger.warning("Backlog (F/S/W) load failed, showing released only: %s", exc)
@@ -1798,6 +1798,20 @@ def _build_view_operations(row: Dict[str, Any]) -> List[Dict[str, Any]]:
     return ops
 
 
+def _build_view_materials(row: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Převede flat Mat01-03 / MatComp01-03 sloupce na seznam materiálových buněk."""
+    mats: List[Dict[str, Any]] = []
+    for i in range(1, 4):
+        idx = f"{i:02d}"
+        mat = _as_clean_str(row.get(f"Mat{idx}"))
+        if not mat:
+            continue
+        comp = str(row.get(f"MatComp{idx}", "0")).strip()
+        status = "done" if comp == "1" else "idle"
+        mats.append({"material": mat, "status": status})
+    return mats
+
+
 def _build_view_filter(
     *,
     customer: Optional[str],
@@ -1884,13 +1898,136 @@ async def fetch_orders_overview(
     if not rows:
         return []
 
-    # DEBUG: log all keys + confirm/ryb fields from first row to diagnose missing confirm_date
-    if rows:
-        r0 = rows[0]
-        logger.info("orders_overview DEBUG all keys (row[0]): %s", list(r0.keys()))
-        confirm_fields = {k: v for k, v in r0.items() if 'confirm' in k.lower() or 'ryb' in k.lower() or 'date' in k.lower()}
-        logger.info("orders_overview DEBUG date/confirm/ryb fields (row[0]): %s", confirm_fields)
+    # ── Pass 1: Sběr VP jobů podle Item ──
+    # View vrací 1 Job per CO řádek, ale JobCount říká kolik VP existuje.
+    # Pro single-VP items bereme data přímo z view.
+    # Pro multi-VP items (JobCount > 1) děláme separátní SLJobRoutes lookup.
+    item_vp_map: Dict[str, List[Dict[str, Any]]] = {}
+    multi_vp_items: set[str] = set()
+    seen_vp_jobs: set[str] = set()
 
+    for row in rows:
+        item = _as_clean_str(row.get("Item"))
+        job = _as_clean_str(row.get("Job"))
+        suffix = _as_clean_str(row.get("Suffix")) or "0"
+        if not item or not job:
+            continue
+
+        # Zjistíme zda Item má více VP
+        job_count_str = str(row.get("JobCount", "1")).strip()
+        if job_count_str not in ("", "0", "1"):
+            multi_vp_items.add(item)
+            continue  # zpracujeme přes SLJobRoutes
+
+        vp_key = f"{job}|{suffix}"
+        if vp_key in seen_vp_jobs:
+            continue
+        seen_vp_jobs.add(vp_key)
+        operations = _build_view_operations(row)
+        if not operations:
+            continue  # Job bez operací (completed) není kandidát
+        entry = {
+            "job": job,
+            "suffix": suffix,
+            "job_stat": None,
+            "qty_released": None,
+            "qty_complete": None,
+            "qty_scrapped": None,
+            "item": item,
+            "customer_name": _as_clean_str(row.get("CustName")),
+            "due_date": _as_clean_str(row.get("DueDate")),
+            "operations": operations,
+        }
+        item_vp_map.setdefault(item, []).append(entry)
+
+    # ── Multi-VP lookup přes SLJobRoutes ──
+    if multi_vp_items:
+        logger.info("orders_overview: %d items with multiple VPs, querying SLJobRoutes", len(multi_vp_items))
+        multi_items_list = sorted(multi_vp_items)
+        batch_size = 200
+        all_route_rows: List[Dict[str, Any]] = []
+        for batch_start in range(0, len(multi_items_list), batch_size):
+            batch = multi_items_list[batch_start:batch_start + batch_size]
+            item_filter = _or_item_filter("DerJobItem", batch)
+            if not item_filter:
+                continue
+            filter_routes = f"({item_filter}) AND {_eq_filter('Type', 'J')} AND (JobStat = 'R' OR JobStat = 'F' OR JobStat = 'S')"
+            try:
+                batch_rows = await _load_collection_first(
+                    infor_client,
+                    ido_name="SLJobRoutes",
+                    property_sets=_JOB_ROUTE_PROP_SETS,
+                    filter_expr=filter_routes,
+                    order_by="DerJobItem ASC, Job ASC, OperNum ASC",
+                    record_cap=5000,
+                )
+                all_route_rows.extend(batch_rows)
+            except Exception as exc:
+                logger.warning("SLJobRoutes multi-VP lookup failed: %s", exc)
+
+        # Seskupit podle Item → Job|Suffix → operace
+        route_by_item: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for rrow in all_route_rows:
+            r_item = _as_clean_str(rrow.get("DerJobItem"))
+            r_job = _as_clean_str(rrow.get("Job"))
+            r_suffix = _as_clean_str(rrow.get("Suffix")) or "0"
+            if not r_item or not r_job:
+                continue
+            vp_key = f"{r_job}|{r_suffix}"
+            if r_item not in route_by_item:
+                route_by_item[r_item] = {}
+            if vp_key not in route_by_item[r_item]:
+                route_by_item[r_item][vp_key] = {
+                    "job": r_job,
+                    "suffix": r_suffix,
+                    "job_stat": _as_clean_str(rrow.get("JobStat")),
+                    "qty_released": _parse_float(rrow.get("JobQtyReleased")),
+                    "qty_complete": None,
+                    "qty_scrapped": None,
+                    "item": r_item,
+                    "customer_name": None,
+                    "due_date": None,
+                    "operations": [],
+                }
+            # Přidat operaci
+            oper_num = _as_clean_str(rrow.get("OperNum"))
+            wc = _as_clean_str(rrow.get("Wc"))
+            if oper_num and wc:
+                op_complete = _parse_float(rrow.get("QtyComplete")) or 0
+                op_released = _parse_float(rrow.get("JobQtyReleased")) or 0
+                if op_released > 0 and op_complete >= op_released:
+                    op_status = "done"
+                elif op_complete > 0:
+                    op_status = "in_progress"
+                else:
+                    op_status = "idle"
+                route_by_item[r_item][vp_key]["operations"].append({
+                    "oper_num": oper_num,
+                    "wc": wc,
+                    "status": op_status,
+                    "state_text": None,
+                })
+
+        # Doplnit customer_name a due_date z view řádku, zapsat do item_vp_map
+        for r_item, vp_dict in route_by_item.items():
+            view_row = next((r for r in rows if _as_clean_str(r.get("Item")) == r_item), None)
+            cust_name = _as_clean_str(view_row.get("CustName")) if view_row else None
+            due_date = _as_clean_str(view_row.get("DueDate")) if view_row else None
+            entries = list(vp_dict.values())
+            for entry in entries:
+                entry["customer_name"] = cust_name
+                entry["due_date"] = due_date
+            item_vp_map[r_item] = entries
+
+        logger.info(
+            "orders_overview: SLJobRoutes found %d route rows -> %d items with multi-VP data",
+            len(all_route_rows), len(route_by_item),
+        )
+
+    multi_vp_counts = {item: len(vps) for item, vps in item_vp_map.items() if len(vps) > 1}
+    logger.info("orders_overview: %d items with multiple VPs in final map", len(multi_vp_counts))
+
+    # ── Pass 2: Sestavení výstupních řádků ──
     out: List[Dict[str, Any]] = []
     seen: set[str] = set()
     for row in rows:
@@ -1902,29 +2039,14 @@ async def fetch_orders_overview(
             continue
         seen.add(row_id)
 
+        item = _as_clean_str(row.get("Item"))
         operations = _build_view_operations(row)
         job = _as_clean_str(row.get("Job"))
-        suffix = _as_clean_str(row.get("Suffix")) or "0"
-
-        # VP je aktivní jen pokud má routované operace (Wc01 existuje).
-        # View vrací i historicky napojené dokončené joby — ty nemají Wc sloupce.
         job_has_routing = bool(operations)
         active_job = job if (job and job_has_routing) else None
 
-        vp_entries: List[Dict[str, Any]] = []
-        if active_job:
-            vp_entries.append({
-                "job": active_job,
-                "suffix": suffix,
-                "job_stat": None,
-                "qty_released": None,
-                "qty_complete": None,
-                "qty_scrapped": None,
-                "item": _as_clean_str(row.get("Item")),
-                "customer_name": _as_clean_str(row.get("CustName")),
-                "due_date": _as_clean_str(row.get("DueDate")),
-                "operations": operations,
-            })
+        # VP candidates = všechny aktivní VP joby pro stejný Item
+        vp_entries = item_vp_map.get(item, []) if item else []
 
         customer_code = _as_clean_str(row.get("CustNum"))
         out.append({
@@ -1938,7 +2060,7 @@ async def fetch_orders_overview(
             "co_release": co_release,
             "item": _as_clean_str(row.get("Item")),
             "description": _as_clean_str(row.get("ItemDescription")),
-            "status": _as_clean_str(row.get("Stat")),
+            "material_ready": str(row.get("Ready", "0")).strip() == "1",
             "qty_ordered": _parse_float(row.get("QtyOrderedConv")),
             "qty_shipped": _parse_float(row.get("QtyShipped")),
             "qty_wip": _parse_float(row.get("QtyWIP")),
@@ -1948,7 +2070,7 @@ async def fetch_orders_overview(
             "vp_candidates": vp_entries,
             "selected_vp_job": active_job,
             "operations": operations,
-            "material_state": None,
+            "materials": _build_view_materials(row),
             "record_date": _as_clean_str(row.get("RecordDate")),
         })
 

@@ -1,6 +1,6 @@
 /** Production Planner — TypeScript typy */
 
-export type PriorityTier = 'hot' | 'urgent' | 'frozen' | 'normal'
+export type PriorityTier = 'hot' | 'urgent' | 'normal'
 
 export interface PlannerOperation {
   oper_num: string

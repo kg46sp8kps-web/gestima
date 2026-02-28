@@ -2,6 +2,7 @@
 import { GripVertical, Flame, Zap, Snowflake } from 'lucide-vue-next'
 import { formatDate } from '@/utils/formatters'
 import { ICON_SIZE_SM } from '@/config/design'
+import { useMachinePlanDndStore } from '@/stores/machinePlanDnd'
 import type { MachinePlanItem } from '@/types/workshop'
 
 interface Props {
@@ -10,7 +11,8 @@ interface Props {
   mode: 'planned' | 'unassigned'
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+const store = useMachinePlanDndStore()
 defineEmits<{
   select: [item: MachinePlanItem]
   'cycle-tier': [item: MachinePlanItem]
@@ -48,7 +50,7 @@ function statBadgeClass(stat: string): string {
     :class="[
       'mpd-row',
       `mpd-row--${mode}`,
-      { 'mpd-row--active': active, 'mpd-row--hot': item.IsHot, 'mpd-row--urgent': item.Tier === 'urgent', 'mpd-row--frozen': item.Tier === 'frozen' },
+      { 'mpd-row--active': active, 'mpd-row--hot': item.IsHot, 'mpd-row--urgent': item.Tier === 'urgent' },
     ]"
     @click="$emit('select', item)"
   >
@@ -58,14 +60,12 @@ function statBadgeClass(stat: string): string {
       :class="{
         'mpd-row__tier--hot': item.IsHot,
         'mpd-row__tier--urgent': item.Tier === 'urgent',
-        'mpd-row__tier--frozen': item.Tier === 'frozen',
       }"
       :title="`Tier: ${item.Tier ?? 'normal'} — klikni pro změnu`"
       @click.stop="$emit('cycle-tier', item)"
     >
       <Flame v-if="item.IsHot" :size="14" />
       <Zap v-else-if="item.Tier === 'urgent'" :size="14" />
-      <Snowflake v-else-if="item.Tier === 'frozen'" :size="14" />
       <span v-else class="mpd-row__tier-dash">&mdash;</span>
     </button>
 
@@ -79,6 +79,7 @@ function statBadgeClass(stat: string): string {
         <span class="mpd-row__job">{{ jobLabel(item) }}</span>
         <span class="mpd-row__oper">Op {{ item.OperNum }}</span>
         <span :class="statBadgeClass(item.JobStat ?? 'R')">{{ item.JobStat ?? 'R' }}</span>
+        <Snowflake v-if="store.isDndMoved(props.item)" :size="11" class="mpd-row__pinned" title="Přesunuto DnD" />
       </div>
       <div class="mpd-row__detail">
         <span class="mpd-row__item">{{ item.DerJobItem ?? '—' }}</span>
@@ -125,11 +126,6 @@ function statBadgeClass(stat: string): string {
   border-left: 3px solid var(--amber, #ff9800);
   padding-left: 3px;
 }
-.mpd-row--frozen {
-  border-left: 3px solid var(--cyan, #00bcd4);
-  padding-left: 3px;
-  background: color-mix(in srgb, var(--cyan, #00bcd4) 4%, transparent);
-}
 .mpd-row__tier {
   display: flex;
   align-items: center;
@@ -158,12 +154,6 @@ function statBadgeClass(stat: string): string {
 }
 .mpd-row__tier--urgent:hover {
   color: var(--amber, #ff9800);
-}
-.mpd-row__tier--frozen {
-  color: var(--cyan, #00bcd4);
-}
-.mpd-row__tier--frozen:hover {
-  color: var(--cyan, #00bcd4);
 }
 .mpd-row__tier-dash {
   font-size: 12px;
@@ -245,6 +235,14 @@ function statBadgeClass(stat: string): string {
 }
 .mpd-row--urgent .mpd-row__due {
   color: var(--amber, #ff9800);
+}
+
+/* Positioned (snowflake) indicator — pushed to right */
+.mpd-row__pinned {
+  margin-left: auto;
+  color: var(--cyan, #00bcd4);
+  opacity: 0.6;
+  flex-shrink: 0;
 }
 
 /* Status badges */

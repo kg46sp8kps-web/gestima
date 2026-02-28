@@ -14,7 +14,8 @@ Endpointy:
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +29,7 @@ from app.models.workshop_transaction import (
 )
 from app.services import workshop_service
 from app.services.infor_api_client import InforAPIClient
+from app.services.workshop_cache_service import workshop_cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -50,6 +52,11 @@ class WorkshopOrderOperationCell(BaseModel):
     wc: str
     status: str
     state_text: Optional[str] = None
+
+
+class WorkshopOrderMaterialCell(BaseModel):
+    material: str
+    status: str  # 'done' | 'idle'
 
 
 class WorkshopOrderVpCandidate(BaseModel):
@@ -76,7 +83,7 @@ class WorkshopOrderOverviewRow(BaseModel):
     co_release: str
     item: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
+    material_ready: bool = False
     qty_ordered: Optional[float] = None
     qty_shipped: Optional[float] = None
     qty_wip: Optional[float] = None
@@ -86,7 +93,7 @@ class WorkshopOrderOverviewRow(BaseModel):
     vp_candidates: List[WorkshopOrderVpCandidate] = Field(default_factory=list)
     selected_vp_job: Optional[str] = None
     operations: List[WorkshopOrderOperationCell] = Field(default_factory=list)
-    material_state: Optional[str] = None
+    materials: List[WorkshopOrderMaterialCell] = Field(default_factory=list)
     record_date: Optional[str] = None
 
 
@@ -106,13 +113,14 @@ def get_infor_client() -> InforAPIClient:
     )
 
 
-@router.get("/queue", response_model=List[dict])
+@router.get("/queue")
 async def get_wc_queue(
     wc: Optional[str] = Query(None, description="Filtr pracoviště (WC kód z Inforu)"),
     job: Optional[str] = Query(None, description="Filtr VP (substring čísla zakázky)"),
     sort_by: str = Query("OpDatumSt", description="Řazení: OpDatumSt|OpDatumSp|Job|OperNum|Wc|DerJobItem|JobDescription|QtyComplete|JobQtyReleased"),
     sort_dir: str = Query("asc", description="Směr řazení: asc|desc"),
     limit: int = Query(200, ge=1, le=1000),
+    if_none_match: Optional[str] = Header(None),
     current_user: User = Depends(get_current_user),
     client: InforAPIClient = Depends(get_infor_client),
 ):
@@ -122,6 +130,24 @@ async def get_wc_queue(
     Každý řádek = jedna operace (bez deduplikace, na rozdíl od /jobs).
     Seřazeno dle plánovaného začátku operace (OpDatumSt ASC z JbrDetails).
     """
+    # Cache-first: pokud je cache warm, vrátit z ní
+    if workshop_cache.is_warm("wc_queue"):
+        etag = workshop_cache.get_etag("wc_queue")
+        if if_none_match and if_none_match == etag:
+            return Response(status_code=304, headers={"ETag": etag})
+        data = workshop_cache.get_wc_queue(
+            wc=wc, job_filter=job, sort_by=sort_by, sort_dir=sort_dir, limit=limit,
+        )
+        return JSONResponse(
+            content=data,
+            headers={
+                "ETag": etag,
+                "X-Cache": "HIT",
+                "X-Cache-Updated": (workshop_cache.get_updated_at("wc_queue") or "").isoformat() if workshop_cache.get_updated_at("wc_queue") else "",
+            },
+        )
+
+    # Fallback: live fetch z Inforu
     try:
         queue = await workshop_service.fetch_wc_queue(
             infor_client=client,
@@ -131,23 +157,43 @@ async def get_wc_queue(
             sort_by=sort_by,
             sort_dir=sort_dir,
         )
-        return queue
+        return JSONResponse(content=queue, headers={"X-Cache": "MISS"})
     except Exception as exc:
         logger.error(f"fetch_wc_queue failed: {exc}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
 
 
-@router.get("/orders-overview", response_model=List[WorkshopOrderOverviewRow])
+@router.get("/orders-overview")
 async def get_orders_overview(
     customer: Optional[str] = Query(None, description="Zákazník (kód)"),
     due_from: Optional[str] = Query(None, description="Termín od (YYYY-MM-DD)"),
     due_to: Optional[str] = Query(None, description="Termín do (YYYY-MM-DD)"),
     search: Optional[str] = Query(None, description="Hledání: zakázka/díl/popis"),
     limit: int = Query(2000, ge=1, le=5000),
+    if_none_match: Optional[str] = Header(None),
     current_user: User = Depends(get_current_user),
     client: InforAPIClient = Depends(get_infor_client),
 ):
     """Přehled zakázek pro dispečink (zakázka + VP kandidáti + operace)."""
+    # Cache-first
+    if workshop_cache.is_warm("orders_overview"):
+        etag = workshop_cache.get_etag("orders_overview")
+        if if_none_match and if_none_match == etag:
+            return Response(status_code=304, headers={"ETag": etag})
+        data = workshop_cache.get_orders_overview(
+            customer=customer, due_from=due_from, due_to=due_to,
+            search=search, limit=limit,
+        )
+        return JSONResponse(
+            content=data,
+            headers={
+                "ETag": etag,
+                "X-Cache": "HIT",
+                "X-Cache-Updated": (workshop_cache.get_updated_at("orders_overview") or "").isoformat() if workshop_cache.get_updated_at("orders_overview") else "",
+            },
+        )
+
+    # Fallback: live fetch
     try:
         rows = await workshop_service.fetch_orders_overview(
             infor_client=client,
@@ -157,19 +203,20 @@ async def get_orders_overview(
             search=search,
             limit=limit,
         )
-        return rows
+        return JSONResponse(content=rows, headers={"X-Cache": "MISS"})
     except Exception as exc:
         logger.error("fetch_orders_overview failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
 
 
-@router.get("/machine-plan", response_model=List[dict])
+@router.get("/machine-plan")
 async def get_machine_plan(
     wc: Optional[str] = Query(None, description="Filtr pracoviště (WC kód z Inforu)"),
     job: Optional[str] = Query(None, description="Filtr VP (substring čísla zakázky)"),
     sort_by: str = Query("OpDatumSt", description="Řazení: OpDatumSt|OpDatumSp|Job|OperNum|Wc|DerJobItem|JobDescription|QtyComplete|JobQtyReleased"),
     sort_dir: str = Query("asc", description="Směr řazení: asc|desc"),
     limit: int = Query(500, ge=1, le=2000),
+    if_none_match: Optional[str] = Header(None),
     current_user: User = Depends(get_current_user),
     client: InforAPIClient = Depends(get_infor_client),
 ):
@@ -178,6 +225,24 @@ async def get_machine_plan(
 
     Každý řádek obsahuje `JobStat` (R=Released, F=Firm, S=Scheduled, W=Waiting).
     """
+    # Cache-first
+    if workshop_cache.is_warm("machine_plan"):
+        etag = workshop_cache.get_etag("machine_plan")
+        if if_none_match and if_none_match == etag:
+            return Response(status_code=304, headers={"ETag": etag})
+        data = workshop_cache.get_machine_plan(
+            wc=wc, job_filter=job, sort_by=sort_by, sort_dir=sort_dir, limit=limit,
+        )
+        return JSONResponse(
+            content=data,
+            headers={
+                "ETag": etag,
+                "X-Cache": "HIT",
+                "X-Cache-Updated": (workshop_cache.get_updated_at("machine_plan") or "").isoformat() if workshop_cache.get_updated_at("machine_plan") else "",
+            },
+        )
+
+    # Fallback: live fetch
     try:
         rows = await workshop_service.fetch_machine_plan(
             infor_client=client,
@@ -187,7 +252,7 @@ async def get_machine_plan(
             sort_dir=sort_dir,
             record_cap=limit,
         )
-        return rows
+        return JSONResponse(content=rows, headers={"X-Cache": "MISS"})
     except Exception as exc:
         logger.error("fetch_machine_plan failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
@@ -290,7 +355,7 @@ async def post_material_issue(
     """
     try:
         emp_num = getattr(current_user, "infor_emp_num", None) or current_user.username
-        return await workshop_service.post_material_issue(
+        result = await workshop_service.post_material_issue(
             infor_client=client,
             emp_num=emp_num,
             job=data.job,
@@ -303,6 +368,10 @@ async def post_material_issue(
             location=data.location,
             lot=data.lot,
         )
+        # Invalidate cache after successful write
+        workshop_cache.invalidate("wc_queue")
+        workshop_cache.invalidate("machine_plan")
+        return result
     except HTTPException:
         raise
     except Exception as exc:
@@ -354,6 +423,9 @@ async def post_transaction(
         )
     try:
         tx = await workshop_service.post_transaction_to_infor(db, tx_id, client, current_user)
+        # Invalidate cache after successful Infor write
+        workshop_cache.invalidate("wc_queue")
+        workshop_cache.invalidate("machine_plan")
         return WorkshopTransactionResponse.model_validate(tx)
     except HTTPException:
         raise

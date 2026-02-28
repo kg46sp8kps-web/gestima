@@ -18,19 +18,38 @@ export const useMachinePlanDndStore = defineStore('machinePlanDnd', () => {
   const unassignedItems = ref<MachinePlanItem[]>([])
   const loading = ref(false)
   const selectedItem = ref<MachinePlanItem | null>(null)
+  // SWR state
+  const lastFetched = ref<Date | null>(null)
+  const isRevalidating = ref(false)
+  /** Klíče (Job|Suffix|OperNum) položek přetažených DnD v této session */
+  const dndMovedKeys = ref<Set<string>>(new Set())
 
   async function fetchPlan(wc: string) {
     selectedWc.value = wc
-    loading.value = true
+    // SWR: pokud máme data, ukazujeme revalidating místo full loading
+    if (plannedItems.value.length > 0 || unassignedItems.value.length > 0) {
+      isRevalidating.value = true
+    } else {
+      loading.value = true
+    }
     try {
       const data = await api.getMachinePlanDnd(wc)
       plannedItems.value = data.planned
       unassignedItems.value = data.unassigned
+      lastFetched.value = new Date()
     } catch {
       ui.showError('Nepodařilo se načíst plán stroje')
     } finally {
       loading.value = false
+      isRevalidating.value = false
     }
+  }
+
+  async function fetchPlanIfStale(wc: string, staleMs = 30000) {
+    if (selectedWc.value === wc && lastFetched.value && Date.now() - lastFetched.value.getTime() < staleMs) {
+      return // data jsou fresh pro toto WC
+    }
+    await fetchPlan(wc)
   }
 
   async function reorder(newOrder: MachinePlanItem[]) {
@@ -84,7 +103,7 @@ export const useMachinePlanDndStore = defineStore('machinePlanDnd', () => {
     }
   }
 
-  const TIER_CYCLE: PriorityTier[] = ['normal', 'urgent', 'hot', 'frozen']
+  const TIER_CYCLE: PriorityTier[] = ['normal', 'urgent', 'hot']
 
   async function cycleTier(item: MachinePlanItem) {
     const current: PriorityTier = item.Tier ?? 'normal'
@@ -95,33 +114,35 @@ export const useMachinePlanDndStore = defineStore('machinePlanDnd', () => {
     // Optimistic update — only visual, no re-fetch
     item.Tier = next
     item.IsHot = next === 'hot'
-    item.Priority = next === 'hot' ? 5 : next === 'urgent' ? 20 : next === 'frozen' ? 50 : 100
+    item.Priority = next === 'hot' ? 5 : next === 'urgent' ? 20 : 100
 
     try {
       await plannerApi.setTier(item.Job, suffix, next)
+      // Re-fetch to get proper backend sort (hot items float to top)
+      if (selectedWc.value) {
+        await fetchPlan(selectedWc.value)
+      }
     } catch {
       // Rollback
       item.Tier = current
       item.IsHot = current === 'hot'
-      item.Priority = current === 'hot' ? 5 : current === 'urgent' ? 20 : current === 'frozen' ? 50 : 100
+      item.Priority = current === 'hot' ? 5 : current === 'urgent' ? 20 : 100
       ui.showError('Nepodařilo se změnit tier')
     }
   }
 
-  async function markFrozen(item: MachinePlanItem) {
-    if (item.Tier === 'frozen') return  // already frozen
-    const old: PriorityTier = item.Tier ?? 'normal'
-    // Optimistic
-    item.Tier = 'frozen'
-    item.IsHot = false
-    item.Priority = 50
-    try {
-      await plannerApi.setTier(item.Job, item.Suffix ?? '0', 'frozen')
-    } catch {
-      item.Tier = old
-      item.IsHot = old === 'hot'
-      item.Priority = old === 'hot' ? 5 : old === 'urgent' ? 20 : 100
-    }
+  function itemKey(item: MachinePlanItem): string {
+    return `${item.Job}|${item.Suffix ?? '0'}|${item.OperNum}`
+  }
+
+  function markDndMoved(item: MachinePlanItem) {
+    dndMovedKeys.value.add(itemKey(item))
+    // Force reactivity (Set)
+    dndMovedKeys.value = new Set(dndMovedKeys.value)
+  }
+
+  function isDndMoved(item: MachinePlanItem): boolean {
+    return dndMovedKeys.value.has(itemKey(item))
   }
 
   function selectItem(item: MachinePlanItem | null) {
@@ -138,12 +159,17 @@ export const useMachinePlanDndStore = defineStore('machinePlanDnd', () => {
     unassignedItems,
     loading,
     selectedItem,
+    lastFetched,
+    isRevalidating,
     fetchPlan,
+    fetchPlanIfStale,
     reorder,
     moveToPlanned,
     moveToUnassigned,
     cycleTier,
-    markFrozen,
+    dndMovedKeys,
+    markDndMoved,
+    isDndMoved,
     selectItem,
   }
 })

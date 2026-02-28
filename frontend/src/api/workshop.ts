@@ -1,6 +1,7 @@
 /** Gestima Dílna — API modul */
 
 import { apiClient } from './client'
+import type { AxiosRequestConfig } from 'axios'
 import type {
   WorkshopJob,
   WorkshopQueueItem,
@@ -17,6 +18,36 @@ import type {
   WorkshopTransactionCreate,
   WorkshopOrderOverviewRow,
 } from '@/types/workshop'
+
+// ─── ETag cache (If-None-Match / 304 support) ─────────────────────────
+const etagCache: Record<string, { etag: string; data: unknown }> = {}
+
+/**
+ * GET s ETag support: pošle If-None-Match, při 304 vrátí cached data.
+ * `cacheKey` identifikuje endpoint (bez query params — ty se mění).
+ */
+async function getWithEtag<T>(url: string, config?: AxiosRequestConfig, cacheKey?: string): Promise<T> {
+  const key = cacheKey ?? url
+  const cached = etagCache[key]
+  const headers: Record<string, string> = {}
+  if (cached?.etag) {
+    headers['If-None-Match'] = cached.etag
+  }
+  try {
+    const res = await apiClient.get<T>(url, { ...config, headers: { ...config?.headers, ...headers } })
+    const newEtag = res.headers?.['etag'] as string | undefined
+    if (newEtag) {
+      etagCache[key] = { etag: newEtag, data: res.data }
+    }
+    return res.data
+  } catch (err: unknown) {
+    const axiosErr = err as { response?: { status?: number } }
+    if (axiosErr?.response?.status === 304 && cached) {
+      return cached.data as T
+    }
+    throw err
+  }
+}
 
 /** Načte frontu práce pro pracoviště — flat seznam operací (bez deduplikace) */
 export async function getWcQueue(
@@ -35,8 +66,7 @@ export async function getWcQueue(
   }
   if (opts?.wc) params.wc = opts.wc
   if (opts?.job) params.job = opts.job
-  const res = await apiClient.get<WorkshopQueueItem[]>('/workshop/queue', { params })
-  return res.data
+  return getWithEtag<WorkshopQueueItem[]>('/workshop/queue', { params }, 'wc_queue')
 }
 
 /** Plán stroje — operace včetně zásobníku (R/F/S/W) */
@@ -56,8 +86,7 @@ export async function getMachinePlan(
   }
   if (opts?.wc) params.wc = opts.wc
   if (opts?.job) params.job = opts.job
-  const res = await apiClient.get<MachinePlanItem[]>('/workshop/machine-plan', { params })
-  return res.data
+  return getWithEtag<MachinePlanItem[]>('/workshop/machine-plan', { params }, 'machine_plan')
 }
 
 /** Načte otevřené výrobní zakázky z Inforu (Type=J, JobStat=R) */
@@ -137,6 +166,5 @@ export async function getOrdersOverview(opts?: {
   if (opts?.due_from) params.due_from = opts.due_from
   if (opts?.due_to) params.due_to = opts.due_to
   if (opts?.search) params.search = opts.search
-  const res = await apiClient.get<WorkshopOrderOverviewRow[]>('/workshop/orders-overview', { params })
-  return res.data
+  return getWithEtag<WorkshopOrderOverviewRow[]>('/workshop/orders-overview', { params }, 'orders_overview')
 }

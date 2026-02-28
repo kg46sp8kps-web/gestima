@@ -142,11 +142,21 @@ async def lifespan(app: FastAPI):
         from app.services.infor_sync_service import infor_sync_service
         await infor_sync_service.start()
 
+    # Start Workshop Cache Service (background refresh pro snížení latence)
+    if settings.WORKSHOP_CACHE_ENABLED and settings.INFOR_API_URL:
+        from app.services.workshop_cache_service import workshop_cache
+        await workshop_cache.start()
+
     yield
 
     # Shutdown
     _shutdown_in_progress = True
     logger.info("⏳ Graceful shutdown started...")
+
+    # Stop Workshop Cache Service
+    from app.services.workshop_cache_service import workshop_cache
+    if workshop_cache.running:
+        await workshop_cache.stop()
 
     # Stop Infor Sync Service
     from app.services.infor_sync_service import infor_sync_service

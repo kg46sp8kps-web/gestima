@@ -7,7 +7,7 @@ import { useUiStore } from './ui'
 import type { PlannerVpRow, PriorityTier, WcLane } from '@/types/production-planner'
 
 const TIER_CYCLE: PriorityTier[] = ['normal', 'urgent', 'hot']
-const TIER_PRIORITY: Record<PriorityTier, number> = { hot: 5, urgent: 20, frozen: 50, normal: 100 }
+const TIER_PRIORITY: Record<PriorityTier, number> = { hot: 5, urgent: 20, normal: 100 }
 
 export const useProductionPlannerStore = defineStore('productionPlanner', () => {
   const ui = useUiStore()

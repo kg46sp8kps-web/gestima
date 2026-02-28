@@ -19,6 +19,7 @@ import type {
   WorkshopTransactionCreate,
   WorkshopTimer,
   WorkshopTransType,
+  WorkshopOrderOverviewRow,
 } from '@/types/workshop'
 
 export const useWorkshopStore = defineStore('workshop', () => {
@@ -32,6 +33,16 @@ export const useWorkshopStore = defineStore('workshop', () => {
   const queueJobFilter = ref<string>('')
   const queueSortBy = ref<WorkshopQueueSortBy>('OpDatumSt')
   const queueSortDir = ref<WorkshopSortDir>('asc')
+  // SWR state — queue
+  const queueLastFetched = ref<Date | null>(null)
+  const queueIsRevalidating = ref(false)
+
+  // Orders overview (SWR — data přežijí tab switch)
+  const ordersOverviewRows = ref<WorkshopOrderOverviewRow[]>([])
+  const ordersLoading = ref(false)
+  const ordersError = ref<string | null>(null)
+  const ordersLastFetched = ref<Date | null>(null)
+  const ordersIsRevalidating = ref(false)
 
   // Odvozené z výběru v queue (udržovány pro zpětnou kompatibilitu komponent)
   const activeJob = ref<WorkshopJob | null>(null)
@@ -86,7 +97,12 @@ export const useWorkshopStore = defineStore('workshop', () => {
     sortBy?: WorkshopQueueSortBy
     sortDir?: WorkshopSortDir
   }) {
-    loadingQueue.value = true
+    // SWR: pokud už máme data, ukazujeme revalidating místo full loading
+    if (queueItems.value.length > 0) {
+      queueIsRevalidating.value = true
+    } else {
+      loadingQueue.value = true
+    }
     try {
       queueItems.value = await workshopApi.getWcQueue({
         wc: opts?.wc,
@@ -94,11 +110,23 @@ export const useWorkshopStore = defineStore('workshop', () => {
         sort_by: opts?.sortBy ?? queueSortBy.value,
         sort_dir: opts?.sortDir ?? queueSortDir.value,
       })
+      queueLastFetched.value = new Date()
     } catch {
       ui.showError('Nepodařilo se načíst frontu práce z Inforu')
     } finally {
       loadingQueue.value = false
+      queueIsRevalidating.value = false
     }
+  }
+
+  async function fetchQueueIfStale(
+    opts?: { wc?: string; job?: string; sortBy?: WorkshopQueueSortBy; sortDir?: WorkshopSortDir },
+    staleMs = 30000,
+  ) {
+    if (queueLastFetched.value && Date.now() - queueLastFetched.value.getTime() < staleMs) {
+      return // data jsou fresh
+    }
+    await fetchQueue(opts)
   }
 
   async function selectQueueItem(item: WorkshopQueueItem) {
@@ -404,6 +432,50 @@ export const useWorkshopStore = defineStore('workshop', () => {
     return tx
   }
 
+  // === Actions — Orders Overview (SWR) ===
+
+  async function fetchOrders(opts?: {
+    due_from?: string
+    due_to?: string
+    search?: string
+    limit?: number
+  }) {
+    if (ordersOverviewRows.value.length > 0) {
+      ordersIsRevalidating.value = true
+    } else {
+      ordersLoading.value = true
+    }
+    ordersError.value = null
+    try {
+      ordersOverviewRows.value = await workshopApi.getOrdersOverview({
+        due_from: opts?.due_from,
+        due_to: opts?.due_to,
+        search: opts?.search,
+        limit: opts?.limit ?? 2000,
+      })
+      ordersLastFetched.value = new Date()
+    } catch (e: unknown) {
+      const detail = (
+        e as { response?: { data?: { detail?: unknown } } }
+      )?.response?.data?.detail
+      ordersError.value = typeof detail === 'string' ? detail : 'Nepodařilo se načíst přehled zakázek'
+      ordersOverviewRows.value = []
+    } finally {
+      ordersLoading.value = false
+      ordersIsRevalidating.value = false
+    }
+  }
+
+  async function fetchOrdersIfStale(
+    opts?: { due_from?: string; due_to?: string; search?: string; limit?: number },
+    staleMs = 60000,
+  ) {
+    if (ordersLastFetched.value && Date.now() - ordersLastFetched.value.getTime() < staleMs) {
+      return
+    }
+    await fetchOrders(opts)
+  }
+
   function resetState() {
     activeQueueItem.value = null
     activeJob.value = null
@@ -435,6 +507,14 @@ export const useWorkshopStore = defineStore('workshop', () => {
     queueJobFilter,
     queueSortBy,
     queueSortDir,
+    queueLastFetched,
+    queueIsRevalidating,
+    // State — orders overview (SWR)
+    ordersOverviewRows,
+    ordersLoading,
+    ordersError,
+    ordersLastFetched,
+    ordersIsRevalidating,
     // State — odvozené + sdílené
     activeJob,
     activeOperation,
@@ -459,8 +539,12 @@ export const useWorkshopStore = defineStore('workshop', () => {
     filteredJobs,
     // Actions — fronta
     fetchQueue,
+    fetchQueueIfStale,
     setQueueSort,
     selectQueueItem,
+    // Actions — orders overview
+    fetchOrders,
+    fetchOrdersIfStale,
     // Actions — data
     fetchJobs,
     selectJob,

@@ -92,6 +92,11 @@ export interface WorkshopOrderOperationCell {
   state_text: string | null
 }
 
+export interface WorkshopOrderMaterialCell {
+  material: string
+  status: 'done' | 'idle'
+}
+
 export interface WorkshopOrderVpCandidate {
   job: string
   suffix: string
@@ -116,7 +121,7 @@ export interface WorkshopOrderOverviewRow {
   co_release: string
   item: string | null
   description: string | null
-  status: string | null
+  material_ready: boolean
   qty_ordered: number | null
   qty_shipped: number | null
   qty_wip: number | null
@@ -126,7 +131,7 @@ export interface WorkshopOrderOverviewRow {
   vp_candidates: WorkshopOrderVpCandidate[]
   selected_vp_job: string | null
   operations: WorkshopOrderOperationCell[]
-  material_state: string | null
+  materials: WorkshopOrderMaterialCell[]
   record_date: string | null
 }
 
@@ -137,7 +142,8 @@ export interface MachinePlanItem extends WorkshopQueueItem {
   CoNum?: string | null         // Číslo zakázky
   IsHot?: boolean               // Urgentní VP (z production_priorities)
   Priority?: number             // Priorita (5=hot, 20=urgent, 100=normal)
-  Tier?: 'hot' | 'urgent' | 'frozen' | 'normal'  // Odvozený tier
+  Tier?: 'hot' | 'urgent' | 'normal'  // Odvozený tier
+  IsPositioned?: boolean        // true = ručně pozicovaný v DnD (má DB pozici)
 }
 
 export type WorkshopSortDir = 'asc' | 'desc'

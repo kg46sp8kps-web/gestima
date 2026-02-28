@@ -36,7 +36,6 @@ DEFAULT_OP_HOURS = 2.0  # Fallback when setup+run missing
 TIER_PRIORITY_MAP: Dict[str, tuple] = {
     'hot': (5, True),
     'urgent': (20, False),
-    'frozen': (50, False),
     'normal': (100, False),
 }
 
@@ -47,8 +46,6 @@ def _derive_tier(priority: int, is_hot: bool) -> str:
         return 'hot'
     if priority <= 20:
         return 'urgent'
-    if priority <= 50:
-        return 'frozen'
     return 'normal'
 
 # ============================================================================
@@ -668,7 +665,7 @@ async def set_tier(
     db: AsyncSession,
     job: str,
     suffix: str,
-    tier: Literal['hot', 'urgent', 'frozen', 'normal'],
+    tier: Literal['hot', 'urgent', 'normal'],
     username: str,
 ) -> ProductionPriority:
     """Nastavit tier (hot/urgent/normal) na VP. Upsert."""

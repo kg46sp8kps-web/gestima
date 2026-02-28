@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import * as workshopApi from '@/api/workshop'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as plannerApi from '@/api/productionPlanner'
 import { useCatalogStore } from '@/stores/catalog'
+import { useWorkshopStore } from '@/stores/workshop'
 import type { PriorityTier } from '@/types/production-planner'
 import type { ContextGroup } from '@/types/workspace'
 import type { WorkshopOrderOverviewRow, WorkshopOrderVpCandidate } from '@/types/workshop'
@@ -17,7 +17,8 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// ─── Cross-tile linking (VP focus) ──────────────────────────────────
+// ─── Store + Cross-tile linking (VP focus) ──────────────────────────
+const workshopStore = useWorkshopStore()
 const catalog = useCatalogStore()
 
 const focusedVp = computed(() => {
@@ -33,13 +34,7 @@ function onRowClick(row: WorkshopOrderOverviewRow) {
   }
   // Toggle expand for rows with multiple VP candidates
   if (row.vp_candidates.length > 1) {
-    if (expandedRows.value.has(row.row_id)) {
-      expandedRows.value.delete(row.row_id)
-    } else {
-      expandedRows.value.add(row.row_id)
-    }
-    // Force reactivity
-    expandedRows.value = new Set(expandedRows.value)
+    expandedRows.value[row.row_id] = !expandedRows.value[row.row_id]
   }
 }
 
@@ -49,7 +44,7 @@ function onVpSubRowClick(row: WorkshopOrderOverviewRow, vp: WorkshopOrderVpCandi
 }
 
 function isRowExpanded(row: WorkshopOrderOverviewRow): boolean {
-  return expandedRows.value.has(row.row_id) && row.vp_candidates.length > 1
+  return !!expandedRows.value[row.row_id] && row.vp_candidates.length > 1
 }
 
 // ─── Column configuration ───────────────────────────────────────────
@@ -80,21 +75,20 @@ const COLUMNS: OrderColumn[] = [
   { id: 'qty_wip', label: 'WIP', defaultVisible: true, minWidth: 40, defaultWidth: 55, align: 'right', sortable: true },
   { id: 'tier', label: 'Tier', defaultVisible: true, minWidth: 36, defaultWidth: 42, align: 'center', sortable: false },
   { id: 'selected_vp_job', label: 'VP', defaultVisible: true, minWidth: 100, defaultWidth: 140, align: 'left', sortable: true },
-  { id: 'material_state', label: 'Materiál', defaultVisible: true, minWidth: 60, defaultWidth: 80, align: 'left', sortable: true },
-  { id: 'status', label: 'Status', defaultVisible: true, minWidth: 50, defaultWidth: 65, align: 'left', sortable: true },
+  { id: 'material_ready', label: 'Přip.', defaultVisible: true, minWidth: 40, defaultWidth: 55, align: 'center', sortable: true },
 ]
 
-// ─── Reactive state ─────────────────────────────────────────────────
-const rows = ref<WorkshopOrderOverviewRow[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
+// ─── Reactive state (SWR: rows + loading + error ze storu) ──────────
+const rows = computed(() => workshopStore.ordersOverviewRows)
+const loading = computed(() => workshopStore.ordersLoading)
+const error = computed(() => workshopStore.ordersError)
 
 const customerFilter = ref<string | null>(null)
 const searchFilter = ref<string | null>('')
 const dueFrom = ref<string | null>(null)
 const dueTo = ref<string | null>(null)
 const selectedVpByRow = ref<Record<string, string>>({})
-const expandedRows = ref<Set<string>>(new Set())
+const expandedRows = ref<Record<string, boolean>>({})
 
 // ─── Column widths + visibility with localStorage persistence ───────
 const LS_WIDTHS_KEY = 'gestima.orders-overview.col-widths'
@@ -183,12 +177,11 @@ function resetColWidth(colId: string) {
 // ─── Tier per VP (job key) ──────────────────────────────────────────
 const tierByVp = ref<Record<string, PriorityTier>>({})
 
-const TIER_CYCLE: PriorityTier[] = ['normal', 'urgent', 'hot', 'frozen']
+const TIER_CYCLE: PriorityTier[] = ['normal', 'urgent', 'hot']
 
 function tierIcon(tier: PriorityTier | undefined): string {
   if (tier === 'hot') return '\u{1F525}'
   if (tier === 'urgent') return '\u26A1'
-  if (tier === 'frozen') return '\u2744\uFE0F'
   return '\u2014'
 }
 
@@ -234,8 +227,7 @@ type SortKey =
   | 'qty_shipped'
   | 'qty_wip'
   | 'selected_vp_job'
-  | 'material_state'
-  | 'status'
+  | 'material_ready'
 type SortDir = 'asc' | 'desc'
 
 const sortKey = ref<SortKey | null>(null)
@@ -313,10 +305,6 @@ const sortedRows = computed(() => {
 const hasRows = computed(() => rows.value.length > 0)
 
 // ─── Row helpers ────────────────────────────────────────────────────
-function rowVpCandidates(row: WorkshopOrderOverviewRow): WorkshopOrderVpCandidate[] {
-  return row.vp_candidates ?? []
-}
-
 function selectedVpJob(row: WorkshopOrderOverviewRow): string | null {
   const manual = selectedVpByRow.value[row.row_id]
   if (manual) return manual
@@ -338,7 +326,13 @@ function rowOperations(row: WorkshopOrderOverviewRow) {
 }
 
 const operationColumns = computed(() => {
-  const maxColumns = sortedRows.value.reduce((acc, row) => Math.max(acc, rowOperations(row).length), 0)
+  let maxColumns = 0
+  for (const row of sortedRows.value) {
+    maxColumns = Math.max(maxColumns, rowOperations(row).length)
+    for (const vp of row.vp_candidates) {
+      maxColumns = Math.max(maxColumns, vp.operations.length)
+    }
+  }
   return Array.from({ length: maxColumns }, (_, index) => index + 1)
 })
 
@@ -356,11 +350,43 @@ function operationCellText(row: WorkshopOrderOverviewRow, columnIndex: number): 
   return op.wc || op.oper_num
 }
 
+function vpOpCellClass(vp: WorkshopOrderVpCandidate, columnIndex: number): string {
+  const op = vp.operations[columnIndex]
+  if (!op) return 'op-cell op-cell--empty'
+  if (op.status === 'done') return 'op-cell op-cell--done'
+  if (op.status === 'in_progress') return 'op-cell op-cell--progress'
+  return 'op-cell op-cell--idle'
+}
+
+function vpOpCellText(vp: WorkshopOrderVpCandidate, columnIndex: number): string {
+  const op = vp.operations[columnIndex]
+  if (!op) return ''
+  return op.wc || op.oper_num
+}
+
+// ─── Material columns (dynamic, like operations) ────────────────────
+const materialColumns = computed(() => {
+  const maxCols = sortedRows.value.reduce((acc, row) => Math.max(acc, (row.materials ?? []).length), 0)
+  return Array.from({ length: maxCols }, (_, i) => i + 1)
+})
+
+function materialCellClass(row: WorkshopOrderOverviewRow, columnIndex: number): string {
+  const mat = (row.materials ?? [])[columnIndex]
+  if (!mat) return 'mat-cell mat-cell--empty'
+  if (mat.status === 'done') return 'mat-cell mat-cell--done'
+  return 'mat-cell mat-cell--idle'
+}
+
+function materialCellText(row: WorkshopOrderOverviewRow, columnIndex: number): string {
+  const mat = (row.materials ?? [])[columnIndex]
+  if (!mat) return ''
+  return mat.material
+}
+
 function rowTierClass(row: WorkshopOrderOverviewRow): string {
   const tier = getRowTier(row)
   if (tier === 'hot') return 'row-hot'
   if (tier === 'urgent') return 'row-urgent'
-  if (tier === 'frozen') return 'row-frozen'
   return ''
 }
 
@@ -383,32 +409,23 @@ function cellValue(row: WorkshopOrderOverviewRow, colId: string): string {
     case 'qty_ordered': return formatNumber(row.qty_ordered, 0)
     case 'qty_shipped': return formatNumber(row.qty_shipped, 0)
     case 'qty_wip': return formatNumber(row.qty_wip, 0)
-    case 'material_state': return row.material_state ?? '\u2014'
-    case 'status': return row.status ?? '\u2014'
+    case 'material_ready': return row.material_ready ? '\u2713' : '\u2717'
     default: return '\u2014'
   }
 }
 
-// ─── Fetch ──────────────────────────────────────────────────────────
-async function fetchOrders(): Promise<void> {
-  loading.value = true
-  error.value = null
-  try {
-    rows.value = await workshopApi.getOrdersOverview({
-      due_from: (dueFrom.value ?? '').trim() || undefined,
-      due_to: (dueTo.value ?? '').trim() || undefined,
-      search: (searchFilter.value ?? '').trim() || undefined,
-      limit: 2000,
-    })
-  } catch (e: unknown) {
-    const detail = (
-      e as { response?: { data?: { detail?: unknown } } }
-    )?.response?.data?.detail
-    error.value = typeof detail === 'string' ? detail : 'Nepodařilo se načíst přehled zakázek'
-    rows.value = []
-  } finally {
-    loading.value = false
+// ─── Fetch (delegováno do storu — SWR) ──────────────────────────────
+function fetchOrdersOpts() {
+  return {
+    due_from: (dueFrom.value ?? '').trim() || undefined,
+    due_to: (dueTo.value ?? '').trim() || undefined,
+    search: (searchFilter.value ?? '').trim() || undefined,
+    limit: 2000,
   }
+}
+
+async function fetchOrders(): Promise<void> {
+  await workshopStore.fetchOrders(fetchOrdersOpts())
 }
 
 let fetchTimer: ReturnType<typeof setTimeout> | null = null
@@ -419,8 +436,23 @@ function debouncedFetch() {
 
 watch([dueFrom, dueTo], debouncedFetch)
 
+// ─── Auto-scroll to focused row from cross-tile ─────────────────
+const tableWrapRef = ref<HTMLElement | null>(null)
+
+watch(focusedVp, (job) => {
+  if (!job) return
+  void nextTick(() => {
+    const wrap = tableWrapRef.value
+    if (!wrap) return
+    const el = wrap.querySelector(`[data-vp-job="${job}"]`) as HTMLElement | null
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }
+  })
+})
+
 onMounted(() => {
-  void fetchOrders()
+  void workshopStore.fetchOrdersIfStale(fetchOrdersOpts(), 60000)
   document.addEventListener('click', onClickOutsideDropdown)
 })
 
@@ -504,7 +536,10 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <span class="badge" data-testid="orders-count">{{ sortedRows.length }} zakázek</span>
+      <span class="badge" data-testid="orders-count">
+        {{ sortedRows.length }} zakázek
+        <span v-if="workshopStore.ordersIsRevalidating" class="swr-dot" title="Obnovuji na pozadí…" />
+      </span>
 
       <button class="btn-secondary orders-overview__refresh" data-testid="orders-refresh" @click="fetchOrders">
         Obnovit
@@ -520,7 +555,7 @@ onBeforeUnmount(() => {
     <div v-else-if="!hasRows" class="orders-overview__state">
       Žádné zakázky pro zadaný filtr.
     </div>
-    <div v-else class="orders-overview__table-wrap">
+    <div v-else ref="tableWrapRef" class="orders-overview__table-wrap">
       <table class="orders-table">
         <thead>
           <tr>
@@ -555,13 +590,25 @@ onBeforeUnmount(() => {
             >
               {{ column }}
             </th>
+            <!-- Dynamic material columns -->
+            <th
+              v-for="column in materialColumns"
+              :key="`mat-col-${column}`"
+              class="mat-col"
+            >
+              Mat{{ column }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <template v-for="(row, idx) in sortedRows" :key="row.row_id">
             <tr
-              :class="[rowTierClass(row), { 'row-focused': isRowFocused(row), 'row-expandable': row.vp_candidates.length > 1, 'row-expanded': isRowExpanded(row) }]"
+              :class="[
+                rowTierClass(row),
+                { 'row-focused': isRowFocused(row), 'row-expandable': row.vp_candidates.length > 1, 'row-expanded': isRowExpanded(row) },
+              ]"
               :data-testid="`orders-row-${row.row_id}`"
+              :data-vp-job="selectedVpJob(row) ?? undefined"
               @click="onRowClick(row)"
             >
               <template v-for="col in visibleColumns" :key="`${row.row_id}-${col.id}`">
@@ -577,13 +624,20 @@ onBeforeUnmount(() => {
                   >{{ tierIcon(getRowTier(row)) }}</button>
                   <span v-else class="q-tier-na">&mdash;</span>
                 </td>
-                <!-- selected_vp_job -->
+                <!-- selected_vp_job / Multiple -->
                 <td v-else-if="col.id === 'selected_vp_job'" class="vp-cell">
-                  <span class="mono vp-job-label">
-                    <span v-if="row.vp_candidates.length > 1" class="vp-expand-icon">{{ isRowExpanded(row) ? '\u25BC' : '\u25B6' }}</span>
-                    {{ selectedVpJob(row) ?? '\u2014' }}
-                    <span v-if="row.vp_candidates.length > 1" class="vp-count-badge">{{ row.vp_candidates.length }}</span>
-                  </span>
+                  <template v-if="row.vp_candidates.length > 1">
+                    <span class="vp-multi-label" :class="{ 'vp-multi-label--open': isRowExpanded(row) }">
+                      <span class="vp-expand-icon">{{ isRowExpanded(row) ? '\u25BC' : '\u25B6' }}</span>
+                      Multiple
+                      <span class="vp-count-badge">{{ row.vp_candidates.length }}</span>
+                    </span>
+                  </template>
+                  <span v-else class="mono">{{ selectedVpJob(row) ?? '\u2014' }}</span>
+                </td>
+                <!-- material_ready -->
+                <td v-else-if="col.id === 'material_ready'" class="c" :class="row.material_ready ? 'mat-ready--yes' : 'mat-ready--no'">
+                  {{ row.material_ready ? '\u2713' : '\u2717' }}
                 </td>
                 <!-- generic cell -->
                 <td
@@ -604,6 +658,15 @@ onBeforeUnmount(() => {
               >
                 {{ operationCellText(row, column - 1) }}
               </td>
+              <!-- Dynamic material cells -->
+              <td
+                v-for="column in materialColumns"
+                :key="`${row.row_id}-mat-${column}`"
+                :class="materialCellClass(row, column - 1)"
+                :title="materialCellText(row, column - 1)"
+              >
+                {{ materialCellText(row, column - 1) }}
+              </td>
             </tr>
             <!-- Expanded VP sub-rows -->
             <tr
@@ -613,19 +676,29 @@ onBeforeUnmount(() => {
               :class="{ 'vp-sub-row--selected': selectedVpJob(row) === vp.job }"
               @click.stop="onVpSubRowClick(row, vp)"
             >
-              <td :colspan="visibleColumns.length + operationColumns.length" class="vp-sub-cell">
-                <span class="vp-sub-job mono">{{ vp.job }}<template v-if="vp.suffix && vp.suffix !== '0'">/{{ vp.suffix }}</template></span>
-                <span v-if="vp.item" class="vp-sub-item">{{ vp.item }}</span>
-                <span v-if="vp.customer_name" class="vp-sub-customer">{{ vp.customer_name }}</span>
-                <span v-if="vp.due_date" class="vp-sub-date">{{ formatDate(vp.due_date) }}</span>
-                <span v-if="vp.operations && vp.operations.length" class="vp-sub-ops">
-                  <span
-                    v-for="(op, opIdx) in vp.operations"
-                    :key="opIdx"
-                    :class="['vp-sub-op', op.status === 'done' ? 'vp-sub-op--done' : op.status === 'in_progress' ? 'vp-sub-op--progress' : '']"
-                  >{{ op.wc || op.oper_num }}</span>
-                </span>
+              <!-- VP info spanning static columns -->
+              <td :colspan="visibleColumns.length">
+                <div class="vp-sub-cell">
+                  <span class="vp-sub-job mono">{{ vp.job }}<template v-if="vp.suffix && vp.suffix !== '0'">/{{ vp.suffix }}</template></span>
+                  <span v-if="vp.job_stat" class="vp-sub-stat">{{ vp.job_stat }}</span>
+                  <span v-if="vp.qty_released != null" class="vp-sub-qty">{{ vp.qty_released }} ks</span>
+                  <span v-if="vp.due_date" class="vp-sub-date">{{ formatDate(vp.due_date) }}</span>
+                </div>
               </td>
+              <!-- Operation cells aligned with main row columns -->
+              <td
+                v-for="column in operationColumns"
+                :key="`${row.row_id}-vp-${vp.job}-op-${column}`"
+                :class="vpOpCellClass(vp, column - 1)"
+              >
+                {{ vpOpCellText(vp, column - 1) }}
+              </td>
+              <!-- Material cells (empty for sub-rows) -->
+              <td
+                v-for="column in materialColumns"
+                :key="`${row.row_id}-vp-${vp.job}-mat-${column}`"
+                class="mat-cell mat-cell--empty"
+              />
             </tr>
           </template>
         </tbody>
@@ -819,16 +892,21 @@ onBeforeUnmount(() => {
   max-width: 0;
 }
 
-/* ─── VP cell ───────────────────────────────────────────────────── */
+/* ─── VP cell + expand ──────────────────────────────────────────── */
 .vp-cell {
-  min-width: 130px;
-  max-width: 160px;
+  min-width: 100px;
 }
 
-.vp-job-label {
+.vp-multi-label {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  font-weight: 600;
+  color: var(--link-group-blue);
+  cursor: pointer;
+}
+.vp-multi-label--open {
+  color: var(--t1);
 }
 
 .vp-expand-icon {
@@ -853,7 +931,6 @@ onBeforeUnmount(() => {
   color: var(--link-group-blue);
 }
 
-/* ─── Expandable row indicator ─────────────────────────────────── */
 .row-expandable {
   cursor: pointer;
 }
@@ -877,8 +954,7 @@ onBeforeUnmount(() => {
 }
 
 .vp-sub-cell {
-  padding: 3px 8px 3px 32px !important;
-  border-bottom: 1px solid var(--b0, rgba(255,255,255,0.04));
+  padding: 3px 8px 3px 32px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -888,41 +964,22 @@ onBeforeUnmount(() => {
 .vp-sub-job {
   font-weight: 600;
   color: var(--t1);
-  min-width: 100px;
 }
-.vp-sub-item {
-  color: var(--t2);
-  font-weight: 500;
-}
-.vp-sub-customer {
+.vp-sub-stat {
+  font-size: 10px;
+  font-weight: 700;
   color: var(--t3);
+  padding: 0 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+}
+.vp-sub-qty {
+  color: var(--t2);
+  font-variant-numeric: tabular-nums;
 }
 .vp-sub-date {
   color: var(--t3);
   font-variant-numeric: tabular-nums;
-}
-.vp-sub-ops {
-  display: inline-flex;
-  gap: 2px;
-  margin-left: auto;
-}
-.vp-sub-op {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px 4px;
-  font-size: 10px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.06);
-  color: var(--t3);
-}
-.vp-sub-op--done {
-  background: rgba(52,211,153,0.15);
-  color: var(--ok);
-}
-.vp-sub-op--progress {
-  background: rgba(59,130,246,0.15);
-  color: var(--link-group-blue);
 }
 
 /* ─── Operation columns ─────────────────────────────────────────── */
@@ -953,6 +1010,42 @@ onBeforeUnmount(() => {
 
 .op-cell--empty {
   color: var(--t4);
+}
+
+/* ─── Material columns ─────────────────────────────────────────── */
+.mat-col {
+  width: 72px;
+  text-align: center;
+}
+
+.mat-cell {
+  text-align: center;
+  font-size: var(--fss);
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+}
+
+.mat-cell--done {
+  background: rgba(52,211,153,0.15);
+  color: var(--ok);
+}
+
+.mat-cell--idle {
+  background: transparent;
+}
+
+.mat-cell--empty {
+  color: var(--t4);
+}
+
+/* ─── Material ready column ────────────────────────────────────── */
+.orders-table td.mat-ready--yes {
+  color: var(--ok, #34d399);
+}
+.orders-table td.mat-ready--no {
+  color: var(--err, #f87171);
 }
 
 /* ─── Row number ────────────────────────────────────────────────── */
@@ -1002,13 +1095,6 @@ onBeforeUnmount(() => {
 .row-urgent.row-focused td {
   background: rgba(255,193,7,0.15);
 }
-.row-frozen td {
-  background: rgba(0,188,212,0.06);
-}
-.row-frozen.row-focused td {
-  background: rgba(0,188,212,0.12);
-}
-
 /* ─── Resize grip ───────────────────────────────────────────────── */
 .resize-grip {
   position: absolute;
@@ -1080,5 +1166,21 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   flex-shrink: 0;
   align-self: center;
+}
+
+/* ─── SWR revalidating indicator ───────────────────────────────── */
+.swr-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--link-group-blue, #3b82f6);
+  margin-left: 4px;
+  vertical-align: middle;
+  animation: swr-pulse 1.2s ease-in-out infinite;
+}
+@keyframes swr-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 </style>

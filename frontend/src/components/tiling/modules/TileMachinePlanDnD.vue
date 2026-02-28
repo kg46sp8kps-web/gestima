@@ -66,21 +66,19 @@ async function loadWcOptions() {
 // WC selection
 function onWcChange(wc: string) {
   if (wc) {
-    store.fetchPlan(wc)
+    store.fetchPlanIfStale(wc)
   }
 }
 
-// DnD end handler — mark moved item as frozen
+// DnD end handler — mark moved item with snowflake
 function onDragEnd(evt: { oldIndex?: number; newIndex?: number }) {
   const newOrder = [...store.plannedItems]
-  store.reorder(newOrder)
-
-  // Detect moved item and mark as frozen
+  // Mark the moved item
   const idx = evt.newIndex
   if (idx != null && idx >= 0 && idx < newOrder.length) {
-    const moved = newOrder[idx]!
-    store.markFrozen(moved)
+    store.markDndMoved(newOrder[idx]!)
   }
+  store.reorder(newOrder)
 }
 
 function onSelect(item: MachinePlanItem) {
@@ -166,6 +164,7 @@ onMounted(() => {
         <button class="mpd-btn-refresh" title="Obnovit" @click="refresh">
           <RefreshCw :size="ICON_SIZE_SM" />
         </button>
+        <span v-if="store.isRevalidating" class="swr-dot" title="Obnovuji na pozadí…" />
       </div>
 
       <!-- Loading -->
@@ -410,5 +409,20 @@ onMounted(() => {
   color: var(--t4);
   font-size: var(--fsm);
   flex: 1;
+}
+
+.swr-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--link-group-blue, #3b82f6);
+  margin-left: 4px;
+  vertical-align: middle;
+  animation: swr-pulse 1.2s ease-in-out infinite;
+}
+@keyframes swr-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 </style>

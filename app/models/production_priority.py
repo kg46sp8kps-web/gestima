@@ -51,4 +51,4 @@ class ProductionPriorityTierRequest(BaseModel):
     """Nastavit tier (hot/urgent/frozen/normal) na VP."""
     job: str = Field(..., min_length=1, max_length=30)
     suffix: str = Field("0", max_length=5)
-    tier: Literal['hot', 'urgent', 'frozen', 'normal']
+    tier: Literal['hot', 'urgent', 'normal']

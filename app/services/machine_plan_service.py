@@ -192,7 +192,9 @@ async def get_plan(
             else:
                 auto_released.append(merged)
         else:
-            unassigned.append(dict(row))
+            d = dict(row)
+            d["IsPositioned"] = False
+            unassigned.append(d)
 
     # 5. Stale DB entries (lokalni zaznam bez Infor protejsku)
     infor_keys = {_infor_row_key(r) for r in infor_rows}
@@ -207,11 +209,13 @@ async def get_plan(
     non_hot_auto: List[Dict[str, Any]] = []
 
     for r in positioned:
+        r["IsPositioned"] = True
         if r.get("IsHot"):
             hot_items.append(r)
         else:
             non_hot_positioned.append(r)
     for r in auto_released:
+        r["IsPositioned"] = False
         if r.get("IsHot"):
             hot_items.append(r)
         else:
