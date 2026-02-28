@@ -118,7 +118,7 @@ const SHAPE_LABELS: Record<StockShape, string> = {
   square_bar: 'Čtyřhran',
   flat_bar: 'Plochá ocel',
   hexagonal_bar: 'Šestihran',
-  plate: 'Plech',
+  plate: 'Deska',
   tube: 'Trubka',
   casting: 'Odlitek',
   forging: 'Výkovek',
@@ -665,7 +665,7 @@ async function doParse() {
   try {
     const pr = await materialInputsApi.parse(parseInput.value.trim())
     parseResult.value = pr
-    selectedItem.value = pr.suggested_material_items[0] ?? null
+    selectedItem.value = pr.suggested_material_items[0] ?? pr.alternative_material_items?.[0] ?? null
   } catch {
     ui.showError('Chyba při parsování')
   } finally {
@@ -897,7 +897,7 @@ onMounted(() => {
               <div class="hint-row"><span class="hint-pat">D20 1,4301 100</span><span class="hint-desc">kulatina ∅20, nerez, délka 100mm</span></div>
               <div class="hint-row"><span class="hint-pat">5083 D20 100</span><span class="hint-desc">hliník AW5083, kulatina ∅20, délka 100mm</span></div>
               <div class="hint-row"><span class="hint-pat">20,30 S235 500</span><span class="hint-desc">plochá ocel 20×30 (čárka místo x), délka 500mm</span></div>
-              <div class="hint-row"><span class="hint-pat">t3 1,4301 1000,1500</span><span class="hint-desc">plech 3mm, nerez, rozměr 1000×1500mm</span></div>
+              <div class="hint-row"><span class="hint-pat">t3 1,4301 1000,1500</span><span class="hint-desc">deska 3mm, nerez, rozměr 1000×1500mm</span></div>
               <div class="hint-row"><span class="hint-pat">D20/2 1,4301 100</span><span class="hint-desc">trubka ∅20/2, nerez, délka 100mm</span></div>
             </div>
 
@@ -912,6 +912,7 @@ onMounted(() => {
               <div v-for="w in parseResult.warnings" :key="w" class="pr-warning">{{ w }}</div>
 
               <div class="pr-items-list">
+                <!-- Exact matches -->
                 <button
                   v-for="it in parseResult.suggested_material_items"
                   :key="it.id"
@@ -923,10 +924,31 @@ onMounted(() => {
                   <span class="pr-item-opt-code">{{ it.code }}</span>
                 </button>
 
+                <!-- Alternativa heading -->
+                <div v-if="parseResult.alternative_material_items?.length" class="pr-alt-heading">
+                  Alternativa
+                </div>
+
+                <!-- Nearest-larger items -->
+                <button
+                  v-for="it in parseResult.alternative_material_items"
+                  :key="'alt-' + it.id"
+                  :class="['pr-item-opt pr-item-alt', { 'pr-item-selected': selectedItem?.id === it.id }]"
+                  :data-testid="`item-alt-${it.id}`"
+                  @click="selectedItem = it"
+                >
+                  <span class="pr-item-opt-name">{{ it.name }}</span>
+                  <span class="pr-item-opt-code">
+                    {{ it.code }}
+                    <span v-if="it.dimension_delta" class="pr-item-delta">{{ it.dimension_delta }}</span>
+                  </span>
+                </button>
+
+                <!-- Manual input -->
                 <button class="pr-item-opt pr-item-manual" data-testid="enter-manual-btn" @click="enterManualMode">
                   <span class="pr-item-opt-name">Zadat ručně</span>
                   <span class="pr-item-opt-code">
-                    {{ parseResult.suggested_material_items.length ? 'Bez katalogové položky' : 'Žádné katalogové položky — hodnoty předvyplněny' }}
+                    {{ parseResult.suggested_material_items.length || parseResult.alternative_material_items?.length ? 'Bez katalogové položky' : 'Žádné katalogové položky — hodnoty předvyplněny' }}
                   </span>
                 </button>
               </div>
@@ -1985,6 +2007,28 @@ input::selection {
   color: var(--t3);
 }
 
+.pr-alt-heading {
+  font-size: var(--fsm);
+  color: var(--t3);
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--b3);
+  margin-top: 4px;
+}
+.pr-item-alt {
+  border-style: dashed;
+  border-color: var(--b3);
+}
+.pr-item-alt:hover { border-color: var(--warn); }
+.pr-item-alt.pr-item-selected {
+  border-color: var(--warn);
+  border-style: solid;
+  background: color-mix(in srgb, var(--warn) 8%, var(--b1));
+}
+.pr-item-delta {
+  color: var(--warn);
+  font-weight: 500;
+  margin-left: 4px;
+}
 .pr-item-manual {
   border-style: dashed;
 }

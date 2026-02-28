@@ -9,7 +9,24 @@ export interface MaterialItemUomUpdate {
   version: number
 }
 
-export async function getItems(params?: { group_id?: number; skip?: number; limit?: number }): Promise<MaterialItemListResponse> {
+export interface MaterialItemListParams {
+  group_id?: number
+  skip?: number
+  limit?: number
+  search?: string
+  shape?: string
+  norm_query?: string
+  diameter_min?: number
+  diameter_max?: number
+  width_min?: number
+  width_max?: number
+  thickness_min?: number
+  thickness_max?: number
+  wall_thickness_min?: number
+  wall_thickness_max?: number
+}
+
+export async function getItems(params?: MaterialItemListParams): Promise<MaterialItemListResponse> {
   const { data } = await apiClient.get<MaterialItemListResponse>('/materials/items', { params })
   return data
 }

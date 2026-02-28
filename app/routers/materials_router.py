@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
@@ -418,16 +418,89 @@ async def delete_price_tier(
 @router.get("/items", response_model=MaterialItemListResponse)
 async def get_material_items(
     group_id: Optional[int] = None,
+    search: Optional[str] = None,
+    shape: Optional[str] = None,
+    norm_query: Optional[str] = None,
+    diameter_min: Optional[float] = None,
+    diameter_max: Optional[float] = None,
+    width_min: Optional[float] = None,
+    width_max: Optional[float] = None,
+    thickness_min: Optional[float] = None,
+    thickness_max: Optional[float] = None,
+    wall_thickness_min: Optional[float] = None,
+    wall_thickness_max: Optional[float] = None,
     skip: int = 0,
     limit: int = 200,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Seznam polotovarů (filtrovatelné dle skupiny, stránkování) — vrací { items, total }"""
+    """Seznam polotovarů (server-side filtrování, stránkování) — vrací { items, total }"""
     base_query = select(MaterialItem).where(MaterialItem.deleted_at.is_(None))
 
     if group_id:
         base_query = base_query.where(MaterialItem.material_group_id == group_id)
+
+    # Text search — ILIKE přes material_number, name, code, norms
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        base_query = base_query.where(
+            (MaterialItem.material_number.ilike(term)) |
+            (MaterialItem.name.ilike(term)) |
+            (MaterialItem.code.ilike(term)) |
+            (MaterialItem.norms.ilike(term))
+        )
+
+    # Shape filter
+    if shape:
+        base_query = base_query.where(MaterialItem.shape == shape)
+
+    # Norm cross-search — přeloží normu (EN/AISI/ČSN) na W.Nr/ČSN a hledá v code/name
+    if norm_query and norm_query.strip():
+        from app.services.material_mapping import search_norms
+        nq = norm_query.strip()
+
+        # 1) Přímý match v code/name (pokud uživatel zadal W.Nr nebo ČSN přímo)
+        direct_term = f"%{nq}%"
+        direct_filter = (
+            MaterialItem.code.ilike(direct_term) |
+            MaterialItem.name.ilike(direct_term)
+        )
+
+        # 2) Cross-lookup přes MaterialNorm → sesbírej W.Nr a ČSN aliasy
+        norms = await search_norms(db, nq)
+        alias_terms = set()
+        for n in norms:
+            if n.w_nr:
+                alias_terms.add(n.w_nr)
+            if n.csn:
+                alias_terms.add(n.csn)
+
+        if alias_terms:
+            alias_filters = [
+                MaterialItem.code.ilike(f"%{t}%") | MaterialItem.name.ilike(f"%{t}%")
+                for t in alias_terms
+            ]
+            base_query = base_query.where(or_(direct_filter, *alias_filters))
+        else:
+            base_query = base_query.where(direct_filter)
+
+    # Dimension filters
+    if diameter_min is not None:
+        base_query = base_query.where(MaterialItem.diameter >= diameter_min)
+    if diameter_max is not None:
+        base_query = base_query.where(MaterialItem.diameter <= diameter_max)
+    if width_min is not None:
+        base_query = base_query.where(MaterialItem.width >= width_min)
+    if width_max is not None:
+        base_query = base_query.where(MaterialItem.width <= width_max)
+    if thickness_min is not None:
+        base_query = base_query.where(MaterialItem.thickness >= thickness_min)
+    if thickness_max is not None:
+        base_query = base_query.where(MaterialItem.thickness <= thickness_max)
+    if wall_thickness_min is not None:
+        base_query = base_query.where(MaterialItem.wall_thickness >= wall_thickness_min)
+    if wall_thickness_max is not None:
+        base_query = base_query.where(MaterialItem.wall_thickness <= wall_thickness_max)
 
     # Total count
     count_result = await db.execute(select(func.count()).select_from(base_query.subquery()))
@@ -586,7 +659,7 @@ async def parse_material_description(
     - D20 1.4301 100mm → kulatina D20, nerez 1.4301, délka 100
     - 20x20 C45 500 → čtyřhran 20x20, ocel C45, délka 500
     - 20x30 S235 500 → profil 20x30, ocel S235, délka 500
-    - t2 1.4301 1000x2000 → plech 2mm, nerez 1.4301
+    - t2 1.4301 1000x2000 → deska 2mm, nerez 1.4301
     - D20x2 1.4301 100 → trubka D20 tl.2mm, nerez, délka 100
     - ⬡24 CuZn37 150 → šestihran 24mm, mosaz, délka 150
 

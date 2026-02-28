@@ -38,45 +38,95 @@ const SHAPE_LABELS: Record<string, string> = {
   square_bar:    'Čtyřhran',
   flat_bar:      'Plochá ocel',
   hexagonal_bar: 'Šestihran',
-  plate:         'Plech',
+  plate:         'Deska',
   tube:          'Trubka',
   casting:       'Odlitek',
   forging:       'Výkovek',
 }
 
-// ─── Search — server-side pro parts, client-side filter pro materials ───
+// ─── Material filters ───
+const matShapeFilter = ref('')
+const matNormQuery = ref('')
+
+// Rozměrové filtry — per-dimension refs
+const dimDiaMin = ref(''); const dimDiaMax = ref('')
+const dimWidthMin = ref(''); const dimWidthMax = ref('')
+const dimThkMin = ref(''); const dimThkMax = ref('')
+const dimWallMin = ref(''); const dimWallMax = ref('')
+
+// Které rozměry zobrazit per shape
+interface DimField { key: string; label: string; minRef: ReturnType<typeof ref<string>>; maxRef: ReturnType<typeof ref<string>> }
+const shapeDims = computed<DimField[]>(() => {
+  const sh = matShapeFilter.value
+  if (sh === 'round_bar')     return [{ key: 'dia', label: 'Průměr', minRef: dimDiaMin, maxRef: dimDiaMax }]
+  if (sh === 'hexagonal_bar') return [{ key: 'width', label: 'Šířka SW', minRef: dimWidthMin, maxRef: dimWidthMax }]
+  if (sh === 'square_bar')    return [{ key: 'width', label: 'Strana', minRef: dimWidthMin, maxRef: dimWidthMax }, { key: 'thk', label: 'Tloušťka', minRef: dimThkMin, maxRef: dimThkMax }]
+  if (sh === 'flat_bar')      return [{ key: 'width', label: 'Šířka', minRef: dimWidthMin, maxRef: dimWidthMax }, { key: 'thk', label: 'Tloušťka', minRef: dimThkMin, maxRef: dimThkMax }]
+  if (sh === 'plate')         return [{ key: 'width', label: 'Šířka', minRef: dimWidthMin, maxRef: dimWidthMax }, { key: 'thk', label: 'Tloušťka', minRef: dimThkMin, maxRef: dimThkMax }]
+  if (sh === 'tube')          return [{ key: 'dia', label: 'Průměr', minRef: dimDiaMin, maxRef: dimDiaMax }, { key: 'wall', label: 'Stěna', minRef: dimWallMin, maxRef: dimWallMax }]
+  return []
+})
+
+// ─── Search — server-side pro parts, pro materials přes matItems.search ───
 let searchTimer: ReturnType<typeof setTimeout>
 watch(searchVal, (val) => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
     parts.search = val
     void parts.fetchParts(true)
+    matItems.search = val
+    void matItems.fetchItems(true)
   }, 300)
 })
 
 // ─── Status filter watcher ───
 watch(() => parts.statusFilter, () => void parts.fetchParts(true))
 
-// ─── Filtered materials (client-side) ───
-const filteredMaterials = computed(() => {
-  const q = searchVal.value.toLowerCase().trim()
-  if (!q) return matItems.items
-  return matItems.items.filter((m) =>
-    m.material_number.toLowerCase().includes(q) ||
-    m.name.toLowerCase().includes(q) ||
-    m.code.toLowerCase().includes(q),
-  )
+// ─── Material filter watchers — sjednocený debounce ───
+let matFilterTimer: ReturnType<typeof setTimeout>
+
+function parseNum(v: string): number | undefined {
+  const n = parseFloat(v)
+  return Number.isFinite(n) ? n : undefined
+}
+
+function syncMatFiltersAndFetch() {
+  clearTimeout(matFilterTimer)
+  matFilterTimer = setTimeout(() => {
+    matItems.shapeFilter = matShapeFilter.value
+    matItems.normQuery = matNormQuery.value
+    matItems.diameterMin = parseNum(dimDiaMin.value)
+    matItems.diameterMax = parseNum(dimDiaMax.value)
+    matItems.widthMin = parseNum(dimWidthMin.value)
+    matItems.widthMax = parseNum(dimWidthMax.value)
+    matItems.thicknessMin = parseNum(dimThkMin.value)
+    matItems.thicknessMax = parseNum(dimThkMax.value)
+    matItems.wallThicknessMin = parseNum(dimWallMin.value)
+    matItems.wallThicknessMax = parseNum(dimWallMax.value)
+    void matItems.fetchItems(true)
+  }, 250)
+}
+
+// Při změně tvaru vyčistit rozměry
+watch(matShapeFilter, () => {
+  dimDiaMin.value = ''; dimDiaMax.value = ''
+  dimWidthMin.value = ''; dimWidthMax.value = ''
+  dimThkMin.value = ''; dimThkMax.value = ''
+  dimWallMin.value = ''; dimWallMax.value = ''
+  syncMatFiltersAndFetch()
 })
+watch(matNormQuery, syncMatFiltersAndFetch)
+watch([dimDiaMin, dimDiaMax, dimWidthMin, dimWidthMax, dimThkMin, dimThkMax, dimWallMin, dimWallMax], syncMatFiltersAndFetch)
 
 // ─── Unified display list ───
 const displayItems = computed<ListItem[]>(() => {
   if (typeFilter.value === 'parts')
     return parts.items.map((p) => ({ kind: 'part' as const, data: p }))
   if (typeFilter.value === 'materials')
-    return filteredMaterials.value.map((m) => ({ kind: 'material' as const, data: m }))
+    return matItems.items.map((m) => ({ kind: 'material' as const, data: m }))
   return [
     ...parts.items.map((p) => ({ kind: 'part' as const, data: p })),
-    ...filteredMaterials.value.map((m) => ({ kind: 'material' as const, data: m })),
+    ...matItems.items.map((m) => ({ kind: 'material' as const, data: m })),
   ]
 })
 
@@ -129,8 +179,7 @@ function dotClass(status: string): string {
 
 function onRefresh() {
   void parts.fetchParts(true)
-  matItems.loaded = false
-  void matItems.fetchItems()
+  void matItems.fetchItems(true)
 }
 
 // ─── Lifecycle ───
@@ -146,6 +195,9 @@ onMounted(async () => {
 onUnmounted(() => {
   searchVal.value = ''
   parts.search = ''
+  matItems.search = ''
+  matItems.shapeFilter = ''
+  matItems.normQuery = ''
   typeFilter.value = 'all'
 })
 </script>
@@ -167,7 +219,7 @@ onUnmounted(() => {
           v-if="searchVal"
           class="icon-btn srch-clr"
           data-testid="parts-search-clear"
-          @click="searchVal = ''; parts.search = ''; void parts.fetchParts(true)"
+          @click="searchVal = ''; parts.search = ''; matItems.search = ''; void parts.fetchParts(true); void matItems.fetchItems(true)"
         >×</button>
       </div>
       <button class="icon-btn icon-btn-sm" title="Obnovit" data-testid="parts-refresh" @click="onRefresh">
@@ -196,6 +248,28 @@ onUnmounted(() => {
       <button :class="['ptab', parts.statusFilter === 'active' ? 'on' : '']" data-testid="filter-active" @click="parts.statusFilter = 'active' as PartStatus">Aktivní</button>
       <button :class="['ptab', parts.statusFilter === 'draft' ? 'on' : '']" data-testid="filter-draft" @click="parts.statusFilter = 'draft' as PartStatus">Rozpr.</button>
       <button :class="['ptab', parts.statusFilter === 'archived' ? 'on' : '']" data-testid="filter-archived" @click="parts.statusFilter = 'archived' as PartStatus">Arch.</button>
+    </div>
+
+    <!-- Material filters (pouze při zobrazení polotovarů) -->
+    <div v-if="typeFilter === 'materials'" class="mat-filters">
+      <select v-model="matShapeFilter" class="mat-sel" data-testid="mat-shape-filter">
+        <option value="">Tvar: Vše</option>
+        <option v-for="(label, key) in SHAPE_LABELS" :key="key" :value="key">{{ label }}</option>
+      </select>
+      <input
+        v-model="matNormQuery"
+        class="mat-inp"
+        placeholder="Norma (W.Nr/EN/ČSN)"
+        data-testid="mat-norm-input"
+      />
+      <template v-for="dim in shapeDims" :key="dim.key">
+        <div class="dim-range">
+          <span class="dim-lbl">{{ dim.label }}:</span>
+          <input v-model="dim.minRef.value" class="dim-inp" type="number" placeholder="od" :data-testid="`mat-${dim.key}-min`" />
+          <span class="dim-sep">–</span>
+          <input v-model="dim.maxRef.value" class="dim-inp" type="number" placeholder="do" :data-testid="`mat-${dim.key}-max`" />
+        </div>
+      </template>
     </div>
 
     <!-- První načítání — spinner blokující -->
@@ -334,6 +408,70 @@ onUnmounted(() => {
   background: var(--b1);
   border-radius: var(--rs);
 }
+
+/* ─── Material filters ─── */
+.mat-filters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px var(--pad);
+  border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.mat-sel {
+  font-size: var(--fsm);
+  font-family: var(--font);
+  padding: 2px 4px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  background: var(--bg);
+  color: var(--t2);
+  max-width: 120px;
+}
+.mat-inp {
+  font-size: var(--fsm);
+  font-family: var(--font);
+  padding: 2px 6px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  background: var(--bg);
+  color: var(--t2);
+  flex: 1;
+  min-width: 80px;
+  max-width: 140px;
+}
+.dim-range {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.dim-lbl {
+  font-size: var(--fsm);
+  color: var(--t4);
+  white-space: nowrap;
+}
+.dim-inp {
+  font-size: var(--fsm);
+  font-family: var(--font);
+  padding: 2px 4px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  background: var(--bg);
+  color: var(--t2);
+  width: 48px;
+}
+.dim-sep {
+  font-size: var(--fsm);
+  color: var(--t4);
+}
+/* Remove number input spinners */
+.dim-inp::-webkit-inner-spin-button,
+.dim-inp::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dim-inp[type="number"] { -moz-appearance: textfield; }
 
 /* ─── States ─── */
 .plist-state {

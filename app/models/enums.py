@@ -29,7 +29,7 @@ class StockType(str, Enum):
     TUBE = "trubka"
     BILLET = "prizez"
     CASTING = "odlitek"
-    SHEET = "plech"
+    SHEET = "deska"
 
 
 class StockShape(str, Enum):
@@ -38,7 +38,7 @@ class StockShape(str, Enum):
     SQUARE_BAR = "square_bar"     # Tyč čtvercová
     FLAT_BAR = "flat_bar"         # Tyč plochá
     HEXAGONAL_BAR = "hexagonal_bar"  # Tyč šestihranná
-    PLATE = "plate"               # Plech
+    PLATE = "plate"               # Deska
     TUBE = "tube"                 # Trubka
     CASTING = "casting"           # Odlitek
     FORGING = "forging"           # Výkovek

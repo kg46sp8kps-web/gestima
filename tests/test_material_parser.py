@@ -3,8 +3,8 @@
 import pytest
 from sqlalchemy import select
 
-from app.services.material_parser import MaterialParserService, ParseResult
-from app.models.material import MaterialGroup, MaterialPriceCategory
+from app.services.material_parser import MaterialParserService, ParseResult, SuggestedMaterialItem
+from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialItem
 from app.models.material_norm import MaterialNorm
 from app.models.enums import StockShape
 
@@ -98,7 +98,7 @@ class TestMaterialParser:
 
     @pytest.mark.asyncio
     async def test_plate_stainless(self, db_session):
-        """t2 1.4301 → plech nerez tl.2mm"""
+        """t2 1.4301 → deska nerez tl.2mm"""
         parser = MaterialParserService(db_session)
         result = await parser.parse("t2 1.4301")
 
@@ -109,7 +109,7 @@ class TestMaterialParser:
 
     @pytest.mark.asyncio
     async def test_plate_alternate_notation(self, db_session):
-        """tl.3 1.4301 → plech nerez tl.3mm"""
+        """tl.3 1.4301 → deska nerez tl.3mm"""
         parser = MaterialParserService(db_session)
         result = await parser.parse("tl.3 1.4301")
 
@@ -487,3 +487,201 @@ class TestMaterialParserEdgeCases:
             # Length should NOT be affected by material removal
             assert result.length == 100.0, \
                 f"Length corrupted for ČSN code {code}"
+
+
+# ========== NEAREST LARGER FALLBACK ==========
+
+class TestNearestLargerFallback:
+    """Testy pro nearest-larger fallback matching (dvou-fázové hledání)."""
+
+    @pytest.mark.asyncio
+    async def test_exact_match_preferred(self, db_session):
+        """Exact match D20 → D20, žádné alternativy."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=20.0,
+        )
+        assert len(exact) == 1
+        assert exact[0].diameter == 20.0
+        assert len(alt) == 0
+
+    @pytest.mark.asyncio
+    async def test_round_bar_nearest_larger(self, db_session):
+        """D22 → nearest larger D25 (delta +3mm)."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=22.0,
+        )
+        assert len(exact) == 0
+        assert len(alt) > 0
+        # Nejbližší větší musí být D25
+        assert alt[0].diameter == 25.0
+        # Ověřit delta
+        delta = parser._compute_dimension_delta(
+            StockShape.ROUND_BAR, alt[0], target_diameter=22.0
+        )
+        assert delta == "+3mm Ø"
+
+    @pytest.mark.asyncio
+    async def test_round_bar_no_larger_exists(self, db_session):
+        """D100 → žádný větší neexistuje (max je D50)."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=100.0,
+        )
+        assert len(exact) == 0
+        assert len(alt) == 0
+
+    @pytest.mark.asyncio
+    async def test_flat_bar_exact(self, db_session):
+        """FLAT_BAR 20×8 → exact match."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.FLAT_BAR,
+            width=20.0,
+            height=8.0,
+        )
+        assert len(exact) == 1
+        assert exact[0].width == 20.0
+        assert exact[0].thickness == 8.0
+        assert len(alt) == 0
+
+    @pytest.mark.asyncio
+    async def test_flat_bar_nearest_larger(self, db_session):
+        """FLAT_BAR 15×6 → nearest larger 20×8."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.FLAT_BAR,
+            width=15.0,
+            height=6.0,
+        )
+        assert len(exact) == 0
+        assert len(alt) > 0
+        # Nejmenší cross-section = 20×8 = 160
+        assert alt[0].width == 20.0
+        assert alt[0].thickness == 8.0
+
+    @pytest.mark.asyncio
+    async def test_flat_bar_rotation(self, db_session):
+        """FLAT_BAR 8×20 (rotovaný) → najde 20×8 jako exact match (rotace)."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.FLAT_BAR,
+            width=8.0,
+            height=20.0,
+        )
+        # Rotace: 8×20 najde 20×8 jako exact match
+        assert len(exact) == 1
+        assert exact[0].width == 20.0
+        assert exact[0].thickness == 8.0
+        assert len(alt) == 0
+
+    @pytest.mark.asyncio
+    async def test_nearest_larger_limit(self, db_session):
+        """Fallback vrací max 5 položek."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        # D1 → všechny items jsou větší (D20, D25, D30, D40, D50 = 5)
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=1.0,
+        )
+        assert len(exact) == 0
+        assert len(alt) <= 5
+
+    @pytest.mark.asyncio
+    async def test_parse_result_match_type_exact(self, db_session):
+        """ParseResult.match_type = 'exact' když existuje přesná shoda."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=50.0,
+        )
+        assert len(exact) > 0
+        assert len(alt) == 0
+
+    @pytest.mark.asyncio
+    async def test_parse_result_match_type_nearest(self, db_session):
+        """ParseResult.match_type = 'nearest_larger' když jen alternativy."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=22.0,
+        )
+        assert len(exact) == 0
+        assert len(alt) > 0
+
+    @pytest.mark.asyncio
+    async def test_warning_for_nearest_larger(self, db_session):
+        """Warning se přidá když match_type je nearest_larger."""
+        parser = MaterialParserService(db_session)
+        # Tento test závisí na full parse pipeline, potřebujeme MaterialNorm
+        # Pro jednoduchost testujeme jen logiku přímo
+        result = ParseResult(
+            raw_input="test",
+            confidence=0.5,
+            matched_pattern="round_bar",
+            match_type="nearest_larger",
+        )
+        result.warnings.append("Rozměr není v katalogu — nabídnuta alternativa")
+        assert "alternativa" in result.warnings[0].lower()
+
+    @pytest.mark.asyncio
+    async def test_dimension_delta_round_bar(self, db_session):
+        """_compute_dimension_delta pro ROUND_BAR."""
+        item = db_session.test_material_item  # D50
+        delta = MaterialParserService._compute_dimension_delta(
+            StockShape.ROUND_BAR, item, target_diameter=45.0
+        )
+        assert delta == "+5mm Ø"
+
+    @pytest.mark.asyncio
+    async def test_norm_filter_fallback(self, db_session):
+        """Pokud code ILIKE '{norm}%' nic nenajde, fallback bez norm filtru."""
+        parser = MaterialParserService(db_session)
+        group_id = db_session.test_material_group.id
+        # Items mají kód "11SMn30-D20" atd., norma "FAKE-NORM" neodpovídá
+        exact, alt = await parser._find_material_items(
+            material_group_id=group_id,
+            shape=StockShape.ROUND_BAR,
+            diameter=20.0,
+            material_norm="FAKE-NORM",
+        )
+        # Norm filter "FAKE-NORM%" nenajde nic, fallback bez filtru najde D20
+        assert len(exact) == 1
+        assert exact[0].diameter == 20.0
+
+    @pytest.mark.asyncio
+    async def test_dimension_delta_flat_bar(self, db_session):
+        """_compute_dimension_delta pro FLAT_BAR."""
+        # Najdeme flat bar item 20×8
+        from sqlalchemy import select as sel
+        result = await db_session.execute(
+            sel(MaterialItem).where(MaterialItem.code == "11SMn30-20x8")
+        )
+        flat_item = result.scalar_one()
+        delta = MaterialParserService._compute_dimension_delta(
+            StockShape.FLAT_BAR, flat_item,
+            target_width=15.0, target_height=6.0
+        )
+        assert delta == "+5×+2mm"

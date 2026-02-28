@@ -223,7 +223,7 @@ async def calculate_stock_cost_from_part(
             volume_mm3 = area * stock_length
 
     elif stock_shape == StockShape.PLATE:
-        # Plech: šířka × výška × tloušťka stěny (H-1 fix: stock_wall_thickness, ne stock_length)
+        # Deska: šířka × výška × tloušťka stěny (H-1 fix: stock_wall_thickness, ne stock_length)
         if stock_width > 0 and stock_height > 0 and stock_wall_thickness > 0:
             volume_mm3 = stock_width * stock_height * stock_wall_thickness
 
@@ -816,7 +816,7 @@ async def calculate_stock_cost_from_material_input(
             volume_mm3 = area * stock_length
 
     elif stock_shape == StockShape.PLATE:
-        # Plech: šířka × výška × tloušťka stěny (H-1 fix: stock_wall_thickness, ne stock_length)
+        # Deska: šířka × výška × tloušťka stěny (H-1 fix: stock_wall_thickness, ne stock_length)
         if stock_width > 0 and stock_height > 0 and stock_wall_thickness > 0:
             volume_mm3 = stock_width * stock_height * stock_wall_thickness
 

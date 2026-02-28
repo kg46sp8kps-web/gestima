@@ -82,7 +82,7 @@ const SHAPE_LABELS: Record<string, string> = {
   square_bar:    'Čtyřhran',
   flat_bar:      'Plochá ocel',
   hexagonal_bar: 'Šestihran',
-  plate:         'Plech',
+  plate:         'Deska',
   tube:          'Trubka',
   casting:       'Odlitek',
   forging:       'Výkovek',

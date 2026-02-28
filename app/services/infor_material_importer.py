@@ -48,6 +48,7 @@ SHAPE_PATTERNS = {
         r"hex",
     ],
     StockShape.PLATE: [
+        r"deska",
         r"plech",
         r"plate",
         r"t\s*\d+",
@@ -155,7 +156,7 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
         - KR = ROUND_BAR (kulatina)
         - HR = SQUARE_BAR or FLAT_BAR (based on dimensions)
         - OK = HEXAGONAL_BAR (šestihran)
-        - DE = PLATE (deska/plech)
+        - DE = PLATE (deska)
         - TR = TUBE (trubka)
         """
         if not item_code:
@@ -639,7 +640,7 @@ class MaterialImporter(InforImporterBase[MaterialItem]):
             StockShape.SQUARE_BAR: ["čtvercov", "square"],
             StockShape.FLAT_BAR: ["ploch", "flat"],
             StockShape.HEXAGONAL_BAR: ["šestihr", "hex"],
-            StockShape.PLATE: ["plech", "plate", "deska"],
+            StockShape.PLATE: ["deska", "plech", "plate"],
             StockShape.TUBE: ["trubka", "tube"],
         }
 

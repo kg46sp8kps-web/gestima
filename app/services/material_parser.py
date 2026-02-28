@@ -1,7 +1,7 @@
 """GESTIMA - Material Parser Service (Fáze 1: Regex-based parsing)
 
 Parsuje materiálové popisy typu "D20 1.4301 100mm" a rozpozná:
-- Tvar polotovaru (kulatina, čtyřhran, profil, plech, trubka)
+- Tvar polotovaru (kulatina, čtyřhran, profil, deska, trubka)
 - Rozměry (průměr, šířka, výška, tloušťka)
 - Materiálovou normu (1.4301, C45, S235, EN AW-6060, atd.)
 - Délku polotovaru
@@ -14,7 +14,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, and_
 
 from app.models.enums import StockShape
 from app.models.material import MaterialGroup, MaterialPriceCategory, MaterialItem, MaterialPriceTier
@@ -28,6 +28,8 @@ class SuggestedMaterialItem(BaseModel):
     id: int
     code: str
     name: str
+    match_type: str = "exact"                    # "exact" | "nearest_larger"
+    dimension_delta: Optional[str] = None        # "+5mm Ø", "+10×+5mm"
 
 
 class ParseResult(BaseModel):
@@ -68,6 +70,10 @@ class ParseResult(BaseModel):
     # Všichni kandidáti (pokud je jich více se stejnými rozměry — různé povrchy/tolerance)
     suggested_material_items: List[SuggestedMaterialItem] = Field(default_factory=list)
 
+    # Alternativní kandidáti (nearest_larger fallback)
+    match_type: str = "none"                     # "exact" | "nearest_larger" | "none"
+    alternative_material_items: List[SuggestedMaterialItem] = Field(default_factory=list)
+
     # Meta
     confidence: float = Field(..., ge=0.0, le=1.0)
     matched_pattern: str  # Pro debugging
@@ -83,7 +89,7 @@ class MaterialParserService:
     - Ø20 1.4301 L=100           (alternativní zápis)
     - 20x20 C45 500              (čtyřhran 20x20, ocel C45, délka 500)
     - 20x30 S235 500             (profil 20x30, ocel, délka 500)
-    - t2 1.4301 1000x2000        (plech tloušťka 2mm, nerez)
+    - t2 1.4301 1000x2000        (deska tloušťka 2mm, nerez)
     - D20x2 1.4301 100           (trubka průměr 20, tloušťka stěny 2)
     - ⬡24 CuZn37 150             (šestihran 24mm, mosaz)
     """
@@ -145,7 +151,7 @@ class MaterialParserService:
             }
         },
 
-        # 6. PLECH: t2 nebo tl.2 nebo thickness=2
+        # 6. DESKA: t2 nebo tl.2 nebo thickness=2
         {
             "name": "plate",
             "regex": r"(?:t|tl\.?|thickness[=:]?)\s*(\d+(?:\.\d+)?)",
@@ -259,9 +265,11 @@ class MaterialParserService:
             result.confidence += 0.4
 
         # 2. Detect material norm
+        original_norm: Optional[str] = None  # Pre-normalizační norma (pro fallback item search)
         material_match = await self._extract_material(normalized)
         if material_match:
             result.material_norm = material_match["norm"]
+            original_norm = material_match["norm"].upper()
             result.material_category = material_match["category"]
             result.confidence += 0.3
 
@@ -347,6 +355,39 @@ class MaterialParserService:
                 tier = tier_result.scalar_one_or_none()
                 if tier:
                     result.suggested_price_per_kg = tier.price_per_kg
+            # 4a. FLAT_BAR → PLATE re-interpretace
+            # Pokud materiál nemá FLAT_BAR ale má PLATE, vstup "20,30 100"
+            # znamená desku: tloušťka=20, přířez 30×100
+            if not price_cat and result.shape == StockShape.FLAT_BAR:
+                plate_cat = await self._find_price_category(
+                    material_group_id=result.suggested_material_group_id,
+                    shape=StockShape.PLATE
+                )
+                if plate_cat:
+                    # Re-interpret: FLAT_BAR 20×30 L=100 → PLATE t=20, přířez 30×100
+                    result.shape = StockShape.PLATE
+                    result.thickness = result.width   # první číslo = tloušťka desky
+                    result.width = result.height      # druhé číslo = šířka přířezu
+                    result.height = result.length     # třetí číslo = délka/výška přířezu
+                    result.length = None
+                    price_cat = plate_cat
+
+            if price_cat:
+                result.suggested_price_category_id = price_cat.id
+                result.suggested_price_category_code = price_cat.code
+                result.suggested_price_category_name = price_cat.name
+                result.confidence += 0.05
+
+                # Load first tier (cheapest) as baseline price
+                tier_result = await self.db.execute(
+                    select(MaterialPriceTier)
+                    .where(MaterialPriceTier.price_category_id == price_cat.id)
+                    .order_by(MaterialPriceTier.min_weight)
+                    .limit(1)
+                )
+                tier = tier_result.scalar_one_or_none()
+                if tier:
+                    result.suggested_price_per_kg = tier.price_per_kg
             else:
                 # WARNING: Nenalezena cenová kategorie pro tento materiál + tvar
                 shape_label = {
@@ -354,7 +395,7 @@ class MaterialParserService:
                     StockShape.SQUARE_BAR: "tyč čtvercová",
                     StockShape.FLAT_BAR: "tyč plochá",
                     StockShape.HEXAGONAL_BAR: "tyč šestihranná",
-                    StockShape.PLATE: "plech/deska",
+                    StockShape.PLATE: "deska",
                     StockShape.TUBE: "trubka",
                     StockShape.CASTING: "odlitek",
                     StockShape.FORGING: "výkovek"
@@ -365,28 +406,32 @@ class MaterialParserService:
 
         # 5. Find MaterialItems (pokud máme group + shape + rozměry)
         if result.suggested_material_group_id and result.shape:
-            items = await self._find_material_items(
+            # Pro PLATE: width/height jsou rozměry přířezu, ne katalogové dimenze
+            search_width = None if result.shape == StockShape.PLATE else result.width
+            search_height = None if result.shape == StockShape.PLATE else result.height
+            exact_items, alt_items = await self._find_material_items(
                 material_group_id=result.suggested_material_group_id,
                 shape=result.shape,
                 diameter=result.diameter,
-                width=result.width,
-                height=result.height,
+                width=search_width,
+                height=search_height,
                 thickness=result.thickness,
                 wall_thickness=result.wall_thickness,
                 material_norm=result.material_norm,
+                original_norm=original_norm,
             )
-            if items:
-                # Naplnit seznam všech kandidátů
+
+            if exact_items:
+                result.match_type = "exact"
                 result.suggested_material_items = [
-                    SuggestedMaterialItem(id=i.id, code=i.code, name=i.name)
-                    for i in items
+                    SuggestedMaterialItem(id=i.id, code=i.code, name=i.name, match_type="exact")
+                    for i in exact_items
                 ]
-                # Primární = první (setříděno dle code v _find_material_items)
-                item = items[0]
+                # Primární = první (setříděno dle code)
+                item = exact_items[0]
                 result.suggested_material_item_id = item.id
                 result.suggested_material_item_code = item.code
                 result.suggested_material_item_name = item.name
-                # MaterialItem má FK na PriceCategory - reload full category + tier
                 result.suggested_price_category_id = item.price_category_id
 
                 # Reload price category with name
@@ -399,7 +444,6 @@ class MaterialParserService:
                     result.suggested_price_category_code = price_cat.code
                     result.suggested_price_category_name = price_cat.name
 
-                    # Load first tier for price
                     tier_result = await self.db.execute(
                         select(MaterialPriceTier)
                         .where(MaterialPriceTier.price_category_id == price_cat.id)
@@ -410,14 +454,33 @@ class MaterialParserService:
                     if tier:
                         result.suggested_price_per_kg = tier.price_per_kg
 
-                    # Clear stale "category not found" warning from step 4
-                    # — MaterialItem resolved the price category successfully
                     result.warnings = [
                         w for w in result.warnings
                         if "cenová kategorie" not in w.lower()
                     ]
 
                 result.confidence += 0.05
+
+            if alt_items:
+                result.alternative_material_items = [
+                    SuggestedMaterialItem(
+                        id=i.id, code=i.code, name=i.name,
+                        match_type="nearest_larger",
+                        dimension_delta=self._compute_dimension_delta(
+                            result.shape, i,
+                            target_diameter=result.diameter,
+                            target_width=result.width,
+                            target_height=result.height,
+                            target_thickness=result.thickness,
+                            target_wall_thickness=result.wall_thickness,
+                        )
+                    )
+                    for i in alt_items
+                ]
+                if not exact_items:
+                    result.match_type = "nearest_larger"
+                    result.confidence += 0.02
+                    result.warnings.append("Rozměr není v katalogu — nabídnuta alternativa")
 
         return result
 
@@ -742,51 +805,83 @@ class MaterialParserService:
         thickness: Optional[float] = None,
         wall_thickness: Optional[float] = None,
         material_norm: Optional[str] = None,
+        original_norm: Optional[str] = None,
+    ) -> tuple:
+        """
+        Dvou-fázové hledání katalogových položek s kaskádním norm filtrem.
+
+        Returns:
+            tuple[List[MaterialItem], List[MaterialItem]] — (exact_items, alternative_items)
+
+        Norm kaskáda (zabraňuje záměně norem v rámci skupiny):
+          1. W.Nr. (material_norm) — "3.3547" → code ILIKE '3.3547%'
+          2. Originální vstup (original_norm) — "5083" → code ILIKE '5083%'
+          3. Bez filtru — jen group + shape + rozměry (last resort)
+        """
+        args = (material_group_id, shape, diameter, width, height, thickness, wall_thickness)
+
+        # Sestavit kaskádu norm k vyzkoušení (deduplikace, jen platné)
+        norms_to_try: List[Optional[str]] = []
+        for n in [material_norm, original_norm]:
+            if n and len(n) >= 3 and n not in norms_to_try:
+                norms_to_try.append(n)
+        norms_to_try.append(None)  # last resort: bez filtru
+
+        # Fáze 1: exact match
+        exact_items: List[MaterialItem] = []
+        for norm in norms_to_try:
+            exact_items = await self._find_exact_items(*args, norm)
+            if exact_items:
+                break
+
+        # Fáze 2: nearest larger (jen pokud exact nenašel nic)
+        alt_items: List[MaterialItem] = []
+        if not exact_items:
+            for norm in norms_to_try:
+                alt_items = await self._find_nearest_larger_items(*args, norm)
+                if alt_items:
+                    break
+
+        return exact_items, alt_items
+
+    async def _find_exact_items(
+        self,
+        material_group_id: int,
+        shape: StockShape,
+        diameter: Optional[float] = None,
+        width: Optional[float] = None,
+        height: Optional[float] = None,
+        thickness: Optional[float] = None,
+        wall_thickness: Optional[float] = None,
+        material_norm: Optional[str] = None,
     ) -> List[MaterialItem]:
         """
-        Najde katalogové položky podle group + shape + rozměry. Vrací seznam (max 8).
-
-        Více výsledků nastane např. když existuje C45 D20 tažená i C45 D20 h6 —
-        uživatel pak vybírá z nabídky.
+        Najde katalogové položky s přesnou shodou rozměrů. Vrací max 8 položek.
 
         Note: MaterialItem model NEMÁ atribut 'height'.
         Pro flat_bar/square_bar:
           - Parser používá: width, height
           - MaterialItem má: width, thickness
           - Mapping: height → thickness (pro FLAT_BAR)
-
-        material_norm: Norma po normalizaci (W.Nr. nebo název plasty).
-          Filtruje code LIKE '{material_norm}%' — kód položky začíná normou.
-          Zabraňuje záměně norem ve stejné skupině (1.0036 vs 1.0503, POM vs PA66).
-          Aplikuje se pro jakoukoli normu délky >= 3 znaky.
         """
-        conditions = [
-            MaterialItem.material_group_id == material_group_id,
-            MaterialItem.shape == shape,
-            MaterialItem.deleted_at.is_(None)
-        ]
+        conditions = self._base_conditions(material_group_id, shape, material_norm)
 
-        # Filtr podle normy v kódu položky — zabraňuje záměně norem v rámci skupiny.
-        # Kód polotovaru má formát "1.0503-KR040.000-T" nebo "POM-C-KR020-T".
-        # LIKE '{norm}%' najde jen položky dané normy.
-        if material_norm and len(material_norm) >= 3:
-            conditions.append(MaterialItem.code.ilike(f'{material_norm}%'))
-
-        # Přidat rozměrové podmínky (pouze nenulové hodnoty)
         if diameter is not None:
             conditions.append(MaterialItem.diameter == diameter)
 
-        if width is not None:
-            conditions.append(MaterialItem.width == width)
-
-        # FLAT_BAR: height (z parseru) → thickness (v MaterialItem)
-        # SQUARE_BAR: height se ignoruje (width == height)
-        if shape == StockShape.FLAT_BAR and height is not None:
-            conditions.append(MaterialItem.thickness == height)
-        elif thickness is not None:
-            # PLATE: thickness je tloušťka plechu
-            conditions.append(MaterialItem.thickness == thickness)
-
+        # FLAT_BAR: rotace rozměrů (20×30 = 30×20)
+        if shape == StockShape.FLAT_BAR and width is not None and height is not None:
+            conditions.append(or_(
+                and_(MaterialItem.width == width, MaterialItem.thickness == height),
+                and_(MaterialItem.width == height, MaterialItem.thickness == width),
+            ))
+        else:
+            if width is not None:
+                conditions.append(MaterialItem.width == width)
+            if shape == StockShape.FLAT_BAR and height is not None:
+                conditions.append(MaterialItem.thickness == height)
+            elif thickness is not None:
+                conditions.append(MaterialItem.thickness == thickness)
         if wall_thickness is not None:
             conditions.append(MaterialItem.wall_thickness == wall_thickness)
 
@@ -796,5 +891,189 @@ class MaterialParserService:
             .order_by(MaterialItem.code)
             .limit(8)
         )
-
         return list(result.scalars().all())
+
+    async def _find_nearest_larger_items(
+        self,
+        material_group_id: int,
+        shape: StockShape,
+        diameter: Optional[float] = None,
+        width: Optional[float] = None,
+        height: Optional[float] = None,
+        thickness: Optional[float] = None,
+        wall_thickness: Optional[float] = None,
+        material_norm: Optional[str] = None,
+    ) -> List[MaterialItem]:
+        """
+        Najde nejbližší větší katalogové položky (>= na rozměrech, ORDER BY ASC).
+
+        Pro FLAT_BAR podporuje rotaci rozměrů (20×8 = 8×20).
+        Vrací max 5 položek.
+        """
+        conditions = self._base_conditions(material_group_id, shape, material_norm)
+
+        if shape == StockShape.ROUND_BAR:
+            if diameter is None:
+                return []
+            conditions.append(MaterialItem.diameter > diameter)
+            query = select(MaterialItem).where(*conditions).order_by(MaterialItem.diameter).limit(5)
+            result = await self.db.execute(query)
+            return list(result.scalars().all())
+
+        elif shape == StockShape.HEXAGONAL_BAR:
+            if width is None:
+                return []
+            conditions.append(MaterialItem.width > width)
+            query = select(MaterialItem).where(*conditions).order_by(MaterialItem.width).limit(5)
+            result = await self.db.execute(query)
+            return list(result.scalars().all())
+
+        elif shape == StockShape.SQUARE_BAR:
+            if width is None:
+                return []
+            conditions.append(MaterialItem.width > width)
+            query = select(MaterialItem).where(*conditions).order_by(MaterialItem.width).limit(5)
+            result = await self.db.execute(query)
+            return list(result.scalars().all())
+
+        elif shape == StockShape.FLAT_BAR:
+            if width is None or height is None:
+                return []
+            # height z parseru → thickness v MaterialItem
+            target_w, target_h = width, height
+
+            # Query 1: normální orientace (width >= target_w AND thickness >= target_h)
+            # Používá >= protože exact match (==) je už ověřen v _find_exact_items
+            # a nic nenašel → >= zde bezpečně zahrnuje rotované exact shody
+            cond1 = self._base_conditions(material_group_id, shape, material_norm)
+            cond1.append(MaterialItem.width >= target_w)
+            cond1.append(MaterialItem.thickness >= target_h)
+            q1 = select(MaterialItem).where(*cond1).order_by(
+                (MaterialItem.width * MaterialItem.thickness)
+            ).limit(5)
+
+            # Query 2: rotovaná orientace (width >= target_h AND thickness >= target_w)
+            cond2 = self._base_conditions(material_group_id, shape, material_norm)
+            cond2.append(MaterialItem.width >= target_h)
+            cond2.append(MaterialItem.thickness >= target_w)
+            q2 = select(MaterialItem).where(*cond2).order_by(
+                (MaterialItem.width * MaterialItem.thickness)
+            ).limit(5)
+
+            r1 = await self.db.execute(q1)
+            r2 = await self.db.execute(q2)
+            items1 = list(r1.scalars().all())
+            items2 = list(r2.scalars().all())
+
+            # Merge + deduplikace by ID, sort by cross-section area
+            seen_ids = set()
+            merged = []
+            for item in items1 + items2:
+                if item.id not in seen_ids:
+                    seen_ids.add(item.id)
+                    merged.append(item)
+            merged.sort(key=lambda i: (i.width or 0) * (i.thickness or 0))
+            return merged[:5]
+
+        elif shape == StockShape.TUBE:
+            if diameter is None or wall_thickness is None:
+                return []
+            conditions.append(MaterialItem.diameter >= diameter)
+            conditions.append(MaterialItem.wall_thickness >= wall_thickness)
+            conditions.append(or_(
+                MaterialItem.diameter > diameter,
+                MaterialItem.wall_thickness > wall_thickness
+            ))
+            query = select(MaterialItem).where(*conditions).order_by(
+                MaterialItem.diameter, MaterialItem.wall_thickness
+            ).limit(5)
+            result = await self.db.execute(query)
+            return list(result.scalars().all())
+
+        elif shape == StockShape.PLATE:
+            if thickness is None:
+                return []
+            conditions.append(MaterialItem.thickness > thickness)
+            query = select(MaterialItem).where(*conditions).order_by(MaterialItem.thickness).limit(5)
+            result = await self.db.execute(query)
+            return list(result.scalars().all())
+
+        return []
+
+    def _base_conditions(
+        self,
+        material_group_id: int,
+        shape: StockShape,
+        material_norm: Optional[str] = None
+    ) -> list:
+        """Základní podmínky pro vyhledávání MaterialItems."""
+        conditions = [
+            MaterialItem.material_group_id == material_group_id,
+            MaterialItem.shape == shape,
+            MaterialItem.deleted_at.is_(None)
+        ]
+        if material_norm and len(material_norm) >= 3:
+            # Contains match: "5083" najde "AW5083-PL20" i "3.3547-KR040"
+            conditions.append(MaterialItem.code.ilike(f'%{material_norm}%'))
+        return conditions
+
+    @staticmethod
+    def _compute_dimension_delta(
+        shape: StockShape,
+        item: MaterialItem,
+        target_diameter: Optional[float] = None,
+        target_width: Optional[float] = None,
+        target_height: Optional[float] = None,
+        target_thickness: Optional[float] = None,
+        target_wall_thickness: Optional[float] = None,
+    ) -> str:
+        """Vypočte delta string pro nearest-larger kandidáta."""
+        if shape == StockShape.ROUND_BAR:
+            if target_diameter is not None and item.diameter is not None:
+                d = item.diameter - target_diameter
+                return f"+{d:g}mm Ø"
+
+        elif shape == StockShape.HEXAGONAL_BAR:
+            if target_width is not None and item.width is not None:
+                d = item.width - target_width
+                return f"+{d:g}mm"
+
+        elif shape == StockShape.SQUARE_BAR:
+            if target_width is not None and item.width is not None:
+                d = item.width - target_width
+                return f"+{d:g}mm"
+
+        elif shape == StockShape.FLAT_BAR:
+            if target_width is not None and target_height is not None and item.width is not None and item.thickness is not None:
+                # Normální orientace
+                dw = item.width - target_width
+                dh = item.thickness - target_height
+                if dw >= 0 and dh >= 0:
+                    return f"+{dw:g}×+{dh:g}mm"
+                # Rotovaná orientace (item 20×30 pro target 25×12 → porovnat 30×20 vs 25×12)
+                dw_r = item.thickness - target_width
+                dh_r = item.width - target_height
+                if dw_r >= 0 and dh_r >= 0:
+                    return f"+{dw_r:g}×+{dh_r:g}mm"
+                # Fallback
+                return f"+{dw:g}×+{dh:g}mm"
+
+        elif shape == StockShape.TUBE:
+            parts = []
+            if target_diameter is not None and item.diameter is not None:
+                dd = item.diameter - target_diameter
+                if dd > 0:
+                    parts.append(f"+{dd:g}mm Ø")
+            if target_wall_thickness is not None and item.wall_thickness is not None:
+                dw = item.wall_thickness - target_wall_thickness
+                if dw > 0:
+                    parts.append(f"+{dw:g}mm stěna")
+            if parts:
+                return ", ".join(parts)
+
+        elif shape == StockShape.PLATE:
+            if target_thickness is not None and item.thickness is not None:
+                d = item.thickness - target_thickness
+                return f"+{d:g}mm tl"
+
+        return ""
