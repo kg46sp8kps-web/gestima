@@ -23,7 +23,7 @@ export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—'
   let d: Date
   if (typeof value === 'string') {
-    const compact = value.trim().match(/^(\d{4})(\d{2})(\d{2})$/)
+    const compact = value.trim().match(/^(\d{4})(\d{2})(\d{2})/)
     if (compact) {
       d = new Date(Number(compact[1]), Number(compact[2]) - 1, Number(compact[3]))
     } else {
