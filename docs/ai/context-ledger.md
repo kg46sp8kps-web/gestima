@@ -3,13 +3,6 @@
 Tento soubor drží persistentní kontext mezi úkoly.
 Aktualizuj po každém netriviálním tasku.
 
-## Aktivní cíl
-
-- Stabilizovat párování `SLCoitems` řádků na VP (`SLJobs`) v dispečerském přehledu, aby se VP neztrácely ani při chybějících `SLJobRoutes` řádcích a aby fallback zákazníka z VP zůstal funkční.
-- Zrychlit navigaci v tiling workspace: pridat do headeru za volbu workspace rychle vyhledani panelu (tile) s live filtrem podle celeho nazvu.
-- Zpevnit dilensky terminal proti chybnemu vykazovani: blokace hotovych operaci, skryti dokoncenych operaci z fronty a striktni zdroj fronty/operaci pouze z rozvrhu (`IteCzTsdJbrDetails`) bez fallbacku na `SLJobRoutes`.
-- Posoudit migraci rizeni vyroby z Infor APS do Gestima (Infor pouze prijem zakazek + tvorba VP), navrhnout cilovy model jedne dispecerske obrazovky a bezpecny rollout.
-
 ## Poslední rozhodnutí
 - Date: 2026-02-28
 - Decision: `GET /materials/items` rozšířen o server-side filtrování: `search` (ILIKE code/name/norms), `shape`, `norm_query` (cross-search přes MaterialNorm → W.Nr/ČSN aliasy → ILIKE code/name), rozměrové filtry (diameter, width, thickness, wall_thickness min/max). Frontend materialItems store přepracován na server-side filtry se stale response protection. "Plech" přejmenován na "Deska" v celé Gestimě.
@@ -207,29 +200,6 @@ Aktualizuj po každém netriviálním tasku.
 - Decision: Loader `IteCzTsdJbrDetails` byl rozšířen o `col*` aliasy (`colJob`, `colOper`, `colSuffix`, `colWc`, `colOpDatumSt`, ...), a JBR filtry/sort se dělají primárně lokálně po normalizaci.
 - Why: V TEST instanci opakovaně padalo čtení na `Property Job not found on IteCzTsdJbrDetails IDO`; RE stringy z původní DLL potvrzují `col*` schéma, které se mezi instalacemi liší a rozbíjí pevně zadané server-side `filter/orderBy`.
 
-## Otevřené body
-
-- Potvrdit, kdo je master pro `slibeny termin` a `zakaznickou prioritu` (Infor vs Gestima) a jaky bude audit trail pri manualni zmene priority/fronty.
-- Potvrdit kapacitni model pro Gestima scheduler: zda bude stacit `stroj + kalendar`, nebo je nutne planovat i `operator`, `nastroje` a materialovou dostupnost.
-- Rozhodnout, zda se do prvni faze zahrne auto-reschedule po vypadku stroje/urgentni zakazce, nebo jen manualni prehozeni fronty dispecerem.
-- Potvrdit opravneni pro prehazovani fronty na tabletu (mistr ano/ne; operator ano/ne) a zda kazda zmena vyzaduje povinny reason-code.
-- Potvrdit threshold pro "kriticky termin" (napr. slack < 0h nebo < 8h) a kdy ma novy VP skocit pred standardni frontu.
-- Potvrdit, zda se ma v zasobniku zobrazovat i duvod "neni ready" (material/chybi dokumentace/kooperace/kapacita) a odkud se tento stav bere.
-- Ověřit na realnem TEST Inforu, zda `ready/released` status jde spolehlive cist z jedne sady IDO poli (bez inferenci), a jak se mapuje na stav "lze vyrabet ted".
-- Potvrdit normalizacni pravidlo pro `SLCoitems.Job` (kdy je to realny VP vs interni numericky identifikator) a jaky confidence score dat do UI.
-- UX potvrzeni: ma Enter v searchi vzdy otevrit prvni nalezeny panel vpravo, nebo se ma zachovat posledni pouzita drop zona?
-- Ověřit na reálném TEST Inforu, že `Mchtrx(H/J)` se skutečně propisuje do strojního běhu pro konkrétní WC/stroj (včetně varianty s `TMach`).
-- Doplnit explicitní mapování `TMach` (a případně `IdMachine/ResId`) z výběru pracoviště/loginu, pokud Infor vyžaduje přesný identifikátor stroje.
-
-## Další krok
-
-- Udelat 2h discovery workshop (vyroba + planovani + obchod + IT), uzavrit data kontrakt `Infor -> Gestima` pro VP/splatnosti/priority a pripravit backlog MVP (dispatch board + tablet operace + manualni resequencing + poznamky/priority).
-- Pripravit schema pro `dispatch_queue_overrides` + `dispatch_events` + `dispatch_notes` a navrhnout API pro reorder/hold/hotjob s audit trail em.
-- Dodat v BE prvni verzi pravidla `build_dispatch_queue()` (scope released+ready, freeze lock, manual rank, default tail-insert pro nove VP, HOT/critical insert) a nasadit nad `/workshop/queue`.
-- Pripravit Infor field-contract pro "Zakazky + zasobnik" (zakaznik, promised due, release/ready flags, operation-level remaining time) a overit dostupnost poli na realnem TEST endpointu.
-- Dopsat E2E test pro header search v tiling workspace: otevreni dropdownu po focusu, live obsahovy filtr a vyber panelu z listu.
-- Provest E2E TEST scenar na dilne: overit, ze dokoncene operace nejsou ve fronte, ze post do dokoncene operace je blokovan, a rozhodnout UX policy pro dvojite radky stejne operace (ponechat oba vs. sloucit do jednoho summary radku).
-- Provest rychly smoke test workshop endpointu proti TEST Inforu: `/workshop/queue` a `/workshop/operations` musi vratit pouze JBR rozvrh a pri vypadku JBR selhat s 502 (bez fallback dat).
 - Date: 2026-02-27
 - Decision: V technologickém tile byly odstraněny placeholder texty z inputů (parse input a časy operací) a potvrzeno, že `OperationCombobox` placeholder atribut nepoužívá.
 - Why: Uživatel explicitně požadoval prostředí bez placeholder textu v těchto polích.
@@ -318,3 +288,6 @@ Aktualizuj po každém netriviálním tasku.
 - Date: 2026-02-28
 - Decision: Infor document download concurrency snížen z 10 na 3 (`_DOWNLOAD_CONCURRENCY = 3`); filename vždy dostane příponu `.pdf` pokud ji nemá.
 - Why: 10 souběžných stahování překračovalo Infor session limit; DocumentName s tečkami (např. `1002.3237`) byl použit jako filename bez přípony.
+- Date: 2026-02-28
+- Decision: Workshop časové zápisy byly zjednodušeny na jediný Infor flow bez přímých patchů `SLJobTrans`: `IteCzTsdUpdateDcSfcWrapperSp` + `IteCzTsdUpdateMchtrxSp`; pro `setup_start/setup_end/start` se volá MCHTRX mód `H`, pro `stop` mód `J` (s fallbackem na `IteCzTsdUpdateDcSfcMchtrxSp`).
+- Why: Předchozí dodatečné synchronizace času do `SLJobTrans` zbytečně zvětšily kód a zvyšovaly riziko zásahu do historických řádků; požadavek byl návrat k minimální, ověřené logice, která už v provozu fungovala.

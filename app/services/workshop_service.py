@@ -1360,6 +1360,88 @@ async def fetch_machine_plan(
     return released + backlog
 
 
+async def fetch_vp_list(
+    infor_client,
+    stat_values: Sequence[str] = ("R", "F"),
+    search: Optional[str] = None,
+    wc: Optional[str] = None,
+    sort_by: str = "Job",
+    sort_dir: str = "asc",
+    record_cap: int = 500,
+) -> List[Dict[str, Any]]:
+    """Live fallback pro VP list — znovupoužije fetch_machine_plan() a deduplikuje."""
+    all_ops = await fetch_machine_plan(
+        infor_client=infor_client,
+        wc=None,
+        record_cap=5000,
+    )
+
+    stat_set = set(s.upper() for s in stat_values)
+
+    vp_map: Dict[str, Dict[str, Any]] = {}
+    for row in all_ops:
+        job_stat = (row.get("JobStat") or "R").upper()
+        if job_stat not in stat_set:
+            continue
+        job = row.get("Job") or ""
+        suffix = row.get("Suffix") or "0"
+        key = f"{job}|{suffix}"
+
+        if key not in vp_map:
+            qty_c = row.get("QtyComplete") or row.get("Kusy")
+            qty_s = row.get("QtyScrapped")
+            vp_map[key] = {
+                "job": job,
+                "suffix": suffix,
+                "item": row.get("DerJobItem") or row.get("Dil"),
+                "description": row.get("JobDescription") or row.get("Nazev"),
+                "job_stat": job_stat,
+                "qty_released": row.get("JobQtyReleased") or row.get("VpMnoz"),
+                "qty_complete": _parse_float(qty_c),
+                "qty_scrapped": _parse_float(qty_s),
+                "start_date": row.get("OpDatumSt"),
+                "end_date": row.get("OpDatumSp"),
+                "oper_count": 1,
+                "_wcs": {(row.get("Wc") or "").upper()},
+            }
+        else:
+            entry = vp_map[key]
+            entry["oper_count"] += 1
+            entry["_wcs"].add((row.get("Wc") or "").upper())
+            op_st = row.get("OpDatumSt")
+            op_sp = row.get("OpDatumSp")
+            if op_st and (not entry["start_date"] or op_st < entry["start_date"]):
+                entry["start_date"] = op_st
+            if op_sp and (not entry["end_date"] or op_sp > entry["end_date"]):
+                entry["end_date"] = op_sp
+
+    result = list(vp_map.values())
+
+    if wc:
+        wc_upper = wc.strip().upper()
+        result = [r for r in result if wc_upper in r["_wcs"]]
+
+    if search:
+        s = search.strip().upper()
+        result = [
+            r for r in result
+            if s in (r["job"] or "").upper()
+            or s in (r["item"] or "").upper()
+            or s in (r["description"] or "").upper()
+        ]
+
+    for r in result:
+        r.pop("_wcs", None)
+
+    reverse = sort_dir.lower() == "desc"
+    def _vp_sort_key(r: Dict[str, Any]) -> Any:
+        v = r.get(sort_by.lower()) if sort_by.lower() in r else r.get(sort_by)
+        return v if v is not None else ""
+    result.sort(key=_vp_sort_key, reverse=reverse)
+
+    return result[:record_cap]
+
+
 async def fetch_job_operations(
     infor_client,
     job: str,
@@ -1412,6 +1494,44 @@ async def fetch_job_operations(
                     "OpDatumSp": row.get("OpDatumSp"),
                 }
             )
+
+        # Fallback pro non-Released VP (F/S/W) — JBR vrací jen Released
+        if not operations:
+            try:
+                filter_expr = (
+                    f"{_eq_filter('Job', safe_job)} AND "
+                    f"{_eq_filter('Suffix', safe_suffix)} AND "
+                    f"{_eq_filter('Type', 'J')}"
+                )
+                route_rows = await _load_collection_first(
+                    infor_client,
+                    ido_name="SLJobRoutes",
+                    property_sets=_JOB_ROUTE_PROP_SETS,
+                    filter_expr=filter_expr,
+                    order_by="OperNum ASC",
+                    record_cap=200,
+                )
+                for row in route_rows:
+                    normalized = _normalize_queue_row(row)
+                    if not normalized:
+                        continue
+                    operations.append(
+                        {
+                            "Job": normalized["Job"],
+                            "Suffix": normalized["Suffix"],
+                            "OperNum": normalized["OperNum"],
+                            "Wc": normalized.get("Wc") or "",
+                            "QtyReleased": normalized.get("JobQtyReleased"),
+                            "QtyComplete": normalized.get("QtyComplete"),
+                            "ScrapQty": normalized.get("QtyScrapped"),
+                            "SetupHrs": normalized.get("JshSetupHrs"),
+                            "RunHrs": normalized.get("DerRunMchHrs"),
+                            "OpDatumSt": normalized.get("OpDatumSt"),
+                            "OpDatumSp": normalized.get("OpDatumSp"),
+                        }
+                    )
+            except Exception as fallback_exc:
+                logger.warning("SLJobRoutes fallback for non-Released job %s failed: %s", safe_job, fallback_exc)
 
         if operations:
             operations = _sort_operations(operations, sort_by=sort_by, sort_dir=sort_dir)
@@ -1851,6 +1971,7 @@ _VIEW_PROPERTIES_CORE = [
     "Item", "ItemDescription", "Stat",
     "DueDate", "PromiseDate", "ProjectedDate", "ConfirmedDate",
     "RybDeadLineDate", "RybCoOrderDate",
+    "RybCoConfirmationDate", "RybDatumPotvrRadZak", "RybConfirmDate", "RybDatumSlibRadZak",
     "QtyOrderedConv", "QtyShipped", "QtyOnHand", "QtyWIP",
     "Job", "Suffix", "JobCount",
     "Wc01", "Wc02", "Wc03", "Wc04", "Wc05", "Wc06", "Wc07", "Wc08", "Wc09", "Wc10",
@@ -1863,11 +1984,14 @@ _VIEW_PROPERTIES_CORE = [
     "RecordDate",
 ]
 
-# Primary: with RybCoConfirmationDate (after RybCoOrderDate=index 15);
-# Fallback: without it (property might not exist on view)
+# Primary: full property set; Fallback: bez custom Ryb confirm polí (nemusí existovat)
+_VIEW_PROPERTIES_FALLBACK = [
+    p for p in _VIEW_PROPERTIES_CORE
+    if p not in ("RybCoConfirmationDate", "RybDatumPotvrRadZak", "RybConfirmDate", "RybDatumSlibRadZak")
+]
 _VIEW_PROP_SETS = [
-    _VIEW_PROPERTIES_CORE[:16] + ["RybCoConfirmationDate"] + _VIEW_PROPERTIES_CORE[16:],
     _VIEW_PROPERTIES_CORE,
+    _VIEW_PROPERTIES_FALLBACK,
 ]
 
 
@@ -2027,6 +2151,40 @@ async def fetch_orders_overview(
     multi_vp_counts = {item: len(vps) for item, vps in item_vp_map.items() if len(vps) > 1}
     logger.info("orders_overview: %d items with multiple VPs in final map", len(multi_vp_counts))
 
+    # ── Confirm date lookup z SLCoItems (RybDatumPotvrRadZak) ──
+    # View IteRybPrehledZakazekView toto pole nevrací, musíme ho načíst zvlášť.
+    confirm_date_map: Dict[str, str] = {}  # "CoNum|CoLine|CoRelease" → date
+    co_nums = sorted({_as_clean_str(r.get("CoNum")) or "" for r in rows if _as_clean_str(r.get("CoNum"))})
+    if co_nums:
+        batch_size = 200
+        for batch_start in range(0, len(co_nums), batch_size):
+            batch = co_nums[batch_start:batch_start + batch_size]
+            co_filter = _or_item_filter("CoNum", batch)
+            if not co_filter:
+                continue
+            try:
+                co_rows = await _load_collection_first(
+                    infor_client,
+                    ido_name="SLCoItems",
+                    property_sets=[
+                        ["CoNum", "CoLine", "CoRelease", "RybDatumPotvrRadZak"],
+                        ["CoNum", "CoLine", "CoRelease"],
+                    ],
+                    filter_expr=f"({co_filter})",
+                    order_by="CoNum ASC, CoLine ASC",
+                    record_cap=5000,
+                )
+                for cr in co_rows:
+                    c_num = _as_clean_str(cr.get("CoNum")) or ""
+                    c_line = _as_clean_str(cr.get("CoLine")) or ""
+                    c_rel = _as_clean_str(cr.get("CoRelease")) or "0"
+                    c_date = _as_clean_str(cr.get("RybDatumPotvrRadZak"))
+                    if c_date:
+                        confirm_date_map[f"{c_num}|{c_line}|{c_rel}"] = c_date
+            except Exception as exc:
+                logger.warning("SLCoItems confirm date lookup failed: %s", exc)
+        logger.info("orders_overview: confirm_date_map has %d entries from SLCoItems", len(confirm_date_map))
+
     # ── Pass 2: Sestavení výstupních řádků ──
     out: List[Dict[str, Any]] = []
     seen: set[str] = set()
@@ -2066,7 +2224,7 @@ async def fetch_orders_overview(
             "qty_wip": _parse_float(row.get("QtyWIP")),
             "due_date": _as_clean_str(row.get("DueDate")),
             "promise_date": _as_clean_str(row.get("PromiseDate")),
-            "confirm_date": _as_clean_str(row.get("ConfirmedDate")) or _as_clean_str(row.get("RybCoConfirmationDate")),
+            "confirm_date": confirm_date_map.get(row_id, None),
             "vp_candidates": vp_entries,
             "selected_vp_job": active_job,
             "operations": operations,
