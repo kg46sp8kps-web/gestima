@@ -119,6 +119,17 @@ from app.models.workshop_transaction import (
     WorkshopTransactionCreate,
     WorkshopTransactionResponse,
 )
+from app.models.machine_plan import (
+    MachinePlanEntry,
+    MachinePlanReorderRequest,
+    MachinePlanAddRequest,
+    MachinePlanRemoveRequest,
+)
+from app.models.production_priority import (
+    ProductionPriority,
+    ProductionPrioritySetRequest,
+    ProductionPriorityFireRequest,
+)
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
@@ -152,4 +163,6 @@ __all__ = [
     "SyncStatusResponse", "SyncTriggerResponse",
     "WorkshopTransType", "WorkshopTxStatus",
     "WorkshopTransaction", "WorkshopTransactionCreate", "WorkshopTransactionResponse",
+    "MachinePlanEntry", "MachinePlanReorderRequest", "MachinePlanAddRequest", "MachinePlanRemoveRequest",
+    "ProductionPriority", "ProductionPrioritySetRequest", "ProductionPriorityFireRequest",
 ]

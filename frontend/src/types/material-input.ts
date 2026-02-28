@@ -98,6 +98,8 @@ export interface SuggestedMaterialItem {
   id: number
   code: string
   name: string
+  match_type: 'exact' | 'nearest_larger'
+  dimension_delta: string | null
 }
 
 export interface ParseResult {
@@ -123,6 +125,8 @@ export interface ParseResult {
   suggested_material_item_code: string | null
   suggested_material_item_name: string | null
   suggested_material_items: SuggestedMaterialItem[]
+  match_type: 'exact' | 'nearest_larger' | 'none'
+  alternative_material_items: SuggestedMaterialItem[]
   confidence: number
   matched_pattern: string
   warnings: string[]

@@ -37,8 +37,16 @@ from app.services.file_service import file_service
 
 logger = logging.getLogger(__name__)
 
-# Folder name prefixes to skip (not real parts)
+# Folder name prefixes to skip (not real parts),
+# UNLESS the folder name contains a dot (e.g. "470100.28" is a valid part).
 SKIP_PREFIXES = ("46", "47")
+
+
+def _should_skip_folder(folder_name: str) -> bool:
+    """Skip 46*/47* folders unless the name contains a dot (valid part codes)."""
+    if not folder_name.startswith(SKIP_PREFIXES):
+        return False
+    return "." not in folder_name
 
 # File extensions to import
 PDF_EXTENSIONS = {".pdf"}
@@ -73,7 +81,7 @@ def _scan_local_share_sync(share_path: Path) -> list[dict]:
             continue
 
         folder_name = entry.name
-        if folder_name.startswith(SKIP_PREFIXES):
+        if _should_skip_folder(folder_name):
             continue
 
         pdf_files = []
@@ -256,7 +264,7 @@ class DrawingImportService:
             if line.strip()
         ]
 
-        filtered_folders = [f for f in all_folders if not f.startswith(SKIP_PREFIXES)]
+        filtered_folders = [f for f in all_folders if not _should_skip_folder(f)]
         self._last_scan_skipped = max(0, len(all_folders) - len(filtered_folders))
 
         results_map = {
@@ -292,7 +300,7 @@ class DrawingImportService:
                 continue
 
             folder_name, filename = relative_path.split("/", 1)
-            if folder_name.startswith(SKIP_PREFIXES):
+            if _should_skip_folder(folder_name):
                 continue
 
             file_type = _detect_share_file_type(filename)
@@ -466,7 +474,7 @@ class DrawingImportService:
         try:
             folder_count = sum(
                 1 for e in self.share_path.iterdir()
-                if e.is_dir() and not e.name.startswith(SKIP_PREFIXES)
+                if e.is_dir() and not _should_skip_folder(e.name)
             )
             return ShareStatusResponse(
                 share_path=str(self.share_path),
@@ -563,8 +571,11 @@ class DrawingImportService:
         folder_names = [f["folder_name"] for f in share_folders]
 
         # SQLite has a limit on IN clause params, chunk if needed
+        # Match by both article_number and drawing_number
         parts_map: dict[str, dict] = {}
         chunk_size = 500
+        from sqlalchemy import or_
+
         for i in range(0, len(folder_names), chunk_size):
             chunk = folder_names[i : i + chunk_size]
             result = await db.execute(
@@ -572,20 +583,32 @@ class DrawingImportService:
                     Part.id,
                     Part.part_number,
                     Part.article_number,
+                    Part.drawing_number,
                     Part.file_id,
                 ).where(
                     and_(
-                        Part.article_number.in_(chunk),
+                        or_(
+                            Part.article_number.in_(chunk),
+                            Part.drawing_number.in_(chunk),
+                        ),
                         Part.deleted_at.is_(None),
                     )
                 )
             )
             for row in result.all():
-                parts_map[row.article_number] = {
-                    "id": row.id,
-                    "part_number": row.part_number,
-                    "file_id": row.file_id,
-                }
+                # article_number match takes precedence
+                if row.article_number in chunk:
+                    parts_map[row.article_number] = {
+                        "id": row.id,
+                        "part_number": row.part_number,
+                        "file_id": row.file_id,
+                    }
+                if row.drawing_number in chunk and row.drawing_number not in parts_map:
+                    parts_map[row.drawing_number] = {
+                        "id": row.id,
+                        "part_number": row.part_number,
+                        "file_id": row.file_id,
+                    }
 
         matched_part_ids = [p["id"] for p in parts_map.values()]
         linked_part_ids: set[int] = set()

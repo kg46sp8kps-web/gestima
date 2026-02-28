@@ -7,8 +7,14 @@ import { useUiStore } from './ui'
 import type {
   WorkshopJob,
   WorkshopQueueItem,
+  WorkshopQueueSortBy,
   WorkshopOperation,
+  WorkshopOperationSortBy,
   WorkshopMaterial,
+  WorkshopMaterialSortBy,
+  WorkshopSortDir,
+  WorkshopMaterialIssueCreate,
+  WorkshopMaterialIssueResult,
   WorkshopTransaction,
   WorkshopTransactionCreate,
   WorkshopTimer,
@@ -23,12 +29,18 @@ export const useWorkshopStore = defineStore('workshop', () => {
   const queueItems = ref<WorkshopQueueItem[]>([])
   const activeQueueItem = ref<WorkshopQueueItem | null>(null)
   const loadingQueue = ref(false)
+  const queueJobFilter = ref<string>('')
+  const queueSortBy = ref<WorkshopQueueSortBy>('OpDatumSt')
+  const queueSortDir = ref<WorkshopSortDir>('asc')
 
   // Odvozené z výběru v queue (udržovány pro zpětnou kompatibilitu komponent)
   const activeJob = ref<WorkshopJob | null>(null)
   const activeOperation = ref<WorkshopOperation | null>(null)
   const materials = ref<WorkshopMaterial[]>([])
   const loadingMaterials = ref(false)
+  let materialsRequestSeq = 0
+  const materialSortBy = ref<WorkshopMaterialSortBy>('Material')
+  const materialSortDir = ref<WorkshopSortDir>('asc')
 
   // Zachováno pro WorkshopTransactionForm
   const transactions = ref<WorkshopTransaction[]>([])
@@ -38,6 +50,8 @@ export const useWorkshopStore = defineStore('workshop', () => {
   const operations = ref<WorkshopOperation[]>([])
   const loadingJobs = ref(false)
   const loadingOperations = ref(false)
+  const operationSortBy = ref<WorkshopOperationSortBy>('OpDatumSt')
+  const operationSortDir = ref<WorkshopSortDir>('asc')
   const wcFilter = ref<string>('')
 
   // Pracovní mód: 'setup' = seřizuji, 'production' = vyrábím
@@ -66,10 +80,20 @@ export const useWorkshopStore = defineStore('workshop', () => {
 
   // === Actions — Fronta práce ===
 
-  async function fetchQueue(wc?: string) {
+  async function fetchQueue(opts?: {
+    wc?: string
+    job?: string
+    sortBy?: WorkshopQueueSortBy
+    sortDir?: WorkshopSortDir
+  }) {
     loadingQueue.value = true
     try {
-      queueItems.value = await workshopApi.getWcQueue(wc)
+      queueItems.value = await workshopApi.getWcQueue({
+        wc: opts?.wc,
+        job: opts?.job,
+        sort_by: opts?.sortBy ?? queueSortBy.value,
+        sort_dir: opts?.sortDir ?? queueSortDir.value,
+      })
     } catch {
       ui.showError('Nepodařilo se načíst frontu práce z Inforu')
     } finally {
@@ -141,7 +165,7 @@ export const useWorkshopStore = defineStore('workshop', () => {
   async function fetchOperations(job: string, suffix = '0') {
     loadingOperations.value = true
     try {
-      operations.value = await workshopApi.getJobOperations(job, suffix)
+      operations.value = await workshopApi.getJobOperations(job, suffix, operationSortBy.value, operationSortDir.value)
     } catch {
       ui.showError('Nepodařilo se načíst operace zakázky')
     } finally {
@@ -156,13 +180,21 @@ export const useWorkshopStore = defineStore('workshop', () => {
   }
 
   async function fetchMaterials(job: string, oper: string, suffix = '0') {
+    const reqId = ++materialsRequestSeq
     loadingMaterials.value = true
     try {
-      materials.value = await workshopApi.getOperationMaterials(job, oper, suffix)
+      const loaded = await workshopApi.getOperationMaterials(job, oper, suffix, materialSortBy.value, materialSortDir.value)
+      if (reqId === materialsRequestSeq) {
+        materials.value = loaded
+      }
     } catch {
-      materials.value = []
+      if (reqId === materialsRequestSeq) {
+        materials.value = []
+      }
     } finally {
-      loadingMaterials.value = false
+      if (reqId === materialsRequestSeq) {
+        loadingMaterials.value = false
+      }
     }
   }
 
@@ -200,6 +232,40 @@ export const useWorkshopStore = defineStore('workshop', () => {
     } catch {
       ui.showError('Nepodařilo se načíst transakce')
     }
+  }
+
+  async function postMaterialIssue(data: WorkshopMaterialIssueCreate): Promise<WorkshopMaterialIssueResult | null> {
+    try {
+      const result = await workshopApi.postMaterialIssue(data)
+      const unit = (result.UM ?? '').trim()
+      const qtyText = unit ? `${result.QtyIssued} ${unit}` : String(result.QtyIssued)
+      ui.showSuccess(`Materiál ${result.Material}: odvedeno ${qtyText}`)
+      if (activeQueueItem.value) {
+        await fetchMaterials(activeQueueItem.value.Job, activeQueueItem.value.OperNum, activeQueueItem.value.Suffix)
+      }
+      return result
+    } catch (error: unknown) {
+      const detail = (
+        error as { response?: { data?: { detail?: unknown } } }
+      )?.response?.data?.detail
+      ui.showError(typeof detail === 'string' ? detail : 'Nepodařilo se odvést materiál')
+      return null
+    }
+  }
+
+  function setQueueSort(sortBy: WorkshopQueueSortBy, sortDir: WorkshopSortDir) {
+    queueSortBy.value = sortBy
+    queueSortDir.value = sortDir
+  }
+
+  function setMaterialSort(sortBy: WorkshopMaterialSortBy, sortDir: WorkshopSortDir) {
+    materialSortBy.value = sortBy
+    materialSortDir.value = sortDir
+  }
+
+  function setOperationSort(sortBy: WorkshopOperationSortBy, sortDir: WorkshopSortDir) {
+    operationSortBy.value = sortBy
+    operationSortDir.value = sortDir
   }
 
   function setWorkMode(mode: 'setup' | 'production') {
@@ -366,12 +432,17 @@ export const useWorkshopStore = defineStore('workshop', () => {
     queueItems,
     activeQueueItem,
     loadingQueue,
+    queueJobFilter,
+    queueSortBy,
+    queueSortDir,
     // State — odvozené + sdílené
     activeJob,
     activeOperation,
     materials,
     transactions,
     loadingMaterials,
+    materialSortBy,
+    materialSortDir,
     workMode,
     timer,
     timerElapsed,
@@ -381,11 +452,14 @@ export const useWorkshopStore = defineStore('workshop', () => {
     operations,
     loadingJobs,
     loadingOperations,
+    operationSortBy,
+    operationSortDir,
     wcFilter,
     // Computed
     filteredJobs,
     // Actions — fronta
     fetchQueue,
+    setQueueSort,
     selectQueueItem,
     // Actions — data
     fetchJobs,
@@ -393,6 +467,9 @@ export const useWorkshopStore = defineStore('workshop', () => {
     fetchOperations,
     selectOperation,
     fetchMaterials,
+    setMaterialSort,
+    setOperationSort,
+    postMaterialIssue,
     createTransaction,
     postTransaction,
     fetchMyTransactions,

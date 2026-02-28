@@ -22,13 +22,13 @@ const MODULE_LOADERS: Partial<Record<ModuleId, () => Promise<unknown>>> = {
   'work-docs':      () => import('@/components/tiling/modules/TileWorkDocs.vue'),
   'partners':       () => import('@/components/tiling/modules/TilePartners.vue'),
   'quotes':         () => import('@/components/tiling/modules/TileQuotes.vue'),
+  'orders-overview': () => import('@/components/tiling/modules/TileOrdersOverview.vue'),
   'time-vision':    () => import('@/components/tiling/modules/TileTimeVision.vue'),
   'batch-sets':     () => import('@/components/tiling/modules/TileBatchSets.vue'),
   'production':     () => import('@/components/tiling/modules/TileProduction.vue'),
   'files':          () => import('@/components/tiling/modules/TileFiles.vue'),
   'admin':          () => import('@/components/tiling/modules/TileAdmin.vue'),
   'materials':      () => import('@/components/tiling/modules/TileMaterials.vue'),
-  'work-3d':        () => import('@/components/tiling/modules/TileViewer3D.vue'),
 }
 
 export function usePrefetch() {

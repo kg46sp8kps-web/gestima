@@ -9,6 +9,7 @@ import TileNode from './TileNode.vue'
 import TileGlobalDropZones from './TileGlobalDropZones.vue'
 import LayoutManager from './LayoutManager.vue'
 import { ICON_SIZE_SM } from '@/config/design'
+import Input from '@/components/ui/Input.vue'
 
 const ws = useWorkspaceStore()
 const auth = useAuthStore()
@@ -16,10 +17,20 @@ const auth = useAuthStore()
 const fabOpen = ref(false)
 const clock = ref('')
 const showLayoutManager = ref(false)
+const moduleSearchOpen = ref(false)
+const moduleSearchQuery = ref<string | null>('')
 
 const topModules = computed(() =>
   Object.values(MODULE_REGISTRY).filter((m) => !m.isSub),
 )
+const filteredTopModules = computed(() => {
+  const query = (moduleSearchQuery.value ?? '').trim().toLocaleLowerCase('cs-CZ')
+  if (!query) return topModules.value
+  return topModules.value.filter((mod) =>
+    mod.label.toLocaleLowerCase('cs-CZ').includes(query)
+    || mod.id.toLocaleLowerCase('cs-CZ').includes(query),
+  )
+})
 
 const userInitials = computed(() => {
   const name = auth.user?.username ?? 'US'
@@ -37,6 +48,23 @@ function addModule(id: ModuleId, zone: 'left' | 'right' | 'top' | 'bottom' = 'ri
     ?? 'ca'
   ws.dockToEdge(id, zone, ctx)
   fabOpen.value = false
+}
+
+function selectModuleFromSearch(moduleId: ModuleId) {
+  addModule(moduleId, 'right')
+  moduleSearchQuery.value = ''
+  moduleSearchOpen.value = false
+}
+
+function onModuleSearchKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    moduleSearchOpen.value = false
+    return
+  }
+  if (event.key === 'Enter') {
+    const firstMatch = filteredTopModules.value[0]
+    if (firstMatch) selectModuleFromSearch(firstMatch.id)
+  }
 }
 
 function updateClock() {
@@ -58,7 +86,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="ws-root" @click="fabOpen = false">
+  <div class="ws-root" @click="fabOpen = false; moduleSearchOpen = false">
     <!-- Ambient background -->
     <div class="bg-grid" />
     <div class="bg-orb a" />
@@ -83,6 +111,42 @@ onUnmounted(() => {
         >
           {{ layout.name }}
         </button>
+      </div>
+
+      <div class="module-search" @click.stop>
+        <Input
+          v-model="moduleSearchQuery"
+          bare
+          class="module-search-input"
+          testid="module-search-input"
+          type="search"
+          placeholder="Hledat..."
+          @focus="moduleSearchOpen = true"
+          @keydown="onModuleSearchKeydown"
+        />
+        <div
+          v-if="moduleSearchOpen"
+          class="module-search-dropdown"
+          data-testid="module-search-dropdown"
+        >
+          <button
+            v-for="mod in filteredTopModules"
+            :key="mod.id"
+            class="module-search-item"
+            :data-testid="`module-search-item-${mod.id}`"
+            @click.stop="selectModuleFromSearch(mod.id)"
+          >
+            <span class="module-search-label">{{ mod.label }}</span>
+            <span class="module-search-id">{{ mod.id }}</span>
+          </button>
+          <div
+            v-if="filteredTopModules.length === 0"
+            class="module-search-empty"
+            data-testid="module-search-empty"
+          >
+            Žádný panel neodpovídá filtru
+          </div>
+        </div>
       </div>
 
       <div class="hfill" />
@@ -261,6 +325,98 @@ onUnmounted(() => {
 .lchip:hover { color: var(--t2); background: var(--b1); }
 .lchip.on { color: var(--t1); background: var(--b1); border-color: var(--b2); }
 .lchip:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+
+.module-search {
+  position: relative;
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.module-search-input) {
+  width: 100%;
+  height: 22px;
+  border-radius: var(--rs);
+  border: 1px solid var(--b2);
+  background: var(--b1);
+  color: var(--t2);
+  font-size: var(--fs);
+  padding: 0 8px;
+  font-family: inherit;
+  line-height: 1;
+  transition: border-color 100ms var(--ease), background 100ms var(--ease);
+}
+:deep(.module-search-input)::placeholder { color: var(--t4); }
+:deep(.module-search-input):focus {
+  outline: none;
+  border-color: var(--b3);
+  background: var(--raised);
+}
+:deep(.module-search-input)::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+  background:
+    linear-gradient(45deg, transparent 42%, var(--t4) 42%, var(--t4) 58%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, var(--t4) 42%, var(--t4) 58%, transparent 58%);
+}
+
+.module-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.45);
+  z-index: 30;
+  max-height: 284px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.module-search-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  border-radius: var(--rs);
+  min-height: 28px;
+  padding: 4px 6px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.module-search-item:hover {
+  background: var(--b1);
+  color: var(--t1);
+}
+
+.module-search-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-search-id {
+  color: var(--t4);
+  font-size: var(--fss);
+  white-space: nowrap;
+}
+
+.module-search-empty {
+  color: var(--t4);
+  font-size: var(--fsm);
+  padding: 8px 6px;
+}
 
 .hfill { flex: 1; }
 

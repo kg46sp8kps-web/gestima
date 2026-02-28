@@ -1326,8 +1326,9 @@ class FileService:
         """
         Sanitize filename to prevent path traversal attacks.
 
-        Allows only: A-Z, a-z, 0-9, hyphen, underscore, dot, space
-        Blocks: .., /, \\, and other special characters
+        Replaces dangerous characters with underscore while preserving
+        common filename characters: letters, digits, hyphen, underscore,
+        dot, space, parentheses, comma, plus, equals, at, hash, tilde.
 
         Args:
             filename: Original filename
@@ -1336,7 +1337,7 @@ class FileService:
             str: Sanitized filename
 
         Raises:
-            HTTPException 400: Invalid filename
+            HTTPException 400: Empty filename or path traversal attempt
         """
         if not filename:
             raise HTTPException(status_code=400, detail="Filename is required")
@@ -1348,16 +1349,24 @@ class FileService:
                 detail="Invalid filename (path traversal blocked)"
             )
 
-        # Allow only safe characters
-        # Pattern: alphanumeric, hyphen, underscore, dot, space
-        safe_pattern = r'^[A-Za-z0-9_\-\.\s]+$'
-        if not re.match(safe_pattern, filename):
+        # Replace any character that is NOT in the safe set with underscore.
+        # Safe: alphanumeric, hyphen, underscore, dot, space, parentheses,
+        # comma, plus, equals, at, hash, tilde, square brackets.
+        sanitized = re.sub(r'[^A-Za-z0-9_\-\.\s\(\),\+\=@#~\[\]]', '_', filename)
+
+        # Collapse multiple underscores
+        sanitized = re.sub(r'_{2,}', '_', sanitized)
+
+        # Strip leading/trailing whitespace and dots (prevent hidden files)
+        sanitized = sanitized.strip().strip('.')
+
+        if not sanitized:
             raise HTTPException(
                 status_code=400,
-                detail="Invalid filename (contains unsafe characters)"
+                detail="Invalid filename (empty after sanitization)"
             )
 
-        return filename
+        return sanitized
 
     def _ensure_directory(self, directory: str) -> Path:
         """

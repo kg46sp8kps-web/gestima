@@ -262,6 +262,14 @@ app.include_router(ft_debug_router.router, tags=["FT Debug"])  # FT Debug panel 
 app.include_router(user_layouts_router.router, prefix="/api", tags=["User Layouts"])  # Per-user workspace layouts
 app.include_router(workshop_router.router, prefix="/api/workshop", tags=["Workshop"])  # Gestima Dílna
 
+# Machine Plan DnD — mistrovske planovani fronty
+from app.routers import machine_plan_router
+app.include_router(machine_plan_router.router, prefix="/api/machine-plan-dnd", tags=["Machine Plan DnD"])
+
+# Production Planner — vizualni Gantt dispečink VP
+from app.routers import production_planner_router
+app.include_router(production_planner_router.router, prefix="/api/production-planner", tags=["Production Planner"])
+
 # Import infor_sync_router
 from app.routers import infor_sync_router
 app.include_router(infor_sync_router.router, tags=["Infor Sync"])  # Infor Smart Polling Sync (prefix in router)

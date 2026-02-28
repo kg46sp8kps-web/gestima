@@ -53,15 +53,85 @@
           Bez materiálů
         </div>
 
-        <div
-          v-for="mat in store.materials"
-          :key="mat.Material"
-          class="mat-row"
-          :data-testid="`mat-row-${mat.Material}`"
-        >
-          <span class="mat-row__code">{{ mat.Material }}</span>
-          <span class="mat-row__desc">{{ mat.Desc ?? '—' }}</span>
-          <span class="mat-row__qty">{{ mat.BatchCons ?? mat.TotCons ?? '?' }}</span>
+        <div v-else class="mat-table-wrap">
+          <table class="mat-table">
+            <thead>
+              <tr>
+                <th @click="toggleMaterialSort('Material')">Materiál <span>{{ materialSortMark('Material') }}</span></th>
+                <th @click="toggleMaterialSort('Desc')">Popis <span>{{ materialSortMark('Desc') }}</span></th>
+                <th class="num" @click="toggleMaterialSort('Qty')">Na ks <span>{{ materialSortMark('Qty') }}</span></th>
+                <th class="num" @click="toggleMaterialSort('BatchCons')">Dávka <span>{{ materialSortMark('BatchCons') }}</span></th>
+                <th class="num">Odvedeno</th>
+                <th>Jedn.</th>
+                <th class="action">Odvod</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="mat in store.materials"
+                :key="`${activeMaterialKey}-${mat.Material}`"
+                :data-testid="`mat-row-${mat.Material}`"
+              >
+                <td class="mat-code">{{ mat.Material }}</td>
+                <td class="mat-desc">{{ mat.Desc ?? '—' }}</td>
+                <td class="num">{{ formatMaterialQty(mat.Qty, mat.UM) }}</td>
+                <td class="num">{{ formatMaterialQty(mat.BatchCons, mat.UM) }}</td>
+                <td class="num">{{ formatMaterialQty(mat.QtyIssued, mat.UM) }}</td>
+                <td>{{ mat.UM ?? '—' }}</td>
+                <td class="action">
+                  <button
+                    class="btn-secondary mat-issue-trigger"
+                    :data-testid="`mat-issue-open-${mat.Material}`"
+                    :disabled="isCoopWorkcenter"
+                    @click="openMaterialIssue(mat.Material)"
+                  >
+                    {{ isCoopWorkcenter ? 'Kooperace' : 'Odvést' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="isCoopWorkcenter" class="oper-panel__coop-note">
+          Odvod materiálu je na kooperaci (`Wc` začíná `KOO`) zablokován.
+        </div>
+        <div v-if="materialIssueOpen" class="mat-issue-form" data-testid="mat-issue-form">
+          <div class="mat-issue-form__title">
+            Odvod materiálu: <strong>{{ materialIssue.material }}</strong>
+          </div>
+          <div class="mat-issue-form__note">
+            Sklad: <strong>MAIN</strong>, skladové místo: <strong>PRIJEM</strong>
+          </div>
+          <div class="mat-issue-form__fields">
+            <Select
+              :model-value="materialIssue.um"
+              :options="materialIssue.ums.map((um) => ({ value: um, label: um }))"
+              label="Jednotka"
+              placeholder="Vyberte jednotku"
+              @update:model-value="onMaterialIssueUmChange"
+            />
+            <Input
+              :model-value="materialIssue.qty != null ? String(materialIssue.qty) : null"
+              type="number"
+              :label="materialIssue.um ? `Množství (${materialIssue.um})` : 'Množství'"
+              :min="0.0001"
+              :step="0.01"
+              testid="mat-issue-qty"
+              @update:model-value="materialIssue.qty = $event != null ? Number($event) : null"
+            />
+          </div>
+          <div class="mat-issue-form__actions">
+            <button
+              class="timer-btn timer-btn--stop"
+              data-testid="mat-issue-submit"
+              @click="submitMaterialIssue"
+            >
+              Odeslat odvod
+            </button>
+            <button class="btn-secondary" data-testid="mat-issue-cancel" @click="cancelMaterialIssue">
+              Zrušit
+            </button>
+          </div>
         </div>
       </div>
 
@@ -198,12 +268,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Play, Square, Wrench, Cog, Loader } from 'lucide-vue-next'
 import { useWorkshopStore } from '@/stores/workshop'
 import { useUiStore } from '@/stores/ui'
 import Spinner from '@/components/ui/Spinner.vue'
 import Input from '@/components/ui/Input.vue'
+import Select from '@/components/ui/Select.vue'
+import { formatInforDate } from '@/utils/formatters'
+import type { WorkshopMaterialSortBy } from '@/types/workshop'
 
 const ICON_SIZE_LG = 28
 
@@ -230,6 +303,19 @@ const stopForm = ref({
   oper_complete: false,
 })
 const SAW_WC_PREFIXES = ['PS', 'PILA', 'SAW']
+const materialSortBy = ref<WorkshopMaterialSortBy>(store.materialSortBy)
+const materialIssueOpen = ref(false)
+const materialIssue = ref({
+  material: '' as string,
+  qty: null as number | null,
+  um: null as string | null,
+  ums: [] as string[],
+})
+const activeMaterialKey = computed(() => {
+  const item = store.activeQueueItem
+  if (!item) return 'none'
+  return `${item.Job}-${item.Suffix}-${item.OperNum}`
+})
 
 /** Zbývající kusy k odvedení (JobQtyReleased - QtyComplete). Zobrazeno jako nápověda. */
 const qtyRemaining = computed(() => {
@@ -247,23 +333,11 @@ const isSawWorkcenter = computed(() => {
   return SAW_WC_PREFIXES.some((prefix) => wc.startsWith(prefix))
 })
 
-function formatInforDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const raw = value.trim()
-  if (!raw) return '—'
-  try {
-    const date = new Date(raw)
-    if (isNaN(date.getTime())) return raw
-    const day = date.getDate().toString().padStart(2, '0')
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const hh = date.getHours().toString().padStart(2, '0')
-    const mm = date.getMinutes().toString().padStart(2, '0')
-    const ss = date.getSeconds().toString().padStart(2, '0')
-    return `${day}.${month}. ${hh}:${mm}:${ss}`
-  } catch {
-    return raw
-  }
-}
+const isCoopWorkcenter = computed(() => {
+  const wc = (store.activeQueueItem?.Wc ?? '').trim().toUpperCase()
+  if (!wc) return false
+  return wc.startsWith('KOO')
+})
 
 function openStopForm() {
   stopForm.value = {
@@ -277,6 +351,104 @@ function openStopForm() {
 function cancelStopForm() {
   showStopForm.value = false
   stopForm.value = { qty_completed: null, qty_scrapped: null, oper_complete: false }
+}
+
+function toggleMaterialSort(column: WorkshopMaterialSortBy) {
+  if (materialSortBy.value === column) {
+    store.materialSortDir = store.materialSortDir === 'asc' ? 'desc' : 'asc'
+  } else {
+    materialSortBy.value = column
+    store.materialSortDir = 'asc'
+  }
+  store.setMaterialSort(materialSortBy.value, store.materialSortDir)
+  const item = store.activeQueueItem
+  if (!item) return
+  void store.fetchMaterials(item.Job, item.OperNum, item.Suffix)
+}
+
+function materialSortMark(column: WorkshopMaterialSortBy): string {
+  if (materialSortBy.value !== column) return ''
+  return store.materialSortDir === 'asc' ? '▲' : '▼'
+}
+
+function openMaterialIssue(material: string) {
+  const selected = store.materials.find((mat) => mat.Material === material)
+  const availableUms = (selected?.UMs ?? []).filter((candidate) => !!candidate)
+  if (selected?.UM && !availableUms.includes(selected.UM)) {
+    availableUms.push(selected.UM)
+  }
+  const defaultUm = selected?.UM ?? availableUms[0] ?? null
+  const batchByUm = selected?.BatchConsByUM ?? {}
+  const qtyFromUm = defaultUm ? (batchByUm[defaultUm] ?? null) : null
+  materialIssue.value = {
+    material,
+    qty: qtyFromUm ?? selected?.BatchCons ?? null,
+    um: defaultUm,
+    ums: availableUms,
+  }
+  materialIssueOpen.value = true
+}
+
+function cancelMaterialIssue() {
+  materialIssueOpen.value = false
+}
+
+watch(
+  () => store.activeQueueItem,
+  () => {
+    materialIssueOpen.value = false
+    materialIssue.value = {
+      material: '',
+      qty: null,
+      um: null,
+      ums: [],
+    }
+  },
+)
+
+function onMaterialIssueUmChange(value: string | number | null) {
+  const selectedUm = typeof value === 'string' ? value : null
+  materialIssue.value.um = selectedUm
+  if (!selectedUm) return
+  const selected = store.materials.find((mat) => mat.Material === materialIssue.value.material)
+  if (!selected) return
+  const batchByUm = selected.BatchConsByUM ?? {}
+  const suggested = batchByUm[selectedUm]
+  if (suggested != null) {
+    materialIssue.value.qty = suggested
+  }
+}
+
+async function submitMaterialIssue() {
+  const item = store.activeQueueItem
+  const qty = materialIssue.value.qty ?? 0
+  if (!item || !materialIssue.value.material) return
+  if (isCoopWorkcenter.value) {
+    ui.showError('Odvod materiálu je na kooperaci zablokován')
+    return
+  }
+  if (qty <= 0) {
+    ui.showError('Množství materiálu musí být větší než 0')
+    return
+  }
+  const posted = await store.postMaterialIssue({
+    job: item.Job,
+    suffix: item.Suffix,
+    oper_num: item.OperNum,
+    material: materialIssue.value.material,
+    um: materialIssue.value.um,
+    qty,
+    wc: item.Wc,
+  })
+  if (posted) {
+    materialIssueOpen.value = false
+  }
+}
+
+function formatMaterialQty(value: number | null | undefined, um: string | null | undefined): string {
+  if (value == null) return '—'
+  if (!um) return String(value)
+  return `${value} ${um}`
 }
 
 async function onStartTimer() {
@@ -458,38 +630,92 @@ async function onProductionStop() {
   padding: 4px 0;
 }
 
-.mat-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--b1);
-  font-size: var(--fsm);
+.oper-panel__coop-note {
+  margin-top: 8px;
+  font-size: var(--fss);
+  color: var(--warn);
 }
 
-.mat-row:last-child {
-  border-bottom: none;
+.mat-table-wrap {
+  overflow-x: auto;
 }
 
-.mat-row__code {
-  font-weight: 600;
-  color: var(--t2);
-  min-width: 80px;
+.mat-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: var(--fss);
 }
 
-.mat-row__desc {
+.mat-table th {
+  text-align: left;
   color: var(--t3);
-  flex: 1;
+  font-weight: 600;
+  border-bottom: 1px solid var(--b2);
+  padding: 6px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mat-table td {
+  border-bottom: 1px solid var(--b1);
+  padding: 7px 4px;
+  color: var(--t2);
+}
+
+.mat-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-table .action {
+  text-align: right;
+}
+
+.mat-code {
+  font-weight: 600;
+}
+
+.mat-desc {
+  max-width: 160px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.mat-row__qty {
-  color: var(--t1);
-  font-weight: 500;
-  text-align: right;
+.mat-issue-trigger {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
+.mat-issue-form {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+
+.mat-issue-form__title {
+  font-size: var(--fsm);
+  color: var(--t2);
+  margin-bottom: 8px;
+}
+
+.mat-issue-form__note {
+  font-size: var(--fss);
+  color: var(--t3);
+  margin-bottom: 8px;
+}
+
+.mat-issue-form__fields {
+  display: grid;
+  gap: 8px;
+}
+
+.mat-issue-form__actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 /* Časovač */

@@ -568,6 +568,7 @@ const downloadUrl = computed(() =>
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 /* ─── PDF canvas ─── */

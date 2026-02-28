@@ -97,7 +97,6 @@ const QUICK_LINKS: Array<{ label: string; module: ModuleId }> = [
   { label: 'Technologie', module: 'work-ops' },
   { label: 'Kalkulace', module: 'work-pricing' },
   { label: 'Výkres', module: 'work-drawing' },
-  { label: '3D Model', module: 'work-3d' },
   { label: 'Dokumenty', module: 'work-docs' },
 ]
 

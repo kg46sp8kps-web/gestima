@@ -79,6 +79,10 @@ def setup_logging(debug: bool = False) -> None:
     # Utlumit uvicorn access log (jen errors)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
+    # Utlumit httpx — loguje celé URL včetně query params (obrovské filtry)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
     root_logger.info("Logging initialized", extra={"debug_mode": debug})
 
 

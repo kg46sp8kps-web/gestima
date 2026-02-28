@@ -69,79 +69,42 @@ class InforDocumentImporter:
     ) -> list[dict]:
         """Load document metadata from Infor IDO without binary content.
 
-        Uses bookmark-based pagination so large result sets are handled safely.
+        Uses a single request with rowcap=0 for unlimited fetch, because
+        the SLDocumentObjects_Exts IDO returns the same bookmark for every
+        page, making bookmark-based pagination unreliable.
+
         Binary content (DocumentObject) is intentionally excluded — call
         download_document() per-row only for rows the user selects.
 
         Args:
             client: Authenticated InforAPIClient instance.
             filter_str: Optional IDO WHERE clause. Defaults to DEFAULT_FILTER.
-            record_cap: Max total records to return (0 = unlimited up to safety cap).
+            record_cap: Max total records to return (0 = unlimited).
 
         Returns:
             List of metadata dicts with keys matching METADATA_PROPERTIES.
         """
         effective_filter = filter_str if filter_str is not None else self.DEFAULT_FILTER
-        all_rows: list[dict] = []
-        seen_bookmarks: set[str] = set()
-        bookmark: Optional[str] = None
-        page = 0
 
         logger.info(
-            f"[list_documents] Starting fetch from {self.IDO_NAME} "
+            f"[list_documents] Fetching from {self.IDO_NAME} "
             f"(filter='{effective_filter}', record_cap={record_cap})"
         )
 
-        while page < _MAX_PAGES:
-            # How many rows to request this page?
-            if record_cap > 0:
-                remaining = record_cap - len(all_rows)
-                if remaining <= 0:
-                    break
-                page_size = min(self._PAGE_SIZE, remaining)
-            else:
-                page_size = self._PAGE_SIZE
+        # Use rowcap=0 (unlimited) to fetch all metadata in one call.
+        # This IDO returns duplicate bookmarks, so page-by-page pagination
+        # does not work reliably. Metadata-only (no binary) is safe to
+        # load in bulk (~3-5k rows, ~1 MB).
+        api_cap = record_cap if record_cap > 0 else 0
 
-            result = await client.load_collection(
-                ido_name=self.IDO_NAME,
-                properties=self.METADATA_PROPERTIES,
-                filter=effective_filter,
-                record_cap=page_size,
-                load_type="NEXT" if bookmark else None,
-                bookmark=bookmark,
-            )
+        result = await client.load_collection(
+            ido_name=self.IDO_NAME,
+            properties=self.METADATA_PROPERTIES,
+            filter=effective_filter,
+            record_cap=api_cap,
+        )
 
-            data = result.get("data", [])
-            new_bookmark = result.get("bookmark")
-            has_more = result.get("has_more", False)
-
-            all_rows.extend(data)
-
-            logger.info(
-                f"[list_documents] Page {page}: got {len(data)} rows "
-                f"(total={len(all_rows)}, has_more={has_more})"
-            )
-
-            # Bookmark loop guard (same bookmark repeated = infinite loop)
-            if new_bookmark and new_bookmark in seen_bookmarks:
-                logger.warning(
-                    f"[list_documents] Bookmark loop detected on page {page} "
-                    f"(total {len(all_rows)} rows). Stopping."
-                )
-                break
-            if new_bookmark:
-                seen_bookmarks.add(new_bookmark)
-
-            bookmark = new_bookmark
-
-            if not has_more or not bookmark or not data:
-                break
-
-            # Hard cap reached
-            if record_cap > 0 and len(all_rows) >= record_cap:
-                break
-
-            page += 1
+        all_rows = result.get("data", [])
 
         logger.info(f"[list_documents] Done — {len(all_rows)} documents fetched.")
         return all_rows
@@ -201,10 +164,11 @@ class InforDocumentImporter:
         documents: list[dict],
         parts: list[Part],
     ) -> list[dict]:
-        """Match documents to Parts via article_number in DocumentName.
+        """Match documents to Parts via article_number or drawing_number in DocumentName.
 
         Matching strategy:
-        1. Build case-insensitive lookup: {article_number_lower: Part}.
+        1. Build case-insensitive lookup from both article_number and drawing_number.
+           article_number takes precedence if both map to different parts.
         2. For each document, normalise DocumentName (lowercase, strip .pdf suffix).
         3. Prefer EXACT match (identifier == normalised_name) over token match.
         4. When multiple identifiers match the same document → WARNING (ambiguous).
@@ -219,13 +183,18 @@ class InforDocumentImporter:
         Returns:
             List of staged-row dicts ready for preview_import() / execute_import().
         """
-        # Build lookup: article_number_lower -> Part
-        # Only article_number is used — drawing_number is an internal Gestima reference,
-        # NOT the DMS document name used in Infor DocumentName field.
+        # Build lookup: identifier_lower -> Part
+        # Uses both article_number and drawing_number for matching.
+        # article_number is inserted first so it takes precedence over
+        # drawing_number when both would map to the same key.
         lookup: dict[str, Part] = {}
         for part in parts:
             if part.article_number:
                 key = part.article_number.lower().strip()
+                if key and key not in lookup:
+                    lookup[key] = part
+            if part.drawing_number:
+                key = part.drawing_number.lower().strip()
                 if key and key not in lookup:
                     lookup[key] = part
 
@@ -255,12 +224,17 @@ class InforDocumentImporter:
             exact_matches: list[tuple[str, Part]] = []
             token_matches: list[tuple[str, Part]] = []
 
+            # Minimum length for token matching to prevent short identifiers
+            # (e.g. "37") from matching too many documents (e.g. "37-104339-00").
+            # Exact matches have no length restriction.
+            _MIN_TOKEN_MATCH_LEN = 4
+
             for identifier_lower, part in lookup.items():
                 if not identifier_lower:
                     continue
                 if identifier_lower == normalised:
                     exact_matches.append((identifier_lower, part))
-                elif identifier_lower in normalised:
+                elif len(identifier_lower) >= _MIN_TOKEN_MATCH_LEN and identifier_lower in normalised:
                     # Check word-boundary: identifier must be bordered by
                     # ANY non-alphanumeric char or start/end of string.
                     # Covers: _ - . ~ / ( ) space and all other separators
@@ -416,8 +390,9 @@ class InforDocumentImporter:
 
         return staged_rows
 
-    # Max concurrent Infor HTTP downloads (avoid overwhelming the API)
-    _DOWNLOAD_CONCURRENCY = 10
+    # Max concurrent Infor HTTP downloads (avoid overwhelming the API).
+    # Keep low (3) to stay within Infor session limits.
+    _DOWNLOAD_CONCURRENCY = 3
     # Commit batch size — commit to DB every N successful rows to avoid
     # accumulating too many dirty objects in the SQLAlchemy session.
     _COMMIT_BATCH = 100
@@ -551,7 +526,13 @@ class InforDocumentImporter:
 
                 # Build safe filename
                 safe_ext = infor_ext.lstrip(".").lower() or "pdf"
-                filename = f"{infor_name}.{safe_ext}" if "." not in infor_name else infor_name
+                # Always ensure filename ends with the correct extension.
+                # DocumentName may contain dots (e.g. "1002.3237") that are NOT
+                # file extensions — always append .{safe_ext} if not already present.
+                if infor_name.lower().endswith(f".{safe_ext}"):
+                    filename = infor_name
+                else:
+                    filename = f"{infor_name}.{safe_ext}"
 
                 # Store bytes → FileRecord
                 try:

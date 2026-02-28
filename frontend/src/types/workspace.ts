@@ -1,4 +1,4 @@
-export type CatalogItemType = 'part' | 'material'
+export type CatalogItemType = 'part' | 'material' | 'vp'
 
 export interface CatalogFocusItem {
   type: CatalogItemType
@@ -15,11 +15,13 @@ export type ModuleId =
   | 'batch-sets'
   | 'partners'
   | 'quotes'
+  | 'orders-overview'
   | 'production'
   | 'files'
   | 'admin'
   | 'materials'
-  | 'work-3d'
+  | 'machine-plan-dnd'
+  | 'production-planner'
 
 export type ContextGroup = 'ca' | 'cb' | 'cc' | 'cd'
 
@@ -59,11 +61,13 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   'batch-sets':    { id: 'batch-sets',    label: 'Dávkové sady', shortcut: '⌘7' },
   'partners':      { id: 'partners',      label: 'Partneři',     shortcut: '⌘8' },
   'quotes':        { id: 'quotes',        label: 'Nabídky',      shortcut: '⌘9', hasSplitLayout: true },
+  'orders-overview': { id: 'orders-overview', label: 'Přehled zakázek', usesCtx: true },
   'production':    { id: 'production',    label: 'Výroba',       shortcut: '⌘0' },
   'files':         { id: 'files',         label: 'Soubory' },
   'admin':         { id: 'admin',         label: 'Administrace' },
   'materials':     { id: 'materials',     label: 'Polotovary' },
-  'work-3d':       { id: 'work-3d',       label: '3D Model',     isSub: true, usesCtx: true },
+  'machine-plan-dnd': { id: 'machine-plan-dnd', label: 'Plán stroje DnD', usesCtx: true, hasSplitLayout: true },
+  'production-planner': { id: 'production-planner', label: 'Plánovač výroby' },
 }
 
 export type LayoutPreset = 'std' | 'cmp' | 'hor' | 'qd'

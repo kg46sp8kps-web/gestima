@@ -75,6 +75,43 @@ async def db_session():
             created_by="test"
         )
         session.add(item)
+
+        # Additional ROUND_BAR items for nearest-larger tests
+        round_items_data = [
+            ("20000010", "11SMn30-D20", "11SMn30 ⌀20 mm - tyč kruhová", 20.0),
+            ("20000011", "11SMn30-D25", "11SMn30 ⌀25 mm - tyč kruhová", 25.0),
+            ("20000012", "11SMn30-D30", "11SMn30 ⌀30 mm - tyč kruhová", 30.0),
+            ("20000013", "11SMn30-D40", "11SMn30 ⌀40 mm - tyč kruhová", 40.0),
+        ]
+        for mn, code, name, dia in round_items_data:
+            session.add(MaterialItem(
+                material_number=mn, code=code, name=name,
+                material_group_id=group.id, price_category_id=price_category.id,
+                shape=StockShape.ROUND_BAR, diameter=dia, created_by="test"
+            ))
+
+        # FLAT_BAR price category
+        flat_price_category = MaterialPriceCategory(
+            code="TEST-OCEL-FLAT",
+            name="Test ocel - plochá tyč",
+            created_by="test"
+        )
+        session.add(flat_price_category)
+        await session.flush()
+
+        # FLAT_BAR items for nearest-larger + rotation tests
+        flat_items_data = [
+            ("20000020", "11SMn30-20x8", "11SMn30 20×8 mm - tyč plochá", 20.0, 8.0),
+            ("20000021", "11SMn30-25x10", "11SMn30 25×10 mm - tyč plochá", 25.0, 10.0),
+            ("20000022", "11SMn30-30x15", "11SMn30 30×15 mm - tyč plochá", 30.0, 15.0),
+        ]
+        for mn, code, name, w, t in flat_items_data:
+            session.add(MaterialItem(
+                material_number=mn, code=code, name=name,
+                material_group_id=group.id, price_category_id=flat_price_category.id,
+                shape=StockShape.FLAT_BAR, width=w, thickness=t, created_by="test"
+            ))
+
         await session.commit()
 
         # Attach to session for easy access in tests

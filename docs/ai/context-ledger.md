@@ -5,159 +5,316 @@ Aktualizuj po každém netriviálním tasku.
 
 ## Aktivní cíl
 
+- Stabilizovat párování `SLCoitems` řádků na VP (`SLJobs`) v dispečerském přehledu, aby se VP neztrácely ani při chybějících `SLJobRoutes` řádcích a aby fallback zákazníka z VP zůstal funkční.
+- Zrychlit navigaci v tiling workspace: pridat do headeru za volbu workspace rychle vyhledani panelu (tile) s live filtrem podle celeho nazvu.
 - Zpevnit dilensky terminal proti chybnemu vykazovani: blokace hotovych operaci, skryti dokoncenych operaci z fronty a striktni zdroj fronty/operaci pouze z rozvrhu (`IteCzTsdJbrDetails`) bez fallbacku na `SLJobRoutes`.
+- Posoudit migraci rizeni vyroby z Infor APS do Gestima (Infor pouze prijem zakazek + tvorba VP), navrhnout cilovy model jedne dispecerske obrazovky a bezpecny rollout.
 
 ## Poslední rozhodnutí
-
+- Date: 2026-02-28
+- Decision: `GET /materials/items` rozšířen o server-side filtrování: `search` (ILIKE code/name/norms), `shape`, `norm_query` (cross-search přes MaterialNorm → W.Nr/ČSN aliasy → ILIKE code/name), rozměrové filtry (diameter, width, thickness, wall_thickness min/max). Frontend materialItems store přepracován na server-side filtry se stale response protection. "Plech" přejmenován na "Deska" v celé Gestimě.
+- Why: Katalog 3000+ polotovarů nelze efektivně prohledávat jen client-side; norma filtr potřebuje cross-lookup přes 4 normové systémy (W.Nr, EN ISO, ČSN, AISI).
+- Date: 2026-02-28
+- Decision: Párování zákazníka v `fetch_orders_overview` je nově striktně přes `SLCoitems.CustNum/CoCustNum -> SLCustomers.Name`; fallback na `IteRybCustomer` byl odstraněn.
+- Why: Požadované deterministické chování bez custom fallbacku, který v praxi vracel prázdné/nekonzistentní jméno zákazníka.
+- Date: 2026-02-28
+- Decision: Párování VP k řádku zakázky bylo rozšířeno o explicitní fallback „všechny aktivní VP na položku“ (`SLJobs.Stat IN R/S/F` podle `Item`), i když chybí link fieldy (`CoitemJob/MOJob`) nebo routy.
+- Why: V Infor datech není vždy spolehlivá 1:1 vazba CO item -> VP; uživatel potřebuje v přehledu vidět dostupné aktivní VP na položku a mít je ve dropdownu.
+- Date: 2026-02-28
+- Decision: `orders-overview` customer filter nově skutečně aplikuje `CustNum = <filter>` ve WHERE klauzuli.
+- Why: Parametr `customer` byl dříve v helperu přijímaný, ale do SQL filtru se nepropsal.
+- Date: 2026-02-28
+- Decision: Ve `fetch_orders_overview` byl odstraněn restriktivní filtr fallback kandidátů VP na `key in routes_by_key`; kandidáti z order-link (`DerOrderID+Item(+Line/Release)`) se nově berou i bez řádků v `SLJobRoutes`.
+- Why: V praxi existují řádky s nenulovým WIP a validním VP v `SLJobs`, ale bez dostupných rout v `SLJobRoutes`; původní filtr tyto VP skryl a rozbil zobrazení zákazníka i VP v přehledu.
+- Date: 2026-02-28
+- Decision: Přidán regresní test `test_fetch_orders_overview_keeps_order_item_candidate_without_routes` a ověřen backend gate (`quality-gate be` PASS).
+- Why: Kryje reálný incident „WIP je vidět, VP ne“ a chrání fix před návratem chyby.
+- Date: 2026-02-28
+- Decision: Doplňkové dohledávání UM přes item-master IDO (`SLItemUmConvs*`) bylo z workshop `fetch_job_materials` odstraněno; zdrojem UM je nyní pouze `IteCzTsdSLJobMatls` + fallback `SLJobmatls` v rámci `Job+Suffix`.
+- Why: Na live/TEST instanci `SLItemUmConvs*` neexistují (`MessageCode=450`), což způsobovalo desítky marných API volání na položku a výrazné zpomalení UI.
+- Date: 2026-02-28
+- Decision: Hodnota `RemainingCons` se v workshopu už nedopočítává heuristikou (`TotCons - QtyIssued`); zobrazuje se jen pokud je explicitně vrácena Infor datovým zdrojem.
+- Why: Operátor požaduje čistý Infor zdroj bez lokálního dopočtu; heuristika vracela zavádějící hodnoty.
+- Date: 2026-02-28
+- Decision: Materiálová tabulka v dílně nově odděluje `Dávka` (jen `BatchCons` z Inforu, bez fallbacku na `TotCons`) a `Zbývá` (`RemainingCons`, fallback na `TotCons - QtyIssued` pokud Infor explicitní zbývající hodnotu nevrátí).
+- Why: Zamezuje matoucím hodnotám typu „0 mm na dávku“ a dává operátorovi přímou informaci, kolik materiálu ještě zbývá odvést.
+- Date: 2026-02-28
+- Decision: Načítání dostupných UM pro materiál bylo rozšířeno: `SLJobmatls` se čte v rámci celého `Job+Suffix` (ne jen jedné operace) a při chybějících konverzích se zkouší i item master IDO (`SLItemums/SLItemUMs/SLItemUmConvs` varianty).
+- Why: V praxi byly UM v jedné operaci redukované jen na jednu jednotku (`mm`), i když na VP existovaly další použitelné jednotky.
+- Date: 2026-02-28
+- Decision: Workflow odvodu materiálu nově validuje dokončenou operaci (`SLJobRoutes`: `QtyComplete + QtyScrapped >= JobQtyReleased`) a blokuje post do uzavřené operace ještě před write SP voláními.
+- Why: Tvrdá prevence proti nekonzistentnímu vykazování materiálu do operací, které jsou již businessově hotové.
+- Date: 2026-02-28
+- Decision: Materiály v dílně vrací dostupné jednotky (`UMs`) a mapy množství podle jednotky (`QtyByUM`, `BatchConsByUM`); UI odvodu umožňuje jednotku explicitně zvolit a backend ji validuje proti dostupným UM materiálu.
+- Why: Operátor musí odvádět v reálné jednotce materiálu (kg/mm/...) a ne v implicitním fallbacku.
+- Date: 2026-02-28
+- Decision: `BatchCons` se při nulové/nezáporné hodnotě normalizuje na `null` (místo zobrazení `0 <UM>`), aby UI nepůsobilo jako "validní dávka 0".
+- Why: Odstraňuje matoucí stav v tabulce materiálů, kde neodváděný materiál vypadal jako dávková spotřeba nula.
+- Date: 2026-02-28
+- Decision: Strategicka hranice systemu je navrzena jako `Infor = L4 (prijem zakazek, tvorba VP)` a `Gestima = L3 (detailni rozvrh, dispecink fronty, vykazovani operaci/materialu na tabletech)`.
+- Why: Odpovida ISA-95 hranici ERP vs MES a sedí na aktualni implementaci workshop modulu (queue, operace, material issue, START/STOP transakce).
+- Date: 2026-02-28
+- Decision: Vypnuti APS v Inforu nema jit jako hard-cut; doporucen je shadow rezim 4-8 tydnu s paralelnim porovnanim KPI (`OTD`, `WIP`, `lead time`, `setup adherence`) mezi Infor APS a Gestima schedulerem.
+- Why: V Inforu APS uz existuji pokrocila pravidla (global priorities, dispatching, finite planning), proto je nutne rizeně overit, ze Gestima replikuje minimalne stejnou kvalitu planu pred prepnutim.
+- Date: 2026-02-28
+- Decision: Cílovy workflow je navrzen jako `PC dispecink = master fronty` (razeni + drag&drop + priority + poznamky + hold), `tablet = provedeni` (START/STOP, kusy/zmetky/material, stav + next queue) s volitelnym omezenym resequencingem pouze pro roli mistr.
+- Why: Odpovida beznemu MES dispatch-list patternu (ready list + aktivni transakce + lokalni operativni zasahy) a minimalizuje riziko chaosu, kdy frontu meni kazdy operator bez governance.
+- Date: 2026-02-28
+- Decision: V1 planovaci logika ma byt jednoducha a transparentni (`released + production_ready` scope, default razeni podle plan_due/slack/remaining_time, manual override nad pravidlem) s periodickym prepoctem, ne plna AI optimalizace.
+- Why: Ve vasem provozu se APS stejne nedodrzuje; nejvyssi prinos ma rychla operativni riditelnost a auditovatelne manualni zasahy, slozite adaptive heuristiky lze pridat az po stabilizaci dat.
+- Date: 2026-02-28
+- Decision: Fronta se bude ridit kombinaci `auto score + manual override`: auto pravidlo radi jen nepripnute operace, manualni presuny (drag&drop) zapisou `manual_rank` a maji prednost do dalsiho resetu.
+- Why: Umoznuje lehke planovani bez "black-box" APS, ale zachova operativni kontrolu mistra/dispecera.
+- Date: 2026-02-28
+- Decision: Nove `production_ready` VP se v defaultu zaradi na konec fronty daneho WC, ale mohou byt vlozena driv podle priority (`HOT`) nebo kritickeho terminu (slack < 0 / pod prahem).
+- Why: Odpovida pozadovanemu jednoduchemu chovani "nove VP na konec", ale bez rizika, ze urgentni zakazka propadne.
+- Date: 2026-02-28
+- Decision: Mrazeni VP/operace (`freeze`) znamena vyrazeni z automatickeho srovnani i z "co delat ted" doporuceni; unfreeze vyzaduje reason-code.
+- Why: Je to jednoduchy a auditovatelny zpusob, jak odstavit zakazku (material, cekani na schvaleni, obchodni hold) bez ztraty poradi ostatnich.
+- Date: 2026-02-28
+- Decision: Fronty budou rozdeleny na dve vrstvy: `Aktivni fronta` (jen released + production_ready) a `Zasobnik` (neuvolnene / ne-ready VP) s moznosti preview budouciho zatizeni.
+- Why: Vyroba potrebuje operativni riditelnost nad tim, co lze realne vyrabet ted, ale planovac/dispecer musi soucasne videt i budouci tlak ve fronte.
+- Date: 2026-02-28
+- Decision: Auto-rovnani aktivni fronty bude "easy heuristika": priorita, due date/slack, remaining time (SPT fallback), s manualnim override a lockem bezicich/frozen operaci.
+- Why: Pokryva user scenario "novy VP muze byt kratsi a driv splatny", ale zustava transparentni, predvidatelne a lehke na obsluhu.
+- Date: 2026-02-28
+- Decision: Dispecersky prehled musi mit samostatny pohled "Zakazky" s filtrem/groupingem min. podle zakaznika, terminu dodani a stavu pripravenosti (ready vs zasobnik).
+- Why: Operativni prioritizace je casto obchodne rizena; bez customer/delivery pohledu nelze rychle rozhodovat o poradi front.
+- Date: 2026-02-28
+- Decision: Zapisova cast (odvod prace/materialu) zustava striktne pres Infor SP flow vytazeny z terminalove aplikace (`Wrapper/Mchtrx/SFC34/ProcessJobMatlTrans`) a nebude se obchazet primym write do business IDO tabulek.
+- Why: Tyto SP drzi Infor business pravidla, validace a side-effecty; bypass by vedl k nekonzistentnim stavum mezi Gestimou a Inforem.
+- Date: 2026-02-28
+- Decision: Cteci/dispecerska cast muze bezet nad raw Infor daty + lokalnimi queue override tabulkami v Gestime; fronta neni vazana na presnou repliku terminaloveho UI.
+- Why: Umoznuje flexibilni "lightweight" planovani (auto score + manual reorder + freeze), zatimco vykazovani zustane kompatibilni s Infor transakcnim modelem.
+- Date: 2026-02-28
+- Decision: Identita operace pro bezpecny dispatch/post je standardizovana minimalne na klici `Job + Suffix + OperNum + Wc` (plus `Item`, `EmpNum`, prip. `TMach/ResId` dle instalace).
+- Why: Tento klic je nutny pro vazbu fronty, tabletu a write SP; bez jednotne identity vznikaji chyby "odvod na jinou operaci" pri resequencingu a paralelni praci.
+- Date: 2026-02-28
+- Decision: Na live konektivite byly overeny read-only zdroje: `SLJobRoutes` a `SLJobs` vraci stabilni data pro VP/operace; `SLCoitems` vraci zakazkove radky s custom `IteRyb*` schema.
+- Why: Probe proti Inforu potvrdil `MessageCode=0` pro `SLJobRoutes/SLJobs` a validni `SLCoitems` property set; nektera vanilla pole (`RybStat`, `DerCustName`) na `IteRybSLCoitems` chybi (`MessageCode=450`).
+- Date: 2026-02-28
+- Decision: Vazba zakazka→VP bude vicezdrojova: priorita `CoitemJob/MOJob` (presny VP), fallback `Job` (casto vyplneno, ale muze byt interni kratke cislo), posledni fallback parsovaci logika.
+- Why: V live vzorku `SLCoitems` bylo `Job` vyplneno u 598/600 radku, ale `CoitemJob/MOJob` jen u 8/600; nelze spolehat jen na jeden link field.
 - Date: 2026-02-27
 - Decision: `DrawingImportService` podporuje dva zdroje v jednom poli `DRAWINGS_SHARE_PATH`: lokalni cesta a `ssh://user@host:port/path`.
 - Why: Umoznuje stejny import workflow v macOS dev i Linux produkci bez SMB mountu; admin UI i API zustaly beze zmen.
-
+- Date: 2026-02-27
+- Decision: Do `TilingWorkspace` headeru bylo pridano vyhledavaci pole panelu za workspace chips; po focusu zobrazi seznam modulu, omezeny vyskou na ~10 polozek se scrollovanim, a filtruje live pres `includes` nad celym nazvem (`label`) i `id`.
+- Why: Uzivatel potrebuje rychle otevrit panel i podle slova uprostred nazvu, ne jen prefix match.
+- Date: 2026-02-27
+- Decision: Vzhled header search inputu byl sjednocen s workspace chips: placeholder zkracen na `Hledat...`, vyska inputu snizena na 22px, explicitne dedi font z headeru a native search clear ikonka je prebarvena do sedeho neutralniho stylu.
+- Why: Puvodni vzhled (modry clear krizek a vertikalni offset) vizualne neodpovidal zbytku workspace headeru.
+- Date: 2026-02-27
+- Decision: Styly search inputu v `TilingWorkspace.vue` byly prepnute na `:deep(.module-search-input)`, aby se spolehlive aplikovaly i na `Input` child komponentu se scoped CSS.
+- Why: Bez `:deep` zustaval v inputu default `input-ctrl` styl (font/velikost), coz vedlo k vizualni nekonzistenci proti workspace chips.
+- Date: 2026-02-27
+- Decision: Font size pro header search input byl sjednocen na povoleny design token `var(--fs)` (misto `var(--fsm)`).
+- Why: Pozadavek na konzistentni pouziti schvalene typografie v ramci aplikace.
 - Date: 2026-02-27
 - Decision: Vykon importu kresli presne statistiky (`files_created`, `links_created`, `parts_updated`, `skipped`) per soubor, ne jen per slozka.
 - Why: Puvodni implementation nadhodnocovala/zkreslovala vysledek a komplikovala audit importu.
-
 - Date: 2026-02-27
 - Decision: Aktivní AI governance je sjednocena na Codex flow (`AGENTS.md`) s guardy (`docs-guard`, `quality-gate`, PR template, CI trend report).
 - Why: Zajišťuje konzistentní proces, kontrolovaný růst dokumentace a měřitelný trend kvality.
-
 - Date: 2026-02-27
 - Decision: Fronta práce se načítá primárně z `IteCzTsdJbrDetails` s fallbackem na `SLJobRoutes`.
 - Why: RE analýza potvrzuje `IteCzTsdJbrDetails` jako zdroj plan queue (včetně `OpDatumSt/OpDatumSp`), fallback drží kompatibilitu na instancích bez tohoto IDO.
-
 - Date: 2026-02-27
 - Decision: START/SETUP flow jde přes `IteCzTsdUpdateDcSfcWrapperSp` + `IteCzTsdUpdateMchtrxSp`; STOP flow preferuje `IteCzInsWrapperDcsfcUpdateSp` a fallbackuje na Wrapper stop, vždy s uzavřením stroje přes `IteCzTsdUpdateDcSfcMchtrxSp`.
 - Why: Odpovídá reverse-engineering sekvenci z InduStream, ale zároveň je implementován bezpečný fallback pro odlišné signature mezi Infor instalacemi.
-
 - Date: 2026-02-27
 - Decision: UI timer drží plný kontext běžící práce (`job/suffix/oper/item/wc`) a STOP používá tento snapshot místo aktuálně vybrané položky.
 - Why: Zabraňuje chybnému odvodu při změně výběru v tabulce během běžící práce.
-
 - Date: 2026-02-27
 - Decision: Fronta práce/plánované časy se berou ze `SLJobRoutes` (`DerStartDate`, `DerEndDate`, fallback `JshStartDate`, `JshEndDate`) místo `IteCzTsdJbrDetails`.
 - Why: Read-only metadata probe na TEST Inforu potvrdil, že `IteCzTsdJbrDetails` v této instanci neobsahuje `Job/Suffix`, takže nelze stabilně sestavit frontu; `SLJobRoutes` obsahuje job i plánované termíny.
-
 - Date: 2026-02-27
 - Decision: Materiály operace se mapují z kombinace polí `MaterialBd/*Bd` a fallbacku `Item`, `DerItemDescription`, `MatlQty`, `QtyIssued`.
 - Why: V TEST metadatech `TotCons/Qty/BatchCons` neexistují, ale `*Bd` bývají často `NULL`; fallback na `Item/MatlQty` zajišťuje, že panel materiálů vrací použitelná data.
-
 - Date: 2026-02-27
 - Decision: STOP flow je přepnut na `WrapperSp` (labor) + `Mchtrx` s trans type `J` (machine stop), s fallbackem na plnou signaturu `IteCzTsdUpdateDcSfcMchtrxSp`.
 - Why: Probe signatur v TESTu odhalil přesné pořadí parametrů; původní zkrácené volání `DCSFC_MCHTRX` padalo na chybějících parametrech a shazovalo transakce do `failed`.
-
 - Date: 2026-02-27
 - Decision: Modul `work-materials` byl sloučen do `work-ops`; tile je přejmenovaný na `Technologie` a materiálové zadávání běží přes collapsible sekci uvnitř stejného panelu.
 - Why: Uživatel požadoval jeden sjednocený tile místo rozdělení Operace/Materiál při zachování funkčnosti zadávání materiálu.
-
 - Date: 2026-02-27
 - Decision: V přehledu materiálů byl odstraněn detailní dropdown/expand řádek pro vazby operací; vazby zůstávají viditelné přímo v řádku materiálu.
 - Why: Data byla vizuálně roztahaná a dropdown nepřinášel hodnotu pro primární workflow.
-
 - Date: 2026-02-27
 - Decision: `TileWorkMaterials` běží pouze jako embedded sekce v „Technologie“ a byl z něj odstraněn redundantní unsupported-item guard; embedded styl tabulky/ribbonu byl sjednocen s vizuálem operací.
 - Why: Po sloučení panelů byl guard nedosažitelný a UI působilo nekonzistentně vůči tabulce operací.
-
 - Date: 2026-02-27
 - Decision: Materiálová logika byla plně zploštěna přímo do `TileWorkOps.vue` a samostatný soubor `TileWorkMaterials.vue` byl odstraněn.
 - Why: Eliminace mrtvého/duplicitního FE surface a jednodušší údržba jednoho sjednoceného tile „Technologie“.
-
 - Date: 2026-02-27
 - Decision: Collapsible „Materiál“ byl přesunut nad tabulku operací (první sekce panelu) a vazby materiál-operace jsou upravitelné inline přímo v řádku materiálu (add/unlink bez detail dropdownu).
 - Why: Lepší pracovní tok podle požadavku uživatele a zachování kompaktního zobrazení.
-
 - Date: 2026-02-27
 - Decision: Vizuál materiálové tabulky byl dorovnán k tabulce operací, včetně odstranění odlišného hover podbarvení řádků.
 - Why: Sjednocení UI v rámci jednoho tile „Technologie“.
-
 - Date: 2026-02-27
 - Decision: Sekce `Operace` získala vlastní collapsible hlavičku a výchozí stav obou sekcí (`Materiál` + `Operace`) je otevřeno.
 - Why: Požadavek na jednotné prostředí s konzistentním chováním obou částí.
-
 - Date: 2026-02-27
 - Decision: Vazby materiál-operace jsou editovatelné inline (add/unlink) přímo ve sloupci `Operace` u materiálového řádku.
 - Why: Zachování kompaktního zobrazení při zachování možnosti úpravy navázaných operací.
-
 - Date: 2026-02-27
 - Decision: V materiálové tabulce bylo odstraněno zobrazení `Tvar`; zůstávají pouze rozměry. Uzamčené rozměry se renderují ve stejné velikosti jako input pole.
 - Why: Požadavek na čistší tabulku bez redundantní informace o tvaru a jednotný vizuál dimenzí.
-
 - Date: 2026-02-27
 - Decision: Vazba materiálu na operaci je UI-limitovaná na jednu operaci přes single dropdown (`Bez operace` / konkrétní operace).
 - Why: Workflow vyžaduje jednoznačné přiřazení materiálu k jedné operaci namísto multi-vazeb.
-
 - Date: 2026-02-27
 - Decision: Výběr operace u materiálu je realizovaný jako editable combobox (`OperationCombobox`) se stejným UX patternem jako `WcCombobox`.
 - Why: Uživatel potřebuje ruční psaní/filtrování při výběru operace, ne statický select.
-
 - Date: 2026-02-27
 - Decision: Pozadí sekcí `Materiál` a `Operace` bylo sjednoceno na `surface` styl s hover `var(--b1)` analogicky k tabulkové části v listu položek.
 - Why: Vizuální konzistence napříč panely a čitelnější oddělení sekcí od gradientního pozadí.
-
 - Date: 2026-02-27
 - Decision: Validace preodvodu kusu bezi centralne v `post_transaction_to_infor`: mimo pilu se transakce zablokuje, na pile je preodvod povolen pouze pro prvni operaci.
 - Why: Uzivatelsky pozadavek je povolit "vice kusu" jen pro prvni reznou operaci, aby dalsi operace zustaly striktně proti planu.
-
 - Date: 2026-02-27
 - Decision: Pri povolenem preodvodu na pile se po uspesnem odvodu automaticky navysuje `SLJobs.QtyReleased` pres `/json/updaterequest` (Action=2 update).
 - Why: TEST Infor prostredi ma blokovane `PUT /json/{ido}/updateitem`; `updaterequest` je overena funkcni cesta pro update existujiciho radku.
-
 - Date: 2026-02-27
 - Decision: Workshop Operation panel zobrazuje planovane casy (`OpDatumSt/OpDatumSp`) i lokalni stop-form policy hint (pila vs. standard operace) a FE predvaliduje zjevny overrun mimo pilu.
 - Why: Operator vidi plan a pravidla hned pri odvodu; snizuje se pocet neplatnych stop pokusu.
-
 - Date: 2026-02-27
 - Decision: Fronta `/workshop/queue` je scoped pouze na `SLJobRoutes` s `Type='J'` a `JobStat='R'`; data z primarniho rozvrhoveho IDO (`IteCzTsdJbrDetails`) se berou jen pro operace, ktere existuji v released scope.
 - Why: Uzivatel potrebuje videt pouze uvolnene VP; primarni rozvrh muze obsahovat i nereleased/odlisne radky.
-
 - Date: 2026-02-27
 - Decision: Pri merge fronty se planovane casy/qty/descriptive pole doplnuji z `SLJobRoutes`, pokud v primarnim rozvrhovem zdroji chybi.
 - Why: V praxi byly v UI prazdne hodnoty `Plan od/Plan do`, i kdyz `SLJobRoutes` je obsahoval.
-
 - Date: 2026-02-27
 - Decision: FE formatovani casu ve fronte vraci surovou hodnotu, pokud parser `Date` selze, misto tvrdeho `—`.
 - Why: Infor muze vracet lokalni/string format, ktery JS parser neumi; lepsi je hodnotu ukazat nez schovat.
-
 - Date: 2026-02-27
 - Decision: Dokoncenost operace se vyhodnocuje kombinaci stavoveho textu (`State/StateAsd` marker) a mnozstevniho pravidla (`QtyComplete + QtyScrapped >= JobQtyReleased`), a tyto operace se z fronty filtruji.
 - Why: Uzivatel nechce videt ani obsluhovat uz uzavrene operace; ciste mnozstevni kontrola nemusi stacit na vsechny instalace.
-
 - Date: 2026-02-27
 - Decision: Pred postem transakce se vzdy overuje, ze cilova operace neni dokoncena; pri poruseni je transakce oznacena jako `failed` se srozumitelnou hlaskou.
 - Why: Hard-stop prevence proti vykazovani do uzavrenych operaci je business kriticka.
-
 - Date: 2026-02-27
 - Decision: Qty validace pro overrun pracuje s celkovym vykazem `hotove + zmetky` (ne pouze hotove), stejna logika je i ve FE STOP formulari.
 - Why: Zabraňuje obejití limitu pres pole zmetku a odpovida realnemu odvodu kusu.
-
 - Date: 2026-02-27
 - Decision: Queue table row key byl rozšířen (`Job/Suffix/Oper/OpDatumSt/StateAsd/index`) a aktivni radek se urcuje referencne.
 - Why: Infor muze vratit vice planovanych radku pro stejnou operaci (napr. setup/production bloky); puvodni key je kolaboval do jednoho vizualniho radku.
-
 - Date: 2026-02-27
 - Decision: Fallback na `SLJobRoutes` byl odstraněn jak ve fronte (`fetch_wc_queue`), tak v detailu operací (`fetch_job_operations`); při nedostupném `IteCzTsdJbrDetails` endpoint vrací chybu.
 - Why: Fallback vracel operace mimo skutečný rozvrh (včetně dokončených), což je business-kriticky nebezpečné; preferována je fail-fast strategie před tichou nekonzistencí dat.
+- Date: 2026-02-27
+- Decision: Loader `IteCzTsdJbrDetails` byl rozšířen o `col*` aliasy (`colJob`, `colOper`, `colSuffix`, `colWc`, `colOpDatumSt`, ...), a JBR filtry/sort se dělají primárně lokálně po normalizaci.
+- Why: V TEST instanci opakovaně padalo čtení na `Property Job not found on IteCzTsdJbrDetails IDO`; RE stringy z původní DLL potvrzují `col*` schéma, které se mezi instalacemi liší a rozbíjí pevně zadané server-side `filter/orderBy`.
 
 ## Otevřené body
 
+- Potvrdit, kdo je master pro `slibeny termin` a `zakaznickou prioritu` (Infor vs Gestima) a jaky bude audit trail pri manualni zmene priority/fronty.
+- Potvrdit kapacitni model pro Gestima scheduler: zda bude stacit `stroj + kalendar`, nebo je nutne planovat i `operator`, `nastroje` a materialovou dostupnost.
+- Rozhodnout, zda se do prvni faze zahrne auto-reschedule po vypadku stroje/urgentni zakazce, nebo jen manualni prehozeni fronty dispecerem.
+- Potvrdit opravneni pro prehazovani fronty na tabletu (mistr ano/ne; operator ano/ne) a zda kazda zmena vyzaduje povinny reason-code.
+- Potvrdit threshold pro "kriticky termin" (napr. slack < 0h nebo < 8h) a kdy ma novy VP skocit pred standardni frontu.
+- Potvrdit, zda se ma v zasobniku zobrazovat i duvod "neni ready" (material/chybi dokumentace/kooperace/kapacita) a odkud se tento stav bere.
+- Ověřit na realnem TEST Inforu, zda `ready/released` status jde spolehlive cist z jedne sady IDO poli (bez inferenci), a jak se mapuje na stav "lze vyrabet ted".
+- Potvrdit normalizacni pravidlo pro `SLCoitems.Job` (kdy je to realny VP vs interni numericky identifikator) a jaky confidence score dat do UI.
+- UX potvrzeni: ma Enter v searchi vzdy otevrit prvni nalezeny panel vpravo, nebo se ma zachovat posledni pouzita drop zona?
 - Ověřit na reálném TEST Inforu, že `Mchtrx(H/J)` se skutečně propisuje do strojního běhu pro konkrétní WC/stroj (včetně varianty s `TMach`).
 - Doplnit explicitní mapování `TMach` (a případně `IdMachine/ResId`) z výběru pracoviště/loginu, pokud Infor vyžaduje přesný identifikátor stroje.
-- Rozšířit workshop UI o přímé zobrazení výkresů/dokumentace pro vybranou operaci.
-- Zvážit navázání/odebírání operací na materiál přes lehký modal (bez inline dropdownu), pokud se tato úprava ukáže v praxi potřebná.
-- Doplnit multi-page parser pro PDF vykresy (dnes primarne page 0) a deterministic fallback pro cteni razitka/materialu.
-- Dopsat integracni testy pro SSH drawing import (status/preview/execute) se stub serverem.
-- Otestovat na TEST Inforu edge-case: preodvod na pile u operace, ktera neni prvni (musi byt tvrde zablokovan backendem).
-- Zvážit parametrizaci policy dle WC/operace do admin konfigurace (misto hardcoded prefixu `PS/PILA/SAW`).
-- Ověřit na TEST Inforu konkrétní případ `21VP06/077`, že operace 5 na `PSv/PSV` po nasazení strict source zmizí z fronty i detailu operací.
 
 ## Další krok
 
+- Udelat 2h discovery workshop (vyroba + planovani + obchod + IT), uzavrit data kontrakt `Infor -> Gestima` pro VP/splatnosti/priority a pripravit backlog MVP (dispatch board + tablet operace + manualni resequencing + poznamky/priority).
+- Pripravit schema pro `dispatch_queue_overrides` + `dispatch_events` + `dispatch_notes` a navrhnout API pro reorder/hold/hotjob s audit trail em.
+- Dodat v BE prvni verzi pravidla `build_dispatch_queue()` (scope released+ready, freeze lock, manual rank, default tail-insert pro nove VP, HOT/critical insert) a nasadit nad `/workshop/queue`.
+- Pripravit Infor field-contract pro "Zakazky + zasobnik" (zakaznik, promised due, release/ready flags, operation-level remaining time) a overit dostupnost poli na realnem TEST endpointu.
+- Dopsat E2E test pro header search v tiling workspace: otevreni dropdownu po focusu, live obsahovy filtr a vyber panelu z listu.
 - Provest E2E TEST scenar na dilne: overit, ze dokoncene operace nejsou ve fronte, ze post do dokoncene operace je blokovan, a rozhodnout UX policy pro dvojite radky stejne operace (ponechat oba vs. sloucit do jednoho summary radku).
 - Provest rychly smoke test workshop endpointu proti TEST Inforu: `/workshop/queue` a `/workshop/operations` musi vratit pouze JBR rozvrh a pri vypadku JBR selhat s 502 (bez fallback dat).
-
 - Date: 2026-02-27
 - Decision: V technologickém tile byly odstraněny placeholder texty z inputů (parse input a časy operací) a potvrzeno, že `OperationCombobox` placeholder atribut nepoužívá.
 - Why: Uživatel explicitně požadoval prostředí bez placeholder textu v těchto polích.
-
 - Date: 2026-02-27
 - Decision: Detail řádku operace (`Navázaný materiál`) už není placeholder; renderuje reálné navázané materiály z `materialItems.operations` včetně krátkého kódu (`materialShortRef`) a názvu.
 - Why: Uživatel potřebuje okamžitě vidět vazbu materiál↔operace i v rozbaleném detailu operace.
+- Date: 2026-02-27
+- Decision: `InforAPIClient.load_collection` nově vrací i `message`/`message_code` a podporuje volání bez `props` (default property set IDO).
+- Why: Infor u neplatných properties vrací HTTP 200 + `MessageCode=450`; bez této informace se v workshop loaderu chybně bral první neplatný dotaz jako „prázdná data“.
+- Date: 2026-02-27
+- Decision: Workshop JBR loader (`_load_collection_first`) při `message_code != 0` přeskakuje na další property set; po vyčerpání setů zkouší JBR i bez `props` (stále bez fallbacku na `SLJobRoutes`).
+- Why: Opravuje stav „žádné operace“, kdy první neplatný property set tiše vrátil empty list a zastavil další pokusy.
+- Date: 2026-02-27
+- Decision: `IteCzTsdJbrDetails` property fallback rozšířen o varianty `colJobSuffix` a kombinované pole `vJobSuffixOperNum/JobSuffixOperNum`; parser `Job/Suffix/Oper` byl upraven na pravostranný parse.
+- Why: RE důkazy z původní DLL ukazují více variant názvů polí mezi instalacemi a kombinovaný formát identifikátoru operace.
+
+- Date: 2026-02-27
+- Decision: Byla provedena live diagnostika proti TEST Inforu (stejna DB jako LIVE): `IteCzTsdJbrDetails` schema obsahuje hlavne `SessionId/OperNum` a neobsahuje `Job/Suffix`; bez `props` vraci `MessageCode=0`, ale `Items=[]`.
+- Why: Potvrdilo se, ze v teto instalaci JBR IDO funguje jako detail/session view, ne jako primy zdroj fronty.
+- Date: 2026-02-27
+- Decision: `fetch_wc_queue`/`fetch_job_operations` byly rozsireny o kompatibilni rezim: pokud JBR vrati detail-only signaturu (`Bookmark` s `SessionId/OperNum`), backend explicitne prepne na `SLJobRoutes`.
+- Why: Bez tohoto prepnuti je fronta trvale prazdna; init metody z puvodni aplikace (`IteCzTsdBdFiltrySp`, `IteCzInsLoadModuleSp`) v teto instanci na `IteCzTsdStd` nejsou dostupne.
+- Date: 2026-02-27
+- Decision: SLJobRoutes kompatibilni rezim je striktne filtrovany (`Type='J'`, `JobStat='R'`) a stale odfiltruje dokoncene operace stejnou mnozstevni/stavovou logikou.
+- Why: Zachovani business pravidla „jen otevrene/uvolnene operace“ i v rezimu bez dostupneho JBR queue view.
+- Date: 2026-02-27
+- Decision: Workshop API pridalo server-side filtr podle VP (`job`) a obecne razeni (`sort_by/sort_dir`) pro endpointy `/workshop/queue`, `/workshop/operations`, `/workshop/materials`.
+- Why: Fronta i seznamy v dilne potrebuji deterministicke razeni vzestupne/sestupne a rychle zúžení na konkretni VP bez lokalniho obchazeni paginace.
+- Date: 2026-02-27
+- Decision: Do workshop workflow byl doplnen materialovy odvod pres novy endpoint `POST /workshop/material-issues`, ktery validuje existenci materialu na operaci a vola Infor flow `ValidateItemDcJmcSp` -> `ValidateQtyDcJmcSp` -> `ProcessJobMatlTransDcSp` (+ nonfatal `UpdateDcJmcSp`).
+- Why: Pokryva chybejici krok „vykazovani materialu“ primo v kontextu aktivni operace a drzi konzistenci s RE postupem modulu 01140.
+- Date: 2026-02-27
+- Decision: Workshop FE (`WorkshopQueueTable` + `WorkshopOperationPanel`) podporuje klikaci razeni sloupcu a novy filtr VP ve fronte; v panelu operace pribyl inline formular materialoveho odvodu.
+- Why: Operator ma kompletni workflow (vyber operace -> cas/kusy -> materialovy odvod) v jedne obrazovce bez prepinani modulu.
+- Date: 2026-02-27
+- Decision: Materialovy odvod ve workshopu byl sjednocen na fixni skladovy kontext `Whse=MAIN`, `Location=PRIJEM`, lot se v beznem flow neposila; UI uz pole `Lokace/Lot` nezobrazuje.
+- Why: V provozu se pouziva jedna skladova cesta a rucni zadavani lot/lokace operatora mátlo i rozbijelo odvod.
+- Date: 2026-02-27
+- Decision: Nacitani materialu pro operaci mapuje i `UM` (jednotku) a pri chybejicim `UM` v `IteCzTsdSLJobMatls` doplni jednotky fallbackem ze `SLJobmatls`; jednotka se zobrazuje primo v panelu operace.
+- Why: Operator potrebuje videt, v jake jednotce odvadí material (kg/m/ks) a v TEST datech je `UM` casto mimo primy IDO view.
+- Date: 2026-02-27
+- Decision: Pri implementaci odvodu byl potvrzen puvodni sequence flow modulu 01140 (`CLMGetJobMaterial -> ControlBFJobmatlItem -> ValidateItem -> ValidateQty -> ValidateLot -> ProcessJobMatlTrans -> UpdateDcJmc`); `Validate*` kroky jsou volany nonfatal kvuli rozdilnym signaturam mezi instalacemi.
+- Why: Runtime logy ukazuji schema rozdily (`@SubstDjcm`, typove parse chyby), ale samotne procesni volani musi probehnout i na instancich s odlisnou parametrizaci validacnich SP.
+- Date: 2026-02-28
+- Decision: `IteCzTsdProcessJobMatlTransDcSp` je volan pouze v jedne primarni signature (single-shot) a uspesnost se vyhodnocuje podle `MessageCode` (nenulovy `ReturnValue` je akceptovan).
+- Why: V TEST logu jedno `post_material_issue` volalo process pres vice kandidatu; prvni volani uz material odvedlo, dalsi varianty vytvarely duplicitni radky spotreby.
+- Date: 2026-02-28
+- Decision: `fetch_job_materials` deduplikuje vystup na 1 radek na `Material` a `Qty` bere primarne z materialovych poli (`QtyPerPcBd/Qty`) s fallbackem na `SLJobmatls.MatlQtyConv`.
+- Why: Po odvodu vraci `IteCzTsdSLJobMatls` vice sekvenci stejne polozky; bez deduplikace operator vidi duplicity a mylne mnozstvi mimo UM kontext.
+- Date: 2026-02-28
+- Decision: Orders overview uz neschovava radky bez navazaneho VP kandidata (zustavaji viditelne s prazdnymi operacemi).
+- Why: Uzivatel potrebuje videt i budouci/neuvolnene polozky jako zasobnik pro planovani, ne jen radky s okamzitou vazbou na VP.
+- Date: 2026-02-28
+- Decision: Sloupce operaci v `Přehled zakázek` uz nejsou fixni (10), ale dynamicke podle maxima operaci v aktualne nactenych radcich; modra barva je pouze pro explicitni `in_progress`, idle stav je bez podbarveni.
+- Why: Odpovida realnemu pouziti na dilne: zelena hotovo, modra jen aktivne rozpracovano, jinak neutralni zobrazeni bez falesnych highlightu.
+- Date: 2026-02-28
+- Decision: Vznikl ADR-053 (`docs/ADR/053-infor-dispatch-data-readiness.md`) jako baseline data-kontraktu pro `Přehled zakázek`, lightweight `plánování` a `dílenský terminál` nad live Infor extracty.
+- Why: Uživatel potřeboval jasně oddělit, co je dnes datově potvrzené z Inforu a co musí být řešeno jako Gestima overlay (priority/freeze/queue audit).
+- Date: 2026-02-28
+- Decision: V `orders-overview` bylo odstraněno mapování kandidátů VP přes `SLCoitems.Job`; kandidáti se berou jen z explicitních vazeb (`CoitemJob`, `MOJob`) a z deterministického joinu na `SLJobs` přes `DerOrderID + OrdLine + OrdRelease + Item` vůči `SLCoitems` (`CoNum + CoLine + CoRelease + Item`), s kontrolou existence výrobních operací v `SLJobRoutes` (`Type='J'` scope).
+- Why: `SLCoitems.Job` v této instalaci často nese interní/plánovací čísla (např. 4místné), která neodpovídají aktivnímu výrobnímu příkazu; uživatel požadoval párování podle zakázky a položky z Infor zdroje bez reliance na toto pole.
+- Date: 2026-02-28
+- Decision: Dostupné měrné jednotky pro odvod materiálu se nově skládají ze standardních Infor zdrojů `SLJobmatls` + `SLUmConvs` (Item, FromUM, ToUM); `Ite*` discovery se pro MJ nepoužívá.
+- Why: V této instalaci může mít řádek VP pouze jednu UM, ale alternativa (např. `kg`) existuje na položce; `SLUmConvs` je stabilní Infor zdroj bez dependence na third-party custom IDO.
+- Date: 2026-02-28
+- Decision: Po regresi „Přehled zakázek se nenačítá“ byl `orders-overview` zpevněn: `SLJobs` property sety obsahují i kompatibilní varianty bez `DerOrderID/OrdLine/OrdRelease`, a načtení `SLCos` je non-blocking fallback (při chybě se ignoruje).
+- Why: Na některých instancích Infor order fields v `SLJobs` nejsou dostupné (`MessageCode=450`); přehled musí zůstat dostupný i bez enrich dat a nesmí padat 502.
+- Date: 2026-02-28
+- Decision: Workshop materiály berou `Dávka` explicitně z `SLJobmatls.DerMatlTransQty` (pokud `BatchConsumptionBd` chybí), `Zbývá` se naplňuje jen z explicitních remaining polí (bez dopočtu), a odvod je tvrdě blokován pro kooperace (`Wc` začíná `KOO`) na BE i FE.
+- Why: V této instanci `IteCzTsdSLJobMatls` vrací BD pole často `NULL`; user požaduje Infor-only hodnoty bez lokální matematiky a zákaz odvodu na kooperačních operacích.
+- Date: 2026-02-28
+- Decision: Infor document importer (`SLDocumentObjects_Exts`) přepnut z bookmark paginace na single request s `rowcap=0`; bookmark loop (identický bookmark na každé stránce) vracel pouze ~400 z 3350 dokumentů.
+- Why: Infor API vrací pro tento IDO stále stejný bookmark, takže paginated loop se zacyklí; `rowcap=0` vrátí kompletní dataset najednou.
+- Date: 2026-02-28
+- Decision: Matching dokumentů na díly rozšířen o `Part.drawing_number` v obou importerech (Infor i file server); `article_number` má přednost před `drawing_number` v lookup dict; identifikováno 534 potenciálních konfliktů.
+- Why: Řada dílů má dokument pojmenovaný podle čísla výkresu, ne article number; bez drawing_number matche se tyto dokumenty nepřiřadily.
+- Date: 2026-02-28
+- Decision: File server import filtru 46/47 upraven: složky začínající `46`/`47` se přeskakují pouze pokud neobsahují tečku v názvu (např. `470100.28` je platný díl).
+- Why: Původní blanket filtr `startswith("46"/"47")` odfiltroval legitimní díly s číselnými identifikátory obsahujícími tečku.
+- Date: 2026-02-28
+- Decision: `FileService._sanitize_filename` přepnut z reject na replace přístup: nepovolené znaky se nahradí `_`, povoleny `()`,`,`,`+`,`=`,`@`,`#`,`~`,`[]`; path traversal (`..`, `/`, `\`) zůstává blokován.
+- Why: 78 souborů z file serveru mělo v názvu české diakritické znaky nebo speciální znaky, které reject regex odmítl; replace přístup zachová čitelnost názvu.
+- Date: 2026-02-28
+- Decision: Minimální délka tokenu pro token-based matching dokumentů nastavena na 4 znaky (`_MIN_TOKEN_MATCH_LEN = 4`).
+- Why: Díl s `article_number="37"` matchoval všechny dokumenty začínající `37-...` přes word-boundary token match; krátké identifikátory (< 4 znaky) generují příliš mnoho false positives.
+- Date: 2026-02-28
+- Decision: Infor document download concurrency snížen z 10 na 3 (`_DOWNLOAD_CONCURRENCY = 3`); filename vždy dostane příponu `.pdf` pokud ji nemá.
+- Why: 10 souběžných stahování překračovalo Infor session limit; DocumentName s tečkami (např. `1002.3237`) byl použit jako filename bez přípony.

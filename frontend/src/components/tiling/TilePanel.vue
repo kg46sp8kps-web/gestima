@@ -38,13 +38,15 @@ const MODULE_COMPONENTS: Partial<Record<ModuleId, ReturnType<typeof defineAsyncC
   'work-docs':      defineAsyncComponent(() => import('@/components/tiling/modules/TileWorkDocs.vue')),
   'partners':       defineAsyncComponent(() => import('@/components/tiling/modules/TilePartners.vue')),
   'quotes':         defineAsyncComponent(() => import('@/components/tiling/modules/TileQuotes.vue')),
+  'orders-overview': defineAsyncComponent(() => import('@/components/tiling/modules/TileOrdersOverview.vue')),
   'time-vision':    defineAsyncComponent(() => import('@/components/tiling/modules/TileTimeVision.vue')),
   'batch-sets':     defineAsyncComponent(() => import('@/components/tiling/modules/TileBatchSets.vue')),
   'production':     defineAsyncComponent(() => import('@/components/tiling/modules/TileProduction.vue')),
   'files':          defineAsyncComponent(() => import('@/components/tiling/modules/TileFiles.vue')),
   'admin':          defineAsyncComponent(() => import('@/components/tiling/modules/TileAdmin.vue')),
   'materials':      defineAsyncComponent(() => import('@/components/tiling/modules/TileMaterials.vue')),
-  'work-3d':        defineAsyncComponent(() => import('@/components/tiling/modules/TileViewer3D.vue')),
+  'machine-plan-dnd': defineAsyncComponent(() => import('@/components/tiling/modules/TileMachinePlanDnD.vue')),
+  'production-planner': defineAsyncComponent(() => import('@/components/tiling/modules/TileProductionPlanner.vue')),
 }
 
 const ModuleComponent = computed(() => MODULE_COMPONENTS[props.node.module] ?? null)

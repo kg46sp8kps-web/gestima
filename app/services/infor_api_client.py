@@ -43,13 +43,8 @@ class InforAPIClient:
         password: str = "",
         verify_ssl: bool = False  # Default False pro self-signed certs
     ):
-        # 🚫 HARD BLOCK: Live konfig je zakázán — Gestima používá výhradně TEST
-        if config.upper() in ["LIVE", "PROD", "PRODUCTION", "SL"]:
-            raise ValueError(
-                f"ZAKÁZANÝ INFOR CONFIG '{config}'. "
-                "Gestima používá výhradně INFOR_CONFIG=TEST. "
-                "Live zápisy přes Gestima jsou zakázány."
-            )
+        # ℹ️ READONLY LIVE: Čtení z live Inforu povoleno.
+        # Zápisy (POST transakce) jsou blokované v workshop_router.py.
 
         self.base_url = base_url.rstrip("/")
         self.config = config
@@ -60,6 +55,25 @@ class InforAPIClient:
         # Token cache
         self._token: Optional[str] = None
         self._token_expires: Optional[datetime] = None
+
+        # Shared HTTP client (connection pool, reuse TCP/TLS)
+        self._client: Optional[httpx.AsyncClient] = None
+
+    def _get_http_client(self) -> httpx.AsyncClient:
+        """Vrátí sdílený httpx client (connection pool, reuse TCP/TLS)."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                verify=self.verify_ssl,
+                timeout=60.0,
+                limits=httpx.Limits(max_connections=4, max_keepalive_connections=4),
+            )
+        return self._client
+
+    async def close(self) -> None:
+        """Uzavře sdílený HTTP client."""
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
+            self._client = None
 
     async def get_token(self) -> str:
         """
@@ -73,49 +87,49 @@ class InforAPIClient:
         # Jinak získat nový token
         logger.info(f"Requesting new token from Infor API (config={self.config})")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.get(
-                    f"{self.base_url}/json/token/{self.config}",
-                    headers={
-                        "UserId": self.username,
-                        "Password": self.password,
-                        "accept": "application/json"
-                    },
-                    timeout=30.0
-                )
-                response.raise_for_status()
+        client = self._get_http_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/json/token/{self.config}",
+                headers={
+                    "UserId": self.username,
+                    "Password": self.password,
+                    "accept": "application/json"
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
 
-                data = response.json()
+            data = response.json()
 
-                # Response může být různý formát - zkusit všechny varianty
-                self._token = (
-                    data.get("Token") or  # Infor format (capital T)
-                    data.get("token") or
-                    data.get("SecurityToken") or
-                    data.get("value")
-                )
+            # Response může být různý formát - zkusit všechny varianty
+            self._token = (
+                data.get("Token") or  # Infor format (capital T)
+                data.get("token") or
+                data.get("SecurityToken") or
+                data.get("value")
+            )
 
-                if not self._token:
-                    raise ValueError(f"Token not found in response: {data}")
+            if not self._token:
+                raise ValueError(f"Token not found in response: {data}")
 
-                # Token platný 60 minut (SyteLine default), obnovit po 55 min
-                self._token_expires = datetime.now() + timedelta(minutes=55)
+            # Token platný 60 minut (SyteLine default), obnovit po 55 min
+            self._token_expires = datetime.now() + timedelta(minutes=55)
 
-                logger.info(f"Token acquired successfully, expires at {self._token_expires}")
-                return self._token
+            logger.info(f"Token acquired successfully, expires at {self._token_expires}")
+            return self._token
 
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Failed to get token: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"Failed to get token: {e}")
-                raise
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Failed to get token: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to get token: {e}")
+            raise
 
     async def load_collection(
         self,
         ido_name: str,
-        properties: List[str],
+        properties: Optional[List[str]] = None,
         filter: Optional[str] = None,
         order_by: Optional[str] = None,
         record_cap: int = 0,  # 0 = unlimited
@@ -128,7 +142,8 @@ class InforAPIClient:
 
         Args:
             ido_name: Název IDO (např. "SLItems", "SLCustomers")
-            properties: Seznam polí ["Item", "Description", "UnitCost"]
+            properties: Seznam polí ["Item", "Description", "UnitCost"].
+                Pokud je None, endpoint se volá bez `props` a použije default view property set.
             filter: WHERE podmínka (např. "Item = 'ABC123'" nebo "Item LIKE 'A%'")
             order_by: Řazení (např. "Item ASC" nebo "UnitCost DESC")
             record_cap: Max počet záznamů (0 = unlimited, -1 = default)
@@ -143,7 +158,7 @@ class InforAPIClient:
                 - has_more: Boolean indicating if more records exist
         """
         token = await self.get_token()
-        props = ",".join(properties)
+        props = ",".join(properties) if properties is not None else None
 
         # Build query parameters
         params: Dict[str, Any] = {}
@@ -164,121 +179,92 @@ class InforAPIClient:
 
         # Use /adv endpoint for advanced queries with rowcap support
         url = f"{self.base_url}/json/{ido_name}/adv"
-        params["props"] = props  # Add props as query parameter
+        if props is not None:
+            params["props"] = props  # Add props as query parameter
 
-        logger.info(f"LoadCollection: {ido_name} with params {params}")
-        logger.info(f"Request URL: {url}")
+        # Logujeme jen IDO a klíčové parametry, nikdy celý filter/URL (může být obrovský IN clause)
+        log_params = {k: (v[:80] + "..." if isinstance(v, str) and len(v) > 80 else v) for k, v in params.items()}
+        logger.info("LoadCollection: %s params=%s", ido_name, log_params)
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.get(
-                    url,
-                    params=params,
-                    headers={"Authorization": token},  # Infor: NO Bearer prefix
-                    timeout=60.0
-                )
+        client = self._get_http_client()
+        try:
+            response = await client.get(
+                url,
+                params=params,
+                headers={"Authorization": token},  # Infor: NO Bearer prefix
+            )
 
-                # Log actual request URL for debugging
-                logger.info(f"Actual request URL: {response.request.url}")
+            logger.info("Response: %s %d", ido_name, response.status_code)
 
-                logger.info(f"Response status: {response.status_code}")
-                logger.info(f"Response headers: {dict(response.headers)}")
+            response.raise_for_status()
 
-                response.raise_for_status()
+            data = response.json()
 
-                data = response.json()
+            result_array = None
+            response_bookmark = None
+            response_message = ""
+            response_message_code = 0
 
-                # DEBUG: Log raw response
-                logger.info(f"Raw response type: {type(data)}")
-                logger.info(f"Raw response (first 500 chars): {str(data)[:500]}")
+            if isinstance(data, dict):
+                response_bookmark = data.get("Bookmark") or data.get("bookmark")
+                response_message = str(data.get("Message") or "")
+                try:
+                    response_message_code = int(data.get("MessageCode", 0) or 0)
+                except (TypeError, ValueError):
+                    response_message_code = 0
 
-                # Response format může být různý
-                # Swagger-style endpoint returns dict with "Items" as array of arrays
-                # Need to convert to array of objects: [{"Field": "value1"}, {"Field": "value2"}, ...]
-
-                result_array = None
-                response_bookmark = None
-
-                if isinstance(data, dict):
-                    logger.info(f"Response is dict with keys: {list(data.keys())}")
-
-                    # Extract bookmark for pagination
-                    response_bookmark = data.get("Bookmark") or data.get("bookmark")
-
-                    # Extract Items array (Infor CloudSuite format)
-                    result_array = data.get("Items")
-                    if result_array is not None:
-                        logger.info(f"Extracted {len(result_array)} records from 'Items' key")
-                    else:
-                        # Fallback to "value" (generic format)
-                        result_array = data.get("value", [])
-                        logger.info(f"Extracted {len(result_array)} records from 'value' key")
-
-                elif isinstance(data, list):
-                    logger.info(f"Response is list with {len(data)} records")
-                    result_array = data
-
+                result_array = data.get("Items")
                 if result_array is None:
-                    logger.warning(f"Unexpected response format: {type(data)}")
-                    return {"data": [], "bookmark": None, "has_more": False}
+                    result_array = data.get("value", [])
 
-                # Convert array of arrays to array of objects
-                # properties is a list like ["Item", "Description"]
-                # result_array can be:
-                # 1. [["ABC", "Desc1"], ["DEF", "Desc2"]]  (simple arrays)
-                # 2. [[{"Name": "Item", "Value": "ABC"}, {"Name": "Description", "Value": "Desc1"}], ...]  (/adv format)
-                field_names = properties
-                result = []
-                for row in result_array:
-                    if isinstance(row, list):
-                        # Check if it's /adv format (array of Name/Value objects)
-                        if row and isinstance(row[0], dict) and 'Name' in row[0] and 'Value' in row[0]:
-                            # /adv format: [{"Name": "Item", "Value": "ABC"}, {"Name": "Description", "Value": "Desc"}]
-                            # Convert to: {"Item": "ABC", "Description": "Desc"}
-                            obj = {}
-                            for item in row:
-                                if isinstance(item, dict) and 'Name' in item and 'Value' in item:
-                                    obj[item['Name']] = item['Value']
-                            result.append(obj)
-                            logger.debug(f"/adv format detected, converted to: {obj}")
-                        else:
-                            # Simple array format: ["ABC", "Desc1"]
-                            # Create object by zipping field names with values
-                            obj = dict(zip(field_names, row))
-                            result.append(obj)
-                    elif isinstance(row, dict):
-                        # Already an object, use as is
-                        result.append(row)
-                    else:
-                        logger.warning(f"Unexpected row format: {type(row)}")
+            elif isinstance(data, list):
+                result_array = data
 
-                logger.info(f"Converted {len(result)} records to objects")
-
-                # Return data with pagination info
-                # has_more: If there's a bookmark, there might be more data
-                # Special case: if record_cap=0 (unlimited), we got 200 (hard limit), so check bookmark
-                # Normal case: if we got exactly what we asked for, there might be more
-                has_more = False
-                if response_bookmark:
-                    if record_cap == 0:
-                        # Unlimited request but got data - if there's a bookmark, there's more
-                        has_more = len(result) > 0
-                    else:
-                        # Limited request - if we got exactly the limit, there might be more
-                        has_more = len(result) == record_cap
-
+            if result_array is None:
                 return {
-                    "data": result,
-                    "bookmark": response_bookmark,
-                    "has_more": has_more
+                    "data": [],
+                    "bookmark": None,
+                    "has_more": False,
+                    "message": response_message,
+                    "message_code": response_message_code,
                 }
 
-            except httpx.HTTPStatusError as e:
-                logger.error(f"LoadCollection failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"LoadCollection error: {e}")
-                raise
+            field_names = properties or []
+            result = []
+            for row in result_array:
+                if isinstance(row, list):
+                    if row and isinstance(row[0], dict) and 'Name' in row[0] and 'Value' in row[0]:
+                        obj = {}
+                        for item in row:
+                            if isinstance(item, dict) and 'Name' in item and 'Value' in item:
+                                obj[item['Name']] = item['Value']
+                        result.append(obj)
+                    else:
+                        obj = dict(zip(field_names, row))
+                        result.append(obj)
+                elif isinstance(row, dict):
+                    result.append(row)
+
+            logger.info(f"LoadCollection {ido_name}: {len(result)} rows")
+
+            # Infor API stránkuje interně (typicky 200 řádků/stránku).
+            # Bookmark existuje → jsou další stránky (nezáleží na record_cap).
+            has_more = bool(response_bookmark) and len(result) > 0
+
+            return {
+                "data": result,
+                "bookmark": response_bookmark,
+                "has_more": has_more,
+                "message": response_message,
+                "message_code": response_message_code,
+            }
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"LoadCollection failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"LoadCollection error: {e}")
+            raise
 
     async def get_ido_info(self, ido_name: str) -> Dict[str, Any]:
         """
@@ -296,22 +282,21 @@ class InforAPIClient:
 
         logger.debug(f"Getting IDO info for: {ido_name}")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.get(
-                    f"{self.base_url}/json/idoinfo/{ido_name}",
-                    headers={"Authorization": token},  # Infor: NO Bearer prefix
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                return response.json()
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"GetIDOInfo failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"GetIDOInfo error: {e}")
-                raise
+        client = self._get_http_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/json/idoinfo/{ido_name}",
+                headers={"Authorization": token},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"GetIDOInfo failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"GetIDOInfo error: {e}")
+            raise
 
     async def invoke_method(
         self,
@@ -342,23 +327,22 @@ class InforAPIClient:
 
         logger.debug(f"Invoking method: {ido_name}.{method_name}({params})")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.get(
-                    f"{self.base_url}/json/method/{ido_name}/{method_name}",
-                    params=params,
-                    headers={"Authorization": token},  # Infor: NO Bearer prefix
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                return response.json()
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"InvokeMethod failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"InvokeMethod error: {e}")
-                raise
+        client = self._get_http_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/json/method/{ido_name}/{method_name}",
+                params=params,
+                headers={"Authorization": token},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"InvokeMethod failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"InvokeMethod error: {e}")
+            raise
 
     async def post_method(
         self,
@@ -385,26 +369,25 @@ class InforAPIClient:
 
         logger.debug(f"POST InvokeMethod: {ido_name}.{method_name}({parameters})")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/json/method/{ido_name}/{method_name}",
-                    json=body,
-                    headers={
-                        "Authorization": token,
-                        "Content-Type": "application/json"
-                    },
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                return response.json()
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"POST InvokeMethod failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"POST InvokeMethod error: {e}")
-                raise
+        client = self._get_http_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/json/method/{ido_name}/{method_name}",
+                json=body,
+                headers={
+                    "Authorization": token,
+                    "Content-Type": "application/json"
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"POST InvokeMethod failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"POST InvokeMethod error: {e}")
+            raise
 
     async def invoke_method_positional(
         self,
@@ -433,23 +416,22 @@ class InforAPIClient:
 
         logger.debug(f"InvokeMethod positional: {ido_name}.{method_name}(parms={parms[:100]})")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.get(
-                    f"{self.base_url}/json/method/{ido_name}/{method_name}",
-                    params={"parms": parms},
-                    headers={"Authorization": token},
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                return response.json()
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"InvokeMethod positional failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"InvokeMethod positional error: {e}")
-                raise
+        client = self._get_http_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/json/method/{ido_name}/{method_name}",
+                params={"parms": parms},
+                headers={"Authorization": token},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"InvokeMethod positional failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"InvokeMethod positional error: {e}")
+            raise
 
     async def additem(
         self,
@@ -482,34 +464,33 @@ class InforAPIClient:
 
         logger.debug(f"AddItem: {ido_name} with {list(properties.keys())}")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/json/{ido_name}/additem",
-                    json=body,
-                    headers={
-                        "Authorization": token,
-                        "Content-Type": "application/json"
-                    },
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                data = response.json()
+        client = self._get_http_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/json/{ido_name}/additem",
+                json=body,
+                headers={
+                    "Authorization": token,
+                    "Content-Type": "application/json"
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+            data = response.json()
 
-                if data.get("MessageCode") not in (0, 200):
-                    msg = data.get("Message", "Unknown error")
-                    logger.error(f"AddItem {ido_name} failed: [{data.get('MessageCode')}] {msg}")
-                    raise ValueError(f"Infor AddItem failed: {msg}")
+            if data.get("MessageCode") not in (0, 200):
+                msg = data.get("Message", "Unknown error")
+                logger.error(f"AddItem {ido_name} failed: [{data.get('MessageCode')}] {msg}")
+                raise ValueError(f"Infor AddItem failed: {msg}")
 
-                logger.info(f"AddItem {ido_name} succeeded")
-                return data
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"AddItem HTTP failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"AddItem error: {e}")
-                raise
+            logger.info(f"AddItem {ido_name} succeeded")
+            return data
+        except httpx.HTTPStatusError as e:
+            logger.error(f"AddItem HTTP failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"AddItem error: {e}")
+            raise
 
     async def execute_update_request(
         self,
@@ -526,31 +507,31 @@ class InforAPIClient:
         """
         token = await self.get_token()
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/json/updaterequest",
-                    params={"response": response_mode},
-                    json=request_body,
-                    headers={
-                        "Authorization": token,
-                        "Content-Type": "application/json",
-                        "accept": "application/json",
-                    },
-                    timeout=30.0,
-                )
-                response.raise_for_status()
-                return response.json()
-            except httpx.HTTPStatusError as e:
-                logger.error(
-                    "ExecuteUpdateRequest failed: %s - %s",
-                    e.response.status_code,
-                    e.response.text,
-                )
-                raise
-            except Exception as e:
-                logger.error(f"ExecuteUpdateRequest error: {e}")
-                raise
+        client = self._get_http_client()
+        try:
+            response = await client.post(
+                f"{self.base_url}/json/updaterequest",
+                params={"response": response_mode},
+                json=request_body,
+                headers={
+                    "Authorization": token,
+                    "Content-Type": "application/json",
+                    "accept": "application/json",
+                },
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "ExecuteUpdateRequest failed: %s - %s",
+                e.response.status_code,
+                e.response.text,
+            )
+            raise
+        except Exception as e:
+            logger.error(f"ExecuteUpdateRequest error: {e}")
+            raise
 
     async def get_configurations(self) -> List[str]:
         """
@@ -561,33 +542,31 @@ class InforAPIClient:
         """
         logger.debug("Getting available configurations")
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            try:
-                response = await client.get(
-                    f"{self.base_url}/json/configurations",
-                    headers={
-                        "UserId": self.username,
-                        "Password": self.password,
-                        "accept": "application/json"
-                    },
-                    timeout=30.0
-                )
-                response.raise_for_status()
+        client = self._get_http_client()
+        try:
+            response = await client.get(
+                f"{self.base_url}/json/configurations",
+                headers={
+                    "UserId": self.username,
+                    "Password": self.password,
+                    "accept": "application/json"
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
 
-                data = response.json()
+            data = response.json()
 
-                # Response může být list nebo dict
-                if isinstance(data, list):
-                    return data
-                elif isinstance(data, dict):
-                    return data.get("value", [])
-                else:
-                    return []
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"GetConfigurations failed: {e.response.status_code} - {e.response.text}")
-                raise
-            except Exception as e:
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict):
+                return data.get("value", [])
+            else:
+                return []
+        except httpx.HTTPStatusError as e:
+            logger.error(f"GetConfigurations failed: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
                 logger.error(f"GetConfigurations error: {e}")
                 raise
 

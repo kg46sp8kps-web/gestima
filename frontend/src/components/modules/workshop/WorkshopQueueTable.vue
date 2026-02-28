@@ -10,6 +10,14 @@
         testid="queue-wc-filter"
         class="queue-table__filter-input"
       />
+      <Input
+        v-model="filterJob"
+        bare
+        type="text"
+        placeholder="Filtr VP (Job)…"
+        testid="queue-job-filter"
+        class="queue-table__filter-input"
+      />
       <button
         class="btn-secondary queue-table__refresh"
         :disabled="store.loadingQueue"
@@ -35,13 +43,27 @@
       <table class="qt">
         <thead class="qt__head">
           <tr>
-            <th class="qt__th">VP / Op</th>
-            <th class="qt__th qt__th--wc">WC</th>
-            <th class="qt__th">Díl</th>
-            <th class="qt__th qt__th--desc">Popis</th>
-            <th class="qt__th qt__th--num">Ks</th>
-            <th class="qt__th qt__th--date">Plán od</th>
-            <th class="qt__th qt__th--date">Plán do</th>
+            <th class="qt__th" @click="toggleSort('Job')">
+              VP / Op <span class="qt__sort">{{ sortMark('Job') }}</span>
+            </th>
+            <th class="qt__th qt__th--wc" @click="toggleSort('Wc')">
+              WC <span class="qt__sort">{{ sortMark('Wc') }}</span>
+            </th>
+            <th class="qt__th" @click="toggleSort('DerJobItem')">
+              Díl <span class="qt__sort">{{ sortMark('DerJobItem') }}</span>
+            </th>
+            <th class="qt__th qt__th--desc" @click="toggleSort('JobDescription')">
+              Popis <span class="qt__sort">{{ sortMark('JobDescription') }}</span>
+            </th>
+            <th class="qt__th qt__th--num" @click="toggleSort('QtyComplete')">
+              Ks <span class="qt__sort">{{ sortMark('QtyComplete') }}</span>
+            </th>
+            <th class="qt__th qt__th--date" @click="toggleSort('OpDatumSt')">
+              Plán od <span class="qt__sort">{{ sortMark('OpDatumSt') }}</span>
+            </th>
+            <th class="qt__th qt__th--date" @click="toggleSort('OpDatumSp')">
+              Plán do <span class="qt__sort">{{ sortMark('OpDatumSp') }}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -82,19 +104,30 @@ import { useWorkshopStore } from '@/stores/workshop'
 import Spinner from '@/components/ui/Spinner.vue'
 import Input from '@/components/ui/Input.vue'
 import { ICON_SIZE } from '@/config/design'
-import type { WorkshopQueueItem } from '@/types/workshop'
+import { formatInforDate } from '@/utils/formatters'
+import type { WorkshopQueueItem, WorkshopQueueSortBy, WorkshopSortDir } from '@/types/workshop'
 
 const store = useWorkshopStore()
 const filterWc = ref<string | number | null>(store.wcFilter)
+const filterJob = ref<string | number | null>(store.queueJobFilter)
+const sortBy = ref<WorkshopQueueSortBy>(store.queueSortBy)
+const sortDir = ref<WorkshopSortDir>(store.queueSortDir)
 
-// Debounce + server-side refetch při změně WC filtru
+// Debounce + server-side refetch při změně filtrů
 let _filterTimer: ReturnType<typeof setTimeout>
-watch(filterWc, (newVal) => {
+watch([filterWc, filterJob], ([newWc, newJob]) => {
   clearTimeout(_filterTimer)
   _filterTimer = setTimeout(() => {
-    const wc = newVal != null ? String(newVal).trim() : ''
+    const wc = newWc != null ? String(newWc).trim() : ''
+    const job = newJob != null ? String(newJob).trim() : ''
     store.wcFilter = wc
-    store.fetchQueue(wc || undefined)
+    store.queueJobFilter = job
+    store.fetchQueue({
+      wc: wc || undefined,
+      job: job || undefined,
+      sortBy: sortBy.value,
+      sortDir: sortDir.value,
+    })
   }, 400)
 })
 
@@ -104,40 +137,37 @@ function isActive(item: WorkshopQueueItem) {
 
 async function refresh() {
   const wc = filterWc.value != null ? String(filterWc.value).trim() : undefined
-  await store.fetchQueue(wc || undefined)
+  const job = filterJob.value != null ? String(filterJob.value).trim() : undefined
+  await store.fetchQueue({
+    wc: wc || undefined,
+    job: job || undefined,
+    sortBy: sortBy.value,
+    sortDir: sortDir.value,
+  })
 }
 
-/** Formátuje datum/čas z Infor na "DD.MM. HH:MM:SS" nebo "HH:MM:SS". */
-function formatInforDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const raw = value.trim()
-  if (!raw) return '—'
-
-  const timeOnlyMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
-  if (timeOnlyMatch) {
-    const hh = (timeOnlyMatch[1] ?? '0').padStart(2, '0')
-    const mm = timeOnlyMatch[2] ?? '00'
-    const ss = (timeOnlyMatch[3] ?? '00').padStart(2, '0')
-    return `${hh}:${mm}:${ss}`
+function toggleSort(column: WorkshopQueueSortBy) {
+  if (sortBy.value === column) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = column
+    sortDir.value = 'asc'
   }
+  store.setQueueSort(sortBy.value, sortDir.value)
+  void refresh()
+}
 
-  try {
-    const d = new Date(raw)
-    if (isNaN(d.getTime())) return raw
-    const day = d.getDate().toString().padStart(2, '0')
-    const mon = (d.getMonth() + 1).toString().padStart(2, '0')
-    const hh = d.getHours().toString().padStart(2, '0')
-    const mm = d.getMinutes().toString().padStart(2, '0')
-    const ss = d.getSeconds().toString().padStart(2, '0')
-    return `${day}.${mon}. ${hh}:${mm}:${ss}`
-  } catch {
-    return raw
-  }
+function sortMark(column: WorkshopQueueSortBy): string {
+  if (sortBy.value !== column) return ''
+  return sortDir.value === 'asc' ? '▲' : '▼'
 }
 
 onMounted(() => {
   if (store.queueItems.length === 0) {
-    store.fetchQueue()
+    store.fetchQueue({
+      sortBy: sortBy.value,
+      sortDir: sortDir.value,
+    })
   }
 })
 </script>
@@ -210,6 +240,8 @@ onMounted(() => {
   text-align: left;
   border-bottom: 1px solid var(--b2);
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
 
 .qt__th--num {
@@ -309,5 +341,10 @@ onMounted(() => {
 .qt__qty-sep {
   color: var(--t4);
   margin: 0 2px;
+}
+
+.qt__sort {
+  font-size: 10px;
+  color: var(--t4);
 }
 </style>

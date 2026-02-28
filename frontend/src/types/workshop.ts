@@ -75,6 +75,116 @@ export interface WorkshopMaterial {
   TotCons: number | null  // Celková spotřeba
   Qty: number | null    // Množství na kus
   BatchCons: number | null  // Spotřeba pro dávku
+  QtyIssued?: number | null // Již odvedeno
+  RemainingCons?: number | null // Zbývá odvést
+  UM?: string | null    // Jednotka (např. kg, m, ks)
+  UMs?: string[]        // Dostupné jednotky materiálu
+  QtyByUM?: Record<string, number> // Množství na ks podle jednotky
+  BatchConsByUM?: Record<string, number> // Dávková spotřeba podle jednotky
+}
+
+export type WorkshopOrderOperationStatus = 'done' | 'in_progress' | 'idle'
+
+export interface WorkshopOrderOperationCell {
+  oper_num: string
+  wc: string
+  status: WorkshopOrderOperationStatus | string
+  state_text: string | null
+}
+
+export interface WorkshopOrderVpCandidate {
+  job: string
+  suffix: string
+  job_stat: string | null
+  qty_released: number | null
+  qty_complete: number | null
+  qty_scrapped: number | null
+  item: string | null
+  customer_name: string | null
+  due_date: string | null
+  operations: WorkshopOrderOperationCell[]
+}
+
+export interface WorkshopOrderOverviewRow {
+  row_id: string
+  customer_code: string | null
+  customer_name: string | null
+  delivery_code: string | null
+  delivery_name: string | null
+  co_num: string
+  co_line: string
+  co_release: string
+  item: string | null
+  description: string | null
+  status: string | null
+  qty_ordered: number | null
+  qty_shipped: number | null
+  qty_wip: number | null
+  due_date: string | null
+  promise_date: string | null
+  confirm_date: string | null
+  vp_candidates: WorkshopOrderVpCandidate[]
+  selected_vp_job: string | null
+  operations: WorkshopOrderOperationCell[]
+  material_state: string | null
+  record_date: string | null
+}
+
+/** Plán stroje — operace s JobStat rozlišením (R/F/S/W) + CO deadline + priorita */
+export interface MachinePlanItem extends WorkshopQueueItem {
+  JobStat: string  // R=Released, F=Firm, S=Scheduled, W=Waiting
+  OrderDueDate?: string | null  // Termín zakázky (Item-based matching z CO)
+  CoNum?: string | null         // Číslo zakázky
+  IsHot?: boolean               // Urgentní VP (z production_priorities)
+  Priority?: number             // Priorita (5=hot, 20=urgent, 100=normal)
+  Tier?: 'hot' | 'urgent' | 'frozen' | 'normal'  // Odvozený tier
+}
+
+export type WorkshopSortDir = 'asc' | 'desc'
+export type WorkshopQueueSortBy =
+  | 'OpDatumSt'
+  | 'OpDatumSp'
+  | 'Job'
+  | 'OperNum'
+  | 'Wc'
+  | 'DerJobItem'
+  | 'JobDescription'
+  | 'QtyComplete'
+  | 'JobQtyReleased'
+export type WorkshopOperationSortBy =
+  | 'OpDatumSt'
+  | 'OpDatumSp'
+  | 'OperNum'
+  | 'Wc'
+  | 'QtyReleased'
+  | 'QtyComplete'
+  | 'ScrapQty'
+export type WorkshopMaterialSortBy = 'Material' | 'Desc' | 'TotCons' | 'Qty' | 'BatchCons'
+
+export interface WorkshopMaterialIssueCreate {
+  job: string
+  suffix?: string
+  oper_num: string
+  material: string
+  um?: string | null
+  qty: number
+  wc?: string | null
+  location?: string | null
+  lot?: string | null
+}
+
+export interface WorkshopMaterialIssueResult {
+  Job: string
+  Suffix: string
+  OperNum: string
+  Material: string
+  QtyIssued: number
+  UM?: string | null
+  Wc: string | null
+  Whse?: string | null
+  Location: string | null
+  Lot: string | null
+  Infor: Record<string, unknown>
 }
 
 /** Dílnická transakce (lokální buffer) */
