@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 ROLE_HIERARCHY = {
     UserRole.ADMIN: 3,
+    UserRole.MISTR: 2,
     UserRole.OPERATOR: 2,
     UserRole.VIEWER: 1
 }

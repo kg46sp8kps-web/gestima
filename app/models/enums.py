@@ -7,6 +7,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     OPERATOR = "operator"
     VIEWER = "viewer"
+    MISTR = "mistr"
 
 
 class PartSource(str, Enum):

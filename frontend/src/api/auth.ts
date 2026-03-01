@@ -17,3 +17,9 @@ export async function getMe(): Promise<User> {
 export async function logout(): Promise<void> {
   await apiClient.post('/auth/logout')
 }
+
+/** PIN login — POST /auth/pin-login, server sets HttpOnly cookie */
+export async function pinLogin(pin: string): Promise<TokenResponse> {
+  const { data } = await apiClient.post<TokenResponse>('/auth/pin-login', { pin })
+  return data
+}

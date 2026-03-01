@@ -31,4 +31,5 @@ from . import (
     ft_debug_router,  # FT Debug — fine-tuning data inspection
     infor_sync_router,  # Infor Smart Polling Sync
     user_layouts_router,  # Per-user workspace layouts
+    operator_router,  # Operator Terminal — PIN login, active jobs, stats
 )

@@ -57,9 +57,11 @@ Každý ADR obsahuje:
 | 046 | Infor Connector | DRAFT | 2026-02-16 |
 | 047 | Fine-Tuning v2 — Kompletní technologický postup | TRAINING | 2026-02-19 |
 | 048 | Orphan Detection — Soft-Deleted Parts | Implementováno | 2026-02-20 |
-| 052 | Workshop Material Issue — Custom Ite*/IteCz* Flow | Přijato (tuning in progress) | 2026-02-28 |
+| 051 | Workshop Dílna — manuální write flow kompatibilní s InduStream | Přijato (verified) | 2026-03-01 |
+| 052 | Workshop Material Issue — Custom Ite*/IteCz* Flow | Přijato (verified) | 2026-02-28 |
 | 053 | Infor Data Readiness — Přehled zakázek / plánování / dílna | Přijato (baseline) | 2026-02-28 |
 | 054 | Přehled zakázek — custom IDO IteRybPrehledZakazekView | Implementováno | 2026-02-28 |
+| 055 | SSE — real-time push notifikace | Implementováno | 2026-03-01 |
 
 ## Archivované ADRs
 

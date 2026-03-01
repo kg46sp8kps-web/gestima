@@ -17,6 +17,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isOperator = computed(() =>
     user.value?.role === 'admin' || user.value?.role === 'operator',
   )
+  const isMistr = computed(() =>
+    user.value?.role === 'admin' || user.value?.role === 'mistr',
+  )
 
   /** Returns true on success — caller is responsible for navigation */
   async function login(username: string, password: string): Promise<boolean> {
@@ -43,6 +46,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /** PIN login for operator terminal — returns true on success */
+  async function pinLogin(pin: string): Promise<boolean> {
+    loading.value = true
+    try {
+      await authApi.pinLogin(pin)
+      user.value = await authApi.getMe()
+      return true
+    } catch {
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function logout() {
     try {
       await authApi.logout()
@@ -59,7 +76,9 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     isAdmin,
     isOperator,
+    isMistr,
     login,
+    pinLogin,
     fetchMe,
     logout,
   }

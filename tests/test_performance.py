@@ -175,7 +175,9 @@ def test_batches_list_latency(client):
 
 def test_parts_list_latency(client):
     """Změřit latenci načtení seznamu dílů."""
-    client.get("/parts")
+    warmup = client.get("/parts")
+    if warmup.status_code in (404, 503):
+        pytest.skip("SPA route not available (frontend not built)")
 
     start = time.perf_counter()
     response = client.get("/parts")

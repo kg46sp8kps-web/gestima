@@ -146,6 +146,36 @@ def _unassigned_sort_key(row: Dict[str, Any]):
     )
 
 
+async def enrich_flat_rows(
+    db: AsyncSession,
+    rows: List[Dict[str, Any]],
+) -> None:
+    """Enrich flat machine-plan rows with OrderDueDate, IsHot, Tier.
+
+    Reuses the same enrichment as get_plan() but without DnD split.
+    Modifies rows in-place.
+    """
+    if not rows:
+        return
+
+    item_codes = list({
+        str(row.get("DerJobItem", "")).strip().upper()
+        for row in rows
+        if str(row.get("DerJobItem", "")).strip()
+    })
+    co_map = await _fetch_co_deadlines_from_db(db, item_codes) if item_codes else {}
+
+    prio_result = await db.execute(
+        select(ProductionPriority).where(ProductionPriority.deleted_at.is_(None))
+    )
+    priorities: Dict[VpKey, ProductionPriority] = {
+        _vp_key(p.infor_job, p.infor_suffix): p
+        for p in prio_result.scalars().all()
+    }
+
+    _enrich_rows(rows, co_map, priorities)
+
+
 async def get_plan(
     db: AsyncSession,
     wc: str,

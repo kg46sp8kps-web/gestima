@@ -142,6 +142,58 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> U
     return user
 
 
+# ============================================================================
+# PIN UTILITIES
+# ============================================================================
+
+def get_pin_hash(pin: str) -> str:
+    """Vytvoří bcrypt hash PINu"""
+    return pwd_context.hash(pin)
+
+
+def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
+    """Ověří PIN proti hashi"""
+    return pwd_context.verify(plain_pin, hashed_pin)
+
+
+async def authenticate_user_by_pin(db: AsyncSession, pin: str) -> User:
+    """
+    Autentizuje uživatele pomocí PINu.
+    Iteruje aktivní uživatele s pin_hash IS NOT NULL, bcrypt-verify proti každému.
+    """
+    result = await db.execute(
+        select(User).where(
+            User.is_active == True,
+            User.pin_hash.isnot(None),
+            User.deleted_at.is_(None),
+        )
+    )
+    users = result.scalars().all()
+
+    matched = []
+    for user in users:
+        if verify_pin(pin, user.pin_hash):
+            matched.append(user)
+
+    if len(matched) == 0:
+        logger.warning("PIN login attempt failed: no matching user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Neplatný PIN",
+        )
+
+    if len(matched) > 1:
+        logger.error(f"PIN collision detected for users: {[u.username for u in matched]}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="PIN kolize — kontaktujte administrátora",
+        )
+
+    user = matched[0]
+    logger.info(f"User authenticated by PIN: {user.username}")
+    return user
+
+
 async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
     """
     Najde uživatele podle username

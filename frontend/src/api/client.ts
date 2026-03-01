@@ -27,8 +27,11 @@ function attachResponseInterceptor(client: typeof apiClient) {
       const detail: string = data?.detail ?? 'Neznámá chyba'
 
       if (status === 401) {
-        // Only redirect if not already on login page (avoids redirect loop during fetchMe)
-        if (window.location.pathname !== '/login') {
+        // Don't redirect for login/pin-login attempts or operator terminal
+        const url = error.config?.url ?? ''
+        const isLoginAttempt = url.includes('/auth/login') || url.includes('/auth/pin-login') || url.includes('/auth/me')
+        const isOperatorPage = window.location.pathname.startsWith('/operator')
+        if (!isLoginAttempt && !isOperatorPage && window.location.pathname !== '/login') {
           window.location.href = '/login'
         }
         return Promise.reject(new Error('Relace vypršela. Přihlaste se znovu.'))

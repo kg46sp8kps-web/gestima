@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'operator' | 'viewer'
+export type UserRole = 'admin' | 'operator' | 'viewer' | 'mistr'
 
 /** Mirrors backend UserResponse schema */
 export interface User {
@@ -7,6 +7,8 @@ export interface User {
   email: string | null
   role: UserRole
   is_active: boolean
+  has_pin: boolean
+  infor_emp_num: string | null
   created_at: string
   updated_at: string
 }

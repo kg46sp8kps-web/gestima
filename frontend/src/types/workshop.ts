@@ -107,6 +107,7 @@ export interface WorkshopOrderVpCandidate {
   item: string | null
   customer_name: string | null
   due_date: string | null
+  tier?: 'hot' | 'urgent' | 'normal' | null
   operations: WorkshopOrderOperationCell[]
 }
 
@@ -130,6 +131,7 @@ export interface WorkshopOrderOverviewRow {
   due_date: string | null
   promise_date: string | null
   confirm_date: string | null
+  tier?: 'hot' | 'urgent' | 'normal' | null
   vp_candidates: WorkshopOrderVpCandidate[]
   selected_vp_job: string | null
   operations: WorkshopOrderOperationCell[]

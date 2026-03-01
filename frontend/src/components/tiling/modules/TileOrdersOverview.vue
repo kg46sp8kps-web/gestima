@@ -3,11 +3,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as plannerApi from '@/api/productionPlanner'
 import { useCatalogStore } from '@/stores/catalog'
 import { useWorkshopStore } from '@/stores/workshop'
+import { onSseEvent } from '@/composables/useSse'
 import type { PriorityTier } from '@/types/production-planner'
 import type { ContextGroup } from '@/types/workspace'
 import type { WorkshopOrderOverviewRow, WorkshopOrderVpCandidate } from '@/types/workshop'
 import Input from '@/components/ui/Input.vue'
 import Spinner from '@/components/ui/Spinner.vue'
+import { Flame, Zap } from 'lucide-vue-next'
 import { formatDate, formatNumber } from '@/utils/formatters'
 
 interface Props {
@@ -187,38 +189,57 @@ const tierByVp = ref<Record<string, PriorityTier>>({})
 
 const TIER_CYCLE: PriorityTier[] = ['normal', 'urgent', 'hot']
 
-function tierIcon(tier: PriorityTier | undefined): string {
-  if (tier === 'hot') return '\u{1F525}'
-  if (tier === 'urgent') return '\u26A1'
-  return '\u2014'
-}
-
 function getRowTier(row: WorkshopOrderOverviewRow): PriorityTier {
   const vp = selectedVp(row)
-  if (!vp) return 'normal'
-  return tierByVp.value[vp.job] ?? 'normal'
+  const jobKey = vp?.job ?? row.selected_vp_job
+  if (!jobKey) return 'normal'
+  return tierByVp.value[jobKey] ?? 'normal'
 }
 
 async function cycleRowTier(row: WorkshopOrderOverviewRow) {
   const vp = selectedVp(row)
-  if (!vp) return
-  const current = tierByVp.value[vp.job] ?? 'normal'
+  const jobKey = vp?.job ?? row.selected_vp_job
+  if (!jobKey) return
+  const suffix = vp?.suffix ?? '0'
+  const current = tierByVp.value[jobKey] ?? 'normal'
   const idx = TIER_CYCLE.indexOf(current)
   const next = TIER_CYCLE[(idx + 1) % TIER_CYCLE.length]!
-  tierByVp.value[vp.job] = next
-  const suffix = vp.suffix ?? '0'
+  tierByVp.value[jobKey] = next
   try {
-    await plannerApi.setTier(vp.job, suffix, next)
-    catalog.notifyTierChange(vp.job, suffix, next)
+    await plannerApi.setTier(jobKey, suffix, next)
+    catalog.notifyTierChange(jobKey, suffix, next)
   } catch {
-    tierByVp.value[vp.job] = current
+    tierByVp.value[jobKey] = current
   }
 }
+
+// Inicializovat tierByVp z načtených dat
+watch(rows, (newRows) => {
+  if (!newRows) return
+  for (const row of newRows) {
+    // Tier z VP candidates
+    for (const vp of row.vp_candidates) {
+      if (vp.job && vp.tier && vp.tier !== 'normal') {
+        tierByVp.value[vp.job] = vp.tier
+      }
+    }
+    // Tier z hlavního řádku (selected_vp_job bez vp_candidates)
+    if (row.selected_vp_job && row.tier && row.tier !== 'normal') {
+      tierByVp.value[row.selected_vp_job] = row.tier
+    }
+  }
+}, { immediate: true })
 
 // Watch cross-tile tier changes from other tiles
 watch(() => catalog.lastTierChange, (change) => {
   if (!change) return
   tierByVp.value[change.job] = change.tier
+})
+
+// SSE — real-time tier sync z jiných zařízení/prohlížečů
+onSseEvent('tier_change', (data) => {
+  const msg = data as { job: string; tier: PriorityTier }
+  tierByVp.value[msg.job] = msg.tier
 })
 
 // ─── Sorting ────────────────────────────────────────────────────────
@@ -437,6 +458,22 @@ function cellValue(row: WorkshopOrderOverviewRow, colId: string): string {
     case 'material_ready': return row.material_ready ? '\u2713' : '\u2717'
     default: return '\u2014'
   }
+}
+
+// ─── Cell class helpers (visual enhancement) ────────────────────
+function cellClass(row: WorkshopOrderOverviewRow, colId: string): string {
+  const classes: string[] = []
+  if (['qty_ordered', 'qty_shipped', 'qty_on_hand', 'qty_available', 'qty_wip'].includes(colId)) {
+    const val = row[colId as keyof WorkshopOrderOverviewRow] as number | null
+    if (!val) classes.push('qty-zero')
+    if (colId === 'qty_wip' && val && val > 0) classes.push('qty-active')
+  }
+  if (colId === 'due_date' && row.due_date) {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const due = row.due_date.slice(0, 8)
+    if (due < today) classes.push('date-overdue')
+  }
+  return classes.join(' ')
 }
 
 // ─── Fetch (delegováno do storu — SWR) ──────────────────────────────
@@ -659,11 +696,19 @@ onBeforeUnmount(() => {
                 <!-- tier -->
                 <td v-else-if="col.id === 'tier'" class="q-tier-cell">
                   <button
-                    v-if="selectedVp(row)"
+                    v-if="selectedVp(row) || row.selected_vp_job"
                     class="q-tier-btn"
+                    :class="{
+                      'q-tier-btn--hot': getRowTier(row) === 'hot',
+                      'q-tier-btn--urgent': getRowTier(row) === 'urgent',
+                    }"
                     :title="`Tier: ${getRowTier(row)} — klikni pro změnu`"
                     @click.stop="cycleRowTier(row)"
-                  >{{ tierIcon(getRowTier(row)) }}</button>
+                  >
+                    <Flame v-if="getRowTier(row) === 'hot'" :size="14" />
+                    <Zap v-else-if="getRowTier(row) === 'urgent'" :size="14" />
+                    <span v-else class="q-tier-dash">&mdash;</span>
+                  </button>
                   <span v-else class="q-tier-na">&mdash;</span>
                 </td>
                 <!-- selected_vp_job / Multiple -->
@@ -678,8 +723,8 @@ onBeforeUnmount(() => {
                   <span v-else class="mono">{{ selectedVpJob(row) ?? '\u2014' }}</span>
                 </td>
                 <!-- material_ready -->
-                <td v-else-if="col.id === 'material_ready'" class="c" :class="row.material_ready ? 'mat-ready--yes' : 'mat-ready--no'">
-                  {{ row.material_ready ? '\u2713' : '\u2717' }}
+                <td v-else-if="col.id === 'material_ready'" class="c mat-ready-cell">
+                  <span class="mat-dot" :class="row.material_ready ? 'mat-dot--yes' : 'mat-dot--no'" />
                 </td>
                 <!-- generic cell -->
                 <td
@@ -689,6 +734,7 @@ onBeforeUnmount(() => {
                     col.align === 'center' ? 'c' : '',
                     col.mono ? 'mono' : '',
                     col.truncate ? 'cell-truncate' : '',
+                    cellClass(row, col.id),
                   ]"
                 >{{ cellValue(row, col.id) }}</td>
               </template>
@@ -756,6 +802,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* ═══════════════════════════════════════════════════════════════════
+   Orders Overview — Modern Dark Theme
+   ═══════════════════════════════════════════════════════════════════ */
+
 .orders-overview {
   display: flex;
   flex-direction: column;
@@ -763,24 +813,19 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
+/* ── Toolbar ──────────────────────────────────────────────────────── */
 .orders-overview__toolbar {
   display: flex;
   flex-wrap: nowrap;
   align-items: end;
-  gap: 6px;
-  padding: 4px var(--pad);
-  border-bottom: 1px solid var(--b2);
+  gap: 8px;
+  padding: 6px var(--pad) 8px;
+  border-bottom: 1px solid var(--b1);
+  background: rgba(255,255,255,0.015);
 }
 
-.orders-overview__field {
-  min-width: 0;
-}
-
-.orders-overview__field--date {
-  width: 110px;
-  flex-shrink: 0;
-}
-
+.orders-overview__field { min-width: 0; }
+.orders-overview__field--date { width: 110px; flex-shrink: 0; }
 .orders-overview__field--customer {
   min-width: 120px;
   max-width: 200px;
@@ -789,7 +834,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 2px;
 }
-
 .orders-overview__field--search {
   min-width: 100px;
   max-width: 180px;
@@ -799,22 +843,19 @@ onBeforeUnmount(() => {
 .filter-label {
   font-size: var(--fsm);
   font-weight: 500;
-  color: var(--t3);
+  color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   user-select: none;
 }
 
-.filter-select-wrap {
-  position: relative;
-}
-
+.filter-select-wrap { position: relative; }
 .filter-select {
   width: 100%;
   height: 28px;
   padding: 0 24px 0 8px;
   background: rgba(255,255,255,0.04);
-  border: 1px solid var(--b2);
+  border: 1px solid var(--b1);
   border-radius: var(--rs);
   color: var(--t1);
   font-size: var(--fs);
@@ -822,15 +863,11 @@ onBeforeUnmount(() => {
   outline: none;
   appearance: none;
   cursor: pointer;
-  transition: border-color 120ms var(--ease);
+  transition: border-color 150ms var(--ease), background 150ms var(--ease);
 }
-.filter-select:focus {
-  border-color: var(--b3);
-}
-.filter-select option {
-  background: var(--ground);
-  color: var(--t1);
-}
+.filter-select:hover { border-color: var(--b2); }
+.filter-select:focus { border-color: var(--b3); background: rgba(255,255,255,0.06); }
+.filter-select option { background: var(--ground); color: var(--t1); }
 
 .filter-select-arrow {
   position: absolute;
@@ -842,13 +879,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.orders-overview__refresh {
-  min-height: 26px;
-  padding: 4px 10px;
-  font-size: var(--fss);
-  flex-shrink: 0;
-}
-
+.orders-overview__refresh,
 .orders-overview__col-btn {
   min-height: 26px;
   padding: 4px 10px;
@@ -856,6 +887,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+/* ── States ───────────────────────────────────────────────────────── */
 .orders-overview__state {
   flex: 1;
   display: flex;
@@ -863,18 +895,16 @@ onBeforeUnmount(() => {
   justify-content: center;
   color: var(--t3);
 }
+.orders-overview__state--error { color: var(--err); }
 
-.orders-overview__state--error {
-  color: var(--err);
-}
-
+/* ── Table wrapper ────────────────────────────────────────────────── */
 .orders-overview__table-wrap {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
-/* ─── Table ─────────────────────────────────────────────────────── */
+/* ── Table ─────────────────────────────────────────────────────────── */
 .orders-table {
   border-collapse: collapse;
   table-layout: fixed;
@@ -884,64 +914,60 @@ onBeforeUnmount(() => {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--ground);
-  color: var(--t3);
+  background: var(--base);
+  color: var(--t4);
   font-size: var(--fss);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border-bottom: 1px solid var(--b2);
-  padding: 6px 8px;
+  letter-spacing: 0.5px;
+  padding: 8px 8px 7px;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
+  border-bottom: 2px solid var(--b2);
 }
 
 .orders-table th.sortable {
   cursor: pointer;
   user-select: none;
+  transition: color 150ms var(--ease);
 }
 .orders-table th.sortable:hover {
-  color: var(--t1);
+  color: var(--t2);
 }
 
 .orders-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--b1);
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
   font-size: var(--fs);
   color: var(--t2);
   white-space: nowrap;
+  transition: background 100ms var(--ease);
 }
 
 .orders-table tbody tr {
   cursor: pointer;
-}
-.orders-table tbody tr:hover {
-  background: rgba(255,255,255,0.07);
+  transition: background 100ms var(--ease);
 }
 
-.r {
-  text-align: right;
+/* Zebra striping */
+.orders-table tbody tr:nth-child(even):not(.vp-sub-row) {
+  background: rgba(255,255,255,0.015);
 }
 
-.c {
-  text-align: center;
+/* Hover */
+.orders-table tbody tr:hover td {
+  background: rgba(255,255,255,0.04);
 }
 
-.mono {
-  font-family: var(--mono);
-}
+/* ── Alignment / Typography ───────────────────────────────────────── */
+.r { text-align: right; font-variant-numeric: tabular-nums; }
+.c { text-align: center; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.cell-truncate { overflow: hidden; text-overflow: ellipsis; max-width: 0; }
 
-/* ─── Truncation ────────────────────────────────────────────────── */
-.cell-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 0;
-}
-
-/* ─── VP cell + expand ──────────────────────────────────────────── */
-.vp-cell {
-  min-width: 100px;
-}
+/* ── VP cell + expand ─────────────────────────────────────────────── */
+.vp-cell { min-width: 100px; }
 
 .vp-multi-label {
   display: inline-flex;
@@ -950,17 +976,18 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--link-group-blue);
   cursor: pointer;
+  transition: color 150ms var(--ease);
 }
-.vp-multi-label--open {
-  color: var(--t1);
-}
+.vp-multi-label:hover { color: var(--link-group-blue); }
+.vp-multi-label--open { color: var(--t1); }
 
 .vp-expand-icon {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--t4);
   width: 10px;
   text-align: center;
   flex-shrink: 0;
+  transition: transform 200ms var(--ease);
 }
 
 .vp-count-badge {
@@ -969,34 +996,26 @@ onBeforeUnmount(() => {
   justify-content: center;
   min-width: 16px;
   height: 16px;
-  padding: 0 3px;
-  font-size: 10px;
+  padding: 0 4px;
+  font-size: 9px;
   font-weight: 700;
   border-radius: 8px;
-  background: rgba(59,130,246,0.2);
+  background: rgba(59,130,246,0.15);
   color: var(--link-group-blue);
 }
 
-.row-expandable {
-  cursor: pointer;
-}
-.row-expanded td {
-  border-bottom-color: transparent;
-}
+.row-expandable { cursor: pointer; }
+.row-expanded td { border-bottom-color: transparent; }
 
-/* ─── VP sub-rows ──────────────────────────────────────────────── */
+/* ── VP sub-rows ──────────────────────────────────────────────────── */
 .vp-sub-row {
   cursor: pointer;
   background: rgba(255,255,255,0.02);
 }
-.vp-sub-row:hover {
-  background: rgba(255,255,255,0.07);
-}
-.vp-sub-row--selected {
-  box-shadow: inset 3px 0 0 var(--red, #e53935);
-}
+.vp-sub-row:hover { background: rgba(255,255,255,0.05); }
+.vp-sub-row--selected,
 .vp-sub-row--focused {
-  box-shadow: inset 3px 0 0 var(--red, #e53935);
+  box-shadow: inset 3px 0 0 var(--red);
 }
 
 .vp-sub-job {
@@ -1016,9 +1035,9 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   min-width: 18px;
-  height: 18px;
+  height: 16px;
   padding: 0 4px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   border-radius: 3px;
   line-height: 1;
@@ -1026,23 +1045,23 @@ onBeforeUnmount(() => {
   vertical-align: middle;
 }
 .vp-stat-badge--r {
-  background: color-mix(in srgb, var(--green, #4caf50) 20%, transparent);
-  color: var(--green, #4caf50);
+  background: rgba(255,255,255,0.08);
+  color: var(--t1);
 }
 .vp-stat-badge--f {
-  background: color-mix(in srgb, var(--amber, #ff9800) 20%, transparent);
-  color: var(--amber, #ff9800);
+  background: rgba(251,191,36,0.18);
+  color: var(--warn);
 }
 .vp-stat-badge--s {
-  background: color-mix(in srgb, var(--blue, #2196f3) 20%, transparent);
-  color: var(--blue, #2196f3);
+  background: rgba(59,130,246,0.18);
+  color: var(--link-group-blue);
 }
 .vp-stat-badge--w {
-  background: color-mix(in srgb, var(--t4) 20%, transparent);
+  background: rgba(255,255,255,0.05);
   color: var(--t4);
 }
 
-/* ─── Operation columns ─────────────────────────────────────────── */
+/* ── Operation columns ────────────────────────────────────────────── */
 .op-col {
   width: 56px;
   text-align: center;
@@ -1051,28 +1070,30 @@ onBeforeUnmount(() => {
 .op-cell {
   text-align: center;
   font-size: var(--fss);
-  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .op-cell--done {
-  background: rgba(52,211,153,0.15);
-  color: var(--ok);
-}
-
-.op-cell--progress {
-  background: rgba(59,130,246,0.15);
-  color: var(--link-group-blue);
-}
-
-.op-cell--idle {
-  background: transparent;
-}
-
-.op-cell--empty {
+  background: rgba(255,255,255,0.03);
   color: var(--t4);
 }
 
-/* ─── Material columns ─────────────────────────────────────────── */
+.op-cell--progress {
+  background: rgba(229,57,53,0.10);
+  color: var(--red);
+  font-weight: 600;
+}
+
+.op-cell--idle {
+  color: var(--t4);
+}
+
+.op-cell--empty {
+  color: transparent;
+}
+
+/* ── Material columns ─────────────────────────────────────────────── */
 .mat-col {
   width: 72px;
   text-align: center;
@@ -1081,72 +1102,133 @@ onBeforeUnmount(() => {
 .mat-cell {
   text-align: center;
   font-size: var(--fss);
-  border-radius: 3px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 72px;
 }
 
 .mat-cell--done {
-  background: rgba(52,211,153,0.15);
-  color: var(--ok);
-}
-
-.mat-cell--idle {
-  background: transparent;
-}
-
-.mat-cell--empty {
+  background: rgba(255,255,255,0.03);
   color: var(--t4);
 }
 
-/* ─── Material ready column ────────────────────────────────────── */
-.orders-table td.mat-ready--yes {
-  color: var(--ok, #34d399);
-}
-.orders-table td.mat-ready--no {
-  color: var(--err, #f87171);
+.mat-cell--idle {
+  color: var(--t4);
 }
 
-/* ─── Row number ────────────────────────────────────────────────── */
+.mat-cell--empty {
+  color: transparent;
+}
+
+/* ── Material ready dot ───────────────────────────────────────────── */
+.mat-ready-cell { text-align: center; }
+
+.mat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: box-shadow 200ms var(--ease);
+}
+.mat-dot--yes {
+  background: var(--t2);
+}
+.mat-dot--no {
+  background: var(--err);
+  opacity: 0.35;
+}
+
+/* ── Row number ───────────────────────────────────────────────────── */
 .row-num {
   text-align: right;
   color: var(--t4);
   font-size: var(--fss);
+  opacity: 0.5;
 }
 
-/* ─── Tier column ───────────────────────────────────────────────── */
-.q-tier-col {
-  text-align: center;
-}
-.q-tier-cell {
-  text-align: center;
-}
+/* ── Tier column ──────────────────────────────────────────────────── */
+.q-tier-col { text-align: center; }
+.q-tier-cell { text-align: center; }
+
 .q-tier-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: var(--rs);
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 2px;
+  padding: 0;
+  line-height: 1;
+  color: var(--t4);
+  transition: all 150ms var(--ease);
+}
+.q-tier-btn:hover {
+  color: var(--t2);
+  background: rgba(255,255,255,0.05);
+  border-color: var(--b1);
+}
+.q-tier-btn--hot {
+  color: var(--red);
+  background: rgba(229,57,53,0.1);
+  border-color: rgba(229,57,53,0.25);
+}
+.q-tier-btn--hot:hover {
+  color: var(--red);
+  background: rgba(229,57,53,0.15);
+}
+.q-tier-btn--urgent {
+  color: var(--warn);
+  background: rgba(251,191,36,0.1);
+  border-color: rgba(251,191,36,0.25);
+}
+.q-tier-btn--urgent:hover {
+  color: var(--warn);
+  background: rgba(251,191,36,0.15);
+}
+.q-tier-dash {
+  font-size: 12px;
   line-height: 1;
 }
-.q-tier-na {
-  color: var(--t4);
-}
+.q-tier-na { color: var(--t4); opacity: 0.3; }
 
-/* ─── Focused row (cross-tile link) — red inset strip like queue ── */
+/* ── Focused row (cross-tile link) ────────────────────────────────── */
 .orders-table tbody tr.row-focused {
-  box-shadow: inset 3px 0 0 var(--red, #e53935);
+  box-shadow: inset 3px 0 0 var(--red);
 }
 
-/* ─── Hot / urgent rows ─────────────────────────────────────────── */
+/* ── Hot / urgent rows ────────────────────────────────────────────── */
+.row-hot {
+  box-shadow: inset 3px 0 0 var(--red);
+}
 .row-hot td {
-  background: rgba(229,57,53,0.07);
+  background: rgba(229,57,53,0.05);
+}
+.row-urgent {
+  box-shadow: inset 3px 0 0 var(--warn);
 }
 .row-urgent td {
-  background: rgba(255,193,7,0.07);
+  background: rgba(251,191,36,0.04);
 }
-/* ─── Resize grip ───────────────────────────────────────────────── */
+
+/* ── Qty / Date visual helpers ────────────────────────────────────── */
+.qty-zero {
+  color: var(--t4) !important;
+  opacity: 0.35;
+}
+.qty-active {
+  color: var(--t1) !important;
+  font-weight: 600;
+}
+.date-overdue {
+  color: var(--err) !important;
+  font-weight: 600;
+}
+
+/* ── Resize grip ──────────────────────────────────────────────────── */
 .resize-grip {
   position: absolute;
   right: 0;
@@ -1158,14 +1240,10 @@ onBeforeUnmount(() => {
   transition: background 120ms var(--ease);
   z-index: 3;
 }
-.resize-grip:hover {
-  background: var(--b2);
-}
-.resize-grip--active {
-  background: var(--red, #e53935);
-}
+.resize-grip:hover { background: var(--b2); }
+.resize-grip--active { background: var(--red); }
 
-/* ─── Column visibility dropdown ────────────────────────────────── */
+/* ── Column visibility dropdown ───────────────────────────────────── */
 .col-dropdown-wrap {
   position: relative;
   flex-shrink: 0;
@@ -1181,55 +1259,57 @@ onBeforeUnmount(() => {
   min-width: 150px;
   max-height: 320px;
   overflow-y: auto;
-  background: var(--ground);
+  background: var(--raised);
   border: 1px solid var(--b2);
-  border-radius: var(--rs);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  backdrop-filter: blur(12px);
 }
 
 .col-dropdown__item {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 5px 12px;
   font-size: var(--fs);
   color: var(--t2);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
+  transition: background 100ms var(--ease);
 }
-.col-dropdown__item:hover {
-  background: var(--surface);
-}
-.col-dropdown__item input[type="checkbox"] {
-  accent-color: var(--link-group-blue);
-}
+.col-dropdown__item:hover { background: rgba(255,255,255,0.05); }
+.col-dropdown__item input[type="checkbox"] { accent-color: var(--red); }
 
-/* ─── Badge ─────────────────────────────────────────────────────── */
+/* ── Badge ────────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  gap: 4px;
+  padding: 2px 10px;
   font-size: var(--fss);
+  font-weight: 600;
   color: var(--t3);
-  background: rgba(255,255,255,0.06);
-  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--b1);
+  border-radius: 12px;
   white-space: nowrap;
   flex-shrink: 0;
   align-self: center;
 }
 
-/* ─── SWR revalidating indicator ───────────────────────────────── */
+/* ── SWR revalidating indicator ───────────────────────────────────── */
 .swr-dot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--link-group-blue, #3b82f6);
-  margin-left: 4px;
+  background: var(--link-group-blue);
   vertical-align: middle;
   animation: swr-pulse 1.2s ease-in-out infinite;
 }
+
+/* ── Animations ───────────────────────────────────────────────────── */
 @keyframes swr-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }

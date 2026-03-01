@@ -2,6 +2,12 @@
 
 > Status: IN PROGRESS — backend implementován, CHYBY zjištěny RE analýzou
 > Revize: 2026-02-26 (po kompletní IL bytecode analýze InduStream.Forms.Std.dll)
+>
+> [!WARNING]
+> Tento archivní dokument obsahuje historický stav poznání k 2026-02-26.
+> Pro závazný manuální write flow používej:
+> `docs/ADR/051-workshop-dilna-module.md` + `uploads/indu/industream-ido-mapping-verified.md`.
+> Některé body zde (zejména stop flow/JMC návaznosti, near-atomic potvrzení zápisu a START/STOP guardrails) byly 2026-02-28 až 2026-03-01 zpřesněny podle nového IL důkazu a integračních incidentů.
 
 ---
 

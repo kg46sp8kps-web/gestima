@@ -45,6 +45,7 @@ export async function getMachinePlan(
   opts?: {
     wc?: string
     job?: string
+    search?: string
     sort_by?: WorkshopQueueSortBy
     sort_dir?: WorkshopSortDir
     limit?: number
@@ -57,6 +58,7 @@ export async function getMachinePlan(
   }
   if (opts?.wc) params.wc = opts.wc
   if (opts?.job) params.job = opts.job
+  if (opts?.search) params.search = opts.search
   const res = await apiClient.get<MachinePlanItem[]>('/workshop/machine-plan', { params })
   return res.data
 }

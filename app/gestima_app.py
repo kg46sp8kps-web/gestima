@@ -204,7 +204,7 @@ if uploads_dir.exists():
 
 # Mount Vue SPA assets
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
-if frontend_dist.exists():
+if (frontend_dist / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="vue-assets")
     logger.info(f"✅ Vue SPA assets mounted: {frontend_dist / 'assets'}")
 
@@ -265,6 +265,10 @@ app.include_router(ft_debug_router.router, tags=["FT Debug"])  # FT Debug panel 
 app.include_router(user_layouts_router.router, prefix="/api", tags=["User Layouts"])  # Per-user workspace layouts
 app.include_router(workshop_router.router, prefix="/api/workshop", tags=["Workshop"])  # Gestima Dílna
 
+# Operator Terminal — PIN login, active jobs, stats
+from app.routers import operator_router
+app.include_router(operator_router.router, prefix="/api/operator", tags=["Operator Terminal"])
+
 # Machine Plan DnD — mistrovske planovani fronty
 from app.routers import machine_plan_router
 app.include_router(machine_plan_router.router, prefix="/api/machine-plan-dnd", tags=["Machine Plan DnD"])
@@ -272,6 +276,10 @@ app.include_router(machine_plan_router.router, prefix="/api/machine-plan-dnd", t
 # Production Planner — vizualni Gantt dispečink VP
 from app.routers import production_planner_router
 app.include_router(production_planner_router.router, prefix="/api/production-planner", tags=["Production Planner"])
+
+# SSE — real-time push notifikace
+from app.routers import events_router
+app.include_router(events_router.router, prefix="/api/events", tags=["Events"])
 
 # Import infor_sync_router
 from app.routers import infor_sync_router

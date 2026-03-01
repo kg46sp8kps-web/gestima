@@ -19,9 +19,15 @@ class User(Base, AuditMixin):
     role = Column(SAEnum(UserRole), default=UserRole.OPERATOR, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     infor_emp_num = Column(String(20), nullable=True)  # Infor employee number pro dílnu
+    pin_hash = Column(String(200), nullable=True)  # Bcrypt hash PINu pro operátorský terminál
 
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version
+
+    @property
+    def has_pin(self) -> bool:
+        """Whether user has a PIN set for operator terminal login."""
+        return self.pin_hash is not None
 
 
 class UserBase(BaseModel):
@@ -40,6 +46,7 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=1, max_length=100)
     infor_emp_num: Optional[str] = Field(None, max_length=20)
+    pin: Optional[str] = Field(None, min_length=4, max_length=6, pattern=r"^\d{4,6}$")
     version: int
 
 
@@ -53,6 +60,7 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     infor_emp_num: Optional[str] = None
+    has_pin: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -66,3 +74,13 @@ class TokenResponse(BaseModel):
     status: str
     username: str
     role: UserRole
+
+
+class PinLoginRequest(BaseModel):
+    """PIN login pro operátorský terminál."""
+    pin: str = Field(..., min_length=4, max_length=6, pattern=r"^\d{4,6}$")
+
+
+class PinSetRequest(BaseModel):
+    """Nastavení nebo smazání PINu uživatele (admin)."""
+    pin: Optional[str] = Field(None, max_length=6)

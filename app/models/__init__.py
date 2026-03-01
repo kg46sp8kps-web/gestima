@@ -1,7 +1,7 @@
 """GESTIMA - Modely"""
 
 from app.models.enums import StockType, StockShape, CuttingMode, FeatureType, UserRole, WorkCenterType, QuoteStatus, WorkshopTransType, WorkshopTxStatus
-from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse, PasswordChange
+from app.models.user import User, UserCreate, UserUpdate, UserResponse, LoginRequest, TokenResponse, PasswordChange, PinLoginRequest, PinSetRequest
 from app.models.part import Part, PartCreate, PartUpdate, PartResponse
 from app.models.operation import Operation, OperationCreate, OperationUpdate, OperationResponse
 from app.models.feature import Feature, FeatureCreate, FeatureUpdate, FeatureResponse
@@ -135,7 +135,7 @@ from app.models.workshop_order_overview import WorkshopOrderOverview
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
-    "User", "UserCreate", "UserUpdate", "UserResponse", "LoginRequest", "TokenResponse", "PasswordChange",
+    "User", "UserCreate", "UserUpdate", "UserResponse", "LoginRequest", "TokenResponse", "PasswordChange", "PinLoginRequest", "PinSetRequest",
     "Part", "PartCreate", "PartUpdate", "PartResponse",
     "Operation", "OperationCreate", "OperationUpdate", "OperationResponse",
     "Feature", "FeatureCreate", "FeatureUpdate", "FeatureResponse",

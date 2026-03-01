@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models import (
-    User, UserCreate, UserUpdate, UserResponse, PasswordChange,
+    User, UserCreate, UserUpdate, UserResponse, PasswordChange, PinSetRequest,
     MaterialNorm, MaterialNormCreate, MaterialNormUpdate, MaterialNormResponse,
     MaterialGroup, MaterialGroupResponse, MaterialGroupCreate, MaterialGroupUpdate,
     MaterialPriceCategory, MaterialPriceCategoryResponse, MaterialPriceCategoryCreate, MaterialPriceCategoryUpdate,
@@ -26,7 +26,7 @@ from app.models import (
 from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
 from app.db_helpers import set_audit, safe_commit
-from app.services.auth_service import get_password_hash
+from app.services.auth_service import get_password_hash, get_pin_hash
 from app.services.material_mapping import search_norms
 
 router = APIRouter()
@@ -272,7 +272,9 @@ async def api_delete_material_norm(
 # ARCHIVED: 2026-01-31 - Jinja2 template moved to archive/legacy-alpinejs-v1.6.1/
 
 @router.get("/material-catalog", response_class=RedirectResponse)
-async def admin_material_catalog_redirect():
+async def admin_material_catalog_redirect(
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
     """Redirect to Vue SPA Master Data (Material Catalog tab)"""
     return RedirectResponse(url="/admin/master-data?tab=materials", status_code=302)
 
@@ -625,6 +627,31 @@ async def api_change_user_password(
 
     await safe_commit(db, user, "změna hesla uživatele")
     return {"message": f"Heslo uživatele '{user.username}' bylo změněno"}
+
+
+@router.put("/api/users/{user_id}/pin")
+async def api_set_user_pin(
+    user_id: int,
+    data: PinSetRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """API: Set or clear user PIN (admin only)."""
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Uživatel ID {user_id} nenalezen")
+
+    if data.pin:
+        user.pin_hash = get_pin_hash(data.pin)
+    else:
+        user.pin_hash = None
+
+    set_audit(user, current_user.username, is_update=True)
+    await safe_commit(db, user, "nastavení PINu uživatele")
+    return {"message": f"PIN uživatele '{user.username}' {'nastaven' if data.pin else 'smazán'}"}
 
 
 @router.delete("/api/users/{user_id}")

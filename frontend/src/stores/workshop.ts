@@ -396,22 +396,6 @@ export const useWorkshopStore = defineStore('workshop', () => {
     const wc = timer.value.wc
     const transType: WorkshopTransType = mode === 'setup' ? 'setup_end' : 'stop'
 
-    if (_timerInterval) {
-      clearInterval(_timerInterval)
-      _timerInterval = null
-    }
-    timer.value = {
-      running: false,
-      startedAt: null,
-      job: null,
-      suffix: null,
-      operNum: null,
-      inforItem: null,
-      wc: null,
-      mode: null,
-    }
-    timerElapsed.value = 0
-
     const actualHours = (finishedAt.getTime() - startedAt.getTime()) / 3_600_000
 
     const tx = await createTransaction({
@@ -432,12 +416,30 @@ export const useWorkshopStore = defineStore('workshop', () => {
 
     const posted = await _postSilent(tx.id)
     if (posted?.status === 'posted') {
+      if (_timerInterval) {
+        clearInterval(_timerInterval)
+        _timerInterval = null
+      }
+      timer.value = {
+        running: false,
+        startedAt: null,
+        job: null,
+        suffix: null,
+        operNum: null,
+        inforItem: null,
+        wc: null,
+        mode: null,
+      }
+      timerElapsed.value = 0
       ui.showSuccess(mode === 'setup' ? 'Seřízení ukončeno a odesláno' : 'Čas uložen a odeslán do Inforu')
+      return posted
     } else {
-      ui.showError(`STOP selhal: ${posted?.error_msg ?? 'Nepodařilo se odeslat do Inforu'}`)
+      ui.showError(
+        `STOP selhal: ${posted?.error_msg ?? 'Nepodařilo se odeslat do Inforu'} ` +
+        'Operace zůstává spuštěná.',
+      )
+      return null
     }
-
-    return tx
   }
 
   // === Actions — Orders Overview (SWR) ===

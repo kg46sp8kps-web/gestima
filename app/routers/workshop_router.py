@@ -200,6 +200,7 @@ async def get_orders_overview(
             search=search,
             limit=limit,
         )
+        await workshop_service.enrich_orders_with_tier(db, rows)
         return JSONResponse(content=rows, headers={"X-Source": "infor"})
     except Exception as exc:
         logger.error("fetch_orders_overview failed: %s", exc, exc_info=True)
@@ -210,6 +211,7 @@ async def get_orders_overview(
 async def get_machine_plan(
     wc: Optional[str] = Query(None, description="Filtr pracoviště (WC kód z Inforu)"),
     job: Optional[str] = Query(None, description="Filtr VP (substring čísla zakázky)"),
+    search: Optional[str] = Query(None, description="Hledání v Job + Artikl + Popis (case-insensitive)"),
     sort_by: str = Query("OpDatumSt", description="Řazení: OpDatumSt|OpDatumSp|Job|OperNum|Wc|DerJobItem|JobDescription|QtyComplete|JobQtyReleased"),
     sort_dir: str = Query("asc", description="Směr řazení: asc|desc"),
     limit: int = Query(500, ge=1, le=2000),
@@ -223,11 +225,14 @@ async def get_machine_plan(
     DB-first: čte z lokální tabulky workshop_job_routes.
     Fallback: live fetch z Inforu (cold start).
     """
+    from app.services import machine_plan_service
+
     # DB-first
     db_data = await workshop_service.read_machine_plan_from_db(
-        db, wc=wc, job_filter=job, sort_by=sort_by, sort_dir=sort_dir, record_cap=limit,
+        db, wc=wc, job_filter=job, search=search, sort_by=sort_by, sort_dir=sort_dir, record_cap=limit,
     )
     if db_data:
+        await machine_plan_service.enrich_flat_rows(db, db_data)
         return JSONResponse(content=db_data, headers={"X-Source": "db"})
 
     # Fallback: live fetch
@@ -240,6 +245,7 @@ async def get_machine_plan(
             sort_dir=sort_dir,
             record_cap=limit,
         )
+        await machine_plan_service.enrich_flat_rows(db, rows)
         return JSONResponse(content=rows, headers={"X-Source": "infor"})
     except Exception as exc:
         logger.error("fetch_machine_plan failed: %s", exc, exc_info=True)
@@ -385,7 +391,7 @@ async def post_material_issue(
     Provede materiálový odvod pro konkrétní operaci VP.
     """
     try:
-        emp_num = getattr(current_user, "infor_emp_num", None) or current_user.username
+        emp_num = workshop_service.resolve_infor_emp_num(current_user)
         result = await workshop_service.post_material_issue(
             infor_client=client,
             emp_num=emp_num,

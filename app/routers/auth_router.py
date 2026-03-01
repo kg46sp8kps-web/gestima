@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, LoginRequest, TokenResponse, UserResponse
-from app.services.auth_service import authenticate_user, create_access_token
+from app.models import User, LoginRequest, TokenResponse, UserResponse, PinLoginRequest
+from app.services.auth_service import authenticate_user, authenticate_user_by_pin, create_access_token
 from app.config import settings
 from app.rate_limiter import limiter
 
@@ -70,11 +70,50 @@ async def login(
 
 
 # ============================================================================
+# PIN LOGIN (Operator Terminal)
+# ============================================================================
+
+@router.post("/pin-login", response_model=TokenResponse)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
+async def pin_login(
+    request: Request,
+    credentials: PinLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """PIN login pro operátorský terminál"""
+    try:
+        user = await authenticate_user_by_pin(db, credentials.pin)
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role.value}
+        )
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=settings.SECURE_COOKIE,
+            samesite="strict",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        logger.info(f"User logged in via PIN: {user.username}")
+        return TokenResponse(
+            status="ok",
+            username=user.username,
+            role=user.role
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during PIN login: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Chyba při přihlašování")
+
+
+# ============================================================================
 # LOGOUT
 # ============================================================================
 
 @router.post("/logout", response_model=dict)
-async def logout(response: Response):
+async def logout(response: Response, current_user: User = Depends(get_current_user)):
     """
     Odhlášení uživatele
 

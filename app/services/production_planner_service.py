@@ -688,6 +688,7 @@ async def set_tier(
         existing.is_hot = is_hot
         set_audit(existing, username, is_update=True)
         await safe_commit(db, existing, "set_tier")
+        _broadcast_tier(safe_job, safe_suffix, tier)
         return existing
 
     entry = ProductionPriority(
@@ -699,4 +700,10 @@ async def set_tier(
     set_audit(entry, username)
     db.add(entry)
     await safe_commit(db, entry, "set_tier")
+    _broadcast_tier(safe_job, safe_suffix, tier)
     return entry
+
+
+def _broadcast_tier(job: str, suffix: str, tier: str) -> None:
+    from app.services.event_bus import broadcast
+    broadcast("tier_change", {"job": job, "suffix": suffix, "tier": tier})

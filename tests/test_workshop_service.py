@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 
-from app.models.enums import WorkshopTransType
+from app.models.enums import WorkshopTransType, WorkshopTxStatus
 from app.models.workshop_transaction import WorkshopTransaction
 from app.services import workshop_service
 
@@ -51,7 +52,308 @@ def test_build_dcsfc_candidates_use_infor_item():
 
     assert len(candidates) >= 2
     assert candidates[0][7] == "ITEM-ABC"
-    assert candidates[0][3] in {"J", "1"}
+    assert candidates[0][3] == "J"
+    assert any(c[3] == "1" for c in candidates)
+
+
+def test_build_dcsfc_candidates_include_numeric_item_fallback():
+    tx = _tx(infor_item="SZ-M-2016-001")
+
+    candidates = workshop_service._build_dcsfc_mchtrx_candidates(tx, "demo")
+
+    assert any(c[7] == "0" for c in candidates)
+
+
+def test_build_wrapper_params_uses_multi_job_flag():
+    tx = _tx(trans_type=WorkshopTransType.START)
+    tx.multi_job_flag = "1"
+
+    params = workshop_service._build_wrapper_params(tx, "demo")
+
+    assert params[2] == "1"
+
+
+def test_build_validate_emp_mchtrx_candidates_uses_emp_and_machine_first():
+    tx = _tx(wc="SM3")
+    tx.stroj = "MCH-SM3"
+
+    candidates = workshop_service._build_validate_emp_mchtrx_candidates(tx, "demo")
+
+    assert candidates[0] == ["demo", "MCH-SM3"]
+    assert candidates[1] == ["MCH-SM3", "demo"]
+
+
+def test_build_stop_params_use_multi_job_flag():
+    tx = _tx(trans_type=WorkshopTransType.STOP)
+    tx.multi_job_flag = "1"
+
+    ins_params = workshop_service._build_ins_wrapper_dcsfc_update_params(tx, "demo")
+    mchtrx_candidates = workshop_service._build_dcsfc_mchtrx_candidates(tx, "demo")
+
+    assert ins_params[3] == "1"
+    assert mchtrx_candidates[0][2] == "1"
+
+
+def test_build_stop_params_default_missing_qty_to_zero():
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        qty_completed=None,
+        qty_scrapped=None,
+        qty_moved=None,
+    )
+
+    ins_params = workshop_service._build_ins_wrapper_dcsfc_update_params(tx, "demo")
+    mchtrx_params = workshop_service._build_dcsfc_mchtrx_candidates(tx, "demo")[0]
+
+    assert ins_params[8] == "0.00000000"
+    assert ins_params[9] == "0.00000000"
+    assert ins_params[10] == "0.00000000"
+    assert mchtrx_params[9] == "0.00000000"
+    assert mchtrx_params[10] == "0.00000000"
+    assert mchtrx_params[11] == "0.00000000"
+
+
+def test_build_stop_params_default_ukoncit_stroj_flag_to_one():
+    tx = _tx(trans_type=WorkshopTransType.STOP)
+
+    mchtrx_params = workshop_service._build_dcsfc_mchtrx_candidates(tx, "demo")[0]
+
+    assert mchtrx_params[20] == "1"
+
+
+def test_resolve_infor_emp_num_prefers_numeric_infor_emp_num():
+    user = SimpleNamespace(infor_emp_num="100001", username="mistr")
+
+    value = workshop_service.resolve_infor_emp_num(user)
+
+    assert value == "100001"
+
+
+def test_resolve_infor_emp_num_uses_numeric_username_when_emp_num_missing():
+    user = SimpleNamespace(infor_emp_num=None, username="200002")
+
+    value = workshop_service.resolve_infor_emp_num(user)
+
+    assert value == "200002"
+
+
+def test_resolve_infor_emp_num_falls_back_to_one_for_non_numeric_values():
+    user = SimpleNamespace(infor_emp_num="mistr", username="operator")
+
+    value = workshop_service.resolve_infor_emp_num(user)
+
+    assert value == "1"
+
+
+def test_extract_workshop_transactions_accepts_scalar_result_like():
+    tx = _tx(trans_type=WorkshopTransType.START, status=WorkshopTxStatus.POSTED)
+
+    class _ScalarLikeResult:
+        def all(self):
+            return [tx]
+
+    extracted = workshop_service._extract_workshop_transactions(_ScalarLikeResult())
+    assert len(extracted) == 1
+    assert extracted[0].infor_job == tx.infor_job
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_job_flag_start_returns_one_when_other_run_is_active():
+    existing_start = _tx(
+        trans_type=WorkshopTransType.START,
+        status=WorkshopTxStatus.POSTED,
+        created_by="operator1",
+        infor_job="16VP09/056",
+        oper_num="20",
+        infor_suffix="0",
+    )
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        status=WorkshopTxStatus.PENDING,
+        created_by="operator1",
+        infor_job="16VP09/055",
+        oper_num="10",
+        infor_suffix="0",
+    )
+
+    class _ScalarListResult:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return self._rows
+
+    class _FakeDb:
+        async def execute(self, _query):
+            return _ScalarListResult([existing_start])
+
+    flag = await workshop_service._resolve_multi_job_flag(_FakeDb(), tx, "operator1")
+    assert flag == "1"
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_job_flag_start_counts_posting_run_as_active():
+    existing_start = _tx(
+        trans_type=WorkshopTransType.START,
+        status=WorkshopTxStatus.POSTING,
+        created_by="operator1",
+        infor_job="16VP09/056",
+        oper_num="20",
+        infor_suffix="0",
+        id=41,
+    )
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        status=WorkshopTxStatus.POSTING,
+        created_by="operator1",
+        infor_job="16VP09/055",
+        oper_num="10",
+        infor_suffix="0",
+        id=42,
+    )
+
+    class _ScalarListResult:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return self._rows
+
+    class _FakeDb:
+        async def execute(self, _query):
+            # Simulates DB output after SQL filtering (exclude_tx_id already applied).
+            return _ScalarListResult([existing_start])
+
+    flag = await workshop_service._resolve_multi_job_flag(_FakeDb(), tx, "operator1")
+    assert flag == "1"
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_job_flag_returns_zero_when_no_other_active_ops():
+    """InduStream behavior: first job on machine → multi_job_flag='0'."""
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        status=WorkshopTxStatus.PENDING,
+        created_by="operator1",
+        infor_job="16VP09/055",
+        oper_num="10",
+        infor_suffix="0",
+        id=42,
+    )
+
+    class _ScalarListResult:
+        def scalars(self):
+            return self
+
+        def all(self):
+            return []
+
+    class _FakeDb:
+        async def execute(self, _query):
+            return _ScalarListResult()
+
+    flag = await workshop_service._resolve_multi_job_flag(_FakeDb(), tx, "operator1")
+    assert flag == "0"
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_job_flag_respects_explicit_zero():
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        status=WorkshopTxStatus.PENDING,
+        created_by="operator1",
+        infor_job="16VP09/055",
+        oper_num="10",
+        infor_suffix="0",
+        id=42,
+    )
+    tx.multi_job_flag = "0"
+
+    flag = await workshop_service._resolve_multi_job_flag(SimpleNamespace(), tx, "operator1")
+    assert flag == "0"
+
+
+@pytest.mark.asyncio
+async def test_ensure_start_not_duplicate_active_blocks_same_key(monkeypatch):
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        infor_job="16VP09/055",
+        infor_suffix="0",
+        oper_num="10",
+        id=42,
+    )
+    key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
+
+    async def _fake_active_keys(*_args, **_kwargs):
+        return {key}
+
+    monkeypatch.setattr(workshop_service, "_active_operation_keys_for_user", _fake_active_keys)
+
+    with pytest.raises(RuntimeError, match="již spuštěná"):
+        await workshop_service._ensure_start_not_duplicate_active(
+            db=SimpleNamespace(),
+            tx=tx,
+            username="operator1",
+        )
+
+
+@pytest.mark.asyncio
+async def test_resolve_ukoncit_stroj_flag_returns_one_when_no_other_active(monkeypatch):
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        infor_job="26VP02/036",
+        infor_suffix="0",
+        oper_num="20",
+        wc="FV3",
+        id=119,
+    )
+    key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
+
+    async def _fake_active(*_args, **_kwargs):
+        return {key: {"wc": "FV3"}}
+
+    monkeypatch.setattr(workshop_service, "_active_operations_for_user", _fake_active)
+
+    flag = await workshop_service._resolve_ukoncit_stroj_flag(
+        db=SimpleNamespace(),
+        tx=tx,
+        username="operator1",
+    )
+    assert flag == "1"
+
+
+@pytest.mark.asyncio
+async def test_resolve_ukoncit_stroj_flag_returns_zero_when_other_same_wc(monkeypatch):
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        infor_job="26VP02/036",
+        infor_suffix="0",
+        oper_num="20",
+        wc="FV3",
+        id=119,
+    )
+    key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
+
+    async def _fake_active(*_args, **_kwargs):
+        return {
+            key: {"wc": "FV3"},
+            ("23VP09/066", "0", "20"): {"wc": "FV3"},
+        }
+
+    monkeypatch.setattr(workshop_service, "_active_operations_for_user", _fake_active)
+
+    flag = await workshop_service._resolve_ukoncit_stroj_flag(
+        db=SimpleNamespace(),
+        tx=tx,
+        username="operator1",
+    )
+    assert flag == "0"
 
 
 def test_format_infor_datetime_converts_utc_to_workshop_timezone():
@@ -69,6 +371,7 @@ def test_build_wrapper_candidates_prefers_timestamp_variant():
 
     assert len(candidates) == 1
     assert len(candidates[0]) == 25
+    assert candidates[0][3] == "1"
 
 
 def test_normalize_queue_row_jbr_fields():
@@ -1193,14 +1496,62 @@ async def test_post_wrapper_flow_setup_skips_mchtrx():
         call for call in client.invoke_method_positional.await_args_list
         if call.kwargs["method_name"] == workshop_service._WRITE_SP_WRAPPER
     )
-    assert wrapper_call.kwargs["positional_values"][18] == "2026-02-28 12:57:47"  # UTC→CET +1h
+    assert wrapper_call.kwargs["positional_values"][18] == ""
 
 
 @pytest.mark.asyncio
-async def test_post_wrapper_flow_start_calls_mchtrx():
+async def test_post_wrapper_flow_start_calls_industream_sequence():
+    """InduStream ZahajitPraci: ValidateOperNumMachine → Wrapper → Kapacity → Mchtrx."""
     tx = _tx(
         trans_type=WorkshopTransType.START,
         started_at=datetime(2026, 2, 28, 11, 57, 47),
+    )
+    client = AsyncMock()
+    client.invoke_method_positional.return_value = {"MessageCode": 0, "ReturnValue": "0", "Message": ""}
+
+    await workshop_service._post_wrapper_flow(tx, client, "demo")
+
+    methods = [call.kwargs["method_name"] for call in client.invoke_method_positional.await_args_list]
+    assert workshop_service._WRITE_SP_VALIDATE_OPER_MACHINE in methods
+    assert workshop_service._WRITE_SP_WRAPPER in methods
+    assert workshop_service._WRITE_SP_KAPACITY_UPDATE in methods
+    assert workshop_service._WRITE_SP_MCHTRX in methods
+
+
+@pytest.mark.asyncio
+async def test_post_wrapper_flow_start_captures_validate_oper_machine_rv():
+    """ValidateOperNumMachineSp RV outputs must be captured and stored on tx."""
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        started_at=datetime(2026, 2, 28, 11, 57, 47),
+    )
+    client = AsyncMock()
+
+    async def _invoke(**kwargs):
+        if kwargs["method_name"] == workshop_service._WRITE_SP_VALIDATE_OPER_MACHINE:
+            # Simulate Infor returning all 11 positional params with RV values filled
+            return {
+                "MessageCode": 0,
+                "ReturnValue": "JOB,0,10,demo,H,ITEM,MAIN,PREV_EMP,MACHINE1,WC01,",
+                "Message": "",
+            }
+        return {"MessageCode": 0, "ReturnValue": "0", "Message": ""}
+
+    client.invoke_method_positional.side_effect = _invoke
+
+    await workshop_service._post_wrapper_flow(tx, client, "demo")
+
+    # Verify captured RV values are stored on tx
+    assert getattr(tx, "old_emp_num", None) == "PREV_EMP"
+    assert getattr(tx, "stroj", None) == "MACHINE1"
+
+
+@pytest.mark.asyncio
+async def test_post_wrapper_flow_setup_end_calls_mchtrx():
+    tx = _tx(
+        trans_type=WorkshopTransType.SETUP_END,
+        started_at=datetime(2026, 2, 28, 11, 57, 47),
+        finished_at=datetime(2026, 2, 28, 11, 57, 59),
     )
     client = AsyncMock()
     client.invoke_method_positional.return_value = {"MessageCode": 0, "ReturnValue": "0", "Message": ""}
@@ -1213,7 +1564,8 @@ async def test_post_wrapper_flow_start_calls_mchtrx():
 
 
 @pytest.mark.asyncio
-async def test_post_stop_flow_passes_finished_timestamp_to_wrapper():
+async def test_post_stop_flow_calls_industream_sequence():
+    """InduStream UkoncitPraci: InsWrapperDcsfcUpdate → Kapacity → DcSfcMchtrx."""
     tx = _tx(
         trans_type=WorkshopTransType.STOP,
         started_at=datetime(2026, 2, 28, 11, 57, 47),
@@ -1224,11 +1576,66 @@ async def test_post_stop_flow_passes_finished_timestamp_to_wrapper():
 
     await workshop_service._post_stop_flow(tx, client, "demo")
 
-    wrapper_call = next(
-        call for call in client.invoke_method_positional.await_args_list
-        if call.kwargs["method_name"] == workshop_service._WRITE_SP_WRAPPER
+    methods = [call.kwargs["method_name"] for call in client.invoke_method_positional.await_args_list]
+    assert workshop_service._WRITE_SP_INS_WRAPPER_DCSFC_UPDATE in methods
+    assert workshop_service._WRITE_SP_KAPACITY_UPDATE in methods
+    assert workshop_service._WRITE_SP_DCSFC_MCHTRX in methods
+    assert workshop_service._WRITE_SP_WRAPPER not in methods
+
+
+@pytest.mark.asyncio
+async def test_post_stop_flow_machine_stop_failure_does_not_raise():
+    """DcSfcMchtrxSp failure must NOT crash stop flow — DcSfc TT=4 already written."""
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 11, 57, 47),
+        finished_at=datetime(2026, 2, 28, 11, 57, 59),
     )
-    assert wrapper_call.kwargs["positional_values"][18] == "2026-02-28 12:57:59"  # UTC→CET +1h
+    client = AsyncMock()
+
+    async def _invoke(**kwargs):
+        method = kwargs["method_name"]
+        if method in (
+            workshop_service._WRITE_SP_DCSFC_MCHTRX,
+            workshop_service._WRITE_SP_MCHTRX,
+        ):
+            return {"MessageCode": 0, "ReturnValue": "16", "Message": ""}
+        return {"MessageCode": 0, "ReturnValue": "0", "Message": ""}
+
+    client.invoke_method_positional.side_effect = _invoke
+
+    # Must NOT raise — labor record (InsWrapperDcsfcUpdateSp) already exists in Infor.
+    await workshop_service._post_stop_flow(tx, client, "demo")
+
+    methods = [call.kwargs["method_name"] for call in client.invoke_method_positional.await_args_list]
+    assert workshop_service._WRITE_SP_INS_WRAPPER_DCSFC_UPDATE in methods
+    assert workshop_service._WRITE_SP_DCSFC_MCHTRX in methods
+    assert workshop_service._WRITE_SP_MCHTRX in methods
+
+
+@pytest.mark.asyncio
+async def test_post_stop_flow_fallback_mchtrx_on_dcsfc_mchtrx_failure():
+    """If DcSfcMchtrxSp fails, fallback to UpdateMchtrxSp."""
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 11, 57, 47),
+        finished_at=datetime(2026, 2, 28, 11, 57, 59),
+    )
+    client = AsyncMock()
+
+    async def _invoke(**kwargs):
+        method = kwargs["method_name"]
+        if method == workshop_service._WRITE_SP_DCSFC_MCHTRX:
+            return {"MessageCode": 0, "ReturnValue": "16", "Message": ""}
+        return {"MessageCode": 0, "ReturnValue": "0", "Message": ""}
+
+    client.invoke_method_positional.side_effect = _invoke
+
+    await workshop_service._post_stop_flow(tx, client, "demo")
+
+    methods = [call.kwargs["method_name"] for call in client.invoke_method_positional.await_args_list]
+    assert workshop_service._WRITE_SP_DCSFC_MCHTRX in methods
+    assert workshop_service._WRITE_SP_MCHTRX in methods
 
 
 @pytest.mark.asyncio
@@ -1267,6 +1674,11 @@ async def test_post_material_issue_calls_update_method():
     assert workshop_service._WRITE_SP_INS_VALID_VYDEJ_MAT in methods
     update_calls = [name for name in methods if name == workshop_service._WRITE_SP_UPDATE_DCJMC]
     assert len(update_calls) == 1
+    process_calls = [name for name in methods if name == workshop_service._WRITE_SP_PROCESS_JOB_MATL_TRANS]
+    assert len(process_calls) == 1
+    assert methods.index(workshop_service._WRITE_SP_UPDATE_DCJMC) < methods.index(
+        workshop_service._WRITE_SP_PROCESS_JOB_MATL_TRANS
+    )
     assert result["Material"] == "M-001"
     assert result["QtyIssued"] == pytest.approx(1.25)
     assert result["UM"] == "kg"
@@ -1715,3 +2127,200 @@ async def test_fetch_orders_overview_deduplicates_rows():
 
     rows = await workshop_service.fetch_orders_overview(infor_client=client, limit=50)
     assert len(rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_verify_infor_write_stop_ignores_stale_rows_and_matches_expected_times():
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 8, 0, 5),
+        finished_at=datetime(2026, 2, 28, 8, 5, 11),
+    )
+    client = AsyncMock()
+    client.load_collection.return_value = {
+        "data": [
+            {"StartTime": "32400", "EndTime": "32600", "TransDate": "2026-02-28"},
+            {"StartTime": "32405", "EndTime": "32711", "TransDate": "2026-02-28"},
+        ]
+    }
+
+    await workshop_service._verify_infor_write(tx, client)
+
+
+@pytest.mark.asyncio
+async def test_verify_infor_write_falls_back_without_transdate_filter():
+    tx = _tx(
+        trans_type=WorkshopTransType.START,
+        started_at=datetime(2026, 3, 1, 1, 32, 54),
+        finished_at=None,
+    )
+    client = AsyncMock()
+    client.load_collection.side_effect = [
+        {"data": []},
+        {"data": [{"StartTime": "9174", "EndTime": "", "TransDate": "2026-02-28"}]},
+    ]
+
+    await workshop_service._verify_infor_write(tx, client)
+
+
+@pytest.mark.asyncio
+async def test_verify_infor_write_stop_fails_when_only_stale_row_exists(monkeypatch):
+    tx = _tx(
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 8, 0, 5),
+        finished_at=datetime(2026, 2, 28, 8, 5, 11),
+    )
+    client = AsyncMock()
+    client.load_collection.return_value = {
+        "data": [
+            {"StartTime": "32400", "EndTime": "32600", "TransDate": "2026-02-28"},
+        ]
+    }
+    monkeypatch.setattr(workshop_service.asyncio, "sleep", AsyncMock())
+
+    with pytest.raises(RuntimeError, match="Write verification failed"):
+        await workshop_service._verify_infor_write(tx, client)
+
+
+@pytest.mark.asyncio
+async def test_post_transaction_recovers_to_posted_when_transport_fails_after_write_phase(monkeypatch):
+    tx = _tx(
+        id=777,
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 8, 0, 5),
+        finished_at=datetime(2026, 2, 28, 8, 5, 11),
+        status=WorkshopTxStatus.PENDING,
+    )
+
+    class _ScalarResult:
+        def scalar_one_or_none(self):
+            return tx
+
+    class _FakeDb:
+        async def execute(self, _query):
+            return _ScalarResult()
+
+        async def commit(self):
+            return None
+
+        async def refresh(self, _entity):
+            return None
+
+        async def rollback(self):
+            return None
+
+    verify_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(workshop_service, "_build_qty_policy_context", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        workshop_service,
+        "_post_stop_flow",
+        AsyncMock(side_effect=RuntimeError("transport timeout after write")),
+    )
+    monkeypatch.setattr(workshop_service, "_verify_infor_write", verify_mock)
+
+    out = await workshop_service.post_transaction_to_infor(
+        db=_FakeDb(),
+        tx_id=777,
+        infor_client=AsyncMock(),
+        current_user=SimpleNamespace(username="operator1", infor_emp_num="100001"),
+    )
+
+    assert out.status == WorkshopTxStatus.POSTED
+    assert out.error_msg is None
+    assert out.posted_at is not None
+    assert verify_mock.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_post_transaction_does_not_recover_when_write_phase_not_started(monkeypatch):
+    tx = _tx(
+        id=778,
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 8, 0, 5),
+        finished_at=datetime(2026, 2, 28, 8, 5, 11),
+        status=WorkshopTxStatus.PENDING,
+    )
+
+    class _ScalarResult:
+        def scalar_one_or_none(self):
+            return tx
+
+    class _FakeDb:
+        async def execute(self, _query):
+            return _ScalarResult()
+
+        async def commit(self):
+            return None
+
+        async def refresh(self, _entity):
+            return None
+
+        async def rollback(self):
+            return None
+
+    verify_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        workshop_service,
+        "_build_qty_policy_context",
+        AsyncMock(side_effect=RuntimeError("policy guard before write")),
+    )
+    monkeypatch.setattr(workshop_service, "_verify_infor_write", verify_mock)
+
+    out = await workshop_service.post_transaction_to_infor(
+        db=_FakeDb(),
+        tx_id=778,
+        infor_client=AsyncMock(),
+        current_user=SimpleNamespace(username="operator1", infor_emp_num="100001"),
+    )
+
+    assert out.status == WorkshopTxStatus.FAILED
+    assert out.error_msg is not None
+    assert verify_mock.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_post_transaction_does_not_recover_on_nonrecoverable_stop_failure(monkeypatch):
+    tx = _tx(
+        id=779,
+        trans_type=WorkshopTransType.STOP,
+        started_at=datetime(2026, 2, 28, 8, 0, 5),
+        finished_at=datetime(2026, 2, 28, 8, 5, 11),
+        status=WorkshopTxStatus.PENDING,
+    )
+
+    class _ScalarResult:
+        def scalar_one_or_none(self):
+            return tx
+
+    class _FakeDb:
+        async def execute(self, _query):
+            return _ScalarResult()
+
+        async def commit(self):
+            return None
+
+        async def refresh(self, _entity):
+            return None
+
+        async def rollback(self):
+            return None
+
+    verify_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(workshop_service, "_build_qty_policy_context", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        workshop_service,
+        "_post_stop_flow",
+        AsyncMock(side_effect=workshop_service._NonRecoverablePostError("machine stop failed")),
+    )
+    monkeypatch.setattr(workshop_service, "_verify_infor_write", verify_mock)
+
+    out = await workshop_service.post_transaction_to_infor(
+        db=_FakeDb(),
+        tx_id=779,
+        infor_client=AsyncMock(),
+        current_user=SimpleNamespace(username="operator1", infor_emp_num="100001"),
+    )
+
+    assert out.status == WorkshopTxStatus.FAILED
+    assert out.error_msg is not None
+    assert verify_mock.await_count == 0

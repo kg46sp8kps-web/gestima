@@ -4,6 +4,45 @@ Tento soubor drží persistentní kontext mezi úkoly.
 Aktualizuj po každém netriviálním tasku.
 
 ## Poslední rozhodnutí
+- Date: 2026-03-01
+- Active goal: Opravit regresi multi-VP manuálního flow (`START A -> START B -> STOP B -> STOP A`), kde druhý START ukončoval první běh a následné STOP přepisovalo čas ukončení.
+- Decision: `vMultiJobFlag` už není odvozovaný z lokálního stacku aktivních transakcí; backend používá deterministický default `WORKSHOP_DEFAULT_MULTI_JOB_FLAG` (default `"1"`) s možností explicitního přepisu (`multi_job_flag`). Dále byl zpřesněn výběr `SLDcsfcs` řádku pro `_fix_dcsfc_time_after_wrapper`: načítá se více kandidátů (`TransDate DESC, TransNum DESC`, cap 8) a preferuje se wrapper-default čas (`72000`) pro aktuální start/stop řádek. Současně je `EmpNum` normalizován na numerický tvar; nenumerické hodnoty (`mistr`) padají na fallback `"1"`. Nově je v `_fix_dcsfc_time_after_wrapper` i `_verify_infor_write` fallback lookup bez `TransDate` (jen při miss), a při `ukoncit_stroj=1` se STOP neoznačí `POSTED`, pokud selže primární `IteCzTsdUpdateDcSfcMchtrxSp` (fallback `UpdateMchtrxSp` je jen best-effort bez potvrditelného machine-stop).
+- Why: Forenzní log sekvence `tx=50/51/52/53` ukázala `multi_job=0` na prvním START a `multi_job=1` na druhém START; to vedlo k desynchronizaci proti Infor side-effectům (první běh se ukončil interně, ale lokální stack zůstal „active“), následně STOP B nestopnul stroj (`ukoncit_stroj=0`) a STOP A přepisoval čas TT=4. Lokální heuristika se tím ukázala jako nespolehlivá.
+- Verification: `pytest -q tests/test_workshop_service.py` PASS (90 testů, včetně regresí na fallback verifikace/fixu bez `TransDate` a strict machine-stop chování). `docs-guard` PASS. `quality-gate be` FAIL pouze na pre-existing FE nálezy `any` v `frontend/src/composables/useSse.ts` a `frontend/src/components/tiling/modules/TileOrdersOverview.vue` (nesouvisející s BE změnou). Lokální „visící“ failed transakce `tx=54/55/56` pro `21VP06/257` byly soft-delete (backup `gestima_test.db.cleanup-backup-20260301T023600.bak`).
+- Next step: Ověřit integračně na terminálu stejnou sekvenci A/B (`START A -> START B -> STOP B -> STOP A`) a v logu potvrdit, že se už neobjeví implicitní ukončení běhu A při START B a že STOP B/STOP A nevedou k přepisu cizího TT=4 času.
+- Date: 2026-03-01
+- Active goal: Opravit kritický STOP incident: labor se ukončí, ale stroj ne; v Inforu se objevuje nesmyslný čas (např. ~13h) po krátkém běhu.
+- Decision: STOP flow byl upraven na robustní variantu: `IteCzTsdUpdateDcSfcMchtrxSp` se volá přes více tenant-kompatibilních kandidátů (`J/1`, `item=0`, `whse=''`, `multi_job=0` fallback); pokud selže celý tento blok, backend zkusí kompatibilní fallback `IteCzTsdUpdateMchtrxSp` (mode `J`). Selhání obou strojových cest je explicitně non-recoverable (`_NonRecoverablePostError`), takže se transakce nikdy neoznačí jako `POSTED` jen díky labor části. Oprava času (`_fix_dcsfc_time_after_wrapper`) je ve STOP flow hned po `InsWrapper`.
+- Why: Forenzní logy ukázaly opakované `IteCzTsdUpdateDcSfcMchtrxSp ... Infor SP chyba: 16` na reálných STOP (`tx=42`, `tx=43`), přestože `ukoncit_stroj=1`; bez fallbacku by se strojový krok vůbec neprovedl.
+- Verification: `pytest -q tests/test_workshop_service.py` PASS (80 testů), přidán regresní test fallbacku na `UpdateMchtrxSp(J)` a test, že non-recoverable stop fail se neauto-recoverne do `POSTED`. `gestima_test.db` byla znovu vyčištěna od visících `FAILED/PENDING/POSTING` a orphan `START` (backup `gestima_test.db.cleanup-backup-20260301T021124.bak`).
+- Next step: Restart backendu s novým kódem a nový integrační test `START -> STOP` na stejné operaci; v logu očekávat buď přijetí některé `DcSfcMchtrx` varianty, nebo warning „trying legacy ... fallback“ a následné přijetí `UpdateMchtrxSp`.
+- Date: 2026-03-01
+- Active goal: Odblokovat kritický manuální write flow do Inforu po pádu na `ValidateEmpNumMchtrxSp` a udržet kompatibilitu s legacy call-orderem.
+- Decision: `IteCzTsdValidateEmpNumMchtrxSp` je nyní v START/STOP flow `best-effort` (nikdy neblokuje post), přidán helper `_invoke_best_effort_candidates`, a kandidáti jsou rozšířeni o dvojice `emp+machine` i `machine+emp` (plus fallbacky přes `wc/job`). Tvrdě blokující zůstává jen `ValidateOperNumMachine` + vlastní write SP call-order dle IL mappingu.
+- Why: Logy z 2026-03-01 00:42–00:43 pro tx 32/33/34 ukázaly tenant-signature mismatch (`missing @TMach` / `missing @TEmpNum`) přímo v `ValidateEmpNumMchtrxSp`; tím byl úplně zablokován write flow, i když tento call není v ověřeném manuálním IL call-orderu jako nutný hard-stop.
+- Verification: `pytest -q tests/test_workshop_service.py` PASS (77 testů včetně nových regresí: flow pokračuje i při `MessageCode 460` z `ValidateEmpNumMchtrxSp`), `bash scripts/ai/quality-gate.sh be` FAIL pouze na existující FE nálezy `any` v `frontend/src/components/tiling/modules/TileOrdersOverview.vue` (nesouvisející s tímto backend fixem).
+- Next step: Nasadit backend patch, vyvolat nové START/STOP z terminálu a potvrdit v `logs/gestima.log`, že po případném warningu `ValidateEmpNumMchtrxSp best-effort skipped` následují write SP volání (`Wrapper/InsWrapperDcsfcUpdate + ...`) místo `Transaction ... failed to post`.
+- Date: 2026-02-28
+- Active goal: Stabilizovat manuální STOP flow a doručovací spolehlivost Gestima -> Infor jako near-atomic handoff bez lokálně „falešně ukončených“ operací.
+- Decision: `post_transaction_to_infor` má recovery větev pro transportní chybu po write fázi (re-verification a případné přepnutí na `POSTED`), a `_verify_infor_write` nově validuje očekávané časové markery (`TransDate`, `StartTime`, `EndTime`) místo prosté existence TT řádku.
+- Why: Zabraňuje ztrátě konzistence v hraničním stavu „Infor zapsal, ale potvrzení se nedoručilo“ a omezuje falešně pozitivní potvrzení na historický řádek stejného `Job/Oper/TransType`.
+- Date: 2026-02-28
+- Decision: Vznikl nový ověřený mapping `uploads/indu/industream-ido-mapping-verified.md` + strojově generovaný důkaz `uploads/indu/InduStream/analysis/industream_verified_sp_calls.json`, oba pouze z IL/metadata `InduStream.Forms.Std.dll` (bez důvěry v původní markdown mapu).
+- Why: Uživatel explicitně zpochybnil starý mapping; bylo nutné mít auditovatelný a reprodukovatelný zdroj pravdy přímo z binárky.
+- Date: 2026-02-28
+- Decision: Backend write flow byl přiblížen ověřenému legacy call-orderu: `start -> Wrapper(32) + Kapacity + Mchtrx(H)`, `setup_start -> Wrapper(25)`, `setup_end -> Wrapper + Mchtrx(H)`, `stop -> InsWrapperDcsfcUpdate + Kapacity + DcSfcMchtrx`; JMC flow je deterministický (`InsValid -> UpdateDcJmc(16) -> ProcessJobMatlTrans(6)` bez multi-variant workaroundů).
+- Why: IL důkazy ukázaly odchylky vůči dřívější implementaci (zejména stop flow a signatury Mchtrx/Process), což je kritické pro konzistenci zápisu do Inforu.
+- Date: 2026-02-28
+- Open points: Potvrdit integračně na Infor TEST tenantu runtime hodnoty proměnných `vMode`, `vPtrKapacity`, `vBatchKapacity`, `vStroj`, `vOldEmpNum` (v kódu jsou nyní mapované z dostupného kontextu s bezpečným fallbackem).
+- Date: 2026-02-28
+- Next step: Projít řízený integrační test 4 scénářů (start, setup_end, stop, JMC) a porovnat vzniklé záznamy proti očekávanému SP call-orderu z `industream_verified_sp_calls.json`.
+- Date: 2026-02-28
+- Decision: Do manuálního JMC flow byl vrácen legacy krok `IteCzTsdProcessJobMatlTransDcSp` po `IteCzTsdUpdateDcJmcSp` a wrapper flow nově před zápisem volá `IteCzTsdValidateEmpNumMchtrxSp` (best-effort), aby se sekvence přiblížila původní terminal app logice.
+- Why: RE podklady pro manuální terminal flow explicitně uvádějí sekvenci `...UpdateDcJmcSp -> ProcessJobMatlTransDcSp` a předpoklad validace kontextu před MCHTRX; bez těchto kroků hrozí odchylka od původního chování při kritickém zápisu do Inforu.
+- Date: 2026-02-28
+- Decision: Frontend workshop STOP flow byl opraven tak, aby se timer nuloval až po úspěšném `posted` výsledku; při chybě (`FAILED`) zůstane operace v terminálu běžet a uživatel může STOP opakovat s korekcí množství.
+- Date: 2026-02-28
+- Next step: Dotažení multi-VP kompatibility s legacy (`ValidateMultiJob` + runtime `vMultiJobFlag`) a následné integrační testy `start/setup_end/stop/JMC` na TEST tenantu.
 - Date: 2026-02-28
 - Decision: Implementace `jobroutes_j + workshop_jbr` je funkční baseline (testy i BE gate zelené), ale review odhalilo 3 klíčová rizika před produkčním nasazením: (1) fallback `[]` v JBR loaderu neposílá skutečné default props, (2) JBR fallback sety jsou užší než variace ověřené v `_QUEUE_PROP_SETS`, (3) při pádu cached JBR propsetu se nepřepíná na další varianty.
 - Why: Může vzniknout tiché selhání JBR syncu na instancích s odlišným schema mappingem a následně návrat `State/StateAsd` na `None` v DB-first flow.
@@ -13,6 +52,9 @@ Aktualizuj po každém netriviálním tasku.
 - Date: 2026-02-28
 - Decision: `GET /materials/items` rozšířen o server-side filtrování: `search` (ILIKE code/name/norms), `shape`, `norm_query` (cross-search přes MaterialNorm → W.Nr/ČSN aliasy → ILIKE code/name), rozměrové filtry (diameter, width, thickness, wall_thickness min/max). Frontend materialItems store přepracován na server-side filtry se stale response protection. "Plech" přejmenován na "Deska" v celé Gestimě.
 - Why: Katalog 3000+ polotovarů nelze efektivně prohledávat jen client-side; norma filtr potřebuje cross-lookup přes 4 normové systémy (W.Nr, EN ISO, ČSN, AISI).
+- Date: 2026-02-28
+- Decision: Byla provedena forenzní analýza legacy artefaktů v `uploads/indu` a rekonstruovány workflowe pro start/stop práce, zápis hodin, volbu transakcí a login/session chování; výstup je explicitně rozdělen na tvrdá fakta (symboly/handlery/SP/IDO) a inference.
+- Why: Cílem je mít auditovatelný podklad pro kompatibilní implementaci Gestima workflow bez spekulací mimo dostupné artefakty (`analysis/*.txt`, `DLL_EXTRACTION_REPORT.md`, `industream-ido-mapping.md`).
 - Date: 2026-02-28
 - Decision: Párování zákazníka v `fetch_orders_overview` je nově striktně přes `SLCoitems.CustNum/CoCustNum -> SLCustomers.Name`; fallback na `IteRybCustomer` byl odstraněn.
 - Why: Požadované deterministické chování bez custom fallbacku, který v praxi vracel prázdné/nekonzistentní jméno zákazníka.
@@ -52,9 +94,6 @@ Aktualizuj po každém netriviálním tasku.
 - Date: 2026-02-28
 - Decision: Strategicka hranice systemu je navrzena jako `Infor = L4 (prijem zakazek, tvorba VP)` a `Gestima = L3 (detailni rozvrh, dispecink fronty, vykazovani operaci/materialu na tabletech)`.
 - Why: Odpovida ISA-95 hranici ERP vs MES a sedí na aktualni implementaci workshop modulu (queue, operace, material issue, START/STOP transakce).
-- Date: 2026-02-28
-- Decision: Vypnuti APS v Inforu nema jit jako hard-cut; doporucen je shadow rezim 4-8 tydnu s paralelnim porovnanim KPI (`OTD`, `WIP`, `lead time`, `setup adherence`) mezi Infor APS a Gestima schedulerem.
-- Why: V Inforu APS uz existuji pokrocila pravidla (global priorities, dispatching, finite planning), proto je nutne rizeně overit, ze Gestima replikuje minimalne stejnou kvalitu planu pred prepnutim.
 - Date: 2026-02-28
 - Decision: Cílovy workflow je navrzen jako `PC dispecink = master fronty` (razeni + drag&drop + priority + poznamky + hold), `tablet = provedeni` (START/STOP, kusy/zmetky/material, stav + next queue) s volitelnym omezenym resequencingem pouze pro roli mistr.
 - Why: Odpovida beznemu MES dispatch-list patternu (ready list + aktivni transakce + lokalni operativni zasahy) a minimalizuje riziko chaosu, kdy frontu meni kazdy operator bez governance.
@@ -98,23 +137,11 @@ Aktualizuj po každém netriviálním tasku.
 - Decision: `DrawingImportService` podporuje dva zdroje v jednom poli `DRAWINGS_SHARE_PATH`: lokalni cesta a `ssh://user@host:port/path`.
 - Why: Umoznuje stejny import workflow v macOS dev i Linux produkci bez SMB mountu; admin UI i API zustaly beze zmen.
 - Date: 2026-02-27
-- Decision: Do `TilingWorkspace` headeru bylo pridano vyhledavaci pole panelu za workspace chips; po focusu zobrazi seznam modulu, omezeny vyskou na ~10 polozek se scrollovanim, a filtruje live pres `includes` nad celym nazvem (`label`) i `id`.
-- Why: Uzivatel potrebuje rychle otevrit panel i podle slova uprostred nazvu, ne jen prefix match.
-- Date: 2026-02-27
 - Decision: Vzhled header search inputu byl sjednocen s workspace chips: placeholder zkracen na `Hledat...`, vyska inputu snizena na 22px, explicitne dedi font z headeru a native search clear ikonka je prebarvena do sedeho neutralniho stylu.
 - Why: Puvodni vzhled (modry clear krizek a vertikalni offset) vizualne neodpovidal zbytku workspace headeru.
 - Date: 2026-02-27
 - Decision: Styly search inputu v `TilingWorkspace.vue` byly prepnute na `:deep(.module-search-input)`, aby se spolehlive aplikovaly i na `Input` child komponentu se scoped CSS.
 - Why: Bez `:deep` zustaval v inputu default `input-ctrl` styl (font/velikost), coz vedlo k vizualni nekonzistenci proti workspace chips.
-- Date: 2026-02-27
-- Decision: Font size pro header search input byl sjednocen na povoleny design token `var(--fs)` (misto `var(--fsm)`).
-- Why: Pozadavek na konzistentni pouziti schvalene typografie v ramci aplikace.
-- Date: 2026-02-27
-- Decision: Vykon importu kresli presne statistiky (`files_created`, `links_created`, `parts_updated`, `skipped`) per soubor, ne jen per slozka.
-- Why: Puvodni implementation nadhodnocovala/zkreslovala vysledek a komplikovala audit importu.
-- Date: 2026-02-27
-- Decision: Aktivní AI governance je sjednocena na Codex flow (`AGENTS.md`) s guardy (`docs-guard`, `quality-gate`, PR template, CI trend report).
-- Why: Zajišťuje konzistentní proces, kontrolovaný růst dokumentace a měřitelný trend kvality.
 - Date: 2026-02-27
 - Decision: Fronta práce se načítá primárně z `IteCzTsdJbrDetails` s fallbackem na `SLJobRoutes`.
 - Why: RE analýza potvrzuje `IteCzTsdJbrDetails` jako zdroj plan queue (včetně `OpDatumSt/OpDatumSp`), fallback drží kompatibilitu na instancích bez tohoto IDO.
@@ -205,7 +232,6 @@ Aktualizuj po každém netriviálním tasku.
 - Date: 2026-02-27
 - Decision: Loader `IteCzTsdJbrDetails` byl rozšířen o `col*` aliasy (`colJob`, `colOper`, `colSuffix`, `colWc`, `colOpDatumSt`, ...), a JBR filtry/sort se dělají primárně lokálně po normalizaci.
 - Why: V TEST instanci opakovaně padalo čtení na `Property Job not found on IteCzTsdJbrDetails IDO`; RE stringy z původní DLL potvrzují `col*` schéma, které se mezi instalacemi liší a rozbíjí pevně zadané server-side `filter/orderBy`.
-
 - Date: 2026-02-27
 - Decision: V technologickém tile byly odstraněny placeholder texty z inputů (parse input a časy operací) a potvrzeno, že `OperationCombobox` placeholder atribut nepoužívá.
 - Why: Uživatel explicitně požadoval prostředí bez placeholder textu v těchto polích.
@@ -218,25 +244,6 @@ Aktualizuj po každém netriviálním tasku.
 - Date: 2026-02-27
 - Decision: Workshop JBR loader (`_load_collection_first`) při `message_code != 0` přeskakuje na další property set; po vyčerpání setů zkouší JBR i bez `props` (stále bez fallbacku na `SLJobRoutes`).
 - Why: Opravuje stav „žádné operace“, kdy první neplatný property set tiše vrátil empty list a zastavil další pokusy.
-- Date: 2026-02-27
-- Decision: `IteCzTsdJbrDetails` property fallback rozšířen o varianty `colJobSuffix` a kombinované pole `vJobSuffixOperNum/JobSuffixOperNum`; parser `Job/Suffix/Oper` byl upraven na pravostranný parse.
-- Why: RE důkazy z původní DLL ukazují více variant názvů polí mezi instalacemi a kombinovaný formát identifikátoru operace.
-
-- Date: 2026-02-27
-- Decision: Byla provedena live diagnostika proti TEST Inforu (stejna DB jako LIVE): `IteCzTsdJbrDetails` schema obsahuje hlavne `SessionId/OperNum` a neobsahuje `Job/Suffix`; bez `props` vraci `MessageCode=0`, ale `Items=[]`.
-- Why: Potvrdilo se, ze v teto instalaci JBR IDO funguje jako detail/session view, ne jako primy zdroj fronty.
-- Date: 2026-02-27
-- Decision: `fetch_wc_queue`/`fetch_job_operations` byly rozsireny o kompatibilni rezim: pokud JBR vrati detail-only signaturu (`Bookmark` s `SessionId/OperNum`), backend explicitne prepne na `SLJobRoutes`.
-- Why: Bez tohoto prepnuti je fronta trvale prazdna; init metody z puvodni aplikace (`IteCzTsdBdFiltrySp`, `IteCzInsLoadModuleSp`) v teto instanci na `IteCzTsdStd` nejsou dostupne.
-- Date: 2026-02-27
-- Decision: SLJobRoutes kompatibilni rezim je striktne filtrovany (`Type='J'`, `JobStat='R'`) a stale odfiltruje dokoncene operace stejnou mnozstevni/stavovou logikou.
-- Why: Zachovani business pravidla „jen otevrene/uvolnene operace“ i v rezimu bez dostupneho JBR queue view.
-- Date: 2026-02-27
-- Decision: Workshop API pridalo server-side filtr podle VP (`job`) a obecne razeni (`sort_by/sort_dir`) pro endpointy `/workshop/queue`, `/workshop/operations`, `/workshop/materials`.
-- Why: Fronta i seznamy v dilne potrebuji deterministicke razeni vzestupne/sestupne a rychle zúžení na konkretni VP bez lokalniho obchazeni paginace.
-- Date: 2026-02-27
-- Decision: Do workshop workflow byl doplnen materialovy odvod pres novy endpoint `POST /workshop/material-issues`, ktery validuje existenci materialu na operaci a vola Infor flow `ValidateItemDcJmcSp` -> `ValidateQtyDcJmcSp` -> `ProcessJobMatlTransDcSp` (+ nonfatal `UpdateDcJmcSp`).
-- Why: Pokryva chybejici krok „vykazovani materialu“ primo v kontextu aktivni operace a drzi konzistenci s RE postupem modulu 01140.
 - Date: 2026-02-27
 - Decision: Workshop FE (`WorkshopQueueTable` + `WorkshopOperationPanel`) podporuje klikaci razeni sloupcu a novy filtr VP ve fronte; v panelu operace pribyl inline formular materialoveho odvodu.
 - Why: Operator ma kompletni workflow (vyber operace -> cas/kusy -> materialovy odvod) v jedne obrazovce bez prepinani modulu.
@@ -286,14 +293,8 @@ Aktualizuj po každém netriviálním tasku.
 - Decision: File server import filtru 46/47 upraven: složky začínající `46`/`47` se přeskakují pouze pokud neobsahují tečku v názvu (např. `470100.28` je platný díl).
 - Why: Původní blanket filtr `startswith("46"/"47")` odfiltroval legitimní díly s číselnými identifikátory obsahujícími tečku.
 - Date: 2026-02-28
-- Decision: `FileService._sanitize_filename` přepnut z reject na replace přístup: nepovolené znaky se nahradí `_`, povoleny `()`,`,`,`+`,`=`,`@`,`#`,`~`,`[]`; path traversal (`..`, `/`, `\`) zůstává blokován.
-- Why: 78 souborů z file serveru mělo v názvu české diakritické znaky nebo speciální znaky, které reject regex odmítl; replace přístup zachová čitelnost názvu.
-- Date: 2026-02-28
-- Decision: Minimální délka tokenu pro token-based matching dokumentů nastavena na 4 znaky (`_MIN_TOKEN_MATCH_LEN = 4`).
-- Why: Díl s `article_number="37"` matchoval všechny dokumenty začínající `37-...` přes word-boundary token match; krátké identifikátory (< 4 znaky) generují příliš mnoho false positives.
-- Date: 2026-02-28
 - Decision: Infor document download concurrency snížen z 10 na 3 (`_DOWNLOAD_CONCURRENCY = 3`); filename vždy dostane příponu `.pdf` pokud ji nemá.
 - Why: 10 souběžných stahování překračovalo Infor session limit; DocumentName s tečkami (např. `1002.3237`) byl použit jako filename bez přípony.
 - Date: 2026-02-28
-- Decision: Workshop časové zápisy byly zjednodušeny na jediný Infor flow bez přímých patchů `SLJobTrans`: `IteCzTsdUpdateDcSfcWrapperSp` + `IteCzTsdUpdateMchtrxSp`; pro `setup_start/setup_end/start` se volá MCHTRX mód `H`, pro `stop` mód `J` (s fallbackem na `IteCzTsdUpdateDcSfcMchtrxSp`).
-- Why: Předchozí dodatečné synchronizace času do `SLJobTrans` zbytečně zvětšily kód a zvyšovaly riziko zásahu do historických řádků; požadavek byl návrat k minimální, ověřené logice, která už v provozu fungovala.
+- Decision: Workshop write flow byl dále zpřesněn dle IL důkazu: `start=Wrapper(32)+Kapacity+Mchtrx(H)`, `setup_start=Wrapper(25)`, `setup_end=Wrapper(+volitelný trans3)+Mchtrx(H)`, `stop=InsWrapperDcsfcUpdate+Kapacity+DcSfcMchtrx`, JMC=`InsValid->UpdateDcJmc(16)->Process(6)`.
+- Why: Nový strojově ověřený mapping vyvrátil starší zjednodušenou stop logiku `Wrapper + Mchtrx(J)` a odstranil riziko write odchylek vůči legacy terminálu.
