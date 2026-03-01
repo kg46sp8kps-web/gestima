@@ -15,11 +15,23 @@ const emit = defineEmits<{
 const currentIndex = ref(0)
 const containerRef = ref<HTMLElement | null>(null)
 
+// Deduplicate by article — show only first operation per DerJobItem
+const uniqueItems = computed(() => {
+  const seen = new Set<string>()
+  return props.items.filter(item => {
+    const art = item.DerJobItem
+    if (!art) return true // keep items without article (will show placeholder)
+    if (seen.has(art)) return false
+    seen.add(art)
+    return true
+  })
+})
+
 // PDF file ID cache: article → { fileId, loading }
 const pdfCache = ref<Map<string, { fileId: number | null; loading: boolean }>>(new Map())
 
-const currentItem = computed(() => props.items[currentIndex.value] ?? null)
-const total = computed(() => props.items.length)
+const currentItem = computed(() => uniqueItems.value[currentIndex.value] ?? null)
+const total = computed(() => uniqueItems.value.length)
 
 // Resolve PDF file ID for an article
 async function resolvePdf(article: string) {
@@ -38,17 +50,18 @@ async function resolvePdf(article: string) {
 
 // Preload current + adjacent
 function preloadAround(idx: number) {
-  const indices = [idx, idx - 1, idx + 1].filter(i => i >= 0 && i < props.items.length)
+  const items = uniqueItems.value
+  const indices = [idx, idx - 1, idx + 1].filter(i => i >= 0 && i < items.length)
   for (const i of indices) {
-    const art = props.items[i]?.DerJobItem
+    const art = items[i]?.DerJobItem
     if (art) resolvePdf(art)
   }
 }
 
 watch(currentIndex, (idx) => preloadAround(idx), { immediate: true })
-watch(() => props.items.length, () => {
-  if (currentIndex.value >= props.items.length) {
-    currentIndex.value = Math.max(0, props.items.length - 1)
+watch(() => uniqueItems.value.length, () => {
+  if (currentIndex.value >= uniqueItems.value.length) {
+    currentIndex.value = Math.max(0, uniqueItems.value.length - 1)
   }
   preloadAround(currentIndex.value)
 })
