@@ -16,7 +16,11 @@ const loading = ref(false)
 const error = ref(false)
 
 const editingId = ref<number | null>(null)
-const editDraft = ref<{ email: string | null; role: string; is_active: boolean; version: number } | null>(null)
+const editDraft = ref<{
+  email: string | null; role: string; is_active: boolean
+  infor_emp_num: string | null; pin: string; password: string
+  version: number
+} | null>(null)
 
 async function load() {
   loading.value = true
@@ -32,7 +36,11 @@ async function load() {
 
 function startEdit(u: AdminUser) {
   editingId.value = u.id
-  editDraft.value = { email: u.email, role: u.role, is_active: u.is_active, version: u.version }
+  editDraft.value = {
+    email: u.email, role: u.role, is_active: u.is_active,
+    infor_emp_num: u.infor_emp_num, pin: '', password: '',
+    version: u.version
+  }
 }
 
 async function saveEdit() {
@@ -42,9 +50,29 @@ async function saveEdit() {
   editingId.value = null
   editDraft.value = null
   try {
-    const updated = await adminApi.updateUser(id, draft)
+    // Main user update (email, role, is_active, infor_emp_num)
+    const updated = await adminApi.updateUser(id, {
+      email: draft.email,
+      role: draft.role,
+      is_active: draft.is_active,
+      infor_emp_num: draft.infor_emp_num,
+      version: draft.version
+    })
     const idx = users.value.findIndex(u => u.id === id)
     if (idx !== -1) users.value[idx] = updated
+
+    // PIN change (separate endpoint)
+    if (draft.pin) {
+      await adminApi.setUserPin(id, draft.pin)
+      const user = users.value.find(u => u.id === id)
+      if (user) user.has_pin = true
+    }
+
+    // Password change (separate endpoint)
+    if (draft.password) {
+      await adminApi.changeUserPassword(id, draft.password)
+    }
+
     ui.showSuccess('Uživatel uložen')
   } catch {
     ui.showError('Chyba při ukládání uživatele')
@@ -84,6 +112,9 @@ onMounted(load)
             <th>Jméno</th>
             <th style="width:80px">Role</th>
             <th>E-mail</th>
+            <th style="width:100px">Infor č.</th>
+            <th style="width:90px">PIN</th>
+            <th style="width:110px">Heslo</th>
             <th style="width:80px">Status</th>
             <th />
           </tr>
@@ -132,6 +163,54 @@ onMounted(load)
               </template>
               <template v-else>
                 {{ u.email ?? '—' }}
+              </template>
+            </td>
+            <td class="t4">
+              <template v-if="editingId === u.id && editDraft">
+                <InlineInput
+                  v-model="editDraft.infor_emp_num"
+                  type="text"
+                  placeholder="č. zaměstnance"
+                  style="width: 100%"
+                  @click.stop
+                />
+              </template>
+              <template v-else>
+                {{ u.infor_emp_num ?? '—' }}
+              </template>
+            </td>
+            <td>
+              <template v-if="editingId === u.id && editDraft">
+                <InlineInput
+                  v-model="editDraft.pin"
+                  type="text"
+                  inputmode="numeric"
+                  :placeholder="u.has_pin ? '••••' : 'nový'"
+                  style="width: 100%"
+                  @click.stop
+                />
+              </template>
+              <template v-else>
+                <span class="badge">
+                  <span :class="['badge-dot', u.has_pin ? 'badge-dot-ok' : 'badge-dot-neutral']" />
+                  {{ u.has_pin ? 'Nastaven' : '—' }}
+                </span>
+              </template>
+            </td>
+            <td>
+              <template v-if="editingId === u.id && editDraft">
+                <InlineInput
+                  v-model="editDraft.password"
+                  type="password"
+                  placeholder="nové heslo"
+                  style="width: 100%"
+                  @click.stop
+                />
+              </template>
+              <template v-else>
+                <span class="badge">
+                  <span class="badge-dot badge-dot-ok" />Nastaveno
+                </span>
               </template>
             </td>
             <td>

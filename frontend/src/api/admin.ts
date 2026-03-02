@@ -11,6 +11,14 @@ export async function updateUser(id: number, payload: AdminUserUpdate): Promise<
   return data
 }
 
+export async function setUserPin(id: number, pin: string | null): Promise<void> {
+  await adminClient.put(`/users/${id}/pin`, { pin })
+}
+
+export async function changeUserPassword(id: number, password: string): Promise<void> {
+  await adminClient.put(`/users/${id}/password`, { password })
+}
+
 export async function getMaterialNorms(): Promise<MaterialNorm[]> {
   const { data } = await adminClient.get<MaterialNorm[]>('/material-norms')
   return data

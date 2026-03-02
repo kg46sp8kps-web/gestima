@@ -601,6 +601,9 @@ async def api_update_user(
     if data.is_active is not None:
         user.is_active = data.is_active
 
+    if data.infor_emp_num is not None:
+        user.infor_emp_num = data.infor_emp_num or None  # empty string → None
+
     set_audit(user, current_user.username, is_update=True)
 
     user = await safe_commit(db, user, "aktualizace uživatele")

@@ -5,6 +5,8 @@ export interface AdminUser {
   full_name: string | null
   role: string  // 'admin' | 'operator' | 'viewer'
   is_active: boolean
+  infor_emp_num: string | null
+  has_pin: boolean
   created_at: string
   version: number
 }
@@ -13,6 +15,7 @@ export interface AdminUserUpdate {
   email?: string | null
   role?: string
   is_active?: boolean
+  infor_emp_num?: string | null
   version: number
 }
 
