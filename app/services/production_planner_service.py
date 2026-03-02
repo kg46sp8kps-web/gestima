@@ -633,6 +633,8 @@ async def set_hot(
     """Toggle hot flag. Multiple hot VPs allowed."""
     safe_job = job.strip().upper()
     safe_suffix = (suffix or "0").strip()
+    urgent_threshold = TIER_PRIORITY_MAP['urgent'][0]  # 20
+    normal_priority = TIER_PRIORITY_MAP['normal'][0]   # 100
 
     stmt = select(ProductionPriority).where(
         ProductionPriority.infor_job == safe_job,
@@ -646,8 +648,13 @@ async def set_hot(
             existing.deleted_at = None
             existing.deleted_by = None
         existing.is_hot = is_hot
+        # Při vypnutí hot: resetovat nízkou priority aby _derive_tier nevracelo 'urgent'
+        if not is_hot and existing.priority <= urgent_threshold:
+            existing.priority = normal_priority
         set_audit(existing, username, is_update=True)
         await safe_commit(db, existing, "set_hot")
+        tier = _derive_tier(existing.priority, existing.is_hot)
+        _broadcast_tier(safe_job, safe_suffix, tier)
         return existing
 
     entry = ProductionPriority(
@@ -658,6 +665,8 @@ async def set_hot(
     set_audit(entry, username)
     db.add(entry)
     await safe_commit(db, entry, "set_hot")
+    tier = _derive_tier(entry.priority, entry.is_hot)
+    _broadcast_tier(safe_job, safe_suffix, tier)
     return entry
 
 

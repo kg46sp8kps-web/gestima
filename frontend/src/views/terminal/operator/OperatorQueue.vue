@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { useOperatorStore } from '@/stores/operator'
 import { getMachinePlanDnd } from '@/api/machinePlanDnd'
 import type { MachinePlanItem } from '@/types/workshop'
+import type { PriorityTier } from '@/types/production-planner'
+import { onSseEvent } from '@/composables/useSse'
 import JobCard from '../shared/JobCard.vue'
 import QueueDrawingBrowser from './QueueDrawingBrowser.vue'
 
@@ -41,13 +43,16 @@ onMounted(async () => {
 
 async function fetchForWcs(wcs: string[]): Promise<MachinePlanItem[]> {
   const results = await Promise.all(wcs.map(wc => getMachinePlanDnd(wc)))
-  // For group view: include both planned and unassigned items from all WCs
-  // For single WC: only planned (preserves DnD order)
-  const all = isGroup.value
-    ? results.flatMap(r => [...r.planned, ...r.unassigned])
-    : results.flatMap(r => r.planned)
-  // Sort by OpDatumSt ascending
+  if (!isGroup.value) {
+    // Single WC: backend vrací planned v správném pořadí (hot → DnD positioned → auto)
+    return results.flatMap(r => r.planned)
+  }
+  // Group view: merge planned ze všech WC (stejná logika jako single), řadit hot nahoru
+  const all = results.flatMap(r => r.planned)
   all.sort((a, b) => {
+    const hotA = a.IsHot ? 0 : 1
+    const hotB = b.IsHot ? 0 : 1
+    if (hotA !== hotB) return hotA - hotB
     const da = a.OpDatumSt ?? ''
     const db = b.OpDatumSt ?? ''
     return da < db ? -1 : da > db ? 1 : 0
@@ -77,6 +82,31 @@ function goToJob(job: string, oper: string) {
   operator.touchActivity()
   router.push({ name: 'terminal-job-detail', params: { job, oper } })
 }
+
+// SSE — tier change → aktualizovat položky in-place + re-sort hot nahoru
+onSseEvent('tier_change', (data) => {
+  const msg = data as { job: string; suffix?: string; tier: PriorityTier }
+  let changed = false
+  for (const item of plannedItems.value) {
+    if (item.Job === msg.job) {
+      item.Tier = msg.tier
+      item.IsHot = msg.tier === 'hot'
+      item.Priority = msg.tier === 'hot' ? 5 : msg.tier === 'urgent' ? 20 : 100
+      changed = true
+    }
+  }
+  if (changed) {
+    // Re-sort: hot nahoru, pak dle OpDatumSt (pouze pokud group nebo volný sort)
+    plannedItems.value = [...plannedItems.value].sort((a, b) => {
+      const hotA = a.IsHot ? 0 : 1
+      const hotB = b.IsHot ? 0 : 1
+      if (hotA !== hotB) return hotA - hotB
+      const da = a.OpDatumSt ?? ''
+      const db = b.OpDatumSt ?? ''
+      return da < db ? -1 : da > db ? 1 : 0
+    })
+  }
+})
 </script>
 
 <template>

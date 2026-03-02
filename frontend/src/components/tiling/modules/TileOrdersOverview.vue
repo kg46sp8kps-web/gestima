@@ -9,7 +9,7 @@ import type { ContextGroup } from '@/types/workspace'
 import type { WorkshopOrderOverviewRow, WorkshopOrderVpCandidate } from '@/types/workshop'
 import Input from '@/components/ui/Input.vue'
 import Spinner from '@/components/ui/Spinner.vue'
-import { Flame, Zap } from 'lucide-vue-next'
+import { CircleCheck, CircleX, Flame, Zap } from 'lucide-vue-next'
 import { formatDate, formatNumber } from '@/utils/formatters'
 
 interface Props {
@@ -213,18 +213,17 @@ async function cycleRowTier(row: WorkshopOrderOverviewRow) {
   }
 }
 
-// Inicializovat tierByVp z načtených dat
+// Inicializovat tierByVp z načtených dat (jen pro joby, které ještě nemáme —
+// SSE a lokální změny mají přednost před auto-refreshem)
 watch(rows, (newRows) => {
   if (!newRows) return
   for (const row of newRows) {
-    // Tier z VP candidates
     for (const vp of row.vp_candidates) {
-      if (vp.job && vp.tier && vp.tier !== 'normal') {
+      if (vp.job && vp.tier && vp.tier !== 'normal' && !(vp.job in tierByVp.value)) {
         tierByVp.value[vp.job] = vp.tier
       }
     }
-    // Tier z hlavního řádku (selected_vp_job bez vp_candidates)
-    if (row.selected_vp_job && row.tier && row.tier !== 'normal') {
+    if (row.selected_vp_job && row.tier && row.tier !== 'normal' && !(row.selected_vp_job in tierByVp.value)) {
       tierByVp.value[row.selected_vp_job] = row.tier
     }
   }
@@ -724,7 +723,8 @@ onBeforeUnmount(() => {
                 </td>
                 <!-- material_ready -->
                 <td v-else-if="col.id === 'material_ready'" class="c mat-ready-cell">
-                  <span class="mat-dot" :class="row.material_ready ? 'mat-dot--yes' : 'mat-dot--no'" />
+                  <CircleCheck v-if="row.material_ready" :size="13" :stroke-width="1.5" class="mat-icon mat-icon--yes" />
+                  <CircleX v-else :size="13" :stroke-width="1.5" class="mat-icon mat-icon--no" />
                 </td>
                 <!-- generic cell -->
                 <td
@@ -821,7 +821,9 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 6px var(--pad) 8px;
   border-bottom: 1px solid var(--b1);
-  background: rgba(255,255,255,0.015);
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
 .orders-overview__field { min-width: 0; }
@@ -902,7 +904,16 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--b2) transparent;
 }
+.orders-overview__table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.orders-overview__table-wrap::-webkit-scrollbar-track { background: transparent; }
+.orders-overview__table-wrap::-webkit-scrollbar-thumb {
+  background: var(--b2);
+  border-radius: 3px;
+}
+.orders-overview__table-wrap::-webkit-scrollbar-thumb:hover { background: var(--b3); }
 
 /* ── Table ─────────────────────────────────────────────────────────── */
 .orders-table {
@@ -920,7 +931,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 8px 8px 7px;
+  padding: 10px 10px 9px;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -930,15 +941,16 @@ onBeforeUnmount(() => {
 .orders-table th.sortable {
   cursor: pointer;
   user-select: none;
-  transition: color 150ms var(--ease);
+  transition: color 150ms var(--ease), border-bottom-color 150ms var(--ease);
 }
 .orders-table th.sortable:hover {
-  color: var(--t2);
+  color: var(--t1);
+  border-bottom-color: var(--red);
 }
 
 .orders-table td {
   padding: 5px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
   font-size: var(--fs);
   color: var(--t2);
   white-space: nowrap;
@@ -947,17 +959,20 @@ onBeforeUnmount(() => {
 
 .orders-table tbody tr {
   cursor: pointer;
-  transition: background 100ms var(--ease);
+  transition: background 100ms var(--ease), box-shadow 100ms var(--ease);
 }
 
 /* Zebra striping */
 .orders-table tbody tr:nth-child(even):not(.vp-sub-row) {
-  background: rgba(255,255,255,0.015);
+  background: rgba(255,255,255,0.018);
 }
 
 /* Hover */
+.orders-table tbody tr:hover {
+  box-shadow: inset 3px 0 0 var(--red);
+}
 .orders-table tbody tr:hover td {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.05);
 }
 
 /* ── Alignment / Typography ───────────────────────────────────────── */
@@ -976,10 +991,13 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--link-group-blue);
   cursor: pointer;
-  transition: color 150ms var(--ease);
+  background: rgba(59,130,246,0.08);
+  padding: 2px 8px;
+  border-radius: 10px;
+  transition: color 150ms var(--ease), background 150ms var(--ease);
 }
-.vp-multi-label:hover { color: var(--link-group-blue); }
-.vp-multi-label--open { color: var(--t1); }
+.vp-multi-label:hover { color: var(--link-group-blue); background: rgba(59,130,246,0.14); }
+.vp-multi-label--open { color: var(--t1); background: rgba(59,130,246,0.12); }
 
 .vp-expand-icon {
   font-size: 8px;
@@ -1068,28 +1086,53 @@ onBeforeUnmount(() => {
 }
 
 .op-cell {
+  position: relative;
   text-align: center;
-  font-size: var(--fss);
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
-.op-cell--done {
-  background: rgba(255,255,255,0.03);
+.op-cell::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.orders-table td.op-cell--done {
   color: var(--t4);
+  opacity: 0.45;
+}
+.orders-table td.op-cell--done::after {
+  background: var(--ok);
+  box-shadow: 0 0 5px rgba(52,211,153,0.25);
 }
 
-.op-cell--progress {
-  background: rgba(229,57,53,0.10);
-  color: var(--red);
-  font-weight: 600;
+.orders-table td.op-cell--progress {
+  color: var(--t2);
+  opacity: 0.7;
+}
+.orders-table td.op-cell--progress::after {
+  background: var(--link-group-blue);
+  box-shadow: 0 0 5px rgba(59,130,246,0.25);
 }
 
-.op-cell--idle {
-  color: var(--t4);
+.orders-table td.op-cell--idle {
+  color: var(--t1);
+  font-weight: 700;
+}
+.orders-table td.op-cell--idle::after {
+  background: var(--b2);
 }
 
-.op-cell--empty {
+.orders-table td.op-cell--empty::after {
+  display: none;
+}
+
+.orders-table td.op-cell--empty {
   color: transparent;
 }
 
@@ -1108,35 +1151,25 @@ onBeforeUnmount(() => {
   max-width: 72px;
 }
 
-.mat-cell--done {
-  background: rgba(255,255,255,0.03);
-  color: var(--t4);
-}
-
-.mat-cell--idle {
-  color: var(--t4);
-}
+.orders-table td.mat-cell--done { color: var(--t3); }
+.orders-table td.mat-cell--idle { color: var(--t4); }
 
 .mat-cell--empty {
   color: transparent;
 }
 
-/* ── Material ready dot ───────────────────────────────────────────── */
+/* ── Material ready icon ──────────────────────────────────────────── */
 .mat-ready-cell { text-align: center; }
 
-.mat-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transition: box-shadow 200ms var(--ease);
+.mat-icon {
+  vertical-align: middle;
 }
-.mat-dot--yes {
-  background: var(--t2);
+.mat-icon--yes {
+  color: var(--t2);
 }
-.mat-dot--no {
-  background: var(--err);
-  opacity: 0.35;
+.mat-icon--no {
+  color: var(--t4);
+  opacity: 0.4;
 }
 
 /* ── Row number ───────────────────────────────────────────────────── */
@@ -1145,6 +1178,7 @@ onBeforeUnmount(() => {
   color: var(--t4);
   font-size: var(--fss);
   opacity: 0.5;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Tier column ──────────────────────────────────────────────────── */
@@ -1197,21 +1231,15 @@ onBeforeUnmount(() => {
 
 /* ── Focused row (cross-tile link) ────────────────────────────────── */
 .orders-table tbody tr.row-focused {
-  box-shadow: inset 3px 0 0 var(--red);
+  box-shadow: inset 3px 0 0 var(--red), 0 0 12px rgba(229,57,53,0.12);
 }
 
 /* ── Hot / urgent rows ────────────────────────────────────────────── */
 .row-hot {
   box-shadow: inset 3px 0 0 var(--red);
 }
-.row-hot td {
-  background: rgba(229,57,53,0.05);
-}
 .row-urgent {
   box-shadow: inset 3px 0 0 var(--warn);
-}
-.row-urgent td {
-  background: rgba(251,191,36,0.04);
 }
 
 /* ── Qty / Date visual helpers ────────────────────────────────────── */
@@ -1220,12 +1248,15 @@ onBeforeUnmount(() => {
   opacity: 0.35;
 }
 .qty-active {
-  color: var(--t1) !important;
+  color: var(--ok, #66bb6a) !important;
   font-weight: 600;
 }
 .date-overdue {
   color: var(--err) !important;
   font-weight: 600;
+  background: var(--err-10, rgba(229,57,53,0.10));
+  border-radius: var(--rs, 3px);
+  padding: 1px 4px;
 }
 
 /* ── Resize grip ──────────────────────────────────────────────────── */
