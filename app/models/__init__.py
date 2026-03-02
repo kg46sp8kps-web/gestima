@@ -132,6 +132,7 @@ from app.models.production_priority import (
 )
 from app.models.workshop_job_route import WorkshopJobRoute
 from app.models.workshop_order_overview import WorkshopOrderOverview
+from app.models.workshop_job_material_cache import WorkshopJobMaterialCache
 
 __all__ = [
     "StockType", "StockShape", "CuttingMode", "FeatureType", "UserRole", "WorkCenterType", "QuoteStatus",
@@ -168,4 +169,5 @@ __all__ = [
     "MachinePlanEntry", "MachinePlanReorderRequest", "MachinePlanAddRequest", "MachinePlanRemoveRequest",
     "ProductionPriority", "ProductionPrioritySetRequest", "ProductionPriorityFireRequest",
     "WorkshopJobRoute", "WorkshopOrderOverview",
+    "WorkshopJobMaterialCache",
 ]

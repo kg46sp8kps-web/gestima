@@ -20,6 +20,7 @@ class User(Base, AuditMixin):
     is_active = Column(Boolean, default=True, nullable=False)
     infor_emp_num = Column(String(20), nullable=True)  # Infor employee number pro dílnu
     pin_hash = Column(String(200), nullable=True)  # Bcrypt hash PINu pro operátorský terminál
+    pin_check = Column(String(64), nullable=True)   # SHA256(PIN) pro fast lookup
 
     # AuditMixin provides: created_at, updated_at, created_by, updated_by,
     #                      deleted_at, deleted_by, version

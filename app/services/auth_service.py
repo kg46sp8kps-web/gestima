@@ -1,5 +1,6 @@
 """GESTIMA - Autentizace a autorizace"""
 
+import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
@@ -151,6 +152,11 @@ def get_pin_hash(pin: str) -> str:
     return pwd_context.hash(pin)
 
 
+def get_pin_check(pin: str) -> str:
+    """SHA256 hash PINu pro rychlý DB lookup (ne pro bezpečnost — bcrypt zůstává)."""
+    return hashlib.sha256(pin.encode()).hexdigest()
+
+
 def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
     """Ověří PIN proti hashi"""
     return pwd_context.verify(plain_pin, hashed_pin)
@@ -159,21 +165,44 @@ def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
 async def authenticate_user_by_pin(db: AsyncSession, pin: str) -> User:
     """
     Autentizuje uživatele pomocí PINu.
-    Iteruje aktivní uživatele s pin_hash IS NOT NULL, bcrypt-verify proti každému.
+
+    Fast path: SHA256 lookup (pin_check) → 1 bcrypt verify (~250ms).
+    Fallback: pro uživatele bez pin_check (pre-migrace) → N-iteration + lazy backfill.
     """
+    pin_sha = get_pin_check(pin)
+
+    # Fast path: lookup by pin_check (SHA256)
     result = await db.execute(
         select(User).where(
             User.is_active == True,
-            User.pin_hash.isnot(None),
+            User.pin_check == pin_sha,
             User.deleted_at.is_(None),
         )
     )
-    users = result.scalars().all()
+    fast_matches = list(result.scalars().all())
 
-    matched = []
-    for user in users:
-        if verify_pin(pin, user.pin_hash):
-            matched.append(user)
+    # Bcrypt verify fast-path matches
+    matched = [u for u in fast_matches if verify_pin(pin, u.pin_hash)]
+
+    # Fallback: users with pin_hash but no pin_check (pre-migration, lazy backfill)
+    if not matched:
+        fallback_result = await db.execute(
+            select(User).where(
+                User.is_active == True,
+                User.pin_hash.isnot(None),
+                User.pin_check.is_(None),
+                User.deleted_at.is_(None),
+            )
+        )
+        fallback_users = list(fallback_result.scalars().all())
+        for user in fallback_users:
+            if verify_pin(pin, user.pin_hash):
+                user.pin_check = pin_sha
+                matched.append(user)
+        # Single commit for all backfills
+        if any(u.pin_check for u in fallback_users if u.pin_check is not None):
+            await db.commit()
+            logger.info("Lazy backfill pin_check for %d user(s)", len(matched))
 
     if len(matched) == 0:
         logger.warning("PIN login attempt failed: no matching user")
@@ -192,6 +221,29 @@ async def authenticate_user_by_pin(db: AsyncSession, pin: str) -> User:
     user = matched[0]
     logger.info(f"User authenticated by PIN: {user.username}")
     return user
+
+
+async def backfill_pin_checks(db: AsyncSession) -> int:
+    """Eagerly backfill pin_check for all users — call from admin or startup.
+
+    Cannot derive PIN from bcrypt hash, so this only works for users whose
+    pin_check was already set via lazy backfill or admin PIN set.
+    Returns count of users still missing pin_check (need to re-set PIN via admin).
+    """
+    result = await db.execute(
+        select(User).where(
+            User.pin_hash.isnot(None),
+            User.pin_check.is_(None),
+            User.deleted_at.is_(None),
+        )
+    )
+    orphans = list(result.scalars().all())
+    if orphans:
+        logger.warning(
+            "Users with pin_hash but no pin_check (need admin PIN re-set): %s",
+            [u.username for u in orphans],
+        )
+    return len(orphans)
 
 
 async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:

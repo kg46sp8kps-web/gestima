@@ -3,15 +3,17 @@
 Dispatch funkce pro sync workshop dat z Inforu do lokální DB.
 Voláno z InforSyncService._dispatch_step().
 
-Tři dispatchery:
+Čtyři dispatchery:
   - dispatch_workshop_routes: SLJobRoutes (Type='J') → workshop_job_routes
   - dispatch_workshop_orders: IteRybPrehledZakazekView → workshop_order_overviews
   - dispatch_workshop_jbr: IteCzTsdJbrDetails → workshop_job_routes (JBR columns only)
+  - dispatch_workshop_materials: prefetch materiálů pro aktivní operace → workshop_job_material_cache
 """
 
+import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from sqlalchemy import select
@@ -398,6 +400,137 @@ async def dispatch_workshop_jbr(
         raise
 
     return _build_result(0, total_updated, total_skipped, all_errors)
+
+
+# ─── Workshop Materials Prefetch ─────────────────────────────────────────
+
+_MATERIALS_CONCURRENCY = 5  # max parallel Infor calls
+_MATERIALS_CACHE_TTL = 15 * 60  # 15 min — skip if cached recently
+
+
+async def dispatch_workshop_materials(
+    db: AsyncSession, client: Any,
+) -> Dict[str, Any]:
+    """Prefetch materiálů pro aktivní operace (R/F) → workshop_job_material_cache.
+
+    Spouští se po route syncu. Fetchne jen operace, které nemají čerstvý cache.
+    Paralelní s concurrency limitem (5 souběžných Infor volání).
+    """
+    from app.models.workshop_job_material_cache import WorkshopJobMaterialCache
+    from app.services import workshop_service
+
+    # 1. Získej všechny aktivní operace (R/F)
+    result = await db.execute(
+        select(
+            WorkshopJobRoute.job,
+            WorkshopJobRoute.suffix,
+            WorkshopJobRoute.oper_num,
+        ).where(
+            WorkshopJobRoute.deleted_at.is_(None),
+            WorkshopJobRoute.job_stat.in_(["R", "F"]),
+        )
+    )
+    active_ops = [(r[0], r[1], r[2]) for r in result.all()]
+
+    if not active_ops:
+        return _build_result(0, 0, 0, [])
+
+    # 2. Zjisti co už máme v cache (fresh)
+    cache_result = await db.execute(
+        select(
+            WorkshopJobMaterialCache.job,
+            WorkshopJobMaterialCache.suffix,
+            WorkshopJobMaterialCache.oper_num,
+            WorkshopJobMaterialCache.synced_at,
+        )
+    )
+    now = datetime.now(timezone.utc)
+    cached_keys = set()
+    for row in cache_result.all():
+        age = (now - row[3].replace(tzinfo=timezone.utc)).total_seconds()
+        if age < _MATERIALS_CACHE_TTL:
+            cached_keys.add((row[0], row[1], row[2]))
+
+    # 3. Filtruj jen to, co potřebuje refresh
+    to_fetch = [op for op in active_ops if op not in cached_keys]
+    skipped = len(active_ops) - len(to_fetch)
+
+    if not to_fetch:
+        logger.info("Materials prefetch: all %d ops cached, skipping", len(active_ops))
+        return _build_result(0, 0, skipped, [])
+
+    logger.info(
+        "Materials prefetch: %d ops to fetch (%d cached, %d active)",
+        len(to_fetch), skipped, len(active_ops),
+    )
+
+    # 4. Paralelní Infor fetch s concurrency limitem (bez DB writes)
+    sem = asyncio.Semaphore(_MATERIALS_CONCURRENCY)
+    fetched: List[tuple] = []  # [(job, suffix, oper, materials_list), ...]
+    errors: List[str] = []
+
+    async def _fetch_one(job: str, suffix: str, oper_num: str):
+        async with sem:
+            try:
+                materials = await workshop_service.fetch_job_materials(
+                    infor_client=client,
+                    job=job,
+                    suffix=suffix,
+                    oper_num=oper_num,
+                )
+                return (job, suffix, oper_num, materials)
+            except Exception as exc:
+                logger.debug("Materials prefetch failed (job=%s oper=%s): %s", job, oper_num, exc)
+                return None
+
+    tasks = [_fetch_one(j, s, o) for j, s, o in to_fetch]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for r in results:
+        if isinstance(r, tuple):
+            fetched.append(r)
+        elif isinstance(r, Exception):
+            errors.append(str(r))
+
+    # 5. Batch save do DB (jeden commit)
+    if fetched:
+        import json as _json
+        from app.models.workshop_job_material_cache import WorkshopJobMaterialCache
+
+        # Lookup existujících cache entries
+        cache_result = await db.execute(select(WorkshopJobMaterialCache))
+        cache_map = {
+            (e.job, e.suffix, e.oper_num): e
+            for e in cache_result.scalars().all()
+        }
+
+        for job, suffix, oper_num, materials in fetched:
+            key = (job.strip(), suffix.strip() or "0", oper_num.strip() or "0")
+            data = _json.dumps(materials, ensure_ascii=False)
+            existing = cache_map.get(key)
+            if existing:
+                existing.data_json = data
+                existing.synced_at = now
+            else:
+                entry = WorkshopJobMaterialCache(
+                    job=key[0], suffix=key[1], oper_num=key[2],
+                    data_json=data, synced_at=now,
+                )
+                db.add(entry)
+                cache_map[key] = entry
+
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            errors.append("Batch save failed")
+
+    logger.info(
+        "Materials prefetch done: %d/%d OK, %d errors, %d skipped (cached)",
+        len(fetched), len(to_fetch), len(errors), skipped,
+    )
+
+    return _build_result(len(fetched), 0, skipped, errors)
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────

@@ -73,7 +73,7 @@ async def login(
 # PIN LOGIN (Operator Terminal)
 # ============================================================================
 
-@router.post("/pin-login", response_model=TokenResponse)
+@router.post("/pin-login")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def pin_login(
     request: Request,
@@ -96,11 +96,12 @@ async def pin_login(
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
         logger.info(f"User logged in via PIN: {user.username}")
-        return TokenResponse(
-            status="ok",
-            username=user.username,
-            role=user.role
-        )
+        return {
+            "status": "ok",
+            "username": user.username,
+            "role": user.role,
+            "user": UserResponse.model_validate(user).model_dump(),
+        }
     except HTTPException:
         raise
     except Exception as e:

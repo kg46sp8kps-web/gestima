@@ -356,16 +356,27 @@ class InforSyncService:
 
         elif step_name == "jobroutes_j":
             from app.services.infor_sync_dispatchers import dispatch_production
-            from app.services.workshop_sync_dispatchers import dispatch_workshop_routes
+            from app.services.workshop_sync_dispatchers import dispatch_workshop_routes, dispatch_workshop_materials
 
             r1 = await dispatch_workshop_routes(rows, db)
             r2 = await dispatch_production(rows, db)
+            # Prefetch materials pro aktivní operace (background-safe, nezdržuje sync)
+            try:
+                await dispatch_workshop_materials(db, client)
+            except Exception as e:
+                logger.warning("Materials prefetch failed: %s", e)
             return _merge_dispatch_results(r1, r2)
 
         elif step_name == "workshop_routes":
-            from app.services.workshop_sync_dispatchers import dispatch_workshop_routes
+            from app.services.workshop_sync_dispatchers import dispatch_workshop_routes, dispatch_workshop_materials
 
-            return await dispatch_workshop_routes(rows, db)
+            result = await dispatch_workshop_routes(rows, db)
+            # Prefetch materials pro aktivní operace
+            try:
+                await dispatch_workshop_materials(db, client)
+            except Exception as e:
+                logger.warning("Materials prefetch failed: %s", e)
+            return result
 
         elif step_name == "workshop_jbr":
             from app.services.workshop_sync_dispatchers import dispatch_workshop_jbr

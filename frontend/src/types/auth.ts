@@ -24,3 +24,8 @@ export interface TokenResponse {
   username: string
   role: UserRole
 }
+
+/** Extended response from POST /auth/pin-login — includes user data to skip getMe() */
+export interface PinLoginResponse extends TokenResponse {
+  user: User
+}

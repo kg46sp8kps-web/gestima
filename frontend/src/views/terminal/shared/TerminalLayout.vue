@@ -37,8 +37,7 @@ function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer)
   inactivityTimer = setTimeout(() => {
     operator.$reset()
-    auth.logout()
-    router.push({ name: 'terminal-login' })
+    auth.logout('/terminal/login')
   }, INACTIVITY_TIMEOUT)
 }
 
@@ -47,11 +46,10 @@ const onOnline = () => operator.setOnlineStatus(true)
 const onOffline = () => operator.setOnlineStatus(false)
 
 onMounted(() => {
-  // Start auto-refresh for active jobs
-  operator.startAutoRefresh()
+  // Immediate fetch for ActiveJobBar (visible in all terminal routes).
+  // Full data fetch (stats, workcenters) is done by child components.
   operator.fetchActiveJobs()
-  operator.fetchTransactionAlerts()
-  operator.fetchWorkcenters()
+  operator.startAutoRefresh()
   operator.setOnlineStatus(typeof navigator !== 'undefined' ? navigator.onLine : true)
 
   // Inactivity tracking
@@ -71,8 +69,7 @@ onUnmounted(() => {
 
 function doLogout() {
   operator.$reset()
-  auth.logout()
-  router.push({ name: 'terminal-login' })
+  auth.logout('/terminal/login')
 }
 </script>
 

@@ -165,9 +165,15 @@ async def enrich_flat_rows(
     })
     co_map = await _fetch_co_deadlines_from_db(db, item_codes) if item_codes else {}
 
-    prio_result = await db.execute(
-        select(ProductionPriority).where(ProductionPriority.deleted_at.is_(None))
-    )
+    job_keys = list({
+        str(row.get("Job", "")).strip().upper()
+        for row in rows
+        if str(row.get("Job", "")).strip()
+    })
+    prio_query = select(ProductionPriority).where(ProductionPriority.deleted_at.is_(None))
+    if job_keys:
+        prio_query = prio_query.where(ProductionPriority.infor_job.in_(job_keys))
+    prio_result = await db.execute(prio_query)
     priorities: Dict[VpKey, ProductionPriority] = {
         _vp_key(p.infor_job, p.infor_suffix): p
         for p in prio_result.scalars().all()
@@ -197,10 +203,11 @@ async def get_plan(
         {"planned": [...], "unassigned": [...]}
     """
     # 1. DB-first: lokální tabulka workshop_job_routes (< 10ms)
-    infor_rows = await workshop_service.read_machine_plan_from_db(
-        db, wc=wc, record_cap=record_cap,
-    )
-    if not infor_rows:
+    if await workshop_service.is_table_synced(db, "workshop_job_routes"):
+        infor_rows = await workshop_service.read_machine_plan_from_db(
+            db, wc=wc, record_cap=record_cap,
+        )
+    else:
         # Fallback: live Infor (cold start, sync ještě neproběhl)
         infor_rows = await workshop_service.fetch_machine_plan(
             infor_client=infor_client,
@@ -234,9 +241,15 @@ async def get_plan(
         # Fallback: live Infor (cold start)
         co_map = await _fetch_co_deadlines(infor_client, item_codes)
 
-    prio_result = await db.execute(
-        select(ProductionPriority).where(ProductionPriority.deleted_at.is_(None))
-    )
+    job_keys = list({
+        str(row.get("Job", "")).strip().upper()
+        for row in infor_rows
+        if str(row.get("Job", "")).strip()
+    })
+    prio_query = select(ProductionPriority).where(ProductionPriority.deleted_at.is_(None))
+    if job_keys:
+        prio_query = prio_query.where(ProductionPriority.infor_job.in_(job_keys))
+    prio_result = await db.execute(prio_query)
     priorities: Dict[VpKey, ProductionPriority] = {
         _vp_key(p.infor_job, p.infor_suffix): p
         for p in prio_result.scalars().all()

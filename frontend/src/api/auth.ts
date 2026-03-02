@@ -1,4 +1,4 @@
-import type { TokenResponse, User } from '@/types/auth'
+import type { TokenResponse, PinLoginResponse, User } from '@/types/auth'
 import { apiClient } from './client'
 
 /** Login — POST /auth/login with JSON, server sets HttpOnly cookie */
@@ -18,8 +18,8 @@ export async function logout(): Promise<void> {
   await apiClient.post('/auth/logout')
 }
 
-/** PIN login — POST /auth/pin-login, server sets HttpOnly cookie */
-export async function pinLogin(pin: string): Promise<TokenResponse> {
-  const { data } = await apiClient.post<TokenResponse>('/auth/pin-login', { pin })
+/** PIN login — POST /auth/pin-login, server sets HttpOnly cookie + returns user data */
+export async function pinLogin(pin: string): Promise<PinLoginResponse> {
+  const { data } = await apiClient.post<PinLoginResponse>('/auth/pin-login', { pin })
   return data
 }

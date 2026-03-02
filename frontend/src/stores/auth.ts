@@ -50,8 +50,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function pinLogin(pin: string): Promise<boolean> {
     loading.value = true
     try {
-      await authApi.pinLogin(pin)
-      user.value = await authApi.getMe()
+      const resp = await authApi.pinLogin(pin)
+      user.value = resp.user
       return true
     } catch {
       return false
@@ -60,14 +60,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function logout() {
+  async function logout(redirectTo = '/login') {
     try {
       await authApi.logout()
     } catch {
       // Ignore errors — always clear local state
     }
     user.value = null
-    router.push('/login')
+    router.push(redirectTo)
   }
 
   return {

@@ -1,17 +1,11 @@
 """GESTIMA - Workshop Router
 
 Dílnická aplikace — frontend pro iPadové terminály.
-
-Endpointy:
-  GET  /api/workshop/jobs                              — Fronta práce z Inforu (SLJobRoutes)
-  GET  /api/workshop/jobs/{job}/operations             — Operace zakázky (SLJobRoutes per-job)
-  GET  /api/workshop/jobs/{job}/operations/{oper}/materials — Materiály k operaci (IteCzTsdSLJobMatls)
-  POST /api/workshop/transactions                      — Uložit transakci do bufferu (pending)
-  POST /api/workshop/transactions/{id}/post            — Odeslat transakci do Inforu
-  GET  /api/workshop/transactions                      — Moje transakce
 """
 
+import asyncio
 import logging
+import time
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -20,18 +14,45 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.database import get_db
+from app.database import async_session, get_db
 from app.dependencies import get_current_user
 from app.models import User
-from app.models.workshop_transaction import (
-    WorkshopTransactionCreate,
-    WorkshopTransactionResponse,
-)
+from app.models.workshop_transaction import WorkshopTransactionCreate, WorkshopTransactionResponse
 from app.services import workshop_service
 from app.services.infor_api_client import InforAPIClient
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Background helpers pro materials cache (vlastní DB session)
+# ---------------------------------------------------------------------------
+
+async def _bg_save_materials(job: str, suffix: str, oper: str, materials: list) -> None:
+    """Background: uloží materiály do cache (vlastní session)."""
+    try:
+        async with async_session() as db:
+            await workshop_service.save_job_materials_to_db(db, job, suffix, oper, materials)
+    except Exception as exc:
+        logger.warning("bg_save_materials failed: %s", exc)
+
+
+async def _bg_refresh_materials(
+    client: InforAPIClient, job: str, suffix: str, oper: str,
+    sort_by: str, sort_dir: str,
+) -> None:
+    """Background: revaliduje materiály z Inforu a aktualizuje cache."""
+    try:
+        materials = await workshop_service.fetch_job_materials(
+            infor_client=client, job=job, suffix=suffix,
+            oper_num=oper, sort_by=sort_by, sort_dir=sort_dir,
+        )
+        async with async_session() as db:
+            await workshop_service.save_job_materials_to_db(db, job, suffix, oper, materials)
+        logger.debug("bg_refresh_materials OK: job=%s oper=%s (%d mats)", job, oper, len(materials))
+    except Exception as exc:
+        logger.warning("bg_refresh_materials failed (job=%s oper=%s): %s", job, oper, exc)
 
 
 class WorkshopMaterialIssueCreate(BaseModel):
@@ -143,14 +164,17 @@ async def get_wc_queue(
     DB-first: čte z lokální tabulky workshop_job_routes.
     Fallback: live fetch z Inforu (cold start, sync ještě neproběhl).
     """
-    # DB-first
-    db_data = await workshop_service.read_wc_queue_from_db(
-        db, wc=wc, job_filter=job, sort_by=sort_by, sort_dir=sort_dir, limit=limit,
-    )
-    if db_data:
-        return JSONResponse(content=db_data, headers={"X-Source": "db"})
+    # DB-first (fallback jen pokud sync ještě neproběhl)
+    if await workshop_service.is_table_synced(db, "workshop_job_routes"):
+        t0 = time.perf_counter()
+        db_data = await workshop_service.read_wc_queue_from_db(
+            db, wc=wc, job_filter=job, sort_by=sort_by, sort_dir=sort_dir, limit=limit,
+        )
+        t1 = time.perf_counter()
+        logger.info("GET /queue DB-read %.1fms (%d rows, wc=%s)", (t1 - t0) * 1000, len(db_data), wc)
+        return JSONResponse(content=db_data, headers={"X-Source": "db", "X-Timing-Ms": f"{(t1-t0)*1000:.0f}"})
 
-    # Fallback: live fetch z Inforu
+    # Fallback: live fetch z Inforu (cold start — sync ještě neproběhl)
     try:
         queue = await workshop_service.fetch_wc_queue(
             infor_client=client,
@@ -182,15 +206,15 @@ async def get_orders_overview(
     DB-first: čte z lokální tabulky workshop_order_overviews.
     Fallback: live fetch z Inforu (cold start).
     """
-    # DB-first
-    db_data = await workshop_service.read_orders_overview_from_db(
-        db, customer=customer, due_from=due_from, due_to=due_to,
-        search=search, limit=limit,
-    )
-    if db_data:
+    # DB-first (fallback jen pokud sync ještě neproběhl)
+    if await workshop_service.is_table_synced(db, "workshop_order_overviews"):
+        db_data = await workshop_service.read_orders_overview_from_db(
+            db, customer=customer, due_from=due_from, due_to=due_to,
+            search=search, limit=limit,
+        )
         return JSONResponse(content=db_data, headers={"X-Source": "db"})
 
-    # Fallback: live fetch
+    # Fallback: live fetch (cold start)
     try:
         rows = await workshop_service.fetch_orders_overview(
             infor_client=client,
@@ -227,15 +251,19 @@ async def get_machine_plan(
     """
     from app.services import machine_plan_service
 
-    # DB-first
-    db_data = await workshop_service.read_machine_plan_from_db(
-        db, wc=wc, job_filter=job, search=search, sort_by=sort_by, sort_dir=sort_dir, record_cap=limit,
-    )
-    if db_data:
+    # DB-first (fallback jen pokud sync ještě neproběhl)
+    if await workshop_service.is_table_synced(db, "workshop_job_routes"):
+        t0 = time.perf_counter()
+        db_data = await workshop_service.read_machine_plan_from_db(
+            db, wc=wc, job_filter=job, search=search, sort_by=sort_by, sort_dir=sort_dir, record_cap=limit,
+        )
+        t1 = time.perf_counter()
         await machine_plan_service.enrich_flat_rows(db, db_data)
-        return JSONResponse(content=db_data, headers={"X-Source": "db"})
+        t2 = time.perf_counter()
+        logger.info("GET /machine-plan DB-read %.1fms, enrich %.1fms (%d rows, wc=%s)", (t1 - t0) * 1000, (t2 - t1) * 1000, len(db_data), wc)
+        return JSONResponse(content=db_data, headers={"X-Source": "db", "X-Timing-Ms": f"{(t2-t0)*1000:.0f}"})
 
-    # Fallback: live fetch
+    # Fallback: live fetch (cold start)
     try:
         rows = await workshop_service.fetch_machine_plan(
             infor_client=client,
@@ -270,15 +298,15 @@ async def get_vp_list(
     """
     stat_list = [s.strip().upper() for s in stat.split(",") if s.strip()]
 
-    # DB-first
-    db_data = await workshop_service.read_vp_list_from_db(
-        db, stat=stat_list, search=search, wc=wc,
-        sort_by=sort_by, sort_dir=sort_dir, limit=limit,
-    )
-    if db_data:
+    # DB-first (fallback jen pokud sync ještě neproběhl)
+    if await workshop_service.is_table_synced(db, "workshop_job_routes"):
+        db_data = await workshop_service.read_vp_list_from_db(
+            db, stat=stat_list, search=search, wc=wc,
+            sort_by=sort_by, sort_dir=sort_dir, limit=limit,
+        )
         return JSONResponse(content=db_data, headers={"X-Source": "db"})
 
-    # Fallback: live fetch
+    # Fallback: live fetch (cold start)
     try:
         rows = await workshop_service.fetch_vp_list(
             infor_client=client,
@@ -359,13 +387,29 @@ async def get_operation_materials(
     sort_by: str = Query("Material", description="Řazení: Material|Desc|TotCons|Qty|BatchCons"),
     sort_dir: str = Query("asc", description="Směr řazení: asc|desc"),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     client: InforAPIClient = Depends(get_infor_client),
 ):
     """
-    Vrátí materiálovou spotřebu k operaci zakázky (IteCzTsdSLJobMatls).
+    Vrátí materiálovou spotřebu k operaci zakázky.
 
-    Pole: Material, Desc, TotCons, Qty, BatchCons
+    DB-first (lazy cache): pokud cache existuje, vrátí z DB (< 10ms).
+    Na pozadí revaliduje z Inforu pokud cache je starší než 15 min.
+    Pokud cache neexistuje, fetchne z Inforu, uloží a vrátí.
     """
+    # 1. Check DB cache
+    cached_data, synced_at = await workshop_service.read_job_materials_from_db(
+        db, job, suffix, oper, return_synced_at=True,
+    )
+    if cached_data is not None:
+        # Cache hit — return immediately, background refresh if stale
+        if synced_at and workshop_service._is_materials_cache_stale(synced_at):
+            asyncio.create_task(
+                _bg_refresh_materials(client, job, suffix, oper, sort_by, sort_dir)
+            )
+        return JSONResponse(content=cached_data, headers={"X-Source": "db-cache"})
+
+    # 2. Cache miss — fetch from Infor, save, return
     try:
         materials = await workshop_service.fetch_job_materials(
             infor_client=client,
@@ -375,7 +419,9 @@ async def get_operation_materials(
             sort_by=sort_by,
             sort_dir=sort_dir,
         )
-        return materials
+        # Save to cache (fire and forget — don't delay response)
+        asyncio.create_task(_bg_save_materials(job, suffix, oper, materials))
+        return JSONResponse(content=materials, headers={"X-Source": "infor"})
     except Exception as exc:
         logger.error(f"fetch_job_materials failed: {exc}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
@@ -385,10 +431,12 @@ async def get_operation_materials(
 async def post_material_issue(
     data: WorkshopMaterialIssueCreate,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     client: InforAPIClient = Depends(get_infor_client),
 ):
     """
     Provede materiálový odvod pro konkrétní operaci VP.
+    Po úspěšném odvodu invaliduje materials cache.
     """
     try:
         emp_num = workshop_service.resolve_infor_emp_num(current_user)
@@ -405,6 +453,10 @@ async def post_material_issue(
             location=data.location,
             lot=data.lot,
         )
+        # Invalidate materials cache — po odvodu se změní QtyIssued
+        await workshop_service.invalidate_materials_cache(
+            db, data.job, data.suffix, data.oper_num,
+        )
         return result
     except HTTPException:
         raise
@@ -413,73 +465,63 @@ async def post_material_issue(
         raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
 
 
+# ============================================================================
+# Transakce — odvod práce
+# ============================================================================
+
+
 @router.post("/transactions", response_model=WorkshopTransactionResponse)
 async def create_transaction(
     data: WorkshopTransactionCreate,
-    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """
-    Uloží dílnickou transakci do lokálního bufferu (status=pending).
-
-    Transakci je následně třeba odeslat do Inforu přes POST /transactions/{id}/post.
-    """
-    try:
-        tx = await workshop_service.create_transaction(db, data, current_user)
-        return WorkshopTransactionResponse.model_validate(tx)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error(f"create_transaction failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Interní chyba serveru")
+    """Vytvoří novou transakci v lokálním bufferu (status=PENDING)."""
+    tx = await workshop_service.create_transaction(
+        db=db,
+        data=data,
+        username=current_user.username,
+    )
+    return tx
 
 
 @router.post("/transactions/{tx_id}/post", response_model=WorkshopTransactionResponse)
 async def post_transaction(
     tx_id: int,
-    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     client: InforAPIClient = Depends(get_infor_client),
 ):
-    """
-    Odešle transakci do Inforu přes IteCzTsdUpdateDcSfc34Sp.
-
-    BEZPEČNOST: Zápis je tvrdě zablokován pokud INFOR_CONFIG=LIVE.
-    Nikdy nepište do živé Infor databáze z vývojového prostředí.
-    """
-    if settings.INFOR_CONFIG.upper() == "LIVE":
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "Zápis do Inforu je zablokován: INFOR_CONFIG=LIVE. "
-                "Přepněte na testovací konfiguraci (INFOR_CONFIG=TEST) a restartujte backend."
-            )
-        )
+    """Odešle transakci do Inforu (Presunout / UkoncitNastaveni)."""
     try:
-        tx = await workshop_service.post_transaction_to_infor(db, tx_id, client, current_user)
-        return WorkshopTransactionResponse.model_validate(tx)
+        tx = await workshop_service.post_transaction_to_infor(
+            db=db,
+            tx_id=tx_id,
+            infor_client=client,
+            user=current_user,
+        )
+        return tx
     except HTTPException:
         raise
     except Exception as exc:
         logger.error(f"post_transaction failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Interní chyba serveru")
+        raise HTTPException(status_code=502, detail=f"Chyba komunikace s Inforem: {exc}")
 
 
 @router.get("/transactions", response_model=List[WorkshopTransactionResponse])
 async def list_transactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """
-    Vrátí transakce aktuálně přihlášeného dělníka (seřazené sestupně).
-    """
-    try:
-        txs = await workshop_service.list_my_transactions(db, current_user, skip, limit)
-        return [WorkshopTransactionResponse.model_validate(tx) for tx in txs]
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error(f"list_transactions failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Interní chyba serveru")
+    """Vrátí transakce aktuálního uživatele (nejnovější první)."""
+    txs = await workshop_service.list_my_transactions(
+        db=db,
+        username=current_user.username,
+        skip=skip,
+        limit=limit,
+    )
+    return txs
+
+

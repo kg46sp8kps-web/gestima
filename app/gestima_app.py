@@ -128,9 +128,13 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info(f"🚀 GESTIMA {settings.VERSION} běží na http://localhost:8000")
 
-    # Seed demo data
+    # Seed demo data + check PIN backfill
     async with async_session() as db:
         await seed_demo_parts(db)
+        from app.services.auth_service import backfill_pin_checks
+        orphan_count = await backfill_pin_checks(db)
+        if orphan_count:
+            logger.warning("⚠️  %d user(s) need PIN re-set via admin (slow fallback until fixed)", orphan_count)
 
     # Cleanup expired temp files
     # NOTE: FileService cleanup not implemented yet
@@ -272,6 +276,14 @@ app.include_router(operator_router.router, prefix="/api/operator", tags=["Operat
 # Machine Plan DnD — mistrovske planovani fronty
 from app.routers import machine_plan_router
 app.include_router(machine_plan_router.router, prefix="/api/machine-plan-dnd", tags=["Machine Plan DnD"])
+
+# Industream TSD 1:1 — standalone real-time state machine (prefix in router)
+from app.routers import industream_tsd_router
+app.include_router(industream_tsd_router.router, tags=["Industream TSD"])
+
+# TSD Fiddler — Fiddler-verified START/END pairing with machine transactions (prefix in router)
+from app.routers import tsd_fiddler_router
+app.include_router(tsd_fiddler_router.router, tags=["TSD Fiddler"])
 
 # Production Planner — vizualni Gantt dispečink VP
 from app.routers import production_planner_router

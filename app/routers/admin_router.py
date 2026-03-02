@@ -26,7 +26,7 @@ from app.models import (
 from app.models.enums import UserRole
 from app.dependencies import get_current_user, require_role
 from app.db_helpers import set_audit, safe_commit
-from app.services.auth_service import get_password_hash, get_pin_hash
+from app.services.auth_service import get_password_hash, get_pin_hash, get_pin_check
 from app.services.material_mapping import search_norms
 
 router = APIRouter()
@@ -646,8 +646,10 @@ async def api_set_user_pin(
 
     if data.pin:
         user.pin_hash = get_pin_hash(data.pin)
+        user.pin_check = get_pin_check(data.pin)
     else:
         user.pin_hash = None
+        user.pin_check = None
 
     set_audit(user, current_user.username, is_update=True)
     await safe_commit(db, user, "nastavení PINu uživatele")

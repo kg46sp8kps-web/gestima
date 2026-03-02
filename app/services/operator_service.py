@@ -210,6 +210,54 @@ def _tx_severity(status: WorkshopTxStatus) -> str:
     return "info"
 
 
+async def _get_active_job_keys(db: AsyncSession, username: str) -> set[tuple[str, str, str]]:
+    """Lightweight: vrací jen klíče aktivních jobů (bez enrichmentu z workshop_job_routes)."""
+    start_types = [WorkshopTransType.START, WorkshopTransType.SETUP_START]
+    stop_types = [WorkshopTransType.STOP, WorkshopTransType.SETUP_END]
+    relevant_types = start_types + stop_types
+
+    tx_result = await db.execute(
+        select(
+            WorkshopTransaction.infor_job,
+            WorkshopTransaction.infor_suffix,
+            WorkshopTransaction.oper_num,
+            WorkshopTransaction.trans_type,
+        ).where(
+            WorkshopTransaction.created_by == username,
+            WorkshopTransaction.trans_type.in_(relevant_types),
+            WorkshopTransaction.status == WorkshopTxStatus.POSTED,
+            WorkshopTransaction.deleted_at.is_(None),
+        ).order_by(
+            WorkshopTransaction.created_at.asc(),
+            WorkshopTransaction.id.asc(),
+        )
+    )
+    rows = tx_result.all()
+
+    # Pair starts/stops using counters (same logic as get_active_jobs)
+    stacks: Dict[tuple[str, str, str], Dict[str, int]] = {}
+    for infor_job, infor_suffix, oper_num, trans_type in rows:
+        key = (infor_job, infor_suffix or "0", oper_num)
+        bucket = stacks.setdefault(key, {"setup": 0, "production": 0})
+
+        if trans_type == WorkshopTransType.SETUP_START:
+            bucket["setup"] += 1
+        elif trans_type == WorkshopTransType.START:
+            bucket["production"] += 1
+        elif trans_type == WorkshopTransType.SETUP_END:
+            if bucket["setup"] > 0:
+                bucket["setup"] -= 1
+            elif bucket["production"] > 0:
+                bucket["production"] -= 1
+        elif trans_type == WorkshopTransType.STOP:
+            if bucket["production"] > 0:
+                bucket["production"] -= 1
+            elif bucket["setup"] > 0:
+                bucket["setup"] -= 1
+
+    return {key for key, bucket in stacks.items() if bucket["setup"] > 0 or bucket["production"] > 0}
+
+
 async def get_transaction_alerts(
     db: AsyncSession,
     username: str,
@@ -233,11 +281,7 @@ async def get_transaction_alerts(
     if not txs:
         return []
 
-    active_jobs = await get_active_jobs(db, username)
-    active_keys = {
-        (job["job"], job.get("suffix") or "0", job["oper_num"])
-        for job in active_jobs
-    }
+    active_keys = await _get_active_job_keys(db, username)
 
     alerts: List[Dict[str, Any]] = []
     for tx in txs:

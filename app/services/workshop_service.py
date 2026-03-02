@@ -2,12 +2,13 @@
 
 Dílenská aplikace napojená na Infor CloudSuite Industrial.
 
-Tento modul implementuje RE flow z InduStream:
+Tento modul implementuje:
 - fronta práce z IteCzTsdJbrDetails (rozvrh operací)
 - kompatibilita: při detail-only JBR schema se fronta bere ze SLJobRoutes
-- start/setup přes IteCzTsdUpdateDcSfcWrapperSp + IteCzTsdUpdateMchtrxSp
-- stop přes IteCzTsdUpdateDcSfcWrapperSp + IteCzTsdUpdateMchtrxSp (fallback DCSFC_MCHTRX)
-- manuální odvody přes IteCzTsdUpdateDcSfc34Sp (20 params)
+- odvod kusů a času (Presunout): WrapperSp(32,TT=4) + SFC34(21) + KapacityUpdate(3)
+- materiálový odvod: CLMGetJobMaterial + ProcessJobMatlTrans
+
+SP parametry ověřeny z InduStream IL (industream_verified_sp_calls.json).
 """
 
 from __future__ import annotations
@@ -68,9 +69,6 @@ _SAW_WC_PREFIXES = ("PS", "PILA", "SAW")
 _DONE_STATE_MARKERS = ("DOKON", "COMPLET", "CLOSED", "FINISH", "DONE", "UZAVR")
 _IN_PROGRESS_STATE_TOKENS = ("B", "RUN", "RUNNING", "PRAC", "WORK")
 
-
-class _NonRecoverablePostError(RuntimeError):
-    """Business-level write failure that must not be auto-recovered to POSTED."""
 
 
 # Queue properties from RE documentation (JbrDetails), with fallbacks for older aliases.
@@ -205,6 +203,7 @@ _SLJOBMATLS_UOM_PROP_SETS: List[List[str]] = [
         "Suffix",
         "OperNum",
         "Item",
+        "DerItemDescription",
         "UM",
         "MatlQtyConv",
         "DerMatlTransQty",
@@ -218,6 +217,7 @@ _SLJOBMATLS_UOM_PROP_SETS: List[List[str]] = [
         "ItmSuffix",
         "OperNum",
         "ItmItem",
+        "DerItemDescription",
         "UM",
         "MatlQtyConv",
         "DerMatlTransQty",
@@ -494,25 +494,6 @@ def _is_first_operation(oper_num: str, route_rows: Sequence[Dict[str, Any]]) -> 
 def _trans_type_value(trans_type: Any) -> str:
     return trans_type.value if hasattr(trans_type, "value") else str(trans_type)
 
-
-def _requires_qty_validation(tx: WorkshopTransaction) -> bool:
-    value = _trans_type_value(tx.trans_type)
-    return value in {"stop", "qty_complete"}
-
-
-def _overrun_block_error(remaining_qty: float, requested_qty: float) -> str:
-    return (
-        "Nelze odvést více kusů než zbývá pro tuto operaci "
-        f"(zbývá {remaining_qty:.3f} ks, zadáno {requested_qty:.3f} ks). "
-        "Přeodvod je povolen pouze na první pile."
-    )
-
-
-def _operation_done_error(released_qty: float, completed_qty: float, scrapped_qty: float) -> str:
-    return (
-        "Operace je již dokončena a nelze do ní vykazovat další pohyby "
-        f"(VP {released_qty:.3f} ks, hotovo {completed_qty:.3f} ks, zmetky {scrapped_qty:.3f} ks)."
-    )
 
 
 def _bool_to_flag(value: bool) -> str:
@@ -1719,12 +1700,37 @@ async def fetch_job_materials(
         item = _as_clean_str(_first_value(row, ("Item", "ItmItem", "Material")))
         if not item:
             continue
+        # SLJobmatls je dotazován na celý job+suffix; filtrujeme na požadovanou operaci.
+        # Infor může vracet OperNum s různým paddingem (např. "0012" vs "12").
+        row_oper = _as_clean_str(_first_value(row, ("OperNum",))) or ""
+        if row_oper and row_oper.lstrip("0") != safe_oper.lstrip("0"):
+            continue
         key = item.upper()
         um = _as_clean_str(_first_value(row, ("UM", "Uom", "Unit")))
         qty_conv = _parse_float(_first_value(row, ("MatlQtyConv", "Qty", "MatlQty")))
         _remember_um(key, um, qty_conv, None)
         existing = deduped.get(key)
         if not existing:
+            # Primární IDO (IteCzTsdSLJobMatls) nevrátil tento materiál — vytvoříme
+            # záznam z fallback dat (SLJobmatls).
+            batch_from_alt = _parse_float(_first_value(row, ("DerMatlTransQty", "BatchCons")))
+            total_from_alt = _parse_float(_first_value(row, ("DerMatlQtyRequired",)))
+            issued_from_alt = _parse_float(_first_value(row, ("DerQtyIssuedConv", "QtyIssued")))
+            remaining_from_alt = _parse_float(
+                _first_value(row, ("DerQtyToPick", "QtyRemaining", "RemainingQty", "RemQty"))
+            )
+            desc = _as_clean_str(_first_value(row, ("DerItemDescription", "ItemDescription", "Desc", "Description")))
+            deduped[key] = {
+                "Material": item,
+                "Desc": desc,
+                "TotCons": total_from_alt,
+                "Qty": qty_conv,
+                "BatchCons": batch_from_alt if batch_from_alt and batch_from_alt > 0 else None,
+                "QtyIssued": issued_from_alt,
+                "RemainingCons": remaining_from_alt,
+                "UM": um,
+            }
+            _remember_um(key, um, None, batch_from_alt)
             continue
         if not existing.get("UM") and um:
             existing["UM"] = um
@@ -1798,7 +1804,121 @@ async def fetch_job_materials(
             row["BatchCons"] = None
 
     materials = list(deduped.values())
+    primary_count = len(rows)
+    fallback_new = len(materials) - primary_count if len(materials) > primary_count else 0
+    if fallback_new > 0:
+        logger.info(
+            "fetch_job_materials(job=%s oper=%s): %d from primary, %d new from SLJobmatls fallback",
+            safe_job, safe_oper, primary_count, fallback_new,
+        )
     return _sort_materials(materials, sort_by=sort_by, sort_dir=sort_dir)
+
+
+# ============================================================================
+# Materials cache — lazy DB cache s SWR
+# ============================================================================
+
+_MATERIALS_CACHE_TTL_SECONDS = 15 * 60  # 15 min — po tomto čase background revalidace
+
+
+async def read_job_materials_from_db(
+    db: AsyncSession,
+    job: str,
+    suffix: str,
+    oper_num: str,
+    *,
+    return_synced_at: bool = False,
+):
+    """Přečte materiály z cache. Vrací None pokud cache neexistuje.
+
+    S return_synced_at=True vrací tuple (data, synced_at).
+    """
+    import json
+    from app.models.workshop_job_material_cache import WorkshopJobMaterialCache
+
+    result = await db.execute(
+        select(WorkshopJobMaterialCache).where(
+            WorkshopJobMaterialCache.job == job.strip(),
+            WorkshopJobMaterialCache.suffix == (suffix.strip() or "0"),
+            WorkshopJobMaterialCache.oper_num == (oper_num.strip() or "0"),
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return (None, None) if return_synced_at else None
+    try:
+        data = json.loads(row.data_json)
+    except (json.JSONDecodeError, TypeError):
+        return (None, None) if return_synced_at else None
+    return (data, row.synced_at) if return_synced_at else data
+
+
+def _is_materials_cache_stale(
+    synced_at: datetime,
+) -> bool:
+    """True pokud cache je starší než TTL."""
+    age = (datetime.now(timezone.utc) - synced_at.replace(tzinfo=timezone.utc)).total_seconds()
+    return age > _MATERIALS_CACHE_TTL_SECONDS
+
+
+async def save_job_materials_to_db(
+    db: AsyncSession,
+    job: str,
+    suffix: str,
+    oper_num: str,
+    materials: List[Dict[str, Any]],
+) -> None:
+    """Uloží/aktualizuje materiály v cache (upsert)."""
+    import json
+    from app.models.workshop_job_material_cache import WorkshopJobMaterialCache
+
+    clean_job = job.strip()
+    clean_suffix = suffix.strip() or "0"
+    clean_oper = oper_num.strip() or "0"
+    now = datetime.now(timezone.utc)
+
+    result = await db.execute(
+        select(WorkshopJobMaterialCache).where(
+            WorkshopJobMaterialCache.job == clean_job,
+            WorkshopJobMaterialCache.suffix == clean_suffix,
+            WorkshopJobMaterialCache.oper_num == clean_oper,
+        )
+    )
+    row = result.scalar_one_or_none()
+
+    data = json.dumps(materials, ensure_ascii=False)
+    if row:
+        row.data_json = data
+        row.synced_at = now
+    else:
+        db.add(WorkshopJobMaterialCache(
+            job=clean_job,
+            suffix=clean_suffix,
+            oper_num=clean_oper,
+            data_json=data,
+            synced_at=now,
+        ))
+    await db.commit()
+
+
+async def invalidate_materials_cache(
+    db: AsyncSession,
+    job: str,
+    suffix: str,
+    oper_num: str,
+) -> None:
+    """Smaže cache pro danou operaci (po materiálovém odvodu)."""
+    from sqlalchemy import delete
+    from app.models.workshop_job_material_cache import WorkshopJobMaterialCache
+
+    await db.execute(
+        delete(WorkshopJobMaterialCache).where(
+            WorkshopJobMaterialCache.job == job.strip(),
+            WorkshopJobMaterialCache.suffix == (suffix.strip() or "0"),
+            WorkshopJobMaterialCache.oper_num == (oper_num.strip() or "0"),
+        )
+    )
+    await db.commit()
 
 
 def _coitem_customer_code(row: Dict[str, Any]) -> Optional[str]:
@@ -2727,569 +2847,195 @@ async def post_material_issue(
     }
 
 
-async def _build_qty_policy_context(
-    tx: WorkshopTransaction,
-    infor_client,
-) -> Optional[Dict[str, Any]]:
-    requested_complete_qty = float(tx.qty_completed or 0.0)
-    requested_scrap_qty = float(tx.qty_scrapped or 0.0)
-    requested_total_qty = requested_complete_qty + requested_scrap_qty
-
-    safe_job = tx.infor_job.strip()
-    safe_suffix = (tx.infor_suffix or "0").strip() or "0"
-    safe_oper = tx.oper_num.strip()
-    if not safe_job or not safe_oper:
-        return None
-
-    result = await infor_client.load_collection(
-        ido_name="SLJobRoutes",
-        properties=["OperNum", "Wc", "DerJobItem", "JobQtyReleased", "QtyComplete", "QtyScrapped"],
-        filter=f"{_eq_filter('Job', safe_job)} AND {_eq_filter('Suffix', safe_suffix)}",
-        order_by="OperNum ASC",
-        record_cap=500,
-    )
-    rows = list(result.get("data", []))
-    if not rows:
-        return None
-
-    current_row = next(
-        (row for row in rows if _same_oper_num(_as_clean_str(row.get("OperNum")), safe_oper)),
-        None,
-    )
-    if not current_row:
-        return None
-
-    released_qty = _parse_float(current_row.get("JobQtyReleased")) or 0.0
-    completed_qty = _parse_float(current_row.get("QtyComplete")) or 0.0
-    scrapped_qty = _parse_float(current_row.get("QtyScrapped")) or 0.0
-    total_done_qty = completed_qty + scrapped_qty
-    remaining_qty = max(0.0, released_qty - total_done_qty)
-    overrun = (
-        _requires_qty_validation(tx)
-        and requested_total_qty > (remaining_qty + _QTY_EPSILON)
-    )
-
-    wc = tx.wc or _as_clean_str(current_row.get("Wc"))
-    infor_item = tx.infor_item or _as_clean_str(
-        _first_value(current_row, ("DerJobItem", "Item", "ItmItem"))
-    )
-    is_first_operation = _is_first_operation(safe_oper, rows)
-    allow_overrun = _is_saw_wc(wc) and is_first_operation
-
-    target_released_qty: Optional[float] = None
-    if overrun and allow_overrun:
-        proposed = total_done_qty + requested_total_qty
-        if proposed > (released_qty + _QTY_EPSILON):
-            target_released_qty = proposed
-
-    return {
-        "wc": wc,
-        "infor_item": infor_item,
-        "released_qty": released_qty,
-        "completed_qty": completed_qty,
-        "scrapped_qty": scrapped_qty,
-        "operation_completed": _operation_completed_by_qty(released_qty, completed_qty, scrapped_qty),
-        "remaining_qty": remaining_qty,
-        "requested_qty": requested_total_qty,
-        "requested_complete_qty": requested_complete_qty,
-        "requested_scrap_qty": requested_scrap_qty,
-        "overrun": overrun,
-        "allow_overrun": allow_overrun,
-        "target_released_qty": target_released_qty,
-    }
+# ============================================================================
+# Odvod kusů a času — Presunout (TSD modul, InduStream RE)
+# ============================================================================
+#
+# Jediný flow pro veškeré odvádění práce:
+#   WrapperSp(32,TT=4) → SFC34(21) → KapacityUpdate(3)
+#
+# Vstup: VP, operace, datum transakce, kusy, zmetky, hodiny.
+# Hodiny (multijob overlap) počítá Gestima, do Inforu jdou finální hodnoty.
+#
+# Parametry ověřeny z InduStream IL (industream_verified_sp_calls.json),
+# handler: StateMachine_265_PresunoutEventHandler.
+# ============================================================================
 
 
-async def _sync_sljobs_qty_released(
-    infor_client,
-    *,
+def _build_presunout_wrapper_params(
+    emp_num: str,
     job: str,
     suffix: str,
-    target_qty_released: float,
-) -> None:
-    if target_qty_released <= 0:
-        return
-
-    result = await infor_client.load_collection(
-        ido_name="SLJobs",
-        properties=["Job", "Suffix", "QtyReleased", "_ItemId"],
-        filter=f"{_eq_filter('Job', job)} AND {_eq_filter('Suffix', suffix)}",
-        record_cap=1,
-    )
-    rows = list(result.get("data", []))
-    if not rows:
-        raise RuntimeError(f"SLJobs row not found for {job}/{suffix}")
-
-    row = rows[0]
-    item_id = _as_clean_str(row.get("_ItemId"))
-    if not item_id:
-        raise RuntimeError(f"SLJobs _ItemId missing for {job}/{suffix}")
-
-    current_qty_released = _parse_float(row.get("QtyReleased")) or 0.0
-    if target_qty_released <= (current_qty_released + _QTY_EPSILON):
-        return
-
-    request = {
-        "IDOName": "SLJobs",
-        "RefreshAfterSave": False,
-        "Changes": [
-            {
-                "Action": 2,  # Update
-                "ItemId": item_id,
-                "Properties": [
-                    {
-                        "Name": "QtyReleased",
-                        "Value": _format_decimal(target_qty_released),
-                        "Modified": True,
-                    },
-                ],
-            }
-        ],
-    }
-
-    response = await infor_client.execute_update_request(
-        request_body=request,
-        response_mode="summary",
-    )
-    msg_code = int(response.get("MessageCode", 0) or 0)
-    if msg_code not in {0, 200, 210}:
-        raise RuntimeError(f"SLJobs qty sync failed: {response}")
-
-
-def _dcsfc_trans_type_code(trans_type: Any) -> str:
-    value = trans_type.value if hasattr(trans_type, "value") else str(trans_type)
-    if value == "setup_start":
-        return "1"
-    if value == "setup_end":
-        return "2"
-    if value == "start":
-        return "3"
-    # stop / qty_complete / scrap / time -> UkoncitPraci
-    return "4"
-
-
-def _parse_infor_time_seconds(value: Any) -> Optional[int]:
-    """Parse Infor StartTime/EndTime value into seconds since midnight."""
-    if value is None:
-        return None
-    if isinstance(value, (int, float)):
-        try:
-            return int(float(value))
-        except (TypeError, ValueError):
-            return None
-
-    text = _as_clean_str(value)
-    if not text:
-        return None
-    try:
-        return int(float(text))
-    except (TypeError, ValueError):
-        pass
-
-    # Accept "HH:MM[:SS]" and timestamp tails "... HH:MM:SS".
-    time_part = text
-    if "T" in time_part:
-        time_part = time_part.split("T")[-1]
-    if " " in time_part:
-        time_part = time_part.split(" ")[-1]
-    hhmmss = time_part.split(":")
-    if len(hhmmss) < 2:
-        return None
-    try:
-        hours = int(hhmmss[0])
-        minutes = int(hhmmss[1])
-        seconds = int(float(hhmmss[2])) if len(hhmmss) > 2 else 0
-        return (hours * 3600) + (minutes * 60) + seconds
-    except (TypeError, ValueError):
-        return None
-
-
-def _expected_dcsfc_verify_markers(
-    tx: WorkshopTransaction,
-    trans_type: str,
-) -> tuple[Optional[str], Optional[int], Optional[int]]:
-    """Expected TransDate/StartTime/EndTime markers for read-after-write check."""
-    date_ref: Optional[datetime]
-    if trans_type in {"setup_end", "stop"}:
-        date_ref = tx.finished_at or tx.started_at
-    else:
-        date_ref = tx.started_at or tx.finished_at
-
-    expected_trans_date = (
-        _to_workshop_local_naive(date_ref).strftime("%Y-%m-%d")
-        if date_ref is not None
-        else None
-    )
-    expected_start = _datetime_to_infor_seconds(tx.started_at)
-    expected_end = _datetime_to_infor_seconds(tx.finished_at)
-    return expected_trans_date, expected_start, expected_end
-
-
-async def _verify_infor_write(tx: WorkshopTransaction, infor_client) -> None:
-    """Read-after-write verification for near-atomic Gestima->Infor handoff.
-
-    We mark tx as POSTED only after the expected DcSfc row is observable.
-    """
-    job = tx.infor_job.strip()
-    oper = tx.oper_num.strip()
-    tt_code = _dcsfc_trans_type_code(tx.trans_type)
-    trans_type = _trans_type_value(tx.trans_type)
-    expected_trans_date, expected_start, expected_end = _expected_dcsfc_verify_markers(tx, trans_type)
-
-    if not job or not oper:
-        raise RuntimeError("Write verification failed: missing job/oper context.")
-
-    # Infor may expose the row with slight delay -> bounded retries.
-    delays = [0.0, 0.35, 0.9]
-    for delay in delays:
-        if delay > 0:
-            await asyncio.sleep(delay)
-
-        base_filters = [
-            _eq_filter("Job", job),
-            f"OperNum = {oper}",
-            _eq_filter("TransType", tt_code),
-        ]
-        filter_attempts: List[List[str]] = [list(base_filters)]
-        if expected_trans_date:
-            filter_attempts.insert(0, list(base_filters) + [_eq_filter("TransDate", expected_trans_date)])
-
-        for attempt_idx, filters in enumerate(filter_attempts, start=1):
-            result = await infor_client.load_collection(
-                ido_name="SLDcsfcs",
-                properties=["TransNum", "StartTime", "EndTime", "TransDate", "_ItemId"],
-                filter=" AND ".join(filters),
-                order_by="TransDate DESC, TransNum DESC",
-                record_cap=8,
-            )
-            data_rows = result.get("data", [])
-            if asyncio.iscoroutine(data_rows):
-                data_rows = await data_rows
-            rows = list(data_rows or [])
-            if not rows:
-                continue
-
-            if attempt_idx > 1 and expected_trans_date:
-                logger.warning(
-                    "_verify_infor_write: fallback without TransDate for %s/%s op=%s tt=%s",
-                    job,
-                    tx.infor_suffix or "0",
-                    oper,
-                    tt_code,
-                )
-
-            for row in rows:
-                row_start = _parse_infor_time_seconds(row.get("StartTime"))
-                row_end = _parse_infor_time_seconds(row.get("EndTime"))
-                has_start = row_start is not None
-                has_end = row_end is not None
-
-                if trans_type in {"setup_start", "start"}:
-                    if not has_start:
-                        continue
-                    if expected_start is not None and row_start != expected_start:
-                        continue
-                    return
-
-                if trans_type in {"setup_end", "stop"}:
-                    if not (has_start and has_end):
-                        continue
-                    if expected_start is not None and row_start != expected_start:
-                        continue
-                    if expected_end is not None and row_end != expected_end:
-                        continue
-                    return
-
-                # qty_complete / scrap / time (legacy TT=4 write) – time markers may vary by installation.
-                if not (has_start or has_end):
-                    continue
-                if expected_start is not None and has_start and row_start != expected_start:
-                    continue
-                if expected_end is not None and has_end and row_end != expected_end:
-                    continue
-                return
-
-    raise RuntimeError(
-        f"Write verification failed: no confirmed SLDcsfcs row for {job}/{tx.infor_suffix or '0'} "
-        f"op={oper} tt={tt_code} expected_date={expected_trans_date} "
-        f"expected_start={expected_start} expected_end={expected_end}."
-    )
-
-
-def _datetime_to_infor_seconds(dt: Optional[datetime]) -> Optional[int]:
-    """Convert datetime to Infor StartTime/EndTime format (seconds since midnight, CET)."""
-    if dt is None:
-        return None
-    local_dt = _to_workshop_local_naive(dt)
-    return local_dt.hour * 3600 + local_dt.minute * 60 + local_dt.second
-
-
-async def _active_operation_keys_for_user(
-    db: AsyncSession,
-    username: str,
-    exclude_tx_id: Optional[int] = None,
-) -> set[tuple[str, str, str]]:
-    """
-    Current active runs for user, paired from START/STOP transactions.
-
-    Uses POSTED+POSTING to avoid a race where a second START is posted while the
-    first START is still POSTING (not yet POSTED).
-    """
-    query = select(WorkshopTransaction).where(
-        WorkshopTransaction.created_by == username,
-        WorkshopTransaction.trans_type.in_([
-            WorkshopTransType.SETUP_START,
-            WorkshopTransType.SETUP_END,
-            WorkshopTransType.START,
-            WorkshopTransType.STOP,
-        ]),
-        WorkshopTransaction.status.in_([
-            WorkshopTxStatus.POSTING,
-            WorkshopTxStatus.POSTED,
-        ]),
-        WorkshopTransaction.deleted_at.is_(None),
-    )
-    if exclude_tx_id is not None:
-        query = query.where(WorkshopTransaction.id != exclude_tx_id)
-
-    result = await db.execute(
-        query.order_by(
-            WorkshopTransaction.created_at.asc(),
-            WorkshopTransaction.id.asc(),
-        )
-    )
-    txs = _extract_workshop_transactions(result)
-    stacks: Dict[tuple[str, str, str], Dict[str, Any]] = {}
-    for tx in txs:
-        key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
-        bucket = stacks.setdefault(key, {"setup": 0, "production": 0, "wc": None})
-        if not bucket["wc"] and tx.wc:
-            bucket["wc"] = tx.wc
-        tx_type = _trans_type_value(tx.trans_type)
-        if tx_type == "setup_start":
-            bucket["setup"] += 1
-        elif tx_type == "start":
-            bucket["production"] += 1
-        elif tx_type == "setup_end":
-            if bucket["setup"] > 0:
-                bucket["setup"] -= 1
-            elif bucket["production"] > 0:
-                bucket["production"] -= 1
-        elif tx_type == "stop":
-            if bucket["production"] > 0:
-                bucket["production"] -= 1
-            elif bucket["setup"] > 0:
-                bucket["setup"] -= 1
-
-    return {
-        key
-        for key, bucket in stacks.items()
-        if (bucket["setup"] > 0 or bucket["production"] > 0)
-    }
-
-
-def _extract_workshop_transactions(result: Any) -> List[WorkshopTransaction]:
-    """
-    SQLAlchemy may return Result or ScalarResult depending on execution path.
-    Keep active-runs logic resilient to both.
-    """
-    if result is None:
-        return []
-
-    if hasattr(result, "scalars"):
-        try:
-            scalar_rows = list(result.scalars().all())
-            if scalar_rows:
-                return [row for row in scalar_rows if isinstance(row, WorkshopTransaction)]
-            return []
-        except Exception:
-            pass
-
-    if hasattr(result, "all"):
-        try:
-            rows = list(result.all())
-        except Exception:
-            rows = []
-        extracted: List[WorkshopTransaction] = []
-        for row in rows:
-            if isinstance(row, WorkshopTransaction):
-                extracted.append(row)
-                continue
-            if isinstance(row, (list, tuple)) and row and isinstance(row[0], WorkshopTransaction):
-                extracted.append(row[0])
-        return extracted
-
-    if isinstance(result, list):
-        return [row for row in result if isinstance(row, WorkshopTransaction)]
-
-    return []
-
-
-async def _active_operations_for_user(
-    db: AsyncSession,
-    username: str,
-    exclude_tx_id: Optional[int] = None,
-) -> Dict[tuple[str, str, str], Dict[str, Any]]:
-    keys = await _active_operation_keys_for_user(db, username, exclude_tx_id=exclude_tx_id)
-    if not keys:
-        return {}
-
-    query = select(WorkshopTransaction).where(
-        WorkshopTransaction.created_by == username,
-        WorkshopTransaction.trans_type.in_([
-            WorkshopTransType.SETUP_START,
-            WorkshopTransType.START,
-        ]),
-        WorkshopTransaction.status.in_([
-            WorkshopTxStatus.POSTING,
-            WorkshopTxStatus.POSTED,
-        ]),
-        WorkshopTransaction.deleted_at.is_(None),
-    )
-    if exclude_tx_id is not None:
-        query = query.where(WorkshopTransaction.id != exclude_tx_id)
-
-    result = await db.execute(
-        query.order_by(
-            WorkshopTransaction.created_at.desc(),
-            WorkshopTransaction.id.desc(),
-        )
-    )
-    txs = _extract_workshop_transactions(result)
-    active: Dict[tuple[str, str, str], Dict[str, Any]] = {
-        key: {"wc": None} for key in keys
-    }
-    for tx in txs:
-        key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
-        if key not in active:
-            continue
-        if not active[key]["wc"] and tx.wc:
-            active[key]["wc"] = tx.wc
-    return active
-
-
-async def _ensure_start_not_duplicate_active(
-    db: AsyncSession,
-    tx: WorkshopTransaction,
-    username: str,
-) -> None:
-    trans_type = _trans_type_value(tx.trans_type)
-    if trans_type not in {"start", "setup_start"}:
-        return
-
-    active_keys = await _active_operation_keys_for_user(
-        db,
-        username,
-        exclude_tx_id=getattr(tx, "id", None),
-    )
-    key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
-    if key in active_keys:
-        raise RuntimeError(
-            f"Operace {tx.infor_job}/{tx.infor_suffix or '0'} op {tx.oper_num} je již spuštěná. "
-            "Nejprve ji ukončete."
-        )
-
-
-async def _resolve_ukoncit_stroj_flag(
-    db: AsyncSession,
-    tx: WorkshopTransaction,
-    username: str,
-) -> str:
-    trans_type = _trans_type_value(tx.trans_type)
-    if trans_type != "stop":
-        return "0"
-
-    # Explicit override from payload (if available).
-    explicit = _as_clean_str(getattr(tx, "ukoncit_stroj_flag", None))
-    if explicit is not None:
-        return _normalize_bool_flag(explicit, default="1")
-
-    active = await _active_operations_for_user(
-        db,
-        username,
-        exclude_tx_id=getattr(tx, "id", None),
-    )
-    key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
-    current_wc = (_as_clean_str(tx.wc) or "").upper()
-    other_ops = [
-        (other_key, meta)
-        for other_key, meta in active.items()
-        if other_key != key
+    oper_num: str,
+    qty_completed: float,
+    qty_scrapped: float,
+    wc: str,
+    oper_complete: bool = False,
+    job_complete: bool = False,
+    stroj: str = "",
+    datum_transakce: str = "",
+    batch_kapacity: str = "1",
+) -> List[str]:
+    """Presunout WrapperSp — 32 parametrů (TT=4)."""
+    qty_moved = qty_completed
+    return [
+        "",                                    # [0]
+        emp_num,                               # [1] gvEmpNum
+        "",                                    # [2]
+        "4",                                   # [3] vTransType
+        job,                                   # [4] vJob
+        suffix,                                # [5] vSuffix
+        oper_num,                              # [6] vOperNum
+        _format_decimal(qty_completed),        # [7] vQtyComplete
+        _format_decimal(qty_scrapped),         # [8] vQtyScrapped
+        _format_decimal(qty_moved),            # [9] vQtyMoved
+        _bool_to_flag(oper_complete),          # [10] vOperCompleteFlag
+        _bool_to_flag(job_complete),           # [11] vJobCompleteFlag
+        "0",                                   # [12] vIssueParentFlag
+        "",                                    # [13] vLoc
+        "",                                    # [14] vLot
+        "",                                    # [15] vReasonCode
+        "",                                    # [16] vSerNumList
+        wc,                                    # [17] vWc
+        "",                                    # [18]
+        "TSD",                                 # [19] vSourceModul
+        "",                                    # [20] gvIdMachine
+        "",                                    # [21] gvResid
+        "0",                                   # [22]
+        "J",                                   # [23] vMode
+        "",                                    # [24] RV(vInfoBar)
+        "",                                    # [25]
+        "",                                    # [26]
+        "",                                    # [27]
+        "",                                    # [28]
+        stroj,                                 # [29] vStroj
+        datum_transakce,                       # [30] vDatumTransakce
+        batch_kapacity,                        # [31] vBatchKapacity
     ]
-    if not other_ops:
-        return "1"
-
-    # If we cannot safely determine machine context, prefer keeping machine running.
-    if not current_wc:
-        return "0"
-    for _, meta in other_ops:
-        other_wc = (_as_clean_str(meta.get("wc")) or "").upper()
-        if not other_wc or other_wc == current_wc:
-            return "0"
-    return "1"
 
 
-async def _resolve_multi_job_flag(
-    db: AsyncSession,
-    tx: WorkshopTransaction,
-    username: str,
-) -> str:
-    explicit = _as_clean_str(getattr(tx, "multi_job_flag", None))
-    if explicit:
-        return _normalize_multi_job_flag(explicit)
-    # InduStream behavior (from IL-verified DLL analysis):
-    # First job on machine → "0", subsequent jobs → "1".
-    # InduStream tracks this as runtime V(vMultiJobFlag) state on the form.
-    # Gestima infers from local active-operation stack.
-    trans_type = _trans_type_value(tx.trans_type)
-    if trans_type in {"stop", "setup_end"}:
-        # At stop time, flag describes whether OTHER jobs remain active.
-        active_keys = await _active_operation_keys_for_user(
-            db, username, exclude_tx_id=getattr(tx, "id", None),
-        )
-        current_key = (tx.infor_job, tx.infor_suffix or "0", tx.oper_num)
-        other_active = {k for k in active_keys if k != current_key}
-        return "1" if other_active else "0"
-    else:
-        # At start time, flag describes whether ANYTHING is already running.
-        active_keys = await _active_operation_keys_for_user(
-            db, username, exclude_tx_id=getattr(tx, "id", None),
-        )
-        return "1" if active_keys else "0"
-
-
-def _build_validate_multi_job_candidates(
-    tx: WorkshopTransaction,
+def _build_sfc34_params(
     emp_num: str,
-    multi_job_flag: str,
-) -> List[List[str]]:
-    suffix = tx.infor_suffix or "0"
-    raw_candidates = [
-        [emp_num, multi_job_flag, tx.infor_job, suffix, tx.oper_num, ""],
-        [emp_num, multi_job_flag, tx.infor_job, suffix, tx.oper_num],
-        [emp_num, multi_job_flag, tx.infor_job, suffix],
-        [multi_job_flag],
-        [],
+    job: str,
+    suffix: str,
+    oper_num: str,
+    qty_completed: float,
+    qty_scrapped: float,
+    hours: float,
+    wc: str,
+    oper_complete: bool = False,
+    job_complete: bool = False,
+    stroj: str = "",
+    datum_transakce: str = "",
+    batch_kapacity: str = "1",
+) -> List[str]:
+    """SFC34 — 21 parametrů (kusy + hodiny)."""
+    qty_moved = qty_completed
+    return [
+        emp_num,                               # [0] gvEmpNum
+        "",                                    # [1]
+        job,                                   # [2] vJob
+        suffix,                                # [3] vSuffix
+        oper_num,                              # [4] vOperNum
+        _format_decimal(qty_completed),        # [5] vQtyComplete
+        _format_decimal(qty_scrapped),         # [6] vQtyScrapped
+        _format_decimal(qty_moved),            # [7] vQtyMoved
+        _format_decimal(hours),                # [8] vHrs
+        _bool_to_flag(oper_complete),          # [9] vOperCompleteFlag
+        _bool_to_flag(job_complete),           # [10] vJobCompleteFlag
+        "0",                                   # [11] vIssueParentFlag
+        "",                                    # [12] vLoc
+        "",                                    # [13] vLot
+        "",                                    # [14] vReasonCode
+        "",                                    # [15] vSerNumList
+        wc,                                    # [16] vWc
+        "",                                    # [17] RV(vInfoBar)
+        stroj,                                 # [18] vStroj
+        datum_transakce,                       # [19] vDatumTransakce
+        batch_kapacity,                        # [20] vBatchKapacity
     ]
-    return _dedupe_candidates(raw_candidates)
 
+
+def _build_kapacity_update_params(ptr_kapacity: str = "0") -> List[str]:
+    """KapacityUpdate — 3 parametry."""
+    return [
+        "J",                                   # [0]
+        ptr_kapacity,                          # [1] vPtrKapacity
+        "",                                    # [2] RV(vInfoBar)
+    ]
+
+
+async def _post_presunout_flow(
+    infor_client,
+    emp_num: str,
+    job: str,
+    suffix: str,
+    oper_num: str,
+    qty_completed: float,
+    qty_scrapped: float,
+    hours: float,
+    wc: str,
+    oper_complete: bool = False,
+    job_complete: bool = False,
+    stroj: str = "",
+    datum_transakce: str = "",
+) -> Dict[str, Any]:
+    """Presunout (odvod kusů a času): WrapperSp(32) → SFC34(21) → KapacityUpdate(3).
+
+    Čistý InduStream Presunout flow (StateMachine_265_PresunoutEventHandler).
+    BEZ machine transakcí (MchtrxSp / DcSfcMchtrxSp).
+    Hodiny se posílají explicitně v SFC34 param [8] vHrs.
+    """
+    # Step 1: WrapperSp (32 params, TT=4)
+    wrapper_params = _build_presunout_wrapper_params(
+        emp_num=emp_num, job=job, suffix=suffix, oper_num=oper_num,
+        qty_completed=qty_completed, qty_scrapped=qty_scrapped, wc=wc,
+        oper_complete=oper_complete, job_complete=job_complete,
+        stroj=stroj, datum_transakce=datum_transakce,
+    )
+    wrapper_resp = await _invoke_checked(infor_client, _WRITE_SP_WRAPPER, wrapper_params)
+    logger.info("Presunout WrapperSp OK: job=%s oper=%s", job, oper_num)
+
+    # Step 2: SFC34 (21 params — kusy + hodiny)
+    sfc34_params = _build_sfc34_params(
+        emp_num=emp_num, job=job, suffix=suffix, oper_num=oper_num,
+        qty_completed=qty_completed, qty_scrapped=qty_scrapped,
+        hours=hours, wc=wc, oper_complete=oper_complete,
+        job_complete=job_complete, stroj=stroj,
+        datum_transakce=datum_transakce,
+    )
+    sfc34_resp = await _invoke_checked(infor_client, _WRITE_SP_SFC34, sfc34_params)
+    logger.info("Presunout SFC34 OK: job=%s oper=%s hrs=%.2f", job, oper_num, hours or 0)
+
+    # Step 3: KapacityUpdate (best-effort)
+    try:
+        kapacity_params = _build_kapacity_update_params()
+        await _invoke_checked(infor_client, _WRITE_SP_KAPACITY_UPDATE, kapacity_params)
+    except Exception as exc:
+        logger.warning("KapacityUpdate skipped: %s", exc)
+
+    return {"wrapper": wrapper_resp, "sfc34": sfc34_resp}
+
+
+# --------------- Orchestrace (DB + Infor dispatch) ---------------
 
 async def create_transaction(
     db: AsyncSession,
     data: WorkshopTransactionCreate,
-    current_user: User,
+    username: str,
 ) -> WorkshopTransaction:
-    """Uloží dílnickou transakci do lokálního bufferu."""
+    """Vytvoří novou transakci v lokálním DB bufferu (status=PENDING)."""
     tx = WorkshopTransaction(
-        infor_job=data.infor_job,
-        infor_suffix=data.infor_suffix,
-        infor_item=data.infor_item,
-        oper_num=data.oper_num,
-        wc=data.wc,
+        infor_job=data.infor_job.strip(),
+        infor_suffix=(data.infor_suffix or "0").strip(),
+        infor_item=_as_clean_str(data.infor_item),
+        oper_num=data.oper_num.strip(),
+        wc=_as_clean_str(data.wc),
         trans_type=data.trans_type,
         qty_completed=data.qty_completed,
         qty_scrapped=data.qty_scrapped,
         qty_moved=data.qty_moved,
-        scrap_reason=data.scrap_reason,
+        scrap_reason=_as_clean_str(data.scrap_reason),
         actual_hours=data.actual_hours,
         oper_complete=data.oper_complete,
         job_complete=data.job_complete,
@@ -3297,16 +3043,10 @@ async def create_transaction(
         finished_at=data.finished_at,
         status=WorkshopTxStatus.PENDING,
     )
-    set_audit(tx, current_user.username)
+    set_audit(tx, username)
     db.add(tx)
-    await safe_commit(db, tx, "vytvoření dílnické transakce")
-    logger.info(
-        "Workshop transaction created: job=%s oper=%s type=%s by=%s",
-        data.infor_job,
-        data.oper_num,
-        data.trans_type,
-        current_user.username,
-    )
+    await safe_commit(db)
+    await db.refresh(tx)
     return tx
 
 
@@ -3314,818 +3054,109 @@ async def post_transaction_to_infor(
     db: AsyncSession,
     tx_id: int,
     infor_client,
-    current_user: User,
+    user: Any,
 ) -> WorkshopTransaction:
-    """Odešle lokální workshop transakci do Inforu podle trans_type."""
-    result = await db.execute(
-        select(WorkshopTransaction).where(
-            WorkshopTransaction.id == tx_id,
-            WorkshopTransaction.deleted_at.is_(None),
-        )
-    )
-    tx = result.scalar_one_or_none()
+    """Odešle transakci do Inforu — dispatch dle trans_type."""
+    tx = await db.get(WorkshopTransaction, tx_id)
     if not tx:
-        raise HTTPException(status_code=404, detail="Transakce nenalezena")
+        raise HTTPException(status_code=404, detail=f"Transakce {tx_id} nenalezena")
+    if tx.status == WorkshopTxStatus.POSTED:
+        raise HTTPException(status_code=409, detail="Transakce již odeslána")
 
-    if tx.status not in (WorkshopTxStatus.PENDING, WorkshopTxStatus.FAILED):
-        raise HTTPException(
-            status_code=409,
-            detail=f"Transakci nelze odeslat — aktuální status: {tx.status}",
-        )
+    username = getattr(user, "username", "system")
+    emp_num = resolve_infor_emp_num(user)
 
     tx.status = WorkshopTxStatus.POSTING
-    set_audit(tx, current_user.username, is_update=True)
-    await safe_commit(db, tx, "nastavení posting statusu")
-
-    emp_num = resolve_infor_emp_num(current_user)
-    trans_type = tx.trans_type.value if hasattr(tx.trans_type, "value") else str(tx.trans_type)
-    qty_policy_context: Optional[Dict[str, Any]] = None
-    multi_job_flag = "0"
-    ukoncit_stroj_flag = "0"
-    write_phase_started = False
+    set_audit(tx, username)
+    await safe_commit(db)
 
     try:
-        qty_policy_context = await _build_qty_policy_context(tx, infor_client)
-        if qty_policy_context:
-            if not tx.wc and qty_policy_context.get("wc"):
-                tx.wc = _as_clean_str(qty_policy_context.get("wc"))
-            if not tx.infor_item and qty_policy_context.get("infor_item"):
-                tx.infor_item = _as_clean_str(qty_policy_context.get("infor_item"))
+        job = tx.infor_job
+        suffix = tx.infor_suffix or "0"
+        oper_num = tx.oper_num
+        wc = tx.wc or ""
+        item = tx.infor_item or ""
+        qty_completed = tx.qty_completed or 0.0
+        qty_scrapped = tx.qty_scrapped or 0.0
+        hours = tx.actual_hours or 0.0
+        oper_complete = tx.oper_complete
+        job_complete = tx.job_complete
+        datum = _format_infor_datetime(datetime.utcnow())
 
-        if qty_policy_context and qty_policy_context.get("operation_completed"):
-            raise RuntimeError(
-                _operation_done_error(
-                    float(qty_policy_context.get("released_qty") or 0.0),
-                    float(qty_policy_context.get("completed_qty") or 0.0),
-                    float(qty_policy_context.get("scrapped_qty") or 0.0),
-                )
-            )
-
-        if (
-            qty_policy_context
-            and qty_policy_context.get("overrun")
-            and not qty_policy_context.get("allow_overrun")
-        ):
-            raise RuntimeError(
-                _overrun_block_error(
-                    float(qty_policy_context.get("remaining_qty") or 0.0),
-                    float(qty_policy_context.get("requested_qty") or 0.0),
-                )
-            )
-
-        await _ensure_start_not_duplicate_active(db, tx, current_user.username)
-
-        multi_job_flag = await _resolve_multi_job_flag(db, tx, current_user.username)
-        setattr(tx, "multi_job_flag", multi_job_flag)
-        if trans_type == "stop":
-            ukoncit_stroj_flag = await _resolve_ukoncit_stroj_flag(db, tx, current_user.username)
-            setattr(tx, "ukoncit_stroj_flag", ukoncit_stroj_flag == "1")
-
-        logger.info(
-            "Posting workshop tx=%s type=%s job=%s/%s oper=%s wc=%s item=%s multi_job=%s ukoncit_stroj=%s",
-            tx.id,
-            trans_type,
-            tx.infor_job,
-            tx.infor_suffix or "0",
-            tx.oper_num,
-            tx.wc,
-            tx.infor_item,
-            multi_job_flag,
-            ukoncit_stroj_flag,
-        )
-
-        await _invoke_nonfatal_candidates(
-            infor_client,
-            _WRITE_SP_VALIDATE_MULTI_JOB,
-            candidates=_build_validate_multi_job_candidates(tx, emp_num, multi_job_flag),
-        )
-
-        # Recalculate actual_hours on backend from naive-UTC timestamps.
-        # Frontend calculation is unreliable (timezone parsing issues with
-        # new Date(isoString) in CET/CEST browser environments).
-        if trans_type in {"stop", "setup_end"} and tx.started_at and tx.finished_at:
-            delta = tx.finished_at - tx.started_at
-            tx.actual_hours = round(delta.total_seconds() / 3600, 4)
-
-        write_phase_started = True
-        if trans_type in {"setup_start", "setup_end", "start"}:
-            await _post_wrapper_flow(tx, infor_client, emp_num)
-        elif trans_type == "stop":
-            await _post_stop_flow(tx, infor_client, emp_num)
+        if tx.trans_type in {WorkshopTransType.START, WorkshopTransType.SETUP_START}:
+            # Starty se neposílají do Inforu — jen lokální záznam.
+            pass
         else:
-            await _post_sfc34_flow(tx, infor_client, emp_num)
-
-        if (
-            qty_policy_context
-            and qty_policy_context.get("overrun")
-            and qty_policy_context.get("allow_overrun")
-            and qty_policy_context.get("target_released_qty") is not None
-        ):
-            target_qty_released = float(qty_policy_context["target_released_qty"])
-            try:
-                await _sync_sljobs_qty_released(
-                    infor_client,
-                    job=tx.infor_job.strip(),
-                    suffix=(tx.infor_suffix or "0").strip() or "0",
-                    target_qty_released=target_qty_released,
-                )
-                logger.info(
-                    "QtyReleased synchronized after saw overrun: %s/%s -> %.3f",
-                    tx.infor_job,
-                    tx.infor_suffix or "0",
-                    target_qty_released,
-                )
-            except Exception as sync_exc:
-                logger.warning(
-                    "Posted tx %s but QtyReleased sync failed for %s/%s: %s",
-                    tx_id,
-                    tx.infor_job,
-                    tx.infor_suffix or "0",
-                    sync_exc,
-                )
-
-        # Verify DcSfc record exists in Infor before marking POSTED.
-        await _verify_infor_write(tx, infor_client)
+            # Odvod kusů a času (Presunout): WrapperSp(32) → SFC34(21) → Kapacity(3).
+            await _post_presunout_flow(
+                infor_client, emp_num=emp_num, job=job, suffix=suffix,
+                oper_num=oper_num, qty_completed=qty_completed,
+                qty_scrapped=qty_scrapped, hours=hours, wc=wc,
+                oper_complete=oper_complete, job_complete=job_complete,
+                datum_transakce=datum,
+            )
 
         tx.status = WorkshopTxStatus.POSTED
-        tx.posted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        tx.posted_at = datetime.utcnow()
         tx.error_msg = None
-        logger.info("Transaction %s posted to Infor successfully", tx_id)
+
+    except HTTPException:
+        raise
     except Exception as exc:
-        recovered = False
-        if write_phase_started and not isinstance(exc, _NonRecoverablePostError):
-            try:
-                # Recovery path: if the main DcSfc SP succeeded but a subsequent
-                # non-critical step (KapacityUpdate, Mchtrx) failed, check if the
-                # DcSfc record exists in Infor.  Existence = POSTED.
-                await _verify_infor_write(tx, infor_client)
-                tx.status = WorkshopTxStatus.POSTED
-                tx.posted_at = datetime.now(timezone.utc).replace(tzinfo=None)
-                tx.error_msg = None
-                recovered = True
-                logger.warning(
-                    "Transaction %s recovered as POSTED after post-path error: %s",
-                    tx_id,
-                    exc,
-                )
-            except Exception:
-                recovered = False
+        tx.status = WorkshopTxStatus.FAILED
+        tx.error_msg = str(exc)[:500]
+        logger.error("Post tx %s failed: %s", tx.id, exc, exc_info=True)
 
-        if not recovered:
-            tx.status = WorkshopTxStatus.FAILED
-            tx.error_msg = str(exc)[:500]
-            logger.error("Transaction %s failed to post: %s", tx_id, exc)
-
-    set_audit(tx, current_user.username, is_update=True)
-    await safe_commit(db, tx, "aktualizace statusu transakce")
+    set_audit(tx, username)
+    await safe_commit(db)
+    await db.refresh(tx)
     return tx
-
-
-async def _post_wrapper_flow(tx: WorkshopTransaction, infor_client, emp_num: str) -> None:
-    """Post start/setup flows — rewritten to match InduStream IL exactly.
-
-    InduStream verified flows (from VB$StateMachine IL analysis):
-
-    ZahajitPraci (start, TT=3):
-      1. ValidateOperNumMachineSp  → captures RV(vOldEmpNum, vStroj, vWc)
-      2. WrapperSp(TT=3)
-      3. KapacityUpdateSp
-      4. UpdateMchtrxSp(mode="H") → uses captured vOldEmpNum, vStroj, vWc
-
-    ZahajitNastaveni (setup_start, TT=1):
-      1. WrapperSp(TT=1)
-      (no ValidateOperNumMachine, no UpdateMchtrx)
-
-    UkoncitNastaveni (setup_end, TT=2):
-      1. WrapperSp(TT=2)
-      2. (conditional) WrapperSp(TT=3) if vZahajitPraciFlag — not implemented
-      3. ValidateOperNumMachineSp → captures RV
-      4. UpdateMchtrxSp(mode="H") → uses captured RV
-    """
-    trans_type = _trans_type_value(tx.trans_type)
-
-    # Refresh Infor server context (date/time) — required for REST API.
-    # InduStream gets this from persistent COM session; our REST calls are stateless.
-    await _invoke_nonfatal_candidates(
-        infor_client,
-        _WRITE_SP_INIT_PARMS,
-        candidates=[[], [""], [tx.infor_job, tx.infor_suffix or "0", tx.oper_num]],
-    )
-
-    if trans_type == "start":
-        # === InduStream ZahajitPraci flow (IL-verified) ===
-
-        # Step 1: ValidateOperNumMachineSp — capture RV outputs
-        await _validate_oper_machine_and_capture(tx, infor_client, emp_num)
-
-        # Step 2: WrapperSp(TT=3)
-        await _invoke_checked(
-            infor_client,
-            _WRITE_SP_WRAPPER,
-            _build_wrapper_params(tx, emp_num),
-        )
-
-        # Step 3: KapacityUpdateSp
-        await _invoke_nonfatal_candidates(
-            infor_client,
-            _WRITE_SP_KAPACITY_UPDATE,
-            candidates=[_build_kapacity_update_params(tx)],
-        )
-
-        # Step 4: UpdateMchtrxSp(mode="H") — uses captured vOldEmpNum, vStroj, vWc
-        await _invoke_checked(
-            infor_client,
-            _WRITE_SP_MCHTRX,
-            _build_mchtrx_candidates(tx, emp_num, mode="H")[0],
-        )
-
-    elif trans_type == "setup_start":
-        # === InduStream ZahajitNastaveni flow (IL-verified) ===
-        # Only WrapperSp(TT=1), no validate, no mchtrx.
-        await _invoke_checked(
-            infor_client,
-            _WRITE_SP_WRAPPER,
-            _build_wrapper_params(tx, emp_num),
-        )
-
-    elif trans_type == "setup_end":
-        # === InduStream UkoncitNastaveni flow (IL-verified) ===
-
-        # Step 1: WrapperSp(TT=2)
-        await _invoke_checked(
-            infor_client,
-            _WRITE_SP_WRAPPER,
-            _build_wrapper_params(tx, emp_num),
-        )
-
-        # Step 2: ValidateOperNumMachineSp — capture RV outputs
-        await _validate_oper_machine_and_capture(tx, infor_client, emp_num)
-
-        # Step 3: UpdateMchtrxSp(mode="H") — uses captured vOldEmpNum, vStroj, vWc
-        await _invoke_checked(
-            infor_client,
-            _WRITE_SP_MCHTRX,
-            _build_mchtrx_candidates(tx, emp_num, mode="H")[0],
-        )
-
-
-
-async def _validate_oper_machine_and_capture(
-    tx: WorkshopTransaction,
-    infor_client,
-    emp_num: str,
-) -> None:
-    """Call ValidateOperNumMachineSp and capture RV output values onto tx.
-
-    InduStream IL signature (11 params):
-      V(vJob), V(vSuffix), V(vOperNum), V(vEmpNum), "H",
-      V(vItem), V(vWhse),
-      RV(vOldEmpNum),   # index 7
-      RV(vStroj),       # index 8
-      RV(vWc),          # index 9
-      RV(vInfoBar)      # index 10
-
-    The captured values are stored as tx dynamic attributes and used by
-    _build_mchtrx_candidates for the subsequent UpdateMchtrxSp call.
-    """
-    try:
-        response = await _invoke_checked_candidates(
-            infor_client,
-            _WRITE_SP_VALIDATE_OPER_MACHINE,
-            candidates=[_build_validate_oper_machine_params(tx, emp_num)],
-            allow_nonzero_return=True,
-        )
-        rv = _extract_rv_from_response(response, {
-            "old_emp_num": 7,
-            "stroj": 8,
-            "wc": 9,
-        })
-        if rv.get("old_emp_num"):
-            setattr(tx, "old_emp_num", rv["old_emp_num"])
-            logger.info("ValidateOperNumMachine: captured vOldEmpNum=%s", rv["old_emp_num"])
-        if rv.get("stroj"):
-            setattr(tx, "stroj", rv["stroj"])
-            logger.info("ValidateOperNumMachine: captured vStroj=%s", rv["stroj"])
-        if rv.get("wc") and not tx.wc:
-            tx.wc = rv["wc"]
-            logger.info("ValidateOperNumMachine: captured vWc=%s", rv["wc"])
-    except Exception as exc:
-        logger.warning(
-            "ValidateOperNumMachineSp failed (non-fatal for write flow): %s", exc,
-        )
-
-
-async def _post_stop_flow(tx: WorkshopTransaction, infor_client, emp_num: str) -> None:
-    """Post stop flow — rewritten to match InduStream UkoncitPraci IL exactly.
-
-    InduStream verified flow (VB$StateMachine_225_UkoncitPraciEventHandler):
-      1. IteCzInsWrapperDcsfcUpdateSp (27 params, TT=4) — CRITICAL: creates DcSfc TT=4
-      2. IteCzTsdKapacityUpdateSp (3 params)
-      3. IteCzTsdUpdateDcSfcMchtrxSp (22 params) — machine stop
-
-    Gestima addition (not in InduStream but necessary for REST API integration):
-      - InitParmsSp: refreshes Infor server context (nonfatal)
-    """
-    # Pre-step: refresh Infor server context (best-effort).
-    await _invoke_nonfatal_candidates(
-        infor_client,
-        _WRITE_SP_INIT_PARMS,
-        candidates=[[], [""], [tx.infor_job, tx.infor_suffix or "0", tx.oper_num]],
-    )
-
-    # Step 1 (IL-verified): InsWrapperDcsfcUpdateSp — creates DcSfc TT=4.
-    # This is the CRITICAL write — if it succeeds, the labor record exists in Infor.
-    await _invoke_checked(
-        infor_client,
-        _WRITE_SP_INS_WRAPPER_DCSFC_UPDATE,
-        _build_ins_wrapper_dcsfc_update_params(tx, emp_num),
-    )
-
-    # Step 2 (IL-verified): KapacityUpdateSp
-    await _invoke_nonfatal_candidates(
-        infor_client,
-        _WRITE_SP_KAPACITY_UPDATE,
-        candidates=[_build_kapacity_update_params(tx)],
-    )
-
-    # Step 3 (IL-verified): UpdateDcSfcMchtrxSp — machine stop.
-    # If this fails, the DcSfc labor record (step 1) already exists in Infor.
-    # Do NOT raise _NonRecoverablePostError — the labor write is valid.
-    try:
-        await _invoke_checked_candidates(
-            infor_client,
-            _WRITE_SP_DCSFC_MCHTRX,
-            _build_dcsfc_mchtrx_candidates(tx, emp_num),
-        )
-    except Exception as exc:
-        logger.warning(
-            "STOP machine step via %s failed, trying legacy %s fallback: %s",
-            _WRITE_SP_DCSFC_MCHTRX,
-            _WRITE_SP_MCHTRX,
-            exc,
-        )
-        try:
-            await _invoke_checked_candidates(
-                infor_client,
-                _WRITE_SP_MCHTRX,
-                _build_mchtrx_stop_candidates(tx, emp_num),
-            )
-        except Exception as fallback_exc:
-            # DcSfc TT=4 was already created in step 1 — labor record exists in Infor.
-            # Machine-stop failure is NOT a reason to mark the whole transaction as
-            # non-recoverable.  The verify step will find the DcSfc record and
-            # recover the transaction to POSTED status.
-            logger.error(
-                "STOP machine step failed after DcSfc TT=4 was written. "
-                "Labor record exists in Infor but machine state may be inconsistent. "
-                "%s | fallback %s: %s",
-                exc,
-                _WRITE_SP_MCHTRX,
-                fallback_exc,
-            )
-
-
-async def _post_sfc34_flow(tx: WorkshopTransaction, infor_client, emp_num: str) -> None:
-    params = _build_sfc34_params(tx, emp_num)
-    await _invoke_checked(infor_client, _WRITE_SP_SFC34, params)
 
 
 async def list_my_transactions(
     db: AsyncSession,
-    current_user: User,
+    username: str,
     skip: int = 0,
     limit: int = 100,
 ) -> List[WorkshopTransaction]:
-    """Vrátí transakce aktuálně přihlášeného uživatele."""
+    """Vrátí transakce aktuálního uživatele (nejnovější první)."""
     result = await db.execute(
-        select(WorkshopTransaction)
-        .where(
-            WorkshopTransaction.created_by == current_user.username,
+        select(WorkshopTransaction).where(
+            WorkshopTransaction.created_by == username,
             WorkshopTransaction.deleted_at.is_(None),
-        )
-        .order_by(WorkshopTransaction.created_at.desc())
-        .offset(skip)
-        .limit(limit)
+        ).order_by(WorkshopTransaction.created_at.desc())
+        .offset(skip).limit(limit)
     )
     return list(result.scalars().all())
-
-
-def _trans_type_code_wrapper(trans_type: Any) -> str:
-    value = trans_type.value if hasattr(trans_type, "value") else str(trans_type)
-    mapping = {
-        "setup_start": "1",
-        "setup_end": "2",
-        "start": "3",
-        "stop": "4",
-    }
-    return mapping.get(value, "3")
-
-
-def _source_module_for_wrapper(trans_type: str) -> str:
-    source_map = {
-        "setup_start": "01110",
-        "setup_end": "01111",
-        "start": "01100",
-        "stop": "01101",
-    }
-    return source_map.get(trans_type, "01120")
-
-
-def _tx_dynamic_str(tx: WorkshopTransaction, *names: str) -> str:
-    for name in names:
-        value = _as_clean_str(getattr(tx, name, None))
-        if value:
-            return value
-    return ""
-
-
-def _build_validate_oper_machine_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
-    whse_value = _tx_dynamic_str(tx, "whse", "warehouse") or _WORKSHOP_DEFAULT_WHSE
-    return [
-        tx.infor_job,
-        tx.infor_suffix or "0",
-        tx.oper_num,
-        emp_num,
-        "H",
-        tx.infor_item or "",
-        whse_value,
-        "",
-        "",
-        "",
-        "",
-    ]
-
-
-def _build_validate_emp_mchtrx_candidates(tx: WorkshopTransaction, emp_num: str) -> List[List[str]]:
-    wc_value = _tx_dynamic_str(tx, "wc", "v_wc", "vWc")
-    machine_value = _tx_dynamic_str(
-        tx,
-        "stroj",
-        "v_stroj",
-        "vStroj",
-        "machine_id",
-        "id_machine",
-    ) or wc_value
-    return _dedupe_candidates([
-        [emp_num, machine_value],
-        [machine_value, emp_num],
-        [emp_num, wc_value],
-        [wc_value, emp_num],
-        [emp_num, tx.infor_job],
-        [tx.infor_job, emp_num],
-        [emp_num],
-        [machine_value],
-        [wc_value],
-        [tx.infor_job],
-        [],
-    ])
-
-
-def _build_kapacity_update_params(tx: WorkshopTransaction) -> List[str]:
-    ptr_value = _tx_dynamic_str(tx, "ptr_kapacity", "kapacity_ptr", "v_ptr_kapacity")
-    return ["J", ptr_value, ""]
-
-
-def _build_wrapper_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
-    trans_type = _trans_type_value(tx.trans_type)
-    trans_code = _trans_type_code_wrapper(tx.trans_type)
-    source_module = _source_module_for_wrapper(trans_type)
-    id_machine = _tx_dynamic_str(tx, "id_machine", "machine_id", "gv_id_machine")
-    res_id = _tx_dynamic_str(tx, "res_id", "resource_id", "gv_res_id")
-    mode_value = _tx_dynamic_str(tx, "mode", "trans_mode") or "T"
-    multi_job_flag = _normalize_multi_job_flag(
-        _tx_dynamic_str(tx, "multi_job_flag", "v_multi_job_flag")
-    )
-
-    base_25 = [
-        "",  # 0
-        emp_num,  # 1 V(vEmpNum)
-        multi_job_flag,  # 2 V(vMultiJobFlag)
-        trans_code,  # 3 TransType (1/2/3)
-        tx.infor_job,  # 4 V(vJob)
-        tx.infor_suffix or "0",  # 5 V(vSuffix)
-        tx.oper_num,  # 6 V(vOperNum)
-        "",  # 7
-        "",  # 8
-        "",  # 9
-        "0",  # 10 V(vOperCompleteFlag)
-        "0",  # 11 V(vJobCompleteFlag)
-        "0",  # 12 V(vIssueParentFlag)
-        "",  # 13 V(vLoc)
-        "",  # 14 V(vLot)
-        "",  # 15 V(vReasonCode)
-        "",  # 16 V(vSerNumList)
-        "",  # 17
-        "",  # 18
-        source_module,  # 19 V(vSourceModul)
-        id_machine,  # 20 G(gvIdMachine)
-        res_id,  # 21 G(gvResid)
-        "0",  # 22
-        mode_value,  # 23 V(vMode)
-        "",  # 24 RV(vInfoBar)
-    ]
-    if trans_type == "start":
-        batch_value = _tx_dynamic_str(tx, "batch_kapacity", "v_batch_kapacity")
-        return base_25 + ["", "", "", "", "", "", batch_value]
-    return base_25
-
-
-def _build_wrapper_candidates(tx: WorkshopTransaction, emp_num: str) -> List[List[str]]:
-    base = _build_wrapper_params(tx, emp_num)
-    return [base]
-
-def _dedupe_candidates(candidates: Sequence[Sequence[str]]) -> List[List[str]]:
-    seen: set[tuple[str, ...]] = set()
-    out: List[List[str]] = []
-    for candidate in candidates:
-        key = tuple(candidate)
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(list(candidate))
-    return out
-
-
-def _build_mchtrx_candidates(tx: WorkshopTransaction, emp_num: str, mode: str) -> List[List[str]]:
-    wc_value = _tx_dynamic_str(tx, "wc", "v_wc", "vWc")
-    suffix = tx.infor_suffix or "0"
-    # stroj + old_emp_num: populated by _validate_oper_machine_and_capture()
-    # from ValidateOperNumMachineSp RV outputs (indices 8, 7).
-    # Fallback: stroj→wc, old_emp_num→emp_num (self-handoff).
-    stroj_value = _tx_dynamic_str(tx, "stroj", "v_stroj", "vStroj", "machine_id", "id_machine") or wc_value
-    old_emp_num = _tx_dynamic_str(tx, "old_emp_num", "v_old_emp_num", "vOldEmpNum") or emp_num
-    # IL-verified 9-param signature (InduStream UpdateMchtrxSp):
-    # [V(vEmpNum), Mode, V(vJob), V(vSuffix), V(vOperNum), V(vWc), V(vStroj), V(vOldEmpNum), RV(vInfoBar)]
-    return [[
-        emp_num,
-        mode,
-        tx.infor_job,
-        suffix,
-        tx.oper_num,
-        wc_value,
-        stroj_value,
-        old_emp_num,
-        "",
-    ]]
-
-
-def _build_mchtrx_stop_candidates(tx: WorkshopTransaction, emp_num: str) -> List[List[str]]:
-    wc_value = _tx_dynamic_str(tx, "wc", "v_wc", "vWc")
-    suffix = tx.infor_suffix or "0"
-    stroj_value = _tx_dynamic_str(
-        tx,
-        "stroj",
-        "v_stroj",
-        "vStroj",
-        "machine_id",
-        "id_machine",
-    ) or wc_value
-    old_emp_num = _tx_dynamic_str(tx, "old_emp_num", "v_old_emp_num", "vOldEmpNum") or emp_num
-    return _dedupe_candidates([
-        [emp_num, "J", tx.infor_job, suffix, tx.oper_num, wc_value, stroj_value, old_emp_num, ""],
-        [emp_num, "J", tx.infor_job, suffix, tx.oper_num, wc_value, wc_value, emp_num, ""],
-        [emp_num, "J", tx.infor_job, suffix, tx.oper_num, wc_value, stroj_value, "", ""],
-        [emp_num, "J", tx.infor_job, suffix, tx.oper_num, wc_value, "", old_emp_num, ""],
-        [emp_num, "J", tx.infor_job, suffix, tx.oper_num, wc_value, "", "", ""],
-    ])
-
-
-def _build_ins_wrapper_dcsfc_update_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
-    source_module = _source_module_for_wrapper("stop")
-    id_machine = _tx_dynamic_str(tx, "id_machine", "machine_id", "gv_id_machine")
-    res_id = _tx_dynamic_str(tx, "res_id", "resource_id", "gv_res_id")
-    mode_value = _tx_dynamic_str(tx, "mode", "trans_mode") or "T"
-    multi_job_flag = _normalize_multi_job_flag(
-        _tx_dynamic_str(tx, "multi_job_flag", "v_multi_job_flag")
-    )
-    issue_parent_flag = _bool_to_flag(bool(getattr(tx, "issue_parent", False)))
-    ser_num_list = _tx_dynamic_str(tx, "ser_num_list")
-    return [
-        "1",
-        "",
-        emp_num,
-        multi_job_flag,
-        "4",
-        tx.infor_job,
-        tx.infor_suffix or "0",
-        tx.oper_num,
-        _format_decimal(tx.qty_completed),
-        _format_decimal(tx.qty_scrapped),
-        _format_decimal(tx.qty_moved),
-        _bool_to_flag(tx.oper_complete),
-        _bool_to_flag(tx.job_complete),
-        issue_parent_flag,
-        _tx_dynamic_str(tx, "loc", "location"),
-        _tx_dynamic_str(tx, "lot"),
-        tx.scrap_reason or "",
-        "0",
-        ser_num_list,
-        "",
-        "",
-        source_module,
-        id_machine,
-        res_id,
-        "0",
-        mode_value,
-        "",
-    ]
-
-
-def _build_dcsfc_mchtrx_candidates(tx: WorkshopTransaction, emp_num: str) -> List[List[str]]:
-    suffix = tx.infor_suffix or "0"
-    item_value = tx.infor_item or ""
-    whse_value = _tx_dynamic_str(tx, "whse", "warehouse") or _WORKSHOP_DEFAULT_WHSE
-    issue_parent_flag = _bool_to_flag(bool(getattr(tx, "issue_parent", False)))
-    ukoncit_stroj_flag = _normalize_bool_flag(
-        _tx_dynamic_str(tx, "ukoncit_stroj_flag"),
-        default="1",
-    )
-    ser_num_list = _tx_dynamic_str(tx, "ser_num_list")
-    multi_job_flag = _normalize_multi_job_flag(
-        _tx_dynamic_str(tx, "multi_job_flag", "v_multi_job_flag")
-    )
-    qty_comp = _format_decimal(tx.qty_completed)
-    qty_scrap = _format_decimal(tx.qty_scrapped)
-    qty_move = _format_decimal(tx.qty_moved)
-    loc_value = _tx_dynamic_str(tx, "loc", "location")
-    lot_value = _tx_dynamic_str(tx, "lot")
-    reason_value = tx.scrap_reason or ""
-
-    def _candidate(
-        trans_code: str,
-        *,
-        item: str,
-        whse: str,
-        multi_job: str,
-        qty_complete_value: str,
-        qty_scrap_value: str,
-        qty_move_value: str,
-    ) -> List[str]:
-        return [
-            "",
-            emp_num,
-            multi_job,
-            trans_code,
-            tx.infor_job,
-            suffix,
-            tx.oper_num,
-            item,
-            whse,
-            qty_complete_value,
-            qty_scrap_value,
-            qty_move_value,
-            _bool_to_flag(tx.oper_complete),
-            _bool_to_flag(tx.job_complete),
-            issue_parent_flag,
-            loc_value,
-            lot_value,
-            reason_value,
-            ser_num_list,
-            "",
-            ukoncit_stroj_flag,
-            "",
-        ]
-
-    # Canonical IL candidate first, then tenant-compatibility fallbacks.
-    # Some installations return SP error 16 for strict combinations.
-    item_fallback = "0"
-    qty_variants: List[tuple[str, str, str]] = [(qty_comp, qty_scrap, qty_move)]
-    if qty_comp == "0.00000000" and qty_scrap == "0.00000000" and qty_move == "0.00000000":
-        qty_variants.append(("", "", ""))
-
-    canonical = [
-        _candidate(
-            "J",
-            item=item_value,
-            whse=whse_value,
-            multi_job=multi_job_flag,
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "1",
-            item=item_value,
-            whse=whse_value,
-            multi_job=multi_job_flag,
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "J",
-            item=item_fallback,
-            whse=whse_value,
-            multi_job=multi_job_flag,
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "1",
-            item=item_fallback,
-            whse=whse_value,
-            multi_job=multi_job_flag,
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "J",
-            item=item_value,
-            whse="",
-            multi_job=multi_job_flag,
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "J",
-            item=item_fallback,
-            whse="",
-            multi_job=multi_job_flag,
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "J",
-            item=item_value,
-            whse=whse_value,
-            multi_job="0",
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-        _candidate(
-            "J",
-            item=item_fallback,
-            whse=whse_value,
-            multi_job="0",
-            qty_complete_value=qty_comp,
-            qty_scrap_value=qty_scrap,
-            qty_move_value=qty_move,
-        ),
-    ]
-
-    generated: List[List[str]] = []
-    multi_job_candidates = [multi_job_flag]
-    if multi_job_flag != "0":
-        multi_job_candidates.append("0")
-    for trans_code in ("J", "1"):
-        for item_candidate in (item_value, item_fallback):
-            for whse_candidate in (whse_value, ""):
-                for multi_job_candidate in multi_job_candidates:
-                    for qty_complete_value, qty_scrap_value, qty_move_value in qty_variants:
-                        generated.append(
-                            _candidate(
-                                trans_code,
-                                item=item_candidate,
-                                whse=whse_candidate,
-                                multi_job=multi_job_candidate,
-                                qty_complete_value=qty_complete_value,
-                                qty_scrap_value=qty_scrap_value,
-                                qty_move_value=qty_move_value,
-                            )
-                        )
-    return _dedupe_candidates(canonical + generated)
-
-
-def _build_sfc34_params(tx: WorkshopTransaction, emp_num: str) -> List[str]:
-    actual_hours = tx.actual_hours
-    if actual_hours is None and tx.started_at and tx.finished_at:
-        delta = tx.finished_at - tx.started_at
-        actual_hours = round(delta.total_seconds() / 3600, 4)
-
-    tx_date = _format_infor_datetime(tx.finished_at)
-
-    return [
-        emp_num,  # 0 @TEmpNum
-        "",  # 1 must stay empty
-        tx.infor_job,  # 2 @TJobNum
-        tx.infor_suffix or "0",  # 3 @TJobSuffix
-        tx.oper_num,  # 4 @TOperNum
-        str(tx.qty_completed or 0),  # 5 @QtyComp
-        str(tx.qty_scrapped or 0),  # 6 @QtyScrap
-        str(tx.qty_moved or 0),  # 7 @QtyMove
-        str(actual_hours or 0),  # 8 @Hours
-        _bool_to_flag(tx.oper_complete),  # 9 @Complete
-        _bool_to_flag(tx.job_complete),  # 10 @Close
-        "0",  # 11 @IssueParent
-        "",  # 12 @Location
-        "",  # 13 @Lot
-        tx.scrap_reason or "",  # 14 @ReasonCode
-        "",  # 15 @SerNumList
-        tx.wc or "",  # 16 @Wc
-        "",  # 17 @Infobar OUT
-        "",  # 18 @Stroj
-        tx_date,  # 19 @DatumTransakce (empty -> Infor server datetime)
-    ]
 
 
 # ============================================================================
 # DB-read funkce — čtení z lokální SQLite DB (< 10ms)
 # ============================================================================
+
+# Cache: jednou za request/lifetime stačí — tabulka se nemění uprostřed requestu
+_sync_check_cache: Dict[str, bool] = {}
+
+
+async def is_table_synced(db: AsyncSession, table_name: str) -> bool:
+    """Zkontroluje, zda tabulka obsahuje alespoň 1 řádek (= sync proběhl).
+
+    Používá se místo `if db_data:` — prázdný filtrovaný výsledek
+    NEZNAMENÁ, že sync neproběhl. Pokud tabulka má data,
+    vrátíme prázdný výsledek místo drahého Infor fallbacku.
+
+    Cache per-process (reset při restartu = OK, sync běží periodicky).
+    """
+    if table_name in _sync_check_cache:
+        return _sync_check_cache[table_name]
+
+    from sqlalchemy import text
+    result = await db.execute(text(f"SELECT 1 FROM {table_name} LIMIT 1"))
+    synced = result.first() is not None
+    if synced:
+        # Cache jen pozitivní výsledek — po prvním syncu zůstává True
+        _sync_check_cache[table_name] = True
+    return synced
 
 async def read_wc_queue_from_db(
     db: AsyncSession,
@@ -4137,6 +3168,7 @@ async def read_wc_queue_from_db(
 ) -> List[Dict[str, Any]]:
     """Načte frontu z lokální tabulky workshop_job_routes (job_stat='R')."""
     from app.models.workshop_job_route import WorkshopJobRoute
+    from sqlalchemy import or_, not_, and_
 
     query = select(WorkshopJobRoute).where(
         WorkshopJobRoute.deleted_at.is_(None),
@@ -4145,16 +3177,29 @@ async def read_wc_queue_from_db(
     if wc:
         query = query.where(WorkshopJobRoute.wc == wc.strip())
 
+    # SQL-side completed filter (COALESCE for NULL-safe ILIKE)
+    state_conditions = []
+    for marker in _DONE_STATE_MARKERS:
+        state_conditions.append(func.coalesce(WorkshopJobRoute.jbr_state, '').ilike(f"%{marker}%"))
+        state_conditions.append(func.coalesce(WorkshopJobRoute.jbr_state_asd, '').ilike(f"%{marker}%"))
+    qty_done = and_(
+        WorkshopJobRoute.job_qty_released > 0,
+        (func.coalesce(WorkshopJobRoute.qty_complete, 0)
+         + func.coalesce(WorkshopJobRoute.qty_scrapped, 0))
+        >= WorkshopJobRoute.job_qty_released,
+    )
+    query = query.where(not_(or_(*state_conditions, qty_done)))
+
+    # SQL-side job filter
+    if job_filter:
+        query = query.where(WorkshopJobRoute.job.ilike(f"%{job_filter.strip()}%"))
+
     result = await db.execute(query)
     entries = result.scalars().all()
 
     rows = [_wjr_to_queue_dict(e) for e in entries]
+    # Python safety net
     rows = [r for r in rows if not _is_operation_completed_row(r)]
-
-    # Filtr
-    if job_filter:
-        jf = job_filter.strip().upper()
-        rows = [r for r in rows if jf in (r.get("Job", "").upper())]
 
     rows = sort_queue(rows, sort_by=sort_by, sort_dir=sort_dir)
     return rows[:limit]
@@ -4176,6 +3221,7 @@ async def read_machine_plan_from_db(
                 Má přednost před job_filter.
     """
     from app.models.workshop_job_route import WorkshopJobRoute
+    from sqlalchemy import or_, not_, and_
 
     query = select(WorkshopJobRoute).where(
         WorkshopJobRoute.deleted_at.is_(None),
@@ -4184,6 +3230,30 @@ async def read_machine_plan_from_db(
     if wc:
         query = query.where(WorkshopJobRoute.wc == wc.strip())
 
+    # SQL-side completed filter (COALESCE for NULL-safe ILIKE)
+    state_conditions = []
+    for marker in _DONE_STATE_MARKERS:
+        state_conditions.append(func.coalesce(WorkshopJobRoute.jbr_state, '').ilike(f"%{marker}%"))
+        state_conditions.append(func.coalesce(WorkshopJobRoute.jbr_state_asd, '').ilike(f"%{marker}%"))
+    qty_done = and_(
+        WorkshopJobRoute.job_qty_released > 0,
+        (func.coalesce(WorkshopJobRoute.qty_complete, 0)
+         + func.coalesce(WorkshopJobRoute.qty_scrapped, 0))
+        >= WorkshopJobRoute.job_qty_released,
+    )
+    query = query.where(not_(or_(*state_conditions, qty_done)))
+
+    # SQL-side search / job_filter
+    if search:
+        s = f"%{search.strip()}%"
+        query = query.where(or_(
+            WorkshopJobRoute.job.ilike(s),
+            WorkshopJobRoute.der_job_item.ilike(s),
+            WorkshopJobRoute.job_description.ilike(s),
+        ))
+    elif job_filter:
+        query = query.where(WorkshopJobRoute.job.ilike(f"%{job_filter.strip()}%"))
+
     result = await db.execute(query)
     entries = result.scalars().all()
 
@@ -4191,22 +3261,10 @@ async def read_machine_plan_from_db(
     for e in entries:
         d = _wjr_to_queue_dict(e)
         d["JobStat"] = e.job_stat or "R"
-        # Filtr completed operací
+        # Python safety net — catches edge cases SQL filter might miss
         if _is_operation_completed_row(d):
             continue
         rows.append(d)
-
-    if search:
-        s = search.strip().upper()
-        rows = [
-            r for r in rows
-            if s in (r.get("Job", "") or "").upper()
-            or s in (r.get("DerJobItem", "") or "").upper()
-            or s in (r.get("JobDescription", "") or "").upper()
-        ]
-    elif job_filter:
-        jf = job_filter.strip().upper()
-        rows = [r for r in rows if jf in (r.get("Job", "").upper())]
 
     rows = sort_queue(rows, sort_by=sort_by, sort_dir=sort_dir)
     return rows[:record_cap]

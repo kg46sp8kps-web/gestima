@@ -76,19 +76,19 @@ router.beforeEach(async (to) => {
 
   if (!authInitialized) {
     authInitialized = true
-    if (!auth.isLoggedIn) {
+    if (!auth.isLoggedIn && !to.meta.public) {
       // Try to restore session from existing HttpOnly cookie
+      // Skip on public pages (terminal-login) — no cookie expected
       await auth.fetchMe()
     }
   }
 
   if (!to.meta.public && !auth.isLoggedIn) {
+    // Terminal routes → terminal PIN login
+    if (to.matched.some(r => r.meta.terminal)) {
+      return { name: 'terminal-login' }
+    }
     return { name: 'login', query: { redirect: to.fullPath } }
-  }
-
-  // Terminal auth guard
-  if (to.matched.some(r => r.meta.terminal) && !auth.isLoggedIn) {
-    return { name: 'terminal-login' }
   }
 
   if (to.name === 'login' && auth.isLoggedIn) {

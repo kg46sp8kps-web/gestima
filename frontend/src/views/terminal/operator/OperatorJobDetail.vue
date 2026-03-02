@@ -4,8 +4,9 @@ import { useRouter } from 'vue-router'
 import { useOperatorStore } from '@/stores/operator'
 import { useUiStore } from '@/stores/ui'
 import * as workshopApi from '@/api/workshop'
-import { getMachinePlanDnd } from '@/api/machinePlanDnd'
-import type { MachinePlanItem, WorkshopMaterial, WorkshopTransactionCreate } from '@/types/workshop'
+import * as tsdApi from '@/api/industreamTsd'
+import * as tsdFiddlerApi from '@/api/tsdFiddler'
+import type { MachinePlanItem, WorkshopMaterial } from '@/types/workshop'
 import Input from '@/components/ui/Input.vue'
 import InlineDocViewer from '../shared/InlineDocViewer.vue'
 
@@ -24,15 +25,44 @@ const materials = ref<WorkshopMaterial[]>([])
 const loadingMaterials = ref(false)
 
 // Timer state
-const isRunning = ref(false)
-const isSetup = ref(false)
 const now = ref(Date.now())
 let ticker: ReturnType<typeof setInterval> | null = null
 
-// Stop form
+// TSD state — single code path: local start → Infor Presunout on end
+const isRunning = ref(false)
+const isSetup = ref(false)
+const startedAt = ref<number>(0) // epoch ms for timer
+const submitting = ref(false)
 const qtyCompleted = ref<number | undefined>(undefined)
 const qtyScrapped = ref<number | undefined>(undefined)
-const submitting = ref(false)
+const error = ref<string>('')
+
+// FIDDLER state — Fiddler-verified START/END pairing with machine transactions
+const fiddlerRunning = ref(false)
+const fiddlerSetup = ref(false)
+const fiddlerStartedAt = ref<number>(0)
+const fiddlerSubmitting = ref(false)
+const fiddlerQtyCompleted = ref<number | undefined>(undefined)
+const fiddlerQtyScrapped = ref<number | undefined>(undefined)
+const fiddlerError = ref<string>('')
+
+const fiddlerElapsed = computed(() => {
+  if (!fiddlerRunning.value || !fiddlerStartedAt.value) return ''
+  const diff = Math.max(0, Math.floor((now.value - fiddlerStartedAt.value) / 1000))
+  const h = Math.floor(diff / 3600)
+  const m = Math.floor((diff % 3600) / 60)
+  const s = diff % 60
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+})
+
+const elapsed = computed(() => {
+  if (!isRunning.value || !startedAt.value) return ''
+  const diff = Math.max(0, Math.floor((now.value - startedAt.value) / 1000))
+  const h = Math.floor(diff / 3600)
+  const m = Math.floor((diff % 3600) / 60)
+  const s = diff % 60
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+})
 
 onMounted(async () => {
   ticker = setInterval(() => { now.value = Date.now() }, 1000)
@@ -45,63 +75,34 @@ onUnmounted(() => {
 
 async function loadData() {
   loading.value = true
+  loadingMaterials.value = true
   try {
-    // Use DnD endpoint — SAME data source as machine plan DnD
-    let allItems: MachinePlanItem[] = []
-    if (operator.selectedWc) {
-      const data = await getMachinePlanDnd(operator.selectedWc)
-      allItems = [...data.planned, ...data.unassigned]
-    }
-    // If not found in selected WC, the job might be on another WC
-    queueItem.value = allItems.find(
+    // Parallel fetch: job data (DB-first, <10ms) + materials (Infor, ~500ms)
+    const [flatItems, mats] = await Promise.all([
+      workshopApi.getMachinePlan({ job: props.job }),
+      workshopApi.getOperationMaterials(props.job, props.oper, '0').catch(() => [] as WorkshopMaterial[]),
+    ])
+
+    queueItem.value = flatItems.find(
       i => i.Job === props.job && i.OperNum === props.oper,
     ) ?? null
 
-    // Fallback: if job not found in WC plan, fetch flat for this specific job
-    if (!queueItem.value) {
-      const flatItems = await workshopApi.getMachinePlan({ job: props.job })
-      queueItem.value = flatItems.find(
-        i => i.Job === props.job && i.OperNum === props.oper,
-      ) ?? null
+    materials.value = mats
+
+    // If we found suffix, re-fetch materials with correct suffix (only if different from '0')
+    if (queueItem.value && queueItem.value.Suffix && queueItem.value.Suffix !== '0') {
+      try {
+        materials.value = await workshopApi.getOperationMaterials(
+          props.job, props.oper, queueItem.value.Suffix,
+        )
+      } catch { /* keep first fetch result */ }
     }
 
-    // Check if this job is currently running
-    const active = operator.activeJobs.find(
-      a => a.job === props.job && a.oper_num === props.oper,
-    )
-    if (active) {
-      isRunning.value = true
-      isSetup.value = active.trans_type === 'setup_start'
-    }
-
-    // Load materials
-    loadingMaterials.value = true
-    try {
-      materials.value = await workshopApi.getOperationMaterials(
-        props.job, props.oper, queueItem.value?.Suffix ?? '0',
-      )
-    } catch {
-      materials.value = []
-    } finally {
-      loadingMaterials.value = false
-    }
   } finally {
     loading.value = false
+    loadingMaterials.value = false
   }
 }
-
-const elapsed = computed(() => {
-  const active = operator.activeJobs.find(
-    a => a.job === props.job && a.oper_num === props.oper,
-  )
-  if (!active) return ''
-  const start = new Date(active.started_at).getTime()
-  const diff = Math.max(0, Math.floor((now.value - start) / 1000))
-  const h = Math.floor(diff / 3600)
-  const m = Math.floor((diff % 3600) / 60)
-  const s = diff % 60
-  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-})
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return '-'
@@ -124,10 +125,18 @@ function statClass(stat: string | undefined): string {
 }
 
 // === Document viewer ===
+const docViewerMode = ref<'pdf' | '3d' | 'all'>('all')
 const docViewerOpen = ref(false)
 
-function openDocs() {
+function openPdf() {
   if (!queueItem.value?.DerJobItem) return
+  docViewerMode.value = 'pdf'
+  docViewerOpen.value = true
+}
+
+function open3d() {
+  if (!queueItem.value?.DerJobItem) return
+  docViewerMode.value = '3d'
   docViewerOpen.value = true
 }
 
@@ -159,147 +168,181 @@ function vpOpProgress(op: import('@/types/workshop').WorkshopOperation): number 
   return Math.min(100, Math.round(((op.QtyComplete ?? 0) / op.QtyReleased) * 100))
 }
 
-async function createAndPostTransaction(payload: WorkshopTransactionCreate) {
-  const created = await workshopApi.createTransaction(payload)
-  return await workshopApi.postTransaction(created.id)
-}
+// === TSD handlers — single code path ===
 
-// === Actions ===
-
-async function startProduction() {
-  if (!queueItem.value || isRunning.value) return
-  operator.touchActivity()
-  try {
-    const posted = await createAndPostTransaction({
-      infor_job: queueItem.value.Job,
-      infor_suffix: queueItem.value.Suffix ?? '0',
-      infor_item: queueItem.value.DerJobItem ?? null,
-      oper_num: queueItem.value.OperNum,
-      wc: queueItem.value.Wc ?? null,
-      trans_type: 'start',
-      started_at: new Date().toISOString(),
-    })
-    await Promise.all([
-      operator.fetchActiveJobs(),
-      operator.fetchTransactionAlerts(),
-    ])
-    const active = operator.activeJobs.find(
-      a => a.job === props.job && a.oper_num === props.oper,
-    )
-    isRunning.value = Boolean(active)
-    isSetup.value = active?.trans_type === 'setup_start'
-
-    if (posted.status === 'posted' && active) {
-      ui.showSuccess('Výroba zahájena')
-      return
-    }
-    ui.showError(`START selhal: ${posted.error_msg ?? 'Nepodařilo se odeslat do Inforu'}`)
-  } catch {
-    await operator.fetchTransactionAlerts()
-    ui.showError('START selhal: Nepodařilo se odeslat do Inforu')
+function _tsdReq(): tsdApi.TsdStartRequest | null {
+  if (!queueItem.value) return null
+  return {
+    job: queueItem.value.Job,
+    suffix: queueItem.value.Suffix ?? '0',
+    oper_num: queueItem.value.OperNum,
+    wc: queueItem.value.Wc ?? '',
+    item: queueItem.value.DerJobItem ?? '',
   }
 }
 
-async function startSetup() {
-  if (!queueItem.value || isRunning.value) return
-  operator.touchActivity()
-  try {
-    const posted = await createAndPostTransaction({
-      infor_job: queueItem.value.Job,
-      infor_suffix: queueItem.value.Suffix ?? '0',
-      infor_item: queueItem.value.DerJobItem ?? null,
-      oper_num: queueItem.value.OperNum,
-      wc: queueItem.value.Wc ?? null,
-      trans_type: 'setup_start',
-      started_at: new Date().toISOString(),
-    })
-    await Promise.all([
-      operator.fetchActiveJobs(),
-      operator.fetchTransactionAlerts(),
-    ])
-    const active = operator.activeJobs.find(
-      a => a.job === props.job && a.oper_num === props.oper,
-    )
-    isRunning.value = Boolean(active)
-    isSetup.value = active?.trans_type === 'setup_start'
+function extractError(e: unknown): string {
+  if (e && typeof e === 'object') {
+    const obj = e as Record<string, unknown>
+    const resp = obj.response as Record<string, unknown> | undefined
+    const data = resp?.data as Record<string, unknown> | undefined
+    if (typeof data?.detail === 'string') return data.detail
+    if (typeof obj.message === 'string') return obj.message
+  }
+  return 'Chyba'
+}
 
-    if (posted.status === 'posted' && active) {
-      ui.showSuccess('Seřízení zahájeno')
-      return
-    }
-    ui.showError(`START selhal: ${posted.error_msg ?? 'Nepodařilo se odeslat do Inforu'}`)
-  } catch {
-    await operator.fetchTransactionAlerts()
-    ui.showError('START selhal: Nepodařilo se odeslat do Inforu')
+async function startSetup() {
+  const req = _tsdReq()
+  if (!req || isRunning.value) return
+  operator.touchActivity()
+  error.value = ''
+  try {
+    await tsdApi.startSetup(req)
+    isRunning.value = true
+    isSetup.value = true
+    startedAt.value = Date.now()
+    ui.showSuccess('Seřízení zahájeno')
+  } catch (e: unknown) {
+    error.value = extractError(e)
+    ui.showError(`START SETUP: ${error.value}`)
+  }
+}
+
+async function startProduction() {
+  const req = _tsdReq()
+  if (!req || isRunning.value) return
+  operator.touchActivity()
+  error.value = ''
+  try {
+    await tsdApi.startWork(req)
+    isRunning.value = true
+    isSetup.value = false
+    startedAt.value = Date.now()
+    ui.showSuccess('Výroba zahájena')
+  } catch (e: unknown) {
+    error.value = extractError(e)
+    ui.showError(`START WORK: ${error.value}`)
   }
 }
 
 async function stopWork() {
   if (!isRunning.value) return
+  const req = _tsdReq()
+  if (!req) return
   operator.touchActivity()
   submitting.value = true
-
+  error.value = ''
   try {
-    const active = operator.activeJobs.find(
-      a => a.job === props.job && a.oper_num === props.oper,
-    )
-    if (!active) {
-      isRunning.value = false
+    if (isSetup.value) {
+      // End Setup → auto-starts Work
+      await tsdApi.endSetup(req)
+      // Setup ended, work auto-started — switch to production mode
       isSetup.value = false
-      await operator.fetchTransactionAlerts()
-      return
-    }
-
-    const finishedAt = new Date()
-    const startedAt = new Date(active.started_at)
-    const actualHours = isNaN(startedAt.getTime())
-      ? null
-      : Math.round(((finishedAt.getTime() - startedAt.getTime()) / 3_600_000) * 10000) / 10000
-    const stopType = active.trans_type === 'setup_start' ? 'setup_end' : 'stop'
-
-    const posted = await createAndPostTransaction({
-      infor_job: active.job,
-      infor_suffix: active.suffix ?? '0',
-      infor_item: active.item ?? queueItem.value?.DerJobItem ?? null,
-      oper_num: active.oper_num,
-      wc: active.wc ?? queueItem.value?.Wc ?? null,
-      trans_type: stopType,
-      actual_hours: actualHours,
-      started_at: active.started_at,
-      finished_at: finishedAt.toISOString(),
-      qty_completed: stopType === 'stop' ? (qtyCompleted.value ?? 0) : null,
-      qty_scrapped: stopType === 'stop' ? (qtyScrapped.value ?? 0) : null,
-      oper_complete: false,
-    })
-    await Promise.all([
-      operator.fetchActiveJobs(),
-      operator.fetchTransactionAlerts(),
-    ])
-    const stillActive = operator.activeJobs.find(
-      a => a.job === props.job && a.oper_num === props.oper,
-    )
-    isRunning.value = Boolean(stillActive)
-    isSetup.value = stillActive?.trans_type === 'setup_start'
-
-    if (posted.status === 'posted' && !stillActive) {
+      startedAt.value = Date.now() // reset timer for production phase
+      ui.showSuccess('Seřízení ukončeno, výroba zahájena')
+    } else {
+      // End Work → ends run + machine run
+      await tsdApi.endWork({
+        ...req,
+        qty_complete: qtyCompleted.value ?? 0,
+        qty_scrapped: qtyScrapped.value ?? 0,
+      })
+      isRunning.value = false
+      startedAt.value = 0
       qtyCompleted.value = undefined
       qtyScrapped.value = undefined
       await operator.fetchStats()
-      ui.showSuccess(stopType === 'setup_end' ? 'Seřízení ukončeno a odesláno' : 'Čas uložen a odeslán do Inforu')
-    } else {
-      ui.showError(
-        `STOP selhal: ${posted.error_msg ?? 'Nepodařilo se odeslat do Inforu'} ` +
-        'Operace zůstává spuštěná.',
-      )
+      ui.showSuccess('Práce ukončena a odeslána do Inforu')
     }
-  } catch {
-    await Promise.all([
-      operator.fetchActiveJobs(),
-      operator.fetchTransactionAlerts(),
-    ])
-    ui.showError('STOP selhal: Nepodařilo se odeslat do Inforu. Operace zůstává spuštěná.')
+  } catch (e: unknown) {
+    error.value = extractError(e)
+    ui.showError(`STOP: ${error.value}`)
   } finally {
     submitting.value = false
+  }
+}
+
+// === FIDDLER handlers — START/END pairing with machine transactions ===
+
+function _fiddlerReq(): tsdFiddlerApi.TsdFiddlerStartRequest | null {
+  if (!queueItem.value) return null
+  return {
+    job: queueItem.value.Job,
+    suffix: queueItem.value.Suffix ?? '0',
+    oper_num: queueItem.value.OperNum,
+    item: queueItem.value.DerJobItem ?? '',
+    whse: 'MAIN',
+  }
+}
+
+async function fiddlerStartSetup() {
+  const req = _fiddlerReq()
+  if (!req || fiddlerRunning.value) return
+  operator.touchActivity()
+  fiddlerError.value = ''
+  try {
+    await tsdFiddlerApi.startSetup(req)
+    fiddlerRunning.value = true
+    fiddlerSetup.value = true
+    fiddlerStartedAt.value = Date.now()
+    ui.showSuccess('FIDDLER: Serizeni zahajeno')
+  } catch (e: unknown) {
+    fiddlerError.value = extractError(e)
+    ui.showError(`FIDDLER START SETUP: ${fiddlerError.value}`)
+  }
+}
+
+async function fiddlerStartProduction() {
+  const req = _fiddlerReq()
+  if (!req || fiddlerRunning.value) return
+  operator.touchActivity()
+  fiddlerError.value = ''
+  try {
+    const result = await tsdFiddlerApi.startWork(req)
+    fiddlerRunning.value = true
+    fiddlerSetup.value = false
+    fiddlerStartedAt.value = Date.now()
+    ui.showSuccess(`FIDDLER: Vyroba zahajena (stroj=${result.stroj ?? '?'})`)
+  } catch (e: unknown) {
+    fiddlerError.value = extractError(e)
+    ui.showError(`FIDDLER START WORK: ${fiddlerError.value}`)
+  }
+}
+
+async function fiddlerStopWork() {
+  if (!fiddlerRunning.value) return
+  const req = _fiddlerReq()
+  if (!req) return
+  operator.touchActivity()
+  fiddlerSubmitting.value = true
+  fiddlerError.value = ''
+  try {
+    if (fiddlerSetup.value) {
+      // End Setup → auto-starts Work
+      const result = await tsdFiddlerApi.endSetup(req)
+      fiddlerSetup.value = false
+      fiddlerStartedAt.value = Date.now()
+      ui.showSuccess(`FIDDLER: Serizeni ukonceno, vyroba zahajena (stroj=${result.stroj ?? '?'})`)
+    } else {
+      // End Work
+      await tsdFiddlerApi.endWork({
+        ...req,
+        qty_complete: fiddlerQtyCompleted.value ?? 0,
+        qty_scrapped: fiddlerQtyScrapped.value ?? 0,
+      })
+      fiddlerRunning.value = false
+      fiddlerStartedAt.value = 0
+      fiddlerQtyCompleted.value = undefined
+      fiddlerQtyScrapped.value = undefined
+      await operator.fetchStats()
+      ui.showSuccess('FIDDLER: Prace ukoncena (hodiny pocita Infor ze START/END)')
+    }
+  } catch (e: unknown) {
+    fiddlerError.value = extractError(e)
+    ui.showError(`FIDDLER STOP: ${fiddlerError.value}`)
+  } finally {
+    fiddlerSubmitting.value = false
   }
 }
 
@@ -385,14 +428,24 @@ function goBack() {
         </div>
       </div>
 
-      <!-- Document button -->
-      <button v-if="queueItem.DerJobItem" class="doc-btn-full" @click="openDocs">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-        Výkres / 3D model
-      </button>
+      <!-- Document buttons: PDF + 3D separately -->
+      <div v-if="queueItem.DerJobItem" class="doc-btn-row">
+        <button class="doc-btn-full" @click="openPdf">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Výkres
+        </button>
+        <button class="doc-btn-full" @click="open3d">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          3D Model
+        </button>
+      </div>
 
       <!-- VP detail button -->
       <button class="doc-btn-full" @click="openVpDetail">
@@ -404,10 +457,11 @@ function goBack() {
         Detail VP — všechny operace
       </button>
 
-      <!-- Inline doc viewer overlay -->
+      <!-- Inline doc viewer overlay (fullscreen) -->
       <InlineDocViewer
         :item="queueItem.DerJobItem ?? ''"
         :visible="docViewerOpen"
+        :mode="docViewerMode"
         @close="docViewerOpen = false"
       />
 
@@ -457,9 +511,11 @@ function goBack() {
         </div>
       </div>
 
-      <!-- Action area -->
+      <!-- Action area — single code path: TSD Presunout (WrapperSp TT=4 + SFC34 + Kapacity) -->
       <div class="action-area">
-        <!-- Not running: show start buttons side by side as squares -->
+        <div v-if="error" class="error-msg">{{ error }}</div>
+
+        <!-- Not running: show start buttons -->
         <template v-if="!isRunning">
           <div class="start-grid">
             <button class="action-square setup" @click="startSetup">
@@ -478,16 +534,16 @@ function goBack() {
           </div>
         </template>
 
-        <!-- Running: show timer and stop form -->
+        <!-- Running: show timer + stop -->
         <template v-else>
           <div class="running-panel">
-            <div class="running-timer">
+            <div :class="['running-timer', { 'running-timer--setup': isSetup }]">
               <span :class="['running-dot', { setup: isSetup }]" />
               <span class="running-label">{{ isSetup ? 'Seřízení' : 'Výroba' }}</span>
               <span class="running-elapsed">{{ elapsed }}</span>
             </div>
 
-            <!-- Qty inputs (visible only for production, not setup) -->
+            <!-- Qty inputs (only for production, not setup) -->
             <div v-if="!isSetup" class="qty-inputs">
               <div class="qty-group">
                 <label class="qty-label">Kusy OK</label>
@@ -525,7 +581,85 @@ function goBack() {
               <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                 <rect x="6" y="6" width="12" height="12" rx="1"/>
               </svg>
-              {{ submitting ? 'Odesílám...' : 'UKONČIT' }}
+              {{ submitting ? 'Odesílám...' : (isSetup ? 'UKONČIT SEŘÍZENÍ' : 'UKONČIT PRÁCI') }}
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- FIDDLER (START/END) — Fiddler-verified pairing with machine transactions -->
+      <div class="fiddler-section">
+        <h3 class="section-title fiddler-title">FIDDLER (START/END)</h3>
+
+        <div v-if="fiddlerError" class="error-msg">{{ fiddlerError }}</div>
+
+        <!-- Not running: show FIDDLER start buttons -->
+        <template v-if="!fiddlerRunning">
+          <div class="start-grid">
+            <button class="action-square fiddler-setup" @click="fiddlerStartSetup">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <span>SERIZENI (FIDDLER)</span>
+            </button>
+            <button class="action-square fiddler-start" @click="fiddlerStartProduction">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>VYROBA (FIDDLER)</span>
+            </button>
+          </div>
+        </template>
+
+        <!-- Running: show FIDDLER timer + stop -->
+        <template v-else>
+          <div class="running-panel">
+            <div :class="['running-timer fiddler-timer', { 'fiddler-timer--setup': fiddlerSetup }]">
+              <span :class="['running-dot fiddler-dot', { setup: fiddlerSetup }]" />
+              <span class="running-label">{{ fiddlerSetup ? 'Serizeni (F)' : 'Vyroba (F)' }}</span>
+              <span class="running-elapsed fiddler-elapsed">{{ fiddlerElapsed }}</span>
+            </div>
+
+            <!-- Qty inputs (only for production, not setup) -->
+            <div v-if="!fiddlerSetup" class="qty-inputs">
+              <div class="qty-group">
+                <label class="qty-label">Kusy OK</label>
+                <Input
+                  :model-value="fiddlerQtyCompleted ?? null"
+                  @update:modelValue="(v) => { fiddlerQtyCompleted = v == null ? undefined : Number(v) }"
+                  :bare="true"
+                  type="number"
+                  class="qty-input"
+                  inputmode="numeric"
+                  :min="0"
+                  placeholder="0"
+                />
+              </div>
+              <div class="qty-group">
+                <label class="qty-label">Zmetky</label>
+                <Input
+                  :model-value="fiddlerQtyScrapped ?? null"
+                  @update:modelValue="(v) => { fiddlerQtyScrapped = v == null ? undefined : Number(v) }"
+                  :bare="true"
+                  type="number"
+                  class="qty-input scrap"
+                  inputmode="numeric"
+                  :min="0"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <button
+              class="action-btn fiddler-stop"
+              :disabled="fiddlerSubmitting"
+              @click="fiddlerStopWork"
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="1"/>
+              </svg>
+              {{ fiddlerSubmitting ? 'Odesílám...' : (fiddlerSetup ? 'UKONCIT SERIZENI (F)' : 'UKONCIT (FIDDLER)') }}
             </button>
           </div>
         </template>
@@ -675,7 +809,12 @@ function goBack() {
   white-space: nowrap;
 }
 
-/* Document button */
+/* Document buttons */
+.doc-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
 .doc-btn-full {
   display: flex;
   align-items: center;
@@ -913,6 +1052,22 @@ function goBack() {
   flex-shrink: 0;
 }
 
+/* Error message */
+.error-msg {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--red, #ef5350);
+  background: rgba(239, 83, 80, 0.08);
+  border: 1px solid rgba(239, 83, 80, 0.2);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+.running-timer--setup {
+  background: rgba(255, 193, 7, 0.06) !important;
+  border-color: rgba(255, 193, 7, 0.2) !important;
+}
+
 /* VP detail overlay */
 .vp-overlay {
   position: fixed;
@@ -1043,5 +1198,48 @@ function goBack() {
   color: var(--t4);
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
+}
+
+/* FIDDLER section */
+.fiddler-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--b2);
+}
+.fiddler-title {
+  color: var(--cyan, #00bcd4) !important;
+}
+.action-square.fiddler-setup {
+  background: rgba(0, 188, 212, 0.08);
+  color: var(--cyan, #00bcd4);
+  border: 2px solid rgba(0, 188, 212, 0.3);
+  font-size: 13px;
+}
+.action-square.fiddler-start {
+  background: rgba(0, 188, 212, 0.08);
+  color: var(--cyan, #00bcd4);
+  border: 2px solid rgba(0, 188, 212, 0.3);
+  font-size: 13px;
+}
+.fiddler-timer {
+  background: rgba(0, 188, 212, 0.06) !important;
+  border-color: rgba(0, 188, 212, 0.2) !important;
+}
+.fiddler-timer--setup {
+  background: rgba(0, 188, 212, 0.04) !important;
+  border-color: rgba(0, 188, 212, 0.15) !important;
+}
+.fiddler-dot {
+  background: var(--cyan, #00bcd4) !important;
+}
+.fiddler-elapsed {
+  color: var(--cyan, #00bcd4) !important;
+}
+.action-btn.fiddler-stop {
+  background: rgba(0, 188, 212, 0.1);
+  color: var(--cyan, #00bcd4);
+  border: 2px solid rgba(0, 188, 212, 0.3);
 }
 </style>
