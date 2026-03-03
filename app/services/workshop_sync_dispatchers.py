@@ -19,6 +19,7 @@ from typing import Any, Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.infor_job_transaction import InforJobTransaction
 from app.models.workshop_job_route import WorkshopJobRoute
 from app.models.workshop_order_overview import WorkshopOrderOverview
 
@@ -105,6 +106,7 @@ async def dispatch_workshop_routes(
                 "qty_scrapped": _parse_float(row.get("QtyScrapped")),
                 "jsh_setup_hrs": _parse_float(row.get("JshSetupHrs")),
                 "der_run_mch_hrs": _parse_float(row.get("DerRunMchHrs")),
+                "der_run_lbr_hrs": _parse_float(row.get("DerRunLbrHrs")),
                 "op_datum_st": _as_clean_str(row.get("DerStartDate")),
                 "op_datum_sp": _as_clean_str(row.get("DerEndDate")),
                 "record_date": _as_clean_str(row.get("RecordDate")),
@@ -146,6 +148,88 @@ async def dispatch_workshop_routes(
         except Exception as e:
             all_errors.append(f"Route sync error: {e}")
             logger.error("Workshop route sync error: %s", e, exc_info=True)
+
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    return _build_result(total_created, total_updated, 0, all_errors)
+
+
+# ─── Job Transactions (SLJobTrans) ────────────────────────────────────────
+
+async def dispatch_job_transactions(
+    rows: List[Dict[str, Any]], db: AsyncSession
+) -> Dict[str, Any]:
+    """Upsert SLJobTrans do infor_job_transactions.
+
+    Klíč: trans_num (unique).
+    """
+    if not rows:
+        return _empty_result()
+
+    total_created = 0
+    total_updated = 0
+    all_errors: List[str] = []
+
+    # Batch lookup existujících záznamů
+    existing_map: Dict[str, InforJobTransaction] = {}
+    result = await db.execute(select(InforJobTransaction))
+    for entry in result.scalars().all():
+        existing_map[entry.trans_num] = entry
+
+    now = datetime.utcnow()
+
+    for row in rows:
+        try:
+            trans_num = _as_clean_str(row.get("TransNum"))
+            if not trans_num:
+                continue
+
+            job = _as_clean_str(row.get("Job"))
+            if not job:
+                continue
+
+            trans_type = _as_clean_str(row.get("TransType"))
+            ahrs = _parse_float(row.get("AHrs")) or 0.0
+
+            mapped = {
+                "trans_type": trans_type,
+                "trans_date": _as_clean_str(row.get("TransDate")),
+                "emp_num": _as_clean_str(row.get("EmpNum")),
+                "job": job,
+                "suffix": _as_clean_str(row.get("Suffix")) or "0",
+                "oper_num": _as_clean_str(row.get("OperNum")),
+                "wc": _as_clean_str(row.get("Wc")),
+                "run_hrs_t": ahrs if trans_type == "R" else 0.0,
+                "setup_hrs_t": ahrs if trans_type == "S" else 0.0,
+                "qty_complete": _parse_float(row.get("QtyComplete")),
+                "qty_scrapped": _parse_float(row.get("QtyScrapped")),
+                "record_date": _as_clean_str(row.get("RecordDate")),
+            }
+
+            existing = existing_map.get(trans_num)
+
+            if existing:
+                for attr, val in mapped.items():
+                    setattr(existing, attr, val)
+                existing.synced_at = now
+                total_updated += 1
+            else:
+                entry = InforJobTransaction(
+                    trans_num=trans_num,
+                    **mapped,
+                    synced_at=now,
+                )
+                db.add(entry)
+                existing_map[trans_num] = entry
+                total_created += 1
+
+        except Exception as e:
+            all_errors.append(f"Job transaction sync error: {e}")
+            logger.error("Job transaction sync error: %s", e, exc_info=True)
 
     try:
         await db.commit()

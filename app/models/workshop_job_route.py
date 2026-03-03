@@ -32,6 +32,7 @@ class WorkshopJobRoute(Base, AuditMixin):
     qty_scrapped = Column(Float)
     jsh_setup_hrs = Column(Float)
     der_run_mch_hrs = Column(Float)
+    der_run_lbr_hrs = Column(Float)               # DerRunLbrHrs — kusů/hod (práce)
     op_datum_st = Column(String(30))              # ISO date string (plánovaný začátek)
     op_datum_sp = Column(String(30))              # ISO date string (plánovaný konec)
     record_date = Column(String(30))              # Infor RecordDate pro watermark

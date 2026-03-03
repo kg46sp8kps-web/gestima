@@ -85,7 +85,7 @@ function startResize(e: MouseEvent) {
   height: 1px;
 }
 .split-divider:hover::after { opacity: 1; }
-.split-divider:hover { background: rgba(255,255,255,0.04); }
+.split-divider:hover { background: var(--input-bg); }
 .split-divider.active { background: var(--red-10); }
 .split-divider.active::after { opacity: 1; background: var(--red); }
 </style>

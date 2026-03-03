@@ -18,6 +18,10 @@ const props = defineProps<{
   isHot?: boolean
   running?: boolean
   elapsed?: string
+  nextWc?: string | null
+  primaryMaterial?: string | null
+  isoGroup?: string | null
+  showSawExtras?: boolean
 }>()
 
 defineEmits<{ click: [] }>()
@@ -95,33 +99,58 @@ function formatDate(d: string | null | undefined): string {
 </script>
 
 <template>
-  <div :class="['jcard', { running, 'jcard--hot': tierClass === 'hot', 'jcard--urgent': tierClass === 'urgent' }]" @click="$emit('click')">
-    <div class="jcard-top">
-      <div class="jcard-id">
-        <!-- Tier icon -->
-        <span v-if="tierClass === 'hot'" class="jcard-tier jcard-tier--hot" title="Hot">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 23c-3.6 0-7-2.4-7-7 0-3.3 2.3-5.8 4-7.5.5-.5 1.5-.2 1.5.5v2.2c0 .4.5.6.8.3C13.4 9.5 15 6.5 15 4c0-.7.8-1 1.3-.5C18.7 6 21 9.5 21 13c0 5.5-4 10-9 10z"/></svg>
-        </span>
-        <span v-else-if="tierClass === 'urgent'" class="jcard-tier jcard-tier--urgent" title="Urgent">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </span>
-        <strong>{{ job }}</strong>
-        <span class="jcard-oper">/ Op {{ operNum }}</span>
-        <span v-if="jobStat" :class="statBadgeClass(jobStat)">{{ jobStat }}</span>
-        <span v-if="wc" class="jcard-wc">{{ wc }}</span>
+  <div :class="['jcard', { running, 'jcard--hot': tierClass === 'hot', 'jcard--urgent': tierClass === 'urgent', 'jcard--has-iso': showSawExtras && isoGroup }]" @click="$emit('click')">
+    <!-- ISO group corner ribbon (SAW) -->
+    <div v-if="showSawExtras && isoGroup" :class="['jcard-iso', `jcard-iso--${isoGroup.toLowerCase()}`]">
+      <span class="jcard-iso-strip">{{ isoGroup }}</span>
+    </div>
+
+    <!-- Content: info + optional WC aside -->
+    <div :class="['jcard-content', { 'jcard-content--aside': showSawExtras && nextWc }]">
+      <div class="jcard-info">
+        <div class="jcard-top">
+          <div class="jcard-id">
+            <!-- Tier icon -->
+            <span v-if="tierClass === 'hot'" class="jcard-tier jcard-tier--hot" title="Hot">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 23c-3.6 0-7-2.4-7-7 0-3.3 2.3-5.8 4-7.5.5-.5 1.5-.2 1.5.5v2.2c0 .4.5.6.8.3C13.4 9.5 15 6.5 15 4c0-.7.8-1 1.3-.5C18.7 6 21 9.5 21 13c0 5.5-4 10-9 10z"/></svg>
+            </span>
+            <span v-else-if="tierClass === 'urgent'" class="jcard-tier jcard-tier--urgent" title="Urgent">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <strong>{{ job }}</strong>
+            <span class="jcard-oper">/ Op {{ operNum }}</span>
+            <span v-if="jobStat" :class="statBadgeClass(jobStat)">{{ jobStat }}</span>
+            <span v-if="wc && !showSawExtras" class="jcard-wc">{{ wc }}</span>
+          </div>
+          <span v-if="running && elapsed" class="jcard-timer">{{ elapsed }}</span>
+          <span v-else-if="effectiveDueDate" :class="['jcard-due', `jcard-due--${urgencyLevel}`]">
+            {{ formatDate(effectiveDueDate) }}
+          </span>
+        </div>
+
+        <div v-if="item || description" class="jcard-desc">
+          <span v-if="item" class="jcard-item">{{ item }}</span>
+          <span v-if="description">{{ description }}</span>
+        </div>
+
+        <!-- SAW material tag -->
+        <div v-if="showSawExtras && primaryMaterial" class="jcard-saw">
+          <span class="jcard-saw-tag">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            {{ primaryMaterial }}
+          </span>
+        </div>
       </div>
-      <span v-if="running && elapsed" class="jcard-timer">{{ elapsed }}</span>
-      <span v-else-if="effectiveDueDate" :class="['jcard-due', `jcard-due--${urgencyLevel}`]">
-        {{ formatDate(effectiveDueDate) }}
-      </span>
+
+      <!-- WC aside (SAW) -->
+      <div v-if="showSawExtras && nextWc" class="jcard-wc-aside">
+        <span class="jcard-wc-card">{{ wc }}</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" class="jcard-wc-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+        <span class="jcard-wc-card jcard-wc-card--next">{{ nextWc }}</span>
+      </div>
     </div>
 
-    <div v-if="item || description" class="jcard-desc">
-      <span v-if="item" class="jcard-item">{{ item }}</span>
-      <span v-if="description">{{ description }}</span>
-    </div>
-
-    <!-- Progress bar -->
+    <!-- Progress bar (full width) -->
     <div v-if="qtyReleased" class="jcard-progress">
       <div class="jcard-bar">
         <div
@@ -138,6 +167,7 @@ function formatDate(d: string | null | undefined): string {
 
 <style scoped>
 .jcard {
+  position: relative;
   min-height: 88px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--b2);
@@ -149,6 +179,28 @@ function formatDate(d: string | null | undefined): string {
   gap: 8px;
   transition: background 100ms, border-color 100ms;
   -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+.jcard--has-iso {
+  padding-left: 28px;
+}
+/* Content wrapper: column by default, row when WC aside present */
+.jcard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jcard-content--aside {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+}
+.jcard-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 .jcard:active {
   background: rgba(255, 255, 255, 0.06);
@@ -260,6 +312,97 @@ function formatDate(d: string | null | undefined): string {
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* ISO group corner ribbon */
+.jcard-iso {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+.jcard-iso-strip {
+  position: absolute;
+  top: 10px;
+  left: -18px;
+  width: 72px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--t1, #fff);
+  transform: rotate(-45deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.jcard-iso--p .jcard-iso-strip { background: var(--blue, #2563eb); }
+.jcard-iso--m .jcard-iso-strip { background: var(--amber, #ca8a04); }
+.jcard-iso--k .jcard-iso-strip { background: var(--red, #dc2626); }
+.jcard-iso--n .jcard-iso-strip { background: var(--green, #16a34a); }
+.jcard-iso--s .jcard-iso-strip { background: var(--orange, #ea580c); }
+.jcard-iso--h .jcard-iso-strip { background: var(--t4, #525252); }
+
+/* SAW extras */
+.jcard-saw {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* WC side panel — spans full card height */
+.jcard-wc-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid var(--b2);
+  flex-shrink: 0;
+}
+.jcard-wc-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--b2);
+  border-radius: 6px;
+  min-width: 48px;
+  text-align: center;
+}
+.jcard-wc-card--next {
+  color: var(--t3);
+  background: rgba(255, 255, 255, 0.03);
+}
+.jcard-wc-arrow {
+  color: var(--t4);
+  flex-shrink: 0;
+}
+.jcard-saw-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--t4);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--b2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
 }
 
 /* Tier icons */

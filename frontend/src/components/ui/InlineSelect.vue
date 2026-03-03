@@ -42,7 +42,7 @@ function selClass(): string {
 <style scoped>
 /* ─── Standard (.ei-sel pattern) ─── */
 .is {
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t2);
@@ -53,7 +53,7 @@ function selClass(): string {
   cursor: pointer;
   transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
-.is:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
+.is:focus { border-color: var(--b3); background: var(--input-bg-focus); color: var(--t1); }
 .is option { background: var(--ground); color: var(--t1); }
 
 /* ─── Ghost (.gi-sel pattern) ─── */

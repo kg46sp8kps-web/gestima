@@ -123,23 +123,33 @@ function tierIcon(item: MachinePlanItem): 'hot' | 'urgent' | null {
       <iframe
         v-else
         :key="currentPdf.fileId"
-        :src="`/api/files/${currentPdf.fileId}/preview`"
+        :src="`/api/files/${currentPdf.fileId}/preview#view=Fit`"
         class="qdb-pdf"
       />
 
-      <!-- Invisible tap zones — OVER iframe, always present -->
+      <!-- Tap zones — OVER iframe, with direction arrows -->
       <div
         v-if="currentIndex > 0"
         class="qdb-tap qdb-tap--left"
         @click.stop="goPrev"
         @touchend.stop.prevent="goPrev"
-      />
+      >
+        <svg class="qdb-tap-arrow" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="11 6 5 12 11 18"/>
+        </svg>
+      </div>
       <div
         v-if="currentIndex < total - 1"
         class="qdb-tap qdb-tap--right"
         @click.stop="goNext"
         @touchend.stop.prevent="goNext"
-      />
+      >
+        <svg class="qdb-tap-arrow" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="13 6 19 12 13 18"/>
+        </svg>
+      </div>
     </div>
 
     <!-- Position indicator -->
@@ -212,21 +222,39 @@ function tierIcon(item: MachinePlanItem): 'hot' | 'urgent' | null {
   background: rgba(255, 255, 255, 0.95);
 }
 
-/* Invisible tap zones — overlay on top of iframe */
+/* Tap zones — overlay on top of iframe */
 .qdb-tap {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 25%;
+  width: 20%;
   z-index: 10;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.18);
+  transition: background 150ms;
+}
+.qdb-tap:active {
+  background: rgba(0, 0, 0, 0.35);
+}
+.qdb-tap:active .qdb-tap-arrow {
+  transform: scale(0.8);
 }
 .qdb-tap--left {
   left: 0;
+  justify-content: center;
 }
 .qdb-tap--right {
   right: 0;
+  justify-content: center;
+}
+.qdb-tap-arrow {
+  color: white;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+  transition: transform 120ms ease-out;
 }
 
 /* Messages */

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Trash2Icon, StarIcon, EyeIcon, EyeOffIcon } from 'lucide-vue-next'
+import { Trash2Icon, StarIcon, EyeIcon, EyeOffIcon, SunIcon, MoonIcon, SparklesIcon } from 'lucide-vue-next'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useThemeStore } from '@/stores/theme'
 import { useDialog } from '@/composables/useDialog'
 import Modal from '@/components/ui/Modal.vue'
 
@@ -9,6 +10,7 @@ defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const ws = useWorkspaceStore()
+const themeStore = useThemeStore()
 const dialog = useDialog()
 
 const savingId = ref<number | null>(null)
@@ -55,8 +57,42 @@ async function handleToggleHeader(id: number) {
 </script>
 
 <template>
-  <Modal :model-value="modelValue" title="Správa layoutů" size="md" @update:model-value="emit('update:modelValue', $event)">
-    <!-- Toolbar -->
+  <Modal :model-value="modelValue" title="Nastavení" size="md" @update:model-value="emit('update:modelValue', $event)">
+    <!-- Theme toggle -->
+    <div class="lm-theme-row">
+      <span class="lm-theme-label">Vzhled</span>
+      <div class="lm-theme-toggle">
+        <button
+          :class="['lm-theme-btn', { active: themeStore.theme === 'dark' }]"
+          data-testid="theme-dark-btn"
+          @click="themeStore.theme = 'dark'"
+        >
+          <MoonIcon :size="12" />
+          Tmavý
+        </button>
+        <button
+          :class="['lm-theme-btn', { active: themeStore.theme === 'light' }]"
+          data-testid="theme-light-btn"
+          @click="themeStore.theme = 'light'"
+        >
+          <SunIcon :size="12" />
+          Světlý
+        </button>
+        <button
+          :class="['lm-theme-btn', { active: themeStore.theme === 'corporate' }]"
+          data-testid="theme-corporate-btn"
+          @click="themeStore.theme = 'corporate'"
+        >
+          <SparklesIcon :size="12" />
+          Moderní
+        </button>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="lm-sep" />
+
+    <!-- Layout toolbar -->
     <div class="lm-toolbar">
       <button
         class="btn-secondary"
@@ -145,6 +181,58 @@ async function handleToggleHeader(id: number) {
 </template>
 
 <style scoped>
+.lm-theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lm-theme-label {
+  font-size: var(--fsm);
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lm-theme-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--b1);
+  border-radius: var(--rs);
+  padding: 2px;
+}
+
+.lm-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: calc(var(--rs) - 1px);
+  background: transparent;
+  color: var(--t3);
+  font-family: var(--font);
+  font-size: var(--fsm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 100ms var(--ease);
+}
+.lm-theme-btn:hover { color: var(--t2); }
+.lm-theme-btn.active {
+  background: var(--surface);
+  color: var(--t1);
+  box-shadow: 0 1px 3px var(--shadow-drop);
+}
+
+.lm-sep {
+  height: 1px;
+  background: var(--b1);
+  margin-bottom: 12px;
+}
+
 .lm-toolbar {
   display: flex;
   gap: 6px;

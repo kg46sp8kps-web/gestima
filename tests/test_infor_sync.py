@@ -251,7 +251,8 @@ async def test_default_steps_config():
     assert "jobroutes_j" in step_names
     assert "workshop_orders" in step_names
     assert "workshop_jbr" in step_names
-    assert len(DEFAULT_STEPS) == 8
+    assert "job_transactions" in step_names
+    assert len(DEFAULT_STEPS) == 9
 
     # jobroutes_j replaces old production + workshop_routes
     assert "production" not in step_names

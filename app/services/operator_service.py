@@ -138,7 +138,7 @@ async def get_active_jobs(db: AsyncSession, username: str) -> List[Dict[str, Any
     return [row for _, row in active_rows]
 
 
-async def get_operator_stats(db: AsyncSession, username: str) -> Dict[str, Any]:
+async def get_operator_stats(db: AsyncSession, username: str, infor_emp_num: str | None = None) -> Dict[str, Any]:
     """Get operator statistics for today and this week."""
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -174,12 +174,31 @@ async def get_operator_stats(db: AsyncSession, username: str) -> Dict[str, Any]:
     )
     week = week_result.one()
 
+    # Norm fulfillment (requires infor_emp_num)
+    today_norm_pct = None
+    week_norm_pct = None
+    month_norm_pct = None
+    if infor_emp_num:
+        try:
+            from app.services.norm_performance_service import get_norm_summary
+            day_summary = await get_norm_summary(db, infor_emp_num, period="day")
+            week_summary = await get_norm_summary(db, infor_emp_num, period="week")
+            month_summary = await get_norm_summary(db, infor_emp_num, period="month")
+            today_norm_pct = day_summary.get("overall_fulfillment_pct")
+            week_norm_pct = week_summary.get("overall_fulfillment_pct")
+            month_norm_pct = month_summary.get("overall_fulfillment_pct")
+        except Exception as e:
+            logger.warning("Norm summary fetch failed: %s", e)
+
     return {
         "today_hours": round(float(today.hours), 2),
         "today_pieces": int(today.pieces),
         "today_scrap": int(today.scrap),
         "week_hours": round(float(week.hours), 2),
         "week_pieces": int(week.pieces),
+        "today_norm_pct": today_norm_pct,
+        "week_norm_pct": week_norm_pct,
+        "month_norm_pct": month_norm_pct,
     }
 
 

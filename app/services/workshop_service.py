@@ -3606,6 +3606,7 @@ def _wjr_to_queue_dict(e) -> Dict[str, Any]:
         "QtyScrapped": e.qty_scrapped,
         "JshSetupHrs": e.jsh_setup_hrs,
         "DerRunMchHrs": e.der_run_mch_hrs,
+        "DerRunLbrHrs": e.der_run_lbr_hrs,
         "OpDatumSt": e.op_datum_st,
         "OpDatumSp": e.op_datum_sp,
     }

@@ -92,7 +92,7 @@ function onChange(e: Event) {
   width: 100%;
   height: 28px;
   padding: 0 28px 0 10px;
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t1);
@@ -107,7 +107,7 @@ function onChange(e: Event) {
   border-color: var(--b3);
 }
 .select-ctrl:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .select-ctrl option {

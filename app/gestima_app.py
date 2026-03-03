@@ -15,7 +15,7 @@ from app.config import settings
 from app.database import init_db
 from app.logging_config import setup_logging, get_logger
 from app.rate_limiter import setup_rate_limiting
-from app.seed_data import seed_demo_parts
+from app.seed_data import seed_demo_parts, seed_employees
 from sqlalchemy import text
 
 from app.routers import (
@@ -128,8 +128,9 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info(f"🚀 GESTIMA {settings.VERSION} běží na http://localhost:8000")
 
-    # Seed demo data + check PIN backfill
+    # Seed employees + demo data + check PIN backfill
     async with async_session() as db:
+        await seed_employees(db)
         await seed_demo_parts(db)
         from app.services.auth_service import backfill_pin_checks
         orphan_count = await backfill_pin_checks(db)
@@ -284,6 +285,10 @@ app.include_router(industream_tsd_router.router, tags=["Industream TSD"])
 # TSD Fiddler — Fiddler-verified START/END pairing with machine transactions (prefix in router)
 from app.routers import tsd_fiddler_router
 app.include_router(tsd_fiddler_router.router, tags=["TSD Fiddler"])
+
+# TSD Mongoose — stateful IPS session for correct TSD reporting (prefix in router)
+from app.routers import tsd_mongoose_router
+app.include_router(tsd_mongoose_router.router, tags=["TSD Mongoose"])
 
 # Production Planner — vizualni Gantt dispečink VP
 from app.routers import production_planner_router

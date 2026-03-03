@@ -252,8 +252,8 @@ onUnmounted(() => {
   inset: -200px;
   z-index: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 60px 60px;
   animation: drift 40s linear infinite;
   pointer-events: none;
@@ -272,7 +272,7 @@ onUnmounted(() => {
 }
 .bg-orb.b {
   width: 400px; height: 400px; bottom: -15%; left: 10%;
-  background: radial-gradient(circle, rgba(229,57,53,0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--red-dim) 0%, transparent 70%);
   animation: orbFloat 15s ease-in-out infinite alternate-reverse;
 }
 
@@ -324,7 +324,7 @@ onUnmounted(() => {
 }
 .lchip:hover { color: var(--t2); background: var(--b1); }
 .lchip.on { color: var(--t1); background: var(--b1); border-color: var(--b2); }
-.lchip:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+.lchip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .module-search {
   position: relative;
@@ -372,7 +372,7 @@ onUnmounted(() => {
   background: var(--surface);
   border: 1px solid var(--b2);
   border-radius: var(--r);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.45);
+  box-shadow: 0 12px 36px var(--shadow-drop);
   z-index: 30;
   max-height: 284px;
   overflow-y: auto;
@@ -480,14 +480,14 @@ onUnmounted(() => {
   transition: all 150ms var(--ease); z-index: 20;
 }
 .fab:hover { background: var(--red); filter: brightness(1.1); transform: scale(1.08); }
-.fab:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+.fab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 /* Module picker */
 .mpk {
   position: fixed; bottom: 68px; right: 11px; width: 190px;
   background: var(--surface); backdrop-filter: blur(20px);
   border: 1px solid var(--b2); border-radius: var(--r);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; overflow: hidden;
+  box-shadow: 0 12px 40px var(--shadow-drop); z-index: 25; overflow: hidden;
   transform-origin: bottom right;
   transition: all 150ms var(--ease);
   opacity: 0; transform: scale(0.92) translateY(4px); pointer-events: none;
@@ -530,7 +530,7 @@ onUnmounted(() => {
   color: var(--t3); cursor: pointer; transition: all 60ms var(--ease);
 }
 .mpk-act:hover { background: var(--b3); color: var(--t1); }
-.mpk-act:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
+.mpk-act:focus-visible { outline: 2px solid var(--focus-ring); }
 
 /* Animations */
 @keyframes drift {

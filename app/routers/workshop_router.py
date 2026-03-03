@@ -258,7 +258,7 @@ async def get_machine_plan(
             db, wc=wc, job_filter=job, search=search, sort_by=sort_by, sort_dir=sort_dir, record_cap=limit,
         )
         t1 = time.perf_counter()
-        await machine_plan_service.enrich_flat_rows(db, db_data)
+        await machine_plan_service.enrich_flat_rows(db, db_data, wc=wc)
         t2 = time.perf_counter()
         logger.info("GET /machine-plan DB-read %.1fms, enrich %.1fms (%d rows, wc=%s)", (t1 - t0) * 1000, (t2 - t1) * 1000, len(db_data), wc)
         return JSONResponse(content=db_data, headers={"X-Source": "db", "X-Timing-Ms": f"{(t2-t0)*1000:.0f}"})
@@ -273,7 +273,7 @@ async def get_machine_plan(
             sort_dir=sort_dir,
             record_cap=limit,
         )
-        await machine_plan_service.enrich_flat_rows(db, rows)
+        await machine_plan_service.enrich_flat_rows(db, rows, wc=wc)
         return JSONResponse(content=rows, headers={"X-Source": "infor"})
     except Exception as exc:
         logger.error("fetch_machine_plan failed: %s", exc, exc_info=True)

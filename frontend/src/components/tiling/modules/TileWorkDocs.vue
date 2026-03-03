@@ -609,7 +609,7 @@ const downloadUrl = computed(() =>
 .pdf-nav-btn:hover:not(:disabled) { color: var(--t1); background: var(--b2); }
 .pdf-nav-btn:disabled { opacity: 0.3; cursor: default; }
 .pdf-nav-btn.active { color: var(--t1); background: var(--b2); }
-.pdf-nav-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
+.pdf-nav-btn:focus-visible { outline: 2px solid var(--focus-ring); }
 .pdf-page-info { font-size: var(--fsm); color: var(--t3); padding: 0 3px; white-space: nowrap; }
 .pdf-zoom-label { font-size: var(--fsm); color: var(--t3); padding: 0 3px; white-space: nowrap; min-width: 34px; text-align: center; }
 .pdf-dl {
@@ -621,7 +621,7 @@ const downloadUrl = computed(() =>
   flex-shrink: 0;
 }
 .pdf-dl:hover { color: var(--t1); border-color: var(--b3); background: var(--b1); }
-.pdf-dl:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
+.pdf-dl:focus-visible { outline: 2px solid var(--focus-ring); }
 
 /* ─── 3D viewer ─── */
 .model-loading {

@@ -196,7 +196,7 @@ function onDragEnd() {
 <style scoped>
 .ph {
   height: 28px;
-  background: rgba(255,255,255,0.025);
+  background: var(--thead-bg);
   border-bottom: 1px solid var(--b1);
   display: flex;
   align-items: center;
@@ -286,5 +286,5 @@ function onDragEnd() {
 }
 .pc:hover { background: var(--b1); color: var(--t1); }
 .pc.x:hover { background: rgba(248,113,113,0.12); color: var(--err); }
-.pc:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 1px; }
+.pc:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 </style>

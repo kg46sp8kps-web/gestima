@@ -47,7 +47,7 @@ defineEmits<{ click: [event: MouseEvent] }>()
   letter-spacing: 0.02em;
 }
 .btn:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .btn:disabled {

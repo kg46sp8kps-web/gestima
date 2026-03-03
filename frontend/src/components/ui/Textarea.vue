@@ -79,7 +79,7 @@ function onInput(e: Event) {
 
 .textarea-ctrl {
   padding: 6px;
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t2);
@@ -93,11 +93,11 @@ function onInput(e: Event) {
 .textarea-ctrl::placeholder { color: var(--t4); }
 .textarea-ctrl:focus {
   border-color: var(--b3);
-  background: rgba(255,255,255,0.07);
+  background: var(--input-bg-focus);
   color: var(--t1);
 }
 .textarea-ctrl:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

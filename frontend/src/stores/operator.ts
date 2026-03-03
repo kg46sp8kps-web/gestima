@@ -1,7 +1,15 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import * as operatorApi from '@/api/operator'
-import type { ActiveJob, OperatorStats, OperatorWorkcenter, TransactionAlert } from '@/types/operator'
+import type {
+  ActiveJob,
+  NormDetailRow,
+  OperatorStats,
+  OperatorWorkcenter,
+  TransactionAlert,
+} from '@/types/operator'
+import type { NormQueryParams } from '@/api/operator'
+import type { PriorityTier } from '@/types/production-planner'
 
 export const useOperatorStore = defineStore('operator', () => {
   const selectedWc = ref<string | null>(null)
@@ -12,6 +20,13 @@ export const useOperatorStore = defineStore('operator', () => {
   const workcenters = ref<OperatorWorkcenter[]>([])
   const lastActivity = ref<number>(Date.now())
   const isOnline = ref<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true)
+
+  // Norm performance state
+  const normDetails = ref<NormDetailRow[]>([])
+  const normDetailsLoading = ref(false)
+
+  // SSE tier overrides — persists across terminal page navigation
+  const tierOverrides = ref<Record<string, PriorityTier>>({})
 
   let refreshInterval: ReturnType<typeof setInterval> | null = null
 
@@ -53,6 +68,17 @@ export const useOperatorStore = defineStore('operator', () => {
     }
   }
 
+  async function fetchNormDetails(params: NormQueryParams = { period: 'day' }) {
+    normDetailsLoading.value = true
+    try {
+      normDetails.value = await operatorApi.getNormDetails(params)
+    } catch {
+      normDetails.value = []
+    } finally {
+      normDetailsLoading.value = false
+    }
+  }
+
   async function retryTransaction(txId: number): Promise<boolean> {
     try {
       await operatorApi.retryTransaction(txId)
@@ -84,6 +110,16 @@ export const useOperatorStore = defineStore('operator', () => {
     isOnline.value = value
   }
 
+  /** Store SSE tier change — case-insensitive key (uppercased) */
+  function applyTierChange(job: string, tier: PriorityTier) {
+    tierOverrides.value[job.toUpperCase()] = tier
+  }
+
+  /** Get tier override for a job (case-insensitive lookup) */
+  function getTierOverride(job: string): PriorityTier | undefined {
+    return tierOverrides.value[job.toUpperCase()]
+  }
+
   function startAutoRefresh() {
     stopAutoRefresh()
     refreshInterval = setInterval(() => {
@@ -106,6 +142,9 @@ export const useOperatorStore = defineStore('operator', () => {
     transactionAlerts.value = []
     stats.value = null
     workcenters.value = []
+    normDetails.value = []
+    normDetailsLoading.value = false
+    tierOverrides.value = {}
     stopAutoRefresh()
   }
 
@@ -118,6 +157,8 @@ export const useOperatorStore = defineStore('operator', () => {
     workcenters,
     lastActivity,
     isOnline,
+    normDetails,
+    normDetailsLoading,
     hasActiveJob,
     unresolvedTxCount,
     unresolvedErrorCount,
@@ -125,11 +166,15 @@ export const useOperatorStore = defineStore('operator', () => {
     fetchStats,
     fetchWorkcenters,
     fetchTransactionAlerts,
+    fetchNormDetails,
     retryTransaction,
     selectWorkcenter,
     selectWorkcenterGroup,
     touchActivity,
     setOnlineStatus,
+    tierOverrides,
+    applyTierChange,
+    getTierOverride,
     startAutoRefresh,
     stopAutoRefresh,
     $reset,

@@ -17,22 +17,44 @@ export const adminClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+/** Resolve login redirect path based on current page */
+function getLoginPath(): string {
+  const p = window.location.pathname
+  return p.startsWith('/terminal') ? '/terminal/login' : '/login'
+}
+
+/** Is the user currently on a login page? */
+function isOnLoginPage(): boolean {
+  const p = window.location.pathname
+  return p === '/login' || p === '/terminal/login'
+}
+
+// Debounce: prevent multiple concurrent redirects
+let redirecting = false
+
+function forceRedirectToLogin() {
+  if (redirecting || isOnLoginPage()) return
+  redirecting = true
+  window.location.href = getLoginPath()
+}
+
 function attachResponseInterceptor(client: typeof apiClient) {
   client.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (!error.response) return Promise.reject(error)
+      if (!error.response) {
+        // Network error / server unreachable — propagate, session guard handles it
+        return Promise.reject(error)
+      }
 
       const { status, data } = error.response
       const detail: string = data?.detail ?? 'Neznámá chyba'
 
       if (status === 401) {
-        // Don't redirect for login/pin-login attempts or operator terminal
         const url = error.config?.url ?? ''
         const isLoginAttempt = url.includes('/auth/login') || url.includes('/auth/pin-login') || url.includes('/auth/me')
-        const isOperatorPage = window.location.pathname.startsWith('/operator')
-        if (!isLoginAttempt && !isOperatorPage && window.location.pathname !== '/login') {
-          window.location.href = '/login'
+        if (!isLoginAttempt) {
+          forceRedirectToLogin()
         }
         return Promise.reject(new Error('Relace vypršela. Přihlaste se znovu.'))
       }

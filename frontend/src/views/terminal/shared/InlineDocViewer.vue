@@ -3,16 +3,23 @@
  * Inline document viewer for operator terminal.
  * Shows PDF (via iframe) or 3D model for a given item number.
  * Resolves item → Part → files automatically.
+ *
+ * Props:
+ *  - item: article number (DerJobItem from Infor)
+ *  - visible: show/hide overlay
+ *  - mode: 'pdf' | '3d' | 'all' — filter which file types to show
  */
 import { ref, watch, onUnmounted } from 'vue'
 import { apiClient } from '@/api/client'
-import * as filesApi from '@/api/files'
 import type { FileWithLinks } from '@/types/file-record'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   item: string
   visible: boolean
-}>()
+  mode?: 'pdf' | '3d' | 'all'
+}>(), {
+  mode: 'all',
+})
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -22,7 +29,6 @@ const files = ref<FileWithLinks[]>([])
 const selectedFile = ref<FileWithLinks | null>(null)
 const viewMode = ref<'pdf' | '3d' | null>(null)
 
-type PartSearchRow = { id: number }
 type DestroyableViewer = { Destroy?: () => void }
 
 // 3D viewer
@@ -41,7 +47,7 @@ function fileKind(f: FileWithLinks): 'pdf' | '3d' | 'other' {
   return 'other'
 }
 
-watch(() => [props.item, props.visible] as const, async ([item, visible]) => {
+watch(() => [props.item, props.visible, props.mode] as const, async ([item, visible]) => {
   if (!visible || !item) return
   await loadFiles(item)
 }, { immediate: true })
@@ -55,30 +61,35 @@ async function loadFiles(item: string) {
   destroyViewer()
 
   try {
-    // 1. Resolve item → Part
-    const { data } = await apiClient.get<{ parts: PartSearchRow[] }>('/parts', {
-      params: { search: item, limit: 1 },
-    })
-    if (!data.parts?.length) {
-      error.value = 'Díl nenalezen'
-      return
-    }
-    const partId = data.parts[0]!.id
+    // Single API call: article_number → files (backend resolves Part internally)
+    const { data } = await apiClient.get<{ files: FileWithLinks[]; total: number }>(
+      `/files/by-article/${encodeURIComponent(item)}`,
+    )
 
-    // 2. Load files for part
-    const loaded = await filesApi.listByEntity('part', partId)
-    files.value = loaded.filter(f => fileKind(f) !== 'other')
+    // Filter by mode
+    const wantKind = props.mode
+    files.value = (data.files ?? []).filter(f => {
+      const k = fileKind(f)
+      if (k === 'other') return false
+      if (wantKind === 'all') return true
+      return k === wantKind
+    })
 
     if (files.value.length === 0) {
-      error.value = 'Žádné dokumenty'
+      const label = props.mode === 'pdf' ? 'výkresy (PDF)' : props.mode === '3d' ? '3D modely' : 'dokumenty'
+      error.value = `Žádné ${label} pro artikl "${item}"`
       return
     }
 
-    // Auto-select first PDF, or first file
-    const firstPdf = files.value.find(f => fileKind(f) === 'pdf')
-    selectFile(firstPdf ?? files.value[0]!)
-  } catch {
-    error.value = 'Nepodařilo se načíst dokumenty'
+    // Auto-select: prefer PDF in 'all'/'pdf' mode, first file otherwise
+    const preferred = props.mode === '3d'
+      ? files.value[0]!
+      : (files.value.find(f => fileKind(f) === 'pdf') ?? files.value[0]!)
+    selectFile(preferred)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    error.value = `Nepodařilo se načíst dokumenty: ${msg}`
+    console.error('[InlineDocViewer] Error:', e)
   } finally {
     loading.value = false
   }
@@ -139,7 +150,7 @@ onUnmounted(destroyViewer)
       <!-- Header -->
       <div class="idv-header">
         <div class="idv-title">{{ item }}</div>
-        <!-- File tabs -->
+        <!-- File tabs (when multiple files in mode) -->
         <div v-if="files.length > 1" class="idv-tabs">
           <button
             v-for="f in files"
@@ -147,11 +158,11 @@ onUnmounted(destroyViewer)
             :class="['idv-tab', { active: selectedFile?.id === f.id }]"
             @click="selectFile(f)"
           >
-            {{ fileKind(f) === 'pdf' ? 'PDF' : '3D' }}
+            {{ f.original_filename || (fileKind(f) === 'pdf' ? 'PDF' : '3D') }}
           </button>
         </div>
         <button class="idv-close" @click="emit('close')">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
@@ -165,7 +176,7 @@ onUnmounted(destroyViewer)
         <!-- PDF iframe -->
         <iframe
           v-else-if="viewMode === 'pdf' && selectedFile"
-          :src="`/api/files/${selectedFile.id}/preview`"
+          :src="`/api/files/${selectedFile.id}/preview#view=Fit`"
           class="idv-pdf"
         />
 
@@ -185,19 +196,17 @@ onUnmounted(destroyViewer)
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 16px;
+  padding: 0;
 }
 
 .idv-panel {
   width: 100%;
-  max-width: 900px;
+  height: 100%;
   background: var(--ground, #181a1f);
-  border: 1px solid var(--b2);
-  border-radius: var(--rs, 8px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -213,7 +222,7 @@ onUnmounted(destroyViewer)
 }
 
 .idv-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--t1);
   flex: 1;
@@ -225,9 +234,11 @@ onUnmounted(destroyViewer)
 .idv-tabs {
   display: flex;
   gap: 4px;
+  overflow-x: auto;
+  max-width: 60%;
 }
 .idv-tab {
-  padding: 4px 12px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 500;
   font-family: var(--font);
@@ -236,6 +247,8 @@ onUnmounted(destroyViewer)
   border: 1px solid var(--b2);
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .idv-tab.active {
   color: var(--t1);
@@ -244,8 +257,8 @@ onUnmounted(destroyViewer)
 }
 
 .idv-close {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -255,6 +268,7 @@ onUnmounted(destroyViewer)
   cursor: pointer;
   border-radius: 4px;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 .idv-close:active {
   background: rgba(255, 255, 255, 0.06);
@@ -272,7 +286,9 @@ onUnmounted(destroyViewer)
   align-items: center;
   justify-content: center;
   color: var(--t4);
-  font-size: 14px;
+  font-size: 15px;
+  padding: 20px;
+  text-align: center;
 }
 .idv-err { color: var(--red, #e53935); }
 
@@ -284,6 +300,6 @@ onUnmounted(destroyViewer)
 
 .idv-3d {
   flex: 1;
-  min-height: 300px;
+  min-height: 0;
 }
 </style>

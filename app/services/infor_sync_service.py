@@ -117,6 +117,18 @@ DEFAULT_STEPS = [
         "enabled": True,
     },
     {
+        "step_name": "job_transactions",
+        "ido_name": "SLJobTrans",
+        "filter_template": "TransDate >= '2020-01-01'",
+        "properties": (
+            "TransNum,TransType,TransDate,EmpNum,Job,Suffix,OperNum,Wc,"
+            "QtyComplete,QtyScrapped,AHrs,RecordDate"
+        ),
+        "date_field": "RecordDate",
+        "interval_seconds": 120,
+        "enabled": True,
+    },
+    {
         "step_name": "workshop_jbr",
         "ido_name": "IteCzTsdJbrDetails",
         "filter_template": "",
@@ -126,7 +138,7 @@ DEFAULT_STEPS = [
         ),
         "date_field": "",
         "interval_seconds": 60,
-        "enabled": True,
+        "enabled": False,  # TEMPORARILY DISABLED: interferes with FIDDLER DcSfc context
     },
 ]
 
@@ -378,6 +390,11 @@ class InforSyncService:
                 logger.warning("Materials prefetch failed: %s", e)
             return result
 
+        elif step_name == "job_transactions":
+            from app.services.workshop_sync_dispatchers import dispatch_job_transactions
+
+            return await dispatch_job_transactions(rows, db)
+
         elif step_name == "workshop_jbr":
             from app.services.workshop_sync_dispatchers import dispatch_workshop_jbr
 
@@ -483,11 +500,14 @@ class InforSyncService:
                                     "jobroutes_j: inherited watermark %s from old steps",
                                     new_step.last_sync_at,
                                 )
+                        # job_transactions: start watermark from 2020 for full history
+                        if name == "job_transactions":
+                            new_step.last_sync_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+                            logger.info("job_transactions: set initial watermark to 2020-01-01")
                         db.add(new_step)
                         added += 1
-                    elif name.startswith("workshop_"):
-                        # Auto-update workshop steps to match DEFAULT config
-                        # (e.g. date_field, enabled, interval changes)
+                    elif name.startswith("workshop_") or name == "job_transactions":
+                        # Auto-update workshop/job_transactions steps to match DEFAULT config
                         existing_step = existing_by_name[name]
                         changed = False
                         for key in ("date_field", "enabled", "filter_template", "properties", "interval_seconds"):
@@ -495,6 +515,16 @@ class InforSyncService:
                             if default_val is not None and getattr(existing_step, key) != default_val:
                                 setattr(existing_step, key, default_val)
                                 changed = True
+                        # job_transactions: reset watermark to 2020 if it's too recent (missed history)
+                        if name == "job_transactions":
+                            historical_start = datetime(2020, 1, 1, tzinfo=timezone.utc)
+                            last_sync = existing_step.last_sync_at
+                            if last_sync and last_sync.tzinfo is None:
+                                last_sync = last_sync.replace(tzinfo=timezone.utc)
+                            if not last_sync or last_sync > datetime(2025, 1, 1, tzinfo=timezone.utc):
+                                existing_step.last_sync_at = historical_start
+                                changed = True
+                                logger.info("job_transactions: reset watermark to 2020-01-01 for full history")
                         if changed:
                             updated += 1
 

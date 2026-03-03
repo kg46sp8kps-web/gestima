@@ -703,3 +703,58 @@ async def list_files(
     except Exception as e:
         logger.error(f"Failed to list files: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Chyba při načítání seznamu souborů")
+
+
+@router.get("/by-article/{article}", response_model=FileListResponse)
+async def get_files_by_article(
+    article: str,
+    file_type: Optional[str] = Query(None, description="Filtr: file_type (pdf, step)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Vrátí soubory pro díl identifikovaný article_number (DerJobItem z Inforu).
+
+    Jeden API call místo search Parts + list Files.
+    Používá se v operátorském terminálu pro zobrazení výkresů/3D modelů.
+    """
+    # Find Part by exact article_number
+    result = await db.execute(
+        select(Part).where(
+            Part.article_number == article,
+            Part.deleted_at.is_(None),
+        ).limit(1)
+    )
+    part = result.scalar_one_or_none()
+    if not part:
+        return FileListResponse(files=[], total=0)
+
+    # Get files linked to this part
+    query = (
+        select(FileRecord)
+        .options(selectinload(FileRecord.links))
+        .join(FileLink, FileRecord.id == FileLink.file_id)
+        .where(
+            and_(
+                FileLink.entity_type == "part",
+                FileLink.entity_id == part.id,
+                FileLink.deleted_at.is_(None),
+                FileRecord.deleted_at.is_(None),
+                FileRecord.status == "active",
+            )
+        )
+    )
+    if file_type:
+        query = query.where(FileRecord.file_type == file_type)
+
+    result = await db.execute(query.order_by(FileRecord.created_at.desc()))
+    records = result.scalars().all()
+
+    files = []
+    for record in records:
+        active_links = [link for link in record.links if link.deleted_at is None]
+        file_resp = FileWithLinksResponse.model_validate(record)
+        file_resp.links = [FileLinkResponse.model_validate(link) for link in active_links]
+        files.append(file_resp)
+
+    return FileListResponse(files=files, total=len(files))

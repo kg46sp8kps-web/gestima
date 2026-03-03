@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOperatorStore } from '@/stores/operator'
+import { onSseEvent } from '@/composables/useSse'
+import type { PriorityTier } from '@/types/production-planner'
 import ActiveJobBar from './ActiveJobBar.vue'
 
 interface NavItem {
@@ -71,6 +73,12 @@ function doLogout() {
   operator.$reset()
   auth.logout('/terminal/login')
 }
+
+// Persistent SSE tier_change listener — stays active across all terminal pages
+onSseEvent('tier_change', (data) => {
+  const msg = data as { job: string; suffix?: string; tier: PriorityTier }
+  operator.applyTierChange(msg.job, msg.tier)
+})
 </script>
 
 <template>

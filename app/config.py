@@ -58,10 +58,16 @@ class Settings(BaseSettings):
 
     # Infor CloudSuite Industrial Integration
     INFOR_API_URL: str = ""  # Infor API base URL (e.g., https://util90110.kovorybka.cz)
-    INFOR_CONFIG: str = "TEST"  # Infor configuration name (LIVE = readonly, zápisy blokované v routeru)
+    INFOR_CONFIG: str = "Live"  # Infor configuration name
     INFOR_USERNAME: str = ""  # Infor API username
     INFOR_PASSWORD: str = ""  # Infor API password
     INFOR_WC_MAPPING: str = '{"PS":"80000011","PSa":"80000011","PSm":"80000011","PSv":"80000011","FV3":"80000006","FH4":"80000007","FV5":"80000010","FV5R":"80000009","FV3R":"80000008","FV":"80000005","SH2":"80000001","SH2A":"80000002","SM1":"80000003","SM3":"80000004","VS":"80000014","OTK":"80000013","OTK/KO":"80000013","MECH":"80000015","KOO":"80000016"}'
+
+    # Infor Process Server (Mongoose) — stateful session for TSD
+    IPS_HOST: str = ""  # IPS base URL (e.g. http://192.168.1.17:8501)
+    IPS_USER: str = "tsd"  # IPS login user
+    IPS_PASSWORD: str = ""  # IPS login password (pre-hashed base64 SHA-256 from InduStream)
+    IPS_CONFIG: str = "Live"  # IPS configuration name
 
     # Infor Sync (Smart Polling)
     INFOR_SYNC_ENABLED: bool = False

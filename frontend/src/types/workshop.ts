@@ -31,6 +31,7 @@ export interface WorkshopQueueItem {
   QtyScrapped: number | null
   JshSetupHrs: number | null
   DerRunMchHrs: number | null
+  DerRunLbrHrs: number | null
   OpDatumSt: string | null   // Plánovaný začátek operace (z IteCzTsdJbrDetails)
   OpDatumSp: string | null   // Plánovaný konec operace (z IteCzTsdJbrDetails)
 }
@@ -148,6 +149,10 @@ export interface MachinePlanItem extends WorkshopQueueItem {
   Priority?: number             // Priorita (5=hot, 20=urgent, 100=normal)
   Tier?: 'hot' | 'urgent' | 'normal'  // Odvozený tier
   IsPositioned?: boolean        // true = ručně pozicovaný v DnD (má DB pozici)
+  NextWc?: string | null             // Pracoviště další operace (SAW enrichment)
+  MaterialGroupName?: string | null  // Skupina materiálu: Hliník, Nerez, Ocel... (SAW enrichment)
+  PrimaryMaterial?: string | null    // Název primárního materiálu (SAW enrichment)
+  IsoGroup?: string | null           // ISO skupina materiálu: P, M, K, N, S, H (SAW enrichment)
 }
 
 export type WorkshopSortDir = 'asc' | 'desc'

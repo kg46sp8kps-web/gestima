@@ -19,7 +19,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db_helpers import set_audit
 from app.models.machine_plan import MachinePlanEntry
+from app.models.material import MaterialGroup, MaterialItem
+from app.models.material_input import MaterialInput
+from app.models.part import Part
 from app.models.production_priority import ProductionPriority
+from app.models.workshop_job_route import WorkshopJobRoute
 from app.services import workshop_service
 from app.services.production_planner_service import _fetch_co_deadlines, _derive_tier
 
@@ -149,6 +153,7 @@ def _unassigned_sort_key(row: Dict[str, Any]):
 async def enrich_flat_rows(
     db: AsyncSession,
     rows: List[Dict[str, Any]],
+    wc: Optional[str] = None,
 ) -> None:
     """Enrich flat machine-plan rows with OrderDueDate, IsHot, Tier.
 
@@ -180,6 +185,140 @@ async def enrich_flat_rows(
     }
 
     _enrich_rows(rows, co_map, priorities)
+
+    # SAW enrichment: NextWc + PrimaryMaterial (jen pro pily)
+    if wc and workshop_service._is_saw_wc(wc):
+        await _enrich_saw_fields(db, rows)
+
+
+async def _enrich_saw_fields(
+    db: AsyncSession,
+    rows: List[Dict[str, Any]],
+) -> None:
+    """Obohatit SAW řádky o NextWc a PrimaryMaterial (batch DB dotazy).
+
+    NextWc = pracoviště následující operace (dle oper_num sort).
+    PrimaryMaterial = první materiál z material cache pro danou operaci.
+    """
+    if not rows:
+        return
+
+    # --- NextWc: self-join přes oper_num ---
+    # 1. Sebrat unique (job, suffix) z rows
+    vp_pairs: set[Tuple[str, str]] = set()
+    for r in rows:
+        job = str(r.get("Job", "")).strip()
+        suffix = str(r.get("Suffix", "0")).strip()
+        if job:
+            vp_pairs.add((job, suffix))
+
+    if vp_pairs:
+        # 2. Jeden SQL dotaz — všechny operace pro tyto jobs
+        job_list = list({vp[0] for vp in vp_pairs})
+        result = await db.execute(
+            select(
+                WorkshopJobRoute.job,
+                WorkshopJobRoute.suffix,
+                WorkshopJobRoute.oper_num,
+                WorkshopJobRoute.wc,
+            ).where(
+                WorkshopJobRoute.job.in_(job_list),
+                WorkshopJobRoute.deleted_at.is_(None),
+            )
+        )
+        all_ops = result.all()
+
+        # 3. Build per-(job,suffix) sorted oper list
+        from collections import defaultdict
+        ops_by_vp: Dict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(list)
+        for op_job, op_suffix, op_oper, op_wc in all_ops:
+            key = (str(op_job).strip(), str(op_suffix or "0").strip())
+            ops_by_vp[key].append((str(op_oper or "").strip(), str(op_wc or "").strip()))
+
+        # Sort each VP's ops by oper_num
+        next_wc_lookup: Dict[Tuple[str, str, str], Optional[str]] = {}
+        for vp_key, ops in ops_by_vp.items():
+            ops.sort(key=lambda x: workshop_service._oper_sort_key(x[0]))
+            for i, (oper, wc) in enumerate(ops):
+                if i + 1 < len(ops):
+                    next_wc_lookup[(vp_key[0], vp_key[1], oper)] = ops[i + 1][1]
+                else:
+                    next_wc_lookup[(vp_key[0], vp_key[1], oper)] = None
+
+        # 4. Nastavit NextWc pro každý row
+        for r in rows:
+            job = str(r.get("Job", "")).strip()
+            suffix = str(r.get("Suffix", "0")).strip()
+            oper = str(r.get("OperNum", "")).strip()
+            r["NextWc"] = next_wc_lookup.get((job, suffix, oper))
+
+    # --- MaterialGroup: article → part → material_input → material_item → material_group ---
+    article_codes = list({
+        str(r.get("DerJobItem", "")).strip()
+        for r in rows
+        if str(r.get("DerJobItem", "")).strip()
+    })
+    # group_name + material_desc + iso_group pro resolved
+    mat_group_lookup: Dict[str, Tuple[str, str, Optional[str]]] = {}  # article → (group_name, mat_name, iso_group)
+    articles_with_bom: set[str] = set()  # články, co mají material_inputs (i neresolved)
+    if article_codes:
+        # 1. Full chain: article → MaterialGroup
+        mat_result = await db.execute(
+            select(
+                Part.article_number,
+                MaterialGroup.name,
+                MaterialItem.name.label("mat_name"),
+                MaterialGroup.iso_group,
+                MaterialInput.seq,
+            )
+            .join(MaterialInput, MaterialInput.part_id == Part.id)
+            .join(MaterialItem, MaterialItem.id == MaterialInput.material_item_id)
+            .join(MaterialGroup, MaterialGroup.id == MaterialItem.material_group_id)
+            .where(
+                Part.article_number.in_(article_codes),
+                MaterialInput.deleted_at.is_(None),
+                Part.deleted_at.is_(None),
+            )
+            .order_by(Part.article_number, MaterialInput.seq.asc())
+        )
+        for article, group_name, mat_name, iso_group, _seq in mat_result.all():
+            art_key = str(article).strip()
+            if art_key not in mat_group_lookup:
+                # Sloučit ocelové podskupiny do jedné "Ocel"
+                saw_group = "Ocel" if group_name and group_name.startswith("Ocel") else group_name
+                mat_group_lookup[art_key] = (saw_group, mat_name, iso_group)
+
+        # 2. Články s material_inputs (i ty bez material_item_id) — pro odlišení
+        #    "neznámý materiál" vs "bez materiálu"
+        bom_result = await db.execute(
+            select(Part.article_number)
+            .join(MaterialInput, MaterialInput.part_id == Part.id)
+            .where(
+                Part.article_number.in_(article_codes),
+                MaterialInput.deleted_at.is_(None),
+                Part.deleted_at.is_(None),
+            )
+            .distinct()
+        )
+        articles_with_bom = {str(r[0]).strip() for r in bom_result.all()}
+
+    for r in rows:
+        article = str(r.get("DerJobItem", "")).strip()
+        mat = mat_group_lookup.get(article)
+        if mat:
+            r["MaterialGroupName"] = mat[0]
+            r["PrimaryMaterial"] = mat[1]
+            r["IsoGroup"] = mat[2]
+        elif article in articles_with_bom:
+            # BOM existuje, ale materiál se nepodařilo namapovat na skupinu
+            r["MaterialGroupName"] = "__unknown__"
+            r["PrimaryMaterial"] = None
+            r["IsoGroup"] = None
+        else:
+            # Žádný BOM / part neexistuje
+            r["MaterialGroupName"] = "__none__"
+            r["PrimaryMaterial"] = None
+            r["IsoGroup"] = None
 
 
 async def get_plan(
@@ -256,6 +395,11 @@ async def get_plan(
     }
 
     _enrich_rows(infor_rows, co_map, priorities)
+
+    # SAW enrichment: NextWc + PrimaryMaterial (jen pro pily)
+    if workshop_service._is_saw_wc(wc):
+        await _enrich_saw_fields(db, infor_rows)
+
     logger.info(
         "Machine plan enrichment for wc=%s: %d infor rows, %d unique items, %d CO matches, %d priorities",
         wc, len(infor_rows), len(item_codes), len(co_map), len(priorities),

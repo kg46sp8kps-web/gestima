@@ -28,8 +28,8 @@ async function submit() {
 
   const redirectTo = (route.query.redirect as string) || '/'
 
-  // Dílna nemá prefetch — přejdi rovnou bez čekání
-  if (redirectTo.startsWith('/dilna')) {
+  // Dílna/terminál nemají prefetch — přejdi rovnou bez čekání
+  if (redirectTo.startsWith('/dilna') || redirectTo.startsWith('/terminal')) {
     await router.push(redirectTo)
     return
   }
@@ -115,8 +115,8 @@ async function submit() {
 .bg-grid {
   position: absolute; inset: -200px;
   background-image:
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 60px 60px;
   animation: drift 30s linear infinite, fadeIn 1s 0.1s var(--ease) forwards;
   opacity: 0;
@@ -155,7 +155,7 @@ async function submit() {
 /* Logo sekce */
 .lmark {
   width: 64px; height: 64px; border-radius: 50%;
-  filter: drop-shadow(0 0 20px rgba(229,57,53,0.4)) drop-shadow(0 0 40px rgba(229,57,53,0.15));
+  filter: drop-shadow(0 0 20px var(--red-20)) drop-shadow(0 0 40px var(--red-dim));
   flex-shrink: 0;
   opacity: 0; animation: fadeUp 0.5s 0.3s var(--ease) forwards;
 }
@@ -198,7 +198,7 @@ async function submit() {
 /* ── INPUTS ── */
 .linput {
   width: 100%;
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t1);
@@ -211,7 +211,7 @@ async function submit() {
   transition: border-color 120ms var(--ease), background 120ms var(--ease);
 }
 .linput::placeholder { color: var(--t4); font-weight: 400; }
-.linput:focus { border-color: var(--red); background: rgba(255,255,255,0.06); outline: none; }
+.linput:focus { border-color: var(--red); background: var(--input-bg-focus); outline: none; }
 .linput:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Autofill override */

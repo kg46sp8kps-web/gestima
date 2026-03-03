@@ -74,7 +74,7 @@ watch(
   backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid var(--b2);
   border-radius: 10px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  box-shadow: var(--modal-shadow);
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 48px);

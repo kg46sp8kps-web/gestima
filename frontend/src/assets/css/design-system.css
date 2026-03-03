@@ -1,8 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    GESTIMA Design System v2 — CSS Variables
    Source of truth: frontend/tiling-preview-v3.html
-   51 tokens: 35 v2 + 16 app-specific
-   Dark-only. NO light mode. NO legacy aliases.
+   Dark + Light themes via [data-theme] attribute.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -66,6 +65,17 @@
   --ease: cubic-bezier(0.4,0,0.2,1);
   --spring: cubic-bezier(0.34,1.56,0.64,1);
 
+  /* ─── Theme-aware utility tokens ─── */
+  --focus-ring: rgba(255,255,255,0.5);
+  --input-bg: rgba(255,255,255,0.04);
+  --input-bg-focus: rgba(255,255,255,0.07);
+  --thead-bg: rgba(255,255,255,0.025);
+  --row-border: rgba(255,255,255,0.025);
+  --row-sel: rgba(255,255,255,0.06);
+  --grid-line: rgba(255,255,255,0.015);
+  --shadow-drop: rgba(0,0,0,0.5);
+  --modal-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+
   /* ─── App-specific: Charts ─── */
   --chart-material: #60a5fa;
   --chart-machining: #a78bfa;
@@ -85,6 +95,128 @@
   --link-group-green: #22c55e;
   --link-group-yellow: #fbbf24;
   --link-group-neutral: rgba(255,255,255,0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHT THEME
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  --red-glow: rgba(229,57,53,0.10);
+  --red-dim: rgba(229,57,53,0.05);
+  --red-10: rgba(229,57,53,0.08);
+  --red-20: rgba(229,57,53,0.14);
+
+  --green-10: rgba(22,163,74,0.08);
+  --green-15: rgba(22,163,74,0.12);
+
+  --base: #f4f4f6;
+  --ground: #eaeaed;
+  --surface: rgba(255,255,255,0.92);
+  --raised: rgba(255,255,255,0.96);
+  --glass: rgba(248,248,250,0.70);
+
+  --t1: #1a1a1e;
+  --t2: #3a3a42;
+  --t3: #6e6e78;
+  --t4: #9e9ea6;
+
+  --b1: rgba(0,0,0,0.05);
+  --b2: rgba(0,0,0,0.10);
+  --b3: rgba(0,0,0,0.15);
+
+  --ok: #059669;
+  --warn: #d97706;
+  --err: #dc2626;
+  --ok-10: rgba(5,150,105,0.10);
+  --warn-10: rgba(217,119,6,0.10);
+  --err-10: rgba(220,38,38,0.08);
+  --err-15: rgba(220,38,38,0.12);
+
+  --link-group-neutral: rgba(0,0,0,0.10);
+
+  --focus-ring: rgba(0,0,0,0.25);
+  --input-bg: rgba(0,0,0,0.03);
+  --input-bg-focus: rgba(0,0,0,0.06);
+  --thead-bg: rgba(0,0,0,0.025);
+  --row-border: rgba(0,0,0,0.04);
+  --row-sel: rgba(0,0,0,0.05);
+  --grid-line: rgba(0,0,0,0.04);
+  --shadow-drop: rgba(0,0,0,0.12);
+  --modal-shadow: 0 24px 64px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CORPORATE THEME — 2026 trendy, indigo accent, warm off-white
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="corporate"] {
+  /* ─── Accent — indigo replaces red ─── */
+  --red: #6366F1;
+  --red-glow: rgba(99,102,241,0.10);
+  --red-dim: rgba(99,102,241,0.05);
+  --red-10: rgba(99,102,241,0.06);
+  --red-20: rgba(99,102,241,0.12);
+
+  --green: #10B981;
+  --green-10: rgba(16,185,129,0.07);
+  --green-15: rgba(16,185,129,0.11);
+
+  /* ─── Surfaces — warm off-white, no pure #fff base ─── */
+  --base: #F7F7FA;
+  --ground: #EEEFF4;
+  --surface: rgba(255,255,255,0.94);
+  --raised: rgba(255,255,255,0.97);
+  --glass: rgba(250,250,253,0.75);
+
+  /* ─── Text — premium 4-level hierarchy ─── */
+  --t1: #111827;
+  --t2: #1F2937;
+  --t3: #64748B;
+  --t4: #94A3B8;
+
+  /* ─── Borders — barely there ─── */
+  --b1: rgba(0,0,0,0.04);
+  --b2: rgba(0,0,0,0.07);
+  --b3: rgba(0,0,0,0.11);
+
+  /* ─── Status — vivid on light ─── */
+  --ok: #10B981;
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --ok-10: rgba(16,185,129,0.08);
+  --warn-10: rgba(245,158,11,0.08);
+  --err-10: rgba(239,68,68,0.06);
+  --err-15: rgba(239,68,68,0.10);
+
+  --link-group-neutral: rgba(0,0,0,0.07);
+  --link-group-red: #6366F1;
+  --link-group-blue: #3B82F6;
+
+  /* ─── Utility ─── */
+  --focus-ring: rgba(99,102,241,0.40);
+  --input-bg: rgba(0,0,0,0.02);
+  --input-bg-focus: rgba(99,102,241,0.04);
+  --thead-bg: rgba(99,102,241,0.025);
+  --row-border: rgba(0,0,0,0.03);
+  --row-sel: rgba(99,102,241,0.06);
+  --grid-line: rgba(99,102,241,0.025);
+  --shadow-drop: rgba(99,102,241,0.06);
+  --modal-shadow: 0 24px 64px rgba(99,102,241,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+
+  /* ─── Charts — richer on light ─── */
+  --chart-material: #3B82F6;
+  --chart-machining: #8B5CF6;
+  --chart-setup: #F59E0B;
+  --chart-cooperation: #10B981;
+  --chart-revenue: #10B981;
+  --chart-expenses: #EF4444;
+  --chart-profit: #059669;
+  --chart-wages: #6366F1;
+  --chart-depreciation: #64748B;
+  --chart-energy: #F59E0B;
+  --chart-tools: #F97316;
+}
+[data-theme="corporate"] body::after {
+  opacity: 0;
 }
 
 /* ═══════════════════════════════════════
@@ -152,7 +284,7 @@ body {
   box-shadow: 0 0 0 1px var(--red);
 }
 .btn-primary:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .btn-primary:disabled {
@@ -183,7 +315,7 @@ body {
   color: var(--t1);
 }
 .btn-secondary:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .btn-secondary:disabled {
@@ -209,10 +341,10 @@ body {
   white-space: nowrap;
 }
 .btn-destructive:hover {
-  background: rgba(248,113,113,0.1);
+  background: var(--err-10);
 }
 .btn-destructive:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .btn-destructive:disabled {
@@ -239,7 +371,7 @@ body {
 }
 .icon-btn:hover { color: var(--t1); background: var(--b1); }
 .icon-btn:active:not(:disabled) { transform: scale(0.9); background: var(--b2); }
-.icon-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+.icon-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .icon-btn-sm {
@@ -251,17 +383,17 @@ body {
 .icon-btn-brand:hover { color: var(--red); background: var(--red-10); }
 
 .icon-btn-danger { color: var(--t3); }
-.icon-btn-danger:hover { color: var(--err); background: rgba(248,113,113,0.1); }
+.icon-btn-danger:hover { color: var(--err); background: var(--err-10); }
 
 /* ═══════════════════════════════════════
-   INPUT — dark themed, for admin/utility forms
+   INPUT — themed, for admin/utility forms
    ═══════════════════════════════════════ */
 .input {
   width: 100%;
   padding: 4px 6px;
   border: 1px solid var(--b2);
   border-radius: var(--rs);
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   color: var(--t1);
   font-family: var(--font);
   font-size: var(--fs);
@@ -270,7 +402,7 @@ body {
 .input:focus {
   outline: none;
   border-color: var(--b3);
-  background: rgba(255,255,255,0.07);
+  background: var(--input-bg-focus);
 }
 .input:disabled {
   opacity: 0.4;
@@ -331,7 +463,7 @@ body {
    OPERATIONS TABLE (.ot) — shared tiling module table
    ═══════════════════════════════════════ */
 .ot { width: 100%; border-collapse: collapse; }
-.ot thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
+.ot thead { background: var(--thead-bg); position: sticky; top: 0; z-index: 2; }
 .ot th {
   padding: 4px var(--pad);
   font-size: var(--fsm);
@@ -348,18 +480,18 @@ body {
   padding: 4px var(--pad);
   font-size: var(--fs);
   color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--row-border);
 }
 .ot td.r { text-align: right; color: var(--t1); }
 .ot tbody tr { transition: background 80ms var(--ease); }
 .ot tbody tr:hover td { background: var(--b1); }
-.ot tbody tr.sel td { background: rgba(255,255,255,0.06); }
+.ot tbody tr.sel td { background: var(--row-sel); }
 
 /* ═══════════════════════════════════════
    BATCH/PRICING TABLE (.bt) — green accent variant
    ═══════════════════════════════════════ */
 .bt { width: 100%; border-collapse: collapse; }
-.bt thead { background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 2; }
+.bt thead { background: var(--thead-bg); position: sticky; top: 0; z-index: 2; }
 .bt th {
   padding: 4px var(--pad);
   font-size: var(--fsm);
@@ -376,7 +508,7 @@ body {
   padding: 4px var(--pad);
   font-size: var(--fs);
   color: var(--t2);
-  border-bottom: 1px solid rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--row-border);
 }
 .bt td.r { text-align: right; color: var(--t1); }
 .bt tbody tr { transition: background 80ms var(--ease); }
@@ -395,4 +527,7 @@ body::after {
   opacity: 0.02;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-size: 128px 128px;
+}
+[data-theme="light"] body::after {
+  opacity: 0.015;
 }

@@ -389,6 +389,72 @@ class InforAPIClient:
             logger.error(f"POST InvokeMethod error: {e}")
             raise
 
+    async def invoke_method_params(
+        self,
+        ido_name: str,
+        method_name: str,
+        params: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Volání IDO metody přes POST s pojmenovanými parametry a IsOutput flagy.
+
+        Formát identický s InduStream (Fiddler HAR):
+          POST /json/method/{ido}/{method}
+          Body: {"Params": [{"ParamName": "P0", "Value": "...", "IsOutput": true}, ...]}
+
+        Args:
+            ido_name: Název IDO (např. "IteCzTsdStd")
+            method_name: Název metody
+            params: List of param dicts: [{"ParamName": "P0", "Value": "x", "IsOutput": True}, ...]
+
+        Returns:
+            Dict s výsledkem {"Message": ..., "MessageCode": ..., "Params": [...]}
+        """
+        token = await self.get_token()
+
+        body = {"Params": params}
+
+        logger.info(
+            "InvokeMethod POST: %s.%s param_count=%d",
+            ido_name, method_name, len(params),
+        )
+        logger.debug("InvokeMethod POST body: %s", body)
+
+        client = self._get_http_client()
+        try:
+            # Trailing slash required — Infor IIS returns 307 redirect without it
+            response = await client.post(
+                f"{self.base_url}/json/method/{ido_name}/{method_name}/",
+                json=body,
+                headers={
+                    "Authorization": token,
+                    "Content-Type": "application/json"
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+            result = response.json()
+            logger.debug("InvokeMethod POST response: %s", result)
+
+            # Normalize response: map "Params" → "Parameters" for compatibility
+            if "Params" in result and "Parameters" not in result:
+                # Extract values from Params array into Parameters list
+                out_params = []
+                for p in result.get("Params", []):
+                    out_params.append(p.get("Value"))
+                result["Parameters"] = out_params
+
+            return result
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "InvokeMethod POST failed: %s - %s",
+                e.response.status_code, e.response.text[:500],
+            )
+            raise
+        except Exception as e:
+            logger.error("InvokeMethod POST error: %s", e)
+            raise
+
     async def invoke_method_positional(
         self,
         ido_name: str,
@@ -401,6 +467,8 @@ class InforAPIClient:
         Infor REST API požaduje parametry jako JEDEN parms query param s hodnotami
         oddělenými čárkou (pozičně odpovídají @parametrům SP v jejich pořadí).
 
+        IMPORTANT: Commas in parms are literal delimiters (NOT URL-encoded).
+        Only individual parameter values are URL-encoded.
         Zjištěno z WSDL: UriTemplate = /json/method/{ido}/{method}?parms={parms}
 
         Args:
@@ -412,25 +480,44 @@ class InforAPIClient:
             Dict s výsledkem {"Message": ..., "MessageCode": ..., "ReturnValue": ...}
         """
         token = await self.get_token()
-        parms = ",".join(str(v) for v in positional_values)
 
-        logger.debug(f"InvokeMethod positional: {ido_name}.{method_name}(parms={parms[:100]})")
+        # URL-encode individual values but keep commas as literal delimiters.
+        # Infor REST API UriTemplate expects: ?parms=v1,v2,v3,...
+        # Commas are structural delimiters, NOT part of values.
+        from urllib.parse import quote
+        encoded_values = [quote(str(v), safe="") for v in positional_values]
+        parms = ",".join(encoded_values)
+
+        logger.info(
+            "InvokeMethod positional: %s.%s param_count=%d",
+            ido_name, method_name, len(positional_values),
+        )
+        logger.debug("InvokeMethod positional parms: %s", parms[:300])
+
+        # Build URL manually — do NOT let httpx encode the query string,
+        # because it would encode commas as %2C which breaks Infor parsing.
+        url = f"{self.base_url}/json/method/{ido_name}/{method_name}?parms={parms}"
 
         client = self._get_http_client()
         try:
             response = await client.get(
-                f"{self.base_url}/json/method/{ido_name}/{method_name}",
-                params={"parms": parms},
+                url,
                 headers={"Authorization": token},
                 timeout=30.0
             )
+            logger.info("InvokeMethod positional response URL: %s", response.url)
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            logger.debug("InvokeMethod positional response body: %s", result)
+            return result
         except httpx.HTTPStatusError as e:
-            logger.error(f"InvokeMethod positional failed: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                "InvokeMethod positional failed: %s - %s",
+                e.response.status_code, e.response.text,
+            )
             raise
         except Exception as e:
-            logger.error(f"InvokeMethod positional error: {e}")
+            logger.error("InvokeMethod positional error: %s", e)
             raise
 
     async def additem(

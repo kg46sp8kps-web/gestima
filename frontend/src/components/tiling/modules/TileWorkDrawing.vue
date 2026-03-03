@@ -540,7 +540,7 @@ const downloadUrl = computed(() =>
 .pdf-nav-btn:hover:not(:disabled) { color: var(--t1); background: var(--b2); }
 .pdf-nav-btn:disabled { opacity: 0.3; cursor: default; }
 .pdf-nav-btn.active { color: var(--t1); background: var(--b2); }
-.pdf-nav-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
+.pdf-nav-btn:focus-visible { outline: 2px solid var(--focus-ring); }
 
 .pdf-page-info {
   font-size: var(--fsm);
@@ -572,7 +572,7 @@ const downloadUrl = computed(() =>
   flex-shrink: 0;
 }
 .pdf-dl:hover { color: var(--t1); border-color: var(--b3); background: var(--b1); }
-.pdf-dl:focus-visible { outline: 2px solid rgba(255,255,255,0.5); }
+.pdf-dl:focus-visible { outline: 2px solid var(--focus-ring); }
 
 .file-info-name { font-size: var(--fs); color: var(--t1); font-weight: 500; }
 .file-info-meta { font-size: var(--fsm); color: var(--t4); }

@@ -39,7 +39,7 @@ function onInput(e: Event) {
 <style scoped>
 /* ─── Standard (.ei pattern) ─── */
 .ii {
-  background: rgba(255,255,255,0.04);
+  background: var(--input-bg);
   border: 1px solid var(--b2);
   border-radius: var(--rs);
   color: var(--t2);
@@ -50,8 +50,8 @@ function onInput(e: Event) {
   transition: border-color 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease);
 }
 .ii::placeholder { color: var(--t4); }
-.ii:focus { border-color: var(--b3); background: rgba(255,255,255,0.07); color: var(--t1); }
-.ii:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+.ii:focus { border-color: var(--b3); background: var(--input-bg-focus); color: var(--t1); }
+.ii:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 /* ─── Remove number spinners (forbidden per design rules) ─── */
 .ii::-webkit-outer-spin-button,
